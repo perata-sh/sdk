@@ -28,7 +28,7 @@ echo "== go"
 (cd go && go vet ./... && go test -count=1 ./...)
 
 echo "== typescript"
-(cd typescript && npm install --no-audit --no-fund --silent && npx tsc -p tsconfig.json --noEmit && node --test test/)
+(cd typescript && npm install --no-audit --no-fund --silent && npx tsc -p tsconfig.json --noEmit && node --test 'test/*.test.ts')
 
 echo "== python"
 (cd python && PYTHONPATH=src python3 -m unittest discover -s tests && "${MYPY:-mypy}" --strict --python-version 3.11 src/perata)
