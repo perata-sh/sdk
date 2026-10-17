@@ -1,0 +1,8 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Perata/Perata.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Perata.Tests/Perata.Tests.csproj" />
+  </Folder>
+</Solution>
