@@ -1,0 +1,55 @@
+# Peráta SDK para .NET
+
+SDK oficial da API da Peráta para C# e .NET 8+ (LTS), sem dependências: `HttpClient`, `System.Text.Json` com serialização gerada em compilação (compatível com trimming e Native AOT) e `HMACSHA256`. É gerado a partir do contrato da API (`openapi.json`, na raiz de [perata-sh/sdk](https://github.com/perata-sh/sdk)) por `generator/`. Não edite os arquivos desta pasta: regenere.
+
+```sh
+dotnet add package Perata
+```
+
+```csharp
+using Perata;
+
+var perata = new PerataClient(Environment.GetEnvironmentVariable("PERATA_API_KEY")!); // prk_test_… ou prk_live_…
+
+var product = await perata.Products.CreateAsync(
+    new ProductsCreateParams { Name = "Curso" },
+    new RequestOptions { IdempotencyKey = "produto-curso" });
+
+await foreach (var each in perata.Products.ListIterAsync())
+{
+    Console.WriteLine(each.Name);
+}
+```
+
+`new PerataClient(apiKey, new PerataClientOptions { BaseUrl = …, Timeout = …, HttpClient = … })` troca o endereço, o tempo de espera (30 s por padrão) ou o HTTP (um `HttpClient` do `IHttpClientFactory`, ou um `Handler`). O cliente pode ser compartilhado entre threads.
+
+## Recursos
+
+| Serviço | Métodos |
+|---|---|
+| `perata.Checkouts` | `CreateAsync` |
+| `perata.Customers` | `CreateAsync`, `GetAsync`, `ListAsync`, `ListIterAsync` |
+| `perata.Orders` | `ListAsync`, `ListIterAsync` |
+| `perata.PaymentMethods` | `DetachAsync`, `ListAsync`, `ListIterAsync` |
+| `perata.Payments` | `GetAsync`, `ListAsync`, `ListIterAsync` |
+| `perata.Prices` | `CreateAsync`, `ListAsync`, `ListIterAsync` |
+| `perata.Products` | `CreateAsync`, `GetAsync`, `ListAsync`, `ListIterAsync` |
+| `perata.Refunds` | `CreateAsync` |
+| `perata.Subscriptions` | `CancelAsync`, `GetAsync`, `ListAsync`, `ListIterAsync` |
+
+Os modelos são `record`s imutáveis em PascalCase (`payment.AmountCents`), com os valores enumerados como constantes (`Product.StatusActive`). O corpo de cada escrita é um `record` com membros `required` (`ProductsCreateParams`); um campo opcional nulo fica fora da requisição. As listas aceitam `…ListParams` (`Page`, `Limit` e os filtros) e o `…IterAsync` devolve um `IAsyncEnumerable` que percorre todas as páginas. Todo método aceita, por último, `RequestOptions` (`IdempotencyKey` nas escritas, `ApiKey` para usar a chave de outra organização numa chamada) e um `CancellationToken`.
+
+## Erros
+
+Uma recusa da API lança `PerataException`, com `Status`, `Code` (`invalid_request`, `not_found`…), `ApiMessage`, `Fields` (o problema de cada campo) e, num 429, `RetryAfter` em segundos. Uma falha de rede lança `HttpRequestException`; o tempo esgotado, `TimeoutException`.
+
+## Webhooks
+
+```csharp
+var body = await new StreamReader(Request.Body).ReadToEndAsync();
+var webhook = Webhook.Verify(Environment.GetEnvironmentVariable("PERATA_WEBHOOK_SECRET")!, Request.Headers, body);
+```
+
+A assinatura é a do Standard Webhooks (`webhook-id`, `webhook-timestamp`, `webhook-signature`), com tolerância de 5 minutos. Passe o corpo cru, antes de interpretar; os cabeçalhos podem ser os do ASP.NET, de um `HttpHeaders` ou um dicionário. Uma assinatura inválida lança `WebhookVerificationException`.
+
+Versão do SDK: 0.1.0 · contrato da API: 0.1.0
