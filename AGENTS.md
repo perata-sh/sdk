@@ -48,8 +48,12 @@ release that formats differently from CI.
 
 ## Release
 
-One version for every language. Bump `VERSION`, regenerate, commit
-`sdk: release X.Y.Z`, then tag `go/vX.Y.Z` (the Go module) and `vX.Y.Z`.
-Publishing to npm, PyPI and Packagist needs the organization's accounts and is
-not automated yet; Packagist reads a repository whose root is the package, so
-PHP is published from a split of `php/`.
+One version for every language.
+1. Bump `VERSION`, run `go run ./cmd/sdkgen` and `./check.sh`, and commit
+   `sdk: release X.Y.Z` on develop; fast-forward main.
+2. Tag `vX.Y.Z` and `go/vX.Y.Z` on that commit and push both. The `v` tag runs
+   `.github/workflows/release.yml`, which publishes npm and PyPI by trusted
+   publishing (OIDC, no stored token); the `go/` tag is the Go module's
+   version.
+3. `scripts/split-php.sh vX.Y.Z` pushes `php/` to `perata-sh/perata-php`, the
+   repository Packagist reads, which needs the package at its root.

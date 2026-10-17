@@ -1,0 +1,51 @@
+name: release
+
+# A tag vX.Y.Z publishes that version of every SDK. npm and PyPI trust this
+# workflow through OIDC (trusted publishing), so no token is stored here. Go
+# is published by the go/vX.Y.Z tag itself, and PHP by the perata-php split.
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: read
+
+jobs:
+  npm:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          registry-url: 'https://registry.npmjs.org'
+      - run: npm install -g npm@latest
+      - working-directory: typescript
+        run: |
+          test "v$(node -p 'require("./package.json").version')" = "$GITHUB_REF_NAME"
+          npm install --no-audit --no-fund
+          npm run build
+          npm publish --access public --provenance
+
+  pypi:
+    runs-on: ubuntu-latest
+    environment: pypi
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - working-directory: python
+        run: |
+          test "v$(cat ../VERSION)" = "$GITHUB_REF_NAME"
+          pip install build
+          python -m build
+      - uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          packages-dir: python/dist
