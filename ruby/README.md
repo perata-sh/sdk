@@ -1,0 +1,51 @@
+# Peráta SDK para Ruby
+
+SDK oficial da API da Peráta para Ruby 3.1+, sem dependências: só `net/http`, `json` e `openssl`. É gerado a partir do contrato da API (`openapi.json`, na raiz de [perata-sh/sdk](https://github.com/perata-sh/sdk)) por `generator/`. Não edite os arquivos desta pasta: regenere.
+
+```sh
+gem install perata
+```
+
+```ruby
+require "perata"
+
+perata = Perata::Client.new(ENV.fetch("PERATA_API_KEY")) # prk_test_… ou prk_live_…
+
+product = perata.products.create({ name: "Curso" }, idempotency_key: "produto-curso")
+
+perata.products.list_iter.each do |product|
+  puts product.name
+end
+```
+
+## Recursos
+
+| Serviço | Métodos |
+|---|---|
+| `perata.checkouts` | `create` |
+| `perata.customers` | `create`, `get`, `list`, `list_iter` |
+| `perata.orders` | `list`, `list_iter` |
+| `perata.payment_methods` | `detach`, `list`, `list_iter` |
+| `perata.payments` | `get`, `list`, `list_iter` |
+| `perata.prices` | `create`, `list`, `list_iter` |
+| `perata.products` | `create`, `get`, `list`, `list_iter` |
+| `perata.refunds` | `create` |
+| `perata.subscriptions` | `cancel`, `get`, `list`, `list_iter` |
+
+Os modelos são objetos imutáveis com leitores em snake_case (`payment.amount_cents`). O corpo de uma escrita é a classe de parâmetros do método (`Perata::ProductsCreateParams.new(name: "Curso")`) ou um `Hash` com os mesmos nomes; um campo opcional não informado fica fora do JSON. Os métodos `_iter` devolvem um `Enumerator` que percorre todas as páginas a partir de `page:` (ou recebem um bloco).
+
+As escritas aceitam `idempotency_key:`, e todas aceitam `api_key:` para usar a chave de outra organização numa chamada. `Perata::Client.new` aceita `base_url:`, `timeout:` (30 segundos) e `transport:`.
+
+## Erros
+
+Uma recusa da API levanta `Perata::Error`, com `status`, `code` (`invalid_request`, `not_found`…), `message`, `fields` (o problema de cada campo) e, num 429, `retry_after` em segundos.
+
+## Webhooks
+
+```ruby
+event = Perata.verify_webhook(ENV.fetch("PERATA_WEBHOOK_SECRET"), request.headers, request.raw_post)
+```
+
+A assinatura é a do Standard Webhooks (`webhook-id`, `webhook-timestamp`, `webhook-signature`), com tolerância de 5 minutos. Passe o corpo cru, antes de interpretar; os cabeçalhos podem vir num `Hash` ou no env do Rack. Uma assinatura que não confere levanta `Perata::WebhookVerificationError`.
+
+Versão do SDK: 0.1.0 · contrato da API: 0.1.0
