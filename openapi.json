@@ -1,0 +1,2942 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "API Peráta para Desenvolvedores",
+    "description": "API pública da Peráta: produtos, preços, clientes, checkouts, pedidos, pagamentos, assinaturas e reembolsos, com chave de API da organização em Authorization: Bearer e Idempotency-Key nas escritas; e a ingestão de consumo com credencial de origem.",
+    "version": "0.1.0"
+  },
+  "jsonSchemaDialect": "https://spec.openapis.org/oas/3.1/dialect/base",
+  "servers": [
+    {
+      "url": "https://perata.sh",
+      "description": "Produção; o ambiente (teste ou produção) é o da chave."
+    }
+  ],
+  "paths": {
+    "/api/v1/checkouts": {
+      "post": {
+        "tags": [
+          "checkouts"
+        ],
+        "summary": "Create a checkout address for one product and price",
+        "description": "Autenticação: chave de API da organização em Authorization: Bearer (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição. Respostas em JSON no envelope data; erros com error, message e fields.",
+        "operationId": "checkouts:create",
+        "parameters": [
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "description": "Opcional, até 255 caracteres. A mesma chave com o mesmo corpo repete a resposta original (Idempotent-Replayed: true); com outro corpo, 409.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "product_id": {
+                    "type": "string"
+                  },
+                  "price_id": {
+                    "type": "string"
+                  },
+                  "quantity": {
+                    "type": "integer"
+                  },
+                  "success_url": {
+                    "type": "string"
+                  },
+                  "cancel_url": {
+                    "type": "string"
+                  },
+                  "label": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "product_id",
+                  "price_id"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "O recurso no envelope data.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CheckoutEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Chave ausente, inválida ou revogada.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "A chave é somente leitura ou quem a criou não tem mais acesso.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Recurso inexistente nesta organização e ambiente.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Idempotency-Key reutilizada com outro corpo, ou estado que não permite a ação.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Campos inválidos; fields detalha cada um.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Orçamento de requisições excedido; respeite Retry-After."
+          },
+          "500": {
+            "description": "Indisponível; repita com a mesma Idempotency-Key.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "apiKey": []
+          }
+        ],
+        "x-arandu-route-name": "api.checkouts.create"
+      }
+    },
+    "/api/v1/customers": {
+      "get": {
+        "tags": [
+          "customers"
+        ],
+        "summary": "List customers",
+        "description": "Autenticação: chave de API da organização em Authorization: Bearer (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição. Respostas em JSON no envelope data; erros com error, message e fields.",
+        "operationId": "customers:list",
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "description": "Página, a partir de 1.",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Itens por página, de 1 a 100; 10 por padrão.",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Uma página da lista no envelope data.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CustomerListEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Chave ausente, inválida ou revogada.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "A chave é somente leitura ou quem a criou não tem mais acesso.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Recurso inexistente nesta organização e ambiente.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Campos inválidos; fields detalha cada um.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Orçamento de requisições excedido; respeite Retry-After."
+          },
+          "500": {
+            "description": "Indisponível; repita com a mesma Idempotency-Key.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "apiKey": []
+          }
+        ],
+        "x-arandu-route-name": "api.customers.index",
+        "x-perata-pagination": {
+          "item_schema": "Customer",
+          "type": "page_limit"
+        }
+      },
+      "post": {
+        "tags": [
+          "customers"
+        ],
+        "summary": "Create a customer",
+        "description": "Autenticação: chave de API da organização em Authorization: Bearer (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição. Respostas em JSON no envelope data; erros com error, message e fields.",
+        "operationId": "customers:create",
+        "parameters": [
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "description": "Opcional, até 255 caracteres. A mesma chave com o mesmo corpo repete a resposta original (Idempotent-Replayed: true); com outro corpo, 409.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string"
+                  },
+                  "email": {
+                    "type": "string"
+                  },
+                  "external_id": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "name",
+                  "email"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "O recurso no envelope data.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CustomerEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Chave ausente, inválida ou revogada.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "A chave é somente leitura ou quem a criou não tem mais acesso.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Recurso inexistente nesta organização e ambiente.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Idempotency-Key reutilizada com outro corpo, ou estado que não permite a ação.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Campos inválidos; fields detalha cada um.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Orçamento de requisições excedido; respeite Retry-After."
+          },
+          "500": {
+            "description": "Indisponível; repita com a mesma Idempotency-Key.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "apiKey": []
+          }
+        ],
+        "x-arandu-route-name": "api.customers.create"
+      }
+    },
+    "/api/v1/customers/{customer}": {
+      "get": {
+        "tags": [
+          "customers"
+        ],
+        "summary": "Read a customer",
+        "description": "Autenticação: chave de API da organização em Authorization: Bearer (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição. Respostas em JSON no envelope data; erros com error, message e fields.",
+        "operationId": "customers:get",
+        "parameters": [
+          {
+            "name": "customer",
+            "in": "path",
+            "description": "Identificador do recurso.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "O recurso no envelope data.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CustomerEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Chave ausente, inválida ou revogada.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "A chave é somente leitura ou quem a criou não tem mais acesso.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Recurso inexistente nesta organização e ambiente.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Campos inválidos; fields detalha cada um.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Orçamento de requisições excedido; respeite Retry-After."
+          },
+          "500": {
+            "description": "Indisponível; repita com a mesma Idempotency-Key.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "apiKey": []
+          }
+        ],
+        "x-arandu-route-name": "api.customers.show"
+      }
+    },
+    "/api/v1/customers/{customer}/payment_methods": {
+      "get": {
+        "tags": [
+          "payment_methods"
+        ],
+        "summary": "List a customer's stored cards: brand, last four digits and expiry",
+        "description": "Autenticação: chave de API da organização em Authorization: Bearer (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição. Respostas em JSON no envelope data; erros com error, message e fields.",
+        "operationId": "payment_methods:list",
+        "parameters": [
+          {
+            "name": "customer",
+            "in": "path",
+            "description": "Identificador do recurso.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "description": "Página, a partir de 1.",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Itens por página, de 1 a 100; 10 por padrão.",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Uma página da lista no envelope data.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaymentMethodListEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Chave ausente, inválida ou revogada.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "A chave é somente leitura ou quem a criou não tem mais acesso.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Recurso inexistente nesta organização e ambiente.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Campos inválidos; fields detalha cada um.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Orçamento de requisições excedido; respeite Retry-After."
+          },
+          "500": {
+            "description": "Indisponível; repita com a mesma Idempotency-Key.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "apiKey": []
+          }
+        ],
+        "x-arandu-route-name": "api.customers.payment_methods",
+        "x-perata-pagination": {
+          "item_schema": "PaymentMethod",
+          "type": "page_limit"
+        }
+      }
+    },
+    "/api/v1/orders": {
+      "get": {
+        "tags": [
+          "orders"
+        ],
+        "summary": "List orders: paid checkouts",
+        "description": "Autenticação: chave de API da organização em Authorization: Bearer (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição. Respostas em JSON no envelope data; erros com error, message e fields.",
+        "operationId": "orders:list",
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "description": "Página, a partir de 1.",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Itens por página, de 1 a 100; 10 por padrão.",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Uma página da lista no envelope data.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrderListEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Chave ausente, inválida ou revogada.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "A chave é somente leitura ou quem a criou não tem mais acesso.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Recurso inexistente nesta organização e ambiente.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Campos inválidos; fields detalha cada um.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Orçamento de requisições excedido; respeite Retry-After."
+          },
+          "500": {
+            "description": "Indisponível; repita com a mesma Idempotency-Key.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "apiKey": []
+          }
+        ],
+        "x-arandu-route-name": "api.orders.index",
+        "x-perata-pagination": {
+          "item_schema": "Order",
+          "type": "page_limit"
+        }
+      }
+    },
+    "/api/v1/payment_methods/{payment_method}/detach": {
+      "post": {
+        "tags": [
+          "payment_methods"
+        ],
+        "summary": "Stop charging a stored card; refused while an active subscription charges it",
+        "description": "Autenticação: chave de API da organização em Authorization: Bearer (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição. Respostas em JSON no envelope data; erros com error, message e fields.",
+        "operationId": "payment_methods:detach",
+        "parameters": [
+          {
+            "name": "payment_method",
+            "in": "path",
+            "description": "Identificador do recurso.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "description": "Opcional, até 255 caracteres. A mesma chave com o mesmo corpo repete a resposta original (Idempotent-Replayed: true); com outro corpo, 409.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "O recurso no envelope data.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaymentMethodDetachedEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Chave ausente, inválida ou revogada.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "A chave é somente leitura ou quem a criou não tem mais acesso.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Recurso inexistente nesta organização e ambiente.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Idempotency-Key reutilizada com outro corpo, ou estado que não permite a ação.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Campos inválidos; fields detalha cada um.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Orçamento de requisições excedido; respeite Retry-After."
+          },
+          "500": {
+            "description": "Indisponível; repita com a mesma Idempotency-Key.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "apiKey": []
+          }
+        ],
+        "x-arandu-route-name": "api.payment_methods.detach"
+      }
+    },
+    "/api/v1/payments": {
+      "get": {
+        "tags": [
+          "payments"
+        ],
+        "summary": "List payments",
+        "description": "Autenticação: chave de API da organização em Authorization: Bearer (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição. Respostas em JSON no envelope data; erros com error, message e fields.",
+        "operationId": "payments:list",
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "description": "Página, a partir de 1.",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Itens por página, de 1 a 100; 10 por padrão.",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Uma página da lista no envelope data.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaymentListEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Chave ausente, inválida ou revogada.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "A chave é somente leitura ou quem a criou não tem mais acesso.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Recurso inexistente nesta organização e ambiente.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Campos inválidos; fields detalha cada um.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Orçamento de requisições excedido; respeite Retry-After."
+          },
+          "500": {
+            "description": "Indisponível; repita com a mesma Idempotency-Key.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "apiKey": []
+          }
+        ],
+        "x-arandu-route-name": "api.payments.index",
+        "x-perata-pagination": {
+          "item_schema": "Payment",
+          "type": "page_limit"
+        }
+      }
+    },
+    "/api/v1/payments/{payment}": {
+      "get": {
+        "tags": [
+          "payments"
+        ],
+        "summary": "Read a payment",
+        "description": "Autenticação: chave de API da organização em Authorization: Bearer (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição. Respostas em JSON no envelope data; erros com error, message e fields.",
+        "operationId": "payments:get",
+        "parameters": [
+          {
+            "name": "payment",
+            "in": "path",
+            "description": "Identificador do recurso.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "O recurso no envelope data.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaymentEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Chave ausente, inválida ou revogada.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "A chave é somente leitura ou quem a criou não tem mais acesso.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Recurso inexistente nesta organização e ambiente.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Campos inválidos; fields detalha cada um.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Orçamento de requisições excedido; respeite Retry-After."
+          },
+          "500": {
+            "description": "Indisponível; repita com a mesma Idempotency-Key.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "apiKey": []
+          }
+        ],
+        "x-arandu-route-name": "api.payments.show"
+      }
+    },
+    "/api/v1/prices": {
+      "get": {
+        "tags": [
+          "prices"
+        ],
+        "summary": "List prices, optionally of one product (product_id)",
+        "description": "Autenticação: chave de API da organização em Authorization: Bearer (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição. Respostas em JSON no envelope data; erros com error, message e fields.",
+        "operationId": "prices:list",
+        "parameters": [
+          {
+            "name": "product_id",
+            "in": "query",
+            "description": "Só os preços deste produto.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "description": "Página, a partir de 1.",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Itens por página, de 1 a 100; 10 por padrão.",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Uma página da lista no envelope data.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PriceListEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Chave ausente, inválida ou revogada.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "A chave é somente leitura ou quem a criou não tem mais acesso.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Recurso inexistente nesta organização e ambiente.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Campos inválidos; fields detalha cada um.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Orçamento de requisições excedido; respeite Retry-After."
+          },
+          "500": {
+            "description": "Indisponível; repita com a mesma Idempotency-Key.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "apiKey": []
+          }
+        ],
+        "x-arandu-route-name": "api.prices.index",
+        "x-perata-pagination": {
+          "item_schema": "Price",
+          "type": "page_limit"
+        }
+      },
+      "post": {
+        "tags": [
+          "prices"
+        ],
+        "summary": "Create a BRL price, one-time or recurring",
+        "description": "Autenticação: chave de API da organização em Authorization: Bearer (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição. Respostas em JSON no envelope data; erros com error, message e fields.",
+        "operationId": "prices:create",
+        "parameters": [
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "description": "Opcional, até 255 caracteres. A mesma chave com o mesmo corpo repete a resposta original (Idempotent-Replayed: true); com outro corpo, 409.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "product_id": {
+                    "type": "string"
+                  },
+                  "amount_cents": {
+                    "type": "integer"
+                  },
+                  "type": {
+                    "type": "string",
+                    "enum": [
+                      "one_time",
+                      "recurring"
+                    ]
+                  },
+                  "interval": {
+                    "type": "string",
+                    "enum": [
+                      "month",
+                      "year"
+                    ]
+                  }
+                },
+                "required": [
+                  "product_id",
+                  "amount_cents",
+                  "type"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "O recurso no envelope data.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PriceEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Chave ausente, inválida ou revogada.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "A chave é somente leitura ou quem a criou não tem mais acesso.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Recurso inexistente nesta organização e ambiente.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Idempotency-Key reutilizada com outro corpo, ou estado que não permite a ação.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Campos inválidos; fields detalha cada um.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Orçamento de requisições excedido; respeite Retry-After."
+          },
+          "500": {
+            "description": "Indisponível; repita com a mesma Idempotency-Key.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "apiKey": []
+          }
+        ],
+        "x-arandu-route-name": "api.prices.create"
+      }
+    },
+    "/api/v1/products": {
+      "get": {
+        "tags": [
+          "products"
+        ],
+        "summary": "List products",
+        "description": "Autenticação: chave de API da organização em Authorization: Bearer (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição. Respostas em JSON no envelope data; erros com error, message e fields.",
+        "operationId": "products:list",
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "description": "Página, a partir de 1.",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Itens por página, de 1 a 100; 10 por padrão.",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Uma página da lista no envelope data.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProductListEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Chave ausente, inválida ou revogada.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "A chave é somente leitura ou quem a criou não tem mais acesso.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Recurso inexistente nesta organização e ambiente.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Campos inválidos; fields detalha cada um.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Orçamento de requisições excedido; respeite Retry-After."
+          },
+          "500": {
+            "description": "Indisponível; repita com a mesma Idempotency-Key.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "apiKey": []
+          }
+        ],
+        "x-arandu-route-name": "api.products.index",
+        "x-perata-pagination": {
+          "item_schema": "Product",
+          "type": "page_limit"
+        }
+      },
+      "post": {
+        "tags": [
+          "products"
+        ],
+        "summary": "Create a product",
+        "description": "Autenticação: chave de API da organização em Authorization: Bearer (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição. Respostas em JSON no envelope data; erros com error, message e fields.",
+        "operationId": "products:create",
+        "parameters": [
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "description": "Opcional, até 255 caracteres. A mesma chave com o mesmo corpo repete a resposta original (Idempotent-Replayed: true); com outro corpo, 409.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string"
+                  },
+                  "description": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "name"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "O recurso no envelope data.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProductEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Chave ausente, inválida ou revogada.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "A chave é somente leitura ou quem a criou não tem mais acesso.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Recurso inexistente nesta organização e ambiente.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Idempotency-Key reutilizada com outro corpo, ou estado que não permite a ação.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Campos inválidos; fields detalha cada um.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Orçamento de requisições excedido; respeite Retry-After."
+          },
+          "500": {
+            "description": "Indisponível; repita com a mesma Idempotency-Key.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "apiKey": []
+          }
+        ],
+        "x-arandu-route-name": "api.products.create"
+      }
+    },
+    "/api/v1/products/{product}": {
+      "get": {
+        "tags": [
+          "products"
+        ],
+        "summary": "Read a product",
+        "description": "Autenticação: chave de API da organização em Authorization: Bearer (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição. Respostas em JSON no envelope data; erros com error, message e fields.",
+        "operationId": "products:get",
+        "parameters": [
+          {
+            "name": "product",
+            "in": "path",
+            "description": "Identificador do recurso.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "O recurso no envelope data.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProductEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Chave ausente, inválida ou revogada.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "A chave é somente leitura ou quem a criou não tem mais acesso.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Recurso inexistente nesta organização e ambiente.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Campos inválidos; fields detalha cada um.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Orçamento de requisições excedido; respeite Retry-After."
+          },
+          "500": {
+            "description": "Indisponível; repita com a mesma Idempotency-Key.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "apiKey": []
+          }
+        ],
+        "x-arandu-route-name": "api.products.show"
+      }
+    },
+    "/api/v1/refunds": {
+      "post": {
+        "tags": [
+          "refunds"
+        ],
+        "summary": "Refund part or all of a payment",
+        "description": "Autenticação: chave de API da organização em Authorization: Bearer (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição. Respostas em JSON no envelope data; erros com error, message e fields.",
+        "operationId": "refunds:create",
+        "parameters": [
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "description": "Opcional, até 255 caracteres. A mesma chave com o mesmo corpo repete a resposta original (Idempotent-Replayed: true); com outro corpo, 409.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "payment_id": {
+                    "type": "string"
+                  },
+                  "amount_cents": {
+                    "type": "integer"
+                  },
+                  "reason": {
+                    "type": "string",
+                    "enum": [
+                      "requested_by_customer",
+                      "duplicate",
+                      "fraudulent",
+                      "product_unavailable",
+                      "service_disruption",
+                      "other"
+                    ]
+                  },
+                  "note": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "payment_id",
+                  "amount_cents",
+                  "reason"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "O recurso no envelope data.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RefundEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Chave ausente, inválida ou revogada.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "A chave é somente leitura ou quem a criou não tem mais acesso.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Recurso inexistente nesta organização e ambiente.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Idempotency-Key reutilizada com outro corpo, ou estado que não permite a ação.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Campos inválidos; fields detalha cada um.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Orçamento de requisições excedido; respeite Retry-After."
+          },
+          "500": {
+            "description": "Indisponível; repita com a mesma Idempotency-Key.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "apiKey": []
+          }
+        ],
+        "x-arandu-route-name": "api.refunds.create"
+      }
+    },
+    "/api/v1/subscriptions": {
+      "get": {
+        "tags": [
+          "subscriptions"
+        ],
+        "summary": "List subscriptions, optionally of one customer (customer_id)",
+        "description": "Autenticação: chave de API da organização em Authorization: Bearer (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição. Respostas em JSON no envelope data; erros com error, message e fields.",
+        "operationId": "subscriptions:list",
+        "parameters": [
+          {
+            "name": "customer_id",
+            "in": "query",
+            "description": "Só as assinaturas deste cliente.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "description": "Página, a partir de 1.",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Itens por página, de 1 a 100; 10 por padrão.",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Uma página da lista no envelope data.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SubscriptionListEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Chave ausente, inválida ou revogada.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "A chave é somente leitura ou quem a criou não tem mais acesso.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Recurso inexistente nesta organização e ambiente.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Campos inválidos; fields detalha cada um.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Orçamento de requisições excedido; respeite Retry-After."
+          },
+          "500": {
+            "description": "Indisponível; repita com a mesma Idempotency-Key.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "apiKey": []
+          }
+        ],
+        "x-arandu-route-name": "api.subscriptions.index",
+        "x-perata-pagination": {
+          "item_schema": "Subscription",
+          "type": "page_limit"
+        }
+      }
+    },
+    "/api/v1/subscriptions/{subscription}": {
+      "get": {
+        "tags": [
+          "subscriptions"
+        ],
+        "summary": "Read a subscription",
+        "description": "Autenticação: chave de API da organização em Authorization: Bearer (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição. Respostas em JSON no envelope data; erros com error, message e fields.",
+        "operationId": "subscriptions:get",
+        "parameters": [
+          {
+            "name": "subscription",
+            "in": "path",
+            "description": "Identificador do recurso.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "O recurso no envelope data.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SubscriptionEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Chave ausente, inválida ou revogada.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "A chave é somente leitura ou quem a criou não tem mais acesso.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Recurso inexistente nesta organização e ambiente.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Campos inválidos; fields detalha cada um.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Orçamento de requisições excedido; respeite Retry-After."
+          },
+          "500": {
+            "description": "Indisponível; repita com a mesma Idempotency-Key.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "apiKey": []
+          }
+        ],
+        "x-arandu-route-name": "api.subscriptions.show"
+      }
+    },
+    "/api/v1/subscriptions/{subscription}/cancel": {
+      "post": {
+        "tags": [
+          "subscriptions"
+        ],
+        "summary": "Cancel a subscription, by default at the end of its period",
+        "description": "Autenticação: chave de API da organização em Authorization: Bearer (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição. Respostas em JSON no envelope data; erros com error, message e fields.",
+        "operationId": "subscriptions:cancel",
+        "parameters": [
+          {
+            "name": "subscription",
+            "in": "path",
+            "description": "Identificador do recurso.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "description": "Opcional, até 255 caracteres. A mesma chave com o mesmo corpo repete a resposta original (Idempotent-Replayed: true); com outro corpo, 409.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "at_period_end": {
+                    "type": "boolean"
+                  },
+                  "reason": {
+                    "type": "string"
+                  }
+                },
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "O recurso no envelope data.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SubscriptionEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Chave ausente, inválida ou revogada.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "A chave é somente leitura ou quem a criou não tem mais acesso.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Recurso inexistente nesta organização e ambiente.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Idempotency-Key reutilizada com outro corpo, ou estado que não permite a ação.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Campos inválidos; fields detalha cada um.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Orçamento de requisições excedido; respeite Retry-After."
+          },
+          "500": {
+            "description": "Indisponível; repita com a mesma Idempotency-Key.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "apiKey": []
+          }
+        ],
+        "x-arandu-route-name": "api.subscriptions.cancel"
+      }
+    },
+    "/api/v1/usage/token-events": {
+      "post": {
+        "summary": "Ingerir lote atômico de eventos de uso de teste",
+        "description": "Autorização: Bearer é o único formato de credencial suportado. As credenciais utilizam assinaturas nativas do Arandu, expiram em 30 dias e são verificadas em relação ao estado da fonte, associação atual do emissor e permissões nativas. Organização, merchant e ambiente de teste são derivados da fonte autenticada; o payload JSON não pode sobrescrevê-los. 1 a 100 eventos, no máximo 65536 bytes. Contagens são strings decimais de inteiros, de 0 a 1000000000000, com pelo menos um token por evento; a entrada exclui cache. Ocorrência RFC3339 em segundos inteiros, com no máximo 90 dias atrás e até cinco minutos à frente. Escopo/fonte/external_event_id identificam um registro; repetições exatas contam como replay e conteúdo conflitante retorna 409. Todos os novos eventos e emissões da outbox são confirmados ou revertidos juntos. Rotação mantém a identidade da fonte e replay; credenciais revogadas ou expiradas não podem ser reutilizadas. Respostas utilizam o wrapper de dados nativo, incluindo campos de erro e registro. Sem cobrança ou faturamento automático.",
+        "operationId": "usage.ingest",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "events": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "customer_id": {
+                          "type": "string"
+                        },
+                        "external_event_id": {
+                          "type": "string"
+                        },
+                        "input_tokens": {
+                          "type": "string"
+                        },
+                        "output_tokens": {
+                          "type": "string"
+                        },
+                        "cached_tokens": {
+                          "type": "string"
+                        },
+                        "occurred_at": {
+                          "type": "string",
+                          "format": "date-time"
+                        }
+                      },
+                      "required": [
+                        "customer_id",
+                        "external_event_id",
+                        "input_tokens",
+                        "output_tokens",
+                        "cached_tokens",
+                        "occurred_at"
+                      ],
+                      "additionalProperties": false
+                    }
+                  }
+                },
+                "required": [
+                  "events"
+                ],
+                "additionalProperties": false
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Contagens confirmadas; registros duplicados contam como replay, sem consumo adicional.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "created": {
+                          "type": "integer"
+                        },
+                        "replayed": {
+                          "type": "integer"
+                        }
+                      },
+                      "additionalProperties": false
+                    }
+                  },
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "JSON malformado, campos desconhecidos, dados excedentes ou contagens não numéricas."
+          },
+          "401": {
+            "description": "Credencial ausente, inválida, expirada ou revogada; emissor não mais autorizado."
+          },
+          "409": {
+            "description": "Conteúdo de evento conflitante. O lote inteiro foi revertido; record identifica o índice com falha (base 1)."
+          },
+          "413": {
+            "description": "Corpo JSON excede 65536 bytes."
+          },
+          "415": {
+            "description": "Content-Type deve ser application/json."
+          },
+          "422": {
+            "description": "Quantidade de eventos, cliente, quantidade ou ocorrência inválida; record identifica o evento com falha quando aplicável."
+          },
+          "429": {
+            "description": "Orçamento compartilhado de requisições excedido; respeite o cabeçalho Retry-After."
+          },
+          "500": {
+            "description": "Ingestão indisponível; tente novamente com as identidades e conteúdo originais do evento."
+          }
+        },
+        "security": [
+          {
+            "usageSource": []
+          }
+        ],
+        "x-arandu-route-name": "usage.ingest"
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Card": {
+        "type": "object",
+        "required": [
+          "brand",
+          "last4",
+          "exp_month",
+          "exp_year"
+        ],
+        "properties": {
+          "brand": {
+            "type": "string"
+          },
+          "last4": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "exp_month": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "exp_year": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          }
+        }
+      },
+      "Checkout": {
+        "type": "object",
+        "required": [
+          "id",
+          "url",
+          "product_id",
+          "price_id"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string",
+            "format": "uri",
+            "description": "Endereço para onde o comprador é enviado."
+          },
+          "product_id": {
+            "type": "string"
+          },
+          "price_id": {
+            "type": "string"
+          }
+        }
+      },
+      "CheckoutEnvelope": {
+        "type": "object",
+        "required": [
+          "data"
+        ],
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/Checkout"
+          }
+        }
+      },
+      "Customer": {
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "email",
+          "external_id",
+          "status",
+          "created_at"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "external_id": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "active",
+              "archived"
+            ]
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "CustomerEnvelope": {
+        "type": "object",
+        "required": [
+          "data"
+        ],
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/Customer"
+          }
+        }
+      },
+      "CustomerList": {
+        "type": "object",
+        "required": [
+          "items",
+          "pagination"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Customer"
+            }
+          },
+          "pagination": {
+            "$ref": "#/components/schemas/Pagination"
+          }
+        }
+      },
+      "CustomerListEnvelope": {
+        "type": "object",
+        "required": [
+          "data"
+        ],
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/CustomerList"
+          }
+        }
+      },
+      "Error": {
+        "type": "object",
+        "required": [
+          "error"
+        ],
+        "properties": {
+          "error": {
+            "type": "string",
+            "description": "Código do erro: invalid_credential, forbidden, not_found, invalid_request, conflict, idempotency_conflict, body_too_large, unavailable."
+          },
+          "message": {
+            "type": "string"
+          },
+          "fields": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      },
+      "Order": {
+        "type": "object",
+        "required": [
+          "id",
+          "customer_id",
+          "product_id",
+          "price_id",
+          "amount_cents",
+          "currency",
+          "status",
+          "paid_at"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "customer_id": {
+            "type": "string"
+          },
+          "product_id": {
+            "type": "string"
+          },
+          "price_id": {
+            "type": "string"
+          },
+          "amount_cents": {
+            "type": "integer"
+          },
+          "currency": {
+            "type": "string",
+            "enum": [
+              "BRL"
+            ]
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "open",
+              "confirmed",
+              "succeeded",
+              "failed",
+              "expired"
+            ]
+          },
+          "paid_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          }
+        }
+      },
+      "OrderEnvelope": {
+        "type": "object",
+        "required": [
+          "data"
+        ],
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/Order"
+          }
+        }
+      },
+      "OrderList": {
+        "type": "object",
+        "required": [
+          "items",
+          "pagination"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Order"
+            }
+          },
+          "pagination": {
+            "$ref": "#/components/schemas/Pagination"
+          }
+        }
+      },
+      "OrderListEnvelope": {
+        "type": "object",
+        "required": [
+          "data"
+        ],
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/OrderList"
+          }
+        }
+      },
+      "Pagination": {
+        "type": "object",
+        "required": [
+          "total_count",
+          "max_page"
+        ],
+        "properties": {
+          "total_count": {
+            "type": "integer"
+          },
+          "max_page": {
+            "type": "integer"
+          }
+        }
+      },
+      "Payment": {
+        "type": "object",
+        "required": [
+          "id",
+          "checkout_id",
+          "customer_id",
+          "method",
+          "state",
+          "amount_cents",
+          "captured_cents",
+          "refunded_cents",
+          "currency",
+          "created_at"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "checkout_id": {
+            "type": "string"
+          },
+          "customer_id": {
+            "type": "string"
+          },
+          "method": {
+            "type": "string",
+            "enum": [
+              "card",
+              "pix",
+              "boleto"
+            ]
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "unknown",
+              "pending",
+              "authorized",
+              "captured",
+              "refused",
+              "canceled",
+              "refunded",
+              "partially_refunded"
+            ]
+          },
+          "amount_cents": {
+            "type": "integer"
+          },
+          "captured_cents": {
+            "type": "integer"
+          },
+          "refunded_cents": {
+            "type": "integer"
+          },
+          "currency": {
+            "type": "string",
+            "enum": [
+              "BRL"
+            ]
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "PaymentEnvelope": {
+        "type": "object",
+        "required": [
+          "data"
+        ],
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/Payment"
+          }
+        }
+      },
+      "PaymentList": {
+        "type": "object",
+        "required": [
+          "items",
+          "pagination"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Payment"
+            }
+          },
+          "pagination": {
+            "$ref": "#/components/schemas/Pagination"
+          }
+        }
+      },
+      "PaymentListEnvelope": {
+        "type": "object",
+        "required": [
+          "data"
+        ],
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/PaymentList"
+          }
+        }
+      },
+      "PaymentMethod": {
+        "type": "object",
+        "required": [
+          "id",
+          "type",
+          "customer_id",
+          "card",
+          "created_at"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "card"
+            ]
+          },
+          "customer_id": {
+            "type": "string"
+          },
+          "card": {
+            "$ref": "#/components/schemas/Card"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "PaymentMethodDetached": {
+        "type": "object",
+        "required": [
+          "id",
+          "detached"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "detached": {
+            "type": "boolean"
+          }
+        }
+      },
+      "PaymentMethodDetachedEnvelope": {
+        "type": "object",
+        "required": [
+          "data"
+        ],
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/PaymentMethodDetached"
+          }
+        }
+      },
+      "PaymentMethodEnvelope": {
+        "type": "object",
+        "required": [
+          "data"
+        ],
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/PaymentMethod"
+          }
+        }
+      },
+      "PaymentMethodList": {
+        "type": "object",
+        "required": [
+          "items",
+          "pagination"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PaymentMethod"
+            }
+          },
+          "pagination": {
+            "$ref": "#/components/schemas/Pagination"
+          }
+        }
+      },
+      "PaymentMethodListEnvelope": {
+        "type": "object",
+        "required": [
+          "data"
+        ],
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/PaymentMethodList"
+          }
+        }
+      },
+      "Price": {
+        "type": "object",
+        "required": [
+          "id",
+          "product_id",
+          "currency",
+          "amount_cents",
+          "type",
+          "interval",
+          "status"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "product_id": {
+            "type": "string"
+          },
+          "currency": {
+            "type": "string",
+            "enum": [
+              "BRL"
+            ]
+          },
+          "amount_cents": {
+            "type": "integer",
+            "description": "Valor em centavos."
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "one_time",
+              "recurring"
+            ]
+          },
+          "interval": {
+            "type": "string",
+            "enum": [
+              "none",
+              "month",
+              "year"
+            ]
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "active",
+              "archived"
+            ]
+          }
+        }
+      },
+      "PriceEnvelope": {
+        "type": "object",
+        "required": [
+          "data"
+        ],
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/Price"
+          }
+        }
+      },
+      "PriceList": {
+        "type": "object",
+        "required": [
+          "items",
+          "pagination"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Price"
+            }
+          },
+          "pagination": {
+            "$ref": "#/components/schemas/Pagination"
+          }
+        }
+      },
+      "PriceListEnvelope": {
+        "type": "object",
+        "required": [
+          "data"
+        ],
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/PriceList"
+          }
+        }
+      },
+      "Product": {
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "description",
+          "status",
+          "created_at"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "active",
+              "archived"
+            ]
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "ProductEnvelope": {
+        "type": "object",
+        "required": [
+          "data"
+        ],
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/Product"
+          }
+        }
+      },
+      "ProductList": {
+        "type": "object",
+        "required": [
+          "items",
+          "pagination"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Product"
+            }
+          },
+          "pagination": {
+            "$ref": "#/components/schemas/Pagination"
+          }
+        }
+      },
+      "ProductListEnvelope": {
+        "type": "object",
+        "required": [
+          "data"
+        ],
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/ProductList"
+          }
+        }
+      },
+      "Refund": {
+        "type": "object",
+        "required": [
+          "id",
+          "payment_id",
+          "amount_cents",
+          "status"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "payment_id": {
+            "type": "string"
+          },
+          "amount_cents": {
+            "type": "integer"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "requested",
+              "pending",
+              "unknown",
+              "succeeded",
+              "failed",
+              "canceled"
+            ]
+          }
+        }
+      },
+      "RefundEnvelope": {
+        "type": "object",
+        "required": [
+          "data"
+        ],
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/Refund"
+          }
+        }
+      },
+      "Subscription": {
+        "type": "object",
+        "required": [
+          "id",
+          "customer_id",
+          "product_id",
+          "price_id",
+          "status",
+          "amount_cents",
+          "currency",
+          "interval",
+          "current_period_start",
+          "current_period_end",
+          "cancel_at_period_end"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "customer_id": {
+            "type": "string"
+          },
+          "product_id": {
+            "type": "string"
+          },
+          "price_id": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "trialing",
+              "active",
+              "past_due",
+              "paused",
+              "canceled"
+            ]
+          },
+          "amount_cents": {
+            "type": "integer"
+          },
+          "currency": {
+            "type": "string",
+            "enum": [
+              "BRL"
+            ]
+          },
+          "interval": {
+            "type": "string"
+          },
+          "current_period_start": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "current_period_end": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "cancel_at_period_end": {
+            "type": "boolean"
+          }
+        }
+      },
+      "SubscriptionEnvelope": {
+        "type": "object",
+        "required": [
+          "data"
+        ],
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/Subscription"
+          }
+        }
+      },
+      "SubscriptionList": {
+        "type": "object",
+        "required": [
+          "items",
+          "pagination"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Subscription"
+            }
+          },
+          "pagination": {
+            "$ref": "#/components/schemas/Pagination"
+          }
+        }
+      },
+      "SubscriptionListEnvelope": {
+        "type": "object",
+        "required": [
+          "data"
+        ],
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/SubscriptionList"
+          }
+        }
+      }
+    },
+    "securitySchemes": {
+      "apiKey": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "Chave de API da organização (formato: prk_test_... ou prk_live_...)"
+      },
+      "usageSource": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "Credencial de teste de origem da Peráta (formato: pus_test_...)"
+      }
+    }
+  }
+}

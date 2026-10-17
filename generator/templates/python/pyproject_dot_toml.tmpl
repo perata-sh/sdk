@@ -1,0 +1,23 @@
+[build-system]
+requires = ["hatchling>=1.25"]
+build-backend = "hatchling.build"
+
+[project]
+name = "perata"
+version = "{{.Version}}"
+description = "Peráta's SDK for Python: products, customers, checkouts, payments, subscriptions and webhooks."
+readme = "README.md"
+license = "MIT"
+requires-python = ">=3.11"
+dependencies = []
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Typing :: Typed",
+]
+
+[project.urls]
+Homepage = "https://perata.sh"
+Repository = "https://github.com/perata-sh/sdk"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/perata"]
