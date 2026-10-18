@@ -18,9 +18,9 @@ fi
 go vet ./...
 go test -count=1 ./...
 go run ./cmd/sdkgen
-if [ "${CHECK_DRIFT:-}" = 1 ] && [ -n "$(git status --porcelain -- openapi.json go typescript python php)" ]; then
+if [ "${CHECK_DRIFT:-}" = 1 ] && [ -n "$(git status --porcelain -- openapi.json go typescript python php ruby java csharp elixir dart)" ]; then
 	echo "the SDKs differ from what the generator writes: run go run ./cmd/sdkgen and commit"
-	git status --porcelain -- go typescript python php
+	git status --porcelain -- go typescript python php ruby java csharp elixir dart
 	exit 1
 fi
 
@@ -35,3 +35,18 @@ echo "== python"
 
 echo "== php"
 (cd php && php tests/run.php && "${PHPSTAN:-phpstan}" analyse --no-progress --level 8 src)
+
+echo "== ruby"
+(cd ruby && ruby -w -Ilib -Itest test/perata_test.rb)
+
+echo "== java"
+(cd java && mvn -q -B verify)
+
+echo "== csharp"
+(cd csharp && dotnet test --nologo)
+
+echo "== elixir"
+(cd elixir && mix compile --warnings-as-errors && mix test --warnings-as-errors)
+
+echo "== dart"
+(cd dart && dart pub get && dart format --output=none --set-exit-if-changed . && dart analyze --fatal-infos && dart test)

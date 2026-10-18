@@ -140,7 +140,8 @@ func clear(out string) error {
 	if err != nil {
 		return err
 	}
-	keep := map[string]bool{"node_modules": true, "vendor": true, ".venv": true, "dist": true, "__pycache__": true, ".pytest_cache": true}
+	keep := map[string]bool{"node_modules": true, "vendor": true, ".venv": true, "dist": true, "__pycache__": true, ".pytest_cache": true,
+		"target": true, "bin": true, "obj": true, "_build": true, "deps": true, ".dart_tool": true, ".build": true}
 	for _, entry := range entries {
 		if keep[entry.Name()] {
 			continue
