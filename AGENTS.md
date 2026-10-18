@@ -67,7 +67,7 @@ release that formats differently from CI.
 The package is the GitHub repository: organization `perata-sh`, package
 `sdk`. npm `@perata-sh/sdk`, Packagist `perata-sh/sdk`, Maven `sh.perata:sdk`,
 Go and Swift `github.com/perata-sh/sdk`; where a registry has no namespace,
-`perata-sh-sdk` (PyPI, RubyGems, crates.io), `perata_sh_sdk` (Hex, pub.dev)
+`perata-sdk` (PyPI, RubyGems, crates.io), `perata_sdk` (Hex, pub.dev)
 and `PerataSh.Sdk` (NuGet). In every registry the package belongs to the
 `perata-sh` organization. Never rename or add a package without Paulo's
 confirmation.

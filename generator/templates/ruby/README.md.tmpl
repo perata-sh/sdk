@@ -3,7 +3,7 @@
 SDK oficial da API da Peráta para Ruby 3.1+, sem dependências: só `net/http`, `json` e `openssl`. É gerado a partir do contrato da API (`openapi.json`, na raiz de [perata-sh/sdk](https://github.com/perata-sh/sdk)) por `generator/`. Não edite os arquivos desta pasta: regenere.
 
 ```sh
-gem install perata-sh-sdk
+gem install perata-sdk
 ```
 
 ```ruby

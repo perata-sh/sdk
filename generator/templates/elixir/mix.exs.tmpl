@@ -27,7 +27,7 @@ defmodule Perata.MixProject do
 
   defp package do
     [
-      name: "perata_sh_sdk",
+      name: "perata_sdk",
       licenses: ["MIT"],
       links: %{"Homepage" => "https://perata.sh", "Repository" => @source_url},
       files: ~w(lib mix.exs README.md .formatter.exs)

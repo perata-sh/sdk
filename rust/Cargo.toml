@@ -1,5 +1,5 @@
 [package]
-name = "perata-sh-sdk"
+name = "perata-sdk"
 version = "0.1.1"
 edition = "2021"
 rust-version = "1.88"
@@ -13,7 +13,7 @@ keywords = ["perata", "payments", "pix", "api", "webhooks"]
 categories = ["api-bindings", "web-programming::http-client"]
 
 [lib]
-# The crate is perata-sh-sdk; the code says `use perata::…`.
+# The crate is perata-sdk; the code says `use perata::…`.
 name = "perata"
 
 [dependencies]

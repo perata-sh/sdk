@@ -4,7 +4,7 @@ SDK oficial da API da Peráta para Elixir 1.18+, sem dependências: só `:httpc`
 
 ```elixir
 # mix.exs
-{:perata_sh_sdk, "~> 0.1.1"}
+{:perata_sdk, "~> 0.1.1"}
 ```
 
 ```elixir

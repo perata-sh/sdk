@@ -1,6 +1,6 @@
 import 'dart:io';
 
-import 'package:perata_sh_sdk/perata_sh_sdk.dart';
+import 'package:perata_sdk/perata_sdk.dart';
 
 /// Creates a product and lists every product of the organization whose key
 /// is in PERATA_API_KEY.

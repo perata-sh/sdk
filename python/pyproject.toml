@@ -3,7 +3,7 @@ requires = ["hatchling>=1.25"]
 build-backend = "hatchling.build"
 
 [project]
-name = "perata-sh-sdk"
+name = "perata-sdk"
 version = "0.1.1"
 description = "Peráta's SDK for Python: products, customers, checkouts, payments, subscriptions and webhooks."
 readme = "README.md"
