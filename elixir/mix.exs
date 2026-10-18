@@ -3,7 +3,7 @@
 defmodule Perata.MixProject do
   use Mix.Project
 
-  @version "0.1.0"
+  @version "0.1.1"
   @source_url "https://github.com/perata-sh/sdk"
 
   def project do
@@ -27,6 +27,7 @@ defmodule Perata.MixProject do
 
   defp package do
     [
+      name: "perata_sh_sdk",
       licenses: ["MIT"],
       links: %{"Homepage" => "https://perata.sh", "Repository" => @source_url},
       files: ~w(lib mix.exs README.md .formatter.exs)

@@ -4,7 +4,7 @@ SDK oficial da API da Peráta para Swift 6 (macOS 12+, iOS 15+, tvOS 15+, watchO
 
 ```swift
 // Package.swift
-.package(url: "https://github.com/perata-sh/sdk", from: "0.1.0"),
+.package(url: "https://github.com/perata-sh/sdk", from: "0.1.1"),
 // e, no target:
 .product(name: "Perata", package: "sdk"),
 ```
@@ -49,4 +49,4 @@ let event = try verifyWebhook(secret: ProcessInfo.processInfo.environment["PERAT
 
 A assinatura é a do Standard Webhooks (`webhook-id`, `webhook-timestamp`, `webhook-signature`), com tolerância de 5 minutos. Passe o corpo cru, antes de interpretar; uma assinatura inválida ou antiga lança `WebhookVerificationError.invalidSignature`. A verificação usa o CryptoKit e por isso existe nas plataformas da Apple; no Linux, o cliente compila, mas a verificação dos webhooks não está disponível.
 
-Versão do SDK: 0.1.0 · contrato da API: 0.1.0
+Versão do SDK: 0.1.1 · contrato da API: 0.1.0

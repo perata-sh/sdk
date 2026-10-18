@@ -4,7 +4,7 @@ import 'dart:io';
 import 'package:crypto/crypto.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
-import 'package:perata/perata.dart';
+import 'package:perata_sh_sdk/perata_sh_sdk.dart';
 import 'package:test/test.dart';
 
 typedef Answer = http.Response Function(http.Request request);

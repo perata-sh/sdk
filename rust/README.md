@@ -3,7 +3,7 @@
 SDK oficial da API da Peráta para Rust 1.88+ (edição 2021), síncrono, com HTTP por [ureq](https://docs.rs/ureq) e rustls, JSON por serde e HMAC por RustCrypto. É gerado a partir do contrato da API (`openapi.json`, na raiz de [perata-sh/sdk](https://github.com/perata-sh/sdk)) por `generator/`. Não edite os arquivos desta pasta: regenere.
 
 ```sh
-cargo add perata
+cargo add perata-sh-sdk
 ```
 
 ```rust
@@ -49,4 +49,4 @@ let event = perata::verify_webhook(&std::env::var("PERATA_WEBHOOK_SECRET")?, &he
 
 A assinatura é a do Standard Webhooks (`webhook-id`, `webhook-timestamp`, `webhook-signature`), com tolerância de 5 minutos. `headers` pode ser um `http::HeaderMap`, um `HashMap` ou uma lista de pares. Passe o corpo cru, antes de interpretar; uma assinatura inválida ou antiga é `WebhookError::InvalidSignature`.
 
-Versão do SDK: 0.1.0 · contrato da API: 0.1.0
+Versão do SDK: 0.1.1 · contrato da API: 0.1.0

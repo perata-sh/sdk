@@ -5,13 +5,13 @@ SDK oficial da API da Peráta para Java 11+, sem dependências: só `java.net.ht
 ```xml
 <dependency>
     <groupId>sh.perata</groupId>
-    <artifactId>perata-java</artifactId>
-    <version>0.1.0</version>
+    <artifactId>sdk</artifactId>
+    <version>0.1.1</version>
 </dependency>
 ```
 
 ```kotlin
-implementation("sh.perata:perata-java:0.1.0") // Gradle
+implementation("sh.perata:sdk:0.1.1") // Gradle
 ```
 
 ```java
@@ -61,4 +61,4 @@ WebhookEvent event = Webhook.verify(System.getenv("PERATA_WEBHOOK_SECRET"), head
 
 A assinatura é a do Standard Webhooks (`webhook-id`, `webhook-timestamp`, `webhook-signature`), com tolerância de 5 minutos. Passe o corpo cru (`byte[]`), antes de interpretar, e os cabeçalhos num `Map` (valores `String` ou listas). Uma assinatura inválida lança `WebhookVerificationException`.
 
-Versão do SDK: 0.1.0 · contrato da API: 0.1.0
+Versão do SDK: 0.1.1 · contrato da API: 0.1.0

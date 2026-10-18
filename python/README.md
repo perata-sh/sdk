@@ -3,7 +3,7 @@
 SDK oficial da API da Peráta para Python 3.11+, sem dependências. É gerado a partir do contrato da API (`openapi.json`, na raiz de [perata-sh/sdk](https://github.com/perata-sh/sdk)) por `generator/`. Não edite os arquivos desta pasta: regenere.
 
 ```sh
-pip install perata
+pip install perata-sh-sdk
 ```
 
 ```python
@@ -48,4 +48,4 @@ event = verify_webhook(os.environ["PERATA_WEBHOOK_SECRET"], request.headers, req
 
 A assinatura é a do Standard Webhooks (`webhook-id`, `webhook-timestamp`, `webhook-signature`), com tolerância de 5 minutos. Passe o corpo cru, antes de interpretar.
 
-Versão do SDK: 0.1.0 · contrato da API: 0.1.0
+Versão do SDK: 0.1.1 · contrato da API: 0.1.0

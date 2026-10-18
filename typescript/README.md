@@ -48,4 +48,4 @@ const event = await verifyWebhook(process.env.PERATA_WEBHOOK_SECRET!, request.he
 
 A assinatura é a do Standard Webhooks (`webhook-id`, `webhook-timestamp`, `webhook-signature`), com tolerância de 5 minutos. Passe o corpo cru, antes de interpretar.
 
-Versão do SDK: 0.1.0 · contrato da API: 0.1.0
+Versão do SDK: 0.1.1 · contrato da API: 0.1.0

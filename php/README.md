@@ -3,7 +3,7 @@
 SDK oficial da API da Peráta para PHP 8.1+, só com as extensões `curl` e `json`. É gerado a partir do contrato da API (`openapi.json`, na raiz de [perata-sh/sdk](https://github.com/perata-sh/sdk)) por `generator/`. Não edite os arquivos desta pasta: regenere.
 
 ```sh
-composer require perata/perata-php
+composer require perata-sh/sdk
 ```
 
 ```php
@@ -44,4 +44,4 @@ $event = Perata\Webhook::verify(getenv('PERATA_WEBHOOK_SECRET'), getallheaders()
 
 A assinatura é a do Standard Webhooks (`webhook-id`, `webhook-timestamp`, `webhook-signature`), com tolerância de 5 minutos. Passe o corpo cru, antes de interpretar.
 
-Versão do SDK: 0.1.0 · contrato da API: 0.1.0
+Versão do SDK: 0.1.1 · contrato da API: 0.1.0

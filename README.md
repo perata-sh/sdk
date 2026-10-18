@@ -6,15 +6,17 @@ Os SDKs oficiais da API da Peráta, num monorepo no padrão do Polar: um contrat
 |---|---|---|
 | Go | [`go/`](go) | `github.com/perata-sh/sdk/go` |
 | TypeScript / JavaScript | [`typescript/`](typescript) | `@perata-sh/sdk` (npm) |
-| Python | [`python/`](python) | `perata` (PyPI) |
-| PHP | [`php/`](php) | `perata/perata-php` (Packagist) |
-| Ruby | [`ruby/`](ruby) | `perata` (RubyGems) |
-| Java (e Kotlin) | [`java/`](java) | `sh.perata:perata-java` (Maven Central) |
-| C# / .NET | [`csharp/`](csharp) | `Perata` (NuGet) |
-| Elixir | [`elixir/`](elixir) | `perata` (Hex) |
-| Dart / Flutter | [`dart/`](dart) | `perata` (pub.dev) |
-| Rust | [`rust/`](rust) | `perata` (crates.io) |
+| Python | [`python/`](python) | `perata-sh-sdk` (PyPI) |
+| PHP | [`php/`](php) | `perata-sh/sdk` (Packagist) |
+| Ruby | [`ruby/`](ruby) | `perata-sh-sdk` (RubyGems) |
+| Java (e Kotlin) | [`java/`](java) | `sh.perata:sdk` (Maven Central) |
+| C# / .NET | [`csharp/`](csharp) | `PerataSh.Sdk` (NuGet) |
+| Elixir | [`elixir/`](elixir) | `perata_sh_sdk` (Hex) |
+| Dart / Flutter | [`dart/`](dart) | `perata_sh_sdk` (pub.dev) |
+| Rust | [`rust/`](rust) | `perata-sh-sdk` (crates.io) |
 | Swift (iOS, macOS) | [`swift/`](swift) | Swift Package Manager: `https://github.com/perata-sh/sdk` |
+
+Os nomes seguem o GitHub: organização `perata-sh`, pacote `sdk`; onde o registro não aceita barra, `perata-sh-sdk` (ou `perata_sh_sdk`). Em cada registro o pacote pertence à organização `perata-sh`.
 
 Todos fazem o mesmo, com a mesma versão (`VERSION`):
 - a chave da organização (`prk_test_…` ou `prk_live_…`), que define organização e ambiente;
@@ -34,6 +36,7 @@ generator/        OpenAPI → IR neutra → um emissor por linguagem (templates)
 cmd/sdkgen        o comando que gera
 <linguagem>/      saída do gerador, uma pasta por linguagem: nunca editada à mão
 Package.swift     o manifesto do Swift na raiz, que o SwiftPM exige
+composer.json     o manifesto do PHP na raiz, que o Packagist exige
 ```
 
 ```sh

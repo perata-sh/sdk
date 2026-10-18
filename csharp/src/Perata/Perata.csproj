@@ -11,8 +11,8 @@
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <IsAotCompatible>true</IsAotCompatible>
 
-    <PackageId>Perata</PackageId>
-    <Version>0.1.0</Version>
+    <PackageId>PerataSh.Sdk</PackageId>
+    <Version>0.1.1</Version>
     <Authors>Peráta</Authors>
     <Company>Peráta</Company>
     <Description>Peráta's SDK for .NET: products, customers, checkouts, payments, subscriptions and webhooks.</Description>

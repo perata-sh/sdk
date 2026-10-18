@@ -4,7 +4,7 @@ SDK oficial da API da Peráta para Elixir 1.18+, sem dependências: só `:httpc`
 
 ```elixir
 # mix.exs
-{:perata, "~> 0.1.0"}
+{:perata_sh_sdk, "~> 0.1.1"}
 ```
 
 ```elixir
@@ -47,4 +47,4 @@ Uma recusa da API é um `{:error, %Perata.Error{}}`, com `status`, `code` (`inva
 
 A assinatura é a do Standard Webhooks (`webhook-id`, `webhook-timestamp`, `webhook-signature`), com tolerância de 5 minutos. Passe o corpo cru, antes de interpretar. Uma assinatura que não confere devolve `{:error, %Perata.WebhookVerificationError{}}`.
 
-Versão do SDK: 0.1.0 · contrato da API: 0.1.0
+Versão do SDK: 0.1.1 · contrato da API: 0.1.0

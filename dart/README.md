@@ -3,13 +3,13 @@
 SDK oficial da API da Peráta para Dart 3.8+ e Flutter (Android, iOS, desktop e web), só com `http` e `crypto`, os pacotes da equipe do Dart. É gerado a partir do contrato da API (`openapi.json`, na raiz de [perata-sh/sdk](https://github.com/perata-sh/sdk)) por `generator/`. Não edite os arquivos desta pasta: regenere.
 
 ```sh
-dart pub add perata     # ou: flutter pub add perata
+dart pub add perata_sh_sdk     # ou: flutter pub add perata_sh_sdk
 ```
 
 ```dart
 import 'dart:io';
 
-import 'package:perata/perata.dart';
+import 'package:perata_sh_sdk/perata_sh_sdk.dart';
 
 final perata = Perata(Platform.environment['PERATA_API_KEY']!); // prk_test_… ou prk_live_…
 
@@ -50,7 +50,7 @@ Uma recusa da API lança `PerataException`, com `status`, `code` (`invalid_reque
 ## Webhooks
 
 ```dart
-import 'package:perata/perata.dart';
+import 'package:perata_sh_sdk/perata_sh_sdk.dart';
 
 final event = verifyWebhook(
   Platform.environment['PERATA_WEBHOOK_SECRET']!,
@@ -61,4 +61,4 @@ final event = verifyWebhook(
 
 A assinatura é a do Standard Webhooks (`webhook-id`, `webhook-timestamp`, `webhook-signature`), com tolerância de 5 minutos; uma assinatura que não confere lança `WebhookVerificationException`. Passe o corpo cru, `String` ou bytes, antes de interpretar.
 
-Versão do SDK: 0.1.0 · contrato da API: 0.1.0
+Versão do SDK: 0.1.1 · contrato da API: 0.1.0

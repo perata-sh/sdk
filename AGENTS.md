@@ -62,14 +62,24 @@ release that formats differently from CI.
   Portuguese. Commits are authored by `HYZIS <admin@hyz.is>` without AI
   attribution.
 
+## Names
+
+The package is the GitHub repository: organization `perata-sh`, package
+`sdk`. npm `@perata-sh/sdk`, Packagist `perata-sh/sdk`, Maven `sh.perata:sdk`,
+Go and Swift `github.com/perata-sh/sdk`; where a registry has no namespace,
+`perata-sh-sdk` (PyPI, RubyGems, crates.io), `perata_sh_sdk` (Hex, pub.dev)
+and `PerataSh.Sdk` (NuGet). In every registry the package belongs to the
+`perata-sh` organization. Never rename or add a package without Paulo's
+confirmation.
+
 ## Release
 
 One version for every language.
-1. Bump `VERSION`, run `go run ./cmd/sdkgen` and `./check.sh`, and commit
-   `sdk: release X.Y.Z` on develop; fast-forward main.
+1. Bump `VERSION`, run `go run ./cmd/sdkgen` and `./check.sh`, and commit on
+   develop; after CI, fast-forward main.
 2. Tag `vX.Y.Z` and `go/vX.Y.Z` on that commit and push both. The `v` tag runs
-   `.github/workflows/release.yml`, which publishes npm and PyPI by trusted
-   publishing (OIDC, no stored token); the `go/` tag is the Go module's
-   version.
-3. `scripts/split-php.sh vX.Y.Z` pushes `php/` to `perata-sh/perata-php`, the
-   repository Packagist reads, which needs the package at its root.
+   `.github/workflows/release.yml` (npm and PyPI by trusted publishing); the
+   `go/` tag is the Go module's version, and Swift and Packagist read the `v`
+   tag from this repository through the root `Package.swift` and
+   `composer.json`, which are hand-written and must stay in step with
+   `swift/Package.swift` and `php/composer.json`.

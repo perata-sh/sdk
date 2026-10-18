@@ -1,0 +1,17 @@
+{
+    "name": "perata-sh/sdk",
+    "description": "Peráta's SDK for PHP: products, customers, checkouts, payments, subscriptions and webhooks.",
+    "type": "library",
+    "license": "MIT",
+    "homepage": "https://perata.sh",
+    "require": {
+        "php": ">=8.1",
+        "ext-curl": "*",
+        "ext-json": "*"
+    },
+    "autoload": {
+        "psr-4": {
+            "Perata\\": "php/src/"
+        }
+    }
+}

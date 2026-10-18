@@ -3,7 +3,7 @@
 SDK oficial da API da Peráta para C# e .NET 8+ (LTS), sem dependências: `HttpClient`, `System.Text.Json` com serialização gerada em compilação (compatível com trimming e Native AOT) e `HMACSHA256`. É gerado a partir do contrato da API (`openapi.json`, na raiz de [perata-sh/sdk](https://github.com/perata-sh/sdk)) por `generator/`. Não edite os arquivos desta pasta: regenere.
 
 ```sh
-dotnet add package Perata
+dotnet add package PerataSh.Sdk
 ```
 
 ```csharp
@@ -52,4 +52,4 @@ var webhook = Webhook.Verify(Environment.GetEnvironmentVariable("PERATA_WEBHOOK_
 
 A assinatura é a do Standard Webhooks (`webhook-id`, `webhook-timestamp`, `webhook-signature`), com tolerância de 5 minutos. Passe o corpo cru, antes de interpretar; os cabeçalhos podem ser os do ASP.NET, de um `HttpHeaders` ou um dicionário. Uma assinatura inválida lança `WebhookVerificationException`.
 
-Versão do SDK: 0.1.0 · contrato da API: 0.1.0
+Versão do SDK: 0.1.1 · contrato da API: 0.1.0

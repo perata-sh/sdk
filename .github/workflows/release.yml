@@ -2,7 +2,7 @@ name: release
 
 # A tag vX.Y.Z publishes that version of every SDK. npm and PyPI trust this
 # workflow through OIDC (trusted publishing), so no token is stored here. Go
-# is published by the go/vX.Y.Z tag itself, and PHP by the perata-php split.
+# is published by the go/vX.Y.Z tag itself, and PHP and Swift by the v tag through the root composer.json and Package.swift.
 on:
   push:
     tags: ['v*']

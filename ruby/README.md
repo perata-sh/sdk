@@ -3,7 +3,7 @@
 SDK oficial da API da Peráta para Ruby 3.1+, sem dependências: só `net/http`, `json` e `openssl`. É gerado a partir do contrato da API (`openapi.json`, na raiz de [perata-sh/sdk](https://github.com/perata-sh/sdk)) por `generator/`. Não edite os arquivos desta pasta: regenere.
 
 ```sh
-gem install perata
+gem install perata-sh-sdk
 ```
 
 ```ruby
@@ -48,4 +48,4 @@ event = Perata.verify_webhook(ENV.fetch("PERATA_WEBHOOK_SECRET"), request.header
 
 A assinatura é a do Standard Webhooks (`webhook-id`, `webhook-timestamp`, `webhook-signature`), com tolerância de 5 minutos. Passe o corpo cru, antes de interpretar; os cabeçalhos podem vir num `Hash` ou no env do Rack. Uma assinatura que não confere levanta `Perata::WebhookVerificationError`.
 
-Versão do SDK: 0.1.0 · contrato da API: 0.1.0
+Versão do SDK: 0.1.1 · contrato da API: 0.1.0

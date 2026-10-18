@@ -5,7 +5,7 @@ package perata
 // Version is this SDK's version; APIVersion is the contract it was generated
 // from.
 const (
-	Version    = "0.1.0"
+	Version    = "0.1.1"
 	APIVersion = "0.1.0"
 	// DefaultBaseURL is Peráta's API. The environment, test or live, is the
 	// API key's: prk_test_… or prk_live_….
