@@ -24,6 +24,8 @@ func TestEveryLanguageWritesItsSDK(t *testing.T) {
 		"java":       {"pom.xml", "src/main/java/sh/perata/Perata.java", "src/main/java/sh/perata/Product.java", "src/main/java/sh/perata/ProductsService.java"},
 		"csharp":     {"Perata.slnx", "src/Perata/PerataClient.cs", "src/Perata/Models/Product.cs", "src/Perata/Services/ProductsService.cs"},
 		"dart":       {"pubspec.yaml", "lib/perata.dart", "lib/src/models.dart", "test/perata_test.dart"},
+		"rust":       {"Cargo.toml", "src/lib.rs", "src/models.rs", "tests/perata.rs"},
+		"swift":      {"Package.swift", "Sources/Perata/PerataClient.swift", "Sources/Perata/Models.swift", "Tests/PerataTests/PerataTests.swift"},
 	}
 	if len(expected) != len(Languages) {
 		t.Fatalf("languages %d, checked %d", len(Languages), len(expected))

@@ -3,7 +3,8 @@
 # exactly what the generator writes, and each language's own tests and type
 # checks. CHECK_DRIFT=1 (CI) also fails when a regenerated SDK differs from
 # what is committed. MYPY and PHPSTAN name those tools when they are not on
-# the PATH.
+# the PATH. Swift needs Apple's toolchain (CryptoKit, Network): it runs only on
+# macOS, and SKIP_SWIFT=1 leaves it to the macOS CI job.
 set -eu
 cd "$(dirname "$0")"
 export GOWORK=off
@@ -18,9 +19,9 @@ fi
 go vet ./...
 go test -count=1 ./...
 go run ./cmd/sdkgen
-if [ "${CHECK_DRIFT:-}" = 1 ] && [ -n "$(git status --porcelain -- openapi.json go typescript python php ruby java csharp elixir dart)" ]; then
+if [ "${CHECK_DRIFT:-}" = 1 ] && [ -n "$(git status --porcelain -- openapi.json go typescript python php ruby java csharp elixir dart rust swift Package.swift)" ]; then
 	echo "the SDKs differ from what the generator writes: run go run ./cmd/sdkgen and commit"
-	git status --porcelain -- go typescript python php ruby java csharp elixir dart
+	git status --porcelain -- go typescript python php ruby java csharp elixir dart rust swift Package.swift
 	exit 1
 fi
 
@@ -50,3 +51,15 @@ echo "== elixir"
 
 echo "== dart"
 (cd dart && dart pub get && dart format --output=none --set-exit-if-changed . && dart analyze --fatal-infos && dart test)
+
+echo "== rust"
+(cd rust && cargo fmt --check && cargo clippy --all-targets -- -D warnings && cargo test)
+
+if [ "${SKIP_SWIFT:-}" != 1 ]; then
+	echo "== swift"
+	swift=swift
+	if command -v xcrun >/dev/null; then
+		swift="xcrun swift"
+	fi
+	(cd swift && $swift test) && $swift build
+fi

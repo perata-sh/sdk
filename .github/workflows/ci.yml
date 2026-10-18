@@ -51,7 +51,20 @@ jobs:
       - uses: dart-lang/setup-dart@v1
         with:
           sdk: '3.13.5'
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy, rustfmt
       - run: pip install mypy
       - run: ./check.sh
         env:
           CHECK_DRIFT: '1'
+          SKIP_SWIFT: '1'
+
+  # Swift needs CryptoKit and Network, which only Apple's platforms have.
+  swift:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: swift --version
+      - run: cd swift && swift test
+      - run: swift build
