@@ -1,1 +1,5 @@
 .DS_Store
+# SwiftPM, building the root Package.swift
+/.build/
+/.swiftpm/
+/Package.resolved
