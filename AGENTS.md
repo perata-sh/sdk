@@ -59,7 +59,7 @@ release that formats differently from CI.
 - Webhook verification is Standard Webhooks, exactly what perata.sh signs
   (`app/Services/Webhooks.go`). Change both together or neither.
 - Code, comments and commits are in English; the READMEs are in Brazilian
-  Portuguese. Commits are authored by `HYZIS <admin@hyz.is>` without AI
+  Portuguese. Commits are authored by `Paulo R. Lima <paulorlima@hyz.is>` (Peráta is a product), set with `git config` in the checkout, without AI
   attribution.
 
 ## Names
