@@ -32,6 +32,13 @@ func init() {
 		"rsInit":      rsInit,
 		"required":    requiredFields,
 		"optional":    optionalFields,
+		// rsData is the Rust type of a webhook's data.
+		"rsData": func(t *TypeRef) string {
+			if t.Kind == "model" {
+				return t.Model
+			}
+			return rsBase(nil, nil, nil, t)
+		},
 	}})
 }
 

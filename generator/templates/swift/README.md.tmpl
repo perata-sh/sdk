@@ -39,8 +39,18 @@ Uma recusa da API lança `PerataError`, com `status`, `code` (`invalid_request`,
 
 ```swift
 let event = try verifyWebhook(secret: ProcessInfo.processInfo.environment["PERATA_WEBHOOK_SECRET"]!, headers: headers, body: body)
+switch event {
+case let .order(order) where order.type == "order.paid":
+    print(order.data.id, order.data.installments)
+case let .dispute(dispute):
+    print(dispute.data.providerDisputeID)
+default:
+    break
+}
 ```
 
 A assinatura é a do Standard Webhooks (`webhook-id`, `webhook-timestamp`, `webhook-signature`), com tolerância de 5 minutos. Passe o corpo cru, antes de interpretar; uma assinatura inválida ou antiga lança `WebhookVerificationError.invalidSignature`. A verificação usa o CryptoKit e por isso existe nas plataformas da Apple; no Linux, o cliente compila, mas a verificação dos webhooks não está disponível.
+
+O evento é tipado: um caso para cada dado que o webhook carrega (`.order` traz um `Order`, `.dispute` a disputa, `.identifiers` os identificadores…), e o `type` diz o que aconteceu; um tipo que esta versão do SDK ainda não conhece chega como `.unknown`, com o corpo como veio. Durante a rotação do segredo o cabeçalho traz mais de uma assinatura, e basta uma conferir. `verifyWebhookSignature` só confere a assinatura.
 
 Versão do SDK: {{.Version}} · contrato da API: {{.APIVersion}}

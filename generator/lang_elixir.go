@@ -26,7 +26,14 @@ func init() {
 			text = strings.ReplaceAll(text, "#{", `\#{`)
 			return strings.ReplaceAll(text, "\n", " ")
 		},
-		"exStruct":   exStruct,
+		"exStruct": exStruct,
+		// exBuild builds expr into t, or takes it as it is.
+		"exBuild": func(t *TypeRef, expr string) string {
+			if convert := exConvert(t, expr, 0); convert != "" {
+				return convert
+			}
+			return expr
+		},
 		"exTypedoc":  exTypedoc,
 		"exSpec":     exSpec,
 		"exRequest":  exRequest,

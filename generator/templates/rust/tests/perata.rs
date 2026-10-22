@@ -4,14 +4,10 @@ use std::sync::{Arc, Mutex};
 use std::thread;
 use std::time::{Duration, UNIX_EPOCH};
 
-use base64::engine::general_purpose::STANDARD;
-use base64::Engine;
-use hmac::{Hmac, KeyInit, Mac};
-use sha2::Sha256;
-
 use perata::{
-    verify_webhook_at, BoxError, Client, CustomersCreateParams, Error, HttpRequest, HttpResponse,
-    ProductStatus, ProductsCreateParams, ProductsListParams, WebhookError,
+    verify_webhook_at, verify_webhook_signature_at, BoxError, Client, CustomersCreateParams, Error,
+    HttpRequest, HttpResponse, ProductStatus, ProductsCreateParams, ProductsListParams,
+    WebhookError, WebhookEvent,
 };
 
 type Seen = Arc<Mutex<Vec<HttpRequest>>>;
@@ -133,38 +129,110 @@ fn a_refusal_is_a_typed_error() {
     );
 }
 
+// The webhook vectors every SDK checks: Standard Webhooks' own example, and
+// Peráta events signed under two secrets, as while one is rotated.
+const REFERENCE_SECRET: &str = "whsec_MfKQ9r8GKYqrTwjUPD8ILPZIo2LaLaSw";
+const OLD_SECRET: &str = "whsec_cGVyYXRhLXNkay1vbGQta2V5LTAxMjM0NTY3ODlhYmM=";
+const NEW_SECRET: &str = "whsec_cGVyYXRhLXNkay1uZXcta2V5LTAxMjM0NTY3ODlhYmM=";
+const ORDER_PAID: &[u8] = br#"{"id":"msg_2","type":"order.paid","timestamp":"2026-10-22T12:00:00Z","data":{"id":"ord_1","customer_id":"cus_1","product_id":"prod_1","price_id":"price_1","amount_cents":12000,"currency":"BRL","status":"succeeded","paid_at":"2026-10-22T12:00:00Z","installments":3,"installment_interest_cents":360}}"#;
+const USAGE_RECORDED: &[u8] = br#"{"id":"msg_3","type":"usage_event.recorded","timestamp":"2026-10-22T12:00:00Z","data":{"event_id":"ue_1","aggregate":"usage_event","aggregate_id":"ue_1","merchant_id":"mer_1","environment":"test"}}"#;
+const PAYOUT_SENT: &[u8] = br#"{"id":"msg_4","type":"payout.sent","timestamp":"2026-10-22T12:00:00Z","data":{"payout_id":"po_1","amount_cents":5000}}"#;
+const SIGNED_AT: u64 = 1_792_670_400;
+
+fn webhook_headers(id: &str, at: u64, signature: &str) -> Vec<(String, String)> {
+    vec![
+        ("Webhook-Id".to_owned(), id.to_owned()),
+        ("webhook-timestamp".to_owned(), at.to_string()),
+        ("webhook-signature".to_owned(), signature.to_owned()),
+    ]
+}
+
 #[test]
-fn a_webhook_verifies_only_when_perata_signed_it() {
-    let key = b"0123456789abcdef0123456789abcdef";
-    let secret = format!("whsec_{}", STANDARD.encode(key));
-    let body: &[u8] = br#"{"id":"msg_1","type":"checkout_session.succeeded","timestamp":"2026-10-17T00:00:00Z","data":{"checkout_session_id":"cs_1"}}"#;
-    let now = UNIX_EPOCH + Duration::from_secs(1_800_000_000);
-    let sign = |at: u64, payload: &[u8]| {
-        let mut mac = Hmac::<Sha256>::new_from_slice(key).unwrap();
-        mac.update(format!("msg_1.{at}.").as_bytes());
-        mac.update(payload);
-        let signature = STANDARD.encode(mac.finalize().into_bytes());
-        vec![
-            ("Webhook-Id".to_owned(), "msg_1".to_owned()),
-            ("webhook-timestamp".to_owned(), at.to_string()),
+fn the_standard_webhooks_vector_verifies() {
+    let body: &[u8] = br#"{"test": 2432232314}"#;
+    let headers = webhook_headers(
+        "msg_p5jXN8AQM9LWM0D4loKWxJek",
+        1_614_265_330,
+        "v1,g0hM9SsE+OTPJTGt/tmIKtSyZlE3uFJELVlNIOLJ1OE=",
+    );
+    let at = UNIX_EPOCH + Duration::from_secs(1_614_265_330);
+    verify_webhook_signature_at(REFERENCE_SECRET, headers.clone(), body, at).unwrap();
+    let changed = [body, b" "].concat();
+    for (secret, payload, now) in [
+        (REFERENCE_SECRET, changed.as_slice(), at),
+        (REFERENCE_SECRET, body, at + Duration::from_secs(301)),
+        (NEW_SECRET, body, at),
+    ] {
+        assert!(matches!(
+            verify_webhook_signature_at(secret, headers.clone(), payload, now),
+            Err(WebhookError::InvalidSignature)
+        ));
+    }
+}
+
+#[test]
+fn a_webhook_answers_its_typed_event() {
+    let now = UNIX_EPOCH + Duration::from_secs(SIGNED_AT + 120);
+    let headers = webhook_headers(
+        "msg_2",
+        SIGNED_AT,
+        "v1,wYfYi9j4EexjSjLLsUssBYbtAFSwF9KVQBJ2o+qD6Jw= v1,0rD3K6HM83kGY+mZMPVidXSW2zXHHDvy3bMt2QzM8Ak=",
+    );
+    for secret in [NEW_SECRET, OLD_SECRET] {
+        let WebhookEvent::Order(order) =
+            verify_webhook_at(secret, headers.clone(), ORDER_PAID, now).unwrap()
+        else {
+            panic!("not an order event");
+        };
+        assert_eq!(
             (
-                "webhook-signature".to_owned(),
-                format!("v1,bm90LXRoaXMtb25l v1,{signature}"),
+                order.type_.as_str(),
+                order.data.id.as_str(),
+                order.data.installments,
+                order.data.installment_interest_cents
             ),
-        ]
+            ("order.paid", "ord_1", 3, 360)
+        );
+    }
+    assert!(matches!(
+        verify_webhook_at(REFERENCE_SECRET, headers, ORDER_PAID, now),
+        Err(WebhookError::InvalidSignature)
+    ));
+    let usage = verify_webhook_at(
+        NEW_SECRET,
+        webhook_headers(
+            "msg_3",
+            SIGNED_AT,
+            "v1,Z3E2vTbczigiySfkzakxuZotPn9FlBY1KAET6hPEZoU=",
+        ),
+        USAGE_RECORDED,
+        now,
+    )
+    .unwrap();
+    assert_eq!(usage.id(), "msg_3");
+    let WebhookEvent::Identifiers(usage) = usage else {
+        panic!("not an identifiers event");
     };
-    let event = verify_webhook_at(&secret, sign(1_800_000_000, body), body, now).unwrap();
-    assert_eq!(event.type_, "checkout_session.succeeded");
-    assert_eq!(event.data["checkout_session_id"], "cs_1");
-    let tampered = [body, b" "].concat();
-    assert!(matches!(
-        verify_webhook_at(&secret, sign(1_800_000_000, body), &tampered, now),
-        Err(WebhookError::InvalidSignature)
-    ));
-    assert!(matches!(
-        verify_webhook_at(&secret, sign(1_800_000_000 - 600, body), body, now),
-        Err(WebhookError::InvalidSignature)
-    ));
+    assert_eq!(usage.data["merchant_id"], "mer_1");
+    let unknown = verify_webhook_at(
+        NEW_SECRET,
+        webhook_headers(
+            "msg_4",
+            SIGNED_AT,
+            "v1,Sa/yofA3h/58pFR+rIiWdIc8qXfcuqvyJSjxn4oJ1ZY=",
+        ),
+        PAYOUT_SENT,
+        now,
+    )
+    .unwrap();
+    assert_eq!(unknown.type_(), "payout.sent");
+    let WebhookEvent::Unknown(unknown) = unknown else {
+        panic!("not an unknown event");
+    };
+    assert_eq!(
+        unknown.data,
+        serde_json::json!({"payout_id": "po_1", "amount_cents": 5000})
+    );
 }
 
 /// Answers what it was sent, wrapped as the API wraps a resource; a request

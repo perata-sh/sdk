@@ -37,6 +37,13 @@ func init() {
 		"javaDoc":    javaDoc,
 		"javaText":   javaText,
 		"javaGetter": javaGetter,
+		// javaConvertCall turns the decoded JSON value in expr into t.
+		"javaConvertCall": func(t *TypeRef, expr string) string {
+			if t.Kind == "model" {
+				return t.Model + ".fromJson(" + expr + ")"
+			}
+			return javaConvert(t) + ".apply(" + expr + ")"
+		},
 	}})
 }
 

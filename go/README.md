@@ -43,8 +43,22 @@ Uma recusa da API é um `*perata.Error` com `StatusCode`, `Code` (`invalid_reque
 
 ```go
 event, err := perata.VerifyWebhook(os.Getenv("PERATA_WEBHOOK_SECRET"), r.Header, body)
+if err != nil {
+	http.Error(w, "assinatura inválida", http.StatusBadRequest)
+	return
+}
+switch event := event.(type) {
+case *perata.OrderWebhookEvent:
+	fmt.Println(event.Type, event.Data.ID, event.Data.Installments) // order.paid…
+case *perata.DisputeWebhookEvent:
+	fmt.Println(event.Type, event.Data.ProviderDisputeID)
+case *perata.UnknownWebhookEvent:
+	// um tipo que esta versão do SDK ainda não conhece: event.Data é o JSON
+}
 ```
 
 A assinatura é a do Standard Webhooks (`webhook-id`, `webhook-timestamp`, `webhook-signature`), com tolerância de 5 minutos. Leia o corpo cru e verifique antes de interpretar.
+
+O evento é tipado: um tipo para cada dado que o webhook carrega (`OrderWebhookEvent` traz um `Order`, `DisputeWebhookEvent` a disputa, `IdentifiersWebhookEvent` os identificadores…), e o `type` diz o que aconteceu; um tipo que esta versão do SDK ainda não conhece chega como `UnknownWebhookEvent`, com os dados como vieram. Durante a rotação do segredo o cabeçalho traz mais de uma assinatura, e basta uma conferir. `VerifyWebhookSignature` só confere a assinatura.
 
 Versão do SDK: 0.1.1 · contrato da API: 0.1.0

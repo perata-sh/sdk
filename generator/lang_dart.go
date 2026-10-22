@@ -22,6 +22,7 @@ var dartLocals = map[string]bool{"at": true, "data": true, "page": true, "limit"
 func init() {
 	register(Language{Name: "dart", Funcs: template.FuncMap{
 		"dartType":   dartFieldType,
+		"dartBase":   dartBase,
 		"dartName":   dartName,
 		"dartParam":  dartParam,
 		"dartRead":   dartRead,

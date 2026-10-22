@@ -12,6 +12,13 @@ func init() {
 	register(Language{Name: "python", Funcs: template.FuncMap{
 		"pyType": pyType,
 		"pyRead": pyRead,
+		// pyBuild builds expr into t, or takes it as it is.
+		"pyBuild": func(t *TypeRef, expr string) string {
+			if convert := pyConvert(t, expr); convert != "" {
+				return convert
+			}
+			return expr
+		},
 		"pyName": func(name string) string {
 			name = strings.ReplaceAll(name, "-", "_")
 			if pyKeywords[name] {

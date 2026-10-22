@@ -45,8 +45,15 @@ Uma recusa da API levanta `Perata::Error`, com `status`, `code` (`invalid_reques
 
 ```ruby
 event = Perata.verify_webhook(ENV.fetch("PERATA_WEBHOOK_SECRET"), request.headers, request.raw_post)
+case event
+when Perata::OrderWebhookEvent then puts event.type, event.data.id, event.data.installments
+when Perata::DisputeWebhookEvent then puts event.data.provider_dispute_id
+when Perata::UnknownWebhookEvent then nil # um tipo que esta versão ainda não conhece: event.data é o JSON
+end
 ```
 
 A assinatura é a do Standard Webhooks (`webhook-id`, `webhook-timestamp`, `webhook-signature`), com tolerância de 5 minutos. Passe o corpo cru, antes de interpretar; os cabeçalhos podem vir num `Hash` ou no env do Rack. Uma assinatura que não confere levanta `Perata::WebhookVerificationError`.
+
+O evento é tipado: um tipo para cada dado que o webhook carrega (`OrderWebhookEvent` traz um `Order`, `DisputeWebhookEvent` a disputa, `IdentifiersWebhookEvent` os identificadores…), e o `type` diz o que aconteceu; um tipo que esta versão do SDK ainda não conhece chega como `UnknownWebhookEvent`, com os dados como vieram. Durante a rotação do segredo o cabeçalho traz mais de uma assinatura, e basta uma conferir. `Perata.verify_webhook_signature` só confere a assinatura.
 
 Versão do SDK: 0.1.1 · contrato da API: 0.1.0

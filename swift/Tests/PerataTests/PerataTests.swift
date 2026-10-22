@@ -111,28 +111,61 @@ final class PerataTests: XCTestCase {
     }
 
     #if canImport(CryptoKit)
-        func testAWebhookVerifiesOnlyWhenPerataSignedIt() throws {
-            let key = Data("0123456789abcdef0123456789abcdef".utf8)
-            let secret = "whsec_" + key.base64EncodedString()
-            let body = Data(#"{"id":"msg_1","type":"checkout_session.succeeded","timestamp":"2026-10-17T00:00:00Z","data":{"checkout_session_id":"cs_1"}}"#.utf8)
-            let now = Date(timeIntervalSince1970: 1_800_000_000)
-            func sign(_ at: Int, _ payload: Data) -> [String: String] {
-                let mac = HMAC<SHA256>.authenticationCode(for: Data("msg_1.\(at).".utf8) + payload, using: SymmetricKey(data: key))
-                return [
-                    "Webhook-Id": "msg_1",
-                    "webhook-timestamp": String(at),
-                    "webhook-signature": "v1,bm90LXRoaXMtb25l v1," + Data(mac).base64EncodedString(),
-                ]
+        // The webhook vectors every SDK checks: Standard Webhooks' own example,
+        // and Peráta events signed under two secrets, as while one is rotated.
+        static let referenceSecret = "whsec_MfKQ9r8GKYqrTwjUPD8ILPZIo2LaLaSw"
+        static let oldSecret = "whsec_cGVyYXRhLXNkay1vbGQta2V5LTAxMjM0NTY3ODlhYmM="
+        static let newSecret = "whsec_cGVyYXRhLXNkay1uZXcta2V5LTAxMjM0NTY3ODlhYmM="
+        static let orderPaid = Data(#"{"id":"msg_2","type":"order.paid","timestamp":"2026-10-22T12:00:00Z","data":{"id":"ord_1","customer_id":"cus_1","product_id":"prod_1","price_id":"price_1","amount_cents":12000,"currency":"BRL","status":"succeeded","paid_at":"2026-10-22T12:00:00Z","installments":3,"installment_interest_cents":360}}"#.utf8)
+        static let usageRecorded = Data(#"{"id":"msg_3","type":"usage_event.recorded","timestamp":"2026-10-22T12:00:00Z","data":{"event_id":"ue_1","aggregate":"usage_event","aggregate_id":"ue_1","merchant_id":"mer_1","environment":"test"}}"#.utf8)
+        static let payoutSent = Data(#"{"id":"msg_4","type":"payout.sent","timestamp":"2026-10-22T12:00:00Z","data":{"payout_id":"po_1","amount_cents":5000}}"#.utf8)
+        static let signedAt = 1_792_670_400
+
+        func webhookHeaders(_ id: String, _ at: Int, _ signature: String) -> [String: String] {
+            ["Webhook-Id": id, "webhook-timestamp": String(at), "webhook-signature": signature]
+        }
+
+        func testTheStandardWebhooksVectorVerifies() throws {
+            let body = Data(#"{"test": 2432232314}"#.utf8)
+            let headers = webhookHeaders("msg_p5jXN8AQM9LWM0D4loKWxJek", 1_614_265_330, "v1,g0hM9SsE+OTPJTGt/tmIKtSyZlE3uFJELVlNIOLJ1OE=")
+            let at = Date(timeIntervalSince1970: 1_614_265_330)
+            try verifyWebhookSignature(secret: Self.referenceSecret, headers: headers, body: body, now: at)
+            for (secret, payload, now) in [
+                (Self.referenceSecret, body + Data(" ".utf8), at),
+                (Self.referenceSecret, body, at.addingTimeInterval(301)),
+                (Self.newSecret, body, at),
+            ] {
+                XCTAssertThrowsError(try verifyWebhookSignature(secret: secret, headers: headers, body: payload, now: now)) {
+                    XCTAssertEqual($0 as? WebhookVerificationError, .invalidSignature)
+                }
             }
-            let event = try verifyWebhook(secret: secret, headers: sign(1_800_000_000, body), body: body, now: now)
-            XCTAssertEqual(event.type, "checkout_session.succeeded")
-            XCTAssertEqual(event.data["checkout_session_id"], "cs_1")
-            XCTAssertThrowsError(try verifyWebhook(secret: secret, headers: sign(1_800_000_000, body), body: body + Data(" ".utf8), now: now)) {
-                XCTAssertEqual($0 as? WebhookVerificationError, .invalidSignature)
+        }
+
+        func testAWebhookAnswersItsTypedEvent() throws {
+            let now = Date(timeIntervalSince1970: TimeInterval(Self.signedAt + 120))
+            let headers = webhookHeaders("msg_2", Self.signedAt, "v1,wYfYi9j4EexjSjLLsUssBYbtAFSwF9KVQBJ2o+qD6Jw= v1,0rD3K6HM83kGY+mZMPVidXSW2zXHHDvy3bMt2QzM8Ak=")
+            for secret in [Self.newSecret, Self.oldSecret] {
+                guard case let .order(order) = try verifyWebhook(secret: secret, headers: headers, body: Self.orderPaid, now: now) else {
+                    return XCTFail("not an order event")
+                }
+                XCTAssertEqual(order.type, "order.paid")
+                XCTAssertEqual(order.data.id, "ord_1")
+                XCTAssertEqual(order.data.installments, 3)
+                XCTAssertEqual(order.data.installmentInterestCents, 360)
             }
-            XCTAssertThrowsError(try verifyWebhook(secret: secret, headers: sign(1_800_000_000 - 600, body), body: body, now: now)) {
-                XCTAssertEqual($0 as? WebhookVerificationError, .invalidSignature)
+            XCTAssertThrowsError(try verifyWebhook(secret: Self.referenceSecret, headers: headers, body: Self.orderPaid, now: now))
+            let usage = try verifyWebhook(secret: Self.newSecret, headers: webhookHeaders("msg_3", Self.signedAt, "v1,Z3E2vTbczigiySfkzakxuZotPn9FlBY1KAET6hPEZoU="), body: Self.usageRecorded, now: now)
+            XCTAssertEqual(usage.id, "msg_3")
+            guard case let .identifiers(identifiers) = usage else {
+                return XCTFail("not an identifiers event")
             }
+            XCTAssertEqual(identifiers.data["merchant_id"], "mer_1")
+            let unknown = try verifyWebhook(secret: Self.newSecret, headers: webhookHeaders("msg_4", Self.signedAt, "v1,Sa/yofA3h/58pFR+rIiWdIc8qXfcuqvyJSjxn4oJ1ZY="), body: Self.payoutSent, now: now)
+            guard case let .unknown(event) = unknown else {
+                return XCTFail("not an unknown event")
+            }
+            XCTAssertEqual(event.type, "payout.sent")
+            XCTAssertEqual(event.body, Self.payoutSent)
         }
     #endif
 

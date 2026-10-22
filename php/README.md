@@ -41,8 +41,15 @@ Uma recusa da API lança `Perata\PerataException`, com `status`, `errorCode` (`i
 
 ```php
 $event = Perata\Webhook::verify(getenv('PERATA_WEBHOOK_SECRET'), getallheaders(), file_get_contents('php://input'));
+if ($event instanceof Perata\OrderWebhookEvent && $event->type === 'order.paid') {
+    echo $event->data->id, $event->data->installments;
+} elseif ($event instanceof Perata\UnknownWebhookEvent) {
+    // um tipo que esta versão do SDK ainda não conhece: $event->data é o JSON
+}
 ```
 
 A assinatura é a do Standard Webhooks (`webhook-id`, `webhook-timestamp`, `webhook-signature`), com tolerância de 5 minutos. Passe o corpo cru, antes de interpretar.
+
+O evento é tipado: um tipo para cada dado que o webhook carrega (`OrderWebhookEvent` traz um `Order`, `DisputeWebhookEvent` a disputa, `IdentifiersWebhookEvent` os identificadores…), e o `type` diz o que aconteceu; um tipo que esta versão do SDK ainda não conhece chega como `UnknownWebhookEvent`, com os dados como vieram. Durante a rotação do segredo o cabeçalho traz mais de uma assinatura, e basta uma conferir. `Webhook::verifySignature` só confere a assinatura.
 
 Versão do SDK: 0.1.1 · contrato da API: 0.1.0

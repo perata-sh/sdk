@@ -12,6 +12,7 @@ var goKeywords = map[string]bool{"type": true, "func": true, "range": true, "map
 func init() {
 	register(Language{Name: "go", Funcs: template.FuncMap{
 		"goType": goType,
+		"goBase": goBase,
 		"goParam": func(name string) string {
 			camel := Camel(name)
 			if goKeywords[camel] {

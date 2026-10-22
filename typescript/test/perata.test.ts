@@ -1,8 +1,7 @@
 import assert from "node:assert/strict";
-import { createHmac } from "node:crypto";
 import { test } from "node:test";
 
-import { Perata, PerataError, verifyWebhook, WebhookVerificationError } from "../src/index.ts";
+import { Perata, PerataError, verifyWebhook, verifyWebhookSignature, WebhookVerificationError } from "../src/index.ts";
 
 interface Seen {
   method: string;
@@ -77,19 +76,43 @@ test("a refusal is a typed error", async () => {
   });
 });
 
-test("a webhook verifies only when Peráta signed it", async () => {
-  const key = Buffer.from("0123456789abcdef0123456789abcdef");
-  const secret = `whsec_${key.toString("base64")}`;
-  const body = '{"id":"msg_1","type":"checkout_session.succeeded","timestamp":"2026-10-17T00:00:00Z","data":{"checkout_session_id":"cs_1"}}';
-  const now = 1_800_000_000_000;
-  const sign = (at: number, payload: string) => ({
-    "webhook-id": "msg_1",
-    "webhook-timestamp": String(at / 1000),
-    "webhook-signature": `v1,bm90LXRoaXMtb25l v1,${createHmac("sha256", key).update(`msg_1.${at / 1000}.${payload}`).digest("base64")}`,
-  });
-  const event = await verifyWebhook(secret, sign(now, body), body, now);
-  assert.equal(event.type, "checkout_session.succeeded");
-  assert.equal(event.data["checkout_session_id"], "cs_1");
-  await assert.rejects(verifyWebhook(secret, sign(now, body), `${body} `, now), WebhookVerificationError);
-  await assert.rejects(verifyWebhook(secret, sign(now - 600_000, body), body, now), WebhookVerificationError);
+// The webhook vectors every SDK checks: Standard Webhooks' own example, and
+// Peráta events signed under two secrets, as while one is rotated.
+const referenceSecret = "whsec_MfKQ9r8GKYqrTwjUPD8ILPZIo2LaLaSw";
+const oldSecret = "whsec_cGVyYXRhLXNkay1vbGQta2V5LTAxMjM0NTY3ODlhYmM=";
+const newSecret = "whsec_cGVyYXRhLXNkay1uZXcta2V5LTAxMjM0NTY3ODlhYmM=";
+const orderPaid =
+  '{"id":"msg_2","type":"order.paid","timestamp":"2026-10-22T12:00:00Z","data":{"id":"ord_1","customer_id":"cus_1","product_id":"prod_1","price_id":"price_1","amount_cents":12000,"currency":"BRL","status":"succeeded","paid_at":"2026-10-22T12:00:00Z","installments":3,"installment_interest_cents":360}}';
+const usageRecorded =
+  '{"id":"msg_3","type":"usage_event.recorded","timestamp":"2026-10-22T12:00:00Z","data":{"event_id":"ue_1","aggregate":"usage_event","aggregate_id":"ue_1","merchant_id":"mer_1","environment":"test"}}';
+const payoutSent = '{"id":"msg_4","type":"payout.sent","timestamp":"2026-10-22T12:00:00Z","data":{"payout_id":"po_1","amount_cents":5000}}';
+const signedAt = 1792670400;
+const webhookHeaders = (id: string, at: number, signature: string) => ({ "Webhook-Id": id, "webhook-timestamp": String(at), "webhook-signature": signature });
+
+test("the Standard Webhooks vector verifies", async () => {
+  const body = '{"test": 2432232314}';
+  const headers = webhookHeaders("msg_p5jXN8AQM9LWM0D4loKWxJek", 1614265330, "v1,g0hM9SsE+OTPJTGt/tmIKtSyZlE3uFJELVlNIOLJ1OE=");
+  await verifyWebhookSignature(referenceSecret, headers, body, 1614265330_000);
+  await assert.rejects(verifyWebhookSignature(referenceSecret, headers, `${body} `, 1614265330_000), WebhookVerificationError);
+  await assert.rejects(verifyWebhookSignature(referenceSecret, headers, body, (1614265330 + 301) * 1000), WebhookVerificationError);
+  await assert.rejects(verifyWebhookSignature(newSecret, headers, body, 1614265330_000), WebhookVerificationError);
+});
+
+test("a webhook answers its typed event", async () => {
+  const now = (signedAt + 120) * 1000;
+  const headers = webhookHeaders("msg_2", signedAt, "v1,wYfYi9j4EexjSjLLsUssBYbtAFSwF9KVQBJ2o+qD6Jw= v1,0rD3K6HM83kGY+mZMPVidXSW2zXHHDvy3bMt2QzM8Ak=");
+  for (const secret of [newSecret, oldSecret]) {
+    const event = await verifyWebhook(secret, headers, orderPaid, now);
+    assert.equal(event.type, "order.paid");
+    if (event.type !== "order.paid") {
+      return;
+    }
+    assert.deepEqual([event.data.id, event.data.installments, event.data.installment_interest_cents], ["ord_1", 3, 360]);
+  }
+  await assert.rejects(verifyWebhook(referenceSecret, headers, orderPaid, now), WebhookVerificationError);
+  const usage = await verifyWebhook(newSecret, webhookHeaders("msg_3", signedAt, "v1,Z3E2vTbczigiySfkzakxuZotPn9FlBY1KAET6hPEZoU="), usageRecorded, now);
+  assert.equal(usage.type === "usage_event.recorded" && usage.data["merchant_id"], "mer_1");
+  const unknown = await verifyWebhook(newSecret, webhookHeaders("msg_4", signedAt, "v1,Sa/yofA3h/58pFR+rIiWdIc8qXfcuqvyJSjxn4oJ1ZY="), new TextEncoder().encode(payoutSent), now);
+  assert.equal(unknown.type as string, "payout.sent");
+  assert.deepEqual(unknown.data, { payout_id: "po_1", amount_cents: 5000 });
 });

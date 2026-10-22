@@ -33,7 +33,14 @@ namespace Perata;
 [JsonSerializable(typeof(ProductsCreateParams))]
 [JsonSerializable(typeof(RefundsCreateParams))]
 [JsonSerializable(typeof(SubscriptionsCancelParams))]
-[JsonSerializable(typeof(WebhookPayload))]
+[JsonSerializable(typeof(BenefitGrant))]
+[JsonSerializable(typeof(Customer))]
+[JsonSerializable(typeof(Order))]
+[JsonSerializable(typeof(Refund))]
+[JsonSerializable(typeof(Subscription))]
+[JsonSerializable(typeof(WebhookCheckout))]
+[JsonSerializable(typeof(WebhookDispute))]
+[JsonSerializable(typeof(Dictionary<string, string>))]
 internal sealed partial class PerataJson : JsonSerializerContext
 {
 }
@@ -43,20 +50,4 @@ internal sealed class Envelope<T>
 {
     [JsonPropertyName("data")]
     public T? Data { get; set; }
-}
-
-/// <summary>A webhook's body as it is read, before it is checked.</summary>
-internal sealed class WebhookPayload
-{
-    [JsonPropertyName("id")]
-    public string? Id { get; set; }
-
-    [JsonPropertyName("type")]
-    public string? Type { get; set; }
-
-    [JsonPropertyName("timestamp")]
-    public string? Timestamp { get; set; }
-
-    [JsonPropertyName("data")]
-    public Dictionary<string, string>? Data { get; set; }
 }

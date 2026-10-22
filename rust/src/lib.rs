@@ -31,14 +31,15 @@
 
 mod client;
 mod error;
-// The models and services are written by the generator, which lays them out
-// itself.
+// The models, services and webhooks are written by the generator, which lays
+// them out itself.
 #[rustfmt::skip]
 pub mod models;
 mod pagination;
 #[rustfmt::skip]
 mod services;
 mod version;
+#[rustfmt::skip]
 mod webhooks;
 
 pub use client::{
@@ -51,5 +52,16 @@ pub use pagination::Page;
 pub use services::*;
 pub use version::{API_VERSION, DEFAULT_BASE_URL, VERSION};
 pub use webhooks::{
-    verify_webhook, verify_webhook_at, WebhookError, WebhookEvent, WEBHOOK_TOLERANCE,
+    verify_webhook, verify_webhook_at, verify_webhook_signature, verify_webhook_signature_at,
+    UnknownWebhookEvent, WebhookError, WebhookEvent, WebhookMessage, WEBHOOK_TOLERANCE,
 };
+
+// The event of each kind of data a webhook carries.
+pub use webhooks::BenefitGrantWebhookEvent;
+pub use webhooks::CheckoutWebhookEvent;
+pub use webhooks::CustomerWebhookEvent;
+pub use webhooks::DisputeWebhookEvent;
+pub use webhooks::IdentifiersWebhookEvent;
+pub use webhooks::OrderWebhookEvent;
+pub use webhooks::RefundWebhookEvent;
+pub use webhooks::SubscriptionWebhookEvent;

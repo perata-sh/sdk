@@ -58,8 +58,18 @@ final event = verifyWebhook(
   request.headers, // Map<String, String>
   await request.readAsString(),
 );
+switch (event) {
+  case OrderWebhookEvent(type: 'order.paid', :final data):
+    print('${data.id} ${data.installments}');
+  case DisputeWebhookEvent(:final data):
+    print(data.providerDisputeId);
+  case _:
+    break;
+}
 ```
 
 A assinatura é a do Standard Webhooks (`webhook-id`, `webhook-timestamp`, `webhook-signature`), com tolerância de 5 minutos; uma assinatura que não confere lança `WebhookVerificationException`. Passe o corpo cru, `String` ou bytes, antes de interpretar.
+
+O evento é tipado: um tipo para cada dado que o webhook carrega (`OrderWebhookEvent` traz um `Order`, `DisputeWebhookEvent` a disputa, `IdentifiersWebhookEvent` os identificadores…), e o `type` diz o que aconteceu; um tipo que esta versão do SDK ainda não conhece chega como `UnknownWebhookEvent`, com os dados como vieram. Durante a rotação do segredo o cabeçalho traz mais de uma assinatura, e basta uma conferir. `verifyWebhookSignature` só confere a assinatura.
 
 Versão do SDK: 0.1.1 · contrato da API: 0.1.0

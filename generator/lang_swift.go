@@ -31,6 +31,10 @@ func init() {
 		"required":  requiredFields,
 		"optional":  optionalFields,
 		"swLiteral": swLiteral,
+		// swData is the Swift type of a webhook's data.
+		"swData": func(t *TypeRef) string { return swBase(nil, nil, nil, t) },
+		// swLower writes BenefitGrant as benefitGrant, an enumeration case.
+		"swLower": func(name string) string { return swIdent(strings.ToLower(name[:1]) + name[1:]) },
 	}})
 }
 

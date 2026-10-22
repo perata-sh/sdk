@@ -120,31 +120,51 @@ public class PerataTests
         Assert.Equal(7, limited.RetryAfter);
     }
 
-    [Fact]
-    public void AWebhookVerifiesOnlyWhenPerataSignedIt()
+    // The webhook vectors every SDK checks: Standard Webhooks' own example, and
+    // Peráta events signed under two secrets, as while one is rotated.
+    private const string ReferenceSecret = "whsec_MfKQ9r8GKYqrTwjUPD8ILPZIo2LaLaSw";
+    private const string OldSecret = "whsec_cGVyYXRhLXNkay1vbGQta2V5LTAxMjM0NTY3ODlhYmM=";
+    private const string NewSecret = "whsec_cGVyYXRhLXNkay1uZXcta2V5LTAxMjM0NTY3ODlhYmM=";
+    private const string OrderPaid = """{"id":"msg_2","type":"order.paid","timestamp":"2026-10-22T12:00:00Z","data":{"id":"ord_1","customer_id":"cus_1","product_id":"prod_1","price_id":"price_1","amount_cents":12000,"currency":"BRL","status":"succeeded","paid_at":"2026-10-22T12:00:00Z","installments":3,"installment_interest_cents":360}}""";
+    private const string UsageRecorded = """{"id":"msg_3","type":"usage_event.recorded","timestamp":"2026-10-22T12:00:00Z","data":{"event_id":"ue_1","aggregate":"usage_event","aggregate_id":"ue_1","merchant_id":"mer_1","environment":"test"}}""";
+    private const string PayoutSent = """{"id":"msg_4","type":"payout.sent","timestamp":"2026-10-22T12:00:00Z","data":{"payout_id":"po_1","amount_cents":5000}}""";
+    private const long SignedAt = 1792670400;
+
+    private static Dictionary<string, string> WebhookHeaders(string id, long at, string signature) => new()
     {
-        var key = Encoding.UTF8.GetBytes("0123456789abcdef0123456789abcdef");
-        var secret = "whsec_" + Convert.ToBase64String(key);
-        var body = Encoding.UTF8.GetBytes("""{"id":"msg_1","type":"checkout_session.succeeded","timestamp":"2026-10-17T00:00:00Z","data":{"checkout_session_id":"cs_1"}}""");
-        var now = DateTimeOffset.FromUnixTimeSeconds(1_800_000_000);
+        ["Webhook-Id"] = id,
+        ["webhook-timestamp"] = at.ToString(System.Globalization.CultureInfo.InvariantCulture),
+        ["webhook-signature"] = signature,
+    };
 
-        Dictionary<string, string> Sign(long at, byte[] payload)
+    [Fact]
+    public void TheStandardWebhooksVectorVerifies()
+    {
+        var body = Encoding.UTF8.GetBytes("""{"test": 2432232314}""");
+        var headers = WebhookHeaders("msg_p5jXN8AQM9LWM0D4loKWxJek", 1614265330, "v1,g0hM9SsE+OTPJTGt/tmIKtSyZlE3uFJELVlNIOLJ1OE=");
+        var at = DateTimeOffset.FromUnixTimeSeconds(1614265330);
+        Webhook.VerifySignature(ReferenceSecret, headers, body, at);
+        Assert.Throws<WebhookVerificationException>(() => Webhook.VerifySignature(ReferenceSecret, headers, [.. body, (byte)' '], at));
+        Assert.Throws<WebhookVerificationException>(() => Webhook.VerifySignature(ReferenceSecret, headers, body, at.AddSeconds(301)));
+        Assert.Throws<WebhookVerificationException>(() => Webhook.VerifySignature(NewSecret, headers, body, at));
+    }
+
+    [Fact]
+    public void AWebhookAnswersItsTypedEvent()
+    {
+        var now = DateTimeOffset.FromUnixTimeSeconds(SignedAt + 120);
+        var headers = WebhookHeaders("msg_2", SignedAt, "v1,wYfYi9j4EexjSjLLsUssBYbtAFSwF9KVQBJ2o+qD6Jw= v1,0rD3K6HM83kGY+mZMPVidXSW2zXHHDvy3bMt2QzM8Ak=");
+        foreach (var secret in new[] { NewSecret, OldSecret })
         {
-            var signed = Encoding.UTF8.GetBytes($"msg_1.{at}.").Concat(payload).ToArray();
-            return new()
-            {
-                ["Webhook-Id"] = "msg_1",
-                ["webhook-timestamp"] = at.ToString(System.Globalization.CultureInfo.InvariantCulture),
-                ["webhook-signature"] = "v1,bm90LXRoaXMtb25l v1," + Convert.ToBase64String(HMACSHA256.HashData(key, signed)),
-            };
+            var order = Assert.IsType<OrderWebhookEvent>(Webhook.Verify(secret, headers, OrderPaid, now));
+            Assert.Equal(("order.paid", "ord_1", 3L, 360L), (order.Type, order.Data.Id, order.Data.Installments, order.Data.InstallmentInterestCents));
         }
-
-        var unix = now.ToUnixTimeSeconds();
-        var verified = Webhook.Verify(secret, Sign(unix, body), body, now);
-        Assert.Equal("checkout_session.succeeded", verified.Type);
-        Assert.Equal("cs_1", verified.Data["checkout_session_id"]);
-        Assert.Throws<WebhookVerificationException>(() => Webhook.Verify(secret, Sign(unix, body), [.. body, (byte)' '], now));
-        Assert.Throws<WebhookVerificationException>(() => Webhook.Verify(secret, Sign(unix - 600, body), body, now));
+        Assert.Throws<WebhookVerificationException>(() => Webhook.Verify(ReferenceSecret, headers, OrderPaid, now));
+        var usage = Assert.IsType<IdentifiersWebhookEvent>(Webhook.Verify(NewSecret, WebhookHeaders("msg_3", SignedAt, "v1,Z3E2vTbczigiySfkzakxuZotPn9FlBY1KAET6hPEZoU="), UsageRecorded, now));
+        Assert.Equal(("msg_3", "mer_1"), (usage.Id, usage.Data["merchant_id"]));
+        var unknown = Assert.IsType<UnknownWebhookEvent>(Webhook.Verify(NewSecret, WebhookHeaders("msg_4", SignedAt, "v1,Sa/yofA3h/58pFR+rIiWdIc8qXfcuqvyJSjxn4oJ1ZY="), PayoutSent, now));
+        Assert.Equal("payout.sent", unknown.Type);
+        Assert.Equal("po_1", unknown.Data.GetProperty("payout_id").GetString());
     }
 
     [Fact]

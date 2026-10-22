@@ -15,17 +15,17 @@ func TestEveryLanguageWritesItsSDK(t *testing.T) {
 		t.Fatal(err)
 	}
 	expected := map[string][]string{
-		"go":         {"go.mod", "client.go", "services.go", "models.go"},
-		"typescript": {"package.json", "src/client.ts", "src/services.ts", "test/perata.test.ts"},
-		"python":     {"pyproject.toml", "src/perata/__init__.py", "src/perata/py.typed", "tests/test_perata.py"},
-		"php":        {"composer.json", "src/Perata.php", "src/Models/Product.php", "src/Services/ProductsService.php"},
-		"ruby":       {"perata-sdk.gemspec", "lib/perata.rb", "lib/perata/services.rb", "test/perata_test.rb"},
-		"elixir":     {"mix.exs", "lib/perata.ex", "lib/perata/services.ex", "test/perata_test.exs"},
-		"java":       {"pom.xml", "src/main/java/sh/perata/Perata.java", "src/main/java/sh/perata/Product.java", "src/main/java/sh/perata/ProductsService.java"},
-		"csharp":     {"Perata.slnx", "src/Perata/PerataClient.cs", "src/Perata/Models/Product.cs", "src/Perata/Services/ProductsService.cs"},
-		"dart":       {"pubspec.yaml", "lib/perata_sdk.dart", "lib/src/models.dart", "test/perata_test.dart"},
-		"rust":       {"Cargo.toml", "src/lib.rs", "src/models.rs", "tests/perata.rs"},
-		"swift":      {"Package.swift", "Sources/Perata/PerataClient.swift", "Sources/Perata/Models.swift", "Tests/PerataTests/PerataTests.swift"},
+		"go":         {"go.mod", "client.go", "services.go", "models.go", "webhooks.go"},
+		"typescript": {"package.json", "src/client.ts", "src/services.ts", "src/webhooks.ts", "test/perata.test.ts"},
+		"python":     {"pyproject.toml", "src/perata/__init__.py", "src/perata/py.typed", "src/perata/webhooks.py", "tests/test_perata.py"},
+		"php":        {"composer.json", "src/Perata.php", "src/Models/Product.php", "src/Services/ProductsService.php", "src/OrderWebhookEvent.php", "src/Webhook.php"},
+		"ruby":       {"perata-sdk.gemspec", "lib/perata.rb", "lib/perata/services.rb", "lib/perata/webhooks.rb", "test/perata_test.rb"},
+		"elixir":     {"mix.exs", "lib/perata.ex", "lib/perata/services.ex", "lib/perata/webhook.ex", "test/perata_test.exs"},
+		"java":       {"pom.xml", "src/main/java/sh/perata/Perata.java", "src/main/java/sh/perata/Product.java", "src/main/java/sh/perata/ProductsService.java", "src/main/java/sh/perata/OrderWebhookEvent.java"},
+		"csharp":     {"Perata.slnx", "src/Perata/PerataClient.cs", "src/Perata/Models/Product.cs", "src/Perata/Services/ProductsService.cs", "src/Perata/WebhookEvents.cs"},
+		"dart":       {"pubspec.yaml", "lib/perata_sdk.dart", "lib/src/models.dart", "lib/src/webhooks.dart", "test/perata_test.dart"},
+		"rust":       {"Cargo.toml", "src/lib.rs", "src/models.rs", "src/webhooks.rs", "tests/perata.rs"},
+		"swift":      {"Package.swift", "Sources/Perata/PerataClient.swift", "Sources/Perata/Models.swift", "Sources/Perata/Webhooks.swift", "Tests/PerataTests/PerataTests.swift"},
 	}
 	if len(expected) != len(Languages) {
 		t.Fatalf("languages %d, checked %d", len(Languages), len(expected))

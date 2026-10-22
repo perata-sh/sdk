@@ -16,7 +16,10 @@ namespace Perata;
 {{- range inputs .Models}}
 [JsonSerializable(typeof({{.Name}}))]
 {{- end}}
-[JsonSerializable(typeof(WebhookPayload))]
+{{- range webhookModels .Webhooks}}
+[JsonSerializable(typeof({{.}}))]
+{{- end}}
+[JsonSerializable(typeof(Dictionary<string, string>))]
 internal sealed partial class PerataJson : JsonSerializerContext
 {
 }
@@ -26,20 +29,4 @@ internal sealed class Envelope<T>
 {
     [JsonPropertyName("data")]
     public T? Data { get; set; }
-}
-
-/// <summary>A webhook's body as it is read, before it is checked.</summary>
-internal sealed class WebhookPayload
-{
-    [JsonPropertyName("id")]
-    public string? Id { get; set; }
-
-    [JsonPropertyName("type")]
-    public string? Type { get; set; }
-
-    [JsonPropertyName("timestamp")]
-    public string? Timestamp { get; set; }
-
-    [JsonPropertyName("data")]
-    public Dictionary<string, string>? Data { get; set; }
 }

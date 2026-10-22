@@ -7,4 +7,5 @@ export type * from "./models.ts";
 export type { Page } from "./pagination.ts";
 export * from "./services.ts";
 export { API_VERSION, DEFAULT_BASE_URL, VERSION } from "./version.ts";
-export { verifyWebhook, WEBHOOK_TOLERANCE_SECONDS, WebhookVerificationError, type HeadersLike, type WebhookEvent } from "./webhooks.ts";
+export type * from "./webhooks.ts";
+export { verifyWebhook, verifyWebhookSignature, WEBHOOK_TOLERANCE_SECONDS, WebhookVerificationError } from "./webhooks.ts";

@@ -58,8 +58,15 @@ Uma recusa da API lança `PerataException` (não verificada), com `getStatus()`,
 
 ```java
 WebhookEvent event = Webhook.verify(System.getenv("PERATA_WEBHOOK_SECRET"), headers, body);
+if (event instanceof OrderWebhookEvent) {
+    Order order = ((OrderWebhookEvent) event).getData(); // order.created, order.paid…
+} else if (event instanceof UnknownWebhookEvent) {
+    // um tipo que esta versão do SDK ainda não conhece: getData() é o JSON
+}
 ```
 
 A assinatura é a do Standard Webhooks (`webhook-id`, `webhook-timestamp`, `webhook-signature`), com tolerância de 5 minutos. Passe o corpo cru (`byte[]`), antes de interpretar, e os cabeçalhos num `Map` (valores `String` ou listas). Uma assinatura inválida lança `WebhookVerificationException`.
+
+O evento é tipado: um tipo para cada dado que o webhook carrega (`OrderWebhookEvent` traz um `Order`, `DisputeWebhookEvent` a disputa, `IdentifiersWebhookEvent` os identificadores…), e o `type` diz o que aconteceu; um tipo que esta versão do SDK ainda não conhece chega como `UnknownWebhookEvent`, com os dados como vieram. Durante a rotação do segredo o cabeçalho traz mais de uma assinatura, e basta uma conferir. `Webhook.verifySignature` só confere a assinatura.
 
 Versão do SDK: 0.1.1 · contrato da API: 0.1.0

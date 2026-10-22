@@ -68,11 +68,12 @@ func Generate(ir *IR, language, out string) error {
 }
 
 // Scope is what a template sees: the IR and, in a file written once per
-// model or per service, the one it is about.
+// model, per service or per webhook group, the one it is about.
 type Scope struct {
 	*IR
 	Model   *Model
 	Service *Service
+	Webhook *WebhookGroup
 }
 
 type scoped struct {
@@ -81,8 +82,9 @@ type scoped struct {
 }
 
 // scopes are the files one template writes. A path naming __model__ is
-// written once for each model the API answers, and one naming __service__
-// once for each service, for the languages that keep one class a file.
+// written once for each model the API answers, one naming __service__ once
+// for each service, and one naming __webhook__ once for each webhook group,
+// for the languages that keep one class a file.
 func scopes(ir *IR, target string) []scoped {
 	switch {
 	case strings.Contains(target, "__model__"):
@@ -91,6 +93,12 @@ func scopes(ir *IR, target string) []scoped {
 			if !model.Input {
 				out = append(out, scoped{Scope{IR: ir, Model: model}, strings.ReplaceAll(target, "__model__", model.Name)})
 			}
+		}
+		return out
+	case strings.Contains(target, "__webhook__"):
+		var out []scoped
+		for _, group := range ir.Webhooks {
+			out = append(out, scoped{Scope{IR: ir, Webhook: group}, strings.ReplaceAll(target, "__webhook__", group.Name)})
 		}
 		return out
 	case strings.Contains(target, "__service__"):
@@ -175,8 +183,30 @@ func commonFuncs() template.FuncMap {
 		"inputs":  func(models []*Model) []*Model { return pick(models, true) },
 		"hasPath": func(m *Method) bool { return len(m.PathParams) > 0 },
 		// pathTemplate splits a path into its literal parts and parameters.
-		"pathParts": pathParts,
+		"pathParts":     pathParts,
+		"webhookModels": webhookModels,
+		// article writes a noun with a or an before it: an Order.
+		"article": func(noun string) string {
+			if noun != "" && strings.ContainsRune("AEIOUaeiou", rune(noun[0])) {
+				return "an " + noun
+			}
+			return "a " + noun
+		},
 	}
+}
+
+// webhookModels are the models the webhooks carry, sorted, once each.
+func webhookModels(groups []*WebhookGroup) []string {
+	seen := map[string]bool{}
+	var out []string
+	for _, group := range groups {
+		if group.Data.Kind == "model" && !seen[group.Data.Model] {
+			seen[group.Data.Model] = true
+			out = append(out, group.Data.Model)
+		}
+	}
+	sort.Strings(out)
+	return out
 }
 
 func pick(models []*Model, input bool) []*Model {

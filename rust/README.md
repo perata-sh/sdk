@@ -46,8 +46,17 @@ Uma recusa da API é `Error::Api(ApiError)`, com `status`, `code` (`invalid_requ
 
 ```rust
 let event = perata::verify_webhook(&std::env::var("PERATA_WEBHOOK_SECRET")?, &headers, &body)?;
+match event {
+    perata::WebhookEvent::Order(order) if order.type_ == "order.paid" => {
+        println!("{} {}", order.data.id, order.data.installments);
+    }
+    perata::WebhookEvent::Dispute(dispute) => println!("{}", dispute.data.provider_dispute_id),
+    _ => {}
+}
 ```
 
 A assinatura é a do Standard Webhooks (`webhook-id`, `webhook-timestamp`, `webhook-signature`), com tolerância de 5 minutos. `headers` pode ser um `http::HeaderMap`, um `HashMap` ou uma lista de pares. Passe o corpo cru, antes de interpretar; uma assinatura inválida ou antiga é `WebhookError::InvalidSignature`.
+
+O evento é tipado: uma variante para cada dado que o webhook carrega (`WebhookEvent::Order` traz um `Order`, `WebhookEvent::Dispute` a disputa, `WebhookEvent::Identifiers` os identificadores…), e o `type` diz o que aconteceu; um tipo que esta versão do SDK ainda não conhece chega como `WebhookEvent::Unknown`, com os dados como vieram. Durante a rotação do segredo o cabeçalho traz mais de uma assinatura, e basta uma conferir. `verify_webhook_signature` só confere a assinatura.
 
 Versão do SDK: 0.1.1 · contrato da API: 0.1.0

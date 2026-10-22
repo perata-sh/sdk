@@ -7,7 +7,18 @@ from ._pagination import Page
 from ._services import {{range $i, $s := .Services}}{{if $i}}, {{end}}{{pascal .Name}}Service{{end}}
 from ._version import API_VERSION, DEFAULT_BASE_URL, VERSION
 from .models import {{range $i, $m := .Models}}{{if $i}}, {{end}}{{.Name}}{{end}}
-from .webhooks import WEBHOOK_TOLERANCE_SECONDS, WebhookEvent, WebhookVerificationError, verify_webhook
+from .webhooks import (
+    WEBHOOK_TOLERANCE_SECONDS,
+{{- range .Webhooks}}
+    {{.Name}}WebhookEvent,
+    {{.Name}}WebhookEventType,
+{{- end}}
+    UnknownWebhookEvent,
+    WebhookEvent,
+    WebhookVerificationError,
+    verify_webhook,
+    verify_webhook_signature,
+)
 
 __all__ = [
     "API_VERSION",
@@ -18,10 +29,16 @@ __all__ = [
     "Perata",
     "PerataError",
     "Transport",
+    "UnknownWebhookEvent",
     "WebhookEvent",
     "WebhookVerificationError",
     "urllib_transport",
     "verify_webhook",
+    "verify_webhook_signature",
+{{- range .Webhooks}}
+    "{{.Name}}WebhookEvent",
+    "{{.Name}}WebhookEventType",
+{{- end}}
 {{- range .Services}}
     "{{pascal .Name}}Service",
 {{- end}}

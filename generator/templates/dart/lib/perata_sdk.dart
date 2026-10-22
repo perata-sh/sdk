@@ -16,9 +16,4 @@ export 'src/models.dart';
 export 'src/pagination.dart' show Page;
 export 'src/services.dart';
 export 'src/version.dart' show apiVersion, defaultBaseUrl, sdkVersion;
-export 'src/webhooks.dart'
-    show
-        WebhookEvent,
-        WebhookVerificationException,
-        verifyWebhook,
-        webhookTolerance;
+export 'src/webhooks.dart';

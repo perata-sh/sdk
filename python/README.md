@@ -45,8 +45,17 @@ Uma recusa da API levanta `PerataError`, com `status`, `code` (`invalid_request`
 from perata import verify_webhook
 
 event = verify_webhook(os.environ["PERATA_WEBHOOK_SECRET"], request.headers, request.get_data())
+match event:
+    case OrderWebhookEvent(type="order.paid", data=order):
+        print(order.id, order.installments)
+    case DisputeWebhookEvent(data=dispute):
+        print(event.type, dispute.provider_dispute_id)
+    case UnknownWebhookEvent():
+        pass  # um tipo que esta versão do SDK ainda não conhece: event.data é o JSON
 ```
 
 A assinatura é a do Standard Webhooks (`webhook-id`, `webhook-timestamp`, `webhook-signature`), com tolerância de 5 minutos. Passe o corpo cru, antes de interpretar.
+
+O evento é tipado: um tipo para cada dado que o webhook carrega (`OrderWebhookEvent` traz um `Order`, `DisputeWebhookEvent` a disputa, `IdentifiersWebhookEvent` os identificadores…), e o `type` diz o que aconteceu; um tipo que esta versão do SDK ainda não conhece chega como `UnknownWebhookEvent`, com os dados como vieram. Durante a rotação do segredo o cabeçalho traz mais de uma assinatura, e basta uma conferir. `verify_webhook_signature` só confere a assinatura.
 
 Versão do SDK: 0.1.1 · contrato da API: 0.1.0

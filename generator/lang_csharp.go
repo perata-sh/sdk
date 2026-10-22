@@ -50,6 +50,18 @@ func init() {
 		"csText":      csText,
 		"csEnvelopes": csEnvelopes,
 		"csWrite":     csWrite,
+		"csRef":       csRef,
+		// csTypeInfo is the JsonTypeInfo property the JSON context names a
+		// webhook's data by: Order, DictionaryStringString.
+		"csTypeInfo": func(t *TypeRef) (string, error) {
+			switch {
+			case t.Kind == "model":
+				return t.Model, nil
+			case t.Kind == "map" && t.Items.Kind == "string":
+				return "DictionaryStringString", nil
+			}
+			return "", fmt.Errorf("generator: csharp: a webhook carrying %s is not supported", t.Kind)
+		},
 	}})
 }
 

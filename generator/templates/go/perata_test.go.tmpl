@@ -2,9 +2,6 @@ package perata
 
 import (
 	"context"
-	"crypto/hmac"
-	"crypto/sha256"
-	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -95,29 +92,65 @@ func TestARefusalIsATypedError(t *testing.T) {
 	}
 }
 
-func TestAWebhookVerifiesOnlyWhenPerataSignedIt(t *testing.T) {
-	key := []byte("0123456789abcdef0123456789abcdef")
-	secret := "whsec_" + base64.StdEncoding.EncodeToString(key)
-	body := []byte(`{"id":"msg_1","type":"checkout_session.succeeded","timestamp":"2026-10-17T00:00:00Z","data":{"checkout_session_id":"cs_1"}}`)
-	now := time.Unix(1_800_000_000, 0)
-	sign := func(id string, at time.Time, payload []byte) http.Header {
-		mac := hmac.New(sha256.New, key)
-		fmt.Fprintf(mac, "%s.%d.", id, at.Unix())
-		mac.Write(payload)
-		h := http.Header{}
-		h.Set("webhook-id", id)
-		h.Set("webhook-timestamp", strconv.FormatInt(at.Unix(), 10))
-		h.Set("webhook-signature", "v1,bm90LXRoaXMtb25l v1,"+base64.StdEncoding.EncodeToString(mac.Sum(nil)))
-		return h
+// The webhook vectors every SDK checks: Standard Webhooks' own example, and
+// Peráta events signed under two secrets, as while one is rotated.
+const (
+	referenceSecret    = "whsec_MfKQ9r8GKYqrTwjUPD8ILPZIo2LaLaSw"
+	referenceSignature = "v1,g0hM9SsE+OTPJTGt/tmIKtSyZlE3uFJELVlNIOLJ1OE="
+	oldSecret          = "whsec_cGVyYXRhLXNkay1vbGQta2V5LTAxMjM0NTY3ODlhYmM="
+	newSecret          = "whsec_cGVyYXRhLXNkay1uZXcta2V5LTAxMjM0NTY3ODlhYmM="
+	orderPaid          = `{"id":"msg_2","type":"order.paid","timestamp":"2026-10-22T12:00:00Z","data":{"id":"ord_1","customer_id":"cus_1","product_id":"prod_1","price_id":"price_1","amount_cents":12000,"currency":"BRL","status":"succeeded","paid_at":"2026-10-22T12:00:00Z","installments":3,"installment_interest_cents":360}}`
+	usageRecorded      = `{"id":"msg_3","type":"usage_event.recorded","timestamp":"2026-10-22T12:00:00Z","data":{"event_id":"ue_1","aggregate":"usage_event","aggregate_id":"ue_1","merchant_id":"mer_1","environment":"test"}}`
+	payoutSent         = `{"id":"msg_4","type":"payout.sent","timestamp":"2026-10-22T12:00:00Z","data":{"payout_id":"po_1","amount_cents":5000}}`
+	signedAt           = 1792670400
+)
+
+func webhookHeader(id string, at int64, signature string) http.Header {
+	h := http.Header{}
+	h.Set("Webhook-Id", id)
+	h.Set("webhook-timestamp", strconv.FormatInt(at, 10))
+	h.Set("webhook-signature", signature)
+	return h
+}
+
+func TestTheStandardWebhooksVectorVerifies(t *testing.T) {
+	body := []byte(`{"test": 2432232314}`)
+	header := webhookHeader("msg_p5jXN8AQM9LWM0D4loKWxJek", 1614265330, referenceSignature)
+	if err := verifyWebhookSignatureAt(referenceSecret, header, body, time.Unix(1614265330, 0)); err != nil {
+		t.Fatal(err)
 	}
-	event, err := verifyWebhookAt(secret, sign("msg_1", now, body), body, now)
-	if err != nil || event.Type != "checkout_session.succeeded" || event.Data["checkout_session_id"] != "cs_1" {
-		t.Fatalf("event %+v, %v", event, err)
-	}
-	if _, err := verifyWebhookAt(secret, sign("msg_1", now, body), append(body, ' '), now); !errors.Is(err, ErrWebhookSignature) {
+	if err := verifyWebhookSignatureAt(referenceSecret, header, append(body, ' '), time.Unix(1614265330, 0)); !errors.Is(err, ErrWebhookSignature) {
 		t.Fatal("a changed body verified")
 	}
-	if _, err := verifyWebhookAt(secret, sign("msg_1", now.Add(-10*time.Minute), body), body, now); !errors.Is(err, ErrWebhookSignature) {
+	if err := verifyWebhookSignatureAt(referenceSecret, header, body, time.Unix(1614265330+301, 0)); !errors.Is(err, ErrWebhookSignature) {
 		t.Fatal("a stale webhook verified")
+	}
+	if err := verifyWebhookSignatureAt(newSecret, header, body, time.Unix(1614265330, 0)); !errors.Is(err, ErrWebhookSignature) {
+		t.Fatal("another secret verified")
+	}
+}
+
+func TestAWebhookAnswersItsTypedEvent(t *testing.T) {
+	now := time.Unix(signedAt+120, 0)
+	header := webhookHeader("msg_2", signedAt, "v1,wYfYi9j4EexjSjLLsUssBYbtAFSwF9KVQBJ2o+qD6Jw= v1,0rD3K6HM83kGY+mZMPVidXSW2zXHHDvy3bMt2QzM8Ak=")
+	for _, secret := range []string{newSecret, oldSecret} {
+		event, err := verifyWebhookAt(secret, header, []byte(orderPaid), now)
+		order, ok := event.(*OrderWebhookEvent)
+		if err != nil || !ok || order.Type != "order.paid" || order.Data.ID != "ord_1" || order.Data.Installments != 3 || order.Data.InstallmentInterestCents != 360 {
+			t.Fatalf("event %#v, %v", event, err)
+		}
+	}
+	if _, err := verifyWebhookAt(referenceSecret, header, []byte(orderPaid), now); !errors.Is(err, ErrWebhookSignature) {
+		t.Fatal("a secret that signed nothing verified")
+	}
+	event, err := verifyWebhookAt(newSecret, webhookHeader("msg_3", signedAt, "v1,Z3E2vTbczigiySfkzakxuZotPn9FlBY1KAET6hPEZoU="), []byte(usageRecorded), now)
+	usage, ok := event.(*IdentifiersWebhookEvent)
+	if err != nil || !ok || usage.Message().ID != "msg_3" || usage.Data["merchant_id"] != "mer_1" {
+		t.Fatalf("event %#v, %v", event, err)
+	}
+	event, err = verifyWebhookAt(newSecret, webhookHeader("msg_4", signedAt, "v1,Sa/yofA3h/58pFR+rIiWdIc8qXfcuqvyJSjxn4oJ1ZY="), []byte(payoutSent), now)
+	unknown, ok := event.(*UnknownWebhookEvent)
+	if err != nil || !ok || unknown.Type != "payout.sent" || string(unknown.Data) != `{"payout_id":"po_1","amount_cents":5000}` {
+		t.Fatalf("event %#v, %v", event, err)
 	}
 }

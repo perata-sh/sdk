@@ -1,11 +1,31 @@
-import base64
-import hashlib
-import hmac
 import json
 import unittest
 from urllib.parse import parse_qs, urlparse
 
-from perata import Perata, PerataError, WebhookVerificationError, verify_webhook
+from perata import (
+    IdentifiersWebhookEvent,
+    OrderWebhookEvent,
+    Perata,
+    PerataError,
+    UnknownWebhookEvent,
+    WebhookVerificationError,
+    verify_webhook,
+    verify_webhook_signature,
+)
+
+# The webhook vectors every SDK checks: Standard Webhooks' own example, and
+# Peráta events signed under two secrets, as while one is rotated.
+REFERENCE_SECRET = "whsec_MfKQ9r8GKYqrTwjUPD8ILPZIo2LaLaSw"
+OLD_SECRET = "whsec_cGVyYXRhLXNkay1vbGQta2V5LTAxMjM0NTY3ODlhYmM="
+NEW_SECRET = "whsec_cGVyYXRhLXNkay1uZXcta2V5LTAxMjM0NTY3ODlhYmM="
+ORDER_PAID = b'{"id":"msg_2","type":"order.paid","timestamp":"2026-10-22T12:00:00Z","data":{"id":"ord_1","customer_id":"cus_1","product_id":"prod_1","price_id":"price_1","amount_cents":12000,"currency":"BRL","status":"succeeded","paid_at":"2026-10-22T12:00:00Z","installments":3,"installment_interest_cents":360}}'
+USAGE_RECORDED = b'{"id":"msg_3","type":"usage_event.recorded","timestamp":"2026-10-22T12:00:00Z","data":{"event_id":"ue_1","aggregate":"usage_event","aggregate_id":"ue_1","merchant_id":"mer_1","environment":"test"}}'
+PAYOUT_SENT = b'{"id":"msg_4","type":"payout.sent","timestamp":"2026-10-22T12:00:00Z","data":{"payout_id":"po_1","amount_cents":5000}}'
+SIGNED_AT = 1792670400
+
+
+def webhook_headers(webhook_id, at, signature):
+    return {"Webhook-Id": webhook_id, "webhook-timestamp": str(at), "webhook-signature": signature}
 
 
 def product(identifier):
@@ -72,23 +92,34 @@ class PerataTest(unittest.TestCase):
             perata.products.list()
         self.assertEqual((limited.exception.status, limited.exception.retry_after), (429, 7))
 
-    def test_a_webhook_verifies_only_when_perata_signed_it(self):
-        key = b"0123456789abcdef0123456789abcdef"
-        secret = "whsec_" + base64.b64encode(key).decode()
-        body = b'{"id":"msg_1","type":"checkout_session.succeeded","timestamp":"2026-10-17T00:00:00Z","data":{"checkout_session_id":"cs_1"}}'
-        now = 1_800_000_000
+    def test_the_standard_webhooks_vector_verifies(self):
+        body = b'{"test": 2432232314}'
+        headers = webhook_headers("msg_p5jXN8AQM9LWM0D4loKWxJek", 1614265330, "v1,g0hM9SsE+OTPJTGt/tmIKtSyZlE3uFJELVlNIOLJ1OE=")
+        verify_webhook_signature(REFERENCE_SECRET, headers, body, now=1614265330)
+        for secret, payload, now in [
+            (REFERENCE_SECRET, body + b" ", 1614265330),
+            (REFERENCE_SECRET, body, 1614265330 + 301),
+            (NEW_SECRET, body, 1614265330),
+        ]:
+            with self.assertRaises(WebhookVerificationError):
+                verify_webhook_signature(secret, headers, payload, now=now)
 
-        def sign(at, payload):
-            mac = hmac.new(key, f"msg_1.{at}.".encode() + payload, hashlib.sha256).digest()
-            return {"webhook-id": "msg_1", "webhook-timestamp": str(at), "webhook-signature": "v1,bm90LXRoaXMtb25l v1," + base64.b64encode(mac).decode()}
-
-        event = verify_webhook(secret, sign(now, body), body, now=now)
-        self.assertEqual(event.type, "checkout_session.succeeded")
-        self.assertEqual(event.data["checkout_session_id"], "cs_1")
+    def test_a_webhook_answers_its_typed_event(self):
+        now = SIGNED_AT + 120
+        headers = webhook_headers("msg_2", SIGNED_AT, "v1,wYfYi9j4EexjSjLLsUssBYbtAFSwF9KVQBJ2o+qD6Jw= v1,0rD3K6HM83kGY+mZMPVidXSW2zXHHDvy3bMt2QzM8Ak=")
+        for secret in (NEW_SECRET, OLD_SECRET):
+            event = verify_webhook(secret, headers, ORDER_PAID, now=now)
+            self.assertIsInstance(event, OrderWebhookEvent)
+            assert isinstance(event, OrderWebhookEvent)
+            self.assertEqual((event.type, event.data.id, event.data.installments, event.data.installment_interest_cents), ("order.paid", "ord_1", 3, 360))
         with self.assertRaises(WebhookVerificationError):
-            verify_webhook(secret, sign(now, body), body + b" ", now=now)
-        with self.assertRaises(WebhookVerificationError):
-            verify_webhook(secret, sign(now - 600, body), body, now=now)
+            verify_webhook(REFERENCE_SECRET, headers, ORDER_PAID, now=now)
+        usage = verify_webhook(NEW_SECRET, webhook_headers("msg_3", SIGNED_AT, "v1,Z3E2vTbczigiySfkzakxuZotPn9FlBY1KAET6hPEZoU="), USAGE_RECORDED, now=now)
+        self.assertIsInstance(usage, IdentifiersWebhookEvent)
+        self.assertEqual((usage.id, usage.data["merchant_id"]), ("msg_3", "mer_1"))
+        unknown = verify_webhook(NEW_SECRET, webhook_headers("msg_4", SIGNED_AT, "v1,Sa/yofA3h/58pFR+rIiWdIc8qXfcuqvyJSjxn4oJ1ZY="), PAYOUT_SENT.decode(), now=now)
+        self.assertIsInstance(unknown, UnknownWebhookEvent)
+        self.assertEqual((unknown.type, unknown.data), ("payout.sent", {"payout_id": "po_1", "amount_cents": 5000}))
 
 
 if __name__ == "__main__":

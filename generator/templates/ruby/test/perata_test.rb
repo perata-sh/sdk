@@ -84,20 +84,45 @@ class PerataTest < Minitest::Test
     assert_equal [429, 7], [limited.status, limited.retry_after]
   end
 
-  def test_a_webhook_verifies_only_when_perata_signed_it
-    key = "0123456789abcdef0123456789abcdef"
-    secret = "whsec_#{[key].pack("m0")}"
-    body = '{"id":"msg_1","type":"checkout_session.succeeded","timestamp":"2026-10-17T00:00:00Z","data":{"checkout_session_id":"cs_1"}}'
-    now = 1_800_000_000
-    sign = lambda do |at, payload|
-      mac = OpenSSL::HMAC.digest("SHA256", key, "msg_1.#{at}.#{payload}")
-      { "webhook-id" => "msg_1", "webhook-timestamp" => at.to_s, "webhook-signature" => "v1,bm90LXRoaXMtb25l v1,#{[mac].pack("m0")}" }
+  # The webhook vectors every SDK checks: Standard Webhooks' own example, and
+  # Peráta events signed under two secrets, as while one is rotated.
+  REFERENCE_SECRET = "whsec_MfKQ9r8GKYqrTwjUPD8ILPZIo2LaLaSw"
+  OLD_SECRET = "whsec_cGVyYXRhLXNkay1vbGQta2V5LTAxMjM0NTY3ODlhYmM="
+  NEW_SECRET = "whsec_cGVyYXRhLXNkay1uZXcta2V5LTAxMjM0NTY3ODlhYmM="
+  ORDER_PAID = '{"id":"msg_2","type":"order.paid","timestamp":"2026-10-22T12:00:00Z","data":{"id":"ord_1","customer_id":"cus_1","product_id":"prod_1","price_id":"price_1","amount_cents":12000,"currency":"BRL","status":"succeeded","paid_at":"2026-10-22T12:00:00Z","installments":3,"installment_interest_cents":360}}'
+  USAGE_RECORDED = '{"id":"msg_3","type":"usage_event.recorded","timestamp":"2026-10-22T12:00:00Z","data":{"event_id":"ue_1","aggregate":"usage_event","aggregate_id":"ue_1","merchant_id":"mer_1","environment":"test"}}'
+  PAYOUT_SENT = '{"id":"msg_4","type":"payout.sent","timestamp":"2026-10-22T12:00:00Z","data":{"payout_id":"po_1","amount_cents":5000}}'
+  SIGNED_AT = 1_792_670_400
+
+  def webhook_headers(id, at, signature)
+    { "Webhook-Id" => id, "webhook-timestamp" => at.to_s, "webhook-signature" => signature }
+  end
+
+  def test_the_standard_webhooks_vector_verifies
+    body = '{"test": 2432232314}'
+    headers = webhook_headers("msg_p5jXN8AQM9LWM0D4loKWxJek", 1_614_265_330, "v1,g0hM9SsE+OTPJTGt/tmIKtSyZlE3uFJELVlNIOLJ1OE=")
+    at = Time.at(1_614_265_330)
+    assert_nil Perata.verify_webhook_signature(REFERENCE_SECRET, headers, body, now: at)
+    [[REFERENCE_SECRET, "#{body} ", at], [REFERENCE_SECRET, body, at + 301], [NEW_SECRET, body, at]].each do |secret, payload, now|
+      assert_raises(Perata::WebhookVerificationError) { Perata.verify_webhook_signature(secret, headers, payload, now: now) }
     end
-    event = Perata.verify_webhook(secret, sign.call(now, body), body, now: now)
-    assert_equal "checkout_session.succeeded", event.type
-    assert_equal "cs_1", event.data["checkout_session_id"]
-    assert_raises(Perata::WebhookVerificationError) { Perata.verify_webhook(secret, sign.call(now, body), "#{body} ", now: now) }
-    assert_raises(Perata::WebhookVerificationError) { Perata.verify_webhook(secret, sign.call(now - 600, body), body, now: now) }
+  end
+
+  def test_a_webhook_answers_its_typed_event
+    now = Time.at(SIGNED_AT + 120)
+    headers = webhook_headers("msg_2", SIGNED_AT, "v1,wYfYi9j4EexjSjLLsUssBYbtAFSwF9KVQBJ2o+qD6Jw= v1,0rD3K6HM83kGY+mZMPVidXSW2zXHHDvy3bMt2QzM8Ak=")
+    [NEW_SECRET, OLD_SECRET].each do |secret|
+      event = Perata.verify_webhook(secret, headers, ORDER_PAID, now: now)
+      assert_instance_of Perata::OrderWebhookEvent, event
+      assert_equal ["order.paid", "ord_1", 3, 360], [event.type, event.data.id, event.data.installments, event.data.installment_interest_cents]
+    end
+    assert_raises(Perata::WebhookVerificationError) { Perata.verify_webhook(REFERENCE_SECRET, headers, ORDER_PAID, now: now) }
+    usage = Perata.verify_webhook(NEW_SECRET, webhook_headers("msg_3", SIGNED_AT, "v1,Z3E2vTbczigiySfkzakxuZotPn9FlBY1KAET6hPEZoU="), USAGE_RECORDED, now: now)
+    assert_instance_of Perata::IdentifiersWebhookEvent, usage
+    assert_equal %w[msg_3 mer_1], [usage.id, usage.data["merchant_id"]]
+    unknown = Perata.verify_webhook(NEW_SECRET, webhook_headers("msg_4", SIGNED_AT, "v1,Sa/yofA3h/58pFR+rIiWdIc8qXfcuqvyJSjxn4oJ1ZY="), PAYOUT_SENT, now: now)
+    assert_instance_of Perata::UnknownWebhookEvent, unknown
+    assert_equal ["payout.sent", { "payout_id" => "po_1", "amount_cents" => 5000 }], [unknown.type, unknown.data]
   end
 
   def test_the_real_http_sends_and_reads_through_net_http

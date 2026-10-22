@@ -39,4 +39,11 @@ defmodule Perata do
   @spec verify_webhook(String.t(), Enumerable.t(), binary(), keyword()) ::
           {:ok, Perata.WebhookEvent.t()} | {:error, Perata.WebhookVerificationError.t()}
   defdelegate verify_webhook(secret, headers, body, opts \\ []), to: Perata.Webhook, as: :verify
+
+  @doc "Checks a webhook's signature; see `Perata.Webhook.verify_signature/4`."
+  @spec verify_webhook_signature(String.t(), Enumerable.t(), binary(), keyword()) ::
+          :ok | {:error, Perata.WebhookVerificationError.t()}
+  defdelegate verify_webhook_signature(secret, headers, body, opts \\ []),
+    to: Perata.Webhook,
+    as: :verify_signature
 end

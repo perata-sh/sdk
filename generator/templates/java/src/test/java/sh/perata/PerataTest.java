@@ -2,6 +2,7 @@ package sh.perata;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -13,14 +14,11 @@ import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.ArrayList;
-import java.util.Base64;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
-import javax.crypto.Mac;
-import javax.crypto.spec.SecretKeySpec;
 import org.junit.jupiter.api.Test;
 
 class PerataTest {
@@ -133,33 +131,58 @@ class PerataTest {
         assertEquals(Integer.valueOf(7), limited.getRetryAfter());
     }
 
-    @Test
-    void aWebhookVerifiesOnlyWhenPerataSignedIt() throws Exception {
-        byte[] key = "0123456789abcdef0123456789abcdef".getBytes(StandardCharsets.UTF_8);
-        String secret = "whsec_" + Base64.getEncoder().encodeToString(key);
-        byte[] body = "{\"id\":\"msg_1\",\"type\":\"checkout_session.succeeded\",\"timestamp\":\"2026-10-17T00:00:00Z\",\"data\":{\"checkout_session_id\":\"cs_1\"}}"
-                .getBytes(StandardCharsets.UTF_8);
-        Instant now = Instant.ofEpochSecond(1_800_000_000L);
+    // The webhook vectors every SDK checks: Standard Webhooks' own example, and
+    // Peráta events signed under two secrets, as while one is rotated.
+    private static final String REFERENCE_SECRET = "whsec_MfKQ9r8GKYqrTwjUPD8ILPZIo2LaLaSw";
+    private static final String OLD_SECRET = "whsec_cGVyYXRhLXNkay1vbGQta2V5LTAxMjM0NTY3ODlhYmM=";
+    private static final String NEW_SECRET = "whsec_cGVyYXRhLXNkay1uZXcta2V5LTAxMjM0NTY3ODlhYmM=";
+    private static final String ORDER_PAID = "{\"id\":\"msg_2\",\"type\":\"order.paid\",\"timestamp\":\"2026-10-22T12:00:00Z\",\"data\":{\"id\":\"ord_1\",\"customer_id\":\"cus_1\",\"product_id\":\"prod_1\",\"price_id\":\"price_1\",\"amount_cents\":12000,\"currency\":\"BRL\",\"status\":\"succeeded\",\"paid_at\":\"2026-10-22T12:00:00Z\",\"installments\":3,\"installment_interest_cents\":360}}";
+    private static final String USAGE_RECORDED = "{\"id\":\"msg_3\",\"type\":\"usage_event.recorded\",\"timestamp\":\"2026-10-22T12:00:00Z\",\"data\":{\"event_id\":\"ue_1\",\"aggregate\":\"usage_event\",\"aggregate_id\":\"ue_1\",\"merchant_id\":\"mer_1\",\"environment\":\"test\"}}";
+    private static final String PAYOUT_SENT = "{\"id\":\"msg_4\",\"type\":\"payout.sent\",\"timestamp\":\"2026-10-22T12:00:00Z\",\"data\":{\"payout_id\":\"po_1\",\"amount_cents\":5000}}";
+    private static final long SIGNED_AT = 1792670400L;
 
-        WebhookEvent event = Webhook.verify(secret, sign(key, now.getEpochSecond(), body), body, now);
-        assertEquals("checkout_session.succeeded", event.getType());
-        assertEquals("cs_1", event.getData().get("checkout_session_id"));
-
-        byte[] tampered = (new String(body, StandardCharsets.UTF_8) + " ").getBytes(StandardCharsets.UTF_8);
-        assertThrows(WebhookVerificationException.class, () -> Webhook.verify(secret, sign(key, now.getEpochSecond(), body), tampered, now));
-        assertThrows(WebhookVerificationException.class, () -> Webhook.verify(secret, sign(key, now.getEpochSecond() - 600, body), body, now));
+    private static Map<String, String> webhookHeaders(String id, long at, String signature) {
+        Map<String, String> headers = new HashMap<>();
+        headers.put("Webhook-Id", id);
+        headers.put("webhook-timestamp", Long.toString(at));
+        headers.put("webhook-signature", signature);
+        return headers;
     }
 
-    private static Map<String, String> sign(byte[] key, long at, byte[] payload) throws Exception {
-        Mac mac = Mac.getInstance("HmacSHA256");
-        mac.init(new SecretKeySpec(key, "HmacSHA256"));
-        mac.update(("msg_1." + at + ".").getBytes(StandardCharsets.UTF_8));
-        String signature = Base64.getEncoder().encodeToString(mac.doFinal(payload));
-        Map<String, String> headers = new HashMap<>();
-        headers.put("Webhook-Id", "msg_1");
-        headers.put("webhook-timestamp", Long.toString(at));
-        headers.put("webhook-signature", "v1,bm90LXRoaXMtb25l v1," + signature);
-        return headers;
+    @Test
+    void theStandardWebhooksVectorVerifies() {
+        byte[] body = "{\"test\": 2432232314}".getBytes(StandardCharsets.UTF_8);
+        Map<String, String> headers = webhookHeaders("msg_p5jXN8AQM9LWM0D4loKWxJek", 1614265330L, "v1,g0hM9SsE+OTPJTGt/tmIKtSyZlE3uFJELVlNIOLJ1OE=");
+        Instant at = Instant.ofEpochSecond(1614265330L);
+        Webhook.verifySignature(REFERENCE_SECRET, headers, body, at);
+        byte[] changed = "{\"test\": 2432232314} ".getBytes(StandardCharsets.UTF_8);
+        assertThrows(WebhookVerificationException.class, () -> Webhook.verifySignature(REFERENCE_SECRET, headers, changed, at));
+        assertThrows(WebhookVerificationException.class, () -> Webhook.verifySignature(REFERENCE_SECRET, headers, body, at.plusSeconds(301)));
+        assertThrows(WebhookVerificationException.class, () -> Webhook.verifySignature(NEW_SECRET, headers, body, at));
+    }
+
+    @Test
+    void aWebhookAnswersItsTypedEvent() {
+        Instant now = Instant.ofEpochSecond(SIGNED_AT + 120);
+        Map<String, String> headers = webhookHeaders("msg_2", SIGNED_AT, "v1,wYfYi9j4EexjSjLLsUssBYbtAFSwF9KVQBJ2o+qD6Jw= v1,0rD3K6HM83kGY+mZMPVidXSW2zXHHDvy3bMt2QzM8Ak=");
+        byte[] orderPaid = ORDER_PAID.getBytes(StandardCharsets.UTF_8);
+        for (String secret : List.of(NEW_SECRET, OLD_SECRET)) {
+            WebhookEvent event = Webhook.verify(secret, headers, orderPaid, now);
+            OrderWebhookEvent order = assertInstanceOf(OrderWebhookEvent.class, event);
+            assertEquals("order.paid", order.getType());
+            assertEquals("ord_1", order.getData().getId());
+            assertEquals(3L, order.getData().getInstallments());
+            assertEquals(360L, order.getData().getInstallmentInterestCents());
+        }
+        assertThrows(WebhookVerificationException.class, () -> Webhook.verify(REFERENCE_SECRET, headers, orderPaid, now));
+        WebhookEvent usage = Webhook.verify(NEW_SECRET, webhookHeaders("msg_3", SIGNED_AT, "v1,Z3E2vTbczigiySfkzakxuZotPn9FlBY1KAET6hPEZoU="),
+                USAGE_RECORDED.getBytes(StandardCharsets.UTF_8), now);
+        assertEquals("mer_1", assertInstanceOf(IdentifiersWebhookEvent.class, usage).getData().get("merchant_id"));
+        assertEquals("msg_3", usage.getId());
+        WebhookEvent unknown = Webhook.verify(NEW_SECRET, webhookHeaders("msg_4", SIGNED_AT, "v1,Sa/yofA3h/58pFR+rIiWdIc8qXfcuqvyJSjxn4oJ1ZY="),
+                PAYOUT_SENT.getBytes(StandardCharsets.UTF_8), now);
+        assertEquals("payout.sent", unknown.getType());
+        assertEquals("po_1", assertInstanceOf(UnknownWebhookEvent.class, unknown).getData().get("payout_id"));
     }
 
     @Test

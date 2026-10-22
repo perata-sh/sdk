@@ -49,8 +49,19 @@ Uma recusa da API lança `PerataException`, com `Status`, `Code` (`invalid_reque
 ```csharp
 var body = await new StreamReader(Request.Body).ReadToEndAsync();
 var webhook = Webhook.Verify(Environment.GetEnvironmentVariable("PERATA_WEBHOOK_SECRET")!, Request.Headers, body);
+switch (webhook)
+{
+    case OrderWebhookEvent { Type: "order.paid" } paid:
+        Console.WriteLine($"{paid.Data.Id} {paid.Data.Installments}");
+        break;
+    case UnknownWebhookEvent unknown:
+        // um tipo que esta versão do SDK ainda não conhece: unknown.Data é o JSON
+        break;
+}
 ```
 
 A assinatura é a do Standard Webhooks (`webhook-id`, `webhook-timestamp`, `webhook-signature`), com tolerância de 5 minutos. Passe o corpo cru, antes de interpretar; os cabeçalhos podem ser os do ASP.NET, de um `HttpHeaders` ou um dicionário. Uma assinatura inválida lança `WebhookVerificationException`.
+
+O evento é tipado: um tipo para cada dado que o webhook carrega (`OrderWebhookEvent` traz um `Order`, `DisputeWebhookEvent` a disputa, `IdentifiersWebhookEvent` os identificadores…), e o `type` diz o que aconteceu; um tipo que esta versão do SDK ainda não conhece chega como `UnknownWebhookEvent`, com os dados como vieram. Durante a rotação do segredo o cabeçalho traz mais de uma assinatura, e basta uma conferir. `Webhook.VerifySignature` só confere a assinatura.
 
 Versão do SDK: 0.1.1 · contrato da API: 0.1.0

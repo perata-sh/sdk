@@ -90,34 +90,80 @@ defmodule PerataTest do
     assert {:error, %Perata.Error{status: 429, retry_after: 7}} = Perata.Products.list(perata)
   end
 
-  test "a webhook verifies only when Peráta signed it" do
-    key = "0123456789abcdef0123456789abcdef"
-    secret = "whsec_" <> Base.encode64(key)
+  # The webhook vectors every SDK checks: Standard Webhooks' own example, and
+  # Peráta events signed under two secrets, as while one is rotated.
+  @reference_secret "whsec_MfKQ9r8GKYqrTwjUPD8ILPZIo2LaLaSw"
+  @old_secret "whsec_cGVyYXRhLXNkay1vbGQta2V5LTAxMjM0NTY3ODlhYmM="
+  @new_secret "whsec_cGVyYXRhLXNkay1uZXcta2V5LTAxMjM0NTY3ODlhYmM="
+  @order_paid ~s({"id":"msg_2","type":"order.paid","timestamp":"2026-10-22T12:00:00Z","data":{"id":"ord_1","customer_id":"cus_1","product_id":"prod_1","price_id":"price_1","amount_cents":12000,"currency":"BRL","status":"succeeded","paid_at":"2026-10-22T12:00:00Z","installments":3,"installment_interest_cents":360}})
+  @usage_recorded ~s({"id":"msg_3","type":"usage_event.recorded","timestamp":"2026-10-22T12:00:00Z","data":{"event_id":"ue_1","aggregate":"usage_event","aggregate_id":"ue_1","merchant_id":"mer_1","environment":"test"}})
+  @payout_sent ~s({"id":"msg_4","type":"payout.sent","timestamp":"2026-10-22T12:00:00Z","data":{"payout_id":"po_1","amount_cents":5000}})
+  @signed_at 1_792_670_400
 
-    body =
-      ~s({"id":"msg_1","type":"checkout_session.succeeded","timestamp":"2026-10-17T00:00:00Z","data":{"checkout_session_id":"cs_1"}})
+  defp webhook_headers(id, at, signature) do
+    [
+      {"Webhook-Id", id},
+      {"webhook-timestamp", Integer.to_string(at)},
+      {"webhook-signature", signature}
+    ]
+  end
 
-    now = 1_800_000_000
+  test "the Standard Webhooks vector verifies" do
+    body = ~s({"test": 2432232314})
 
-    sign = fn at, payload ->
-      mac = :crypto.mac(:hmac, :sha256, key, "msg_1.#{at}." <> payload)
+    headers =
+      webhook_headers(
+        "msg_p5jXN8AQM9LWM0D4loKWxJek",
+        1_614_265_330,
+        "v1,g0hM9SsE+OTPJTGt/tmIKtSyZlE3uFJELVlNIOLJ1OE="
+      )
 
-      %{
-        "webhook-id" => "msg_1",
-        "webhook-timestamp" => Integer.to_string(at),
-        "webhook-signature" => "v1,bm90LXRoaXMtb25l v1," <> Base.encode64(mac)
-      }
+    assert :ok =
+             Perata.verify_webhook_signature(@reference_secret, headers, body, now: 1_614_265_330)
+
+    for {secret, payload, now} <- [
+          {@reference_secret, body <> " ", 1_614_265_330},
+          {@reference_secret, body, 1_614_265_330 + 301},
+          {@new_secret, body, 1_614_265_330}
+        ] do
+      assert {:error, %Perata.WebhookVerificationError{}} =
+               Perata.verify_webhook_signature(secret, headers, payload, now: now)
+    end
+  end
+
+  test "a webhook answers its typed event" do
+    now = @signed_at + 120
+
+    headers =
+      webhook_headers(
+        "msg_2",
+        @signed_at,
+        "v1,wYfYi9j4EexjSjLLsUssBYbtAFSwF9KVQBJ2o+qD6Jw= v1,0rD3K6HM83kGY+mZMPVidXSW2zXHHDvy3bMt2QzM8Ak="
+      )
+
+    for secret <- [@new_secret, @old_secret] do
+      assert {:ok, %Perata.OrderWebhookEvent{type: "order.paid", data: %Perata.Order{} = order}} =
+               Perata.verify_webhook(secret, headers, @order_paid, now: now)
+
+      assert {order.id, order.installments, order.installment_interest_cents} == {"ord_1", 3, 360}
     end
 
-    assert {:ok, event} = Perata.verify_webhook(secret, sign.(now, body), body, now: now)
-    assert event.type == "checkout_session.succeeded"
-    assert event.data["checkout_session_id"] == "cs_1"
-
     assert {:error, %Perata.WebhookVerificationError{}} =
-             Perata.verify_webhook(secret, sign.(now, body), body <> " ", now: now)
+             Perata.verify_webhook(@reference_secret, headers, @order_paid, now: now)
 
-    assert {:error, %Perata.WebhookVerificationError{}} =
-             Perata.verify_webhook(secret, sign.(now - 600, body), body, now: now)
+    usage_headers =
+      webhook_headers("msg_3", @signed_at, "v1,Z3E2vTbczigiySfkzakxuZotPn9FlBY1KAET6hPEZoU=")
+
+    assert {:ok, %Perata.IdentifiersWebhookEvent{id: "msg_3", data: %{"merchant_id" => "mer_1"}}} =
+             Perata.verify_webhook(@new_secret, usage_headers, @usage_recorded, now: now)
+
+    unknown_headers =
+      webhook_headers("msg_4", @signed_at, "v1,Sa/yofA3h/58pFR+rIiWdIc8qXfcuqvyJSjxn4oJ1ZY=")
+
+    assert {:ok, %Perata.UnknownWebhookEvent{type: "payout.sent", data: data}} =
+             Perata.verify_webhook(@new_secret, unknown_headers, @payout_sent, now: now)
+
+    assert data == %{"payout_id" => "po_1", "amount_cents" => 5000}
   end
 
   test "the real HTTP sends and reads through httpc" do

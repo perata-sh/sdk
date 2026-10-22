@@ -4,8 +4,11 @@
 
 declare(strict_types=1);
 
+use Perata\IdentifiersWebhookEvent;
+use Perata\OrderWebhookEvent;
 use Perata\Perata;
 use Perata\PerataException;
+use Perata\UnknownWebhookEvent;
 use Perata\Webhook;
 use Perata\WebhookVerificationException;
 
@@ -92,25 +95,56 @@ $tests['a refusal is a typed error'] = static function (): void {
     }
 };
 
-$tests['a webhook verifies only when Peráta signed it'] = static function (): void {
-    $key = '0123456789abcdef0123456789abcdef';
-    $secret = 'whsec_' . base64_encode($key);
-    $body = '{"id":"msg_1","type":"checkout_session.succeeded","timestamp":"2026-10-17T00:00:00Z","data":{"checkout_session_id":"cs_1"}}';
-    $now = 1_800_000_000;
-    $sign = static fn (int $at, string $payload): array => [
-        'webhook-id' => 'msg_1',
-        'webhook-timestamp' => (string) $at,
-        'webhook-signature' => 'v1,bm90LXRoaXMtb25l v1,' . base64_encode(hash_hmac('sha256', "msg_1.{$at}.{$payload}", $key, true)),
-    ];
-    $event = Webhook::verify($secret, $sign($now, $body), $body, $now);
-    check($event->type === 'checkout_session.succeeded' && $event->data['checkout_session_id'] === 'cs_1', 'event');
-    foreach ([[$sign($now, $body), $body . ' '], [$sign($now - 600, $body), $body]] as [$headers, $payload]) {
-        try {
-            Webhook::verify($secret, $headers, $payload, $now);
-            check(false, 'a forged or stale webhook verified');
-        } catch (WebhookVerificationException) {
-        }
+// The webhook vectors every SDK checks: Standard Webhooks' own example, and
+// Peráta events signed under two secrets, as while one is rotated.
+const REFERENCE_SECRET = 'whsec_MfKQ9r8GKYqrTwjUPD8ILPZIo2LaLaSw';
+const OLD_SECRET = 'whsec_cGVyYXRhLXNkay1vbGQta2V5LTAxMjM0NTY3ODlhYmM=';
+const NEW_SECRET = 'whsec_cGVyYXRhLXNkay1uZXcta2V5LTAxMjM0NTY3ODlhYmM=';
+const ORDER_PAID = '{"id":"msg_2","type":"order.paid","timestamp":"2026-10-22T12:00:00Z","data":{"id":"ord_1","customer_id":"cus_1","product_id":"prod_1","price_id":"price_1","amount_cents":12000,"currency":"BRL","status":"succeeded","paid_at":"2026-10-22T12:00:00Z","installments":3,"installment_interest_cents":360}}';
+const USAGE_RECORDED = '{"id":"msg_3","type":"usage_event.recorded","timestamp":"2026-10-22T12:00:00Z","data":{"event_id":"ue_1","aggregate":"usage_event","aggregate_id":"ue_1","merchant_id":"mer_1","environment":"test"}}';
+const PAYOUT_SENT = '{"id":"msg_4","type":"payout.sent","timestamp":"2026-10-22T12:00:00Z","data":{"payout_id":"po_1","amount_cents":5000}}';
+const SIGNED_AT = 1792670400;
+
+/**
+ * @return array<string, string>
+ */
+function webhookHeaders(string $id, int $at, string $signature): array
+{
+    return ['Webhook-Id' => $id, 'webhook-timestamp' => (string) $at, 'webhook-signature' => $signature];
+}
+
+function refused(callable $call): bool
+{
+    try {
+        $call();
+        return false;
+    } catch (WebhookVerificationException) {
+        return true;
     }
+}
+
+$tests['the Standard Webhooks vector verifies'] = static function (): void {
+    $body = '{"test": 2432232314}';
+    $headers = webhookHeaders('msg_p5jXN8AQM9LWM0D4loKWxJek', 1614265330, 'v1,g0hM9SsE+OTPJTGt/tmIKtSyZlE3uFJELVlNIOLJ1OE=');
+    Webhook::verifySignature(REFERENCE_SECRET, $headers, $body, 1614265330);
+    check(refused(static fn () => Webhook::verifySignature(REFERENCE_SECRET, $headers, $body . ' ', 1614265330)), 'a changed body verified');
+    check(refused(static fn () => Webhook::verifySignature(REFERENCE_SECRET, $headers, $body, 1614265330 + 301)), 'a stale webhook verified');
+    check(refused(static fn () => Webhook::verifySignature(NEW_SECRET, $headers, $body, 1614265330)), 'another secret verified');
+};
+
+$tests['a webhook answers its typed event'] = static function (): void {
+    $now = SIGNED_AT + 120;
+    $headers = webhookHeaders('msg_2', SIGNED_AT, 'v1,wYfYi9j4EexjSjLLsUssBYbtAFSwF9KVQBJ2o+qD6Jw= v1,0rD3K6HM83kGY+mZMPVidXSW2zXHHDvy3bMt2QzM8Ak=');
+    foreach ([NEW_SECRET, OLD_SECRET] as $secret) {
+        $event = Webhook::verify($secret, $headers, ORDER_PAID, $now);
+        check($event instanceof OrderWebhookEvent && $event->type === 'order.paid' && $event->data->id === 'ord_1'
+            && $event->data->installments === 3 && $event->data->installmentInterestCents === 360, 'order event');
+    }
+    check(refused(static fn () => Webhook::verify(REFERENCE_SECRET, $headers, ORDER_PAID, $now)), 'a secret that signed nothing verified');
+    $usage = Webhook::verify(NEW_SECRET, webhookHeaders('msg_3', SIGNED_AT, 'v1,Z3E2vTbczigiySfkzakxuZotPn9FlBY1KAET6hPEZoU='), USAGE_RECORDED, $now);
+    check($usage instanceof IdentifiersWebhookEvent && $usage->id === 'msg_3' && $usage->data['merchant_id'] === 'mer_1', 'identifiers event');
+    $unknown = Webhook::verify(NEW_SECRET, webhookHeaders('msg_4', SIGNED_AT, 'v1,Sa/yofA3h/58pFR+rIiWdIc8qXfcuqvyJSjxn4oJ1ZY='), PAYOUT_SENT, $now);
+    check($unknown instanceof UnknownWebhookEvent && $unknown->type === 'payout.sent' && $unknown->data === ['payout_id' => 'po_1', 'amount_cents' => 5000], 'unknown event');
 };
 
 $tests['the real HTTP sends and reads through curl'] = static function (): void {

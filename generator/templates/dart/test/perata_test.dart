@@ -1,7 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:crypto/crypto.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:perata_sdk/perata_sdk.dart';
@@ -39,6 +38,33 @@ Map<String, Object?> product(String id) => {
   'description': '',
   'status': 'active',
   'created_at': '2026-10-17T00:00:00Z',
+};
+
+// The webhook vectors every SDK checks: Standard Webhooks' own example, and
+// Peráta events signed under two secrets, as while one is rotated.
+const referenceSecret = 'whsec_MfKQ9r8GKYqrTwjUPD8ILPZIo2LaLaSw';
+const oldSecret = 'whsec_cGVyYXRhLXNkay1vbGQta2V5LTAxMjM0NTY3ODlhYmM=';
+const newSecret = 'whsec_cGVyYXRhLXNkay1uZXcta2V5LTAxMjM0NTY3ODlhYmM=';
+const orderPaid =
+    '{"id":"msg_2","type":"order.paid","timestamp":"2026-10-22T12:00:00Z",'
+    '"data":{"id":"ord_1","customer_id":"cus_1","product_id":"prod_1",'
+    '"price_id":"price_1","amount_cents":12000,"currency":"BRL",'
+    '"status":"succeeded","paid_at":"2026-10-22T12:00:00Z","installments":3,'
+    '"installment_interest_cents":360}}';
+const usageRecorded =
+    '{"id":"msg_3","type":"usage_event.recorded",'
+    '"timestamp":"2026-10-22T12:00:00Z","data":{"event_id":"ue_1",'
+    '"aggregate":"usage_event","aggregate_id":"ue_1","merchant_id":"mer_1",'
+    '"environment":"test"}}';
+const payoutSent =
+    '{"id":"msg_4","type":"payout.sent","timestamp":"2026-10-22T12:00:00Z",'
+    '"data":{"payout_id":"po_1","amount_cents":5000}}';
+const signedAt = 1792670400;
+
+Map<String, String> webhookHeaders(String id, int at, String signature) => {
+  'Webhook-Id': id,
+  'Webhook-Timestamp': '$at',
+  'Webhook-Signature': signature,
 };
 
 void main() {
@@ -121,44 +147,86 @@ void main() {
     );
   });
 
-  test('a webhook verifies only when Peráta signed it', () {
-    final key = utf8.encode('0123456789abcdef0123456789abcdef');
-    final secret = 'whsec_${base64.encode(key)}';
-    const body =
-        '{"id":"msg_1","type":"checkout_session.succeeded",'
-        '"timestamp":"2026-10-17T00:00:00Z",'
-        '"data":{"checkout_session_id":"cs_1"}}';
-    final now = DateTime.fromMillisecondsSinceEpoch(1800000000000, isUtc: true);
-    Map<String, String> sign(DateTime at, String payload) {
-      final stamp = at.millisecondsSinceEpoch ~/ 1000;
-      final mac = Hmac(
-        sha256,
-        key,
-      ).convert(utf8.encode('msg_1.$stamp.$payload'));
-      return {
-        'Webhook-Id': 'msg_1',
-        'Webhook-Timestamp': '$stamp',
-        'Webhook-Signature':
-            'v1,bm90LXRoaXMtb25l v1,${base64.encode(mac.bytes)}',
-      };
+  test('the Standard Webhooks vector verifies', () {
+    const body = '{"test": 2432232314}';
+    final headers = webhookHeaders(
+      'msg_p5jXN8AQM9LWM0D4loKWxJek',
+      1614265330,
+      'v1,g0hM9SsE+OTPJTGt/tmIKtSyZlE3uFJELVlNIOLJ1OE=',
+    );
+    final at = DateTime.fromMillisecondsSinceEpoch(1614265330000, isUtc: true);
+    verifyWebhookSignature(referenceSecret, headers, body, now: at);
+    for (final (secret, payload, now) in [
+      (referenceSecret, '$body ', at),
+      (referenceSecret, body, at.add(const Duration(seconds: 301))),
+      (newSecret, body, at),
+    ]) {
+      expect(
+        () => verifyWebhookSignature(secret, headers, payload, now: now),
+        throwsA(isA<WebhookVerificationException>()),
+      );
     }
+  });
 
-    final event = verifyWebhook(secret, sign(now, body), body, now: now);
-    expect(event.id, 'msg_1');
-    expect(event.type, 'checkout_session.succeeded');
-    expect(event.data['checkout_session_id'], 'cs_1');
-    expect(
-      verifyWebhook(secret, sign(now, body), utf8.encode(body), now: now).type,
-      'checkout_session.succeeded',
+  test('a webhook answers its typed event', () {
+    final now = DateTime.fromMillisecondsSinceEpoch(
+      (signedAt + 120) * 1000,
+      isUtc: true,
     );
+    final headers = webhookHeaders(
+      'msg_2',
+      signedAt,
+      'v1,wYfYi9j4EexjSjLLsUssBYbtAFSwF9KVQBJ2o+qD6Jw= '
+          'v1,0rD3K6HM83kGY+mZMPVidXSW2zXHHDvy3bMt2QzM8Ak=',
+    );
+    for (final secret in [newSecret, oldSecret]) {
+      final event = verifyWebhook(secret, headers, orderPaid, now: now);
+      if (event is! OrderWebhookEvent) {
+        fail('not an order event: $event');
+      }
+      expect(event.type, 'order.paid');
+      expect(event.data.id, 'ord_1');
+      expect(event.data.installments, 3);
+      expect(event.data.installmentInterestCents, 360);
+    }
     expect(
-      () => verifyWebhook(secret, sign(now, body), '$body ', now: now),
+      () => verifyWebhook(referenceSecret, headers, orderPaid, now: now),
       throwsA(isA<WebhookVerificationException>()),
     );
-    final stale = now.subtract(const Duration(minutes: 10));
+    final usage = verifyWebhook(
+      newSecret,
+      webhookHeaders(
+        'msg_3',
+        signedAt,
+        'v1,Z3E2vTbczigiySfkzakxuZotPn9FlBY1KAET6hPEZoU=',
+      ),
+      utf8.encode(usageRecorded),
+      now: now,
+    );
     expect(
-      () => verifyWebhook(secret, sign(stale, body), body, now: now),
-      throwsA(isA<WebhookVerificationException>()),
+      usage,
+      isA<IdentifiersWebhookEvent>()
+          .having((event) => event.id, 'id', 'msg_3')
+          .having((event) => event.data['merchant_id'], 'merchant', 'mer_1'),
+    );
+    final unknown = verifyWebhook(
+      newSecret,
+      webhookHeaders(
+        'msg_4',
+        signedAt,
+        'v1,Sa/yofA3h/58pFR+rIiWdIc8qXfcuqvyJSjxn4oJ1ZY=',
+      ),
+      payoutSent,
+      now: now,
+    );
+    expect(
+      unknown,
+      isA<UnknownWebhookEvent>()
+          .having((event) => event.type, 'type', 'payout.sent')
+          .having((event) => event.data, 'data', {
+            'payout_id': 'po_1',
+            'amount_cents': 5000,
+          }),
     );
   });
 

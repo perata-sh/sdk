@@ -44,8 +44,16 @@ Uma recusa da API é um `{:error, %Perata.Error{}}`, com `status`, `code` (`inva
 
 ```elixir
 {:ok, event} = Perata.verify_webhook(System.fetch_env!("PERATA_WEBHOOK_SECRET"), conn.req_headers, raw_body)
+
+case event do
+  %Perata.OrderWebhookEvent{type: "order.paid", data: order} -> IO.inspect(order.installments)
+  %Perata.DisputeWebhookEvent{data: dispute} -> IO.inspect(dispute.provider_dispute_id)
+  %Perata.UnknownWebhookEvent{} -> :ok
+end
 ```
 
 A assinatura é a do Standard Webhooks (`webhook-id`, `webhook-timestamp`, `webhook-signature`), com tolerância de 5 minutos. Passe o corpo cru, antes de interpretar. Uma assinatura que não confere devolve `{:error, %Perata.WebhookVerificationError{}}`.
+
+O evento é tipado: um tipo para cada dado que o webhook carrega (`OrderWebhookEvent` traz um `Order`, `DisputeWebhookEvent` a disputa, `IdentifiersWebhookEvent` os identificadores…), e o `type` diz o que aconteceu; um tipo que esta versão do SDK ainda não conhece chega como `UnknownWebhookEvent`, com os dados como vieram. Durante a rotação do segredo o cabeçalho traz mais de uma assinatura, e basta uma conferir. `Perata.verify_webhook_signature/4` só confere a assinatura.
 
 Versão do SDK: 0.1.1 · contrato da API: 0.1.0

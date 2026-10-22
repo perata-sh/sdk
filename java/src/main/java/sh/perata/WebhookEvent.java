@@ -1,29 +1,28 @@
 package sh.perata;
 
-import java.util.Collections;
-import java.util.LinkedHashMap;
-import java.util.Map;
-
-/** What Peráta posts to an endpoint. */
-public final class WebhookEvent {
+/**
+ * A webhook Peráta sent, verified: one subclass a kind of data
+ * ({@link OrderWebhookEvent} carries an {@link Order}…), or
+ * {@link UnknownWebhookEvent} for a type this SDK does not know yet. Within a
+ * class, {@link #getType()} says what happened.
+ */
+public abstract class WebhookEvent {
     private final String id;
     private final String type;
     private final String timestamp;
-    private final Map<String, String> data;
 
-    WebhookEvent(String id, String type, String timestamp, Map<String, String> data) {
+    WebhookEvent(String id, String type, String timestamp) {
         this.id = id;
         this.type = type;
         this.timestamp = timestamp;
-        this.data = Collections.unmodifiableMap(new LinkedHashMap<>(data));
     }
 
-    /** @return the message's id, the same on every delivery of it */
+    /** @return the message's id, the same as the webhook-id header and on every delivery of it */
     public String getId() {
         return id;
     }
 
-    /** @return what happened: checkout_session.succeeded… */
+    /** @return what happened: order.paid… */
     public String getType() {
         return type;
     }
@@ -33,13 +32,11 @@ public final class WebhookEvent {
         return timestamp;
     }
 
-    /** @return the event's ids and values */
-    public Map<String, String> getData() {
-        return data;
-    }
+    /** @return what the event carries */
+    public abstract Object getData();
 
     @Override
     public String toString() {
-        return "WebhookEvent{id=" + id + ", type=" + type + ", timestamp=" + timestamp + ", data=" + data + "}";
+        return getClass().getSimpleName() + "{id=" + id + ", type=" + type + ", timestamp=" + timestamp + ", data=" + getData() + "}";
     }
 }

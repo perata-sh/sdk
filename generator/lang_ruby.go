@@ -23,6 +23,13 @@ func init() {
 		"rbType":  rbType,
 		"rbRead":  rbRead,
 		"rbWrite": rbWrite,
+		// rbBuild builds expr into t, or takes it as it is.
+		"rbBuild": func(t *TypeRef, expr string) string {
+			if convert := rbConvert(t, expr, 0); convert != "" {
+				return convert
+			}
+			return expr
+		},
 		// rbDoc writes a description as comment lines over a declaration, or
 		// nothing.
 		"rbDoc": func(indent, text string) string {
