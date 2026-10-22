@@ -6,7 +6,7 @@
 
     <groupId>sh.perata</groupId>
     <artifactId>sdk</artifactId>
-    <version>0.1.1</version>
+    <version>0.2.0</version>
     <packaging>jar</packaging>
 
     <name>Peráta SDK for Java</name>
@@ -34,7 +34,7 @@
         <connection>scm:git:https://github.com/perata-sh/sdk.git</connection>
         <developerConnection>scm:git:ssh://git@github.com/perata-sh/sdk.git</developerConnection>
         <url>https://github.com/perata-sh/sdk</url>
-        <tag>v0.1.1</tag>
+        <tag>v0.2.0</tag>
     </scm>
 
     <properties>

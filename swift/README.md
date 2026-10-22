@@ -4,7 +4,7 @@ SDK oficial da API da Peráta para Swift 6 (macOS 12+, iOS 15+, tvOS 15+, watchO
 
 ```swift
 // Package.swift
-.package(url: "https://github.com/perata-sh/sdk", from: "0.1.1"),
+.package(url: "https://github.com/perata-sh/sdk", from: "0.2.0"),
 // e, no target:
 .product(name: "Perata", package: "sdk"),
 ```
@@ -60,4 +60,4 @@ A assinatura é a do Standard Webhooks (`webhook-id`, `webhook-timestamp`, `webh
 
 O evento é tipado: um caso para cada dado que o webhook carrega (`.order` traz um `Order`, `.dispute` a disputa, `.identifiers` os identificadores…), e o `type` diz o que aconteceu; um tipo que esta versão do SDK ainda não conhece chega como `.unknown`, com o corpo como veio. Durante a rotação do segredo o cabeçalho traz mais de uma assinatura, e basta uma conferir. `verifyWebhookSignature` só confere a assinatura.
 
-Versão do SDK: 0.1.1 · contrato da API: 0.1.0
+Versão do SDK: 0.2.0 · contrato da API: 0.1.0

@@ -1,5 +1,16 @@
 # Changelog
 
+Todos os SDKs da Peráta saem com a mesma versão; as mudanças de cada uma estão também nas [releases de perata-sh/sdk](https://github.com/perata-sh/sdk/releases).
+
 ## {{.Version}}
 
-- Gerado a partir do contrato da API {{.APIVersion}}. Todos os SDKs da Peráta saem com a mesma versão; as mudanças de cada uma estão nas [releases de perata-sh/sdk](https://github.com/perata-sh/sdk/releases).
+Gerado a partir do contrato da API {{.APIVersion}}.
+
+- Webhooks tipados: `verifyWebhook` responde um `WebhookEvent` selado, uma classe para cada dado que o evento carrega (`OrderWebhookEvent`, `SubscriptionWebhookEvent`, `CheckoutWebhookEvent`, `DisputeWebhookEvent`, `BenefitGrantWebhookEvent`, `IdentifiersWebhookEvent`…), e `UnknownWebhookEvent` para um tipo que esta versão ainda não conhece. Antes, `data` era um mapa de textos. **Mudança incompatível.**
+- `verifyWebhookSignature`, que só confere a assinatura; os testes conferem o vetor do próprio Standard Webhooks e a rotação do segredo (duas assinaturas no cabeçalho).
+- `customerSessions.create`: abre o portal do cliente já autenticado.
+- `Order` e `Payment` trazem o parcelamento: `installments`, `installmentInterestCents` e, no pagamento, `installmentAmountCents`.
+
+## 0.1.1
+
+- Primeira versão publicada: produtos, preços, clientes, checkouts, pedidos, pagamentos, cartões salvos, assinaturas e reembolsos, com paginação, `Idempotency-Key`, erros tipados e verificação dos webhooks.

@@ -20,11 +20,13 @@ Os nomes seguem o GitHub: organização `perata-sh`, pacote `sdk`; onde o regist
 
 Todos fazem o mesmo, com a mesma versão (`VERSION`):
 - a chave da organização (`prk_test_…` ou `prk_live_…`), que define organização e ambiente;
-- os recursos da API (produtos, preços, clientes, checkouts, pedidos, pagamentos, cartões salvos, assinaturas, reembolsos);
+- os recursos da API (produtos, preços, clientes, sessões do portal do cliente, checkouts, pedidos, pagamentos com parcelamento, cartões salvos, assinaturas, reembolsos);
 - listas paginadas com iterador que percorre todas as páginas;
 - `Idempotency-Key` nas escritas;
 - erros tipados, com o problema de cada campo e o `Retry-After`;
-- verificação dos webhooks (Standard Webhooks).
+- verificação dos webhooks (Standard Webhooks, com mais de uma assinatura durante a rotação do segredo) e o evento tipado pelo `type`: um tipo para cada dado que ele carrega (pedido, assinatura, checkout, disputa, benefício concedido, cliente, reembolso, identificadores) e um tipo desconhecido para o que a versão ainda não conhece.
+
+A ingestão de uso (`/api/v1/usage/token-events`) não está nos SDKs: ela usa a credencial da fonte, não a chave da organização.
 
 Só usam a biblioteca padrão da linguagem, com duas exceções onde ela não tem HTTP, JSON ou HMAC: Dart (`http` e `crypto`, do próprio time do Dart) e Rust (`serde`, `ureq`, `hmac`, `sha2`, `base64`).
 

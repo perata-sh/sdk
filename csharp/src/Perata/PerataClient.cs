@@ -28,7 +28,7 @@ namespace Perata;
 public sealed class PerataClient
 {
     /// <summary>This SDK's version.</summary>
-    public const string Version = "0.1.1";
+    public const string Version = "0.2.0";
 
     /// <summary>The contract this SDK was generated from.</summary>
     public const string ApiVersion = "0.1.0";

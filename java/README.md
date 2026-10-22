@@ -6,12 +6,12 @@ SDK oficial da API da Peráta para Java 11+, sem dependências: só `java.net.ht
 <dependency>
     <groupId>sh.perata</groupId>
     <artifactId>sdk</artifactId>
-    <version>0.1.1</version>
+    <version>0.2.0</version>
 </dependency>
 ```
 
 ```kotlin
-implementation("sh.perata:sdk:0.1.1") // Gradle
+implementation("sh.perata:sdk:0.2.0") // Gradle
 ```
 
 ```java
@@ -69,4 +69,4 @@ A assinatura é a do Standard Webhooks (`webhook-id`, `webhook-timestamp`, `webh
 
 O evento é tipado: um tipo para cada dado que o webhook carrega (`OrderWebhookEvent` traz um `Order`, `DisputeWebhookEvent` a disputa, `IdentifiersWebhookEvent` os identificadores…), e o `type` diz o que aconteceu; um tipo que esta versão do SDK ainda não conhece chega como `UnknownWebhookEvent`, com os dados como vieram. Durante a rotação do segredo o cabeçalho traz mais de uma assinatura, e basta uma conferir. `Webhook.verifySignature` só confere a assinatura.
 
-Versão do SDK: 0.1.1 · contrato da API: 0.1.0
+Versão do SDK: 0.2.0 · contrato da API: 0.1.0

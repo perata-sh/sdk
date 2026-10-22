@@ -1,5 +1,5 @@
 name: perata_sdk
-version: 0.1.1
+version: 0.2.0
 description: >-
   Peráta's SDK for Dart and Flutter: products, prices, customers, checkouts,
   payments, subscriptions, refunds and webhook verification.
