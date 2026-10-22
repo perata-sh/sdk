@@ -2,7 +2,7 @@
 
 import type { Requester, RequestSpec } from "./core.ts";
 import { PerataError } from "./errors.ts";
-import { CheckoutsService, CustomersService, OrdersService, PaymentMethodsService, PaymentsService, PricesService, ProductsService, RefundsService, SubscriptionsService } from "./services.ts";
+import { CheckoutsService, CustomerSessionsService, CustomersService, OrdersService, PaymentMethodsService, PaymentsService, PricesService, ProductsService, RefundsService, SubscriptionsService } from "./services.ts";
 import { DEFAULT_BASE_URL, VERSION } from "./version.ts";
 
 export interface ClientOptions {
@@ -25,6 +25,7 @@ export interface ClientOptions {
  */
 export class Perata implements Requester {
   readonly checkouts: CheckoutsService;
+  readonly customerSessions: CustomerSessionsService;
   readonly customers: CustomersService;
   readonly orders: OrdersService;
   readonly paymentMethods: PaymentMethodsService;
@@ -46,6 +47,7 @@ export class Perata implements Requester {
     this.#fetch = config.fetch ?? ((input, init) => fetch(input, init));
     this.#timeoutMs = config.timeoutMs ?? 30_000;
     this.checkouts = new CheckoutsService(this);
+    this.customerSessions = new CustomerSessionsService(this);
     this.customers = new CustomersService(this);
     this.orders = new OrdersService(this);
     this.paymentMethods = new PaymentMethodsService(this);

@@ -25,6 +25,7 @@ for product, err := range client.Products.ListIter(ctx, nil) {
 | Serviço | Métodos |
 |---|---|
 | `client.Checkouts` | `Create` |
+| `client.CustomerSessions` | `Create` |
 | `client.Customers` | `Create`, `Get`, `List`, `ListIter` |
 | `client.Orders` | `List`, `ListIter` |
 | `client.PaymentMethods` | `Detach`, `List`, `ListIter` |

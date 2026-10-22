@@ -23,6 +23,7 @@ for product in perata.products.list_iter():
 | Serviço | Métodos |
 |---|---|
 | `perata.checkouts` | `create` |
+| `perata.customer_sessions` | `create` |
 | `perata.customers` | `create`, `get`, `list`, `list_iter` |
 | `perata.orders` | `list`, `list_iter` |
 | `perata.payment_methods` | `detach`, `list`, `list_iter` |

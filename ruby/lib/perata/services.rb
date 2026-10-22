@@ -19,6 +19,22 @@ module Perata
     end
   end
 
+  # The API's customer-sessions.
+  class CustomerSessionsService
+    def initialize(client)
+      @client = client
+    end
+
+    # Sign a customer into the customer portal: the address opens it already signed in.
+    #
+    # @param params [CustomerSessionsCreateParams, Hash]
+    # @return [CustomerSession]
+    def create(params, idempotency_key: nil, api_key: nil)
+      data = @client.request("POST", "/api/v1/customer-sessions", body: CustomerSessionsCreateParams.coerce(params).to_wire, idempotency_key: idempotency_key, api_key: api_key)
+      CustomerSession.from_hash(data)
+    end
+  end
+
   # The API's customers.
   class CustomersService
     def initialize(client)

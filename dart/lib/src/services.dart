@@ -27,6 +27,29 @@ class CheckoutsService {
   }
 }
 
+/// The API's customer-sessions.
+class CustomerSessionsService {
+  const CustomerSessionsService(this._client);
+
+  final Requester _client;
+
+  /// Sign a customer into the customer portal: the address opens it already signed in.
+  Future<CustomerSession> create(
+    CustomerSessionsCreateParams params, {
+    String? idempotencyKey,
+    String? apiKey,
+  }) async {
+    final data = await _client.request(
+      'POST',
+      '/api/v1/customer-sessions',
+      body: params.toJson(),
+      idempotencyKey: idempotencyKey,
+      apiKey: apiKey,
+    );
+    return CustomerSession.fromJson(data);
+  }
+}
+
 /// The API's customers.
 class CustomersService {
   const CustomersService(this._client);

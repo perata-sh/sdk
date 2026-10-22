@@ -72,6 +72,18 @@ public sealed record Payment
     [JsonPropertyName("id")]
     public required string Id { get; init; }
 
+    /// <summary>Valor de uma parcela; 0 à vista.</summary>
+    [JsonPropertyName("installment_amount_cents")]
+    public required long InstallmentAmountCents { get; init; }
+
+    /// <summary>Juros do parcelamento dentro de amount_cents.</summary>
+    [JsonPropertyName("installment_interest_cents")]
+    public required long InstallmentInterestCents { get; init; }
+
+    /// <summary>Em quantas parcelas o cartão de crédito foi cobrado; 1 à vista.</summary>
+    [JsonPropertyName("installments")]
+    public required long Installments { get; init; }
+
     /// <summary>The API's <c>method</c>.</summary>
     [JsonPropertyName("method")]
     public required string Method { get; init; }

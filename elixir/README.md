@@ -22,6 +22,7 @@ client
 | Módulo | Funções |
 |---|---|
 | `Perata.Checkouts` | `create` |
+| `Perata.CustomerSessions` | `create` |
 | `Perata.Customers` | `create`, `get`, `list`, `list_stream` |
 | `Perata.Orders` | `list`, `list_stream` |
 | `Perata.PaymentMethods` | `detach`, `list`, `list_stream` |

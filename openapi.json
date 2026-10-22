@@ -148,6 +148,125 @@
         "x-arandu-route-name": "api.checkouts.create"
       }
     },
+    "/api/v1/customer-sessions": {
+      "post": {
+        "tags": [
+          "customer-sessions"
+        ],
+        "summary": "Sign a customer into the customer portal: the address opens it already signed in",
+        "description": "Autenticação: chave de API da organização em Authorization: Bearer (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição. Respostas em JSON no envelope data; erros com error, message e fields.",
+        "operationId": "customer-sessions:create",
+        "parameters": [
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "description": "Opcional, até 255 caracteres. A mesma chave com o mesmo corpo repete a resposta original (Idempotent-Replayed: true); com outro corpo, 409.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "customer_id": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "customer_id"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "O recurso no envelope data.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CustomerSessionEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Chave ausente, inválida ou revogada.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "A chave é somente leitura ou quem a criou não tem mais acesso.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Recurso inexistente nesta organização e ambiente.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Idempotency-Key reutilizada com outro corpo, ou estado que não permite a ação.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Campos inválidos; fields detalha cada um.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Orçamento de requisições excedido; respeite Retry-After."
+          },
+          "500": {
+            "description": "Indisponível; repita com a mesma Idempotency-Key.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "apiKey": []
+          }
+        ],
+        "x-arandu-route-name": "api.customer-sessions.create"
+      }
+    },
     "/api/v1/customers": {
       "get": {
         "tags": [
@@ -2052,6 +2171,54 @@
                         "occurred_at": {
                           "type": "string",
                           "format": "date-time"
+                        },
+                        "_cost": {
+                          "type": "object",
+                          "description": "Opcional. O custo de atender o evento para o vendedor, como o metadata._cost do Polar; alimenta Análises › Custos e as margens.",
+                          "properties": {
+                            "amount": {
+                              "type": "string",
+                              "description": "Custo em centavos, como string decimal com até seis casas.",
+                              "pattern": "^[0-9]{1,10}(\\.[0-9]{1,6})?$"
+                            },
+                            "currency": {
+                              "type": "string",
+                              "description": "Moeda do custo. Apenas brl.",
+                              "enum": [
+                                "brl"
+                              ]
+                            }
+                          },
+                          "required": [
+                            "amount",
+                            "currency"
+                          ],
+                          "additionalProperties": false
+                        },
+                        "_llm": {
+                          "type": "object",
+                          "description": "Opcional. O modelo e o fornecedor que atenderam o evento, como o metadata._llm do Polar; os contadores continuam nos campos de tokens.",
+                          "properties": {
+                            "vendor": {
+                              "type": "string",
+                              "description": "Fornecedor do modelo.",
+                              "maxLength": 120
+                            },
+                            "model": {
+                              "type": "string",
+                              "description": "Modelo que atendeu o evento.",
+                              "maxLength": 120
+                            }
+                          },
+                          "required": [
+                            "vendor",
+                            "model"
+                          ],
+                          "additionalProperties": false
+                        },
+                        "parent_id": {
+                          "type": "string",
+                          "description": "Opcional. O evento pai, pelo id do Peráta ou pelo external_event_id que a mesma fonte enviou; o pai precisa chegar antes, inclusive antes no mesmo lote."
                         }
                       },
                       "required": [
@@ -2135,8 +2302,4019 @@
       }
     }
   },
+  "webhooks": {
+    "benefit.archived": {
+      "post": {
+        "tags": [
+          "webhooks"
+        ],
+        "summary": "Evento da Peráta; data traz os identificadores.",
+        "description": "Enviado por POST ao endpoint assinante, no padrão Standard Webhooks: cabeçalhos webhook-id, webhook-timestamp e webhook-signature (HMAC-SHA256 de \"{id}.{timestamp}.{corpo}\" com o segredo whsec_). Responda 2xx; outra resposta é repetida em 30 s, 5 min, 30 min, 2 h, 5 h e 10 h.",
+        "operationId": "webhooks:benefit.archived",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "data": {
+                    "$ref": "#/components/schemas/WebhookIdentifiers"
+                  },
+                  "id": {
+                    "description": "Identificador da mensagem, igual ao cabeçalho webhook-id.",
+                    "type": "string"
+                  },
+                  "timestamp": {
+                    "format": "date-time",
+                    "type": "string"
+                  },
+                  "type": {
+                    "enum": [
+                      "benefit.archived"
+                    ],
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "id",
+                  "type",
+                  "timestamp",
+                  "data"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "2XX": {
+            "description": "Recebido."
+          }
+        }
+      }
+    },
+    "benefit.created": {
+      "post": {
+        "tags": [
+          "webhooks"
+        ],
+        "summary": "Evento da Peráta; data traz os identificadores.",
+        "description": "Enviado por POST ao endpoint assinante, no padrão Standard Webhooks: cabeçalhos webhook-id, webhook-timestamp e webhook-signature (HMAC-SHA256 de \"{id}.{timestamp}.{corpo}\" com o segredo whsec_). Responda 2xx; outra resposta é repetida em 30 s, 5 min, 30 min, 2 h, 5 h e 10 h.",
+        "operationId": "webhooks:benefit.created",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "data": {
+                    "$ref": "#/components/schemas/WebhookIdentifiers"
+                  },
+                  "id": {
+                    "description": "Identificador da mensagem, igual ao cabeçalho webhook-id.",
+                    "type": "string"
+                  },
+                  "timestamp": {
+                    "format": "date-time",
+                    "type": "string"
+                  },
+                  "type": {
+                    "enum": [
+                      "benefit.created"
+                    ],
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "id",
+                  "type",
+                  "timestamp",
+                  "data"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "2XX": {
+            "description": "Recebido."
+          }
+        }
+      }
+    },
+    "benefit.updated": {
+      "post": {
+        "tags": [
+          "webhooks"
+        ],
+        "summary": "Evento da Peráta; data traz os identificadores.",
+        "description": "Enviado por POST ao endpoint assinante, no padrão Standard Webhooks: cabeçalhos webhook-id, webhook-timestamp e webhook-signature (HMAC-SHA256 de \"{id}.{timestamp}.{corpo}\" com o segredo whsec_). Responda 2xx; outra resposta é repetida em 30 s, 5 min, 30 min, 2 h, 5 h e 10 h.",
+        "operationId": "webhooks:benefit.updated",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "data": {
+                    "$ref": "#/components/schemas/WebhookIdentifiers"
+                  },
+                  "id": {
+                    "description": "Identificador da mensagem, igual ao cabeçalho webhook-id.",
+                    "type": "string"
+                  },
+                  "timestamp": {
+                    "format": "date-time",
+                    "type": "string"
+                  },
+                  "type": {
+                    "enum": [
+                      "benefit.updated"
+                    ],
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "id",
+                  "type",
+                  "timestamp",
+                  "data"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "2XX": {
+            "description": "Recebido."
+          }
+        }
+      }
+    },
+    "benefit.version_created": {
+      "post": {
+        "tags": [
+          "webhooks"
+        ],
+        "summary": "Evento da Peráta; data traz os identificadores.",
+        "description": "Enviado por POST ao endpoint assinante, no padrão Standard Webhooks: cabeçalhos webhook-id, webhook-timestamp e webhook-signature (HMAC-SHA256 de \"{id}.{timestamp}.{corpo}\" com o segredo whsec_). Responda 2xx; outra resposta é repetida em 30 s, 5 min, 30 min, 2 h, 5 h e 10 h.",
+        "operationId": "webhooks:benefit.version_created",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "data": {
+                    "$ref": "#/components/schemas/WebhookIdentifiers"
+                  },
+                  "id": {
+                    "description": "Identificador da mensagem, igual ao cabeçalho webhook-id.",
+                    "type": "string"
+                  },
+                  "timestamp": {
+                    "format": "date-time",
+                    "type": "string"
+                  },
+                  "type": {
+                    "enum": [
+                      "benefit.version_created"
+                    ],
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "id",
+                  "type",
+                  "timestamp",
+                  "data"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "2XX": {
+            "description": "Recebido."
+          }
+        },
+        "deprecated": true
+      }
+    },
+    "benefit_grant.created": {
+      "post": {
+        "tags": [
+          "webhooks"
+        ],
+        "summary": "Evento do Polar; data traz o objeto.",
+        "description": "Enviado por POST ao endpoint assinante, no padrão Standard Webhooks: cabeçalhos webhook-id, webhook-timestamp e webhook-signature (HMAC-SHA256 de \"{id}.{timestamp}.{corpo}\" com o segredo whsec_). Responda 2xx; outra resposta é repetida em 30 s, 5 min, 30 min, 2 h, 5 h e 10 h.",
+        "operationId": "webhooks:benefit_grant.created",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "data": {
+                    "$ref": "#/components/schemas/BenefitGrant"
+                  },
+                  "id": {
+                    "description": "Identificador da mensagem, igual ao cabeçalho webhook-id.",
+                    "type": "string"
+                  },
+                  "timestamp": {
+                    "format": "date-time",
+                    "type": "string"
+                  },
+                  "type": {
+                    "enum": [
+                      "benefit_grant.created"
+                    ],
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "id",
+                  "type",
+                  "timestamp",
+                  "data"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "2XX": {
+            "description": "Recebido."
+          }
+        }
+      }
+    },
+    "benefit_grant.revoked": {
+      "post": {
+        "tags": [
+          "webhooks"
+        ],
+        "summary": "Evento do Polar; data traz o objeto.",
+        "description": "Enviado por POST ao endpoint assinante, no padrão Standard Webhooks: cabeçalhos webhook-id, webhook-timestamp e webhook-signature (HMAC-SHA256 de \"{id}.{timestamp}.{corpo}\" com o segredo whsec_). Responda 2xx; outra resposta é repetida em 30 s, 5 min, 30 min, 2 h, 5 h e 10 h.",
+        "operationId": "webhooks:benefit_grant.revoked",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "data": {
+                    "$ref": "#/components/schemas/BenefitGrant"
+                  },
+                  "id": {
+                    "description": "Identificador da mensagem, igual ao cabeçalho webhook-id.",
+                    "type": "string"
+                  },
+                  "timestamp": {
+                    "format": "date-time",
+                    "type": "string"
+                  },
+                  "type": {
+                    "enum": [
+                      "benefit_grant.revoked"
+                    ],
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "id",
+                  "type",
+                  "timestamp",
+                  "data"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "2XX": {
+            "description": "Recebido."
+          }
+        }
+      }
+    },
+    "benefit_grant.updated": {
+      "post": {
+        "tags": [
+          "webhooks"
+        ],
+        "summary": "Evento do Polar; data traz o objeto.",
+        "description": "Enviado por POST ao endpoint assinante, no padrão Standard Webhooks: cabeçalhos webhook-id, webhook-timestamp e webhook-signature (HMAC-SHA256 de \"{id}.{timestamp}.{corpo}\" com o segredo whsec_). Responda 2xx; outra resposta é repetida em 30 s, 5 min, 30 min, 2 h, 5 h e 10 h.",
+        "operationId": "webhooks:benefit_grant.updated",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "data": {
+                    "$ref": "#/components/schemas/BenefitGrant"
+                  },
+                  "id": {
+                    "description": "Identificador da mensagem, igual ao cabeçalho webhook-id.",
+                    "type": "string"
+                  },
+                  "timestamp": {
+                    "format": "date-time",
+                    "type": "string"
+                  },
+                  "type": {
+                    "enum": [
+                      "benefit_grant.updated"
+                    ],
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "id",
+                  "type",
+                  "timestamp",
+                  "data"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "2XX": {
+            "description": "Recebido."
+          }
+        }
+      }
+    },
+    "benefit_product_link.linked": {
+      "post": {
+        "tags": [
+          "webhooks"
+        ],
+        "summary": "Evento da Peráta; data traz os identificadores.",
+        "description": "Enviado por POST ao endpoint assinante, no padrão Standard Webhooks: cabeçalhos webhook-id, webhook-timestamp e webhook-signature (HMAC-SHA256 de \"{id}.{timestamp}.{corpo}\" com o segredo whsec_). Responda 2xx; outra resposta é repetida em 30 s, 5 min, 30 min, 2 h, 5 h e 10 h.",
+        "operationId": "webhooks:benefit_product_link.linked",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "data": {
+                    "$ref": "#/components/schemas/WebhookIdentifiers"
+                  },
+                  "id": {
+                    "description": "Identificador da mensagem, igual ao cabeçalho webhook-id.",
+                    "type": "string"
+                  },
+                  "timestamp": {
+                    "format": "date-time",
+                    "type": "string"
+                  },
+                  "type": {
+                    "enum": [
+                      "benefit_product_link.linked"
+                    ],
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "id",
+                  "type",
+                  "timestamp",
+                  "data"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "2XX": {
+            "description": "Recebido."
+          }
+        }
+      }
+    },
+    "benefit_product_link.unlinked": {
+      "post": {
+        "tags": [
+          "webhooks"
+        ],
+        "summary": "Evento da Peráta; data traz os identificadores.",
+        "description": "Enviado por POST ao endpoint assinante, no padrão Standard Webhooks: cabeçalhos webhook-id, webhook-timestamp e webhook-signature (HMAC-SHA256 de \"{id}.{timestamp}.{corpo}\" com o segredo whsec_). Responda 2xx; outra resposta é repetida em 30 s, 5 min, 30 min, 2 h, 5 h e 10 h.",
+        "operationId": "webhooks:benefit_product_link.unlinked",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "data": {
+                    "$ref": "#/components/schemas/WebhookIdentifiers"
+                  },
+                  "id": {
+                    "description": "Identificador da mensagem, igual ao cabeçalho webhook-id.",
+                    "type": "string"
+                  },
+                  "timestamp": {
+                    "format": "date-time",
+                    "type": "string"
+                  },
+                  "type": {
+                    "enum": [
+                      "benefit_product_link.unlinked"
+                    ],
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "id",
+                  "type",
+                  "timestamp",
+                  "data"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "2XX": {
+            "description": "Recebido."
+          }
+        }
+      }
+    },
+    "checkout.created": {
+      "post": {
+        "tags": [
+          "webhooks"
+        ],
+        "summary": "Evento do Polar; data traz o objeto.",
+        "description": "Enviado por POST ao endpoint assinante, no padrão Standard Webhooks: cabeçalhos webhook-id, webhook-timestamp e webhook-signature (HMAC-SHA256 de \"{id}.{timestamp}.{corpo}\" com o segredo whsec_). Responda 2xx; outra resposta é repetida em 30 s, 5 min, 30 min, 2 h, 5 h e 10 h.",
+        "operationId": "webhooks:checkout.created",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "data": {
+                    "$ref": "#/components/schemas/WebhookCheckout"
+                  },
+                  "id": {
+                    "description": "Identificador da mensagem, igual ao cabeçalho webhook-id.",
+                    "type": "string"
+                  },
+                  "timestamp": {
+                    "format": "date-time",
+                    "type": "string"
+                  },
+                  "type": {
+                    "enum": [
+                      "checkout.created"
+                    ],
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "id",
+                  "type",
+                  "timestamp",
+                  "data"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "2XX": {
+            "description": "Recebido."
+          }
+        }
+      }
+    },
+    "checkout.expired": {
+      "post": {
+        "tags": [
+          "webhooks"
+        ],
+        "summary": "Evento do Polar; data traz o objeto.",
+        "description": "Enviado por POST ao endpoint assinante, no padrão Standard Webhooks: cabeçalhos webhook-id, webhook-timestamp e webhook-signature (HMAC-SHA256 de \"{id}.{timestamp}.{corpo}\" com o segredo whsec_). Responda 2xx; outra resposta é repetida em 30 s, 5 min, 30 min, 2 h, 5 h e 10 h.",
+        "operationId": "webhooks:checkout.expired",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "data": {
+                    "$ref": "#/components/schemas/WebhookCheckout"
+                  },
+                  "id": {
+                    "description": "Identificador da mensagem, igual ao cabeçalho webhook-id.",
+                    "type": "string"
+                  },
+                  "timestamp": {
+                    "format": "date-time",
+                    "type": "string"
+                  },
+                  "type": {
+                    "enum": [
+                      "checkout.expired"
+                    ],
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "id",
+                  "type",
+                  "timestamp",
+                  "data"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "2XX": {
+            "description": "Recebido."
+          }
+        }
+      }
+    },
+    "checkout.updated": {
+      "post": {
+        "tags": [
+          "webhooks"
+        ],
+        "summary": "Evento do Polar; data traz o objeto.",
+        "description": "Enviado por POST ao endpoint assinante, no padrão Standard Webhooks: cabeçalhos webhook-id, webhook-timestamp e webhook-signature (HMAC-SHA256 de \"{id}.{timestamp}.{corpo}\" com o segredo whsec_). Responda 2xx; outra resposta é repetida em 30 s, 5 min, 30 min, 2 h, 5 h e 10 h.",
+        "operationId": "webhooks:checkout.updated",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "data": {
+                    "$ref": "#/components/schemas/WebhookCheckout"
+                  },
+                  "id": {
+                    "description": "Identificador da mensagem, igual ao cabeçalho webhook-id.",
+                    "type": "string"
+                  },
+                  "timestamp": {
+                    "format": "date-time",
+                    "type": "string"
+                  },
+                  "type": {
+                    "enum": [
+                      "checkout.updated"
+                    ],
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "id",
+                  "type",
+                  "timestamp",
+                  "data"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "2XX": {
+            "description": "Recebido."
+          }
+        }
+      }
+    },
+    "checkout_link.archived": {
+      "post": {
+        "tags": [
+          "webhooks"
+        ],
+        "summary": "Evento da Peráta; data traz os identificadores.",
+        "description": "Enviado por POST ao endpoint assinante, no padrão Standard Webhooks: cabeçalhos webhook-id, webhook-timestamp e webhook-signature (HMAC-SHA256 de \"{id}.{timestamp}.{corpo}\" com o segredo whsec_). Responda 2xx; outra resposta é repetida em 30 s, 5 min, 30 min, 2 h, 5 h e 10 h.",
+        "operationId": "webhooks:checkout_link.archived",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "data": {
+                    "$ref": "#/components/schemas/WebhookIdentifiers"
+                  },
+                  "id": {
+                    "description": "Identificador da mensagem, igual ao cabeçalho webhook-id.",
+                    "type": "string"
+                  },
+                  "timestamp": {
+                    "format": "date-time",
+                    "type": "string"
+                  },
+                  "type": {
+                    "enum": [
+                      "checkout_link.archived"
+                    ],
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "id",
+                  "type",
+                  "timestamp",
+                  "data"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "2XX": {
+            "description": "Recebido."
+          }
+        }
+      }
+    },
+    "checkout_link.created": {
+      "post": {
+        "tags": [
+          "webhooks"
+        ],
+        "summary": "Evento da Peráta; data traz os identificadores.",
+        "description": "Enviado por POST ao endpoint assinante, no padrão Standard Webhooks: cabeçalhos webhook-id, webhook-timestamp e webhook-signature (HMAC-SHA256 de \"{id}.{timestamp}.{corpo}\" com o segredo whsec_). Responda 2xx; outra resposta é repetida em 30 s, 5 min, 30 min, 2 h, 5 h e 10 h.",
+        "operationId": "webhooks:checkout_link.created",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "data": {
+                    "$ref": "#/components/schemas/WebhookIdentifiers"
+                  },
+                  "id": {
+                    "description": "Identificador da mensagem, igual ao cabeçalho webhook-id.",
+                    "type": "string"
+                  },
+                  "timestamp": {
+                    "format": "date-time",
+                    "type": "string"
+                  },
+                  "type": {
+                    "enum": [
+                      "checkout_link.created"
+                    ],
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "id",
+                  "type",
+                  "timestamp",
+                  "data"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "2XX": {
+            "description": "Recebido."
+          }
+        }
+      }
+    },
+    "checkout_payment.authorized": {
+      "post": {
+        "tags": [
+          "webhooks"
+        ],
+        "summary": "Evento da Peráta; data traz os identificadores.",
+        "description": "Enviado por POST ao endpoint assinante, no padrão Standard Webhooks: cabeçalhos webhook-id, webhook-timestamp e webhook-signature (HMAC-SHA256 de \"{id}.{timestamp}.{corpo}\" com o segredo whsec_). Responda 2xx; outra resposta é repetida em 30 s, 5 min, 30 min, 2 h, 5 h e 10 h.",
+        "operationId": "webhooks:checkout_payment.authorized",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "data": {
+                    "$ref": "#/components/schemas/WebhookIdentifiers"
+                  },
+                  "id": {
+                    "description": "Identificador da mensagem, igual ao cabeçalho webhook-id.",
+                    "type": "string"
+                  },
+                  "timestamp": {
+                    "format": "date-time",
+                    "type": "string"
+                  },
+                  "type": {
+                    "enum": [
+                      "checkout_payment.authorized"
+                    ],
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "id",
+                  "type",
+                  "timestamp",
+                  "data"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "2XX": {
+            "description": "Recebido."
+          }
+        }
+      }
+    },
+    "checkout_payment.canceled": {
+      "post": {
+        "tags": [
+          "webhooks"
+        ],
+        "summary": "Evento da Peráta; data traz os identificadores.",
+        "description": "Enviado por POST ao endpoint assinante, no padrão Standard Webhooks: cabeçalhos webhook-id, webhook-timestamp e webhook-signature (HMAC-SHA256 de \"{id}.{timestamp}.{corpo}\" com o segredo whsec_). Responda 2xx; outra resposta é repetida em 30 s, 5 min, 30 min, 2 h, 5 h e 10 h.",
+        "operationId": "webhooks:checkout_payment.canceled",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "data": {
+                    "$ref": "#/components/schemas/WebhookIdentifiers"
+                  },
+                  "id": {
+                    "description": "Identificador da mensagem, igual ao cabeçalho webhook-id.",
+                    "type": "string"
+                  },
+                  "timestamp": {
+                    "format": "date-time",
+                    "type": "string"
+                  },
+                  "type": {
+                    "enum": [
+                      "checkout_payment.canceled"
+                    ],
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "id",
+                  "type",
+                  "timestamp",
+                  "data"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "2XX": {
+            "description": "Recebido."
+          }
+        }
+      }
+    },
+    "checkout_payment.captured": {
+      "post": {
+        "tags": [
+          "webhooks"
+        ],
+        "summary": "Evento da Peráta; data traz os identificadores.",
+        "description": "Enviado por POST ao endpoint assinante, no padrão Standard Webhooks: cabeçalhos webhook-id, webhook-timestamp e webhook-signature (HMAC-SHA256 de \"{id}.{timestamp}.{corpo}\" com o segredo whsec_). Responda 2xx; outra resposta é repetida em 30 s, 5 min, 30 min, 2 h, 5 h e 10 h.",
+        "operationId": "webhooks:checkout_payment.captured",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "data": {
+                    "$ref": "#/components/schemas/WebhookIdentifiers"
+                  },
+                  "id": {
+                    "description": "Identificador da mensagem, igual ao cabeçalho webhook-id.",
+                    "type": "string"
+                  },
+                  "timestamp": {
+                    "format": "date-time",
+                    "type": "string"
+                  },
+                  "type": {
+                    "enum": [
+                      "checkout_payment.captured"
+                    ],
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "id",
+                  "type",
+                  "timestamp",
+                  "data"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "2XX": {
+            "description": "Recebido."
+          }
+        }
+      }
+    },
+    "checkout_payment.partially_refunded": {
+      "post": {
+        "tags": [
+          "webhooks"
+        ],
+        "summary": "Evento da Peráta; data traz os identificadores.",
+        "description": "Enviado por POST ao endpoint assinante, no padrão Standard Webhooks: cabeçalhos webhook-id, webhook-timestamp e webhook-signature (HMAC-SHA256 de \"{id}.{timestamp}.{corpo}\" com o segredo whsec_). Responda 2xx; outra resposta é repetida em 30 s, 5 min, 30 min, 2 h, 5 h e 10 h.",
+        "operationId": "webhooks:checkout_payment.partially_refunded",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "data": {
+                    "$ref": "#/components/schemas/WebhookIdentifiers"
+                  },
+                  "id": {
+                    "description": "Identificador da mensagem, igual ao cabeçalho webhook-id.",
+                    "type": "string"
+                  },
+                  "timestamp": {
+                    "format": "date-time",
+                    "type": "string"
+                  },
+                  "type": {
+                    "enum": [
+                      "checkout_payment.partially_refunded"
+                    ],
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "id",
+                  "type",
+                  "timestamp",
+                  "data"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "2XX": {
+            "description": "Recebido."
+          }
+        }
+      }
+    },
+    "checkout_payment.refunded": {
+      "post": {
+        "tags": [
+          "webhooks"
+        ],
+        "summary": "Evento da Peráta; data traz os identificadores.",
+        "description": "Enviado por POST ao endpoint assinante, no padrão Standard Webhooks: cabeçalhos webhook-id, webhook-timestamp e webhook-signature (HMAC-SHA256 de \"{id}.{timestamp}.{corpo}\" com o segredo whsec_). Responda 2xx; outra resposta é repetida em 30 s, 5 min, 30 min, 2 h, 5 h e 10 h.",
+        "operationId": "webhooks:checkout_payment.refunded",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "data": {
+                    "$ref": "#/components/schemas/WebhookIdentifiers"
+                  },
+                  "id": {
+                    "description": "Identificador da mensagem, igual ao cabeçalho webhook-id.",
+                    "type": "string"
+                  },
+                  "timestamp": {
+                    "format": "date-time",
+                    "type": "string"
+                  },
+                  "type": {
+                    "enum": [
+                      "checkout_payment.refunded"
+                    ],
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "id",
+                  "type",
+                  "timestamp",
+                  "data"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "2XX": {
+            "description": "Recebido."
+          }
+        }
+      }
+    },
+    "checkout_payment.refused": {
+      "post": {
+        "tags": [
+          "webhooks"
+        ],
+        "summary": "Evento da Peráta; data traz os identificadores.",
+        "description": "Enviado por POST ao endpoint assinante, no padrão Standard Webhooks: cabeçalhos webhook-id, webhook-timestamp e webhook-signature (HMAC-SHA256 de \"{id}.{timestamp}.{corpo}\" com o segredo whsec_). Responda 2xx; outra resposta é repetida em 30 s, 5 min, 30 min, 2 h, 5 h e 10 h.",
+        "operationId": "webhooks:checkout_payment.refused",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "data": {
+                    "$ref": "#/components/schemas/WebhookIdentifiers"
+                  },
+                  "id": {
+                    "description": "Identificador da mensagem, igual ao cabeçalho webhook-id.",
+                    "type": "string"
+                  },
+                  "timestamp": {
+                    "format": "date-time",
+                    "type": "string"
+                  },
+                  "type": {
+                    "enum": [
+                      "checkout_payment.refused"
+                    ],
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "id",
+                  "type",
+                  "timestamp",
+                  "data"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "2XX": {
+            "description": "Recebido."
+          }
+        }
+      }
+    },
+    "checkout_session.confirmed": {
+      "post": {
+        "tags": [
+          "webhooks"
+        ],
+        "summary": "Evento da Peráta; data traz os identificadores.",
+        "description": "Enviado por POST ao endpoint assinante, no padrão Standard Webhooks: cabeçalhos webhook-id, webhook-timestamp e webhook-signature (HMAC-SHA256 de \"{id}.{timestamp}.{corpo}\" com o segredo whsec_). Responda 2xx; outra resposta é repetida em 30 s, 5 min, 30 min, 2 h, 5 h e 10 h.",
+        "operationId": "webhooks:checkout_session.confirmed",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "data": {
+                    "$ref": "#/components/schemas/WebhookIdentifiers"
+                  },
+                  "id": {
+                    "description": "Identificador da mensagem, igual ao cabeçalho webhook-id.",
+                    "type": "string"
+                  },
+                  "timestamp": {
+                    "format": "date-time",
+                    "type": "string"
+                  },
+                  "type": {
+                    "enum": [
+                      "checkout_session.confirmed"
+                    ],
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "id",
+                  "type",
+                  "timestamp",
+                  "data"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "2XX": {
+            "description": "Recebido."
+          }
+        }
+      }
+    },
+    "checkout_session.expired": {
+      "post": {
+        "tags": [
+          "webhooks"
+        ],
+        "summary": "Evento da Peráta; data traz os identificadores.",
+        "description": "Enviado por POST ao endpoint assinante, no padrão Standard Webhooks: cabeçalhos webhook-id, webhook-timestamp e webhook-signature (HMAC-SHA256 de \"{id}.{timestamp}.{corpo}\" com o segredo whsec_). Responda 2xx; outra resposta é repetida em 30 s, 5 min, 30 min, 2 h, 5 h e 10 h.",
+        "operationId": "webhooks:checkout_session.expired",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "data": {
+                    "$ref": "#/components/schemas/WebhookIdentifiers"
+                  },
+                  "id": {
+                    "description": "Identificador da mensagem, igual ao cabeçalho webhook-id.",
+                    "type": "string"
+                  },
+                  "timestamp": {
+                    "format": "date-time",
+                    "type": "string"
+                  },
+                  "type": {
+                    "enum": [
+                      "checkout_session.expired"
+                    ],
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "id",
+                  "type",
+                  "timestamp",
+                  "data"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "2XX": {
+            "description": "Recebido."
+          }
+        }
+      }
+    },
+    "checkout_session.failed": {
+      "post": {
+        "tags": [
+          "webhooks"
+        ],
+        "summary": "Evento da Peráta; data traz os identificadores.",
+        "description": "Enviado por POST ao endpoint assinante, no padrão Standard Webhooks: cabeçalhos webhook-id, webhook-timestamp e webhook-signature (HMAC-SHA256 de \"{id}.{timestamp}.{corpo}\" com o segredo whsec_). Responda 2xx; outra resposta é repetida em 30 s, 5 min, 30 min, 2 h, 5 h e 10 h.",
+        "operationId": "webhooks:checkout_session.failed",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "data": {
+                    "$ref": "#/components/schemas/WebhookIdentifiers"
+                  },
+                  "id": {
+                    "description": "Identificador da mensagem, igual ao cabeçalho webhook-id.",
+                    "type": "string"
+                  },
+                  "timestamp": {
+                    "format": "date-time",
+                    "type": "string"
+                  },
+                  "type": {
+                    "enum": [
+                      "checkout_session.failed"
+                    ],
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "id",
+                  "type",
+                  "timestamp",
+                  "data"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "2XX": {
+            "description": "Recebido."
+          }
+        }
+      }
+    },
+    "checkout_session.opened": {
+      "post": {
+        "tags": [
+          "webhooks"
+        ],
+        "summary": "Evento da Peráta; data traz os identificadores.",
+        "description": "Enviado por POST ao endpoint assinante, no padrão Standard Webhooks: cabeçalhos webhook-id, webhook-timestamp e webhook-signature (HMAC-SHA256 de \"{id}.{timestamp}.{corpo}\" com o segredo whsec_). Responda 2xx; outra resposta é repetida em 30 s, 5 min, 30 min, 2 h, 5 h e 10 h.",
+        "operationId": "webhooks:checkout_session.opened",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "data": {
+                    "$ref": "#/components/schemas/WebhookIdentifiers"
+                  },
+                  "id": {
+                    "description": "Identificador da mensagem, igual ao cabeçalho webhook-id.",
+                    "type": "string"
+                  },
+                  "timestamp": {
+                    "format": "date-time",
+                    "type": "string"
+                  },
+                  "type": {
+                    "enum": [
+                      "checkout_session.opened"
+                    ],
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "id",
+                  "type",
+                  "timestamp",
+                  "data"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "2XX": {
+            "description": "Recebido."
+          }
+        }
+      }
+    },
+    "checkout_session.succeeded": {
+      "post": {
+        "tags": [
+          "webhooks"
+        ],
+        "summary": "Evento da Peráta; data traz os identificadores.",
+        "description": "Enviado por POST ao endpoint assinante, no padrão Standard Webhooks: cabeçalhos webhook-id, webhook-timestamp e webhook-signature (HMAC-SHA256 de \"{id}.{timestamp}.{corpo}\" com o segredo whsec_). Responda 2xx; outra resposta é repetida em 30 s, 5 min, 30 min, 2 h, 5 h e 10 h.",
+        "operationId": "webhooks:checkout_session.succeeded",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "data": {
+                    "$ref": "#/components/schemas/WebhookIdentifiers"
+                  },
+                  "id": {
+                    "description": "Identificador da mensagem, igual ao cabeçalho webhook-id.",
+                    "type": "string"
+                  },
+                  "timestamp": {
+                    "format": "date-time",
+                    "type": "string"
+                  },
+                  "type": {
+                    "enum": [
+                      "checkout_session.succeeded"
+                    ],
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "id",
+                  "type",
+                  "timestamp",
+                  "data"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "2XX": {
+            "description": "Recebido."
+          }
+        }
+      }
+    },
+    "customer.archived": {
+      "post": {
+        "tags": [
+          "webhooks"
+        ],
+        "summary": "Evento da Peráta; data traz os identificadores.",
+        "description": "Enviado por POST ao endpoint assinante, no padrão Standard Webhooks: cabeçalhos webhook-id, webhook-timestamp e webhook-signature (HMAC-SHA256 de \"{id}.{timestamp}.{corpo}\" com o segredo whsec_). Responda 2xx; outra resposta é repetida em 30 s, 5 min, 30 min, 2 h, 5 h e 10 h.",
+        "operationId": "webhooks:customer.archived",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "data": {
+                    "$ref": "#/components/schemas/WebhookIdentifiers"
+                  },
+                  "id": {
+                    "description": "Identificador da mensagem, igual ao cabeçalho webhook-id.",
+                    "type": "string"
+                  },
+                  "timestamp": {
+                    "format": "date-time",
+                    "type": "string"
+                  },
+                  "type": {
+                    "enum": [
+                      "customer.archived"
+                    ],
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "id",
+                  "type",
+                  "timestamp",
+                  "data"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "2XX": {
+            "description": "Recebido."
+          }
+        },
+        "deprecated": true
+      }
+    },
+    "customer.created": {
+      "post": {
+        "tags": [
+          "webhooks"
+        ],
+        "summary": "Evento do Polar; data traz o objeto.",
+        "description": "Enviado por POST ao endpoint assinante, no padrão Standard Webhooks: cabeçalhos webhook-id, webhook-timestamp e webhook-signature (HMAC-SHA256 de \"{id}.{timestamp}.{corpo}\" com o segredo whsec_). Responda 2xx; outra resposta é repetida em 30 s, 5 min, 30 min, 2 h, 5 h e 10 h.",
+        "operationId": "webhooks:customer.created",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "data": {
+                    "$ref": "#/components/schemas/Customer"
+                  },
+                  "id": {
+                    "description": "Identificador da mensagem, igual ao cabeçalho webhook-id.",
+                    "type": "string"
+                  },
+                  "timestamp": {
+                    "format": "date-time",
+                    "type": "string"
+                  },
+                  "type": {
+                    "enum": [
+                      "customer.created"
+                    ],
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "id",
+                  "type",
+                  "timestamp",
+                  "data"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "2XX": {
+            "description": "Recebido."
+          }
+        }
+      }
+    },
+    "customer.deleted": {
+      "post": {
+        "tags": [
+          "webhooks"
+        ],
+        "summary": "Evento do Polar; data traz o objeto.",
+        "description": "Enviado por POST ao endpoint assinante, no padrão Standard Webhooks: cabeçalhos webhook-id, webhook-timestamp e webhook-signature (HMAC-SHA256 de \"{id}.{timestamp}.{corpo}\" com o segredo whsec_). Responda 2xx; outra resposta é repetida em 30 s, 5 min, 30 min, 2 h, 5 h e 10 h.",
+        "operationId": "webhooks:customer.deleted",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "data": {
+                    "$ref": "#/components/schemas/Customer"
+                  },
+                  "id": {
+                    "description": "Identificador da mensagem, igual ao cabeçalho webhook-id.",
+                    "type": "string"
+                  },
+                  "timestamp": {
+                    "format": "date-time",
+                    "type": "string"
+                  },
+                  "type": {
+                    "enum": [
+                      "customer.deleted"
+                    ],
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "id",
+                  "type",
+                  "timestamp",
+                  "data"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "2XX": {
+            "description": "Recebido."
+          }
+        }
+      }
+    },
+    "customer.updated": {
+      "post": {
+        "tags": [
+          "webhooks"
+        ],
+        "summary": "Evento do Polar; data traz o objeto.",
+        "description": "Enviado por POST ao endpoint assinante, no padrão Standard Webhooks: cabeçalhos webhook-id, webhook-timestamp e webhook-signature (HMAC-SHA256 de \"{id}.{timestamp}.{corpo}\" com o segredo whsec_). Responda 2xx; outra resposta é repetida em 30 s, 5 min, 30 min, 2 h, 5 h e 10 h.",
+        "operationId": "webhooks:customer.updated",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "data": {
+                    "$ref": "#/components/schemas/Customer"
+                  },
+                  "id": {
+                    "description": "Identificador da mensagem, igual ao cabeçalho webhook-id.",
+                    "type": "string"
+                  },
+                  "timestamp": {
+                    "format": "date-time",
+                    "type": "string"
+                  },
+                  "type": {
+                    "enum": [
+                      "customer.updated"
+                    ],
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "id",
+                  "type",
+                  "timestamp",
+                  "data"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "2XX": {
+            "description": "Recebido."
+          }
+        }
+      }
+    },
+    "discount.created": {
+      "post": {
+        "tags": [
+          "webhooks"
+        ],
+        "summary": "Evento da Peráta; data traz os identificadores.",
+        "description": "Enviado por POST ao endpoint assinante, no padrão Standard Webhooks: cabeçalhos webhook-id, webhook-timestamp e webhook-signature (HMAC-SHA256 de \"{id}.{timestamp}.{corpo}\" com o segredo whsec_). Responda 2xx; outra resposta é repetida em 30 s, 5 min, 30 min, 2 h, 5 h e 10 h.",
+        "operationId": "webhooks:discount.created",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "data": {
+                    "$ref": "#/components/schemas/WebhookIdentifiers"
+                  },
+                  "id": {
+                    "description": "Identificador da mensagem, igual ao cabeçalho webhook-id.",
+                    "type": "string"
+                  },
+                  "timestamp": {
+                    "format": "date-time",
+                    "type": "string"
+                  },
+                  "type": {
+                    "enum": [
+                      "discount.created"
+                    ],
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "id",
+                  "type",
+                  "timestamp",
+                  "data"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "2XX": {
+            "description": "Recebido."
+          }
+        }
+      }
+    },
+    "discount.deleted": {
+      "post": {
+        "tags": [
+          "webhooks"
+        ],
+        "summary": "Evento da Peráta; data traz os identificadores.",
+        "description": "Enviado por POST ao endpoint assinante, no padrão Standard Webhooks: cabeçalhos webhook-id, webhook-timestamp e webhook-signature (HMAC-SHA256 de \"{id}.{timestamp}.{corpo}\" com o segredo whsec_). Responda 2xx; outra resposta é repetida em 30 s, 5 min, 30 min, 2 h, 5 h e 10 h.",
+        "operationId": "webhooks:discount.deleted",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "data": {
+                    "$ref": "#/components/schemas/WebhookIdentifiers"
+                  },
+                  "id": {
+                    "description": "Identificador da mensagem, igual ao cabeçalho webhook-id.",
+                    "type": "string"
+                  },
+                  "timestamp": {
+                    "format": "date-time",
+                    "type": "string"
+                  },
+                  "type": {
+                    "enum": [
+                      "discount.deleted"
+                    ],
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "id",
+                  "type",
+                  "timestamp",
+                  "data"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "2XX": {
+            "description": "Recebido."
+          }
+        }
+      }
+    },
+    "discount.exhausted": {
+      "post": {
+        "tags": [
+          "webhooks"
+        ],
+        "summary": "Evento da Peráta; data traz os identificadores.",
+        "description": "Enviado por POST ao endpoint assinante, no padrão Standard Webhooks: cabeçalhos webhook-id, webhook-timestamp e webhook-signature (HMAC-SHA256 de \"{id}.{timestamp}.{corpo}\" com o segredo whsec_). Responda 2xx; outra resposta é repetida em 30 s, 5 min, 30 min, 2 h, 5 h e 10 h.",
+        "operationId": "webhooks:discount.exhausted",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "data": {
+                    "$ref": "#/components/schemas/WebhookIdentifiers"
+                  },
+                  "id": {
+                    "description": "Identificador da mensagem, igual ao cabeçalho webhook-id.",
+                    "type": "string"
+                  },
+                  "timestamp": {
+                    "format": "date-time",
+                    "type": "string"
+                  },
+                  "type": {
+                    "enum": [
+                      "discount.exhausted"
+                    ],
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "id",
+                  "type",
+                  "timestamp",
+                  "data"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "2XX": {
+            "description": "Recebido."
+          }
+        }
+      }
+    },
+    "discount.expired": {
+      "post": {
+        "tags": [
+          "webhooks"
+        ],
+        "summary": "Evento da Peráta; data traz os identificadores.",
+        "description": "Enviado por POST ao endpoint assinante, no padrão Standard Webhooks: cabeçalhos webhook-id, webhook-timestamp e webhook-signature (HMAC-SHA256 de \"{id}.{timestamp}.{corpo}\" com o segredo whsec_). Responda 2xx; outra resposta é repetida em 30 s, 5 min, 30 min, 2 h, 5 h e 10 h.",
+        "operationId": "webhooks:discount.expired",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "data": {
+                    "$ref": "#/components/schemas/WebhookIdentifiers"
+                  },
+                  "id": {
+                    "description": "Identificador da mensagem, igual ao cabeçalho webhook-id.",
+                    "type": "string"
+                  },
+                  "timestamp": {
+                    "format": "date-time",
+                    "type": "string"
+                  },
+                  "type": {
+                    "enum": [
+                      "discount.expired"
+                    ],
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "id",
+                  "type",
+                  "timestamp",
+                  "data"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "2XX": {
+            "description": "Recebido."
+          }
+        }
+      }
+    },
+    "discount.reactivated": {
+      "post": {
+        "tags": [
+          "webhooks"
+        ],
+        "summary": "Evento da Peráta; data traz os identificadores.",
+        "description": "Enviado por POST ao endpoint assinante, no padrão Standard Webhooks: cabeçalhos webhook-id, webhook-timestamp e webhook-signature (HMAC-SHA256 de \"{id}.{timestamp}.{corpo}\" com o segredo whsec_). Responda 2xx; outra resposta é repetida em 30 s, 5 min, 30 min, 2 h, 5 h e 10 h.",
+        "operationId": "webhooks:discount.reactivated",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "data": {
+                    "$ref": "#/components/schemas/WebhookIdentifiers"
+                  },
+                  "id": {
+                    "description": "Identificador da mensagem, igual ao cabeçalho webhook-id.",
+                    "type": "string"
+                  },
+                  "timestamp": {
+                    "format": "date-time",
+                    "type": "string"
+                  },
+                  "type": {
+                    "enum": [
+                      "discount.reactivated"
+                    ],
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "id",
+                  "type",
+                  "timestamp",
+                  "data"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "2XX": {
+            "description": "Recebido."
+          }
+        }
+      }
+    },
+    "discount.redeemed": {
+      "post": {
+        "tags": [
+          "webhooks"
+        ],
+        "summary": "Evento da Peráta; data traz os identificadores.",
+        "description": "Enviado por POST ao endpoint assinante, no padrão Standard Webhooks: cabeçalhos webhook-id, webhook-timestamp e webhook-signature (HMAC-SHA256 de \"{id}.{timestamp}.{corpo}\" com o segredo whsec_). Responda 2xx; outra resposta é repetida em 30 s, 5 min, 30 min, 2 h, 5 h e 10 h.",
+        "operationId": "webhooks:discount.redeemed",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "data": {
+                    "$ref": "#/components/schemas/WebhookIdentifiers"
+                  },
+                  "id": {
+                    "description": "Identificador da mensagem, igual ao cabeçalho webhook-id.",
+                    "type": "string"
+                  },
+                  "timestamp": {
+                    "format": "date-time",
+                    "type": "string"
+                  },
+                  "type": {
+                    "enum": [
+                      "discount.redeemed"
+                    ],
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "id",
+                  "type",
+                  "timestamp",
+                  "data"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "2XX": {
+            "description": "Recebido."
+          }
+        }
+      }
+    },
+    "discount.updated": {
+      "post": {
+        "tags": [
+          "webhooks"
+        ],
+        "summary": "Evento da Peráta; data traz os identificadores.",
+        "description": "Enviado por POST ao endpoint assinante, no padrão Standard Webhooks: cabeçalhos webhook-id, webhook-timestamp e webhook-signature (HMAC-SHA256 de \"{id}.{timestamp}.{corpo}\" com o segredo whsec_). Responda 2xx; outra resposta é repetida em 30 s, 5 min, 30 min, 2 h, 5 h e 10 h.",
+        "operationId": "webhooks:discount.updated",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "data": {
+                    "$ref": "#/components/schemas/WebhookIdentifiers"
+                  },
+                  "id": {
+                    "description": "Identificador da mensagem, igual ao cabeçalho webhook-id.",
+                    "type": "string"
+                  },
+                  "timestamp": {
+                    "format": "date-time",
+                    "type": "string"
+                  },
+                  "type": {
+                    "enum": [
+                      "discount.updated"
+                    ],
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "id",
+                  "type",
+                  "timestamp",
+                  "data"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "2XX": {
+            "description": "Recebido."
+          }
+        }
+      }
+    },
+    "discount_redemption.released": {
+      "post": {
+        "tags": [
+          "webhooks"
+        ],
+        "summary": "Evento da Peráta; data traz os identificadores.",
+        "description": "Enviado por POST ao endpoint assinante, no padrão Standard Webhooks: cabeçalhos webhook-id, webhook-timestamp e webhook-signature (HMAC-SHA256 de \"{id}.{timestamp}.{corpo}\" com o segredo whsec_). Responda 2xx; outra resposta é repetida em 30 s, 5 min, 30 min, 2 h, 5 h e 10 h.",
+        "operationId": "webhooks:discount_redemption.released",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "data": {
+                    "$ref": "#/components/schemas/WebhookIdentifiers"
+                  },
+                  "id": {
+                    "description": "Identificador da mensagem, igual ao cabeçalho webhook-id.",
+                    "type": "string"
+                  },
+                  "timestamp": {
+                    "format": "date-time",
+                    "type": "string"
+                  },
+                  "type": {
+                    "enum": [
+                      "discount_redemption.released"
+                    ],
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "id",
+                  "type",
+                  "timestamp",
+                  "data"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "2XX": {
+            "description": "Recebido."
+          }
+        }
+      }
+    },
+    "dispute.lost": {
+      "post": {
+        "tags": [
+          "webhooks"
+        ],
+        "summary": "Evento da Peráta no formato do Polar, que não tem webhooks de disputa; data traz a disputa.",
+        "description": "Enviado por POST ao endpoint assinante, no padrão Standard Webhooks: cabeçalhos webhook-id, webhook-timestamp e webhook-signature (HMAC-SHA256 de \"{id}.{timestamp}.{corpo}\" com o segredo whsec_). Responda 2xx; outra resposta é repetida em 30 s, 5 min, 30 min, 2 h, 5 h e 10 h.",
+        "operationId": "webhooks:dispute.lost",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "data": {
+                    "$ref": "#/components/schemas/WebhookDispute"
+                  },
+                  "id": {
+                    "description": "Identificador da mensagem, igual ao cabeçalho webhook-id.",
+                    "type": "string"
+                  },
+                  "timestamp": {
+                    "format": "date-time",
+                    "type": "string"
+                  },
+                  "type": {
+                    "enum": [
+                      "dispute.lost"
+                    ],
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "id",
+                  "type",
+                  "timestamp",
+                  "data"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "2XX": {
+            "description": "Recebido."
+          }
+        }
+      }
+    },
+    "dispute.opened": {
+      "post": {
+        "tags": [
+          "webhooks"
+        ],
+        "summary": "Evento da Peráta no formato do Polar, que não tem webhooks de disputa; data traz a disputa.",
+        "description": "Enviado por POST ao endpoint assinante, no padrão Standard Webhooks: cabeçalhos webhook-id, webhook-timestamp e webhook-signature (HMAC-SHA256 de \"{id}.{timestamp}.{corpo}\" com o segredo whsec_). Responda 2xx; outra resposta é repetida em 30 s, 5 min, 30 min, 2 h, 5 h e 10 h.",
+        "operationId": "webhooks:dispute.opened",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "data": {
+                    "$ref": "#/components/schemas/WebhookDispute"
+                  },
+                  "id": {
+                    "description": "Identificador da mensagem, igual ao cabeçalho webhook-id.",
+                    "type": "string"
+                  },
+                  "timestamp": {
+                    "format": "date-time",
+                    "type": "string"
+                  },
+                  "type": {
+                    "enum": [
+                      "dispute.opened"
+                    ],
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "id",
+                  "type",
+                  "timestamp",
+                  "data"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "2XX": {
+            "description": "Recebido."
+          }
+        }
+      }
+    },
+    "dispute.won": {
+      "post": {
+        "tags": [
+          "webhooks"
+        ],
+        "summary": "Evento da Peráta no formato do Polar, que não tem webhooks de disputa; data traz a disputa.",
+        "description": "Enviado por POST ao endpoint assinante, no padrão Standard Webhooks: cabeçalhos webhook-id, webhook-timestamp e webhook-signature (HMAC-SHA256 de \"{id}.{timestamp}.{corpo}\" com o segredo whsec_). Responda 2xx; outra resposta é repetida em 30 s, 5 min, 30 min, 2 h, 5 h e 10 h.",
+        "operationId": "webhooks:dispute.won",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "data": {
+                    "$ref": "#/components/schemas/WebhookDispute"
+                  },
+                  "id": {
+                    "description": "Identificador da mensagem, igual ao cabeçalho webhook-id.",
+                    "type": "string"
+                  },
+                  "timestamp": {
+                    "format": "date-time",
+                    "type": "string"
+                  },
+                  "type": {
+                    "enum": [
+                      "dispute.won"
+                    ],
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "id",
+                  "type",
+                  "timestamp",
+                  "data"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "2XX": {
+            "description": "Recebido."
+          }
+        }
+      }
+    },
+    "invoice.drafted": {
+      "post": {
+        "tags": [
+          "webhooks"
+        ],
+        "summary": "Evento da Peráta; data traz os identificadores.",
+        "description": "Enviado por POST ao endpoint assinante, no padrão Standard Webhooks: cabeçalhos webhook-id, webhook-timestamp e webhook-signature (HMAC-SHA256 de \"{id}.{timestamp}.{corpo}\" com o segredo whsec_). Responda 2xx; outra resposta é repetida em 30 s, 5 min, 30 min, 2 h, 5 h e 10 h.",
+        "operationId": "webhooks:invoice.drafted",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "data": {
+                    "$ref": "#/components/schemas/WebhookIdentifiers"
+                  },
+                  "id": {
+                    "description": "Identificador da mensagem, igual ao cabeçalho webhook-id.",
+                    "type": "string"
+                  },
+                  "timestamp": {
+                    "format": "date-time",
+                    "type": "string"
+                  },
+                  "type": {
+                    "enum": [
+                      "invoice.drafted"
+                    ],
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "id",
+                  "type",
+                  "timestamp",
+                  "data"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "2XX": {
+            "description": "Recebido."
+          }
+        }
+      }
+    },
+    "invoice.issued": {
+      "post": {
+        "tags": [
+          "webhooks"
+        ],
+        "summary": "Evento da Peráta; data traz os identificadores.",
+        "description": "Enviado por POST ao endpoint assinante, no padrão Standard Webhooks: cabeçalhos webhook-id, webhook-timestamp e webhook-signature (HMAC-SHA256 de \"{id}.{timestamp}.{corpo}\" com o segredo whsec_). Responda 2xx; outra resposta é repetida em 30 s, 5 min, 30 min, 2 h, 5 h e 10 h.",
+        "operationId": "webhooks:invoice.issued",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "data": {
+                    "$ref": "#/components/schemas/WebhookIdentifiers"
+                  },
+                  "id": {
+                    "description": "Identificador da mensagem, igual ao cabeçalho webhook-id.",
+                    "type": "string"
+                  },
+                  "timestamp": {
+                    "format": "date-time",
+                    "type": "string"
+                  },
+                  "type": {
+                    "enum": [
+                      "invoice.issued"
+                    ],
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "id",
+                  "type",
+                  "timestamp",
+                  "data"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "2XX": {
+            "description": "Recebido."
+          }
+        }
+      }
+    },
+    "invoice.settled": {
+      "post": {
+        "tags": [
+          "webhooks"
+        ],
+        "summary": "Evento da Peráta; data traz os identificadores.",
+        "description": "Enviado por POST ao endpoint assinante, no padrão Standard Webhooks: cabeçalhos webhook-id, webhook-timestamp e webhook-signature (HMAC-SHA256 de \"{id}.{timestamp}.{corpo}\" com o segredo whsec_). Responda 2xx; outra resposta é repetida em 30 s, 5 min, 30 min, 2 h, 5 h e 10 h.",
+        "operationId": "webhooks:invoice.settled",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "data": {
+                    "$ref": "#/components/schemas/WebhookIdentifiers"
+                  },
+                  "id": {
+                    "description": "Identificador da mensagem, igual ao cabeçalho webhook-id.",
+                    "type": "string"
+                  },
+                  "timestamp": {
+                    "format": "date-time",
+                    "type": "string"
+                  },
+                  "type": {
+                    "enum": [
+                      "invoice.settled"
+                    ],
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "id",
+                  "type",
+                  "timestamp",
+                  "data"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "2XX": {
+            "description": "Recebido."
+          }
+        }
+      }
+    },
+    "invoice.uncollectible": {
+      "post": {
+        "tags": [
+          "webhooks"
+        ],
+        "summary": "Evento da Peráta; data traz os identificadores.",
+        "description": "Enviado por POST ao endpoint assinante, no padrão Standard Webhooks: cabeçalhos webhook-id, webhook-timestamp e webhook-signature (HMAC-SHA256 de \"{id}.{timestamp}.{corpo}\" com o segredo whsec_). Responda 2xx; outra resposta é repetida em 30 s, 5 min, 30 min, 2 h, 5 h e 10 h.",
+        "operationId": "webhooks:invoice.uncollectible",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "data": {
+                    "$ref": "#/components/schemas/WebhookIdentifiers"
+                  },
+                  "id": {
+                    "description": "Identificador da mensagem, igual ao cabeçalho webhook-id.",
+                    "type": "string"
+                  },
+                  "timestamp": {
+                    "format": "date-time",
+                    "type": "string"
+                  },
+                  "type": {
+                    "enum": [
+                      "invoice.uncollectible"
+                    ],
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "id",
+                  "type",
+                  "timestamp",
+                  "data"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "2XX": {
+            "description": "Recebido."
+          }
+        }
+      }
+    },
+    "invoice.voided": {
+      "post": {
+        "tags": [
+          "webhooks"
+        ],
+        "summary": "Evento da Peráta; data traz os identificadores.",
+        "description": "Enviado por POST ao endpoint assinante, no padrão Standard Webhooks: cabeçalhos webhook-id, webhook-timestamp e webhook-signature (HMAC-SHA256 de \"{id}.{timestamp}.{corpo}\" com o segredo whsec_). Responda 2xx; outra resposta é repetida em 30 s, 5 min, 30 min, 2 h, 5 h e 10 h.",
+        "operationId": "webhooks:invoice.voided",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "data": {
+                    "$ref": "#/components/schemas/WebhookIdentifiers"
+                  },
+                  "id": {
+                    "description": "Identificador da mensagem, igual ao cabeçalho webhook-id.",
+                    "type": "string"
+                  },
+                  "timestamp": {
+                    "format": "date-time",
+                    "type": "string"
+                  },
+                  "type": {
+                    "enum": [
+                      "invoice.voided"
+                    ],
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "id",
+                  "type",
+                  "timestamp",
+                  "data"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "2XX": {
+            "description": "Recebido."
+          }
+        }
+      }
+    },
+    "order.created": {
+      "post": {
+        "tags": [
+          "webhooks"
+        ],
+        "summary": "Evento do Polar; data traz o objeto.",
+        "description": "Enviado por POST ao endpoint assinante, no padrão Standard Webhooks: cabeçalhos webhook-id, webhook-timestamp e webhook-signature (HMAC-SHA256 de \"{id}.{timestamp}.{corpo}\" com o segredo whsec_). Responda 2xx; outra resposta é repetida em 30 s, 5 min, 30 min, 2 h, 5 h e 10 h.",
+        "operationId": "webhooks:order.created",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "data": {
+                    "$ref": "#/components/schemas/Order"
+                  },
+                  "id": {
+                    "description": "Identificador da mensagem, igual ao cabeçalho webhook-id.",
+                    "type": "string"
+                  },
+                  "timestamp": {
+                    "format": "date-time",
+                    "type": "string"
+                  },
+                  "type": {
+                    "enum": [
+                      "order.created"
+                    ],
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "id",
+                  "type",
+                  "timestamp",
+                  "data"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "2XX": {
+            "description": "Recebido."
+          }
+        }
+      }
+    },
+    "order.paid": {
+      "post": {
+        "tags": [
+          "webhooks"
+        ],
+        "summary": "Evento do Polar; data traz o objeto.",
+        "description": "Enviado por POST ao endpoint assinante, no padrão Standard Webhooks: cabeçalhos webhook-id, webhook-timestamp e webhook-signature (HMAC-SHA256 de \"{id}.{timestamp}.{corpo}\" com o segredo whsec_). Responda 2xx; outra resposta é repetida em 30 s, 5 min, 30 min, 2 h, 5 h e 10 h.",
+        "operationId": "webhooks:order.paid",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "data": {
+                    "$ref": "#/components/schemas/Order"
+                  },
+                  "id": {
+                    "description": "Identificador da mensagem, igual ao cabeçalho webhook-id.",
+                    "type": "string"
+                  },
+                  "timestamp": {
+                    "format": "date-time",
+                    "type": "string"
+                  },
+                  "type": {
+                    "enum": [
+                      "order.paid"
+                    ],
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "id",
+                  "type",
+                  "timestamp",
+                  "data"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "2XX": {
+            "description": "Recebido."
+          }
+        }
+      }
+    },
+    "order.refunded": {
+      "post": {
+        "tags": [
+          "webhooks"
+        ],
+        "summary": "Evento do Polar; data traz o objeto.",
+        "description": "Enviado por POST ao endpoint assinante, no padrão Standard Webhooks: cabeçalhos webhook-id, webhook-timestamp e webhook-signature (HMAC-SHA256 de \"{id}.{timestamp}.{corpo}\" com o segredo whsec_). Responda 2xx; outra resposta é repetida em 30 s, 5 min, 30 min, 2 h, 5 h e 10 h.",
+        "operationId": "webhooks:order.refunded",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "data": {
+                    "$ref": "#/components/schemas/Order"
+                  },
+                  "id": {
+                    "description": "Identificador da mensagem, igual ao cabeçalho webhook-id.",
+                    "type": "string"
+                  },
+                  "timestamp": {
+                    "format": "date-time",
+                    "type": "string"
+                  },
+                  "type": {
+                    "enum": [
+                      "order.refunded"
+                    ],
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "id",
+                  "type",
+                  "timestamp",
+                  "data"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "2XX": {
+            "description": "Recebido."
+          }
+        }
+      }
+    },
+    "order.updated": {
+      "post": {
+        "tags": [
+          "webhooks"
+        ],
+        "summary": "Evento do Polar; data traz o objeto.",
+        "description": "Enviado por POST ao endpoint assinante, no padrão Standard Webhooks: cabeçalhos webhook-id, webhook-timestamp e webhook-signature (HMAC-SHA256 de \"{id}.{timestamp}.{corpo}\" com o segredo whsec_). Responda 2xx; outra resposta é repetida em 30 s, 5 min, 30 min, 2 h, 5 h e 10 h.",
+        "operationId": "webhooks:order.updated",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "data": {
+                    "$ref": "#/components/schemas/Order"
+                  },
+                  "id": {
+                    "description": "Identificador da mensagem, igual ao cabeçalho webhook-id.",
+                    "type": "string"
+                  },
+                  "timestamp": {
+                    "format": "date-time",
+                    "type": "string"
+                  },
+                  "type": {
+                    "enum": [
+                      "order.updated"
+                    ],
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "id",
+                  "type",
+                  "timestamp",
+                  "data"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "2XX": {
+            "description": "Recebido."
+          }
+        }
+      }
+    },
+    "price.archived": {
+      "post": {
+        "tags": [
+          "webhooks"
+        ],
+        "summary": "Evento da Peráta; data traz os identificadores.",
+        "description": "Enviado por POST ao endpoint assinante, no padrão Standard Webhooks: cabeçalhos webhook-id, webhook-timestamp e webhook-signature (HMAC-SHA256 de \"{id}.{timestamp}.{corpo}\" com o segredo whsec_). Responda 2xx; outra resposta é repetida em 30 s, 5 min, 30 min, 2 h, 5 h e 10 h.",
+        "operationId": "webhooks:price.archived",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "data": {
+                    "$ref": "#/components/schemas/WebhookIdentifiers"
+                  },
+                  "id": {
+                    "description": "Identificador da mensagem, igual ao cabeçalho webhook-id.",
+                    "type": "string"
+                  },
+                  "timestamp": {
+                    "format": "date-time",
+                    "type": "string"
+                  },
+                  "type": {
+                    "enum": [
+                      "price.archived"
+                    ],
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "id",
+                  "type",
+                  "timestamp",
+                  "data"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "2XX": {
+            "description": "Recebido."
+          }
+        }
+      }
+    },
+    "price.created": {
+      "post": {
+        "tags": [
+          "webhooks"
+        ],
+        "summary": "Evento da Peráta; data traz os identificadores.",
+        "description": "Enviado por POST ao endpoint assinante, no padrão Standard Webhooks: cabeçalhos webhook-id, webhook-timestamp e webhook-signature (HMAC-SHA256 de \"{id}.{timestamp}.{corpo}\" com o segredo whsec_). Responda 2xx; outra resposta é repetida em 30 s, 5 min, 30 min, 2 h, 5 h e 10 h.",
+        "operationId": "webhooks:price.created",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "data": {
+                    "$ref": "#/components/schemas/WebhookIdentifiers"
+                  },
+                  "id": {
+                    "description": "Identificador da mensagem, igual ao cabeçalho webhook-id.",
+                    "type": "string"
+                  },
+                  "timestamp": {
+                    "format": "date-time",
+                    "type": "string"
+                  },
+                  "type": {
+                    "enum": [
+                      "price.created"
+                    ],
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "id",
+                  "type",
+                  "timestamp",
+                  "data"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "2XX": {
+            "description": "Recebido."
+          }
+        }
+      }
+    },
+    "product.archived": {
+      "post": {
+        "tags": [
+          "webhooks"
+        ],
+        "summary": "Evento da Peráta; data traz os identificadores.",
+        "description": "Enviado por POST ao endpoint assinante, no padrão Standard Webhooks: cabeçalhos webhook-id, webhook-timestamp e webhook-signature (HMAC-SHA256 de \"{id}.{timestamp}.{corpo}\" com o segredo whsec_). Responda 2xx; outra resposta é repetida em 30 s, 5 min, 30 min, 2 h, 5 h e 10 h.",
+        "operationId": "webhooks:product.archived",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "data": {
+                    "$ref": "#/components/schemas/WebhookIdentifiers"
+                  },
+                  "id": {
+                    "description": "Identificador da mensagem, igual ao cabeçalho webhook-id.",
+                    "type": "string"
+                  },
+                  "timestamp": {
+                    "format": "date-time",
+                    "type": "string"
+                  },
+                  "type": {
+                    "enum": [
+                      "product.archived"
+                    ],
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "id",
+                  "type",
+                  "timestamp",
+                  "data"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "2XX": {
+            "description": "Recebido."
+          }
+        }
+      }
+    },
+    "product.created": {
+      "post": {
+        "tags": [
+          "webhooks"
+        ],
+        "summary": "Evento da Peráta; data traz os identificadores.",
+        "description": "Enviado por POST ao endpoint assinante, no padrão Standard Webhooks: cabeçalhos webhook-id, webhook-timestamp e webhook-signature (HMAC-SHA256 de \"{id}.{timestamp}.{corpo}\" com o segredo whsec_). Responda 2xx; outra resposta é repetida em 30 s, 5 min, 30 min, 2 h, 5 h e 10 h.",
+        "operationId": "webhooks:product.created",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "data": {
+                    "$ref": "#/components/schemas/WebhookIdentifiers"
+                  },
+                  "id": {
+                    "description": "Identificador da mensagem, igual ao cabeçalho webhook-id.",
+                    "type": "string"
+                  },
+                  "timestamp": {
+                    "format": "date-time",
+                    "type": "string"
+                  },
+                  "type": {
+                    "enum": [
+                      "product.created"
+                    ],
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "id",
+                  "type",
+                  "timestamp",
+                  "data"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "2XX": {
+            "description": "Recebido."
+          }
+        }
+      }
+    },
+    "product.updated": {
+      "post": {
+        "tags": [
+          "webhooks"
+        ],
+        "summary": "Evento da Peráta; data traz os identificadores.",
+        "description": "Enviado por POST ao endpoint assinante, no padrão Standard Webhooks: cabeçalhos webhook-id, webhook-timestamp e webhook-signature (HMAC-SHA256 de \"{id}.{timestamp}.{corpo}\" com o segredo whsec_). Responda 2xx; outra resposta é repetida em 30 s, 5 min, 30 min, 2 h, 5 h e 10 h.",
+        "operationId": "webhooks:product.updated",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "data": {
+                    "$ref": "#/components/schemas/WebhookIdentifiers"
+                  },
+                  "id": {
+                    "description": "Identificador da mensagem, igual ao cabeçalho webhook-id.",
+                    "type": "string"
+                  },
+                  "timestamp": {
+                    "format": "date-time",
+                    "type": "string"
+                  },
+                  "type": {
+                    "enum": [
+                      "product.updated"
+                    ],
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "id",
+                  "type",
+                  "timestamp",
+                  "data"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "2XX": {
+            "description": "Recebido."
+          }
+        }
+      }
+    },
+    "refund.canceled": {
+      "post": {
+        "tags": [
+          "webhooks"
+        ],
+        "summary": "Evento da Peráta; data traz os identificadores.",
+        "description": "Enviado por POST ao endpoint assinante, no padrão Standard Webhooks: cabeçalhos webhook-id, webhook-timestamp e webhook-signature (HMAC-SHA256 de \"{id}.{timestamp}.{corpo}\" com o segredo whsec_). Responda 2xx; outra resposta é repetida em 30 s, 5 min, 30 min, 2 h, 5 h e 10 h.",
+        "operationId": "webhooks:refund.canceled",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "data": {
+                    "$ref": "#/components/schemas/WebhookIdentifiers"
+                  },
+                  "id": {
+                    "description": "Identificador da mensagem, igual ao cabeçalho webhook-id.",
+                    "type": "string"
+                  },
+                  "timestamp": {
+                    "format": "date-time",
+                    "type": "string"
+                  },
+                  "type": {
+                    "enum": [
+                      "refund.canceled"
+                    ],
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "id",
+                  "type",
+                  "timestamp",
+                  "data"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "2XX": {
+            "description": "Recebido."
+          }
+        }
+      }
+    },
+    "refund.created": {
+      "post": {
+        "tags": [
+          "webhooks"
+        ],
+        "summary": "Evento do Polar; data traz o objeto.",
+        "description": "Enviado por POST ao endpoint assinante, no padrão Standard Webhooks: cabeçalhos webhook-id, webhook-timestamp e webhook-signature (HMAC-SHA256 de \"{id}.{timestamp}.{corpo}\" com o segredo whsec_). Responda 2xx; outra resposta é repetida em 30 s, 5 min, 30 min, 2 h, 5 h e 10 h.",
+        "operationId": "webhooks:refund.created",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "data": {
+                    "$ref": "#/components/schemas/Refund"
+                  },
+                  "id": {
+                    "description": "Identificador da mensagem, igual ao cabeçalho webhook-id.",
+                    "type": "string"
+                  },
+                  "timestamp": {
+                    "format": "date-time",
+                    "type": "string"
+                  },
+                  "type": {
+                    "enum": [
+                      "refund.created"
+                    ],
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "id",
+                  "type",
+                  "timestamp",
+                  "data"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "2XX": {
+            "description": "Recebido."
+          }
+        }
+      }
+    },
+    "refund.failed": {
+      "post": {
+        "tags": [
+          "webhooks"
+        ],
+        "summary": "Evento da Peráta; data traz os identificadores.",
+        "description": "Enviado por POST ao endpoint assinante, no padrão Standard Webhooks: cabeçalhos webhook-id, webhook-timestamp e webhook-signature (HMAC-SHA256 de \"{id}.{timestamp}.{corpo}\" com o segredo whsec_). Responda 2xx; outra resposta é repetida em 30 s, 5 min, 30 min, 2 h, 5 h e 10 h.",
+        "operationId": "webhooks:refund.failed",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "data": {
+                    "$ref": "#/components/schemas/WebhookIdentifiers"
+                  },
+                  "id": {
+                    "description": "Identificador da mensagem, igual ao cabeçalho webhook-id.",
+                    "type": "string"
+                  },
+                  "timestamp": {
+                    "format": "date-time",
+                    "type": "string"
+                  },
+                  "type": {
+                    "enum": [
+                      "refund.failed"
+                    ],
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "id",
+                  "type",
+                  "timestamp",
+                  "data"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "2XX": {
+            "description": "Recebido."
+          }
+        }
+      }
+    },
+    "refund.requested": {
+      "post": {
+        "tags": [
+          "webhooks"
+        ],
+        "summary": "Evento da Peráta; data traz os identificadores.",
+        "description": "Enviado por POST ao endpoint assinante, no padrão Standard Webhooks: cabeçalhos webhook-id, webhook-timestamp e webhook-signature (HMAC-SHA256 de \"{id}.{timestamp}.{corpo}\" com o segredo whsec_). Responda 2xx; outra resposta é repetida em 30 s, 5 min, 30 min, 2 h, 5 h e 10 h.",
+        "operationId": "webhooks:refund.requested",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "data": {
+                    "$ref": "#/components/schemas/WebhookIdentifiers"
+                  },
+                  "id": {
+                    "description": "Identificador da mensagem, igual ao cabeçalho webhook-id.",
+                    "type": "string"
+                  },
+                  "timestamp": {
+                    "format": "date-time",
+                    "type": "string"
+                  },
+                  "type": {
+                    "enum": [
+                      "refund.requested"
+                    ],
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "id",
+                  "type",
+                  "timestamp",
+                  "data"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "2XX": {
+            "description": "Recebido."
+          }
+        }
+      }
+    },
+    "refund.succeeded": {
+      "post": {
+        "tags": [
+          "webhooks"
+        ],
+        "summary": "Evento da Peráta; data traz os identificadores.",
+        "description": "Enviado por POST ao endpoint assinante, no padrão Standard Webhooks: cabeçalhos webhook-id, webhook-timestamp e webhook-signature (HMAC-SHA256 de \"{id}.{timestamp}.{corpo}\" com o segredo whsec_). Responda 2xx; outra resposta é repetida em 30 s, 5 min, 30 min, 2 h, 5 h e 10 h.",
+        "operationId": "webhooks:refund.succeeded",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "data": {
+                    "$ref": "#/components/schemas/WebhookIdentifiers"
+                  },
+                  "id": {
+                    "description": "Identificador da mensagem, igual ao cabeçalho webhook-id.",
+                    "type": "string"
+                  },
+                  "timestamp": {
+                    "format": "date-time",
+                    "type": "string"
+                  },
+                  "type": {
+                    "enum": [
+                      "refund.succeeded"
+                    ],
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "id",
+                  "type",
+                  "timestamp",
+                  "data"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "2XX": {
+            "description": "Recebido."
+          }
+        }
+      }
+    },
+    "refund.updated": {
+      "post": {
+        "tags": [
+          "webhooks"
+        ],
+        "summary": "Evento do Polar; data traz o objeto.",
+        "description": "Enviado por POST ao endpoint assinante, no padrão Standard Webhooks: cabeçalhos webhook-id, webhook-timestamp e webhook-signature (HMAC-SHA256 de \"{id}.{timestamp}.{corpo}\" com o segredo whsec_). Responda 2xx; outra resposta é repetida em 30 s, 5 min, 30 min, 2 h, 5 h e 10 h.",
+        "operationId": "webhooks:refund.updated",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "data": {
+                    "$ref": "#/components/schemas/Refund"
+                  },
+                  "id": {
+                    "description": "Identificador da mensagem, igual ao cabeçalho webhook-id.",
+                    "type": "string"
+                  },
+                  "timestamp": {
+                    "format": "date-time",
+                    "type": "string"
+                  },
+                  "type": {
+                    "enum": [
+                      "refund.updated"
+                    ],
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "id",
+                  "type",
+                  "timestamp",
+                  "data"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "2XX": {
+            "description": "Recebido."
+          }
+        }
+      }
+    },
+    "seat_allocation.opened": {
+      "post": {
+        "tags": [
+          "webhooks"
+        ],
+        "summary": "Evento da Peráta; data traz os identificadores.",
+        "description": "Enviado por POST ao endpoint assinante, no padrão Standard Webhooks: cabeçalhos webhook-id, webhook-timestamp e webhook-signature (HMAC-SHA256 de \"{id}.{timestamp}.{corpo}\" com o segredo whsec_). Responda 2xx; outra resposta é repetida em 30 s, 5 min, 30 min, 2 h, 5 h e 10 h.",
+        "operationId": "webhooks:seat_allocation.opened",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "data": {
+                    "$ref": "#/components/schemas/WebhookIdentifiers"
+                  },
+                  "id": {
+                    "description": "Identificador da mensagem, igual ao cabeçalho webhook-id.",
+                    "type": "string"
+                  },
+                  "timestamp": {
+                    "format": "date-time",
+                    "type": "string"
+                  },
+                  "type": {
+                    "enum": [
+                      "seat_allocation.opened"
+                    ],
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "id",
+                  "type",
+                  "timestamp",
+                  "data"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "2XX": {
+            "description": "Recebido."
+          }
+        }
+      }
+    },
+    "seat_allocation.resized": {
+      "post": {
+        "tags": [
+          "webhooks"
+        ],
+        "summary": "Evento da Peráta; data traz os identificadores.",
+        "description": "Enviado por POST ao endpoint assinante, no padrão Standard Webhooks: cabeçalhos webhook-id, webhook-timestamp e webhook-signature (HMAC-SHA256 de \"{id}.{timestamp}.{corpo}\" com o segredo whsec_). Responda 2xx; outra resposta é repetida em 30 s, 5 min, 30 min, 2 h, 5 h e 10 h.",
+        "operationId": "webhooks:seat_allocation.resized",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "data": {
+                    "$ref": "#/components/schemas/WebhookIdentifiers"
+                  },
+                  "id": {
+                    "description": "Identificador da mensagem, igual ao cabeçalho webhook-id.",
+                    "type": "string"
+                  },
+                  "timestamp": {
+                    "format": "date-time",
+                    "type": "string"
+                  },
+                  "type": {
+                    "enum": [
+                      "seat_allocation.resized"
+                    ],
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "id",
+                  "type",
+                  "timestamp",
+                  "data"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "2XX": {
+            "description": "Recebido."
+          }
+        }
+      }
+    },
+    "seat_assignment.claimed": {
+      "post": {
+        "tags": [
+          "webhooks"
+        ],
+        "summary": "Evento da Peráta; data traz os identificadores.",
+        "description": "Enviado por POST ao endpoint assinante, no padrão Standard Webhooks: cabeçalhos webhook-id, webhook-timestamp e webhook-signature (HMAC-SHA256 de \"{id}.{timestamp}.{corpo}\" com o segredo whsec_). Responda 2xx; outra resposta é repetida em 30 s, 5 min, 30 min, 2 h, 5 h e 10 h.",
+        "operationId": "webhooks:seat_assignment.claimed",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "data": {
+                    "$ref": "#/components/schemas/WebhookIdentifiers"
+                  },
+                  "id": {
+                    "description": "Identificador da mensagem, igual ao cabeçalho webhook-id.",
+                    "type": "string"
+                  },
+                  "timestamp": {
+                    "format": "date-time",
+                    "type": "string"
+                  },
+                  "type": {
+                    "enum": [
+                      "seat_assignment.claimed"
+                    ],
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "id",
+                  "type",
+                  "timestamp",
+                  "data"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "2XX": {
+            "description": "Recebido."
+          }
+        }
+      }
+    },
+    "seat_assignment.invited": {
+      "post": {
+        "tags": [
+          "webhooks"
+        ],
+        "summary": "Evento da Peráta; data traz os identificadores.",
+        "description": "Enviado por POST ao endpoint assinante, no padrão Standard Webhooks: cabeçalhos webhook-id, webhook-timestamp e webhook-signature (HMAC-SHA256 de \"{id}.{timestamp}.{corpo}\" com o segredo whsec_). Responda 2xx; outra resposta é repetida em 30 s, 5 min, 30 min, 2 h, 5 h e 10 h.",
+        "operationId": "webhooks:seat_assignment.invited",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "data": {
+                    "$ref": "#/components/schemas/WebhookIdentifiers"
+                  },
+                  "id": {
+                    "description": "Identificador da mensagem, igual ao cabeçalho webhook-id.",
+                    "type": "string"
+                  },
+                  "timestamp": {
+                    "format": "date-time",
+                    "type": "string"
+                  },
+                  "type": {
+                    "enum": [
+                      "seat_assignment.invited"
+                    ],
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "id",
+                  "type",
+                  "timestamp",
+                  "data"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "2XX": {
+            "description": "Recebido."
+          }
+        }
+      }
+    },
+    "seat_assignment.revoked": {
+      "post": {
+        "tags": [
+          "webhooks"
+        ],
+        "summary": "Evento da Peráta; data traz os identificadores.",
+        "description": "Enviado por POST ao endpoint assinante, no padrão Standard Webhooks: cabeçalhos webhook-id, webhook-timestamp e webhook-signature (HMAC-SHA256 de \"{id}.{timestamp}.{corpo}\" com o segredo whsec_). Responda 2xx; outra resposta é repetida em 30 s, 5 min, 30 min, 2 h, 5 h e 10 h.",
+        "operationId": "webhooks:seat_assignment.revoked",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "data": {
+                    "$ref": "#/components/schemas/WebhookIdentifiers"
+                  },
+                  "id": {
+                    "description": "Identificador da mensagem, igual ao cabeçalho webhook-id.",
+                    "type": "string"
+                  },
+                  "timestamp": {
+                    "format": "date-time",
+                    "type": "string"
+                  },
+                  "type": {
+                    "enum": [
+                      "seat_assignment.revoked"
+                    ],
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "id",
+                  "type",
+                  "timestamp",
+                  "data"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "2XX": {
+            "description": "Recebido."
+          }
+        }
+      }
+    },
+    "subscription.active": {
+      "post": {
+        "tags": [
+          "webhooks"
+        ],
+        "summary": "Evento do Polar; data traz o objeto.",
+        "description": "Enviado por POST ao endpoint assinante, no padrão Standard Webhooks: cabeçalhos webhook-id, webhook-timestamp e webhook-signature (HMAC-SHA256 de \"{id}.{timestamp}.{corpo}\" com o segredo whsec_). Responda 2xx; outra resposta é repetida em 30 s, 5 min, 30 min, 2 h, 5 h e 10 h.",
+        "operationId": "webhooks:subscription.active",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "data": {
+                    "$ref": "#/components/schemas/Subscription"
+                  },
+                  "id": {
+                    "description": "Identificador da mensagem, igual ao cabeçalho webhook-id.",
+                    "type": "string"
+                  },
+                  "timestamp": {
+                    "format": "date-time",
+                    "type": "string"
+                  },
+                  "type": {
+                    "enum": [
+                      "subscription.active"
+                    ],
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "id",
+                  "type",
+                  "timestamp",
+                  "data"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "2XX": {
+            "description": "Recebido."
+          }
+        }
+      }
+    },
+    "subscription.canceled": {
+      "post": {
+        "tags": [
+          "webhooks"
+        ],
+        "summary": "Evento do Polar; data traz o objeto.",
+        "description": "Enviado por POST ao endpoint assinante, no padrão Standard Webhooks: cabeçalhos webhook-id, webhook-timestamp e webhook-signature (HMAC-SHA256 de \"{id}.{timestamp}.{corpo}\" com o segredo whsec_). Responda 2xx; outra resposta é repetida em 30 s, 5 min, 30 min, 2 h, 5 h e 10 h.",
+        "operationId": "webhooks:subscription.canceled",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "data": {
+                    "$ref": "#/components/schemas/Subscription"
+                  },
+                  "id": {
+                    "description": "Identificador da mensagem, igual ao cabeçalho webhook-id.",
+                    "type": "string"
+                  },
+                  "timestamp": {
+                    "format": "date-time",
+                    "type": "string"
+                  },
+                  "type": {
+                    "enum": [
+                      "subscription.canceled"
+                    ],
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "id",
+                  "type",
+                  "timestamp",
+                  "data"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "2XX": {
+            "description": "Recebido."
+          }
+        }
+      }
+    },
+    "subscription.created": {
+      "post": {
+        "tags": [
+          "webhooks"
+        ],
+        "summary": "Evento do Polar; data traz o objeto.",
+        "description": "Enviado por POST ao endpoint assinante, no padrão Standard Webhooks: cabeçalhos webhook-id, webhook-timestamp e webhook-signature (HMAC-SHA256 de \"{id}.{timestamp}.{corpo}\" com o segredo whsec_). Responda 2xx; outra resposta é repetida em 30 s, 5 min, 30 min, 2 h, 5 h e 10 h.",
+        "operationId": "webhooks:subscription.created",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "data": {
+                    "$ref": "#/components/schemas/Subscription"
+                  },
+                  "id": {
+                    "description": "Identificador da mensagem, igual ao cabeçalho webhook-id.",
+                    "type": "string"
+                  },
+                  "timestamp": {
+                    "format": "date-time",
+                    "type": "string"
+                  },
+                  "type": {
+                    "enum": [
+                      "subscription.created"
+                    ],
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "id",
+                  "type",
+                  "timestamp",
+                  "data"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "2XX": {
+            "description": "Recebido."
+          }
+        }
+      }
+    },
+    "subscription.cycled": {
+      "post": {
+        "tags": [
+          "webhooks"
+        ],
+        "summary": "Evento do Polar; data traz o objeto.",
+        "description": "Enviado por POST ao endpoint assinante, no padrão Standard Webhooks: cabeçalhos webhook-id, webhook-timestamp e webhook-signature (HMAC-SHA256 de \"{id}.{timestamp}.{corpo}\" com o segredo whsec_). Responda 2xx; outra resposta é repetida em 30 s, 5 min, 30 min, 2 h, 5 h e 10 h.",
+        "operationId": "webhooks:subscription.cycled",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "data": {
+                    "$ref": "#/components/schemas/Subscription"
+                  },
+                  "id": {
+                    "description": "Identificador da mensagem, igual ao cabeçalho webhook-id.",
+                    "type": "string"
+                  },
+                  "timestamp": {
+                    "format": "date-time",
+                    "type": "string"
+                  },
+                  "type": {
+                    "enum": [
+                      "subscription.cycled"
+                    ],
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "id",
+                  "type",
+                  "timestamp",
+                  "data"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "2XX": {
+            "description": "Recebido."
+          }
+        }
+      }
+    },
+    "subscription.past_due": {
+      "post": {
+        "tags": [
+          "webhooks"
+        ],
+        "summary": "Evento do Polar; data traz o objeto.",
+        "description": "Enviado por POST ao endpoint assinante, no padrão Standard Webhooks: cabeçalhos webhook-id, webhook-timestamp e webhook-signature (HMAC-SHA256 de \"{id}.{timestamp}.{corpo}\" com o segredo whsec_). Responda 2xx; outra resposta é repetida em 30 s, 5 min, 30 min, 2 h, 5 h e 10 h.",
+        "operationId": "webhooks:subscription.past_due",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "data": {
+                    "$ref": "#/components/schemas/Subscription"
+                  },
+                  "id": {
+                    "description": "Identificador da mensagem, igual ao cabeçalho webhook-id.",
+                    "type": "string"
+                  },
+                  "timestamp": {
+                    "format": "date-time",
+                    "type": "string"
+                  },
+                  "type": {
+                    "enum": [
+                      "subscription.past_due"
+                    ],
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "id",
+                  "type",
+                  "timestamp",
+                  "data"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "2XX": {
+            "description": "Recebido."
+          }
+        }
+      }
+    },
+    "subscription.paused": {
+      "post": {
+        "tags": [
+          "webhooks"
+        ],
+        "summary": "Evento do Polar; data traz o objeto.",
+        "description": "Enviado por POST ao endpoint assinante, no padrão Standard Webhooks: cabeçalhos webhook-id, webhook-timestamp e webhook-signature (HMAC-SHA256 de \"{id}.{timestamp}.{corpo}\" com o segredo whsec_). Responda 2xx; outra resposta é repetida em 30 s, 5 min, 30 min, 2 h, 5 h e 10 h.",
+        "operationId": "webhooks:subscription.paused",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "data": {
+                    "$ref": "#/components/schemas/Subscription"
+                  },
+                  "id": {
+                    "description": "Identificador da mensagem, igual ao cabeçalho webhook-id.",
+                    "type": "string"
+                  },
+                  "timestamp": {
+                    "format": "date-time",
+                    "type": "string"
+                  },
+                  "type": {
+                    "enum": [
+                      "subscription.paused"
+                    ],
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "id",
+                  "type",
+                  "timestamp",
+                  "data"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "2XX": {
+            "description": "Recebido."
+          }
+        }
+      }
+    },
+    "subscription.resumed": {
+      "post": {
+        "tags": [
+          "webhooks"
+        ],
+        "summary": "Evento do Polar; data traz o objeto.",
+        "description": "Enviado por POST ao endpoint assinante, no padrão Standard Webhooks: cabeçalhos webhook-id, webhook-timestamp e webhook-signature (HMAC-SHA256 de \"{id}.{timestamp}.{corpo}\" com o segredo whsec_). Responda 2xx; outra resposta é repetida em 30 s, 5 min, 30 min, 2 h, 5 h e 10 h.",
+        "operationId": "webhooks:subscription.resumed",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "data": {
+                    "$ref": "#/components/schemas/Subscription"
+                  },
+                  "id": {
+                    "description": "Identificador da mensagem, igual ao cabeçalho webhook-id.",
+                    "type": "string"
+                  },
+                  "timestamp": {
+                    "format": "date-time",
+                    "type": "string"
+                  },
+                  "type": {
+                    "enum": [
+                      "subscription.resumed"
+                    ],
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "id",
+                  "type",
+                  "timestamp",
+                  "data"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "2XX": {
+            "description": "Recebido."
+          }
+        }
+      }
+    },
+    "subscription.revoked": {
+      "post": {
+        "tags": [
+          "webhooks"
+        ],
+        "summary": "Evento do Polar; data traz o objeto.",
+        "description": "Enviado por POST ao endpoint assinante, no padrão Standard Webhooks: cabeçalhos webhook-id, webhook-timestamp e webhook-signature (HMAC-SHA256 de \"{id}.{timestamp}.{corpo}\" com o segredo whsec_). Responda 2xx; outra resposta é repetida em 30 s, 5 min, 30 min, 2 h, 5 h e 10 h.",
+        "operationId": "webhooks:subscription.revoked",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "data": {
+                    "$ref": "#/components/schemas/Subscription"
+                  },
+                  "id": {
+                    "description": "Identificador da mensagem, igual ao cabeçalho webhook-id.",
+                    "type": "string"
+                  },
+                  "timestamp": {
+                    "format": "date-time",
+                    "type": "string"
+                  },
+                  "type": {
+                    "enum": [
+                      "subscription.revoked"
+                    ],
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "id",
+                  "type",
+                  "timestamp",
+                  "data"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "2XX": {
+            "description": "Recebido."
+          }
+        }
+      }
+    },
+    "subscription.uncanceled": {
+      "post": {
+        "tags": [
+          "webhooks"
+        ],
+        "summary": "Evento do Polar; data traz o objeto.",
+        "description": "Enviado por POST ao endpoint assinante, no padrão Standard Webhooks: cabeçalhos webhook-id, webhook-timestamp e webhook-signature (HMAC-SHA256 de \"{id}.{timestamp}.{corpo}\" com o segredo whsec_). Responda 2xx; outra resposta é repetida em 30 s, 5 min, 30 min, 2 h, 5 h e 10 h.",
+        "operationId": "webhooks:subscription.uncanceled",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "data": {
+                    "$ref": "#/components/schemas/Subscription"
+                  },
+                  "id": {
+                    "description": "Identificador da mensagem, igual ao cabeçalho webhook-id.",
+                    "type": "string"
+                  },
+                  "timestamp": {
+                    "format": "date-time",
+                    "type": "string"
+                  },
+                  "type": {
+                    "enum": [
+                      "subscription.uncanceled"
+                    ],
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "id",
+                  "type",
+                  "timestamp",
+                  "data"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "2XX": {
+            "description": "Recebido."
+          }
+        }
+      }
+    },
+    "subscription.updated": {
+      "post": {
+        "tags": [
+          "webhooks"
+        ],
+        "summary": "Evento do Polar; data traz o objeto.",
+        "description": "Enviado por POST ao endpoint assinante, no padrão Standard Webhooks: cabeçalhos webhook-id, webhook-timestamp e webhook-signature (HMAC-SHA256 de \"{id}.{timestamp}.{corpo}\" com o segredo whsec_). Responda 2xx; outra resposta é repetida em 30 s, 5 min, 30 min, 2 h, 5 h e 10 h.",
+        "operationId": "webhooks:subscription.updated",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "data": {
+                    "$ref": "#/components/schemas/Subscription"
+                  },
+                  "id": {
+                    "description": "Identificador da mensagem, igual ao cabeçalho webhook-id.",
+                    "type": "string"
+                  },
+                  "timestamp": {
+                    "format": "date-time",
+                    "type": "string"
+                  },
+                  "type": {
+                    "enum": [
+                      "subscription.updated"
+                    ],
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "id",
+                  "type",
+                  "timestamp",
+                  "data"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "2XX": {
+            "description": "Recebido."
+          }
+        }
+      }
+    },
+    "usage_event.recorded": {
+      "post": {
+        "tags": [
+          "webhooks"
+        ],
+        "summary": "Evento da Peráta; data traz os identificadores.",
+        "description": "Enviado por POST ao endpoint assinante, no padrão Standard Webhooks: cabeçalhos webhook-id, webhook-timestamp e webhook-signature (HMAC-SHA256 de \"{id}.{timestamp}.{corpo}\" com o segredo whsec_). Responda 2xx; outra resposta é repetida em 30 s, 5 min, 30 min, 2 h, 5 h e 10 h.",
+        "operationId": "webhooks:usage_event.recorded",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "data": {
+                    "$ref": "#/components/schemas/WebhookIdentifiers"
+                  },
+                  "id": {
+                    "description": "Identificador da mensagem, igual ao cabeçalho webhook-id.",
+                    "type": "string"
+                  },
+                  "timestamp": {
+                    "format": "date-time",
+                    "type": "string"
+                  },
+                  "type": {
+                    "enum": [
+                      "usage_event.recorded"
+                    ],
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "id",
+                  "type",
+                  "timestamp",
+                  "data"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "2XX": {
+            "description": "Recebido."
+          }
+        }
+      }
+    },
+    "usage_period.closed": {
+      "post": {
+        "tags": [
+          "webhooks"
+        ],
+        "summary": "Evento da Peráta; data traz os identificadores.",
+        "description": "Enviado por POST ao endpoint assinante, no padrão Standard Webhooks: cabeçalhos webhook-id, webhook-timestamp e webhook-signature (HMAC-SHA256 de \"{id}.{timestamp}.{corpo}\" com o segredo whsec_). Responda 2xx; outra resposta é repetida em 30 s, 5 min, 30 min, 2 h, 5 h e 10 h.",
+        "operationId": "webhooks:usage_period.closed",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "data": {
+                    "$ref": "#/components/schemas/WebhookIdentifiers"
+                  },
+                  "id": {
+                    "description": "Identificador da mensagem, igual ao cabeçalho webhook-id.",
+                    "type": "string"
+                  },
+                  "timestamp": {
+                    "format": "date-time",
+                    "type": "string"
+                  },
+                  "type": {
+                    "enum": [
+                      "usage_period.closed"
+                    ],
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "id",
+                  "type",
+                  "timestamp",
+                  "data"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "2XX": {
+            "description": "Recebido."
+          }
+        }
+      }
+    },
+    "usage_period.opened": {
+      "post": {
+        "tags": [
+          "webhooks"
+        ],
+        "summary": "Evento da Peráta; data traz os identificadores.",
+        "description": "Enviado por POST ao endpoint assinante, no padrão Standard Webhooks: cabeçalhos webhook-id, webhook-timestamp e webhook-signature (HMAC-SHA256 de \"{id}.{timestamp}.{corpo}\" com o segredo whsec_). Responda 2xx; outra resposta é repetida em 30 s, 5 min, 30 min, 2 h, 5 h e 10 h.",
+        "operationId": "webhooks:usage_period.opened",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "data": {
+                    "$ref": "#/components/schemas/WebhookIdentifiers"
+                  },
+                  "id": {
+                    "description": "Identificador da mensagem, igual ao cabeçalho webhook-id.",
+                    "type": "string"
+                  },
+                  "timestamp": {
+                    "format": "date-time",
+                    "type": "string"
+                  },
+                  "type": {
+                    "enum": [
+                      "usage_period.opened"
+                    ],
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "id",
+                  "type",
+                  "timestamp",
+                  "data"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "2XX": {
+            "description": "Recebido."
+          }
+        }
+      }
+    },
+    "usage_period_adjustment.created": {
+      "post": {
+        "tags": [
+          "webhooks"
+        ],
+        "summary": "Evento da Peráta; data traz os identificadores.",
+        "description": "Enviado por POST ao endpoint assinante, no padrão Standard Webhooks: cabeçalhos webhook-id, webhook-timestamp e webhook-signature (HMAC-SHA256 de \"{id}.{timestamp}.{corpo}\" com o segredo whsec_). Responda 2xx; outra resposta é repetida em 30 s, 5 min, 30 min, 2 h, 5 h e 10 h.",
+        "operationId": "webhooks:usage_period_adjustment.created",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "data": {
+                    "$ref": "#/components/schemas/WebhookIdentifiers"
+                  },
+                  "id": {
+                    "description": "Identificador da mensagem, igual ao cabeçalho webhook-id.",
+                    "type": "string"
+                  },
+                  "timestamp": {
+                    "format": "date-time",
+                    "type": "string"
+                  },
+                  "type": {
+                    "enum": [
+                      "usage_period_adjustment.created"
+                    ],
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "id",
+                  "type",
+                  "timestamp",
+                  "data"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "2XX": {
+            "description": "Recebido."
+          }
+        }
+      }
+    }
+  },
   "components": {
     "schemas": {
+      "BenefitGrant": {
+        "type": "object",
+        "required": [
+          "id",
+          "customer_id",
+          "benefit_id",
+          "benefit_type",
+          "status",
+          "is_granted",
+          "is_revoked",
+          "granted_at",
+          "revoked_at",
+          "created_at"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "customer_id": {
+            "type": "string"
+          },
+          "benefit_id": {
+            "type": "string"
+          },
+          "benefit_type": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "granted",
+              "revoked"
+            ]
+          },
+          "is_granted": {
+            "type": "boolean"
+          },
+          "is_revoked": {
+            "type": "boolean"
+          },
+          "granted_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "revoked_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
       "Card": {
         "type": "object",
         "required": [
@@ -2281,6 +6459,40 @@
           }
         }
       },
+      "CustomerSession": {
+        "type": "object",
+        "required": [
+          "token",
+          "customer_portal_url",
+          "expires_at"
+        ],
+        "properties": {
+          "token": {
+            "type": "string",
+            "description": "Sessão do portal do cliente, já autenticada."
+          },
+          "customer_portal_url": {
+            "type": "string",
+            "format": "uri",
+            "description": "Endereço que abre o portal do cliente já autenticado."
+          },
+          "expires_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "CustomerSessionEnvelope": {
+        "type": "object",
+        "required": [
+          "data"
+        ],
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/CustomerSession"
+          }
+        }
+      },
       "Error": {
         "type": "object",
         "required": [
@@ -2315,7 +6527,9 @@
           "amount_cents",
           "currency",
           "status",
-          "paid_at"
+          "paid_at",
+          "installments",
+          "installment_interest_cents"
         ],
         "properties": {
           "id": {
@@ -2355,6 +6569,14 @@
               "null"
             ],
             "format": "date-time"
+          },
+          "installments": {
+            "type": "integer",
+            "description": "Em quantas parcelas o cartão de crédito foi cobrado; 1 à vista."
+          },
+          "installment_interest_cents": {
+            "type": "integer",
+            "description": "Juros do parcelamento pagos pelo comprador, cobrados além de amount_cents."
           }
         }
       },
@@ -2425,7 +6647,10 @@
           "captured_cents",
           "refunded_cents",
           "currency",
-          "created_at"
+          "created_at",
+          "installments",
+          "installment_amount_cents",
+          "installment_interest_cents"
         ],
         "properties": {
           "id": {
@@ -2476,6 +6701,18 @@
           "created_at": {
             "type": "string",
             "format": "date-time"
+          },
+          "installments": {
+            "type": "integer",
+            "description": "Em quantas parcelas o cartão de crédito foi cobrado; 1 à vista."
+          },
+          "installment_amount_cents": {
+            "type": "integer",
+            "description": "Valor de uma parcela; 0 à vista."
+          },
+          "installment_interest_cents": {
+            "type": "integer",
+            "description": "Juros do parcelamento dentro de amount_cents."
           }
         }
       },
@@ -2923,6 +7160,187 @@
           "data": {
             "$ref": "#/components/schemas/SubscriptionList"
           }
+        }
+      },
+      "WebhookCheckout": {
+        "type": "object",
+        "required": [
+          "id",
+          "status",
+          "checkout_link_id",
+          "product_id",
+          "price_id",
+          "customer_id",
+          "currency",
+          "amount_cents",
+          "discount_cents",
+          "total_cents",
+          "expires_at",
+          "created_at"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "open",
+              "confirmed",
+              "succeeded",
+              "failed",
+              "expired"
+            ]
+          },
+          "checkout_link_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "product_id": {
+            "type": "string"
+          },
+          "price_id": {
+            "type": "string"
+          },
+          "customer_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Nulo até o comprador confirmar."
+          },
+          "currency": {
+            "type": "string",
+            "enum": [
+              "BRL"
+            ]
+          },
+          "amount_cents": {
+            "type": "integer"
+          },
+          "discount_cents": {
+            "type": "integer"
+          },
+          "total_cents": {
+            "type": "integer"
+          },
+          "expires_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "WebhookDispute": {
+        "type": "object",
+        "required": [
+          "id",
+          "status",
+          "amount_cents",
+          "currency",
+          "reason",
+          "provider_reason",
+          "source",
+          "provider_dispute_id",
+          "payment_id",
+          "invoice_id",
+          "customer_id",
+          "opened_at",
+          "due_by",
+          "decided_at"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "opened",
+              "needs_evidence",
+              "submitted",
+              "under_review",
+              "won",
+              "lost",
+              "closed"
+            ]
+          },
+          "amount_cents": {
+            "type": "integer",
+            "description": "Valor contestado, em centavos."
+          },
+          "currency": {
+            "type": "string",
+            "enum": [
+              "BRL"
+            ]
+          },
+          "reason": {
+            "type": "string",
+            "description": "Motivo, do conjunto fechado; unknown quando a adquirente não informou."
+          },
+          "provider_reason": {
+            "type": "string",
+            "description": "O motivo nas palavras da Cielo."
+          },
+          "source": {
+            "type": "string",
+            "enum": [
+              "operator",
+              "cielo_chargeback"
+            ]
+          },
+          "provider_dispute_id": {
+            "type": "string",
+            "description": "O número do caso na Cielo."
+          },
+          "payment_id": {
+            "type": "string",
+            "description": "O PaymentId da venda contestada na Cielo."
+          },
+          "invoice_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "customer_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "opened_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "due_by": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time",
+            "description": "Prazo da defesa."
+          },
+          "decided_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          }
+        }
+      },
+      "WebhookIdentifiers": {
+        "type": "object",
+        "description": "Os identificadores do evento: event_id, aggregate, aggregate_id, merchant_id, environment.",
+        "additionalProperties": {
+          "type": "string"
         }
       }
     },

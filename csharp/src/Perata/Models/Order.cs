@@ -42,6 +42,14 @@ public sealed record Order
     [JsonPropertyName("id")]
     public required string Id { get; init; }
 
+    /// <summary>Juros do parcelamento pagos pelo comprador, cobrados além de amount_cents.</summary>
+    [JsonPropertyName("installment_interest_cents")]
+    public required long InstallmentInterestCents { get; init; }
+
+    /// <summary>Em quantas parcelas o cartão de crédito foi cobrado; 1 à vista.</summary>
+    [JsonPropertyName("installments")]
+    public required long Installments { get; init; }
+
     /// <summary>The API's <c>paid_at</c>. Null when the API sends none.</summary>
     [JsonPropertyName("paid_at")]
     public string? PaidAt { get; init; }

@@ -16,6 +16,8 @@ import Foundation
 public final class PerataClient: Sendable {
     /// The API's checkouts.
     public let checkouts: CheckoutsService
+    /// The API's customer-sessions.
+    public let customerSessions: CustomerSessionsService
     /// The API's customers.
     public let customers: CustomersService
     /// The API's orders.
@@ -51,6 +53,7 @@ public final class PerataClient: Sendable {
         }
         let requester = Requester(apiKey: apiKey, baseURL: base, timeout: timeout, transport: transport ?? Requester.urlSession)
         checkouts = CheckoutsService(requester: requester)
+        customerSessions = CustomerSessionsService(requester: requester)
         customers = CustomersService(requester: requester)
         orders = OrdersService(requester: requester)
         paymentMethods = PaymentMethodsService(requester: requester)

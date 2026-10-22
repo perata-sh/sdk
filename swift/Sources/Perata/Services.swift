@@ -12,6 +12,18 @@ public struct CheckoutsService: Sendable {
     }
 }
 
+/// The API's customer-sessions: `perata.customerSessions`.
+public struct CustomerSessionsService: Sendable {
+    let requester: Requester
+
+    /// Sign a customer into the customer portal: the address opens it already signed in.
+    public func create(_ params: CustomerSessionsCreateParams, idempotencyKey: String? = nil, apiKey: String? = nil) async throws -> CustomerSession {
+        try await requester.request(
+            "POST", "/api/v1/customer-sessions", body: params, idempotencyKey: idempotencyKey, apiKey: apiKey
+        )
+    }
+}
+
 /// The API's customers: `perata.customers`.
 public struct CustomersService: Sendable {
     let requester: Requester

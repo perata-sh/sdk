@@ -8,6 +8,37 @@ from typing import Any, Literal, NotRequired, TypedDict
 
 
 @dataclass(frozen=True)
+class BenefitGrant:
+    """BenefitGrant is a resource of Peráta's API."""
+
+    benefit_id: str
+    benefit_type: str
+    created_at: str
+    customer_id: str
+    granted_at: str
+    id: str
+    is_granted: bool
+    is_revoked: bool
+    revoked_at: str | None
+    status: Literal["granted", "revoked"]
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> BenefitGrant:
+        return cls(
+            benefit_id=data["benefit_id"],
+            benefit_type=data["benefit_type"],
+            created_at=data["created_at"],
+            customer_id=data["customer_id"],
+            granted_at=data["granted_at"],
+            id=data["id"],
+            is_granted=data["is_granted"],
+            is_revoked=data["is_revoked"],
+            revoked_at=data.get("revoked_at"),
+            status=data["status"],
+        )
+
+
+@dataclass(frozen=True)
 class Card:
     """Card is a resource of Peráta's API."""
 
@@ -70,6 +101,25 @@ class Customer:
 
 
 @dataclass(frozen=True)
+class CustomerSession:
+    """CustomerSession is a resource of Peráta's API."""
+
+    customer_portal_url: str
+    """Endereço que abre o portal do cliente já autenticado."""
+    expires_at: str
+    token: str
+    """Sessão do portal do cliente, já autenticada."""
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> CustomerSession:
+        return cls(
+            customer_portal_url=data["customer_portal_url"],
+            expires_at=data["expires_at"],
+            token=data["token"],
+        )
+
+
+@dataclass(frozen=True)
 class Order:
     """Order is a resource of Peráta's API."""
 
@@ -77,6 +127,10 @@ class Order:
     currency: Literal["BRL"]
     customer_id: str
     id: str
+    installment_interest_cents: int
+    """Juros do parcelamento pagos pelo comprador, cobrados além de amount_cents."""
+    installments: int
+    """Em quantas parcelas o cartão de crédito foi cobrado; 1 à vista."""
     paid_at: str | None
     price_id: str
     product_id: str
@@ -89,6 +143,8 @@ class Order:
             currency=data["currency"],
             customer_id=data["customer_id"],
             id=data["id"],
+            installment_interest_cents=data["installment_interest_cents"],
+            installments=data["installments"],
             paid_at=data.get("paid_at"),
             price_id=data["price_id"],
             product_id=data["product_id"],
@@ -122,6 +178,12 @@ class Payment:
     currency: Literal["BRL"]
     customer_id: str
     id: str
+    installment_amount_cents: int
+    """Valor de uma parcela; 0 à vista."""
+    installment_interest_cents: int
+    """Juros do parcelamento dentro de amount_cents."""
+    installments: int
+    """Em quantas parcelas o cartão de crédito foi cobrado; 1 à vista."""
     method: Literal["card", "pix", "boleto"]
     refunded_cents: int
     state: Literal["unknown", "pending", "authorized", "captured", "refused", "canceled", "refunded", "partially_refunded"]
@@ -136,6 +198,9 @@ class Payment:
             currency=data["currency"],
             customer_id=data["customer_id"],
             id=data["id"],
+            installment_amount_cents=data["installment_amount_cents"],
+            installment_interest_cents=data["installment_interest_cents"],
+            installments=data["installments"],
             method=data["method"],
             refunded_cents=data["refunded_cents"],
             state=data["state"],
@@ -277,6 +342,87 @@ class Subscription:
         )
 
 
+@dataclass(frozen=True)
+class WebhookCheckout:
+    """WebhookCheckout is a resource of Peráta's API."""
+
+    amount_cents: int
+    checkout_link_id: str | None
+    created_at: str
+    currency: Literal["BRL"]
+    customer_id: str | None
+    """Nulo até o comprador confirmar."""
+    discount_cents: int
+    expires_at: str
+    id: str
+    price_id: str
+    product_id: str
+    status: Literal["open", "confirmed", "succeeded", "failed", "expired"]
+    total_cents: int
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> WebhookCheckout:
+        return cls(
+            amount_cents=data["amount_cents"],
+            checkout_link_id=data.get("checkout_link_id"),
+            created_at=data["created_at"],
+            currency=data["currency"],
+            customer_id=data.get("customer_id"),
+            discount_cents=data["discount_cents"],
+            expires_at=data["expires_at"],
+            id=data["id"],
+            price_id=data["price_id"],
+            product_id=data["product_id"],
+            status=data["status"],
+            total_cents=data["total_cents"],
+        )
+
+
+@dataclass(frozen=True)
+class WebhookDispute:
+    """WebhookDispute is a resource of Peráta's API."""
+
+    amount_cents: int
+    """Valor contestado, em centavos."""
+    currency: Literal["BRL"]
+    customer_id: str | None
+    decided_at: str | None
+    due_by: str | None
+    """Prazo da defesa."""
+    id: str
+    invoice_id: str | None
+    opened_at: str
+    payment_id: str
+    """O PaymentId da venda contestada na Cielo."""
+    provider_dispute_id: str
+    """O número do caso na Cielo."""
+    provider_reason: str
+    """O motivo nas palavras da Cielo."""
+    reason: str
+    """Motivo, do conjunto fechado; unknown quando a adquirente não informou."""
+    source: Literal["operator", "cielo_chargeback"]
+    status: Literal["opened", "needs_evidence", "submitted", "under_review", "won", "lost", "closed"]
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> WebhookDispute:
+        return cls(
+            amount_cents=data["amount_cents"],
+            currency=data["currency"],
+            customer_id=data.get("customer_id"),
+            decided_at=data.get("decided_at"),
+            due_by=data.get("due_by"),
+            id=data["id"],
+            invoice_id=data.get("invoice_id"),
+            opened_at=data["opened_at"],
+            payment_id=data["payment_id"],
+            provider_dispute_id=data["provider_dispute_id"],
+            provider_reason=data["provider_reason"],
+            reason=data["reason"],
+            source=data["source"],
+            status=data["status"],
+        )
+
+
 class CheckoutsCreateParams(TypedDict):
     """The body of checkouts:create."""
 
@@ -286,6 +432,12 @@ class CheckoutsCreateParams(TypedDict):
     product_id: str
     quantity: NotRequired[int]
     success_url: NotRequired[str]
+
+
+class CustomerSessionsCreateParams(TypedDict):
+    """The body of customer-sessions:create."""
+
+    customer_id: str
 
 
 class CustomersCreateParams(TypedDict):

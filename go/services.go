@@ -18,6 +18,7 @@ var (
 
 func (c *Client) initServices() {
 	c.Checkouts = &CheckoutsService{client: c}
+	c.CustomerSessions = &CustomerSessionsService{client: c}
 	c.Customers = &CustomersService{client: c}
 	c.Orders = &OrdersService{client: c}
 	c.PaymentMethods = &PaymentMethodsService{client: c}
@@ -35,6 +36,19 @@ type CheckoutsService struct{ client *Client }
 func (s *CheckoutsService) Create(ctx context.Context, params CheckoutsCreateParams, opts ...RequestOption) (*Checkout, error) {
 	var out Checkout
 	err := s.client.do(ctx, http.MethodPost, "/api/v1/checkouts", nil, params, &out, opts)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+// CustomerSessionsService is the API's customer-sessions.
+type CustomerSessionsService struct{ client *Client }
+
+// Create: Sign a customer into the customer portal: the address opens it already signed in.
+func (s *CustomerSessionsService) Create(ctx context.Context, params CustomerSessionsCreateParams, opts ...RequestOption) (*CustomerSession, error) {
+	var out CustomerSession
+	err := s.client.do(ctx, http.MethodPost, "/api/v1/customer-sessions", nil, params, &out, opts)
 	if err != nil {
 		return nil, err
 	}

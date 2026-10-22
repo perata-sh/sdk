@@ -48,6 +48,26 @@ module Perata
     end
   end
 
+  # The body of customer-sessions:create.
+  class CustomerSessionsCreateParams < Params
+    MEMBERS = %i[customer_id].freeze
+
+    # @return [String]
+    attr_reader :customer_id
+
+    def initialize(customer_id:)
+      @customer_id = customer_id
+      freeze
+    end
+
+    # The body as the API reads it.
+    def to_wire
+      wire = {}
+      wire["customer_id"] = @customer_id
+      wire
+    end
+  end
+
   # The body of customers:create.
   class CustomersCreateParams < Params
     MEMBERS = %i[email external_id name].freeze

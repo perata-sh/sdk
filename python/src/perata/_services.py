@@ -21,6 +21,18 @@ class CheckoutsService:
         return models.Checkout.from_dict(data)
 
 
+class CustomerSessionsService:
+    """The API's customer-sessions."""
+
+    def __init__(self, client: Requester) -> None:
+        self._client = client
+
+    def create(self, params: models.CustomerSessionsCreateParams, *, idempotency_key: str | None = None, api_key: str | None = None) -> models.CustomerSession:
+        """Sign a customer into the customer portal: the address opens it already signed in."""
+        data = self._client.request("POST", "/api/v1/customer-sessions", body=params, idempotency_key=idempotency_key, api_key=api_key)
+        return models.CustomerSession.from_dict(data)
+
+
 class CustomersService:
     """The API's customers."""
 

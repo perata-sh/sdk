@@ -42,6 +42,7 @@ public final class Perata {
     private final Duration timeout;
     private final Transport transport;
     private final CheckoutsService checkouts;
+    private final CustomerSessionsService customerSessions;
     private final CustomersService customers;
     private final OrdersService orders;
     private final PaymentMethodsService paymentMethods;
@@ -66,6 +67,7 @@ public final class Perata {
         this.timeout = builder.timeout;
         this.transport = builder.transport == null ? new HttpTransport() : builder.transport;
         this.checkouts = new CheckoutsService(this);
+        this.customerSessions = new CustomerSessionsService(this);
         this.customers = new CustomersService(this);
         this.orders = new OrdersService(this);
         this.paymentMethods = new PaymentMethodsService(this);
@@ -89,6 +91,11 @@ public final class Perata {
     /** @return the API's checkouts */
     public CheckoutsService checkouts() {
         return checkouts;
+    }
+
+    /** @return the API's customer-sessions */
+    public CustomerSessionsService customerSessions() {
+        return customerSessions;
     }
 
     /** @return the API's customers */

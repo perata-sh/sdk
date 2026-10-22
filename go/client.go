@@ -23,18 +23,19 @@ import (
 // the organization and the environment: prk_test_… is the test environment,
 // prk_live_… the live one.
 type Client struct {
-	apiKey         string
-	baseURL        string
-	http           *http.Client
-	Checkouts      *CheckoutsService
-	Customers      *CustomersService
-	Orders         *OrdersService
-	PaymentMethods *PaymentMethodsService
-	Payments       *PaymentsService
-	Prices         *PricesService
-	Products       *ProductsService
-	Refunds        *RefundsService
-	Subscriptions  *SubscriptionsService
+	apiKey           string
+	baseURL          string
+	http             *http.Client
+	Checkouts        *CheckoutsService
+	CustomerSessions *CustomerSessionsService
+	Customers        *CustomersService
+	Orders           *OrdersService
+	PaymentMethods   *PaymentMethodsService
+	Payments         *PaymentsService
+	Prices           *PricesService
+	Products         *ProductsService
+	Refunds          *RefundsService
+	Subscriptions    *SubscriptionsService
 }
 
 // Option configures a Client.

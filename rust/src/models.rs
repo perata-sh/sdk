@@ -9,6 +9,22 @@ use std::fmt;
 
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
+/// BenefitGrant is a resource of Peráta's API.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct BenefitGrant {
+    pub benefit_id: String,
+    pub benefit_type: String,
+    pub created_at: String,
+    pub customer_id: String,
+    pub granted_at: String,
+    pub id: String,
+    pub is_granted: bool,
+    pub is_revoked: bool,
+    pub revoked_at: Option<String>,
+    pub status: BenefitGrantStatus,
+}
+
 /// Card is a resource of Peráta's API.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[non_exhaustive]
@@ -42,6 +58,17 @@ pub struct Customer {
     pub status: CustomerStatus,
 }
 
+/// CustomerSession is a resource of Peráta's API.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct CustomerSession {
+    /// Endereço que abre o portal do cliente já autenticado.
+    pub customer_portal_url: String,
+    pub expires_at: String,
+    /// Sessão do portal do cliente, já autenticada.
+    pub token: String,
+}
+
 /// Order is a resource of Peráta's API.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[non_exhaustive]
@@ -50,6 +77,10 @@ pub struct Order {
     pub currency: OrderCurrency,
     pub customer_id: String,
     pub id: String,
+    /// Juros do parcelamento pagos pelo comprador, cobrados além de amount_cents.
+    pub installment_interest_cents: i64,
+    /// Em quantas parcelas o cartão de crédito foi cobrado; 1 à vista.
+    pub installments: i64,
     pub paid_at: Option<String>,
     pub price_id: String,
     pub product_id: String,
@@ -75,6 +106,12 @@ pub struct Payment {
     pub currency: PaymentCurrency,
     pub customer_id: String,
     pub id: String,
+    /// Valor de uma parcela; 0 à vista.
+    pub installment_amount_cents: i64,
+    /// Juros do parcelamento dentro de amount_cents.
+    pub installment_interest_cents: i64,
+    /// Em quantas parcelas o cartão de crédito foi cobrado; 1 à vista.
+    pub installments: i64,
     pub method: PaymentMethodKind,
     pub refunded_cents: i64,
     pub state: PaymentState,
@@ -153,6 +190,51 @@ pub struct Subscription {
     pub status: SubscriptionStatus,
 }
 
+/// WebhookCheckout is a resource of Peráta's API.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct WebhookCheckout {
+    pub amount_cents: i64,
+    pub checkout_link_id: Option<String>,
+    pub created_at: String,
+    pub currency: WebhookCheckoutCurrency,
+    /// Nulo até o comprador confirmar.
+    pub customer_id: Option<String>,
+    pub discount_cents: i64,
+    pub expires_at: String,
+    pub id: String,
+    pub price_id: String,
+    pub product_id: String,
+    pub status: WebhookCheckoutStatus,
+    pub total_cents: i64,
+}
+
+/// WebhookDispute is a resource of Peráta's API.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct WebhookDispute {
+    /// Valor contestado, em centavos.
+    pub amount_cents: i64,
+    pub currency: WebhookDisputeCurrency,
+    pub customer_id: Option<String>,
+    pub decided_at: Option<String>,
+    /// Prazo da defesa.
+    pub due_by: Option<String>,
+    pub id: String,
+    pub invoice_id: Option<String>,
+    pub opened_at: String,
+    /// O PaymentId da venda contestada na Cielo.
+    pub payment_id: String,
+    /// O número do caso na Cielo.
+    pub provider_dispute_id: String,
+    /// O motivo nas palavras da Cielo.
+    pub provider_reason: String,
+    /// Motivo, do conjunto fechado; unknown quando a adquirente não informou.
+    pub reason: String,
+    pub source: WebhookDisputeSource,
+    pub status: WebhookDisputeStatus,
+}
+
 /// The body of checkouts:create.
 ///
 /// [`CheckoutsCreateParams::new`] takes the required fields; each optional one is set by
@@ -207,6 +289,25 @@ impl CheckoutsCreateParams {
     pub fn success_url(mut self, success_url: impl Into<String>) -> Self {
         self.success_url = Some(success_url.into());
         self
+    }
+}
+
+/// The body of customer-sessions:create.
+///
+/// [`CustomerSessionsCreateParams::new`] takes the required fields; each optional one is set by
+/// the method of its name.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct CustomerSessionsCreateParams {
+    pub customer_id: String,
+}
+
+impl CustomerSessionsCreateParams {
+    /// A body with its required fields.
+    pub fn new(customer_id: impl Into<String>) -> Self {
+        Self {
+            customer_id: customer_id.into(),
+        }
     }
 }
 
@@ -365,6 +466,66 @@ impl SubscriptionsCancelParams {
     pub fn reason(mut self, reason: impl Into<String>) -> Self {
         self.reason = Some(reason.into());
         self
+    }
+}
+
+/// The values of `BenefitGrant.status`.
+///
+/// A value this SDK does not know yet is kept, as it came, in
+/// [`BenefitGrantStatus::Unrecognized`].
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[non_exhaustive]
+pub enum BenefitGrantStatus {
+    /// `granted`
+    Granted,
+    /// `revoked`
+    Revoked,
+    /// A value this SDK does not know yet.
+    Unrecognized(String),
+}
+
+impl BenefitGrantStatus {
+    /// The value as the API writes it.
+    pub fn as_str(&self) -> &str {
+        match self {
+            BenefitGrantStatus::Granted => "granted",
+            BenefitGrantStatus::Revoked => "revoked",
+            BenefitGrantStatus::Unrecognized(value) => value,
+        }
+    }
+}
+
+impl From<&str> for BenefitGrantStatus {
+    fn from(value: &str) -> Self {
+        match value {
+            "granted" => BenefitGrantStatus::Granted,
+            "revoked" => BenefitGrantStatus::Revoked,
+            other => BenefitGrantStatus::Unrecognized(other.to_owned()),
+        }
+    }
+}
+
+impl From<String> for BenefitGrantStatus {
+    fn from(value: String) -> Self {
+        Self::from(value.as_str())
+    }
+}
+
+impl fmt::Display for BenefitGrantStatus {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
+impl Serialize for BenefitGrantStatus {
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        serializer.serialize_str(self.as_str())
+    }
+}
+
+impl<'de> Deserialize<'de> for BenefitGrantStatus {
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        String::deserialize(deserializer).map(Self::from)
     }
 }
 
@@ -1315,6 +1476,330 @@ impl Serialize for SubscriptionStatus {
 }
 
 impl<'de> Deserialize<'de> for SubscriptionStatus {
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        String::deserialize(deserializer).map(Self::from)
+    }
+}
+
+/// The values of `WebhookCheckout.currency`.
+///
+/// A value this SDK does not know yet is kept, as it came, in
+/// [`WebhookCheckoutCurrency::Unrecognized`].
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[non_exhaustive]
+pub enum WebhookCheckoutCurrency {
+    /// `BRL`
+    Brl,
+    /// A value this SDK does not know yet.
+    Unrecognized(String),
+}
+
+impl WebhookCheckoutCurrency {
+    /// The value as the API writes it.
+    pub fn as_str(&self) -> &str {
+        match self {
+            WebhookCheckoutCurrency::Brl => "BRL",
+            WebhookCheckoutCurrency::Unrecognized(value) => value,
+        }
+    }
+}
+
+impl From<&str> for WebhookCheckoutCurrency {
+    fn from(value: &str) -> Self {
+        match value {
+            "BRL" => WebhookCheckoutCurrency::Brl,
+            other => WebhookCheckoutCurrency::Unrecognized(other.to_owned()),
+        }
+    }
+}
+
+impl From<String> for WebhookCheckoutCurrency {
+    fn from(value: String) -> Self {
+        Self::from(value.as_str())
+    }
+}
+
+impl fmt::Display for WebhookCheckoutCurrency {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
+impl Serialize for WebhookCheckoutCurrency {
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        serializer.serialize_str(self.as_str())
+    }
+}
+
+impl<'de> Deserialize<'de> for WebhookCheckoutCurrency {
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        String::deserialize(deserializer).map(Self::from)
+    }
+}
+
+/// The values of `WebhookCheckout.status`.
+///
+/// A value this SDK does not know yet is kept, as it came, in
+/// [`WebhookCheckoutStatus::Unrecognized`].
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[non_exhaustive]
+pub enum WebhookCheckoutStatus {
+    /// `open`
+    Open,
+    /// `confirmed`
+    Confirmed,
+    /// `succeeded`
+    Succeeded,
+    /// `failed`
+    Failed,
+    /// `expired`
+    Expired,
+    /// A value this SDK does not know yet.
+    Unrecognized(String),
+}
+
+impl WebhookCheckoutStatus {
+    /// The value as the API writes it.
+    pub fn as_str(&self) -> &str {
+        match self {
+            WebhookCheckoutStatus::Open => "open",
+            WebhookCheckoutStatus::Confirmed => "confirmed",
+            WebhookCheckoutStatus::Succeeded => "succeeded",
+            WebhookCheckoutStatus::Failed => "failed",
+            WebhookCheckoutStatus::Expired => "expired",
+            WebhookCheckoutStatus::Unrecognized(value) => value,
+        }
+    }
+}
+
+impl From<&str> for WebhookCheckoutStatus {
+    fn from(value: &str) -> Self {
+        match value {
+            "open" => WebhookCheckoutStatus::Open,
+            "confirmed" => WebhookCheckoutStatus::Confirmed,
+            "succeeded" => WebhookCheckoutStatus::Succeeded,
+            "failed" => WebhookCheckoutStatus::Failed,
+            "expired" => WebhookCheckoutStatus::Expired,
+            other => WebhookCheckoutStatus::Unrecognized(other.to_owned()),
+        }
+    }
+}
+
+impl From<String> for WebhookCheckoutStatus {
+    fn from(value: String) -> Self {
+        Self::from(value.as_str())
+    }
+}
+
+impl fmt::Display for WebhookCheckoutStatus {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
+impl Serialize for WebhookCheckoutStatus {
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        serializer.serialize_str(self.as_str())
+    }
+}
+
+impl<'de> Deserialize<'de> for WebhookCheckoutStatus {
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        String::deserialize(deserializer).map(Self::from)
+    }
+}
+
+/// The values of `WebhookDispute.currency`.
+///
+/// A value this SDK does not know yet is kept, as it came, in
+/// [`WebhookDisputeCurrency::Unrecognized`].
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[non_exhaustive]
+pub enum WebhookDisputeCurrency {
+    /// `BRL`
+    Brl,
+    /// A value this SDK does not know yet.
+    Unrecognized(String),
+}
+
+impl WebhookDisputeCurrency {
+    /// The value as the API writes it.
+    pub fn as_str(&self) -> &str {
+        match self {
+            WebhookDisputeCurrency::Brl => "BRL",
+            WebhookDisputeCurrency::Unrecognized(value) => value,
+        }
+    }
+}
+
+impl From<&str> for WebhookDisputeCurrency {
+    fn from(value: &str) -> Self {
+        match value {
+            "BRL" => WebhookDisputeCurrency::Brl,
+            other => WebhookDisputeCurrency::Unrecognized(other.to_owned()),
+        }
+    }
+}
+
+impl From<String> for WebhookDisputeCurrency {
+    fn from(value: String) -> Self {
+        Self::from(value.as_str())
+    }
+}
+
+impl fmt::Display for WebhookDisputeCurrency {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
+impl Serialize for WebhookDisputeCurrency {
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        serializer.serialize_str(self.as_str())
+    }
+}
+
+impl<'de> Deserialize<'de> for WebhookDisputeCurrency {
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        String::deserialize(deserializer).map(Self::from)
+    }
+}
+
+/// The values of `WebhookDispute.source`.
+///
+/// A value this SDK does not know yet is kept, as it came, in
+/// [`WebhookDisputeSource::Unrecognized`].
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[non_exhaustive]
+pub enum WebhookDisputeSource {
+    /// `operator`
+    Operator,
+    /// `cielo_chargeback`
+    CieloChargeback,
+    /// A value this SDK does not know yet.
+    Unrecognized(String),
+}
+
+impl WebhookDisputeSource {
+    /// The value as the API writes it.
+    pub fn as_str(&self) -> &str {
+        match self {
+            WebhookDisputeSource::Operator => "operator",
+            WebhookDisputeSource::CieloChargeback => "cielo_chargeback",
+            WebhookDisputeSource::Unrecognized(value) => value,
+        }
+    }
+}
+
+impl From<&str> for WebhookDisputeSource {
+    fn from(value: &str) -> Self {
+        match value {
+            "operator" => WebhookDisputeSource::Operator,
+            "cielo_chargeback" => WebhookDisputeSource::CieloChargeback,
+            other => WebhookDisputeSource::Unrecognized(other.to_owned()),
+        }
+    }
+}
+
+impl From<String> for WebhookDisputeSource {
+    fn from(value: String) -> Self {
+        Self::from(value.as_str())
+    }
+}
+
+impl fmt::Display for WebhookDisputeSource {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
+impl Serialize for WebhookDisputeSource {
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        serializer.serialize_str(self.as_str())
+    }
+}
+
+impl<'de> Deserialize<'de> for WebhookDisputeSource {
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        String::deserialize(deserializer).map(Self::from)
+    }
+}
+
+/// The values of `WebhookDispute.status`.
+///
+/// A value this SDK does not know yet is kept, as it came, in
+/// [`WebhookDisputeStatus::Unrecognized`].
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[non_exhaustive]
+pub enum WebhookDisputeStatus {
+    /// `opened`
+    Opened,
+    /// `needs_evidence`
+    NeedsEvidence,
+    /// `submitted`
+    Submitted,
+    /// `under_review`
+    UnderReview,
+    /// `won`
+    Won,
+    /// `lost`
+    Lost,
+    /// `closed`
+    Closed,
+    /// A value this SDK does not know yet.
+    Unrecognized(String),
+}
+
+impl WebhookDisputeStatus {
+    /// The value as the API writes it.
+    pub fn as_str(&self) -> &str {
+        match self {
+            WebhookDisputeStatus::Opened => "opened",
+            WebhookDisputeStatus::NeedsEvidence => "needs_evidence",
+            WebhookDisputeStatus::Submitted => "submitted",
+            WebhookDisputeStatus::UnderReview => "under_review",
+            WebhookDisputeStatus::Won => "won",
+            WebhookDisputeStatus::Lost => "lost",
+            WebhookDisputeStatus::Closed => "closed",
+            WebhookDisputeStatus::Unrecognized(value) => value,
+        }
+    }
+}
+
+impl From<&str> for WebhookDisputeStatus {
+    fn from(value: &str) -> Self {
+        match value {
+            "opened" => WebhookDisputeStatus::Opened,
+            "needs_evidence" => WebhookDisputeStatus::NeedsEvidence,
+            "submitted" => WebhookDisputeStatus::Submitted,
+            "under_review" => WebhookDisputeStatus::UnderReview,
+            "won" => WebhookDisputeStatus::Won,
+            "lost" => WebhookDisputeStatus::Lost,
+            "closed" => WebhookDisputeStatus::Closed,
+            other => WebhookDisputeStatus::Unrecognized(other.to_owned()),
+        }
+    }
+}
+
+impl From<String> for WebhookDisputeStatus {
+    fn from(value: String) -> Self {
+        Self::from(value.as_str())
+    }
+}
+
+impl fmt::Display for WebhookDisputeStatus {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
+impl Serialize for WebhookDisputeStatus {
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        serializer.serialize_str(self.as_str())
+    }
+}
+
+impl<'de> Deserialize<'de> for WebhookDisputeStatus {
     fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
         String::deserialize(deserializer).map(Self::from)
     }

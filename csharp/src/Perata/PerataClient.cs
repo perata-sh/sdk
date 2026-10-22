@@ -61,6 +61,7 @@ public sealed class PerataClient
         http = options.HttpClient
             ?? (options.Handler is null ? SharedHttp : new HttpClient(options.Handler, disposeHandler: false) { Timeout = System.Threading.Timeout.InfiniteTimeSpan });
         Checkouts = new CheckoutsService(this);
+        CustomerSessions = new CustomerSessionsService(this);
         Customers = new CustomersService(this);
         Orders = new OrdersService(this);
         PaymentMethods = new PaymentMethodsService(this);
@@ -73,6 +74,9 @@ public sealed class PerataClient
 
     /// <summary>The API's checkouts.</summary>
     public CheckoutsService Checkouts { get; }
+
+    /// <summary>The API's customer-sessions.</summary>
+    public CustomerSessionsService CustomerSessions { get; }
 
     /// <summary>The API's customers.</summary>
     public CustomersService Customers { get; }

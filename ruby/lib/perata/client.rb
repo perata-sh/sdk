@@ -32,6 +32,8 @@ module Perata
   class Client
     # @return [CheckoutsService]
     attr_reader :checkouts
+    # @return [CustomerSessionsService]
+    attr_reader :customer_sessions
     # @return [CustomersService]
     attr_reader :customers
     # @return [OrdersService]
@@ -55,6 +57,7 @@ module Perata
       @timeout = timeout
       @transport = transport
       @checkouts = CheckoutsService.new(self)
+      @customer_sessions = CustomerSessionsService.new(self)
       @customers = CustomersService.new(self)
       @orders = OrdersService.new(self)
       @payment_methods = PaymentMethodsService.new(self)

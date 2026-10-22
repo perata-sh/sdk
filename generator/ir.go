@@ -23,6 +23,22 @@ type IR struct {
 	BaseURL    string
 	Models     []*Model
 	Services   []*Service
+	// Webhooks are the events the API posts to an endpoint, grouped by the
+	// object their data carries.
+	Webhooks []*WebhookGroup
+}
+
+// WebhookGroup is the events whose data is one kind of object: order.created
+// and order.paid carry an Order. Each SDK declares one event type a group,
+// and the union of them is what a verified webhook answers; the event's type
+// tells the members of a group apart.
+type WebhookGroup struct {
+	// Name names the group's event type: Order is OrderWebhookEvent.
+	Name string
+	// Data is the type of the event's data: a model, or a map of strings.
+	Data *TypeRef
+	// Types are the event types the group carries, sorted.
+	Types []string
 }
 
 // Model is a named object: a resource the API answers, or the body of a
@@ -97,6 +113,7 @@ type spec struct {
 		URL string `json:"url"`
 	} `json:"servers"`
 	Paths      map[string]map[string]*operation `json:"paths"`
+	Webhooks   map[string]map[string]*operation `json:"webhooks"`
 	Components struct {
 		Schemas map[string]*schema `json:"schemas"`
 	} `json:"components"`
@@ -171,20 +188,38 @@ func wrapper(name string) bool {
 	return strings.HasSuffix(name, "Envelope") || strings.HasSuffix(name, "List") || name == "Error"
 }
 
+// loader reads schemas into types, knowing which named schemas are not
+// models but maps: an object with no properties whose values are all of one
+// type is that map wherever it is referenced.
+type loader struct {
+	aliases map[string]*schema
+}
+
+func newLoader(doc *spec) *loader {
+	l := &loader{aliases: map[string]*schema{}}
+	for name, s := range doc.Components.Schemas {
+		if len(s.Properties) == 0 && s.additional() != nil {
+			l.aliases[name] = s
+		}
+	}
+	return l
+}
+
 func build(doc *spec, version string) (*IR, error) {
 	ir := &IR{Version: version, APIVersion: doc.Info.Version}
 	if len(doc.Servers) > 0 {
 		ir.BaseURL = doc.Servers[0].URL
 	}
+	l := newLoader(doc)
 	names := make([]string, 0, len(doc.Components.Schemas))
 	for name := range doc.Components.Schemas {
-		if !wrapper(name) {
+		if !wrapper(name) && l.aliases[name] == nil {
 			names = append(names, name)
 		}
 	}
 	sort.Strings(names)
 	for _, name := range names {
-		model, err := modelOf(name, doc.Components.Schemas[name], false)
+		model, err := l.modelOf(name, doc.Components.Schemas[name], false)
 		if err != nil {
 			return nil, err
 		}
@@ -211,7 +246,7 @@ func build(doc *spec, version string) (*IR, error) {
 			if !ok {
 				return nil, fmt.Errorf("generator: %s %s has no service:method operationId", httpMethod, path)
 			}
-			method, err := methodOf(op, strings.ToUpper(httpMethod), path, serviceName, methodName, doc)
+			method, err := l.methodOf(op, strings.ToUpper(httpMethod), path, serviceName, methodName)
 			if err != nil {
 				return nil, err
 			}
@@ -236,7 +271,58 @@ func build(doc *spec, version string) (*IR, error) {
 		sort.Slice(service.Methods, func(i, j int) bool { return service.Methods[i].Name < service.Methods[j].Name })
 		ir.Services = append(ir.Services, service)
 	}
+	webhooks, err := l.webhooks(doc)
+	if err != nil {
+		return nil, err
+	}
+	ir.Webhooks = webhooks
 	return ir, nil
+}
+
+// webhooks reads the contract's webhooks: each event a POST whose body is
+// {id, type, timestamp, data}, type one value, data the object it carries.
+func (l *loader) webhooks(doc *spec) ([]*WebhookGroup, error) {
+	groups := map[string]*WebhookGroup{}
+	for name, item := range doc.Webhooks {
+		op := item["post"]
+		if op == nil || op.RequestBody == nil {
+			return nil, fmt.Errorf("generator: webhook %s is not a POST with a body", name)
+		}
+		body := op.RequestBody.Content["application/json"].Schema
+		if body == nil || body.Properties["type"] == nil || body.Properties["data"] == nil {
+			return nil, fmt.Errorf("generator: webhook %s has no type and data", name)
+		}
+		if enum := body.Properties["type"].Enum; len(enum) != 1 || enum[0] != name {
+			return nil, fmt.Errorf("generator: webhook %s declares the type %v", name, enum)
+		}
+		data, _, err := l.typeOf(body.Properties["data"])
+		if err != nil {
+			return nil, fmt.Errorf("generator: webhook %s: %w", name, err)
+		}
+		var group string
+		switch {
+		case data.Kind == "model":
+			group = strings.TrimPrefix(data.Model, "Webhook")
+		case data.Kind == "map" && data.Items.Kind == "string":
+			group = strings.TrimPrefix(strings.TrimPrefix(body.Properties["data"].Ref, "#/components/schemas/"), "Webhook")
+		default:
+			return nil, fmt.Errorf("generator: webhook %s carries neither a model nor a map of strings", name)
+		}
+		if group == "" {
+			return nil, fmt.Errorf("generator: webhook %s carries an unnamed map", name)
+		}
+		if groups[group] == nil {
+			groups[group] = &WebhookGroup{Name: group, Data: data}
+		}
+		groups[group].Types = append(groups[group].Types, name)
+	}
+	out := make([]*WebhookGroup, 0, len(groups))
+	for _, group := range groups {
+		sort.Strings(group.Types)
+		out = append(out, group)
+	}
+	sort.Slice(out, func(i, j int) bool { return out[i].Name < out[j].Name })
+	return out, nil
 }
 
 // apiKeyOperation says the operation is the SDK's: authenticated by the
@@ -251,7 +337,7 @@ func apiKeyOperation(op *operation) bool {
 	return false
 }
 
-func methodOf(op *operation, httpMethod, path, serviceName, methodName string, doc *spec) (*Method, error) {
+func (l *loader) methodOf(op *operation, httpMethod, path, serviceName, methodName string) (*Method, error) {
 	method := &Method{Name: methodName, OperationID: op.OperationID, Summary: op.Summary, HTTPMethod: httpMethod, Path: path,
 		Write: httpMethod != "GET"}
 	for _, param := range op.Parameters {
@@ -284,7 +370,7 @@ func methodOf(op *operation, httpMethod, path, serviceName, methodName string, d
 	if op.RequestBody != nil {
 		body := op.RequestBody.Content["application/json"].Schema
 		if body != nil && len(body.Properties) > 0 {
-			model, err := modelOf(Pascal(serviceName)+Pascal(methodName)+"Params", body, true)
+			model, err := l.modelOf(Pascal(serviceName)+Pascal(methodName)+"Params", body, true)
 			if err != nil {
 				return nil, err
 			}
@@ -295,7 +381,7 @@ func methodOf(op *operation, httpMethod, path, serviceName, methodName string, d
 	return method, nil
 }
 
-func modelOf(name string, s *schema, input bool) (*Model, error) {
+func (l *loader) modelOf(name string, s *schema, input bool) (*Model, error) {
 	model := &Model{Name: name, Description: s.Description, Input: input}
 	required := map[string]bool{}
 	for _, field := range s.Required {
@@ -308,7 +394,7 @@ func modelOf(name string, s *schema, input bool) (*Model, error) {
 	sort.Strings(wires)
 	for _, wire := range wires {
 		property := s.Properties[wire]
-		typ, nullable, err := typeOf(property)
+		typ, nullable, err := l.typeOf(property)
 		if err != nil {
 			return nil, fmt.Errorf("generator: %s.%s: %w", name, wire, err)
 		}
@@ -317,9 +403,13 @@ func modelOf(name string, s *schema, input bool) (*Model, error) {
 	return model, nil
 }
 
-func typeOf(s *schema) (*TypeRef, bool, error) {
+func (l *loader) typeOf(s *schema) (*TypeRef, bool, error) {
 	if s.Ref != "" {
-		return &TypeRef{Kind: "model", Model: strings.TrimPrefix(s.Ref, "#/components/schemas/")}, false, nil
+		name := strings.TrimPrefix(s.Ref, "#/components/schemas/")
+		if alias := l.aliases[name]; alias != nil {
+			return l.typeOf(alias)
+		}
+		return &TypeRef{Kind: "model", Model: name}, false, nil
 	}
 	kind, nullable := "", false
 	switch t := s.Type.(type) {
@@ -338,11 +428,11 @@ func typeOf(s *schema) (*TypeRef, bool, error) {
 	case "string", "integer", "number", "boolean":
 		return &TypeRef{Kind: kind, Enum: s.Enum, Format: s.Format}, nullable, nil
 	case "array":
-		items, _, err := typeOf(s.Items)
+		items, _, err := l.typeOf(s.Items)
 		return &TypeRef{Kind: "array", Items: items}, nullable, err
 	case "object":
 		if values := s.additional(); values != nil {
-			items, _, err := typeOf(values)
+			items, _, err := l.typeOf(values)
 			return &TypeRef{Kind: "map", Items: items}, nullable, err
 		}
 	}

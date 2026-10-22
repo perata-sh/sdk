@@ -39,11 +39,14 @@ public final class Payment {
     private final String currency;
     private final String customerId;
     private final String id;
+    private final long installmentAmountCents;
+    private final long installmentInterestCents;
+    private final long installments;
     private final String method;
     private final long refundedCents;
     private final String state;
 
-    Payment(long amountCents, long capturedCents, String checkoutId, String createdAt, String currency, String customerId, String id, String method, long refundedCents, String state) {
+    Payment(long amountCents, long capturedCents, String checkoutId, String createdAt, String currency, String customerId, String id, long installmentAmountCents, long installmentInterestCents, long installments, String method, long refundedCents, String state) {
         this.amountCents = amountCents;
         this.capturedCents = capturedCents;
         this.checkoutId = checkoutId;
@@ -51,6 +54,9 @@ public final class Payment {
         this.currency = currency;
         this.customerId = customerId;
         this.id = id;
+        this.installmentAmountCents = installmentAmountCents;
+        this.installmentInterestCents = installmentInterestCents;
+        this.installments = installments;
         this.method = method;
         this.refundedCents = refundedCents;
         this.state = state;
@@ -65,6 +71,9 @@ public final class Payment {
                 Json.required(data, "currency", Json::asString),
                 Json.required(data, "customer_id", Json::asString),
                 Json.required(data, "id", Json::asString),
+                Json.required(data, "installment_amount_cents", Json::asLong),
+                Json.required(data, "installment_interest_cents", Json::asLong),
+                Json.required(data, "installments", Json::asLong),
                 Json.required(data, "method", Json::asString),
                 Json.required(data, "refunded_cents", Json::asLong),
                 Json.required(data, "state", Json::asString));
@@ -105,6 +114,21 @@ public final class Payment {
         return id;
     }
 
+    /** @return Valor de uma parcela; 0 à vista. */
+    public long getInstallmentAmountCents() {
+        return installmentAmountCents;
+    }
+
+    /** @return Juros do parcelamento dentro de amount_cents. */
+    public long getInstallmentInterestCents() {
+        return installmentInterestCents;
+    }
+
+    /** @return Em quantas parcelas o cartão de crédito foi cobrado; 1 à vista. */
+    public long getInstallments() {
+        return installments;
+    }
+
     /** @return the API's {@code method} */
     public String getMethod() {
         return method;
@@ -122,6 +146,6 @@ public final class Payment {
 
     @Override
     public String toString() {
-        return "Payment{" + "amountCents=" + amountCents + ", capturedCents=" + capturedCents + ", checkoutId=" + checkoutId + ", createdAt=" + createdAt + ", currency=" + currency + ", customerId=" + customerId + ", id=" + id + ", method=" + method + ", refundedCents=" + refundedCents + ", state=" + state + "}";
+        return "Payment{" + "amountCents=" + amountCents + ", capturedCents=" + capturedCents + ", checkoutId=" + checkoutId + ", createdAt=" + createdAt + ", currency=" + currency + ", customerId=" + customerId + ", id=" + id + ", installmentAmountCents=" + installmentAmountCents + ", installmentInterestCents=" + installmentInterestCents + ", installments=" + installments + ", method=" + method + ", refundedCents=" + refundedCents + ", state=" + state + "}";
     }
 }

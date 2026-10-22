@@ -28,6 +28,7 @@ await foreach (var each in perata.Products.ListIterAsync())
 | Serviço | Métodos |
 |---|---|
 | `perata.Checkouts` | `CreateAsync` |
+| `perata.CustomerSessions` | `CreateAsync` |
 | `perata.Customers` | `CreateAsync`, `GetAsync`, `ListAsync`, `ListIterAsync` |
 | `perata.Orders` | `ListAsync`, `ListIterAsync` |
 | `perata.PaymentMethods` | `DetachAsync`, `ListAsync`, `ListIterAsync` |

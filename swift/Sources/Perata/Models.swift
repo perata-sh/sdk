@@ -2,6 +2,46 @@
 
 // The resources Peráta's API answers and the bodies its writes take.
 
+/// BenefitGrant is a resource of Peráta's API.
+public struct BenefitGrant: Codable, Sendable, Hashable {
+    public let benefitID: String
+    public let benefitType: String
+    public let createdAt: String
+    public let customerID: String
+    public let grantedAt: String
+    public let id: String
+    public let isGranted: Bool
+    public let isRevoked: Bool
+    public let revokedAt: String?
+    public let status: BenefitGrantStatus
+
+    public init(benefitID: String, benefitType: String, createdAt: String, customerID: String, grantedAt: String, id: String, isGranted: Bool, isRevoked: Bool, revokedAt: String?, status: BenefitGrantStatus) {
+        self.benefitID = benefitID
+        self.benefitType = benefitType
+        self.createdAt = createdAt
+        self.customerID = customerID
+        self.grantedAt = grantedAt
+        self.id = id
+        self.isGranted = isGranted
+        self.isRevoked = isRevoked
+        self.revokedAt = revokedAt
+        self.status = status
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case benefitID = "benefit_id"
+        case benefitType = "benefit_type"
+        case createdAt = "created_at"
+        case customerID = "customer_id"
+        case grantedAt = "granted_at"
+        case id
+        case isGranted = "is_granted"
+        case isRevoked = "is_revoked"
+        case revokedAt = "revoked_at"
+        case status
+    }
+}
+
 /// Card is a resource of Peráta's API.
 public struct Card: Codable, Sendable, Hashable {
     public let brand: String
@@ -75,22 +115,49 @@ public struct Customer: Codable, Sendable, Hashable {
     }
 }
 
+/// CustomerSession is a resource of Peráta's API.
+public struct CustomerSession: Codable, Sendable, Hashable {
+    /// Endereço que abre o portal do cliente já autenticado.
+    public let customerPortalURL: String
+    public let expiresAt: String
+    /// Sessão do portal do cliente, já autenticada.
+    public let token: String
+
+    public init(customerPortalURL: String, expiresAt: String, token: String) {
+        self.customerPortalURL = customerPortalURL
+        self.expiresAt = expiresAt
+        self.token = token
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case customerPortalURL = "customer_portal_url"
+        case expiresAt = "expires_at"
+        case token
+    }
+}
+
 /// Order is a resource of Peráta's API.
 public struct Order: Codable, Sendable, Hashable {
     public let amountCents: Int
     public let currency: OrderCurrency
     public let customerID: String
     public let id: String
+    /// Juros do parcelamento pagos pelo comprador, cobrados além de amount_cents.
+    public let installmentInterestCents: Int
+    /// Em quantas parcelas o cartão de crédito foi cobrado; 1 à vista.
+    public let installments: Int
     public let paidAt: String?
     public let priceID: String
     public let productID: String
     public let status: OrderStatus
 
-    public init(amountCents: Int, currency: OrderCurrency, customerID: String, id: String, paidAt: String?, priceID: String, productID: String, status: OrderStatus) {
+    public init(amountCents: Int, currency: OrderCurrency, customerID: String, id: String, installmentInterestCents: Int, installments: Int, paidAt: String?, priceID: String, productID: String, status: OrderStatus) {
         self.amountCents = amountCents
         self.currency = currency
         self.customerID = customerID
         self.id = id
+        self.installmentInterestCents = installmentInterestCents
+        self.installments = installments
         self.paidAt = paidAt
         self.priceID = priceID
         self.productID = productID
@@ -102,6 +169,8 @@ public struct Order: Codable, Sendable, Hashable {
         case currency
         case customerID = "customer_id"
         case id
+        case installmentInterestCents = "installment_interest_cents"
+        case installments
         case paidAt = "paid_at"
         case priceID = "price_id"
         case productID = "product_id"
@@ -134,11 +203,17 @@ public struct Payment: Codable, Sendable, Hashable {
     public let currency: PaymentCurrency
     public let customerID: String
     public let id: String
+    /// Valor de uma parcela; 0 à vista.
+    public let installmentAmountCents: Int
+    /// Juros do parcelamento dentro de amount_cents.
+    public let installmentInterestCents: Int
+    /// Em quantas parcelas o cartão de crédito foi cobrado; 1 à vista.
+    public let installments: Int
     public let method: PaymentMethodKind
     public let refundedCents: Int
     public let state: PaymentState
 
-    public init(amountCents: Int, capturedCents: Int, checkoutID: String, createdAt: String, currency: PaymentCurrency, customerID: String, id: String, method: PaymentMethodKind, refundedCents: Int, state: PaymentState) {
+    public init(amountCents: Int, capturedCents: Int, checkoutID: String, createdAt: String, currency: PaymentCurrency, customerID: String, id: String, installmentAmountCents: Int, installmentInterestCents: Int, installments: Int, method: PaymentMethodKind, refundedCents: Int, state: PaymentState) {
         self.amountCents = amountCents
         self.capturedCents = capturedCents
         self.checkoutID = checkoutID
@@ -146,6 +221,9 @@ public struct Payment: Codable, Sendable, Hashable {
         self.currency = currency
         self.customerID = customerID
         self.id = id
+        self.installmentAmountCents = installmentAmountCents
+        self.installmentInterestCents = installmentInterestCents
+        self.installments = installments
         self.method = method
         self.refundedCents = refundedCents
         self.state = state
@@ -159,6 +237,9 @@ public struct Payment: Codable, Sendable, Hashable {
         case currency
         case customerID = "customer_id"
         case id
+        case installmentAmountCents = "installment_amount_cents"
+        case installmentInterestCents = "installment_interest_cents"
+        case installments
         case method
         case refundedCents = "refunded_cents"
         case state
@@ -328,6 +409,111 @@ public struct Subscription: Codable, Sendable, Hashable {
     }
 }
 
+/// WebhookCheckout is a resource of Peráta's API.
+public struct WebhookCheckout: Codable, Sendable, Hashable {
+    public let amountCents: Int
+    public let checkoutLinkID: String?
+    public let createdAt: String
+    public let currency: WebhookCheckoutCurrency
+    /// Nulo até o comprador confirmar.
+    public let customerID: String?
+    public let discountCents: Int
+    public let expiresAt: String
+    public let id: String
+    public let priceID: String
+    public let productID: String
+    public let status: WebhookCheckoutStatus
+    public let totalCents: Int
+
+    public init(amountCents: Int, checkoutLinkID: String?, createdAt: String, currency: WebhookCheckoutCurrency, customerID: String?, discountCents: Int, expiresAt: String, id: String, priceID: String, productID: String, status: WebhookCheckoutStatus, totalCents: Int) {
+        self.amountCents = amountCents
+        self.checkoutLinkID = checkoutLinkID
+        self.createdAt = createdAt
+        self.currency = currency
+        self.customerID = customerID
+        self.discountCents = discountCents
+        self.expiresAt = expiresAt
+        self.id = id
+        self.priceID = priceID
+        self.productID = productID
+        self.status = status
+        self.totalCents = totalCents
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case amountCents = "amount_cents"
+        case checkoutLinkID = "checkout_link_id"
+        case createdAt = "created_at"
+        case currency
+        case customerID = "customer_id"
+        case discountCents = "discount_cents"
+        case expiresAt = "expires_at"
+        case id
+        case priceID = "price_id"
+        case productID = "product_id"
+        case status
+        case totalCents = "total_cents"
+    }
+}
+
+/// WebhookDispute is a resource of Peráta's API.
+public struct WebhookDispute: Codable, Sendable, Hashable {
+    /// Valor contestado, em centavos.
+    public let amountCents: Int
+    public let currency: WebhookDisputeCurrency
+    public let customerID: String?
+    public let decidedAt: String?
+    /// Prazo da defesa.
+    public let dueBy: String?
+    public let id: String
+    public let invoiceID: String?
+    public let openedAt: String
+    /// O PaymentId da venda contestada na Cielo.
+    public let paymentID: String
+    /// O número do caso na Cielo.
+    public let providerDisputeID: String
+    /// O motivo nas palavras da Cielo.
+    public let providerReason: String
+    /// Motivo, do conjunto fechado; unknown quando a adquirente não informou.
+    public let reason: String
+    public let source: WebhookDisputeSource
+    public let status: WebhookDisputeStatus
+
+    public init(amountCents: Int, currency: WebhookDisputeCurrency, customerID: String?, decidedAt: String?, dueBy: String?, id: String, invoiceID: String?, openedAt: String, paymentID: String, providerDisputeID: String, providerReason: String, reason: String, source: WebhookDisputeSource, status: WebhookDisputeStatus) {
+        self.amountCents = amountCents
+        self.currency = currency
+        self.customerID = customerID
+        self.decidedAt = decidedAt
+        self.dueBy = dueBy
+        self.id = id
+        self.invoiceID = invoiceID
+        self.openedAt = openedAt
+        self.paymentID = paymentID
+        self.providerDisputeID = providerDisputeID
+        self.providerReason = providerReason
+        self.reason = reason
+        self.source = source
+        self.status = status
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case amountCents = "amount_cents"
+        case currency
+        case customerID = "customer_id"
+        case decidedAt = "decided_at"
+        case dueBy = "due_by"
+        case id
+        case invoiceID = "invoice_id"
+        case openedAt = "opened_at"
+        case paymentID = "payment_id"
+        case providerDisputeID = "provider_dispute_id"
+        case providerReason = "provider_reason"
+        case reason
+        case source
+        case status
+    }
+}
+
 /// The body of checkouts:create.
 ///
 /// The initializer takes the required fields first; an optional field left
@@ -366,6 +552,27 @@ public struct CheckoutsCreateParams: Encodable, Sendable, Hashable {
         try container.encode(productID, forKey: .productID)
         try container.encodeIfPresent(quantity, forKey: .quantity)
         try container.encodeIfPresent(successURL, forKey: .successURL)
+    }
+}
+
+/// The body of customer-sessions:create.
+///
+/// The initializer takes the required fields first; an optional field left
+/// nil is not sent.
+public struct CustomerSessionsCreateParams: Encodable, Sendable, Hashable {
+    public var customerID: String
+
+    public init(customerID: String) {
+        self.customerID = customerID
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case customerID = "customer_id"
+    }
+
+    public func encode(to encoder: any Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(customerID, forKey: .customerID)
     }
 }
 
@@ -512,6 +719,26 @@ public struct SubscriptionsCancelParams: Encodable, Sendable, Hashable {
         try container.encodeIfPresent(atPeriodEnd, forKey: .atPeriodEnd)
         try container.encodeIfPresent(reason, forKey: .reason)
     }
+}
+
+/// The values of `BenefitGrant.status`.
+///
+/// A value this SDK does not know yet is kept as it came, in `rawValue`.
+public struct BenefitGrantStatus: RawRepresentable, Codable, Sendable, Hashable, ExpressibleByStringLiteral {
+    public let rawValue: String
+
+    public init(rawValue: String) {
+        self.rawValue = rawValue
+    }
+
+    public init(stringLiteral value: String) {
+        self.rawValue = value
+    }
+
+    /// `granted`
+    public static let granted = BenefitGrantStatus(rawValue: "granted")
+    /// `revoked`
+    public static let revoked = BenefitGrantStatus(rawValue: "revoked")
 }
 
 /// The values of `Customer.status`.
@@ -838,6 +1065,118 @@ public struct SubscriptionStatus: RawRepresentable, Codable, Sendable, Hashable,
     public static let paused = SubscriptionStatus(rawValue: "paused")
     /// `canceled`
     public static let canceled = SubscriptionStatus(rawValue: "canceled")
+}
+
+/// The values of `WebhookCheckout.currency`.
+///
+/// A value this SDK does not know yet is kept as it came, in `rawValue`.
+public struct WebhookCheckoutCurrency: RawRepresentable, Codable, Sendable, Hashable, ExpressibleByStringLiteral {
+    public let rawValue: String
+
+    public init(rawValue: String) {
+        self.rawValue = rawValue
+    }
+
+    public init(stringLiteral value: String) {
+        self.rawValue = value
+    }
+
+    /// `BRL`
+    public static let brl = WebhookCheckoutCurrency(rawValue: "BRL")
+}
+
+/// The values of `WebhookCheckout.status`.
+///
+/// A value this SDK does not know yet is kept as it came, in `rawValue`.
+public struct WebhookCheckoutStatus: RawRepresentable, Codable, Sendable, Hashable, ExpressibleByStringLiteral {
+    public let rawValue: String
+
+    public init(rawValue: String) {
+        self.rawValue = rawValue
+    }
+
+    public init(stringLiteral value: String) {
+        self.rawValue = value
+    }
+
+    /// `open`
+    public static let `open` = WebhookCheckoutStatus(rawValue: "open")
+    /// `confirmed`
+    public static let confirmed = WebhookCheckoutStatus(rawValue: "confirmed")
+    /// `succeeded`
+    public static let succeeded = WebhookCheckoutStatus(rawValue: "succeeded")
+    /// `failed`
+    public static let failed = WebhookCheckoutStatus(rawValue: "failed")
+    /// `expired`
+    public static let expired = WebhookCheckoutStatus(rawValue: "expired")
+}
+
+/// The values of `WebhookDispute.currency`.
+///
+/// A value this SDK does not know yet is kept as it came, in `rawValue`.
+public struct WebhookDisputeCurrency: RawRepresentable, Codable, Sendable, Hashable, ExpressibleByStringLiteral {
+    public let rawValue: String
+
+    public init(rawValue: String) {
+        self.rawValue = rawValue
+    }
+
+    public init(stringLiteral value: String) {
+        self.rawValue = value
+    }
+
+    /// `BRL`
+    public static let brl = WebhookDisputeCurrency(rawValue: "BRL")
+}
+
+/// The values of `WebhookDispute.source`.
+///
+/// A value this SDK does not know yet is kept as it came, in `rawValue`.
+public struct WebhookDisputeSource: RawRepresentable, Codable, Sendable, Hashable, ExpressibleByStringLiteral {
+    public let rawValue: String
+
+    public init(rawValue: String) {
+        self.rawValue = rawValue
+    }
+
+    public init(stringLiteral value: String) {
+        self.rawValue = value
+    }
+
+    /// `operator`
+    public static let `operator` = WebhookDisputeSource(rawValue: "operator")
+    /// `cielo_chargeback`
+    public static let cieloChargeback = WebhookDisputeSource(rawValue: "cielo_chargeback")
+}
+
+/// The values of `WebhookDispute.status`.
+///
+/// A value this SDK does not know yet is kept as it came, in `rawValue`.
+public struct WebhookDisputeStatus: RawRepresentable, Codable, Sendable, Hashable, ExpressibleByStringLiteral {
+    public let rawValue: String
+
+    public init(rawValue: String) {
+        self.rawValue = rawValue
+    }
+
+    public init(stringLiteral value: String) {
+        self.rawValue = value
+    }
+
+    /// `opened`
+    public static let opened = WebhookDisputeStatus(rawValue: "opened")
+    /// `needs_evidence`
+    public static let needsEvidence = WebhookDisputeStatus(rawValue: "needs_evidence")
+    /// `submitted`
+    public static let submitted = WebhookDisputeStatus(rawValue: "submitted")
+    /// `under_review`
+    public static let underReview = WebhookDisputeStatus(rawValue: "under_review")
+    /// `won`
+    public static let won = WebhookDisputeStatus(rawValue: "won")
+    /// `lost`
+    public static let lost = WebhookDisputeStatus(rawValue: "lost")
+    /// `closed`
+    public static let closed = WebhookDisputeStatus(rawValue: "closed")
 }
 
 /// The values of `PricesCreateParams.interval`.

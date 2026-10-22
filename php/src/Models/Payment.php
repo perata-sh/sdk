@@ -18,6 +18,12 @@ final class Payment
         public readonly string $currency,
         public readonly string $customerId,
         public readonly string $id,
+        /** Valor de uma parcela; 0 à vista. */
+        public readonly int $installmentAmountCents,
+        /** Juros do parcelamento dentro de amount_cents. */
+        public readonly int $installmentInterestCents,
+        /** Em quantas parcelas o cartão de crédito foi cobrado; 1 à vista. */
+        public readonly int $installments,
         /** @var 'card'|'pix'|'boleto' */
         public readonly string $method,
         public readonly int $refundedCents,
@@ -39,6 +45,9 @@ final class Payment
             currency: $data['currency'],
             customerId: $data['customer_id'],
             id: $data['id'],
+            installmentAmountCents: $data['installment_amount_cents'],
+            installmentInterestCents: $data['installment_interest_cents'],
+            installments: $data['installments'],
             method: $data['method'],
             refundedCents: $data['refunded_cents'],
             state: $data['state'],

@@ -10,7 +10,7 @@ from typing import Any
 from urllib.parse import urlencode
 
 from ._errors import PerataError
-from ._services import CheckoutsService, CustomersService, OrdersService, PaymentMethodsService, PaymentsService, PricesService, ProductsService, RefundsService, SubscriptionsService
+from ._services import CheckoutsService, CustomerSessionsService, CustomersService, OrdersService, PaymentMethodsService, PaymentsService, PricesService, ProductsService, RefundsService, SubscriptionsService
 from ._version import DEFAULT_BASE_URL, VERSION
 
 Transport = Callable[[str, str, dict[str, str], "bytes | None", float], "tuple[int, dict[str, str], bytes]"]
@@ -45,6 +45,7 @@ class Perata:
         self._timeout = timeout
         self._transport = transport or urllib_transport
         self.checkouts = CheckoutsService(self)
+        self.customer_sessions = CustomerSessionsService(self)
         self.customers = CustomersService(self)
         self.orders = OrdersService(self)
         self.payment_methods = PaymentMethodsService(self)

@@ -52,6 +52,9 @@ class Perata implements Requester {
   /// The API's checkouts.
   late final checkouts = CheckoutsService(this);
 
+  /// The API's customer-sessions.
+  late final customerSessions = CustomerSessionsService(this);
+
   /// The API's customers.
   late final customers = CustomersService(this);
 

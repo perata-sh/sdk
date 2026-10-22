@@ -23,6 +23,7 @@ for await (const product of perata.products.listIter()) {
 | Serviço | Métodos |
 |---|---|
 | `perata.checkouts` | `create` |
+| `perata.customerSessions` | `create` |
 | `perata.customers` | `create`, `get`, `list`, `listIter` |
 | `perata.orders` | `list`, `listIter` |
 | `perata.paymentMethods` | `detach`, `list`, `listIter` |

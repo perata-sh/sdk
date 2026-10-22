@@ -2,6 +2,20 @@
 
 package perata
 
+// BenefitGrant is a resource of Peráta's API.
+type BenefitGrant struct {
+	BenefitID   string  `json:"benefit_id"`
+	BenefitType string  `json:"benefit_type"`
+	CreatedAt   string  `json:"created_at"`
+	CustomerID  string  `json:"customer_id"`
+	GrantedAt   string  `json:"granted_at"`
+	ID          string  `json:"id"`
+	IsGranted   bool    `json:"is_granted"`
+	IsRevoked   bool    `json:"is_revoked"`
+	RevokedAt   *string `json:"revoked_at"`
+	Status      string  `json:"status"`
+}
+
 // Card is a resource of Peráta's API.
 type Card struct {
 	Brand    string  `json:"brand"`
@@ -29,16 +43,29 @@ type Customer struct {
 	Status     string `json:"status"`
 }
 
+// CustomerSession is a resource of Peráta's API.
+type CustomerSession struct {
+	// Endereço que abre o portal do cliente já autenticado.
+	CustomerPortalURL string `json:"customer_portal_url"`
+	ExpiresAt         string `json:"expires_at"`
+	// Sessão do portal do cliente, já autenticada.
+	Token string `json:"token"`
+}
+
 // Order is a resource of Peráta's API.
 type Order struct {
-	AmountCents int64   `json:"amount_cents"`
-	Currency    string  `json:"currency"`
-	CustomerID  string  `json:"customer_id"`
-	ID          string  `json:"id"`
-	PaidAt      *string `json:"paid_at"`
-	PriceID     string  `json:"price_id"`
-	ProductID   string  `json:"product_id"`
-	Status      string  `json:"status"`
+	AmountCents int64  `json:"amount_cents"`
+	Currency    string `json:"currency"`
+	CustomerID  string `json:"customer_id"`
+	ID          string `json:"id"`
+	// Juros do parcelamento pagos pelo comprador, cobrados além de amount_cents.
+	InstallmentInterestCents int64 `json:"installment_interest_cents"`
+	// Em quantas parcelas o cartão de crédito foi cobrado; 1 à vista.
+	Installments int64   `json:"installments"`
+	PaidAt       *string `json:"paid_at"`
+	PriceID      string  `json:"price_id"`
+	ProductID    string  `json:"product_id"`
+	Status       string  `json:"status"`
 }
 
 // Pagination is a resource of Peráta's API.
@@ -56,6 +83,12 @@ type Payment struct {
 	Currency      string `json:"currency"`
 	CustomerID    string `json:"customer_id"`
 	ID            string `json:"id"`
+	// Valor de uma parcela; 0 à vista.
+	InstallmentAmountCents int64 `json:"installment_amount_cents"`
+	// Juros do parcelamento dentro de amount_cents.
+	InstallmentInterestCents int64 `json:"installment_interest_cents"`
+	// Em quantas parcelas o cartão de crédito foi cobrado; 1 à vista.
+	Installments  int64  `json:"installments"`
 	Method        string `json:"method"`
 	RefundedCents int64  `json:"refunded_cents"`
 	State         string `json:"state"`
@@ -120,6 +153,47 @@ type Subscription struct {
 	Status             string `json:"status"`
 }
 
+// WebhookCheckout is a resource of Peráta's API.
+type WebhookCheckout struct {
+	AmountCents    int64   `json:"amount_cents"`
+	CheckoutLinkID *string `json:"checkout_link_id"`
+	CreatedAt      string  `json:"created_at"`
+	Currency       string  `json:"currency"`
+	// Nulo até o comprador confirmar.
+	CustomerID    *string `json:"customer_id"`
+	DiscountCents int64   `json:"discount_cents"`
+	ExpiresAt     string  `json:"expires_at"`
+	ID            string  `json:"id"`
+	PriceID       string  `json:"price_id"`
+	ProductID     string  `json:"product_id"`
+	Status        string  `json:"status"`
+	TotalCents    int64   `json:"total_cents"`
+}
+
+// WebhookDispute is a resource of Peráta's API.
+type WebhookDispute struct {
+	// Valor contestado, em centavos.
+	AmountCents int64   `json:"amount_cents"`
+	Currency    string  `json:"currency"`
+	CustomerID  *string `json:"customer_id"`
+	DecidedAt   *string `json:"decided_at"`
+	// Prazo da defesa.
+	DueBy     *string `json:"due_by"`
+	ID        string  `json:"id"`
+	InvoiceID *string `json:"invoice_id"`
+	OpenedAt  string  `json:"opened_at"`
+	// O PaymentId da venda contestada na Cielo.
+	PaymentID string `json:"payment_id"`
+	// O número do caso na Cielo.
+	ProviderDisputeID string `json:"provider_dispute_id"`
+	// O motivo nas palavras da Cielo.
+	ProviderReason string `json:"provider_reason"`
+	// Motivo, do conjunto fechado; unknown quando a adquirente não informou.
+	Reason string `json:"reason"`
+	Source string `json:"source"`
+	Status string `json:"status"`
+}
+
 // The body of checkouts:create.
 type CheckoutsCreateParams struct {
 	CancelURL  *string `json:"cancel_url,omitempty"`
@@ -128,6 +202,11 @@ type CheckoutsCreateParams struct {
 	ProductID  string  `json:"product_id"`
 	Quantity   *int64  `json:"quantity,omitempty"`
 	SuccessURL *string `json:"success_url,omitempty"`
+}
+
+// The body of customer-sessions:create.
+type CustomerSessionsCreateParams struct {
+	CustomerID string `json:"customer_id"`
 }
 
 // The body of customers:create.
@@ -167,47 +246,65 @@ type SubscriptionsCancelParams struct {
 
 // The values the API answers in an enumerated field.
 const (
-	CustomerStatusActive          = "active"
-	CustomerStatusArchived        = "archived"
-	OrderCurrencyBRL              = "BRL"
-	OrderStatusOpen               = "open"
-	OrderStatusConfirmed          = "confirmed"
-	OrderStatusSucceeded          = "succeeded"
-	OrderStatusFailed             = "failed"
-	OrderStatusExpired            = "expired"
-	PaymentCurrencyBRL            = "BRL"
-	PaymentMethodCard             = "card"
-	PaymentMethodPix              = "pix"
-	PaymentMethodBoleto           = "boleto"
-	PaymentStateUnknown           = "unknown"
-	PaymentStatePending           = "pending"
-	PaymentStateAuthorized        = "authorized"
-	PaymentStateCaptured          = "captured"
-	PaymentStateRefused           = "refused"
-	PaymentStateCanceled          = "canceled"
-	PaymentStateRefunded          = "refunded"
-	PaymentStatePartiallyRefunded = "partially_refunded"
-	PaymentMethodTypeCard         = "card"
-	PriceCurrencyBRL              = "BRL"
-	PriceIntervalNone             = "none"
-	PriceIntervalMonth            = "month"
-	PriceIntervalYear             = "year"
-	PriceStatusActive             = "active"
-	PriceStatusArchived           = "archived"
-	PriceTypeOneTime              = "one_time"
-	PriceTypeRecurring            = "recurring"
-	ProductStatusActive           = "active"
-	ProductStatusArchived         = "archived"
-	RefundStatusRequested         = "requested"
-	RefundStatusPending           = "pending"
-	RefundStatusUnknown           = "unknown"
-	RefundStatusSucceeded         = "succeeded"
-	RefundStatusFailed            = "failed"
-	RefundStatusCanceled          = "canceled"
-	SubscriptionCurrencyBRL       = "BRL"
-	SubscriptionStatusTrialing    = "trialing"
-	SubscriptionStatusActive      = "active"
-	SubscriptionStatusPastDue     = "past_due"
-	SubscriptionStatusPaused      = "paused"
-	SubscriptionStatusCanceled    = "canceled"
+	BenefitGrantStatusGranted           = "granted"
+	BenefitGrantStatusRevoked           = "revoked"
+	CustomerStatusActive                = "active"
+	CustomerStatusArchived              = "archived"
+	OrderCurrencyBRL                    = "BRL"
+	OrderStatusOpen                     = "open"
+	OrderStatusConfirmed                = "confirmed"
+	OrderStatusSucceeded                = "succeeded"
+	OrderStatusFailed                   = "failed"
+	OrderStatusExpired                  = "expired"
+	PaymentCurrencyBRL                  = "BRL"
+	PaymentMethodCard                   = "card"
+	PaymentMethodPix                    = "pix"
+	PaymentMethodBoleto                 = "boleto"
+	PaymentStateUnknown                 = "unknown"
+	PaymentStatePending                 = "pending"
+	PaymentStateAuthorized              = "authorized"
+	PaymentStateCaptured                = "captured"
+	PaymentStateRefused                 = "refused"
+	PaymentStateCanceled                = "canceled"
+	PaymentStateRefunded                = "refunded"
+	PaymentStatePartiallyRefunded       = "partially_refunded"
+	PaymentMethodTypeCard               = "card"
+	PriceCurrencyBRL                    = "BRL"
+	PriceIntervalNone                   = "none"
+	PriceIntervalMonth                  = "month"
+	PriceIntervalYear                   = "year"
+	PriceStatusActive                   = "active"
+	PriceStatusArchived                 = "archived"
+	PriceTypeOneTime                    = "one_time"
+	PriceTypeRecurring                  = "recurring"
+	ProductStatusActive                 = "active"
+	ProductStatusArchived               = "archived"
+	RefundStatusRequested               = "requested"
+	RefundStatusPending                 = "pending"
+	RefundStatusUnknown                 = "unknown"
+	RefundStatusSucceeded               = "succeeded"
+	RefundStatusFailed                  = "failed"
+	RefundStatusCanceled                = "canceled"
+	SubscriptionCurrencyBRL             = "BRL"
+	SubscriptionStatusTrialing          = "trialing"
+	SubscriptionStatusActive            = "active"
+	SubscriptionStatusPastDue           = "past_due"
+	SubscriptionStatusPaused            = "paused"
+	SubscriptionStatusCanceled          = "canceled"
+	WebhookCheckoutCurrencyBRL          = "BRL"
+	WebhookCheckoutStatusOpen           = "open"
+	WebhookCheckoutStatusConfirmed      = "confirmed"
+	WebhookCheckoutStatusSucceeded      = "succeeded"
+	WebhookCheckoutStatusFailed         = "failed"
+	WebhookCheckoutStatusExpired        = "expired"
+	WebhookDisputeCurrencyBRL           = "BRL"
+	WebhookDisputeSourceOperator        = "operator"
+	WebhookDisputeSourceCieloChargeback = "cielo_chargeback"
+	WebhookDisputeStatusOpened          = "opened"
+	WebhookDisputeStatusNeedsEvidence   = "needs_evidence"
+	WebhookDisputeStatusSubmitted       = "submitted"
+	WebhookDisputeStatusUnderReview     = "under_review"
+	WebhookDisputeStatusWon             = "won"
+	WebhookDisputeStatusLost            = "lost"
+	WebhookDisputeStatusClosed          = "closed"
 )

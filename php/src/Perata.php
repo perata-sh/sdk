@@ -18,6 +18,7 @@ namespace Perata;
 final class Perata implements Requester
 {
     public readonly Services\CheckoutsService $checkouts;
+    public readonly Services\CustomerSessionsService $customerSessions;
     public readonly Services\CustomersService $customers;
     public readonly Services\OrdersService $orders;
     public readonly Services\PaymentMethodsService $paymentMethods;
@@ -45,6 +46,7 @@ final class Perata implements Requester
         $this->baseUrl = rtrim($baseUrl ?? Version::DEFAULT_BASE_URL, '/');
         $this->transport = $transport ?? self::curlTransport(...);
         $this->checkouts = new Services\CheckoutsService($this);
+        $this->customerSessions = new Services\CustomerSessionsService($this);
         $this->customers = new Services\CustomersService($this);
         $this->orders = new Services\OrdersService($this);
         $this->paymentMethods = new Services\PaymentMethodsService($this);

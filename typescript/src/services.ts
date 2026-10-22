@@ -18,6 +18,20 @@ export class CheckoutsService {
   }
 }
 
+/** The API's customer-sessions. */
+export class CustomerSessionsService {
+  readonly #client: Requester;
+
+  constructor(client: Requester) {
+    this.#client = client;
+  }
+
+  /** Sign a customer into the customer portal: the address opens it already signed in. */
+  create(params: models.CustomerSessionsCreateParams, options?: RequestOptions): Promise<models.CustomerSession> {
+    return this.#client.request("POST", `/api/v1/customer-sessions`, { body: params, options });
+  }
+}
+
 /** The page and filters of customers:list. */
 export interface CustomersListParams {
   /** The page, from 1. */

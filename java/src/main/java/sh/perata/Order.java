@@ -24,16 +24,20 @@ public final class Order {
     private final String currency;
     private final String customerId;
     private final String id;
+    private final long installmentInterestCents;
+    private final long installments;
     private final String paidAt;
     private final String priceId;
     private final String productId;
     private final String status;
 
-    Order(long amountCents, String currency, String customerId, String id, String paidAt, String priceId, String productId, String status) {
+    Order(long amountCents, String currency, String customerId, String id, long installmentInterestCents, long installments, String paidAt, String priceId, String productId, String status) {
         this.amountCents = amountCents;
         this.currency = currency;
         this.customerId = customerId;
         this.id = id;
+        this.installmentInterestCents = installmentInterestCents;
+        this.installments = installments;
         this.paidAt = paidAt;
         this.priceId = priceId;
         this.productId = productId;
@@ -46,6 +50,8 @@ public final class Order {
                 Json.required(data, "currency", Json::asString),
                 Json.required(data, "customer_id", Json::asString),
                 Json.required(data, "id", Json::asString),
+                Json.required(data, "installment_interest_cents", Json::asLong),
+                Json.required(data, "installments", Json::asLong),
                 Json.optional(data, "paid_at", Json::asString),
                 Json.required(data, "price_id", Json::asString),
                 Json.required(data, "product_id", Json::asString),
@@ -72,6 +78,16 @@ public final class Order {
         return id;
     }
 
+    /** @return Juros do parcelamento pagos pelo comprador, cobrados além de amount_cents. */
+    public long getInstallmentInterestCents() {
+        return installmentInterestCents;
+    }
+
+    /** @return Em quantas parcelas o cartão de crédito foi cobrado; 1 à vista. */
+    public long getInstallments() {
+        return installments;
+    }
+
     /** @return the API's {@code paid_at} (null when the API sends none) */
     public String getPaidAt() {
         return paidAt;
@@ -94,6 +110,6 @@ public final class Order {
 
     @Override
     public String toString() {
-        return "Order{" + "amountCents=" + amountCents + ", currency=" + currency + ", customerId=" + customerId + ", id=" + id + ", paidAt=" + paidAt + ", priceId=" + priceId + ", productId=" + productId + ", status=" + status + "}";
+        return "Order{" + "amountCents=" + amountCents + ", currency=" + currency + ", customerId=" + customerId + ", id=" + id + ", installmentInterestCents=" + installmentInterestCents + ", installments=" + installments + ", paidAt=" + paidAt + ", priceId=" + priceId + ", productId=" + productId + ", status=" + status + "}";
     }
 }

@@ -15,6 +15,10 @@ final class Order
         public readonly string $currency,
         public readonly string $customerId,
         public readonly string $id,
+        /** Juros do parcelamento pagos pelo comprador, cobrados além de amount_cents. */
+        public readonly int $installmentInterestCents,
+        /** Em quantas parcelas o cartão de crédito foi cobrado; 1 à vista. */
+        public readonly int $installments,
         public readonly ?string $paidAt,
         public readonly string $priceId,
         public readonly string $productId,
@@ -33,6 +37,8 @@ final class Order
             currency: $data['currency'],
             customerId: $data['customer_id'],
             id: $data['id'],
+            installmentInterestCents: $data['installment_interest_cents'],
+            installments: $data['installments'],
             paidAt: $data['paid_at'] ?? null,
             priceId: $data['price_id'],
             productId: $data['product_id'],

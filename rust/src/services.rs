@@ -11,6 +11,11 @@ impl Client {
         CheckoutsService::new(self)
     }
 
+    /// The API's customer-sessions.
+    pub fn customer_sessions(&self) -> CustomerSessionsService<'_> {
+        CustomerSessionsService::new(self)
+    }
+
     /// The API's customers.
     pub fn customers(&self) -> CustomersService<'_> {
         CustomersService::new(self)
@@ -90,6 +95,46 @@ impl<'a> CheckoutsService<'a> {
     /// Create a checkout address for one product and price.
     pub fn create(&self, params: &CheckoutsCreateParams) -> Result<Checkout, Error> {
         self.client.request("POST", "/api/v1/checkouts", &[], Some(params), &self.options)
+    }
+}
+
+/// The API's customer-sessions: `client.customer_sessions()`.
+///
+/// [`idempotency_key`](Self::idempotency_key) and [`api_key`](Self::api_key)
+/// set the options of the call made through it.
+#[derive(Debug, Clone)]
+pub struct CustomerSessionsService<'a> {
+    client: &'a Client,
+    options: RequestOptions,
+}
+
+impl<'a> CustomerSessionsService<'a> {
+    pub(crate) fn new(client: &'a Client) -> Self {
+        Self { client, options: RequestOptions::default() }
+    }
+
+    /// Makes the write safe to repeat: the same key with the same body
+    /// answers the first response again; with another body, a 409.
+    pub fn idempotency_key(mut self, key: impl Into<String>) -> Self {
+        self.options.idempotency_key = Some(key.into());
+        self
+    }
+
+    /// Calls with another organization's key.
+    pub fn api_key(mut self, key: impl Into<String>) -> Self {
+        self.options.api_key = Some(key.into());
+        self
+    }
+
+    /// Calls with these options.
+    pub fn options(mut self, options: RequestOptions) -> Self {
+        self.options = options;
+        self
+    }
+
+    /// Sign a customer into the customer portal: the address opens it already signed in.
+    pub fn create(&self, params: &CustomerSessionsCreateParams) -> Result<CustomerSession, Error> {
+        self.client.request("POST", "/api/v1/customer-sessions", &[], Some(params), &self.options)
     }
 }
 

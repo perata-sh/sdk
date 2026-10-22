@@ -2,6 +2,73 @@
 
 import 'json.dart';
 
+/// BenefitGrant is a resource of Peráta's API.
+final class BenefitGrant {
+  const BenefitGrant({
+    required this.benefitId,
+    required this.benefitType,
+    required this.createdAt,
+    required this.customerId,
+    required this.grantedAt,
+    required this.id,
+    required this.isGranted,
+    required this.isRevoked,
+    this.revokedAt,
+    required this.status,
+  });
+
+  /// A BenefitGrant out of the API's JSON.
+  factory BenefitGrant.fromJson(Map<String, Object?> json) {
+    return BenefitGrant(
+      benefitId: json['benefit_id'] as String,
+      benefitType: json['benefit_type'] as String,
+      createdAt: json['created_at'] as String,
+      customerId: json['customer_id'] as String,
+      grantedAt: json['granted_at'] as String,
+      id: json['id'] as String,
+      isGranted: json['is_granted'] as bool,
+      isRevoked: json['is_revoked'] as bool,
+      revokedAt: json['revoked_at'] as String?,
+      status: json['status'] as String,
+    );
+  }
+
+  final String benefitId;
+
+  final String benefitType;
+
+  final String createdAt;
+
+  final String customerId;
+
+  final String grantedAt;
+
+  final String id;
+
+  final bool isGranted;
+
+  final bool isRevoked;
+
+  final String? revokedAt;
+
+  /// One of `granted`, `revoked`.
+  final String status;
+
+  /// The JSON the API answers.
+  Map<String, Object?> toJson() => {
+    'benefit_id': benefitId,
+    'benefit_type': benefitType,
+    'created_at': createdAt,
+    'customer_id': customerId,
+    'granted_at': grantedAt,
+    'id': id,
+    'is_granted': isGranted,
+    'is_revoked': isRevoked,
+    'revoked_at': revokedAt,
+    'status': status,
+  };
+}
+
 /// Card is a resource of Peráta's API.
 final class Card {
   const Card({
@@ -122,6 +189,39 @@ final class Customer {
   };
 }
 
+/// CustomerSession is a resource of Peráta's API.
+final class CustomerSession {
+  const CustomerSession({
+    required this.customerPortalUrl,
+    required this.expiresAt,
+    required this.token,
+  });
+
+  /// A CustomerSession out of the API's JSON.
+  factory CustomerSession.fromJson(Map<String, Object?> json) {
+    return CustomerSession(
+      customerPortalUrl: json['customer_portal_url'] as String,
+      expiresAt: json['expires_at'] as String,
+      token: json['token'] as String,
+    );
+  }
+
+  /// Endereço que abre o portal do cliente já autenticado.
+  final String customerPortalUrl;
+
+  final String expiresAt;
+
+  /// Sessão do portal do cliente, já autenticada.
+  final String token;
+
+  /// The JSON the API answers.
+  Map<String, Object?> toJson() => {
+    'customer_portal_url': customerPortalUrl,
+    'expires_at': expiresAt,
+    'token': token,
+  };
+}
+
 /// Order is a resource of Peráta's API.
 final class Order {
   const Order({
@@ -129,6 +229,8 @@ final class Order {
     required this.currency,
     required this.customerId,
     required this.id,
+    required this.installmentInterestCents,
+    required this.installments,
     this.paidAt,
     required this.priceId,
     required this.productId,
@@ -142,6 +244,8 @@ final class Order {
       currency: json['currency'] as String,
       customerId: json['customer_id'] as String,
       id: json['id'] as String,
+      installmentInterestCents: json['installment_interest_cents'] as int,
+      installments: json['installments'] as int,
       paidAt: json['paid_at'] as String?,
       priceId: json['price_id'] as String,
       productId: json['product_id'] as String,
@@ -158,6 +262,12 @@ final class Order {
 
   final String id;
 
+  /// Juros do parcelamento pagos pelo comprador, cobrados além de amount_cents.
+  final int installmentInterestCents;
+
+  /// Em quantas parcelas o cartão de crédito foi cobrado; 1 à vista.
+  final int installments;
+
   final String? paidAt;
 
   final String priceId;
@@ -173,6 +283,8 @@ final class Order {
     'currency': currency,
     'customer_id': customerId,
     'id': id,
+    'installment_interest_cents': installmentInterestCents,
+    'installments': installments,
     'paid_at': paidAt,
     'price_id': priceId,
     'product_id': productId,
@@ -216,6 +328,9 @@ final class Payment {
     required this.currency,
     required this.customerId,
     required this.id,
+    required this.installmentAmountCents,
+    required this.installmentInterestCents,
+    required this.installments,
     required this.method,
     required this.refundedCents,
     required this.state,
@@ -231,6 +346,9 @@ final class Payment {
       currency: json['currency'] as String,
       customerId: json['customer_id'] as String,
       id: json['id'] as String,
+      installmentAmountCents: json['installment_amount_cents'] as int,
+      installmentInterestCents: json['installment_interest_cents'] as int,
+      installments: json['installments'] as int,
       method: json['method'] as String,
       refundedCents: json['refunded_cents'] as int,
       state: json['state'] as String,
@@ -252,6 +370,15 @@ final class Payment {
 
   final String id;
 
+  /// Valor de uma parcela; 0 à vista.
+  final int installmentAmountCents;
+
+  /// Juros do parcelamento dentro de amount_cents.
+  final int installmentInterestCents;
+
+  /// Em quantas parcelas o cartão de crédito foi cobrado; 1 à vista.
+  final int installments;
+
   /// One of `card`, `pix`, `boleto`.
   final String method;
 
@@ -270,6 +397,9 @@ final class Payment {
     'currency': currency,
     'customer_id': customerId,
     'id': id,
+    'installment_amount_cents': installmentAmountCents,
+    'installment_interest_cents': installmentInterestCents,
+    'installments': installments,
     'method': method,
     'refunded_cents': refundedCents,
     'state': state,
@@ -553,6 +683,181 @@ final class Subscription {
   };
 }
 
+/// WebhookCheckout is a resource of Peráta's API.
+final class WebhookCheckout {
+  const WebhookCheckout({
+    required this.amountCents,
+    this.checkoutLinkId,
+    required this.createdAt,
+    required this.currency,
+    this.customerId,
+    required this.discountCents,
+    required this.expiresAt,
+    required this.id,
+    required this.priceId,
+    required this.productId,
+    required this.status,
+    required this.totalCents,
+  });
+
+  /// A WebhookCheckout out of the API's JSON.
+  factory WebhookCheckout.fromJson(Map<String, Object?> json) {
+    return WebhookCheckout(
+      amountCents: json['amount_cents'] as int,
+      checkoutLinkId: json['checkout_link_id'] as String?,
+      createdAt: json['created_at'] as String,
+      currency: json['currency'] as String,
+      customerId: json['customer_id'] as String?,
+      discountCents: json['discount_cents'] as int,
+      expiresAt: json['expires_at'] as String,
+      id: json['id'] as String,
+      priceId: json['price_id'] as String,
+      productId: json['product_id'] as String,
+      status: json['status'] as String,
+      totalCents: json['total_cents'] as int,
+    );
+  }
+
+  final int amountCents;
+
+  final String? checkoutLinkId;
+
+  final String createdAt;
+
+  /// One of `BRL`.
+  final String currency;
+
+  /// Nulo até o comprador confirmar.
+  final String? customerId;
+
+  final int discountCents;
+
+  final String expiresAt;
+
+  final String id;
+
+  final String priceId;
+
+  final String productId;
+
+  /// One of `open`, `confirmed`, `succeeded`, `failed`, `expired`.
+  final String status;
+
+  final int totalCents;
+
+  /// The JSON the API answers.
+  Map<String, Object?> toJson() => {
+    'amount_cents': amountCents,
+    'checkout_link_id': checkoutLinkId,
+    'created_at': createdAt,
+    'currency': currency,
+    'customer_id': customerId,
+    'discount_cents': discountCents,
+    'expires_at': expiresAt,
+    'id': id,
+    'price_id': priceId,
+    'product_id': productId,
+    'status': status,
+    'total_cents': totalCents,
+  };
+}
+
+/// WebhookDispute is a resource of Peráta's API.
+final class WebhookDispute {
+  const WebhookDispute({
+    required this.amountCents,
+    required this.currency,
+    this.customerId,
+    this.decidedAt,
+    this.dueBy,
+    required this.id,
+    this.invoiceId,
+    required this.openedAt,
+    required this.paymentId,
+    required this.providerDisputeId,
+    required this.providerReason,
+    required this.reason,
+    required this.source,
+    required this.status,
+  });
+
+  /// A WebhookDispute out of the API's JSON.
+  factory WebhookDispute.fromJson(Map<String, Object?> json) {
+    return WebhookDispute(
+      amountCents: json['amount_cents'] as int,
+      currency: json['currency'] as String,
+      customerId: json['customer_id'] as String?,
+      decidedAt: json['decided_at'] as String?,
+      dueBy: json['due_by'] as String?,
+      id: json['id'] as String,
+      invoiceId: json['invoice_id'] as String?,
+      openedAt: json['opened_at'] as String,
+      paymentId: json['payment_id'] as String,
+      providerDisputeId: json['provider_dispute_id'] as String,
+      providerReason: json['provider_reason'] as String,
+      reason: json['reason'] as String,
+      source: json['source'] as String,
+      status: json['status'] as String,
+    );
+  }
+
+  /// Valor contestado, em centavos.
+  final int amountCents;
+
+  /// One of `BRL`.
+  final String currency;
+
+  final String? customerId;
+
+  final String? decidedAt;
+
+  /// Prazo da defesa.
+  final String? dueBy;
+
+  final String id;
+
+  final String? invoiceId;
+
+  final String openedAt;
+
+  /// O PaymentId da venda contestada na Cielo.
+  final String paymentId;
+
+  /// O número do caso na Cielo.
+  final String providerDisputeId;
+
+  /// O motivo nas palavras da Cielo.
+  final String providerReason;
+
+  /// Motivo, do conjunto fechado; unknown quando a adquirente não informou.
+  final String reason;
+
+  /// One of `operator`, `cielo_chargeback`.
+  final String source;
+
+  /// One of `opened`, `needs_evidence`, `submitted`, `under_review`, `won`,
+  /// `lost`, `closed`.
+  final String status;
+
+  /// The JSON the API answers.
+  Map<String, Object?> toJson() => {
+    'amount_cents': amountCents,
+    'currency': currency,
+    'customer_id': customerId,
+    'decided_at': decidedAt,
+    'due_by': dueBy,
+    'id': id,
+    'invoice_id': invoiceId,
+    'opened_at': openedAt,
+    'payment_id': paymentId,
+    'provider_dispute_id': providerDisputeId,
+    'provider_reason': providerReason,
+    'reason': reason,
+    'source': source,
+    'status': status,
+  };
+}
+
 /// The body of checkouts:create.
 final class CheckoutsCreateParams {
   const CheckoutsCreateParams({
@@ -584,6 +889,20 @@ final class CheckoutsCreateParams {
     'product_id': productId,
     'quantity': ?quantity,
     'success_url': ?successUrl,
+  };
+}
+
+/// The body of customer-sessions:create.
+final class CustomerSessionsCreateParams {
+  const CustomerSessionsCreateParams({
+    required this.customerId,
+  });
+
+  final String customerId;
+
+  /// The JSON the API takes; a field left null is left out.
+  Map<String, Object?> toJson() => {
+    'customer_id': customerId,
   };
 }
 

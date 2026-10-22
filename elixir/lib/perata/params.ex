@@ -44,6 +44,35 @@ defmodule Perata.CheckoutsCreateParams do
   end
 end
 
+defmodule Perata.CustomerSessionsCreateParams do
+  @moduledoc """
+  The body of customer-sessions:create.
+
+  Build it with `new/1` from a keyword list or a map; an optional field left
+  out is left out of the JSON.
+  """
+
+  @enforce_keys [:customer_id]
+  defstruct [:customer_id]
+
+  @type t :: %__MODULE__{
+          customer_id: String.t()
+        }
+
+  @doc "The params as they are, or built from a keyword list or a map with atom keys."
+  @spec new(t() | keyword() | map()) :: t()
+  def new(%__MODULE__{} = params), do: params
+  def new(fields), do: struct!(__MODULE__, fields)
+
+  @doc "The body as the API reads it, from the params or what `new/1` builds them from."
+  @spec to_map(t() | keyword() | map()) :: %{optional(String.t()) => term()}
+  def to_map(params) do
+    params = new(params)
+
+    %{"customer_id" => params.customer_id}
+  end
+end
+
 defmodule Perata.CustomersCreateParams do
   @moduledoc """
   The body of customers:create.

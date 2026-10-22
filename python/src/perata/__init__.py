@@ -4,9 +4,9 @@
 from ._client import Perata, Transport, urllib_transport
 from ._errors import PerataError
 from ._pagination import Page
-from ._services import CheckoutsService, CustomersService, OrdersService, PaymentMethodsService, PaymentsService, PricesService, ProductsService, RefundsService, SubscriptionsService
+from ._services import CheckoutsService, CustomerSessionsService, CustomersService, OrdersService, PaymentMethodsService, PaymentsService, PricesService, ProductsService, RefundsService, SubscriptionsService
 from ._version import API_VERSION, DEFAULT_BASE_URL, VERSION
-from .models import Card, Checkout, Customer, Order, Pagination, Payment, PaymentMethod, PaymentMethodDetached, Price, Product, Refund, Subscription, CheckoutsCreateParams, CustomersCreateParams, PricesCreateParams, ProductsCreateParams, RefundsCreateParams, SubscriptionsCancelParams
+from .models import BenefitGrant, Card, Checkout, Customer, CustomerSession, Order, Pagination, Payment, PaymentMethod, PaymentMethodDetached, Price, Product, Refund, Subscription, WebhookCheckout, WebhookDispute, CheckoutsCreateParams, CustomerSessionsCreateParams, CustomersCreateParams, PricesCreateParams, ProductsCreateParams, RefundsCreateParams, SubscriptionsCancelParams
 from .webhooks import WEBHOOK_TOLERANCE_SECONDS, WebhookEvent, WebhookVerificationError, verify_webhook
 
 __all__ = [
@@ -23,6 +23,7 @@ __all__ = [
     "urllib_transport",
     "verify_webhook",
     "CheckoutsService",
+    "CustomerSessionsService",
     "CustomersService",
     "OrdersService",
     "PaymentMethodsService",
@@ -31,9 +32,11 @@ __all__ = [
     "ProductsService",
     "RefundsService",
     "SubscriptionsService",
+    "BenefitGrant",
     "Card",
     "Checkout",
     "Customer",
+    "CustomerSession",
     "Order",
     "Pagination",
     "Payment",
@@ -43,7 +46,10 @@ __all__ = [
     "Product",
     "Refund",
     "Subscription",
+    "WebhookCheckout",
+    "WebhookDispute",
     "CheckoutsCreateParams",
+    "CustomerSessionsCreateParams",
     "CustomersCreateParams",
     "PricesCreateParams",
     "ProductsCreateParams",

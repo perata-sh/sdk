@@ -27,6 +27,37 @@ defmodule Perata.Checkouts do
   end
 end
 
+defmodule Perata.CustomerSessions do
+  @moduledoc "The API's customer-sessions."
+
+  alias Perata.Client
+
+  @doc """
+  Sign a customer into the customer portal: the address opens it already signed in.
+
+  Options: `:idempotency_key` and `:api_key`.
+  """
+  @spec create(
+          Client.t(),
+          Perata.CustomerSessionsCreateParams.t() | keyword() | map(),
+          keyword()
+        ) ::
+          {:ok, Perata.CustomerSession.t()} | {:error, Perata.Error.t()}
+  def create(%Client{} = client, params, opts \\ []) do
+    path = "/api/v1/customer-sessions"
+
+    request = [
+      body: Perata.CustomerSessionsCreateParams.to_map(params),
+      idempotency_key: opts[:idempotency_key],
+      api_key: opts[:api_key]
+    ]
+
+    with {:ok, data} <- Client.request(client, "POST", path, request) do
+      {:ok, Perata.CustomerSession.from_map(data)}
+    end
+  end
+end
+
 defmodule Perata.Customers do
   @moduledoc "The API's customers."
 
