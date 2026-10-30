@@ -16,7 +16,7 @@ class CheckoutsService:
         self._client = client
 
     def create(self, params: models.CheckoutsCreateParams, *, idempotency_key: str | None = None, api_key: str | None = None) -> models.Checkout:
-        """Create a checkout address for one product and price."""
+        """Criar o endereço de um checkout para um produto e um preço."""
         data = self._client.request("POST", "/api/v1/checkouts", body=params, idempotency_key=idempotency_key, api_key=api_key)
         return models.Checkout.from_dict(data)
 
@@ -28,7 +28,7 @@ class CustomerSessionsService:
         self._client = client
 
     def create(self, params: models.CustomerSessionsCreateParams, *, idempotency_key: str | None = None, api_key: str | None = None) -> models.CustomerSession:
-        """Sign a customer into the customer portal: the address opens it already signed in."""
+        """Entrar com um cliente no portal do cliente: o endereço o abre já autenticado."""
         data = self._client.request("POST", "/api/v1/customer-sessions", body=params, idempotency_key=idempotency_key, api_key=api_key)
         return models.CustomerSession.from_dict(data)
 
@@ -40,17 +40,22 @@ class CustomersService:
         self._client = client
 
     def create(self, params: models.CustomersCreateParams, *, idempotency_key: str | None = None, api_key: str | None = None) -> models.Customer:
-        """Create a customer."""
+        """Criar um cliente."""
         data = self._client.request("POST", "/api/v1/customers", body=params, idempotency_key=idempotency_key, api_key=api_key)
         return models.Customer.from_dict(data)
 
     def get(self, customer: str, *, api_key: str | None = None) -> models.Customer:
-        """Read a customer."""
+        """Ler um cliente."""
         data = self._client.request("GET", f"/api/v1/customers/{segment(customer)}", api_key=api_key)
         return models.Customer.from_dict(data)
 
+    def get_state(self, customer: str, *, api_key: str | None = None) -> models.CustomerState:
+        """Ler o estado de um cliente: assinaturas ativas e benefícios vigentes, inclusive os feature flags."""
+        data = self._client.request("GET", f"/api/v1/customers/{segment(customer)}/state", api_key=api_key)
+        return models.CustomerState.from_dict(data)
+
     def list(self, *, page: int | None = None, limit: int | None = None, api_key: str | None = None) -> Page[models.Customer]:
-        """List customers. One page; ``list_iter`` walks every page."""
+        """Listar clientes. One page; ``list_iter`` walks every page."""
         data = self._client.request("GET", "/api/v1/customers", query={"page": page, "limit": limit}, api_key=api_key)
         return Page.from_dict(data, models.Customer.from_dict)
 
@@ -66,7 +71,7 @@ class OrdersService:
         self._client = client
 
     def list(self, *, page: int | None = None, limit: int | None = None, api_key: str | None = None) -> Page[models.Order]:
-        """List orders: paid checkouts. One page; ``list_iter`` walks every page."""
+        """Listar pedidos: checkouts pagos. One page; ``list_iter`` walks every page."""
         data = self._client.request("GET", "/api/v1/orders", query={"page": page, "limit": limit}, api_key=api_key)
         return Page.from_dict(data, models.Order.from_dict)
 
@@ -82,12 +87,12 @@ class PaymentMethodsService:
         self._client = client
 
     def detach(self, payment_method: str, *, idempotency_key: str | None = None, api_key: str | None = None) -> models.PaymentMethodDetached:
-        """Stop charging a stored card; refused while an active subscription charges it."""
+        """Parar de cobrar um cartão guardado; recusado enquanto uma assinatura ativa o cobra."""
         data = self._client.request("POST", f"/api/v1/payment_methods/{segment(payment_method)}/detach", idempotency_key=idempotency_key, api_key=api_key)
         return models.PaymentMethodDetached.from_dict(data)
 
     def list(self, customer: str, *, page: int | None = None, limit: int | None = None, api_key: str | None = None) -> Page[models.PaymentMethod]:
-        """List a customer's stored cards: brand, last four digits and expiry. One page; ``list_iter`` walks every page."""
+        """Listar os cartões guardados de um cliente: bandeira, quatro últimos dígitos e validade. One page; ``list_iter`` walks every page."""
         data = self._client.request("GET", f"/api/v1/customers/{segment(customer)}/payment_methods", query={"page": page, "limit": limit}, api_key=api_key)
         return Page.from_dict(data, models.PaymentMethod.from_dict)
 
@@ -103,12 +108,12 @@ class PaymentsService:
         self._client = client
 
     def get(self, payment: str, *, api_key: str | None = None) -> models.Payment:
-        """Read a payment."""
+        """Ler um pagamento."""
         data = self._client.request("GET", f"/api/v1/payments/{segment(payment)}", api_key=api_key)
         return models.Payment.from_dict(data)
 
     def list(self, *, page: int | None = None, limit: int | None = None, api_key: str | None = None) -> Page[models.Payment]:
-        """List payments. One page; ``list_iter`` walks every page."""
+        """Listar pagamentos. One page; ``list_iter`` walks every page."""
         data = self._client.request("GET", "/api/v1/payments", query={"page": page, "limit": limit}, api_key=api_key)
         return Page.from_dict(data, models.Payment.from_dict)
 
@@ -124,12 +129,12 @@ class PricesService:
         self._client = client
 
     def create(self, params: models.PricesCreateParams, *, idempotency_key: str | None = None, api_key: str | None = None) -> models.Price:
-        """Create a BRL price, one-time or recurring."""
+        """Criar um preço em reais, avulso ou recorrente."""
         data = self._client.request("POST", "/api/v1/prices", body=params, idempotency_key=idempotency_key, api_key=api_key)
         return models.Price.from_dict(data)
 
     def list(self, *, page: int | None = None, limit: int | None = None, product_id: str | None = None, api_key: str | None = None) -> Page[models.Price]:
-        """List prices, optionally of one product (product_id). One page; ``list_iter`` walks every page."""
+        """Listar preços, opcionalmente de um produto (product_id). One page; ``list_iter`` walks every page."""
         data = self._client.request("GET", "/api/v1/prices", query={"page": page, "limit": limit, "product_id": product_id}, api_key=api_key)
         return Page.from_dict(data, models.Price.from_dict)
 
@@ -145,17 +150,17 @@ class ProductsService:
         self._client = client
 
     def create(self, params: models.ProductsCreateParams, *, idempotency_key: str | None = None, api_key: str | None = None) -> models.Product:
-        """Create a product."""
+        """Criar um produto."""
         data = self._client.request("POST", "/api/v1/products", body=params, idempotency_key=idempotency_key, api_key=api_key)
         return models.Product.from_dict(data)
 
     def get(self, product: str, *, api_key: str | None = None) -> models.Product:
-        """Read a product."""
+        """Ler um produto."""
         data = self._client.request("GET", f"/api/v1/products/{segment(product)}", api_key=api_key)
         return models.Product.from_dict(data)
 
     def list(self, *, page: int | None = None, limit: int | None = None, api_key: str | None = None) -> Page[models.Product]:
-        """List products. One page; ``list_iter`` walks every page."""
+        """Listar produtos. One page; ``list_iter`` walks every page."""
         data = self._client.request("GET", "/api/v1/products", query={"page": page, "limit": limit}, api_key=api_key)
         return Page.from_dict(data, models.Product.from_dict)
 
@@ -171,7 +176,7 @@ class RefundsService:
         self._client = client
 
     def create(self, params: models.RefundsCreateParams, *, idempotency_key: str | None = None, api_key: str | None = None) -> models.Refund:
-        """Refund part or all of a payment."""
+        """Reembolsar parte ou todo um pagamento."""
         data = self._client.request("POST", "/api/v1/refunds", body=params, idempotency_key=idempotency_key, api_key=api_key)
         return models.Refund.from_dict(data)
 
@@ -183,17 +188,17 @@ class SubscriptionsService:
         self._client = client
 
     def cancel(self, subscription: str, params: models.SubscriptionsCancelParams, *, idempotency_key: str | None = None, api_key: str | None = None) -> models.Subscription:
-        """Cancel a subscription, by default at the end of its period."""
+        """Cancelar uma assinatura, por padrão no fim do período."""
         data = self._client.request("POST", f"/api/v1/subscriptions/{segment(subscription)}/cancel", body=params, idempotency_key=idempotency_key, api_key=api_key)
         return models.Subscription.from_dict(data)
 
     def get(self, subscription: str, *, api_key: str | None = None) -> models.Subscription:
-        """Read a subscription."""
+        """Ler uma assinatura."""
         data = self._client.request("GET", f"/api/v1/subscriptions/{segment(subscription)}", api_key=api_key)
         return models.Subscription.from_dict(data)
 
     def list(self, *, page: int | None = None, limit: int | None = None, customer_id: str | None = None, api_key: str | None = None) -> Page[models.Subscription]:
-        """List subscriptions, optionally of one customer (customer_id). One page; ``list_iter`` walks every page."""
+        """Listar assinaturas, opcionalmente de um cliente (customer_id). One page; ``list_iter`` walks every page."""
         data = self._client.request("GET", "/api/v1/subscriptions", query={"page": page, "limit": limit, "customer_id": customer_id}, api_key=api_key)
         return Page.from_dict(data, models.Subscription.from_dict)
 

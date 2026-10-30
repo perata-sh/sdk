@@ -16,7 +16,7 @@ public final class SubscriptionsService {
     }
 
     /**
-     * Cancel a subscription, by default at the end of its period.
+     * Cancelar uma assinatura, por padrão no fim do período.
      * @param subscription the subscription
      * @param params the request
      * @param options an idempotency key or another organization's key for this call, or null
@@ -29,7 +29,7 @@ public final class SubscriptionsService {
     }
 
     /**
-     * Cancel a subscription, by default at the end of its period.
+     * Cancelar uma assinatura, por padrão no fim do período.
      * @param subscription the subscription
      * @param params the request
      * @return the subscription
@@ -113,7 +113,7 @@ public final class SubscriptionsService {
     }
 
     /**
-     * Read a subscription.
+     * Ler uma assinatura.
      * @param subscription the subscription
      * @param options another organization's key for this call, or null
      * @return the subscription
@@ -125,7 +125,7 @@ public final class SubscriptionsService {
     }
 
     /**
-     * Read a subscription.
+     * Ler uma assinatura.
      * @param subscription the subscription
      * @return the subscription
      * @throws PerataException when the API refuses the call
@@ -135,7 +135,7 @@ public final class SubscriptionsService {
     }
 
     /**
-     * List subscriptions, optionally of one customer (customer_id). One page; {@link #listIter} walks every page.
+     * Listar assinaturas, opcionalmente de um cliente (customer_id). One page; {@link #listIter} walks every page.
      * @param params the page, its size and the filters, or null
      * @param options options for this call, or null
      * @return the page
@@ -147,7 +147,7 @@ public final class SubscriptionsService {
     }
 
     /**
-     * List subscriptions, optionally of one customer (customer_id). One page.
+     * Listar assinaturas, opcionalmente de um cliente (customer_id). One page.
      * @param params the page, its size and the filters, or null
      * @return the page
      */
@@ -156,7 +156,7 @@ public final class SubscriptionsService {
     }
 
     /**
-     * List subscriptions, optionally of one customer (customer_id). The first page.
+     * Listar assinaturas, opcionalmente de um cliente (customer_id). The first page.
      * @return the page
      */
     public Page<Subscription> list() {

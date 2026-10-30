@@ -138,6 +138,11 @@ public static class Webhook
         var data = root.TryGetProperty("data", out var sent) && sent.ValueKind == JsonValueKind.Object
             ? sent.Clone()
             : EmptyObject;
+        if (BenefitWebhookEvent.Types.Contains(type))
+        {
+            return new BenefitWebhookEvent(id, type, timestamp, data.Deserialize(PerataJson.Default.WebhookBenefit)
+                ?? throw new JsonException("perata: the webhook has no data"));
+        }
         if (BenefitGrantWebhookEvent.Types.Contains(type))
         {
             return new BenefitGrantWebhookEvent(id, type, timestamp, data.Deserialize(PerataJson.Default.BenefitGrant)
@@ -153,6 +158,11 @@ public static class Webhook
             return new CustomerWebhookEvent(id, type, timestamp, data.Deserialize(PerataJson.Default.Customer)
                 ?? throw new JsonException("perata: the webhook has no data"));
         }
+        if (DiscountWebhookEvent.Types.Contains(type))
+        {
+            return new DiscountWebhookEvent(id, type, timestamp, data.Deserialize(PerataJson.Default.WebhookDiscount)
+                ?? throw new JsonException("perata: the webhook has no data"));
+        }
         if (DisputeWebhookEvent.Types.Contains(type))
         {
             return new DisputeWebhookEvent(id, type, timestamp, data.Deserialize(PerataJson.Default.WebhookDispute)
@@ -166,6 +176,11 @@ public static class Webhook
         if (OrderWebhookEvent.Types.Contains(type))
         {
             return new OrderWebhookEvent(id, type, timestamp, data.Deserialize(PerataJson.Default.Order)
+                ?? throw new JsonException("perata: the webhook has no data"));
+        }
+        if (ProductWebhookEvent.Types.Contains(type))
+        {
+            return new ProductWebhookEvent(id, type, timestamp, data.Deserialize(PerataJson.Default.Product)
                 ?? throw new JsonException("perata: the webhook has no data"));
         }
         if (RefundWebhookEvent.Types.Contains(type))

@@ -18,7 +18,7 @@ public sealed class CustomerSessionsService
 
     internal CustomerSessionsService(PerataClient client) => this.client = client;
 
-    /// <summary>Sign a customer into the customer portal: the address opens it already signed in.</summary>
+    /// <summary>Entrar com um cliente no portal do cliente: o endereço o abre já autenticado.</summary>
     /// <param name="parameters">The request.</param>
     /// <param name="options">An idempotency key, or another organization's key for this call.</param>
     /// <param name="cancellationToken">Cancels the call.</param>
@@ -37,5 +37,9 @@ public sealed record CustomerSessionsCreateParams
     /// <summary>The <c>customer_id</c> to send.</summary>
     [JsonPropertyName("customer_id")]
     public required string CustomerId { get; init; }
+
+    /// <summary>Optional https address of your app the portal offers to go back to. Left out of the request when null.</summary>
+    [JsonPropertyName("return_url")]
+    public string? ReturnUrl { get; init; }
 }
 

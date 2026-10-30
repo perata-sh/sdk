@@ -16,7 +16,7 @@ public final class PricesService {
     }
 
     /**
-     * Create a BRL price, one-time or recurring.
+     * Criar um preço em reais, avulso ou recorrente.
      * @param params the request
      * @param options an idempotency key or another organization's key for this call, or null
      * @return the price
@@ -28,7 +28,7 @@ public final class PricesService {
     }
 
     /**
-     * Create a BRL price, one-time or recurring.
+     * Criar um preço em reais, avulso ou recorrente.
      * @param params the request
      * @return the price
      * @throws PerataException when the API refuses the call
@@ -162,7 +162,7 @@ public final class PricesService {
     }
 
     /**
-     * List prices, optionally of one product (product_id). One page; {@link #listIter} walks every page.
+     * Listar preços, opcionalmente de um produto (product_id). One page; {@link #listIter} walks every page.
      * @param params the page, its size and the filters, or null
      * @param options options for this call, or null
      * @return the page
@@ -174,7 +174,7 @@ public final class PricesService {
     }
 
     /**
-     * List prices, optionally of one product (product_id). One page.
+     * Listar preços, opcionalmente de um produto (product_id). One page.
      * @param params the page, its size and the filters, or null
      * @return the page
      */
@@ -183,7 +183,7 @@ public final class PricesService {
     }
 
     /**
-     * List prices, optionally of one product (product_id). The first page.
+     * Listar preços, opcionalmente de um produto (product_id). The first page.
      * @return the page
      */
     public Page<Price> list() {

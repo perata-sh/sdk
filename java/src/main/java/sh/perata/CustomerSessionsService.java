@@ -16,7 +16,7 @@ public final class CustomerSessionsService {
     }
 
     /**
-     * Sign a customer into the customer portal: the address opens it already signed in.
+     * Entrar com um cliente no portal do cliente: o endereço o abre já autenticado.
      * @param params the request
      * @param options an idempotency key or another organization's key for this call, or null
      * @return the customersession
@@ -28,7 +28,7 @@ public final class CustomerSessionsService {
     }
 
     /**
-     * Sign a customer into the customer portal: the address opens it already signed in.
+     * Entrar com um cliente no portal do cliente: o endereço o abre já autenticado.
      * @param params the request
      * @return the customersession
      * @throws PerataException when the API refuses the call
@@ -41,9 +41,11 @@ public final class CustomerSessionsService {
     public static final class CreateParams {
 
         private final String customerId;
+        private final String returnUrl;
 
         private CreateParams(Builder builder) {
             this.customerId = builder.customerId;
+            this.returnUrl = builder.returnUrl;
         }
 
         /** @return a builder of the request */
@@ -56,15 +58,24 @@ public final class CustomerSessionsService {
             return customerId;
         }
 
+        /** @return Optional https address of your app the portal offers to go back to. (null when left out) */
+        public String getReturnUrl() {
+            return returnUrl;
+        }
+
         Map<String, Object> toJson() {
             Map<String, Object> body = new LinkedHashMap<>();
             body.put("customer_id", customerId);
+            if (returnUrl != null) {
+                body.put("return_url", returnUrl);
+            }
             return body;
         }
 
         /** Builds {@link CreateParams}; the fields left unset are left out of the request. */
         public static final class Builder {
             private String customerId;
+            private String returnUrl;
 
             private Builder() {
             }
@@ -75,6 +86,15 @@ public final class CustomerSessionsService {
              */
             public Builder customerId(String customerId) {
                 this.customerId = customerId;
+                return this;
+            }
+
+            /**
+             * @param returnUrl Optional https address of your app the portal offers to go back to.
+             * @return this builder
+             */
+            public Builder returnUrl(String returnUrl) {
+                this.returnUrl = returnUrl;
                 return this;
             }
 

@@ -6,6 +6,7 @@ import 'json.dart';
 final class BenefitGrant {
   const BenefitGrant({
     required this.benefitId,
+    this.benefitMetadata,
     required this.benefitType,
     required this.createdAt,
     required this.customerId,
@@ -13,6 +14,7 @@ final class BenefitGrant {
     required this.id,
     required this.isGranted,
     required this.isRevoked,
+    this.properties,
     this.revokedAt,
     required this.status,
   });
@@ -21,6 +23,10 @@ final class BenefitGrant {
   factory BenefitGrant.fromJson(Map<String, Object?> json) {
     return BenefitGrant(
       benefitId: json['benefit_id'] as String,
+      benefitMetadata: readOptional(
+        json['benefit_metadata'],
+        (value) => readMap(value, (value) => value),
+      ),
       benefitType: json['benefit_type'] as String,
       createdAt: json['created_at'] as String,
       customerId: json['customer_id'] as String,
@@ -28,12 +34,19 @@ final class BenefitGrant {
       id: json['id'] as String,
       isGranted: json['is_granted'] as bool,
       isRevoked: json['is_revoked'] as bool,
+      properties: readOptional(
+        json['properties'],
+        (value) => readMap(value, (value) => value),
+      ),
       revokedAt: json['revoked_at'] as String?,
       status: json['status'] as String,
     );
   }
 
   final String benefitId;
+
+  /// Os metadados do benefício: os valores de uma feature flag.
+  final Map<String, Object?>? benefitMetadata;
 
   final String benefitType;
 
@@ -49,6 +62,9 @@ final class BenefitGrant {
 
   final bool isRevoked;
 
+  /// O que a concessão informa, conforme o tipo, sem credenciais.
+  final Map<String, Object?>? properties;
+
   final String? revokedAt;
 
   /// One of `granted`, `revoked`.
@@ -57,6 +73,7 @@ final class BenefitGrant {
   /// The JSON the API answers.
   Map<String, Object?> toJson() => {
     'benefit_id': benefitId,
+    'benefit_metadata': ?benefitMetadata,
     'benefit_type': benefitType,
     'created_at': createdAt,
     'customer_id': customerId,
@@ -64,6 +81,7 @@ final class BenefitGrant {
     'id': id,
     'is_granted': isGranted,
     'is_revoked': isRevoked,
+    'properties': ?properties,
     'revoked_at': revokedAt,
     'status': status,
   };
@@ -219,6 +237,124 @@ final class CustomerSession {
     'customer_portal_url': customerPortalUrl,
     'expires_at': expiresAt,
     'token': token,
+  };
+}
+
+/// CustomerState is a resource of Peráta's API.
+final class CustomerState {
+  const CustomerState({
+    required this.activeSubscriptions,
+    required this.createdAt,
+    required this.email,
+    required this.externalId,
+    required this.grantedBenefits,
+    required this.id,
+    required this.name,
+    required this.status,
+  });
+
+  /// A CustomerState out of the API's JSON.
+  factory CustomerState.fromJson(Map<String, Object?> json) {
+    return CustomerState(
+      activeSubscriptions: readList(
+        json['active_subscriptions'],
+        (value) => Subscription.fromJson(readObject(value)),
+      ),
+      createdAt: json['created_at'] as String,
+      email: json['email'] as String,
+      externalId: json['external_id'] as String,
+      grantedBenefits: readList(
+        json['granted_benefits'],
+        (value) => CustomerStateBenefitGrant.fromJson(readObject(value)),
+      ),
+      id: json['id'] as String,
+      name: json['name'] as String,
+      status: json['status'] as String,
+    );
+  }
+
+  /// As assinaturas ativas ou em teste do cliente.
+  final List<Subscription> activeSubscriptions;
+
+  final String createdAt;
+
+  final String email;
+
+  final String externalId;
+
+  /// Os benefícios que o cliente tem agora.
+  final List<CustomerStateBenefitGrant> grantedBenefits;
+
+  final String id;
+
+  final String name;
+
+  /// One of `active`, `archived`.
+  final String status;
+
+  /// The JSON the API answers.
+  Map<String, Object?> toJson() => {
+    'active_subscriptions': activeSubscriptions
+        .map((item) => item.toJson())
+        .toList(),
+    'created_at': createdAt,
+    'email': email,
+    'external_id': externalId,
+    'granted_benefits': grantedBenefits.map((item) => item.toJson()).toList(),
+    'id': id,
+    'name': name,
+    'status': status,
+  };
+}
+
+/// CustomerStateBenefitGrant is a resource of Peráta's API.
+final class CustomerStateBenefitGrant {
+  const CustomerStateBenefitGrant({
+    required this.benefitId,
+    required this.benefitMetadata,
+    required this.benefitType,
+    required this.grantedAt,
+    required this.id,
+    required this.properties,
+  });
+
+  /// A CustomerStateBenefitGrant out of the API's JSON.
+  factory CustomerStateBenefitGrant.fromJson(Map<String, Object?> json) {
+    return CustomerStateBenefitGrant(
+      benefitId: json['benefit_id'] as String,
+      benefitMetadata: readMap(json['benefit_metadata'], (value) => value),
+      benefitType: json['benefit_type'] as String,
+      grantedAt: json['granted_at'] as String,
+      id: json['id'] as String,
+      properties: readMap(json['properties'], (value) => value),
+    );
+  }
+
+  final String benefitId;
+
+  /// Os metadados do benefício: os valores de uma feature flag.
+  final Map<String, Object?> benefitMetadata;
+
+  /// One of `custom`, `license_key`, `downloadable`, `feature_flag`,
+  /// `meter_credit`, `discord`, `github_repository`.
+  final String benefitType;
+
+  final String grantedAt;
+
+  /// A concessão.
+  final String id;
+
+  /// O que a concessão informa, conforme o tipo.
+  final Map<String, Object?> properties;
+
+  /// The JSON the API answers.
+  Map<String, Object?> toJson() => {
+    'benefit_id': benefitId,
+    'benefit_metadata': benefitMetadata,
+    'benefit_type': benefitType,
+    'granted_at': grantedAt,
+    'id': id,
+    'properties': properties,
   };
 }
 
@@ -621,9 +757,12 @@ final class Subscription {
     required this.customerId,
     required this.id,
     required this.interval,
+    required this.metadata,
     required this.priceId,
     required this.productId,
     required this.status,
+    this.trialEnd,
+    this.trialStart,
   });
 
   /// A Subscription out of the API's JSON.
@@ -637,9 +776,12 @@ final class Subscription {
       customerId: json['customer_id'] as String,
       id: json['id'] as String,
       interval: json['interval'] as String,
+      metadata: readMap(json['metadata'], (value) => value),
       priceId: json['price_id'] as String,
       productId: json['product_id'] as String,
       status: json['status'] as String,
+      trialEnd: json['trial_end'] as String?,
+      trialStart: json['trial_start'] as String?,
     );
   }
 
@@ -660,12 +802,20 @@ final class Subscription {
 
   final String interval;
 
+  /// Metadados do lojista: pares chave e valor (texto, número ou booleano);
+  /// objeto vazio quando não há.
+  final Map<String, Object?> metadata;
+
   final String priceId;
 
   final String productId;
 
   /// One of `trialing`, `active`, `past_due`, `paused`, `canceled`.
   final String status;
+
+  final String? trialEnd;
+
+  final String? trialStart;
 
   /// The JSON the API answers.
   Map<String, Object?> toJson() => {
@@ -677,9 +827,70 @@ final class Subscription {
     'customer_id': customerId,
     'id': id,
     'interval': interval,
+    'metadata': metadata,
     'price_id': priceId,
     'product_id': productId,
     'status': status,
+    'trial_end': trialEnd,
+    'trial_start': trialStart,
+  };
+}
+
+/// WebhookBenefit is a resource of Peráta's API.
+final class WebhookBenefit {
+  const WebhookBenefit({
+    required this.createdAt,
+    required this.description,
+    required this.id,
+    required this.modifiedAt,
+    required this.name,
+    required this.status,
+    required this.type,
+    required this.visibility,
+  });
+
+  /// A WebhookBenefit out of the API's JSON.
+  factory WebhookBenefit.fromJson(Map<String, Object?> json) {
+    return WebhookBenefit(
+      createdAt: json['created_at'] as String,
+      description: json['description'] as String,
+      id: json['id'] as String,
+      modifiedAt: json['modified_at'] as String,
+      name: json['name'] as String,
+      status: json['status'] as String,
+      type: json['type'] as String,
+      visibility: json['visibility'] as String,
+    );
+  }
+
+  final String createdAt;
+
+  final String description;
+
+  final String id;
+
+  final String modifiedAt;
+
+  final String name;
+
+  /// One of `active`, `archived`.
+  final String status;
+
+  final String type;
+
+  /// One of `public`, `private`.
+  final String visibility;
+
+  /// The JSON the API answers.
+  Map<String, Object?> toJson() => {
+    'created_at': createdAt,
+    'description': description,
+    'id': id,
+    'modified_at': modifiedAt,
+    'name': name,
+    'status': status,
+    'type': type,
+    'visibility': visibility,
   };
 }
 
@@ -759,6 +970,107 @@ final class WebhookCheckout {
     'product_id': productId,
     'status': status,
     'total_cents': totalCents,
+  };
+}
+
+/// WebhookDiscount is a resource of Peráta's API.
+final class WebhookDiscount {
+  const WebhookDiscount({
+    required this.amountCents,
+    required this.basisPoints,
+    this.code,
+    required this.createdAt,
+    required this.currency,
+    required this.duration,
+    required this.durationInMonths,
+    this.endsAt,
+    required this.id,
+    this.maxRedemptions,
+    required this.modifiedAt,
+    required this.name,
+    required this.redemptionsCount,
+    required this.startsAt,
+    required this.status,
+    required this.type,
+  });
+
+  /// A WebhookDiscount out of the API's JSON.
+  factory WebhookDiscount.fromJson(Map<String, Object?> json) {
+    return WebhookDiscount(
+      amountCents: json['amount_cents'] as int,
+      basisPoints: json['basis_points'] as int,
+      code: json['code'] as String?,
+      createdAt: json['created_at'] as String,
+      currency: json['currency'] as String,
+      duration: json['duration'] as String,
+      durationInMonths: json['duration_in_months'] as int,
+      endsAt: json['ends_at'] as String?,
+      id: json['id'] as String,
+      maxRedemptions: json['max_redemptions'] as int?,
+      modifiedAt: json['modified_at'] as String,
+      name: json['name'] as String,
+      redemptionsCount: json['redemptions_count'] as int,
+      startsAt: json['starts_at'] as String,
+      status: json['status'] as String,
+      type: json['type'] as String,
+    );
+  }
+
+  /// Valor fixo em centavos, quando o tipo é fixed.
+  final int amountCents;
+
+  /// Percentual em pontos-base, quando o tipo é percentage.
+  final int basisPoints;
+
+  final String? code;
+
+  final String createdAt;
+
+  final String currency;
+
+  /// One of `once`, `forever`, `repeating`.
+  final String duration;
+
+  final int durationInMonths;
+
+  final String? endsAt;
+
+  final String id;
+
+  final int? maxRedemptions;
+
+  final String modifiedAt;
+
+  final String name;
+
+  final int redemptionsCount;
+
+  final String startsAt;
+
+  /// One of `active`, `expired`, `exhausted`, `archived`.
+  final String status;
+
+  /// One of `percentage`, `fixed`.
+  final String type;
+
+  /// The JSON the API answers.
+  Map<String, Object?> toJson() => {
+    'amount_cents': amountCents,
+    'basis_points': basisPoints,
+    'code': code,
+    'created_at': createdAt,
+    'currency': currency,
+    'duration': duration,
+    'duration_in_months': durationInMonths,
+    'ends_at': endsAt,
+    'id': id,
+    'max_redemptions': maxRedemptions,
+    'modified_at': modifiedAt,
+    'name': name,
+    'redemptions_count': redemptionsCount,
+    'starts_at': startsAt,
+    'status': status,
+    'type': type,
   };
 }
 
@@ -896,13 +1208,18 @@ final class CheckoutsCreateParams {
 final class CustomerSessionsCreateParams {
   const CustomerSessionsCreateParams({
     required this.customerId,
+    this.returnUrl,
   });
 
   final String customerId;
 
+  /// Optional https address of your app the portal offers to go back to.
+  final String? returnUrl;
+
   /// The JSON the API takes; a field left null is left out.
   Map<String, Object?> toJson() => {
     'customer_id': customerId,
+    'return_url': ?returnUrl,
   };
 }
 

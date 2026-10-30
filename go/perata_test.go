@@ -72,6 +72,24 @@ func TestABaseURLMustBeHTTPSUnlessItIsLoopback(t *testing.T) {
 	}
 }
 
+func TestAFreeFormValueDecodesNested(t *testing.T) {
+	client := server(t, func(w http.ResponseWriter, r *http.Request) {
+		fmt.Fprint(w, `{"data":{"id": "cus_1", "name": "Ana", "email": "ana@example.com", "external_id": "", "status": "active", "created_at": "2026-10-17T00:00:00Z", "active_subscriptions": [], "granted_benefits": [{"id": "gr_1", "granted_at": "2026-10-17T00:00:00Z", "benefit_id": "ben_1", "benefit_type": "feature_flag", "benefit_metadata": {"flags": {"beta": true, "limits": {"seats": 5, "tiers": ["a", 2, null, 1.5]}}}, "properties": {"links": [{"url": "https://example.com", "expires": null}]}}]}}`)
+	})
+	state, err := client.Customers.GetState(context.Background(), "cus_1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	grant := state.GrantedBenefits[0]
+	limits := grant.BenefitMetadata["flags"].(map[string]any)["limits"].(map[string]any)
+	tiers := limits["tiers"].([]any)
+	link := grant.Properties["links"].([]any)[0].(map[string]any)
+	if grant.BenefitMetadata["flags"].(map[string]any)["beta"] != true || limits["seats"] != float64(5) ||
+		tiers[0] != "a" || tiers[1] != float64(2) || tiers[2] != nil || tiers[3] != 1.5 || link["url"] != "https://example.com" || link["expires"] != nil {
+		t.Fatalf("decoded %v %v", grant.BenefitMetadata, grant.Properties)
+	}
+}
+
 func TestAPostWithoutAKeyIsSentWithItsOwn(t *testing.T) {
 	var keys []string
 	client := server(t, func(w http.ResponseWriter, r *http.Request) {

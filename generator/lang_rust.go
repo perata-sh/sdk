@@ -1,6 +1,7 @@
 package generator
 
 import (
+	"sort"
 	"strings"
 	"text/template"
 	"unicode"
@@ -20,11 +21,21 @@ var rustKeywords = map[string]bool{
 func init() {
 	register(Language{Name: "rust", Funcs: template.FuncMap{
 		// quote writes a string literal, escaped the way rust reads it.
-		"quote":       rustQuote,
-		"rsName":      rsName,
-		"rsType":      rsType,
-		"rsArg":       rsArg,
-		"rsDoc":       rsDoc,
+		"quote":  rustQuote,
+		"rsName": rsName,
+		"rsType": rsType,
+		"rsArg":  rsArg,
+		"rsDoc":  rsDoc,
+		// rsWebhookNames are the event types a group is named by, in the order
+		// rustfmt sorts imports: BenefitGrant before Benefit.
+		"rsWebhookNames": func(groups []*WebhookGroup) []string {
+			names := make([]string, len(groups))
+			for i, group := range groups {
+				names[i] = group.Name + "WebhookEvent"
+			}
+			sort.Strings(names)
+			return names
+		},
 		"rsPath":      rsPath,
 		"rsPathOwned": rsPathOwned,
 		"rsEnums":     enumTypes,

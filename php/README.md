@@ -24,7 +24,7 @@ Um POST sem chave de idempotência é enviado com uma `Idempotency-Key` própria
 |---|---|
 | `$perata->checkouts` | `create` |
 | `$perata->customerSessions` | `create` |
-| `$perata->customers` | `create`, `get`, `list`, `listIter` |
+| `$perata->customers` | `create`, `get`, `getState`, `list`, `listIter` |
 | `$perata->orders` | `list`, `listIter` |
 | `$perata->paymentMethods` | `detach`, `list`, `listIter` |
 | `$perata->payments` | `get`, `list`, `listIter` |

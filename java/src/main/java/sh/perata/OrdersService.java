@@ -16,7 +16,7 @@ public final class OrdersService {
     }
 
     /**
-     * List orders: paid checkouts. One page; {@link #listIter} walks every page.
+     * Listar pedidos: checkouts pagos. One page; {@link #listIter} walks every page.
      * @param params the page, its size and the filters, or null
      * @param options options for this call, or null
      * @return the page
@@ -28,7 +28,7 @@ public final class OrdersService {
     }
 
     /**
-     * List orders: paid checkouts. One page.
+     * Listar pedidos: checkouts pagos. One page.
      * @param params the page, its size and the filters, or null
      * @return the page
      */
@@ -37,7 +37,7 @@ public final class OrdersService {
     }
 
     /**
-     * List orders: paid checkouts. The first page.
+     * Listar pedidos: checkouts pagos. The first page.
      * @return the page
      */
     public Page<Order> list() {

@@ -18,7 +18,7 @@ public sealed class RefundsService
 
     internal RefundsService(PerataClient client) => this.client = client;
 
-    /// <summary>Refund part or all of a payment.</summary>
+    /// <summary>Reembolsar parte ou todo um pagamento.</summary>
     /// <param name="parameters">The request.</param>
     /// <param name="options">An idempotency key, or another organization's key for this call.</param>
     /// <param name="cancellationToken">Cancels the call.</param>

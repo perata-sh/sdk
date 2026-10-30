@@ -9,7 +9,7 @@ module Perata
       @client = client
     end
 
-    # Create a checkout address for one product and price.
+    # Criar o endereço de um checkout para um produto e um preço.
     #
     # @param params [CheckoutsCreateParams, Hash]
     # @return [Checkout]
@@ -25,7 +25,7 @@ module Perata
       @client = client
     end
 
-    # Sign a customer into the customer portal: the address opens it already signed in.
+    # Entrar com um cliente no portal do cliente: o endereço o abre já autenticado.
     #
     # @param params [CustomerSessionsCreateParams, Hash]
     # @return [CustomerSession]
@@ -41,7 +41,7 @@ module Perata
       @client = client
     end
 
-    # Create a customer.
+    # Criar um cliente.
     #
     # @param params [CustomersCreateParams, Hash]
     # @return [Customer]
@@ -50,7 +50,7 @@ module Perata
       Customer.from_hash(data)
     end
 
-    # Read a customer.
+    # Ler um cliente.
     #
     # @return [Customer]
     def get(customer, api_key: nil)
@@ -58,7 +58,15 @@ module Perata
       Customer.from_hash(data)
     end
 
-    # List customers. One page; +list_iter+ walks every page.
+    # Ler o estado de um cliente: assinaturas ativas e benefícios vigentes, inclusive os feature flags.
+    #
+    # @return [CustomerState]
+    def get_state(customer, api_key: nil)
+      data = @client.request("GET", "/api/v1/customers/#{Perata.segment(customer)}/state", api_key: api_key)
+      CustomerState.from_hash(data)
+    end
+
+    # Listar clientes. One page; +list_iter+ walks every page.
     #
     # @return [Page<Customer>]
     def list(page: nil, limit: nil, api_key: nil)
@@ -84,7 +92,7 @@ module Perata
       @client = client
     end
 
-    # List orders: paid checkouts. One page; +list_iter+ walks every page.
+    # Listar pedidos: checkouts pagos. One page; +list_iter+ walks every page.
     #
     # @return [Page<Order>]
     def list(page: nil, limit: nil, api_key: nil)
@@ -110,7 +118,7 @@ module Perata
       @client = client
     end
 
-    # Stop charging a stored card; refused while an active subscription charges it.
+    # Parar de cobrar um cartão guardado; recusado enquanto uma assinatura ativa o cobra.
     #
     # @return [PaymentMethodDetached]
     def detach(payment_method, idempotency_key: nil, api_key: nil)
@@ -118,7 +126,7 @@ module Perata
       PaymentMethodDetached.from_hash(data)
     end
 
-    # List a customer's stored cards: brand, last four digits and expiry. One page; +list_iter+ walks every page.
+    # Listar os cartões guardados de um cliente: bandeira, quatro últimos dígitos e validade. One page; +list_iter+ walks every page.
     #
     # @return [Page<PaymentMethod>]
     def list(customer, page: nil, limit: nil, api_key: nil)
@@ -144,7 +152,7 @@ module Perata
       @client = client
     end
 
-    # Read a payment.
+    # Ler um pagamento.
     #
     # @return [Payment]
     def get(payment, api_key: nil)
@@ -152,7 +160,7 @@ module Perata
       Payment.from_hash(data)
     end
 
-    # List payments. One page; +list_iter+ walks every page.
+    # Listar pagamentos. One page; +list_iter+ walks every page.
     #
     # @return [Page<Payment>]
     def list(page: nil, limit: nil, api_key: nil)
@@ -178,7 +186,7 @@ module Perata
       @client = client
     end
 
-    # Create a BRL price, one-time or recurring.
+    # Criar um preço em reais, avulso ou recorrente.
     #
     # @param params [PricesCreateParams, Hash]
     # @return [Price]
@@ -187,7 +195,7 @@ module Perata
       Price.from_hash(data)
     end
 
-    # List prices, optionally of one product (product_id). One page; +list_iter+ walks every page.
+    # Listar preços, opcionalmente de um produto (product_id). One page; +list_iter+ walks every page.
     #
     # @return [Page<Price>]
     def list(page: nil, limit: nil, product_id: nil, api_key: nil)
@@ -213,7 +221,7 @@ module Perata
       @client = client
     end
 
-    # Create a product.
+    # Criar um produto.
     #
     # @param params [ProductsCreateParams, Hash]
     # @return [Product]
@@ -222,7 +230,7 @@ module Perata
       Product.from_hash(data)
     end
 
-    # Read a product.
+    # Ler um produto.
     #
     # @return [Product]
     def get(product, api_key: nil)
@@ -230,7 +238,7 @@ module Perata
       Product.from_hash(data)
     end
 
-    # List products. One page; +list_iter+ walks every page.
+    # Listar produtos. One page; +list_iter+ walks every page.
     #
     # @return [Page<Product>]
     def list(page: nil, limit: nil, api_key: nil)
@@ -256,7 +264,7 @@ module Perata
       @client = client
     end
 
-    # Refund part or all of a payment.
+    # Reembolsar parte ou todo um pagamento.
     #
     # @param params [RefundsCreateParams, Hash]
     # @return [Refund]
@@ -272,7 +280,7 @@ module Perata
       @client = client
     end
 
-    # Cancel a subscription, by default at the end of its period.
+    # Cancelar uma assinatura, por padrão no fim do período.
     #
     # @param params [SubscriptionsCancelParams, Hash]
     # @return [Subscription]
@@ -281,7 +289,7 @@ module Perata
       Subscription.from_hash(data)
     end
 
-    # Read a subscription.
+    # Ler uma assinatura.
     #
     # @return [Subscription]
     def get(subscription, api_key: nil)
@@ -289,7 +297,7 @@ module Perata
       Subscription.from_hash(data)
     end
 
-    # List subscriptions, optionally of one customer (customer_id). One page; +list_iter+ walks every page.
+    # Listar assinaturas, opcionalmente de um cliente (customer_id). One page; +list_iter+ walks every page.
     #
     # @return [Page<Subscription>]
     def list(page: nil, limit: nil, customer_id: nil, api_key: nil)

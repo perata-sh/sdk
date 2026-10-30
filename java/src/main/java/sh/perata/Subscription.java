@@ -28,11 +28,14 @@ public final class Subscription {
     private final String customerId;
     private final String id;
     private final String interval;
+    private final Map<String, Object> metadata;
     private final String priceId;
     private final String productId;
     private final String status;
+    private final String trialEnd;
+    private final String trialStart;
 
-    Subscription(long amountCents, boolean cancelAtPeriodEnd, String currency, String currentPeriodEnd, String currentPeriodStart, String customerId, String id, String interval, String priceId, String productId, String status) {
+    Subscription(long amountCents, boolean cancelAtPeriodEnd, String currency, String currentPeriodEnd, String currentPeriodStart, String customerId, String id, String interval, Map<String, Object> metadata, String priceId, String productId, String status, String trialEnd, String trialStart) {
         this.amountCents = amountCents;
         this.cancelAtPeriodEnd = cancelAtPeriodEnd;
         this.currency = currency;
@@ -41,9 +44,12 @@ public final class Subscription {
         this.customerId = customerId;
         this.id = id;
         this.interval = interval;
+        this.metadata = metadata;
         this.priceId = priceId;
         this.productId = productId;
         this.status = status;
+        this.trialEnd = trialEnd;
+        this.trialStart = trialStart;
     }
 
     static Subscription fromJson(Map<String, Object> data) {
@@ -56,9 +62,12 @@ public final class Subscription {
                 Json.required(data, "customer_id", Json::asString),
                 Json.required(data, "id", Json::asString),
                 Json.required(data, "interval", Json::asString),
+                Json.required(data, "metadata", Json.map(Json::any)),
                 Json.required(data, "price_id", Json::asString),
                 Json.required(data, "product_id", Json::asString),
-                Json.required(data, "status", Json::asString));
+                Json.required(data, "status", Json::asString),
+                Json.optional(data, "trial_end", Json::asString),
+                Json.optional(data, "trial_start", Json::asString));
     }
 
     /** @return the API's {@code amount_cents} */
@@ -101,6 +110,11 @@ public final class Subscription {
         return interval;
     }
 
+    /** @return Metadados do lojista: pares chave e valor (texto, número ou booleano); objeto vazio quando não há. */
+    public Map<String, Object> getMetadata() {
+        return metadata;
+    }
+
     /** @return the API's {@code price_id} */
     public String getPriceId() {
         return priceId;
@@ -116,8 +130,18 @@ public final class Subscription {
         return status;
     }
 
+    /** @return the API's {@code trial_end} (null when the API sends none) */
+    public String getTrialEnd() {
+        return trialEnd;
+    }
+
+    /** @return the API's {@code trial_start} (null when the API sends none) */
+    public String getTrialStart() {
+        return trialStart;
+    }
+
     @Override
     public String toString() {
-        return "Subscription{" + "amountCents=" + amountCents + ", cancelAtPeriodEnd=" + cancelAtPeriodEnd + ", currency=" + currency + ", currentPeriodEnd=" + currentPeriodEnd + ", currentPeriodStart=" + currentPeriodStart + ", customerId=" + customerId + ", id=" + id + ", interval=" + interval + ", priceId=" + priceId + ", productId=" + productId + ", status=" + status + "}";
+        return "Subscription{" + "amountCents=" + amountCents + ", cancelAtPeriodEnd=" + cancelAtPeriodEnd + ", currency=" + currency + ", currentPeriodEnd=" + currentPeriodEnd + ", currentPeriodStart=" + currentPeriodStart + ", customerId=" + customerId + ", id=" + id + ", interval=" + interval + ", metadata=" + metadata + ", priceId=" + priceId + ", productId=" + productId + ", status=" + status + ", trialEnd=" + trialEnd + ", trialStart=" + trialStart + "}";
     }
 }

@@ -18,7 +18,7 @@
         "tags": [
           "checkouts"
         ],
-        "summary": "Create a checkout address for one product and price",
+        "summary": "Criar o endereço de um checkout para um produto e um preço",
         "description": "Autenticação: chave de API da organização em Authorization: Bearer (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição. Respostas em JSON no envelope data; erros com error, message e fields.",
         "operationId": "checkouts:create",
         "parameters": [
@@ -107,7 +107,7 @@
             }
           },
           "409": {
-            "description": "Idempotency-Key reutilizada com outro corpo, ou estado que não permite a ação.",
+            "description": "Idempotency-Key reutilizada com outro corpo, requisição com a mesma chave ainda em andamento (idempotency_in_progress; respeite Retry-After) ou estado que não permite a ação.",
             "content": {
               "application/json": {
                 "schema": {
@@ -130,7 +130,7 @@
             "description": "Orçamento de requisições excedido; respeite Retry-After."
           },
           "500": {
-            "description": "Indisponível; repita com a mesma Idempotency-Key.",
+            "description": "Indisponível. Nada fica guardado sob a Idempotency-Key: repita com a mesma chave. Se ainda houver uma requisição com a chave em andamento, a resposta é 409 idempotency_in_progress.",
             "content": {
               "application/json": {
                 "schema": {
@@ -153,7 +153,7 @@
         "tags": [
           "customer-sessions"
         ],
-        "summary": "Sign a customer into the customer portal: the address opens it already signed in",
+        "summary": "Entrar com um cliente no portal do cliente: o endereço o abre já autenticado",
         "description": "Autenticação: chave de API da organização em Authorization: Bearer (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição. Respostas em JSON no envelope data; erros com error, message e fields.",
         "operationId": "customer-sessions:create",
         "parameters": [
@@ -174,6 +174,10 @@
                 "properties": {
                   "customer_id": {
                     "type": "string"
+                  },
+                  "return_url": {
+                    "type": "string",
+                    "description": "Optional https address of your app the portal offers to go back to."
                   }
                 },
                 "required": [
@@ -226,7 +230,7 @@
             }
           },
           "409": {
-            "description": "Idempotency-Key reutilizada com outro corpo, ou estado que não permite a ação.",
+            "description": "Idempotency-Key reutilizada com outro corpo, requisição com a mesma chave ainda em andamento (idempotency_in_progress; respeite Retry-After) ou estado que não permite a ação.",
             "content": {
               "application/json": {
                 "schema": {
@@ -249,7 +253,7 @@
             "description": "Orçamento de requisições excedido; respeite Retry-After."
           },
           "500": {
-            "description": "Indisponível; repita com a mesma Idempotency-Key.",
+            "description": "Indisponível. Nada fica guardado sob a Idempotency-Key: repita com a mesma chave. Se ainda houver uma requisição com a chave em andamento, a resposta é 409 idempotency_in_progress.",
             "content": {
               "application/json": {
                 "schema": {
@@ -272,14 +276,14 @@
         "tags": [
           "customers"
         ],
-        "summary": "List customers",
+        "summary": "Listar clientes",
         "description": "Autenticação: chave de API da organização em Authorization: Bearer (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição. Respostas em JSON no envelope data; erros com error, message e fields.",
         "operationId": "customers:list",
         "parameters": [
           {
             "name": "page",
             "in": "query",
-            "description": "Página, a partir de 1.",
+            "description": "Página, de 1 a 1000000; além da última a lista vem vazia.",
             "schema": {
               "type": "integer"
             }
@@ -348,7 +352,7 @@
             "description": "Orçamento de requisições excedido; respeite Retry-After."
           },
           "500": {
-            "description": "Indisponível; repita com a mesma Idempotency-Key.",
+            "description": "Indisponível. Nada fica guardado sob a Idempotency-Key: repita com a mesma chave. Se ainda houver uma requisição com a chave em andamento, a resposta é 409 idempotency_in_progress.",
             "content": {
               "application/json": {
                 "schema": {
@@ -373,7 +377,7 @@
         "tags": [
           "customers"
         ],
-        "summary": "Create a customer",
+        "summary": "Criar um cliente",
         "description": "Autenticação: chave de API da organização em Authorization: Bearer (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição. Respostas em JSON no envelope data; erros com error, message e fields.",
         "operationId": "customers:create",
         "parameters": [
@@ -453,7 +457,7 @@
             }
           },
           "409": {
-            "description": "Idempotency-Key reutilizada com outro corpo, ou estado que não permite a ação.",
+            "description": "Idempotency-Key reutilizada com outro corpo, requisição com a mesma chave ainda em andamento (idempotency_in_progress; respeite Retry-After) ou estado que não permite a ação.",
             "content": {
               "application/json": {
                 "schema": {
@@ -476,7 +480,7 @@
             "description": "Orçamento de requisições excedido; respeite Retry-After."
           },
           "500": {
-            "description": "Indisponível; repita com a mesma Idempotency-Key.",
+            "description": "Indisponível. Nada fica guardado sob a Idempotency-Key: repita com a mesma chave. Se ainda houver uma requisição com a chave em andamento, a resposta é 409 idempotency_in_progress.",
             "content": {
               "application/json": {
                 "schema": {
@@ -499,7 +503,7 @@
         "tags": [
           "customers"
         ],
-        "summary": "Read a customer",
+        "summary": "Ler um cliente",
         "description": "Autenticação: chave de API da organização em Authorization: Bearer (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição. Respostas em JSON no envelope data; erros com error, message e fields.",
         "operationId": "customers:get",
         "parameters": [
@@ -568,7 +572,7 @@
             "description": "Orçamento de requisições excedido; respeite Retry-After."
           },
           "500": {
-            "description": "Indisponível; repita com a mesma Idempotency-Key.",
+            "description": "Indisponível. Nada fica guardado sob a Idempotency-Key: repita com a mesma chave. Se ainda houver uma requisição com a chave em andamento, a resposta é 409 idempotency_in_progress.",
             "content": {
               "application/json": {
                 "schema": {
@@ -591,7 +595,7 @@
         "tags": [
           "payment_methods"
         ],
-        "summary": "List a customer's stored cards: brand, last four digits and expiry",
+        "summary": "Listar os cartões guardados de um cliente: bandeira, quatro últimos dígitos e validade",
         "description": "Autenticação: chave de API da organização em Authorization: Bearer (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição. Respostas em JSON no envelope data; erros com error, message e fields.",
         "operationId": "payment_methods:list",
         "parameters": [
@@ -607,7 +611,7 @@
           {
             "name": "page",
             "in": "query",
-            "description": "Página, a partir de 1.",
+            "description": "Página, de 1 a 1000000; além da última a lista vem vazia.",
             "schema": {
               "type": "integer"
             }
@@ -676,7 +680,7 @@
             "description": "Orçamento de requisições excedido; respeite Retry-After."
           },
           "500": {
-            "description": "Indisponível; repita com a mesma Idempotency-Key.",
+            "description": "Indisponível. Nada fica guardado sob a Idempotency-Key: repita com a mesma chave. Se ainda houver uma requisição com a chave em andamento, a resposta é 409 idempotency_in_progress.",
             "content": {
               "application/json": {
                 "schema": {
@@ -698,19 +702,111 @@
         }
       }
     },
+    "/api/v1/customers/{customer}/state": {
+      "get": {
+        "tags": [
+          "customers"
+        ],
+        "summary": "Ler o estado de um cliente: assinaturas ativas e benefícios vigentes, inclusive os feature flags",
+        "description": "Autenticação: chave de API da organização em Authorization: Bearer (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição. Respostas em JSON no envelope data; erros com error, message e fields.",
+        "operationId": "customers:get_state",
+        "parameters": [
+          {
+            "name": "customer",
+            "in": "path",
+            "description": "Identificador do recurso.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "O recurso no envelope data.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CustomerStateEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Chave ausente, inválida ou revogada.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "A chave é somente leitura ou quem a criou não tem mais acesso.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Recurso inexistente nesta organização e ambiente.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Campos inválidos; fields detalha cada um.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Orçamento de requisições excedido; respeite Retry-After."
+          },
+          "500": {
+            "description": "Indisponível. Nada fica guardado sob a Idempotency-Key: repita com a mesma chave. Se ainda houver uma requisição com a chave em andamento, a resposta é 409 idempotency_in_progress.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "apiKey": []
+          }
+        ],
+        "x-arandu-route-name": "api.customers.state"
+      }
+    },
     "/api/v1/orders": {
       "get": {
         "tags": [
           "orders"
         ],
-        "summary": "List orders: paid checkouts",
+        "summary": "Listar pedidos: checkouts pagos",
         "description": "Autenticação: chave de API da organização em Authorization: Bearer (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição. Respostas em JSON no envelope data; erros com error, message e fields.",
         "operationId": "orders:list",
         "parameters": [
           {
             "name": "page",
             "in": "query",
-            "description": "Página, a partir de 1.",
+            "description": "Página, de 1 a 1000000; além da última a lista vem vazia.",
             "schema": {
               "type": "integer"
             }
@@ -779,7 +875,7 @@
             "description": "Orçamento de requisições excedido; respeite Retry-After."
           },
           "500": {
-            "description": "Indisponível; repita com a mesma Idempotency-Key.",
+            "description": "Indisponível. Nada fica guardado sob a Idempotency-Key: repita com a mesma chave. Se ainda houver uma requisição com a chave em andamento, a resposta é 409 idempotency_in_progress.",
             "content": {
               "application/json": {
                 "schema": {
@@ -806,7 +902,7 @@
         "tags": [
           "payment_methods"
         ],
-        "summary": "Stop charging a stored card; refused while an active subscription charges it",
+        "summary": "Parar de cobrar um cartão guardado; recusado enquanto uma assinatura ativa o cobra",
         "description": "Autenticação: chave de API da organização em Authorization: Bearer (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição. Respostas em JSON no envelope data; erros com error, message e fields.",
         "operationId": "payment_methods:detach",
         "parameters": [
@@ -870,7 +966,7 @@
             }
           },
           "409": {
-            "description": "Idempotency-Key reutilizada com outro corpo, ou estado que não permite a ação.",
+            "description": "Idempotency-Key reutilizada com outro corpo, requisição com a mesma chave ainda em andamento (idempotency_in_progress; respeite Retry-After) ou estado que não permite a ação.",
             "content": {
               "application/json": {
                 "schema": {
@@ -893,7 +989,7 @@
             "description": "Orçamento de requisições excedido; respeite Retry-After."
           },
           "500": {
-            "description": "Indisponível; repita com a mesma Idempotency-Key.",
+            "description": "Indisponível. Nada fica guardado sob a Idempotency-Key: repita com a mesma chave. Se ainda houver uma requisição com a chave em andamento, a resposta é 409 idempotency_in_progress.",
             "content": {
               "application/json": {
                 "schema": {
@@ -916,14 +1012,14 @@
         "tags": [
           "payments"
         ],
-        "summary": "List payments",
+        "summary": "Listar pagamentos",
         "description": "Autenticação: chave de API da organização em Authorization: Bearer (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição. Respostas em JSON no envelope data; erros com error, message e fields.",
         "operationId": "payments:list",
         "parameters": [
           {
             "name": "page",
             "in": "query",
-            "description": "Página, a partir de 1.",
+            "description": "Página, de 1 a 1000000; além da última a lista vem vazia.",
             "schema": {
               "type": "integer"
             }
@@ -992,7 +1088,7 @@
             "description": "Orçamento de requisições excedido; respeite Retry-After."
           },
           "500": {
-            "description": "Indisponível; repita com a mesma Idempotency-Key.",
+            "description": "Indisponível. Nada fica guardado sob a Idempotency-Key: repita com a mesma chave. Se ainda houver uma requisição com a chave em andamento, a resposta é 409 idempotency_in_progress.",
             "content": {
               "application/json": {
                 "schema": {
@@ -1019,7 +1115,7 @@
         "tags": [
           "payments"
         ],
-        "summary": "Read a payment",
+        "summary": "Ler um pagamento",
         "description": "Autenticação: chave de API da organização em Authorization: Bearer (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição. Respostas em JSON no envelope data; erros com error, message e fields.",
         "operationId": "payments:get",
         "parameters": [
@@ -1088,7 +1184,7 @@
             "description": "Orçamento de requisições excedido; respeite Retry-After."
           },
           "500": {
-            "description": "Indisponível; repita com a mesma Idempotency-Key.",
+            "description": "Indisponível. Nada fica guardado sob a Idempotency-Key: repita com a mesma chave. Se ainda houver uma requisição com a chave em andamento, a resposta é 409 idempotency_in_progress.",
             "content": {
               "application/json": {
                 "schema": {
@@ -1111,7 +1207,7 @@
         "tags": [
           "prices"
         ],
-        "summary": "List prices, optionally of one product (product_id)",
+        "summary": "Listar preços, opcionalmente de um produto (product_id)",
         "description": "Autenticação: chave de API da organização em Authorization: Bearer (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição. Respostas em JSON no envelope data; erros com error, message e fields.",
         "operationId": "prices:list",
         "parameters": [
@@ -1126,7 +1222,7 @@
           {
             "name": "page",
             "in": "query",
-            "description": "Página, a partir de 1.",
+            "description": "Página, de 1 a 1000000; além da última a lista vem vazia.",
             "schema": {
               "type": "integer"
             }
@@ -1195,7 +1291,7 @@
             "description": "Orçamento de requisições excedido; respeite Retry-After."
           },
           "500": {
-            "description": "Indisponível; repita com a mesma Idempotency-Key.",
+            "description": "Indisponível. Nada fica guardado sob a Idempotency-Key: repita com a mesma chave. Se ainda houver uma requisição com a chave em andamento, a resposta é 409 idempotency_in_progress.",
             "content": {
               "application/json": {
                 "schema": {
@@ -1220,7 +1316,7 @@
         "tags": [
           "prices"
         ],
-        "summary": "Create a BRL price, one-time or recurring",
+        "summary": "Criar um preço em reais, avulso ou recorrente",
         "description": "Autenticação: chave de API da organização em Authorization: Bearer (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição. Respostas em JSON no envelope data; erros com error, message e fields.",
         "operationId": "prices:create",
         "parameters": [
@@ -1312,7 +1408,7 @@
             }
           },
           "409": {
-            "description": "Idempotency-Key reutilizada com outro corpo, ou estado que não permite a ação.",
+            "description": "Idempotency-Key reutilizada com outro corpo, requisição com a mesma chave ainda em andamento (idempotency_in_progress; respeite Retry-After) ou estado que não permite a ação.",
             "content": {
               "application/json": {
                 "schema": {
@@ -1335,7 +1431,7 @@
             "description": "Orçamento de requisições excedido; respeite Retry-After."
           },
           "500": {
-            "description": "Indisponível; repita com a mesma Idempotency-Key.",
+            "description": "Indisponível. Nada fica guardado sob a Idempotency-Key: repita com a mesma chave. Se ainda houver uma requisição com a chave em andamento, a resposta é 409 idempotency_in_progress.",
             "content": {
               "application/json": {
                 "schema": {
@@ -1358,14 +1454,14 @@
         "tags": [
           "products"
         ],
-        "summary": "List products",
+        "summary": "Listar produtos",
         "description": "Autenticação: chave de API da organização em Authorization: Bearer (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição. Respostas em JSON no envelope data; erros com error, message e fields.",
         "operationId": "products:list",
         "parameters": [
           {
             "name": "page",
             "in": "query",
-            "description": "Página, a partir de 1.",
+            "description": "Página, de 1 a 1000000; além da última a lista vem vazia.",
             "schema": {
               "type": "integer"
             }
@@ -1434,7 +1530,7 @@
             "description": "Orçamento de requisições excedido; respeite Retry-After."
           },
           "500": {
-            "description": "Indisponível; repita com a mesma Idempotency-Key.",
+            "description": "Indisponível. Nada fica guardado sob a Idempotency-Key: repita com a mesma chave. Se ainda houver uma requisição com a chave em andamento, a resposta é 409 idempotency_in_progress.",
             "content": {
               "application/json": {
                 "schema": {
@@ -1459,7 +1555,7 @@
         "tags": [
           "products"
         ],
-        "summary": "Create a product",
+        "summary": "Criar um produto",
         "description": "Autenticação: chave de API da organização em Authorization: Bearer (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição. Respostas em JSON no envelope data; erros com error, message e fields.",
         "operationId": "products:create",
         "parameters": [
@@ -1535,7 +1631,7 @@
             }
           },
           "409": {
-            "description": "Idempotency-Key reutilizada com outro corpo, ou estado que não permite a ação.",
+            "description": "Idempotency-Key reutilizada com outro corpo, requisição com a mesma chave ainda em andamento (idempotency_in_progress; respeite Retry-After) ou estado que não permite a ação.",
             "content": {
               "application/json": {
                 "schema": {
@@ -1558,7 +1654,7 @@
             "description": "Orçamento de requisições excedido; respeite Retry-After."
           },
           "500": {
-            "description": "Indisponível; repita com a mesma Idempotency-Key.",
+            "description": "Indisponível. Nada fica guardado sob a Idempotency-Key: repita com a mesma chave. Se ainda houver uma requisição com a chave em andamento, a resposta é 409 idempotency_in_progress.",
             "content": {
               "application/json": {
                 "schema": {
@@ -1581,7 +1677,7 @@
         "tags": [
           "products"
         ],
-        "summary": "Read a product",
+        "summary": "Ler um produto",
         "description": "Autenticação: chave de API da organização em Authorization: Bearer (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição. Respostas em JSON no envelope data; erros com error, message e fields.",
         "operationId": "products:get",
         "parameters": [
@@ -1650,7 +1746,7 @@
             "description": "Orçamento de requisições excedido; respeite Retry-After."
           },
           "500": {
-            "description": "Indisponível; repita com a mesma Idempotency-Key.",
+            "description": "Indisponível. Nada fica guardado sob a Idempotency-Key: repita com a mesma chave. Se ainda houver uma requisição com a chave em andamento, a resposta é 409 idempotency_in_progress.",
             "content": {
               "application/json": {
                 "schema": {
@@ -1673,7 +1769,7 @@
         "tags": [
           "refunds"
         ],
-        "summary": "Refund part or all of a payment",
+        "summary": "Reembolsar parte ou todo um pagamento",
         "description": "Autenticação: chave de API da organização em Authorization: Bearer (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição. Respostas em JSON no envelope data; erros com error, message e fields.",
         "operationId": "refunds:create",
         "parameters": [
@@ -1765,7 +1861,7 @@
             }
           },
           "409": {
-            "description": "Idempotency-Key reutilizada com outro corpo, ou estado que não permite a ação.",
+            "description": "Idempotency-Key reutilizada com outro corpo, requisição com a mesma chave ainda em andamento (idempotency_in_progress; respeite Retry-After) ou estado que não permite a ação.",
             "content": {
               "application/json": {
                 "schema": {
@@ -1788,7 +1884,7 @@
             "description": "Orçamento de requisições excedido; respeite Retry-After."
           },
           "500": {
-            "description": "Indisponível; repita com a mesma Idempotency-Key.",
+            "description": "Indisponível. Nada fica guardado sob a Idempotency-Key: repita com a mesma chave. Se ainda houver uma requisição com a chave em andamento, a resposta é 409 idempotency_in_progress.",
             "content": {
               "application/json": {
                 "schema": {
@@ -1811,7 +1907,7 @@
         "tags": [
           "subscriptions"
         ],
-        "summary": "List subscriptions, optionally of one customer (customer_id)",
+        "summary": "Listar assinaturas, opcionalmente de um cliente (customer_id)",
         "description": "Autenticação: chave de API da organização em Authorization: Bearer (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição. Respostas em JSON no envelope data; erros com error, message e fields.",
         "operationId": "subscriptions:list",
         "parameters": [
@@ -1826,7 +1922,7 @@
           {
             "name": "page",
             "in": "query",
-            "description": "Página, a partir de 1.",
+            "description": "Página, de 1 a 1000000; além da última a lista vem vazia.",
             "schema": {
               "type": "integer"
             }
@@ -1895,7 +1991,7 @@
             "description": "Orçamento de requisições excedido; respeite Retry-After."
           },
           "500": {
-            "description": "Indisponível; repita com a mesma Idempotency-Key.",
+            "description": "Indisponível. Nada fica guardado sob a Idempotency-Key: repita com a mesma chave. Se ainda houver uma requisição com a chave em andamento, a resposta é 409 idempotency_in_progress.",
             "content": {
               "application/json": {
                 "schema": {
@@ -1922,7 +2018,7 @@
         "tags": [
           "subscriptions"
         ],
-        "summary": "Read a subscription",
+        "summary": "Ler uma assinatura",
         "description": "Autenticação: chave de API da organização em Authorization: Bearer (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição. Respostas em JSON no envelope data; erros com error, message e fields.",
         "operationId": "subscriptions:get",
         "parameters": [
@@ -1991,7 +2087,7 @@
             "description": "Orçamento de requisições excedido; respeite Retry-After."
           },
           "500": {
-            "description": "Indisponível; repita com a mesma Idempotency-Key.",
+            "description": "Indisponível. Nada fica guardado sob a Idempotency-Key: repita com a mesma chave. Se ainda houver uma requisição com a chave em andamento, a resposta é 409 idempotency_in_progress.",
             "content": {
               "application/json": {
                 "schema": {
@@ -2014,7 +2110,7 @@
         "tags": [
           "subscriptions"
         ],
-        "summary": "Cancel a subscription, by default at the end of its period",
+        "summary": "Cancelar uma assinatura, por padrão no fim do período",
         "description": "Autenticação: chave de API da organização em Authorization: Bearer (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição. Respostas em JSON no envelope data; erros com error, message e fields.",
         "operationId": "subscriptions:cancel",
         "parameters": [
@@ -2096,7 +2192,7 @@
             }
           },
           "409": {
-            "description": "Idempotency-Key reutilizada com outro corpo, ou estado que não permite a ação.",
+            "description": "Idempotency-Key reutilizada com outro corpo, requisição com a mesma chave ainda em andamento (idempotency_in_progress; respeite Retry-After) ou estado que não permite a ação.",
             "content": {
               "application/json": {
                 "schema": {
@@ -2119,7 +2215,7 @@
             "description": "Orçamento de requisições excedido; respeite Retry-After."
           },
           "500": {
-            "description": "Indisponível; repita com a mesma Idempotency-Key.",
+            "description": "Indisponível. Nada fica guardado sob a Idempotency-Key: repita com a mesma chave. Se ainda houver uma requisição com a chave em andamento, a resposta é 409 idempotency_in_progress.",
             "content": {
               "application/json": {
                 "schema": {
@@ -2174,7 +2270,7 @@
                         },
                         "_cost": {
                           "type": "object",
-                          "description": "Opcional. O custo de atender o evento para o vendedor, como o metadata._cost do Polar; alimenta Análises › Custos e as margens.",
+                          "description": "Opcional. O custo de atender o evento para o vendedor, em metadata._cost; alimenta Análises › Custos e as margens.",
                           "properties": {
                             "amount": {
                               "type": "string",
@@ -2197,7 +2293,7 @@
                         },
                         "_llm": {
                           "type": "object",
-                          "description": "Opcional. O modelo e o fornecedor que atenderam o evento, como o metadata._llm do Polar; os contadores continuam nos campos de tokens.",
+                          "description": "Opcional. O modelo e o fornecedor que atenderam o evento, em metadata._llm; os contadores continuam nos campos de tokens.",
                           "properties": {
                             "vendor": {
                               "type": "string",
@@ -2218,7 +2314,7 @@
                         },
                         "parent_id": {
                           "type": "string",
-                          "description": "Opcional. O evento pai, pelo id do Peráta ou pelo external_event_id que a mesma fonte enviou; o pai precisa chegar antes, inclusive antes no mesmo lote."
+                          "description": "Opcional. O evento pai, pelo id da Peráta ou pelo external_event_id que a mesma fonte enviou; o pai precisa chegar antes, inclusive antes no mesmo lote."
                         }
                       },
                       "required": [
@@ -2358,7 +2454,7 @@
         "tags": [
           "webhooks"
         ],
-        "summary": "Evento da Peráta; data traz os identificadores.",
+        "summary": "Evento da Peráta; data traz o objeto.",
         "description": "Enviado por POST ao endpoint assinante, no padrão Standard Webhooks: cabeçalhos webhook-id, webhook-timestamp e webhook-signature (HMAC-SHA256 de \"{id}.{timestamp}.{corpo}\" com o segredo whsec_). Responda 2xx; outra resposta é repetida em 30 s, 5 min, 30 min, 2 h, 5 h e 10 h.",
         "operationId": "webhooks:benefit.created",
         "requestBody": {
@@ -2367,7 +2463,7 @@
               "schema": {
                 "properties": {
                   "data": {
-                    "$ref": "#/components/schemas/WebhookIdentifiers"
+                    "$ref": "#/components/schemas/WebhookBenefit"
                   },
                   "id": {
                     "description": "Identificador da mensagem, igual ao cabeçalho webhook-id.",
@@ -2408,7 +2504,7 @@
         "tags": [
           "webhooks"
         ],
-        "summary": "Evento da Peráta; data traz os identificadores.",
+        "summary": "Evento da Peráta; data traz o objeto.",
         "description": "Enviado por POST ao endpoint assinante, no padrão Standard Webhooks: cabeçalhos webhook-id, webhook-timestamp e webhook-signature (HMAC-SHA256 de \"{id}.{timestamp}.{corpo}\" com o segredo whsec_). Responda 2xx; outra resposta é repetida em 30 s, 5 min, 30 min, 2 h, 5 h e 10 h.",
         "operationId": "webhooks:benefit.updated",
         "requestBody": {
@@ -2417,7 +2513,7 @@
               "schema": {
                 "properties": {
                   "data": {
-                    "$ref": "#/components/schemas/WebhookIdentifiers"
+                    "$ref": "#/components/schemas/WebhookBenefit"
                   },
                   "id": {
                     "description": "Identificador da mensagem, igual ao cabeçalho webhook-id.",
@@ -2509,7 +2605,7 @@
         "tags": [
           "webhooks"
         ],
-        "summary": "Evento do Polar; data traz o objeto.",
+        "summary": "Evento da Peráta; data traz o objeto.",
         "description": "Enviado por POST ao endpoint assinante, no padrão Standard Webhooks: cabeçalhos webhook-id, webhook-timestamp e webhook-signature (HMAC-SHA256 de \"{id}.{timestamp}.{corpo}\" com o segredo whsec_). Responda 2xx; outra resposta é repetida em 30 s, 5 min, 30 min, 2 h, 5 h e 10 h.",
         "operationId": "webhooks:benefit_grant.created",
         "requestBody": {
@@ -2559,7 +2655,7 @@
         "tags": [
           "webhooks"
         ],
-        "summary": "Evento do Polar; data traz o objeto.",
+        "summary": "Evento da Peráta; data traz o objeto.",
         "description": "Enviado por POST ao endpoint assinante, no padrão Standard Webhooks: cabeçalhos webhook-id, webhook-timestamp e webhook-signature (HMAC-SHA256 de \"{id}.{timestamp}.{corpo}\" com o segredo whsec_). Responda 2xx; outra resposta é repetida em 30 s, 5 min, 30 min, 2 h, 5 h e 10 h.",
         "operationId": "webhooks:benefit_grant.revoked",
         "requestBody": {
@@ -2609,7 +2705,7 @@
         "tags": [
           "webhooks"
         ],
-        "summary": "Evento do Polar; data traz o objeto.",
+        "summary": "Evento da Peráta; data traz o objeto.",
         "description": "Enviado por POST ao endpoint assinante, no padrão Standard Webhooks: cabeçalhos webhook-id, webhook-timestamp e webhook-signature (HMAC-SHA256 de \"{id}.{timestamp}.{corpo}\" com o segredo whsec_). Responda 2xx; outra resposta é repetida em 30 s, 5 min, 30 min, 2 h, 5 h e 10 h.",
         "operationId": "webhooks:benefit_grant.updated",
         "requestBody": {
@@ -2759,7 +2855,7 @@
         "tags": [
           "webhooks"
         ],
-        "summary": "Evento do Polar; data traz o objeto.",
+        "summary": "Evento da Peráta; data traz o objeto.",
         "description": "Enviado por POST ao endpoint assinante, no padrão Standard Webhooks: cabeçalhos webhook-id, webhook-timestamp e webhook-signature (HMAC-SHA256 de \"{id}.{timestamp}.{corpo}\" com o segredo whsec_). Responda 2xx; outra resposta é repetida em 30 s, 5 min, 30 min, 2 h, 5 h e 10 h.",
         "operationId": "webhooks:checkout.created",
         "requestBody": {
@@ -2809,7 +2905,7 @@
         "tags": [
           "webhooks"
         ],
-        "summary": "Evento do Polar; data traz o objeto.",
+        "summary": "Evento da Peráta; data traz o objeto.",
         "description": "Enviado por POST ao endpoint assinante, no padrão Standard Webhooks: cabeçalhos webhook-id, webhook-timestamp e webhook-signature (HMAC-SHA256 de \"{id}.{timestamp}.{corpo}\" com o segredo whsec_). Responda 2xx; outra resposta é repetida em 30 s, 5 min, 30 min, 2 h, 5 h e 10 h.",
         "operationId": "webhooks:checkout.expired",
         "requestBody": {
@@ -2859,7 +2955,7 @@
         "tags": [
           "webhooks"
         ],
-        "summary": "Evento do Polar; data traz o objeto.",
+        "summary": "Evento da Peráta; data traz o objeto.",
         "description": "Enviado por POST ao endpoint assinante, no padrão Standard Webhooks: cabeçalhos webhook-id, webhook-timestamp e webhook-signature (HMAC-SHA256 de \"{id}.{timestamp}.{corpo}\" com o segredo whsec_). Responda 2xx; outra resposta é repetida em 30 s, 5 min, 30 min, 2 h, 5 h e 10 h.",
         "operationId": "webhooks:checkout.updated",
         "requestBody": {
@@ -3610,7 +3706,7 @@
         "tags": [
           "webhooks"
         ],
-        "summary": "Evento do Polar; data traz o objeto.",
+        "summary": "Evento da Peráta; data traz o objeto.",
         "description": "Enviado por POST ao endpoint assinante, no padrão Standard Webhooks: cabeçalhos webhook-id, webhook-timestamp e webhook-signature (HMAC-SHA256 de \"{id}.{timestamp}.{corpo}\" com o segredo whsec_). Responda 2xx; outra resposta é repetida em 30 s, 5 min, 30 min, 2 h, 5 h e 10 h.",
         "operationId": "webhooks:customer.created",
         "requestBody": {
@@ -3660,7 +3756,7 @@
         "tags": [
           "webhooks"
         ],
-        "summary": "Evento do Polar; data traz o objeto.",
+        "summary": "Evento da Peráta; data traz o objeto.",
         "description": "Enviado por POST ao endpoint assinante, no padrão Standard Webhooks: cabeçalhos webhook-id, webhook-timestamp e webhook-signature (HMAC-SHA256 de \"{id}.{timestamp}.{corpo}\" com o segredo whsec_). Responda 2xx; outra resposta é repetida em 30 s, 5 min, 30 min, 2 h, 5 h e 10 h.",
         "operationId": "webhooks:customer.deleted",
         "requestBody": {
@@ -3710,7 +3806,7 @@
         "tags": [
           "webhooks"
         ],
-        "summary": "Evento do Polar; data traz o objeto.",
+        "summary": "Evento da Peráta; data traz o objeto.",
         "description": "Enviado por POST ao endpoint assinante, no padrão Standard Webhooks: cabeçalhos webhook-id, webhook-timestamp e webhook-signature (HMAC-SHA256 de \"{id}.{timestamp}.{corpo}\" com o segredo whsec_). Responda 2xx; outra resposta é repetida em 30 s, 5 min, 30 min, 2 h, 5 h e 10 h.",
         "operationId": "webhooks:customer.updated",
         "requestBody": {
@@ -3760,7 +3856,7 @@
         "tags": [
           "webhooks"
         ],
-        "summary": "Evento da Peráta; data traz os identificadores.",
+        "summary": "Evento da Peráta; data traz o objeto.",
         "description": "Enviado por POST ao endpoint assinante, no padrão Standard Webhooks: cabeçalhos webhook-id, webhook-timestamp e webhook-signature (HMAC-SHA256 de \"{id}.{timestamp}.{corpo}\" com o segredo whsec_). Responda 2xx; outra resposta é repetida em 30 s, 5 min, 30 min, 2 h, 5 h e 10 h.",
         "operationId": "webhooks:discount.created",
         "requestBody": {
@@ -3769,7 +3865,7 @@
               "schema": {
                 "properties": {
                   "data": {
-                    "$ref": "#/components/schemas/WebhookIdentifiers"
+                    "$ref": "#/components/schemas/WebhookDiscount"
                   },
                   "id": {
                     "description": "Identificador da mensagem, igual ao cabeçalho webhook-id.",
@@ -3810,7 +3906,7 @@
         "tags": [
           "webhooks"
         ],
-        "summary": "Evento da Peráta; data traz os identificadores.",
+        "summary": "Evento da Peráta; data traz o objeto.",
         "description": "Enviado por POST ao endpoint assinante, no padrão Standard Webhooks: cabeçalhos webhook-id, webhook-timestamp e webhook-signature (HMAC-SHA256 de \"{id}.{timestamp}.{corpo}\" com o segredo whsec_). Responda 2xx; outra resposta é repetida em 30 s, 5 min, 30 min, 2 h, 5 h e 10 h.",
         "operationId": "webhooks:discount.deleted",
         "requestBody": {
@@ -3819,7 +3915,7 @@
               "schema": {
                 "properties": {
                   "data": {
-                    "$ref": "#/components/schemas/WebhookIdentifiers"
+                    "$ref": "#/components/schemas/WebhookDiscount"
                   },
                   "id": {
                     "description": "Identificador da mensagem, igual ao cabeçalho webhook-id.",
@@ -4060,7 +4156,7 @@
         "tags": [
           "webhooks"
         ],
-        "summary": "Evento da Peráta; data traz os identificadores.",
+        "summary": "Evento da Peráta; data traz o objeto.",
         "description": "Enviado por POST ao endpoint assinante, no padrão Standard Webhooks: cabeçalhos webhook-id, webhook-timestamp e webhook-signature (HMAC-SHA256 de \"{id}.{timestamp}.{corpo}\" com o segredo whsec_). Responda 2xx; outra resposta é repetida em 30 s, 5 min, 30 min, 2 h, 5 h e 10 h.",
         "operationId": "webhooks:discount.updated",
         "requestBody": {
@@ -4069,7 +4165,7 @@
               "schema": {
                 "properties": {
                   "data": {
-                    "$ref": "#/components/schemas/WebhookIdentifiers"
+                    "$ref": "#/components/schemas/WebhookDiscount"
                   },
                   "id": {
                     "description": "Identificador da mensagem, igual ao cabeçalho webhook-id.",
@@ -4160,7 +4256,7 @@
         "tags": [
           "webhooks"
         ],
-        "summary": "Evento da Peráta no formato do Polar, que não tem webhooks de disputa; data traz a disputa.",
+        "summary": "Evento da Peráta; data traz a disputa.",
         "description": "Enviado por POST ao endpoint assinante, no padrão Standard Webhooks: cabeçalhos webhook-id, webhook-timestamp e webhook-signature (HMAC-SHA256 de \"{id}.{timestamp}.{corpo}\" com o segredo whsec_). Responda 2xx; outra resposta é repetida em 30 s, 5 min, 30 min, 2 h, 5 h e 10 h.",
         "operationId": "webhooks:dispute.lost",
         "requestBody": {
@@ -4210,7 +4306,7 @@
         "tags": [
           "webhooks"
         ],
-        "summary": "Evento da Peráta no formato do Polar, que não tem webhooks de disputa; data traz a disputa.",
+        "summary": "Evento da Peráta; data traz a disputa.",
         "description": "Enviado por POST ao endpoint assinante, no padrão Standard Webhooks: cabeçalhos webhook-id, webhook-timestamp e webhook-signature (HMAC-SHA256 de \"{id}.{timestamp}.{corpo}\" com o segredo whsec_). Responda 2xx; outra resposta é repetida em 30 s, 5 min, 30 min, 2 h, 5 h e 10 h.",
         "operationId": "webhooks:dispute.opened",
         "requestBody": {
@@ -4260,7 +4356,7 @@
         "tags": [
           "webhooks"
         ],
-        "summary": "Evento da Peráta no formato do Polar, que não tem webhooks de disputa; data traz a disputa.",
+        "summary": "Evento da Peráta; data traz a disputa.",
         "description": "Enviado por POST ao endpoint assinante, no padrão Standard Webhooks: cabeçalhos webhook-id, webhook-timestamp e webhook-signature (HMAC-SHA256 de \"{id}.{timestamp}.{corpo}\" com o segredo whsec_). Responda 2xx; outra resposta é repetida em 30 s, 5 min, 30 min, 2 h, 5 h e 10 h.",
         "operationId": "webhooks:dispute.won",
         "requestBody": {
@@ -4560,7 +4656,7 @@
         "tags": [
           "webhooks"
         ],
-        "summary": "Evento do Polar; data traz o objeto.",
+        "summary": "Evento da Peráta; data traz o objeto.",
         "description": "Enviado por POST ao endpoint assinante, no padrão Standard Webhooks: cabeçalhos webhook-id, webhook-timestamp e webhook-signature (HMAC-SHA256 de \"{id}.{timestamp}.{corpo}\" com o segredo whsec_). Responda 2xx; outra resposta é repetida em 30 s, 5 min, 30 min, 2 h, 5 h e 10 h.",
         "operationId": "webhooks:order.created",
         "requestBody": {
@@ -4610,7 +4706,7 @@
         "tags": [
           "webhooks"
         ],
-        "summary": "Evento do Polar; data traz o objeto.",
+        "summary": "Evento da Peráta; data traz o objeto.",
         "description": "Enviado por POST ao endpoint assinante, no padrão Standard Webhooks: cabeçalhos webhook-id, webhook-timestamp e webhook-signature (HMAC-SHA256 de \"{id}.{timestamp}.{corpo}\" com o segredo whsec_). Responda 2xx; outra resposta é repetida em 30 s, 5 min, 30 min, 2 h, 5 h e 10 h.",
         "operationId": "webhooks:order.paid",
         "requestBody": {
@@ -4660,7 +4756,7 @@
         "tags": [
           "webhooks"
         ],
-        "summary": "Evento do Polar; data traz o objeto.",
+        "summary": "Evento da Peráta; data traz o objeto.",
         "description": "Enviado por POST ao endpoint assinante, no padrão Standard Webhooks: cabeçalhos webhook-id, webhook-timestamp e webhook-signature (HMAC-SHA256 de \"{id}.{timestamp}.{corpo}\" com o segredo whsec_). Responda 2xx; outra resposta é repetida em 30 s, 5 min, 30 min, 2 h, 5 h e 10 h.",
         "operationId": "webhooks:order.refunded",
         "requestBody": {
@@ -4710,7 +4806,7 @@
         "tags": [
           "webhooks"
         ],
-        "summary": "Evento do Polar; data traz o objeto.",
+        "summary": "Evento da Peráta; data traz o objeto.",
         "description": "Enviado por POST ao endpoint assinante, no padrão Standard Webhooks: cabeçalhos webhook-id, webhook-timestamp e webhook-signature (HMAC-SHA256 de \"{id}.{timestamp}.{corpo}\" com o segredo whsec_). Responda 2xx; outra resposta é repetida em 30 s, 5 min, 30 min, 2 h, 5 h e 10 h.",
         "operationId": "webhooks:order.updated",
         "requestBody": {
@@ -4910,7 +5006,7 @@
         "tags": [
           "webhooks"
         ],
-        "summary": "Evento da Peráta; data traz os identificadores.",
+        "summary": "Evento da Peráta; data traz o objeto.",
         "description": "Enviado por POST ao endpoint assinante, no padrão Standard Webhooks: cabeçalhos webhook-id, webhook-timestamp e webhook-signature (HMAC-SHA256 de \"{id}.{timestamp}.{corpo}\" com o segredo whsec_). Responda 2xx; outra resposta é repetida em 30 s, 5 min, 30 min, 2 h, 5 h e 10 h.",
         "operationId": "webhooks:product.created",
         "requestBody": {
@@ -4919,7 +5015,7 @@
               "schema": {
                 "properties": {
                   "data": {
-                    "$ref": "#/components/schemas/WebhookIdentifiers"
+                    "$ref": "#/components/schemas/Product"
                   },
                   "id": {
                     "description": "Identificador da mensagem, igual ao cabeçalho webhook-id.",
@@ -4960,7 +5056,7 @@
         "tags": [
           "webhooks"
         ],
-        "summary": "Evento da Peráta; data traz os identificadores.",
+        "summary": "Evento da Peráta; data traz o objeto.",
         "description": "Enviado por POST ao endpoint assinante, no padrão Standard Webhooks: cabeçalhos webhook-id, webhook-timestamp e webhook-signature (HMAC-SHA256 de \"{id}.{timestamp}.{corpo}\" com o segredo whsec_). Responda 2xx; outra resposta é repetida em 30 s, 5 min, 30 min, 2 h, 5 h e 10 h.",
         "operationId": "webhooks:product.updated",
         "requestBody": {
@@ -4969,7 +5065,7 @@
               "schema": {
                 "properties": {
                   "data": {
-                    "$ref": "#/components/schemas/WebhookIdentifiers"
+                    "$ref": "#/components/schemas/Product"
                   },
                   "id": {
                     "description": "Identificador da mensagem, igual ao cabeçalho webhook-id.",
@@ -5060,7 +5156,7 @@
         "tags": [
           "webhooks"
         ],
-        "summary": "Evento do Polar; data traz o objeto.",
+        "summary": "Evento da Peráta; data traz o objeto.",
         "description": "Enviado por POST ao endpoint assinante, no padrão Standard Webhooks: cabeçalhos webhook-id, webhook-timestamp e webhook-signature (HMAC-SHA256 de \"{id}.{timestamp}.{corpo}\" com o segredo whsec_). Responda 2xx; outra resposta é repetida em 30 s, 5 min, 30 min, 2 h, 5 h e 10 h.",
         "operationId": "webhooks:refund.created",
         "requestBody": {
@@ -5260,7 +5356,7 @@
         "tags": [
           "webhooks"
         ],
-        "summary": "Evento do Polar; data traz o objeto.",
+        "summary": "Evento da Peráta; data traz o objeto.",
         "description": "Enviado por POST ao endpoint assinante, no padrão Standard Webhooks: cabeçalhos webhook-id, webhook-timestamp e webhook-signature (HMAC-SHA256 de \"{id}.{timestamp}.{corpo}\" com o segredo whsec_). Responda 2xx; outra resposta é repetida em 30 s, 5 min, 30 min, 2 h, 5 h e 10 h.",
         "operationId": "webhooks:refund.updated",
         "requestBody": {
@@ -5560,7 +5656,7 @@
         "tags": [
           "webhooks"
         ],
-        "summary": "Evento do Polar; data traz o objeto.",
+        "summary": "Evento da Peráta; data traz o objeto.",
         "description": "Enviado por POST ao endpoint assinante, no padrão Standard Webhooks: cabeçalhos webhook-id, webhook-timestamp e webhook-signature (HMAC-SHA256 de \"{id}.{timestamp}.{corpo}\" com o segredo whsec_). Responda 2xx; outra resposta é repetida em 30 s, 5 min, 30 min, 2 h, 5 h e 10 h.",
         "operationId": "webhooks:subscription.active",
         "requestBody": {
@@ -5610,7 +5706,7 @@
         "tags": [
           "webhooks"
         ],
-        "summary": "Evento do Polar; data traz o objeto.",
+        "summary": "Evento da Peráta; data traz o objeto.",
         "description": "Enviado por POST ao endpoint assinante, no padrão Standard Webhooks: cabeçalhos webhook-id, webhook-timestamp e webhook-signature (HMAC-SHA256 de \"{id}.{timestamp}.{corpo}\" com o segredo whsec_). Responda 2xx; outra resposta é repetida em 30 s, 5 min, 30 min, 2 h, 5 h e 10 h.",
         "operationId": "webhooks:subscription.canceled",
         "requestBody": {
@@ -5660,7 +5756,7 @@
         "tags": [
           "webhooks"
         ],
-        "summary": "Evento do Polar; data traz o objeto.",
+        "summary": "Evento da Peráta; data traz o objeto.",
         "description": "Enviado por POST ao endpoint assinante, no padrão Standard Webhooks: cabeçalhos webhook-id, webhook-timestamp e webhook-signature (HMAC-SHA256 de \"{id}.{timestamp}.{corpo}\" com o segredo whsec_). Responda 2xx; outra resposta é repetida em 30 s, 5 min, 30 min, 2 h, 5 h e 10 h.",
         "operationId": "webhooks:subscription.created",
         "requestBody": {
@@ -5710,7 +5806,7 @@
         "tags": [
           "webhooks"
         ],
-        "summary": "Evento do Polar; data traz o objeto.",
+        "summary": "Evento da Peráta; data traz o objeto.",
         "description": "Enviado por POST ao endpoint assinante, no padrão Standard Webhooks: cabeçalhos webhook-id, webhook-timestamp e webhook-signature (HMAC-SHA256 de \"{id}.{timestamp}.{corpo}\" com o segredo whsec_). Responda 2xx; outra resposta é repetida em 30 s, 5 min, 30 min, 2 h, 5 h e 10 h.",
         "operationId": "webhooks:subscription.cycled",
         "requestBody": {
@@ -5760,7 +5856,7 @@
         "tags": [
           "webhooks"
         ],
-        "summary": "Evento do Polar; data traz o objeto.",
+        "summary": "Evento da Peráta; data traz o objeto.",
         "description": "Enviado por POST ao endpoint assinante, no padrão Standard Webhooks: cabeçalhos webhook-id, webhook-timestamp e webhook-signature (HMAC-SHA256 de \"{id}.{timestamp}.{corpo}\" com o segredo whsec_). Responda 2xx; outra resposta é repetida em 30 s, 5 min, 30 min, 2 h, 5 h e 10 h.",
         "operationId": "webhooks:subscription.past_due",
         "requestBody": {
@@ -5810,7 +5906,7 @@
         "tags": [
           "webhooks"
         ],
-        "summary": "Evento do Polar; data traz o objeto.",
+        "summary": "Evento da Peráta; data traz o objeto.",
         "description": "Enviado por POST ao endpoint assinante, no padrão Standard Webhooks: cabeçalhos webhook-id, webhook-timestamp e webhook-signature (HMAC-SHA256 de \"{id}.{timestamp}.{corpo}\" com o segredo whsec_). Responda 2xx; outra resposta é repetida em 30 s, 5 min, 30 min, 2 h, 5 h e 10 h.",
         "operationId": "webhooks:subscription.paused",
         "requestBody": {
@@ -5860,7 +5956,7 @@
         "tags": [
           "webhooks"
         ],
-        "summary": "Evento do Polar; data traz o objeto.",
+        "summary": "Evento da Peráta; data traz o objeto.",
         "description": "Enviado por POST ao endpoint assinante, no padrão Standard Webhooks: cabeçalhos webhook-id, webhook-timestamp e webhook-signature (HMAC-SHA256 de \"{id}.{timestamp}.{corpo}\" com o segredo whsec_). Responda 2xx; outra resposta é repetida em 30 s, 5 min, 30 min, 2 h, 5 h e 10 h.",
         "operationId": "webhooks:subscription.resumed",
         "requestBody": {
@@ -5910,7 +6006,7 @@
         "tags": [
           "webhooks"
         ],
-        "summary": "Evento do Polar; data traz o objeto.",
+        "summary": "Evento da Peráta; data traz o objeto.",
         "description": "Enviado por POST ao endpoint assinante, no padrão Standard Webhooks: cabeçalhos webhook-id, webhook-timestamp e webhook-signature (HMAC-SHA256 de \"{id}.{timestamp}.{corpo}\" com o segredo whsec_). Responda 2xx; outra resposta é repetida em 30 s, 5 min, 30 min, 2 h, 5 h e 10 h.",
         "operationId": "webhooks:subscription.revoked",
         "requestBody": {
@@ -5960,7 +6056,7 @@
         "tags": [
           "webhooks"
         ],
-        "summary": "Evento do Polar; data traz o objeto.",
+        "summary": "Evento da Peráta; data traz o objeto.",
         "description": "Enviado por POST ao endpoint assinante, no padrão Standard Webhooks: cabeçalhos webhook-id, webhook-timestamp e webhook-signature (HMAC-SHA256 de \"{id}.{timestamp}.{corpo}\" com o segredo whsec_). Responda 2xx; outra resposta é repetida em 30 s, 5 min, 30 min, 2 h, 5 h e 10 h.",
         "operationId": "webhooks:subscription.uncanceled",
         "requestBody": {
@@ -6010,7 +6106,7 @@
         "tags": [
           "webhooks"
         ],
-        "summary": "Evento do Polar; data traz o objeto.",
+        "summary": "Evento da Peráta; data traz o objeto.",
         "description": "Enviado por POST ao endpoint assinante, no padrão Standard Webhooks: cabeçalhos webhook-id, webhook-timestamp e webhook-signature (HMAC-SHA256 de \"{id}.{timestamp}.{corpo}\" com o segredo whsec_). Responda 2xx; outra resposta é repetida em 30 s, 5 min, 30 min, 2 h, 5 h e 10 h.",
         "operationId": "webhooks:subscription.updated",
         "requestBody": {
@@ -6312,6 +6408,16 @@
           "created_at": {
             "type": "string",
             "format": "date-time"
+          },
+          "properties": {
+            "type": "object",
+            "description": "O que a concessão informa, conforme o tipo, sem credenciais.",
+            "additionalProperties": {}
+          },
+          "benefit_metadata": {
+            "type": "object",
+            "description": "Os metadados do benefício: os valores de uma feature flag.",
+            "additionalProperties": {}
           }
         }
       },
@@ -6490,6 +6596,115 @@
         "properties": {
           "data": {
             "$ref": "#/components/schemas/CustomerSession"
+          }
+        }
+      },
+      "CustomerState": {
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "email",
+          "external_id",
+          "status",
+          "created_at",
+          "active_subscriptions",
+          "granted_benefits"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "external_id": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "active",
+              "archived"
+            ]
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "active_subscriptions": {
+            "type": "array",
+            "description": "As assinaturas ativas ou em teste do cliente.",
+            "items": {
+              "$ref": "#/components/schemas/Subscription"
+            }
+          },
+          "granted_benefits": {
+            "type": "array",
+            "description": "Os benefícios que o cliente tem agora.",
+            "items": {
+              "$ref": "#/components/schemas/CustomerStateBenefitGrant"
+            }
+          }
+        }
+      },
+      "CustomerStateBenefitGrant": {
+        "type": "object",
+        "required": [
+          "id",
+          "granted_at",
+          "benefit_id",
+          "benefit_type",
+          "benefit_metadata",
+          "properties"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "A concessão."
+          },
+          "granted_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "benefit_id": {
+            "type": "string"
+          },
+          "benefit_type": {
+            "type": "string",
+            "enum": [
+              "custom",
+              "license_key",
+              "downloadable",
+              "feature_flag",
+              "meter_credit",
+              "discord",
+              "github_repository"
+            ]
+          },
+          "benefit_metadata": {
+            "type": "object",
+            "description": "Os metadados do benefício: os valores de uma feature flag.",
+            "additionalProperties": {}
+          },
+          "properties": {
+            "type": "object",
+            "description": "O que a concessão informa, conforme o tipo.",
+            "additionalProperties": {}
+          }
+        }
+      },
+      "CustomerStateEnvelope": {
+        "type": "object",
+        "required": [
+          "data"
+        ],
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/CustomerState"
           }
         }
       },
@@ -7072,7 +7287,10 @@
           "interval",
           "current_period_start",
           "current_period_end",
-          "cancel_at_period_end"
+          "cancel_at_period_end",
+          "trial_start",
+          "trial_end",
+          "metadata"
         ],
         "properties": {
           "id": {
@@ -7119,6 +7337,25 @@
           },
           "cancel_at_period_end": {
             "type": "boolean"
+          },
+          "trial_start": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "trial_end": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "metadata": {
+            "type": "object",
+            "description": "Metadados do lojista: pares chave e valor (texto, número ou booleano); objeto vazio quando não há.",
+            "additionalProperties": {}
           }
         }
       },
@@ -7159,6 +7396,55 @@
         "properties": {
           "data": {
             "$ref": "#/components/schemas/SubscriptionList"
+          }
+        }
+      },
+      "WebhookBenefit": {
+        "type": "object",
+        "required": [
+          "id",
+          "type",
+          "name",
+          "description",
+          "status",
+          "visibility",
+          "created_at",
+          "modified_at"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "active",
+              "archived"
+            ]
+          },
+          "visibility": {
+            "type": "string",
+            "enum": [
+              "public",
+              "private"
+            ]
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "modified_at": {
+            "type": "string",
+            "format": "date-time"
           }
         }
       },
@@ -7231,6 +7517,107 @@
             "format": "date-time"
           },
           "created_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "WebhookDiscount": {
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "code",
+          "type",
+          "basis_points",
+          "amount_cents",
+          "currency",
+          "duration",
+          "duration_in_months",
+          "max_redemptions",
+          "redemptions_count",
+          "starts_at",
+          "ends_at",
+          "status",
+          "created_at",
+          "modified_at"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "code": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "percentage",
+              "fixed"
+            ]
+          },
+          "basis_points": {
+            "type": "integer",
+            "description": "Percentual em pontos-base, quando o tipo é percentage."
+          },
+          "amount_cents": {
+            "type": "integer",
+            "description": "Valor fixo em centavos, quando o tipo é fixed."
+          },
+          "currency": {
+            "type": "string"
+          },
+          "duration": {
+            "type": "string",
+            "enum": [
+              "once",
+              "forever",
+              "repeating"
+            ]
+          },
+          "duration_in_months": {
+            "type": "integer"
+          },
+          "max_redemptions": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "redemptions_count": {
+            "type": "integer"
+          },
+          "starts_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "ends_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "active",
+              "expired",
+              "exhausted",
+              "archived"
+            ]
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "modified_at": {
             "type": "string",
             "format": "date-time"
           }

@@ -58,10 +58,13 @@ pub use webhooks::{
 
 // The event of each kind of data a webhook carries.
 pub use webhooks::BenefitGrantWebhookEvent;
+pub use webhooks::BenefitWebhookEvent;
 pub use webhooks::CheckoutWebhookEvent;
 pub use webhooks::CustomerWebhookEvent;
+pub use webhooks::DiscountWebhookEvent;
 pub use webhooks::DisputeWebhookEvent;
 pub use webhooks::IdentifiersWebhookEvent;
 pub use webhooks::OrderWebhookEvent;
+pub use webhooks::ProductWebhookEvent;
 pub use webhooks::RefundWebhookEvent;
 pub use webhooks::SubscriptionWebhookEvent;

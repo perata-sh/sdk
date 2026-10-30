@@ -16,7 +16,7 @@ public final class PaymentsService {
     }
 
     /**
-     * Read a payment.
+     * Ler um pagamento.
      * @param payment the payment
      * @param options another organization's key for this call, or null
      * @return the payment
@@ -28,7 +28,7 @@ public final class PaymentsService {
     }
 
     /**
-     * Read a payment.
+     * Ler um pagamento.
      * @param payment the payment
      * @return the payment
      * @throws PerataException when the API refuses the call
@@ -38,7 +38,7 @@ public final class PaymentsService {
     }
 
     /**
-     * List payments. One page; {@link #listIter} walks every page.
+     * Listar pagamentos. One page; {@link #listIter} walks every page.
      * @param params the page, its size and the filters, or null
      * @param options options for this call, or null
      * @return the page
@@ -50,7 +50,7 @@ public final class PaymentsService {
     }
 
     /**
-     * List payments. One page.
+     * Listar pagamentos. One page.
      * @param params the page, its size and the filters, or null
      * @return the page
      */
@@ -59,7 +59,7 @@ public final class PaymentsService {
     }
 
     /**
-     * List payments. The first page.
+     * Listar pagamentos. The first page.
      * @return the page
      */
     public Page<Payment> list() {

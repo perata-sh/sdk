@@ -13,7 +13,7 @@ from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import Any, Literal, TypeAlias, cast, get_args
 
-from .models import BenefitGrant, Customer, Order, Refund, Subscription, WebhookCheckout, WebhookDispute
+from .models import BenefitGrant, Customer, Order, Product, Refund, Subscription, WebhookBenefit, WebhookCheckout, WebhookDiscount, WebhookDispute
 
 WEBHOOK_TOLERANCE_SECONDS = 300
 """How far from now a webhook's timestamp may be."""
@@ -24,6 +24,21 @@ class WebhookVerificationError(Exception):
 
     def __init__(self, message: str = "perata: webhook signature does not verify") -> None:
         super().__init__(message)
+
+
+BenefitWebhookEventType: TypeAlias = Literal["benefit.created", "benefit.updated"]
+
+
+@dataclass(frozen=True)
+class BenefitWebhookEvent:
+    """The events that carry a WebhookBenefit."""
+
+    id: str
+    """The message's id, the same as the webhook-id header."""
+    type: BenefitWebhookEventType
+    timestamp: str
+    """When it happened, in RFC 3339."""
+    data: WebhookBenefit
 
 
 BenefitGrantWebhookEventType: TypeAlias = Literal["benefit_grant.created", "benefit_grant.revoked", "benefit_grant.updated"]
@@ -71,6 +86,21 @@ class CustomerWebhookEvent:
     data: Customer
 
 
+DiscountWebhookEventType: TypeAlias = Literal["discount.created", "discount.deleted", "discount.updated"]
+
+
+@dataclass(frozen=True)
+class DiscountWebhookEvent:
+    """The events that carry a WebhookDiscount."""
+
+    id: str
+    """The message's id, the same as the webhook-id header."""
+    type: DiscountWebhookEventType
+    timestamp: str
+    """When it happened, in RFC 3339."""
+    data: WebhookDiscount
+
+
 DisputeWebhookEventType: TypeAlias = Literal["dispute.lost", "dispute.opened", "dispute.won"]
 
 
@@ -86,7 +116,7 @@ class DisputeWebhookEvent:
     data: WebhookDispute
 
 
-IdentifiersWebhookEventType: TypeAlias = Literal["benefit.archived", "benefit.created", "benefit.updated", "benefit.version_created", "benefit_product_link.linked", "benefit_product_link.unlinked", "checkout_link.archived", "checkout_link.created", "checkout_payment.authorized", "checkout_payment.canceled", "checkout_payment.captured", "checkout_payment.partially_refunded", "checkout_payment.refunded", "checkout_payment.refused", "checkout_session.confirmed", "checkout_session.expired", "checkout_session.failed", "checkout_session.opened", "checkout_session.succeeded", "customer.archived", "discount.created", "discount.deleted", "discount.exhausted", "discount.expired", "discount.reactivated", "discount.redeemed", "discount.updated", "discount_redemption.released", "invoice.drafted", "invoice.issued", "invoice.settled", "invoice.uncollectible", "invoice.voided", "price.archived", "price.created", "product.archived", "product.created", "product.updated", "refund.canceled", "refund.failed", "refund.requested", "refund.succeeded", "seat_allocation.opened", "seat_allocation.resized", "seat_assignment.claimed", "seat_assignment.invited", "seat_assignment.revoked", "usage_event.recorded", "usage_period.closed", "usage_period.opened", "usage_period_adjustment.created"]
+IdentifiersWebhookEventType: TypeAlias = Literal["benefit.archived", "benefit.version_created", "benefit_product_link.linked", "benefit_product_link.unlinked", "checkout_link.archived", "checkout_link.created", "checkout_payment.authorized", "checkout_payment.canceled", "checkout_payment.captured", "checkout_payment.partially_refunded", "checkout_payment.refunded", "checkout_payment.refused", "checkout_session.confirmed", "checkout_session.expired", "checkout_session.failed", "checkout_session.opened", "checkout_session.succeeded", "customer.archived", "discount.exhausted", "discount.expired", "discount.reactivated", "discount.redeemed", "discount_redemption.released", "invoice.drafted", "invoice.issued", "invoice.settled", "invoice.uncollectible", "invoice.voided", "price.archived", "price.created", "product.archived", "refund.canceled", "refund.failed", "refund.requested", "refund.succeeded", "seat_allocation.opened", "seat_allocation.resized", "seat_assignment.claimed", "seat_assignment.invited", "seat_assignment.revoked", "usage_event.recorded", "usage_period.closed", "usage_period.opened", "usage_period_adjustment.created"]
 
 
 @dataclass(frozen=True)
@@ -114,6 +144,21 @@ class OrderWebhookEvent:
     timestamp: str
     """When it happened, in RFC 3339."""
     data: Order
+
+
+ProductWebhookEventType: TypeAlias = Literal["product.created", "product.updated"]
+
+
+@dataclass(frozen=True)
+class ProductWebhookEvent:
+    """The events that carry a Product."""
+
+    id: str
+    """The message's id, the same as the webhook-id header."""
+    type: ProductWebhookEventType
+    timestamp: str
+    """When it happened, in RFC 3339."""
+    data: Product
 
 
 RefundWebhookEventType: TypeAlias = Literal["refund.created", "refund.updated"]
@@ -157,12 +202,15 @@ class UnknownWebhookEvent:
 
 
 WebhookEvent: TypeAlias = (
-    BenefitGrantWebhookEvent
+    BenefitWebhookEvent
+    | BenefitGrantWebhookEvent
     | CheckoutWebhookEvent
     | CustomerWebhookEvent
+    | DiscountWebhookEvent
     | DisputeWebhookEvent
     | IdentifiersWebhookEvent
     | OrderWebhookEvent
+    | ProductWebhookEvent
     | RefundWebhookEvent
     | SubscriptionWebhookEvent
     | UnknownWebhookEvent
@@ -178,6 +226,10 @@ def _event(raw: bytes) -> WebhookEvent:
     kind: str = event["type"]
     sent = event.get("data")
     data: dict[str, Any] = sent if isinstance(sent, dict) else {}
+    if kind in get_args(BenefitWebhookEventType):
+        return BenefitWebhookEvent(
+            id=event["id"], type=cast(BenefitWebhookEventType, kind), timestamp=event["timestamp"], data=WebhookBenefit.from_dict(data)
+        )
     if kind in get_args(BenefitGrantWebhookEventType):
         return BenefitGrantWebhookEvent(
             id=event["id"], type=cast(BenefitGrantWebhookEventType, kind), timestamp=event["timestamp"], data=BenefitGrant.from_dict(data)
@@ -190,6 +242,10 @@ def _event(raw: bytes) -> WebhookEvent:
         return CustomerWebhookEvent(
             id=event["id"], type=cast(CustomerWebhookEventType, kind), timestamp=event["timestamp"], data=Customer.from_dict(data)
         )
+    if kind in get_args(DiscountWebhookEventType):
+        return DiscountWebhookEvent(
+            id=event["id"], type=cast(DiscountWebhookEventType, kind), timestamp=event["timestamp"], data=WebhookDiscount.from_dict(data)
+        )
     if kind in get_args(DisputeWebhookEventType):
         return DisputeWebhookEvent(
             id=event["id"], type=cast(DisputeWebhookEventType, kind), timestamp=event["timestamp"], data=WebhookDispute.from_dict(data)
@@ -201,6 +257,10 @@ def _event(raw: bytes) -> WebhookEvent:
     if kind in get_args(OrderWebhookEventType):
         return OrderWebhookEvent(
             id=event["id"], type=cast(OrderWebhookEventType, kind), timestamp=event["timestamp"], data=Order.from_dict(data)
+        )
+    if kind in get_args(ProductWebhookEventType):
+        return ProductWebhookEvent(
+            id=event["id"], type=cast(ProductWebhookEventType, kind), timestamp=event["timestamp"], data=Product.from_dict(data)
         )
     if kind in get_args(RefundWebhookEventType):
         return RefundWebhookEvent(

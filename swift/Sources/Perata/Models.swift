@@ -5,6 +5,8 @@
 /// BenefitGrant is a resource of Peráta's API.
 public struct BenefitGrant: Codable, Sendable, Hashable {
     public let benefitID: String
+    /// Os metadados do benefício: os valores de uma feature flag.
+    public let benefitMetadata: [String: JSONValue]?
     public let benefitType: String
     public let createdAt: String
     public let customerID: String
@@ -12,11 +14,14 @@ public struct BenefitGrant: Codable, Sendable, Hashable {
     public let id: String
     public let isGranted: Bool
     public let isRevoked: Bool
+    /// O que a concessão informa, conforme o tipo, sem credenciais.
+    public let properties: [String: JSONValue]?
     public let revokedAt: String?
     public let status: BenefitGrantStatus
 
-    public init(benefitID: String, benefitType: String, createdAt: String, customerID: String, grantedAt: String, id: String, isGranted: Bool, isRevoked: Bool, revokedAt: String?, status: BenefitGrantStatus) {
+    public init(benefitID: String, benefitType: String, createdAt: String, customerID: String, grantedAt: String, id: String, isGranted: Bool, isRevoked: Bool, revokedAt: String?, status: BenefitGrantStatus, benefitMetadata: [String: JSONValue]? = nil, properties: [String: JSONValue]? = nil) {
         self.benefitID = benefitID
+        self.benefitMetadata = benefitMetadata
         self.benefitType = benefitType
         self.createdAt = createdAt
         self.customerID = customerID
@@ -24,12 +29,14 @@ public struct BenefitGrant: Codable, Sendable, Hashable {
         self.id = id
         self.isGranted = isGranted
         self.isRevoked = isRevoked
+        self.properties = properties
         self.revokedAt = revokedAt
         self.status = status
     }
 
     enum CodingKeys: String, CodingKey {
         case benefitID = "benefit_id"
+        case benefitMetadata = "benefit_metadata"
         case benefitType = "benefit_type"
         case createdAt = "created_at"
         case customerID = "customer_id"
@@ -37,6 +44,7 @@ public struct BenefitGrant: Codable, Sendable, Hashable {
         case id
         case isGranted = "is_granted"
         case isRevoked = "is_revoked"
+        case properties
         case revokedAt = "revoked_at"
         case status
     }
@@ -133,6 +141,73 @@ public struct CustomerSession: Codable, Sendable, Hashable {
         case customerPortalURL = "customer_portal_url"
         case expiresAt = "expires_at"
         case token
+    }
+}
+
+/// CustomerState is a resource of Peráta's API.
+public struct CustomerState: Codable, Sendable, Hashable {
+    /// As assinaturas ativas ou em teste do cliente.
+    public let activeSubscriptions: [Subscription]
+    public let createdAt: String
+    public let email: String
+    public let externalID: String
+    /// Os benefícios que o cliente tem agora.
+    public let grantedBenefits: [CustomerStateBenefitGrant]
+    public let id: String
+    public let name: String
+    public let status: CustomerStateStatus
+
+    public init(activeSubscriptions: [Subscription], createdAt: String, email: String, externalID: String, grantedBenefits: [CustomerStateBenefitGrant], id: String, name: String, status: CustomerStateStatus) {
+        self.activeSubscriptions = activeSubscriptions
+        self.createdAt = createdAt
+        self.email = email
+        self.externalID = externalID
+        self.grantedBenefits = grantedBenefits
+        self.id = id
+        self.name = name
+        self.status = status
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case activeSubscriptions = "active_subscriptions"
+        case createdAt = "created_at"
+        case email
+        case externalID = "external_id"
+        case grantedBenefits = "granted_benefits"
+        case id
+        case name
+        case status
+    }
+}
+
+/// CustomerStateBenefitGrant is a resource of Peráta's API.
+public struct CustomerStateBenefitGrant: Codable, Sendable, Hashable {
+    public let benefitID: String
+    /// Os metadados do benefício: os valores de uma feature flag.
+    public let benefitMetadata: [String: JSONValue]
+    public let benefitType: CustomerStateBenefitGrantBenefitType
+    public let grantedAt: String
+    /// A concessão.
+    public let id: String
+    /// O que a concessão informa, conforme o tipo.
+    public let properties: [String: JSONValue]
+
+    public init(benefitID: String, benefitMetadata: [String: JSONValue], benefitType: CustomerStateBenefitGrantBenefitType, grantedAt: String, id: String, properties: [String: JSONValue]) {
+        self.benefitID = benefitID
+        self.benefitMetadata = benefitMetadata
+        self.benefitType = benefitType
+        self.grantedAt = grantedAt
+        self.id = id
+        self.properties = properties
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case benefitID = "benefit_id"
+        case benefitMetadata = "benefit_metadata"
+        case benefitType = "benefit_type"
+        case grantedAt = "granted_at"
+        case id
+        case properties
     }
 }
 
@@ -376,11 +451,15 @@ public struct Subscription: Codable, Sendable, Hashable {
     public let customerID: String
     public let id: String
     public let interval: String
+    /// Metadados do lojista: pares chave e valor (texto, número ou booleano); objeto vazio quando não há.
+    public let metadata: [String: JSONValue]
     public let priceID: String
     public let productID: String
     public let status: SubscriptionStatus
+    public let trialEnd: String?
+    public let trialStart: String?
 
-    public init(amountCents: Int, cancelAtPeriodEnd: Bool, currency: SubscriptionCurrency, currentPeriodEnd: String, currentPeriodStart: String, customerID: String, id: String, interval: String, priceID: String, productID: String, status: SubscriptionStatus) {
+    public init(amountCents: Int, cancelAtPeriodEnd: Bool, currency: SubscriptionCurrency, currentPeriodEnd: String, currentPeriodStart: String, customerID: String, id: String, interval: String, metadata: [String: JSONValue], priceID: String, productID: String, status: SubscriptionStatus, trialEnd: String?, trialStart: String?) {
         self.amountCents = amountCents
         self.cancelAtPeriodEnd = cancelAtPeriodEnd
         self.currency = currency
@@ -389,9 +468,12 @@ public struct Subscription: Codable, Sendable, Hashable {
         self.customerID = customerID
         self.id = id
         self.interval = interval
+        self.metadata = metadata
         self.priceID = priceID
         self.productID = productID
         self.status = status
+        self.trialEnd = trialEnd
+        self.trialStart = trialStart
     }
 
     enum CodingKeys: String, CodingKey {
@@ -403,9 +485,46 @@ public struct Subscription: Codable, Sendable, Hashable {
         case customerID = "customer_id"
         case id
         case interval
+        case metadata
         case priceID = "price_id"
         case productID = "product_id"
         case status
+        case trialEnd = "trial_end"
+        case trialStart = "trial_start"
+    }
+}
+
+/// WebhookBenefit is a resource of Peráta's API.
+public struct WebhookBenefit: Codable, Sendable, Hashable {
+    public let createdAt: String
+    public let description: String
+    public let id: String
+    public let modifiedAt: String
+    public let name: String
+    public let status: WebhookBenefitStatus
+    public let type: String
+    public let visibility: WebhookBenefitVisibility
+
+    public init(createdAt: String, description: String, id: String, modifiedAt: String, name: String, status: WebhookBenefitStatus, type: String, visibility: WebhookBenefitVisibility) {
+        self.createdAt = createdAt
+        self.description = description
+        self.id = id
+        self.modifiedAt = modifiedAt
+        self.name = name
+        self.status = status
+        self.type = type
+        self.visibility = visibility
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case createdAt = "created_at"
+        case description
+        case id
+        case modifiedAt = "modified_at"
+        case name
+        case status
+        case type
+        case visibility
     }
 }
 
@@ -453,6 +572,66 @@ public struct WebhookCheckout: Codable, Sendable, Hashable {
         case productID = "product_id"
         case status
         case totalCents = "total_cents"
+    }
+}
+
+/// WebhookDiscount is a resource of Peráta's API.
+public struct WebhookDiscount: Codable, Sendable, Hashable {
+    /// Valor fixo em centavos, quando o tipo é fixed.
+    public let amountCents: Int
+    /// Percentual em pontos-base, quando o tipo é percentage.
+    public let basisPoints: Int
+    public let code: String?
+    public let createdAt: String
+    public let currency: String
+    public let duration: WebhookDiscountDuration
+    public let durationInMonths: Int
+    public let endsAt: String?
+    public let id: String
+    public let maxRedemptions: Int?
+    public let modifiedAt: String
+    public let name: String
+    public let redemptionsCount: Int
+    public let startsAt: String
+    public let status: WebhookDiscountStatus
+    public let type: WebhookDiscountType
+
+    public init(amountCents: Int, basisPoints: Int, code: String?, createdAt: String, currency: String, duration: WebhookDiscountDuration, durationInMonths: Int, endsAt: String?, id: String, maxRedemptions: Int?, modifiedAt: String, name: String, redemptionsCount: Int, startsAt: String, status: WebhookDiscountStatus, type: WebhookDiscountType) {
+        self.amountCents = amountCents
+        self.basisPoints = basisPoints
+        self.code = code
+        self.createdAt = createdAt
+        self.currency = currency
+        self.duration = duration
+        self.durationInMonths = durationInMonths
+        self.endsAt = endsAt
+        self.id = id
+        self.maxRedemptions = maxRedemptions
+        self.modifiedAt = modifiedAt
+        self.name = name
+        self.redemptionsCount = redemptionsCount
+        self.startsAt = startsAt
+        self.status = status
+        self.type = type
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case amountCents = "amount_cents"
+        case basisPoints = "basis_points"
+        case code
+        case createdAt = "created_at"
+        case currency
+        case duration
+        case durationInMonths = "duration_in_months"
+        case endsAt = "ends_at"
+        case id
+        case maxRedemptions = "max_redemptions"
+        case modifiedAt = "modified_at"
+        case name
+        case redemptionsCount = "redemptions_count"
+        case startsAt = "starts_at"
+        case status
+        case type
     }
 }
 
@@ -561,18 +740,23 @@ public struct CheckoutsCreateParams: Encodable, Sendable, Hashable {
 /// nil is not sent.
 public struct CustomerSessionsCreateParams: Encodable, Sendable, Hashable {
     public var customerID: String
+    /// Optional https address of your app the portal offers to go back to.
+    public var returnURL: String?
 
-    public init(customerID: String) {
+    public init(customerID: String, returnURL: String? = nil) {
         self.customerID = customerID
+        self.returnURL = returnURL
     }
 
     enum CodingKeys: String, CodingKey {
         case customerID = "customer_id"
+        case returnURL = "return_url"
     }
 
     public func encode(to encoder: any Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(customerID, forKey: .customerID)
+        try container.encodeIfPresent(returnURL, forKey: .returnURL)
     }
 }
 
@@ -759,6 +943,56 @@ public struct CustomerStatus: RawRepresentable, Codable, Sendable, Hashable, Exp
     public static let active = CustomerStatus(rawValue: "active")
     /// `archived`
     public static let archived = CustomerStatus(rawValue: "archived")
+}
+
+/// The values of `CustomerState.status`.
+///
+/// A value this SDK does not know yet is kept as it came, in `rawValue`.
+public struct CustomerStateStatus: RawRepresentable, Codable, Sendable, Hashable, ExpressibleByStringLiteral {
+    public let rawValue: String
+
+    public init(rawValue: String) {
+        self.rawValue = rawValue
+    }
+
+    public init(stringLiteral value: String) {
+        self.rawValue = value
+    }
+
+    /// `active`
+    public static let active = CustomerStateStatus(rawValue: "active")
+    /// `archived`
+    public static let archived = CustomerStateStatus(rawValue: "archived")
+}
+
+/// The values of `CustomerStateBenefitGrant.benefit_type`.
+///
+/// A value this SDK does not know yet is kept as it came, in `rawValue`.
+public struct CustomerStateBenefitGrantBenefitType: RawRepresentable, Codable, Sendable, Hashable, ExpressibleByStringLiteral {
+    public let rawValue: String
+
+    public init(rawValue: String) {
+        self.rawValue = rawValue
+    }
+
+    public init(stringLiteral value: String) {
+        self.rawValue = value
+    }
+
+    /// `custom`
+    public static let custom = CustomerStateBenefitGrantBenefitType(rawValue: "custom")
+    /// `license_key`
+    public static let licenseKey = CustomerStateBenefitGrantBenefitType(rawValue: "license_key")
+    /// `downloadable`
+    public static let downloadable = CustomerStateBenefitGrantBenefitType(rawValue: "downloadable")
+    /// `feature_flag`
+    public static let featureFlag = CustomerStateBenefitGrantBenefitType(rawValue: "feature_flag")
+    /// `meter_credit`
+    public static let meterCredit = CustomerStateBenefitGrantBenefitType(rawValue: "meter_credit")
+    /// `discord`
+    public static let discord = CustomerStateBenefitGrantBenefitType(rawValue: "discord")
+    /// `github_repository`
+    public static let githubRepository = CustomerStateBenefitGrantBenefitType(rawValue: "github_repository")
 }
 
 /// The values of `Order.currency`.
@@ -1067,6 +1301,46 @@ public struct SubscriptionStatus: RawRepresentable, Codable, Sendable, Hashable,
     public static let canceled = SubscriptionStatus(rawValue: "canceled")
 }
 
+/// The values of `WebhookBenefit.status`.
+///
+/// A value this SDK does not know yet is kept as it came, in `rawValue`.
+public struct WebhookBenefitStatus: RawRepresentable, Codable, Sendable, Hashable, ExpressibleByStringLiteral {
+    public let rawValue: String
+
+    public init(rawValue: String) {
+        self.rawValue = rawValue
+    }
+
+    public init(stringLiteral value: String) {
+        self.rawValue = value
+    }
+
+    /// `active`
+    public static let active = WebhookBenefitStatus(rawValue: "active")
+    /// `archived`
+    public static let archived = WebhookBenefitStatus(rawValue: "archived")
+}
+
+/// The values of `WebhookBenefit.visibility`.
+///
+/// A value this SDK does not know yet is kept as it came, in `rawValue`.
+public struct WebhookBenefitVisibility: RawRepresentable, Codable, Sendable, Hashable, ExpressibleByStringLiteral {
+    public let rawValue: String
+
+    public init(rawValue: String) {
+        self.rawValue = rawValue
+    }
+
+    public init(stringLiteral value: String) {
+        self.rawValue = value
+    }
+
+    /// `public`
+    public static let `public` = WebhookBenefitVisibility(rawValue: "public")
+    /// `private`
+    public static let `private` = WebhookBenefitVisibility(rawValue: "private")
+}
+
 /// The values of `WebhookCheckout.currency`.
 ///
 /// A value this SDK does not know yet is kept as it came, in `rawValue`.
@@ -1109,6 +1383,72 @@ public struct WebhookCheckoutStatus: RawRepresentable, Codable, Sendable, Hashab
     public static let failed = WebhookCheckoutStatus(rawValue: "failed")
     /// `expired`
     public static let expired = WebhookCheckoutStatus(rawValue: "expired")
+}
+
+/// The values of `WebhookDiscount.duration`.
+///
+/// A value this SDK does not know yet is kept as it came, in `rawValue`.
+public struct WebhookDiscountDuration: RawRepresentable, Codable, Sendable, Hashable, ExpressibleByStringLiteral {
+    public let rawValue: String
+
+    public init(rawValue: String) {
+        self.rawValue = rawValue
+    }
+
+    public init(stringLiteral value: String) {
+        self.rawValue = value
+    }
+
+    /// `once`
+    public static let once = WebhookDiscountDuration(rawValue: "once")
+    /// `forever`
+    public static let forever = WebhookDiscountDuration(rawValue: "forever")
+    /// `repeating`
+    public static let repeating = WebhookDiscountDuration(rawValue: "repeating")
+}
+
+/// The values of `WebhookDiscount.status`.
+///
+/// A value this SDK does not know yet is kept as it came, in `rawValue`.
+public struct WebhookDiscountStatus: RawRepresentable, Codable, Sendable, Hashable, ExpressibleByStringLiteral {
+    public let rawValue: String
+
+    public init(rawValue: String) {
+        self.rawValue = rawValue
+    }
+
+    public init(stringLiteral value: String) {
+        self.rawValue = value
+    }
+
+    /// `active`
+    public static let active = WebhookDiscountStatus(rawValue: "active")
+    /// `expired`
+    public static let expired = WebhookDiscountStatus(rawValue: "expired")
+    /// `exhausted`
+    public static let exhausted = WebhookDiscountStatus(rawValue: "exhausted")
+    /// `archived`
+    public static let archived = WebhookDiscountStatus(rawValue: "archived")
+}
+
+/// The values of `WebhookDiscount.type`.
+///
+/// A value this SDK does not know yet is kept as it came, in `rawValue`.
+public struct WebhookDiscountType: RawRepresentable, Codable, Sendable, Hashable, ExpressibleByStringLiteral {
+    public let rawValue: String
+
+    public init(rawValue: String) {
+        self.rawValue = rawValue
+    }
+
+    public init(stringLiteral value: String) {
+        self.rawValue = value
+    }
+
+    /// `percentage`
+    public static let percentage = WebhookDiscountType(rawValue: "percentage")
+    /// `fixed`
+    public static let fixed = WebhookDiscountType(rawValue: "fixed")
 }
 
 /// The values of `WebhookDispute.currency`.

@@ -113,6 +113,21 @@ class PerataTest {
     }
 
     @Test
+    void aFreeFormValueDecodesNested() {
+        String state = "{\"id\":\"cus_1\",\"name\":\"Ana\",\"email\":\"ana@example.com\",\"external_id\":\"\",\"status\":\"active\",\"created_at\":\"2026-10-17T00:00:00Z\",\"active_subscriptions\":[],\"granted_benefits\":[{\"id\":\"gr_1\",\"granted_at\":\"2026-10-17T00:00:00Z\",\"benefit_id\":\"ben_1\",\"benefit_type\":\"feature_flag\",\"benefit_metadata\":{\"flags\":{\"beta\":true,\"limits\":{\"seats\":5,\"tiers\":[\"a\",2,null,1.5]}}},\"properties\":{\"links\":[{\"url\":\"https://example.com\",\"expires\":null}]}}]}";
+        Recorder recorder = new Recorder(request -> json(200, Map.of(), data(Json.parse(state))));
+        CustomerStateBenefitGrant grant = client(recorder).customers().getState("cus_1").getGrantedBenefits().get(0);
+        Map<?, ?> flags = (Map<?, ?>) grant.getBenefitMetadata().get("flags");
+        Map<?, ?> limits = (Map<?, ?>) flags.get("limits");
+        assertEquals(true, flags.get("beta"));
+        assertEquals(5L, limits.get("seats"));
+        assertEquals(java.util.Arrays.asList("a", 2L, null, 1.5), limits.get("tiers"));
+        Map<?, ?> link = (Map<?, ?>) ((List<?>) grant.getProperties().get("links")).get(0);
+        assertEquals("https://example.com", link.get("url"));
+        assertTrue(link.containsKey("expires") && link.get("expires") == null);
+    }
+
+    @Test
     void aPostWithoutAKeyIsSentWithItsOwnAGetWithNone() {
         Recorder recorder = new Recorder(request -> json(201, Map.of(), data(product("prod_1"))));
         Perata perata = client(recorder);

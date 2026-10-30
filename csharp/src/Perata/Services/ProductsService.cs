@@ -18,7 +18,7 @@ public sealed class ProductsService
 
     internal ProductsService(PerataClient client) => this.client = client;
 
-    /// <summary>Create a product.</summary>
+    /// <summary>Criar um produto.</summary>
     /// <param name="parameters">The request.</param>
     /// <param name="options">An idempotency key, or another organization's key for this call.</param>
     /// <param name="cancellationToken">Cancels the call.</param>
@@ -30,7 +30,7 @@ public sealed class ProductsService
         return client.RequestAsync(HttpMethod.Post, "/api/v1/products", null, JsonSerializer.SerializeToUtf8Bytes(parameters, PerataJson.Default.ProductsCreateParams), PerataJson.Default.ProductEnvelope, options?.IdempotencyKey, options, cancellationToken);
     }
 
-    /// <summary>Read a product.</summary>
+    /// <summary>Ler um produto.</summary>
     /// <param name="product">The product.</param>
     /// <param name="options">Another organization's key for this call.</param>
     /// <param name="cancellationToken">Cancels the call.</param>
@@ -41,7 +41,7 @@ public sealed class ProductsService
         return client.RequestAsync(HttpMethod.Get, "/api/v1/products/" + PerataClient.Segment(product), null, null, PerataJson.Default.ProductEnvelope, null, options, cancellationToken);
     }
 
-    /// <summary>List products. One page; <see cref="ListIterAsync"/> walks every page.</summary>
+    /// <summary>Listar produtos. One page; <see cref="ListIterAsync"/> walks every page.</summary>
     /// <param name="parameters">The page, its size and the filters; the first page when null.</param>
     /// <param name="options">Another organization's key for this call.</param>
     /// <param name="cancellationToken">Cancels the call.</param>

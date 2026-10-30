@@ -18,7 +18,7 @@ final class CustomersService
     }
 
     /**
-     * Create a customer.
+     * Criar um cliente.
      *
      * @param array{email: string, external_id?: string, name: string} $params
      */
@@ -29,7 +29,7 @@ final class CustomersService
     }
 
     /**
-     * Read a customer.
+     * Ler um cliente.
      */
     public function get(string $customer, ?string $apiKey = null): Models\Customer
     {
@@ -38,7 +38,16 @@ final class CustomersService
     }
 
     /**
-     * List customers. One page; listIter() walks every page.
+     * Ler o estado de um cliente: assinaturas ativas e benefícios vigentes, inclusive os feature flags.
+     */
+    public function getState(string $customer, ?string $apiKey = null): Models\CustomerState
+    {
+        $data = $this->client->request('GET', '/api/v1/customers/' . rawurlencode($customer) . '/state', apiKey: $apiKey);
+        return Models\CustomerState::fromArray($data);
+    }
+
+    /**
+     * Listar clientes. One page; listIter() walks every page.
      *
      * @param array{page?: int, limit?: int} $params
      * @return Page<Models\Customer>

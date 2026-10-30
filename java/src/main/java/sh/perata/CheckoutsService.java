@@ -16,7 +16,7 @@ public final class CheckoutsService {
     }
 
     /**
-     * Create a checkout address for one product and price.
+     * Criar o endereço de um checkout para um produto e um preço.
      * @param params the request
      * @param options an idempotency key or another organization's key for this call, or null
      * @return the checkout
@@ -28,7 +28,7 @@ public final class CheckoutsService {
     }
 
     /**
-     * Create a checkout address for one product and price.
+     * Criar o endereço de um checkout para um produto e um preço.
      * @param params the request
      * @return the checkout
      * @throws PerataException when the API refuses the call

@@ -16,7 +16,7 @@ public final class RefundsService {
     }
 
     /**
-     * Refund part or all of a payment.
+     * Reembolsar parte ou todo um pagamento.
      * @param params the request
      * @param options an idempotency key or another organization's key for this call, or null
      * @return the refund
@@ -28,7 +28,7 @@ public final class RefundsService {
     }
 
     /**
-     * Refund part or all of a payment.
+     * Reembolsar parte ou todo um pagamento.
      * @param params the request
      * @return the refund
      * @throws PerataException when the API refuses the call

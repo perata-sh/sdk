@@ -28,7 +28,7 @@ Um POST sem chave de idempotência é enviado com uma `Idempotency-Key` própria
 |---|---|
 | `client.Checkouts` | `Create` |
 | `client.CustomerSessions` | `Create` |
-| `client.Customers` | `Create`, `Get`, `List`, `ListIter` |
+| `client.Customers` | `Create`, `Get`, `GetState`, `List`, `ListIter` |
 | `client.Orders` | `List`, `ListIter` |
 | `client.PaymentMethods` | `Detach`, `List`, `ListIter` |
 | `client.Payments` | `Get`, `List`, `ListIter` |

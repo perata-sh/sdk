@@ -16,7 +16,7 @@ public final class CustomersService {
     }
 
     /**
-     * Create a customer.
+     * Criar um cliente.
      * @param params the request
      * @param options an idempotency key or another organization's key for this call, or null
      * @return the customer
@@ -28,7 +28,7 @@ public final class CustomersService {
     }
 
     /**
-     * Create a customer.
+     * Criar um cliente.
      * @param params the request
      * @return the customer
      * @throws PerataException when the API refuses the call
@@ -133,7 +133,7 @@ public final class CustomersService {
     }
 
     /**
-     * Read a customer.
+     * Ler um cliente.
      * @param customer the customer
      * @param options another organization's key for this call, or null
      * @return the customer
@@ -145,7 +145,7 @@ public final class CustomersService {
     }
 
     /**
-     * Read a customer.
+     * Ler um cliente.
      * @param customer the customer
      * @return the customer
      * @throws PerataException when the API refuses the call
@@ -155,7 +155,29 @@ public final class CustomersService {
     }
 
     /**
-     * List customers. One page; {@link #listIter} walks every page.
+     * Ler o estado de um cliente: assinaturas ativas e benefícios vigentes, inclusive os feature flags.
+     * @param customer the customer
+     * @param options another organization's key for this call, or null
+     * @return the customerstate
+     * @throws PerataException when the API refuses the call
+     */
+    public CustomerState getState(String customer, RequestOptions options) {
+        Object data = client.request("GET", "/api/v1/customers/" + Perata.segment(customer) + "/state", null, null, null, options);
+        return CustomerState.fromJson(Json.asObject(data));
+    }
+
+    /**
+     * Ler o estado de um cliente: assinaturas ativas e benefícios vigentes, inclusive os feature flags.
+     * @param customer the customer
+     * @return the customerstate
+     * @throws PerataException when the API refuses the call
+     */
+    public CustomerState getState(String customer) {
+        return getState(customer, null);
+    }
+
+    /**
+     * Listar clientes. One page; {@link #listIter} walks every page.
      * @param params the page, its size and the filters, or null
      * @param options options for this call, or null
      * @return the page
@@ -167,7 +189,7 @@ public final class CustomersService {
     }
 
     /**
-     * List customers. One page.
+     * Listar clientes. One page.
      * @param params the page, its size and the filters, or null
      * @return the page
      */
@@ -176,7 +198,7 @@ public final class CustomersService {
     }
 
     /**
-     * List customers. The first page.
+     * Listar clientes. The first page.
      * @return the page
      */
     public Page<Customer> list() {

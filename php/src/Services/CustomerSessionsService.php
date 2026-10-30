@@ -18,9 +18,9 @@ final class CustomerSessionsService
     }
 
     /**
-     * Sign a customer into the customer portal: the address opens it already signed in.
+     * Entrar com um cliente no portal do cliente: o endereço o abre já autenticado.
      *
-     * @param array{customer_id: string} $params
+     * @param array{customer_id: string, return_url?: string} $params
      */
     public function create(array $params, ?string $idempotencyKey = null, ?string $apiKey = null): Models\CustomerSession
     {

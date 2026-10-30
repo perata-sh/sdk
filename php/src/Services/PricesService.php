@@ -18,7 +18,7 @@ final class PricesService
     }
 
     /**
-     * Create a BRL price, one-time or recurring.
+     * Criar um preço em reais, avulso ou recorrente.
      *
      * @param array{amount_cents: int, interval?: 'month'|'year', product_id: string, type: 'one_time'|'recurring'} $params
      */
@@ -29,7 +29,7 @@ final class PricesService
     }
 
     /**
-     * List prices, optionally of one product (product_id). One page; listIter() walks every page.
+     * Listar preços, opcionalmente de um produto (product_id). One page; listIter() walks every page.
      *
      * @param array{page?: int, limit?: int, product_id?: string} $params
      * @return Page<Models\Price>

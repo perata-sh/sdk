@@ -18,7 +18,7 @@ public sealed class PricesService
 
     internal PricesService(PerataClient client) => this.client = client;
 
-    /// <summary>Create a BRL price, one-time or recurring.</summary>
+    /// <summary>Criar um preço em reais, avulso ou recorrente.</summary>
     /// <param name="parameters">The request.</param>
     /// <param name="options">An idempotency key, or another organization's key for this call.</param>
     /// <param name="cancellationToken">Cancels the call.</param>
@@ -30,7 +30,7 @@ public sealed class PricesService
         return client.RequestAsync(HttpMethod.Post, "/api/v1/prices", null, JsonSerializer.SerializeToUtf8Bytes(parameters, PerataJson.Default.PricesCreateParams), PerataJson.Default.PriceEnvelope, options?.IdempotencyKey, options, cancellationToken);
     }
 
-    /// <summary>List prices, optionally of one product (product_id). One page; <see cref="ListIterAsync"/> walks every page.</summary>
+    /// <summary>Listar preços, opcionalmente de um produto (product_id). One page; <see cref="ListIterAsync"/> walks every page.</summary>
     /// <param name="parameters">The page, its size and the filters; the first page when null.</param>
     /// <param name="options">Another organization's key for this call.</param>
     /// <param name="cancellationToken">Cancels the call.</param>

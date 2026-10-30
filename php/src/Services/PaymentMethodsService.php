@@ -18,7 +18,7 @@ final class PaymentMethodsService
     }
 
     /**
-     * Stop charging a stored card; refused while an active subscription charges it.
+     * Parar de cobrar um cartão guardado; recusado enquanto uma assinatura ativa o cobra.
      */
     public function detach(string $paymentMethod, ?string $idempotencyKey = null, ?string $apiKey = null): Models\PaymentMethodDetached
     {
@@ -27,7 +27,7 @@ final class PaymentMethodsService
     }
 
     /**
-     * List a customer's stored cards: brand, last four digits and expiry. One page; listIter() walks every page.
+     * Listar os cartões guardados de um cliente: bandeira, quatro últimos dígitos e validade. One page; listIter() walks every page.
      *
      * @param array{page?: int, limit?: int} $params
      * @return Page<Models\PaymentMethod>

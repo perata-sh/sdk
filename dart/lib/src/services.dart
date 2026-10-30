@@ -10,7 +10,7 @@ class CheckoutsService {
 
   final Requester _client;
 
-  /// Create a checkout address for one product and price.
+  /// Criar o endereço de um checkout para um produto e um preço.
   Future<Checkout> create(
     CheckoutsCreateParams params, {
     String? idempotencyKey,
@@ -33,7 +33,7 @@ class CustomerSessionsService {
 
   final Requester _client;
 
-  /// Sign a customer into the customer portal: the address opens it already signed in.
+  /// Entrar com um cliente no portal do cliente: o endereço o abre já autenticado.
   Future<CustomerSession> create(
     CustomerSessionsCreateParams params, {
     String? idempotencyKey,
@@ -56,7 +56,7 @@ class CustomersService {
 
   final Requester _client;
 
-  /// Create a customer.
+  /// Criar um cliente.
   Future<Customer> create(
     CustomersCreateParams params, {
     String? idempotencyKey,
@@ -72,7 +72,7 @@ class CustomersService {
     return Customer.fromJson(data);
   }
 
-  /// Read a customer.
+  /// Ler um cliente.
   Future<Customer> get(
     String customer, {
     String? apiKey,
@@ -85,7 +85,20 @@ class CustomersService {
     return Customer.fromJson(data);
   }
 
-  /// List customers.
+  /// Ler o estado de um cliente: assinaturas ativas e benefícios vigentes, inclusive os feature flags.
+  Future<CustomerState> getState(
+    String customer, {
+    String? apiKey,
+  }) async {
+    final data = await _client.request(
+      'GET',
+      '/api/v1/customers/${Uri.encodeComponent(customer)}/state',
+      apiKey: apiKey,
+    );
+    return CustomerState.fromJson(data);
+  }
+
+  /// Listar clientes.
   ///
   /// One page, from 1, of [limit] items (1 to 100, 10 by default);
   /// [listIter] walks every page.
@@ -129,7 +142,7 @@ class OrdersService {
 
   final Requester _client;
 
-  /// List orders: paid checkouts.
+  /// Listar pedidos: checkouts pagos.
   ///
   /// One page, from 1, of [limit] items (1 to 100, 10 by default);
   /// [listIter] walks every page.
@@ -173,7 +186,7 @@ class PaymentMethodsService {
 
   final Requester _client;
 
-  /// Stop charging a stored card; refused while an active subscription charges it.
+  /// Parar de cobrar um cartão guardado; recusado enquanto uma assinatura ativa o cobra.
   Future<PaymentMethodDetached> detach(
     String paymentMethod, {
     String? idempotencyKey,
@@ -188,7 +201,7 @@ class PaymentMethodsService {
     return PaymentMethodDetached.fromJson(data);
   }
 
-  /// List a customer's stored cards: brand, last four digits and expiry.
+  /// Listar os cartões guardados de um cliente: bandeira, quatro últimos dígitos e validade.
   ///
   /// One page, from 1, of [limit] items (1 to 100, 10 by default);
   /// [listIter] walks every page.
@@ -235,7 +248,7 @@ class PaymentsService {
 
   final Requester _client;
 
-  /// Read a payment.
+  /// Ler um pagamento.
   Future<Payment> get(
     String payment, {
     String? apiKey,
@@ -248,7 +261,7 @@ class PaymentsService {
     return Payment.fromJson(data);
   }
 
-  /// List payments.
+  /// Listar pagamentos.
   ///
   /// One page, from 1, of [limit] items (1 to 100, 10 by default);
   /// [listIter] walks every page.
@@ -292,7 +305,7 @@ class PricesService {
 
   final Requester _client;
 
-  /// Create a BRL price, one-time or recurring.
+  /// Criar um preço em reais, avulso ou recorrente.
   Future<Price> create(
     PricesCreateParams params, {
     String? idempotencyKey,
@@ -308,7 +321,7 @@ class PricesService {
     return Price.fromJson(data);
   }
 
-  /// List prices, optionally of one product (product_id).
+  /// Listar preços, opcionalmente de um produto (product_id).
   ///
   /// One page, from 1, of [limit] items (1 to 100, 10 by default);
   /// [listIter] walks every page.
@@ -356,7 +369,7 @@ class ProductsService {
 
   final Requester _client;
 
-  /// Create a product.
+  /// Criar um produto.
   Future<Product> create(
     ProductsCreateParams params, {
     String? idempotencyKey,
@@ -372,7 +385,7 @@ class ProductsService {
     return Product.fromJson(data);
   }
 
-  /// Read a product.
+  /// Ler um produto.
   Future<Product> get(
     String product, {
     String? apiKey,
@@ -385,7 +398,7 @@ class ProductsService {
     return Product.fromJson(data);
   }
 
-  /// List products.
+  /// Listar produtos.
   ///
   /// One page, from 1, of [limit] items (1 to 100, 10 by default);
   /// [listIter] walks every page.
@@ -429,7 +442,7 @@ class RefundsService {
 
   final Requester _client;
 
-  /// Refund part or all of a payment.
+  /// Reembolsar parte ou todo um pagamento.
   Future<Refund> create(
     RefundsCreateParams params, {
     String? idempotencyKey,
@@ -452,7 +465,7 @@ class SubscriptionsService {
 
   final Requester _client;
 
-  /// Cancel a subscription, by default at the end of its period.
+  /// Cancelar uma assinatura, por padrão no fim do período.
   Future<Subscription> cancel(
     String subscription,
     SubscriptionsCancelParams params, {
@@ -469,7 +482,7 @@ class SubscriptionsService {
     return Subscription.fromJson(data);
   }
 
-  /// Read a subscription.
+  /// Ler uma assinatura.
   Future<Subscription> get(
     String subscription, {
     String? apiKey,
@@ -482,7 +495,7 @@ class SubscriptionsService {
     return Subscription.fromJson(data);
   }
 
-  /// List subscriptions, optionally of one customer (customer_id).
+  /// Listar assinaturas, opcionalmente de um cliente (customer_id).
   ///
   /// One page, from 1, of [limit] items (1 to 100, 10 by default);
   /// [listIter] walks every page.

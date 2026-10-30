@@ -31,7 +31,11 @@ func init() {
 		"dartWrite":  dartWrite,
 		"dartPath":   dartPath,
 		"dartParams": dartParams,
-		"dartDoc":    dartDoc,
+		// dartReadEntry and dartWriteEntry are a model's fromJson argument
+		// and toJson entry, wrapped as dart format wraps them.
+		"dartReadEntry":  func(f *Field) string { return dartEntry(6, dartName(f.Wire), dartRead(f)) },
+		"dartWriteEntry": func(f *Field) string { return dartEntry(4, dartQuote(f.Wire), dartWriteValue(f)) },
+		"dartDoc":        dartDoc,
 		// dartFieldDoc documents a field: its description and the values it
 		// may take.
 		"dartFieldDoc": func(indent string, f *Field) string {
@@ -191,12 +195,16 @@ func dartRead(f *Field) string {
 // dartWrite is a field's entry in a model's JSON. A field that is null and
 // may be left out is: the entry is null-aware.
 func dartWrite(f *Field) string {
-	name := dartName(f.Wire)
-	expr := dartWriter(f.Type, name, f.Nullable || !f.Required, 1)
+	return dartQuote(f.Wire) + ": " + dartWriteValue(f)
+}
+
+// dartWriteValue is the value of a field's toJson entry.
+func dartWriteValue(f *Field) string {
+	expr := dartWriter(f.Type, dartName(f.Wire), f.Nullable || !f.Required, 1)
 	if !f.Required {
 		expr = "?" + expr
 	}
-	return dartQuote(f.Wire) + ": " + expr
+	return expr
 }
 
 // dartWriter writes expr, of type t, as JSON; nested lists and maps name
@@ -287,4 +295,79 @@ func dartParams(m *Method, variant string) string {
 	}
 	b.WriteString("  })")
 	return b.String()
+}
+
+// dartLimit is the width dart format wraps lines at.
+const dartLimit = 80
+
+// splitTop splits text at the top-level occurrences of sep: those outside any
+// bracket or quote.
+func splitTop(text string, sep byte) []string {
+	var parts []string
+	depth, start := 0, 0
+	var quote byte
+	for i := 0; i < len(text); i++ {
+		c := text[i]
+		switch {
+		case quote != 0:
+			if c == '\\' {
+				i++
+			} else if c == quote {
+				quote = 0
+			}
+		case c == '\'' || c == '"':
+			quote = c
+		case c == '(' || c == '[' || c == '{':
+			depth++
+		case c == ')' || c == ']' || c == '}':
+			depth--
+		case c == sep && depth == 0:
+			parts = append(parts, text[start:i])
+			start = i + 1
+		}
+	}
+	return append(parts, text[start:])
+}
+
+// dartEntry is "key: value" as dart format lays it out at indent, without
+// the trailing comma: on one line when it fits, otherwise a call with its
+// arguments one a line, or a method chain one call a line.
+func dartEntry(indent int, key, value string) string {
+	line := key + ": " + value
+	pad := strings.Repeat(" ", indent)
+	if indent+len(line)+1 <= dartLimit {
+		return line
+	}
+	if open := strings.IndexByte(value, '('); open > 0 && strings.HasSuffix(value, ")") && !strings.Contains(value[:open], " ") {
+		// A chain of calls: the target, then one call a line.
+		chain := splitTop(value, '.')
+		if len(chain) > 2 {
+			lines := []string{key + ": " + strings.TrimSuffix(chain[0], "?")}
+			dot := "."
+			if strings.HasSuffix(chain[0], "?") {
+				dot = "?."
+			}
+			for i, call := range chain[1:] {
+				lines = append(lines, pad+"    "+dot+call)
+				dot = "."
+				if strings.HasSuffix(chain[i+1], "?") {
+					dot = "?."
+				}
+				lines[len(lines)-1] = strings.TrimSuffix(lines[len(lines)-1], "?")
+			}
+			return strings.Join(lines, "\n")
+		}
+		if close := strings.LastIndexByte(value, ')'); close == len(value)-1 {
+			callee := value[:open]
+			var out []string
+			out = append(out, key+": "+callee+"(")
+			for _, arg := range splitTop(value[open+1:close], ',') {
+				arg = strings.TrimSpace(arg)
+				out = append(out, pad+"  "+arg+",")
+			}
+			out = append(out, pad+")")
+			return strings.Join(out, "\n")
+		}
+	}
+	return line
 }

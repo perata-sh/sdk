@@ -16,7 +16,7 @@ public final class PaymentMethodsService {
     }
 
     /**
-     * Stop charging a stored card; refused while an active subscription charges it.
+     * Parar de cobrar um cartão guardado; recusado enquanto uma assinatura ativa o cobra.
      * @param paymentMethod the payment_method
      * @param options an idempotency key or another organization's key for this call, or null
      * @return the paymentmethoddetached
@@ -28,7 +28,7 @@ public final class PaymentMethodsService {
     }
 
     /**
-     * Stop charging a stored card; refused while an active subscription charges it.
+     * Parar de cobrar um cartão guardado; recusado enquanto uma assinatura ativa o cobra.
      * @param paymentMethod the payment_method
      * @return the paymentmethoddetached
      * @throws PerataException when the API refuses the call
@@ -38,7 +38,7 @@ public final class PaymentMethodsService {
     }
 
     /**
-     * List a customer's stored cards: brand, last four digits and expiry. One page; {@link #listIter} walks every page.
+     * Listar os cartões guardados de um cliente: bandeira, quatro últimos dígitos e validade. One page; {@link #listIter} walks every page.
      * @param customer the customer
      * @param params the page, its size and the filters, or null
      * @param options options for this call, or null
@@ -51,7 +51,7 @@ public final class PaymentMethodsService {
     }
 
     /**
-     * List a customer's stored cards: brand, last four digits and expiry. One page.
+     * Listar os cartões guardados de um cliente: bandeira, quatro últimos dígitos e validade. One page.
      * @param customer the customer
      * @param params the page, its size and the filters, or null
      * @return the page
@@ -61,7 +61,7 @@ public final class PaymentMethodsService {
     }
 
     /**
-     * List a customer's stored cards: brand, last four digits and expiry. The first page.
+     * Listar os cartões guardados de um cliente: bandeira, quatro últimos dígitos e validade. The first page.
      * @param customer the customer
      * @return the page
      */

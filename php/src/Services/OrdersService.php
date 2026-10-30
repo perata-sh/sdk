@@ -18,7 +18,7 @@ final class OrdersService
     }
 
     /**
-     * List orders: paid checkouts. One page; listIter() walks every page.
+     * Listar pedidos: checkouts pagos. One page; listIter() walks every page.
      *
      * @param array{page?: int, limit?: int} $params
      * @return Page<Models\Order>

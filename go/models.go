@@ -4,16 +4,20 @@ package perata
 
 // BenefitGrant is a resource of Peráta's API.
 type BenefitGrant struct {
-	BenefitID   string  `json:"benefit_id"`
-	BenefitType string  `json:"benefit_type"`
-	CreatedAt   string  `json:"created_at"`
-	CustomerID  string  `json:"customer_id"`
-	GrantedAt   string  `json:"granted_at"`
-	ID          string  `json:"id"`
-	IsGranted   bool    `json:"is_granted"`
-	IsRevoked   bool    `json:"is_revoked"`
-	RevokedAt   *string `json:"revoked_at"`
-	Status      string  `json:"status"`
+	BenefitID string `json:"benefit_id"`
+	// Os metadados do benefício: os valores de uma feature flag.
+	BenefitMetadata map[string]any `json:"benefit_metadata,omitempty"`
+	BenefitType     string         `json:"benefit_type"`
+	CreatedAt       string         `json:"created_at"`
+	CustomerID      string         `json:"customer_id"`
+	GrantedAt       string         `json:"granted_at"`
+	ID              string         `json:"id"`
+	IsGranted       bool           `json:"is_granted"`
+	IsRevoked       bool           `json:"is_revoked"`
+	// O que a concessão informa, conforme o tipo, sem credenciais.
+	Properties map[string]any `json:"properties,omitempty"`
+	RevokedAt  *string        `json:"revoked_at"`
+	Status     string         `json:"status"`
 }
 
 // Card is a resource of Peráta's API.
@@ -50,6 +54,33 @@ type CustomerSession struct {
 	ExpiresAt         string `json:"expires_at"`
 	// Sessão do portal do cliente, já autenticada.
 	Token string `json:"token"`
+}
+
+// CustomerState is a resource of Peráta's API.
+type CustomerState struct {
+	// As assinaturas ativas ou em teste do cliente.
+	ActiveSubscriptions []Subscription `json:"active_subscriptions"`
+	CreatedAt           string         `json:"created_at"`
+	Email               string         `json:"email"`
+	ExternalID          string         `json:"external_id"`
+	// Os benefícios que o cliente tem agora.
+	GrantedBenefits []CustomerStateBenefitGrant `json:"granted_benefits"`
+	ID              string                      `json:"id"`
+	Name            string                      `json:"name"`
+	Status          string                      `json:"status"`
+}
+
+// CustomerStateBenefitGrant is a resource of Peráta's API.
+type CustomerStateBenefitGrant struct {
+	BenefitID string `json:"benefit_id"`
+	// Os metadados do benefício: os valores de uma feature flag.
+	BenefitMetadata map[string]any `json:"benefit_metadata"`
+	BenefitType     string         `json:"benefit_type"`
+	GrantedAt       string         `json:"granted_at"`
+	// A concessão.
+	ID string `json:"id"`
+	// O que a concessão informa, conforme o tipo.
+	Properties map[string]any `json:"properties"`
 }
 
 // Order is a resource of Peráta's API.
@@ -148,9 +179,25 @@ type Subscription struct {
 	CustomerID         string `json:"customer_id"`
 	ID                 string `json:"id"`
 	Interval           string `json:"interval"`
-	PriceID            string `json:"price_id"`
-	ProductID          string `json:"product_id"`
-	Status             string `json:"status"`
+	// Metadados do lojista: pares chave e valor (texto, número ou booleano); objeto vazio quando não há.
+	Metadata   map[string]any `json:"metadata"`
+	PriceID    string         `json:"price_id"`
+	ProductID  string         `json:"product_id"`
+	Status     string         `json:"status"`
+	TrialEnd   *string        `json:"trial_end"`
+	TrialStart *string        `json:"trial_start"`
+}
+
+// WebhookBenefit is a resource of Peráta's API.
+type WebhookBenefit struct {
+	CreatedAt   string `json:"created_at"`
+	Description string `json:"description"`
+	ID          string `json:"id"`
+	ModifiedAt  string `json:"modified_at"`
+	Name        string `json:"name"`
+	Status      string `json:"status"`
+	Type        string `json:"type"`
+	Visibility  string `json:"visibility"`
 }
 
 // WebhookCheckout is a resource of Peráta's API.
@@ -168,6 +215,28 @@ type WebhookCheckout struct {
 	ProductID     string  `json:"product_id"`
 	Status        string  `json:"status"`
 	TotalCents    int64   `json:"total_cents"`
+}
+
+// WebhookDiscount is a resource of Peráta's API.
+type WebhookDiscount struct {
+	// Valor fixo em centavos, quando o tipo é fixed.
+	AmountCents int64 `json:"amount_cents"`
+	// Percentual em pontos-base, quando o tipo é percentage.
+	BasisPoints      int64   `json:"basis_points"`
+	Code             *string `json:"code"`
+	CreatedAt        string  `json:"created_at"`
+	Currency         string  `json:"currency"`
+	Duration         string  `json:"duration"`
+	DurationInMonths int64   `json:"duration_in_months"`
+	EndsAt           *string `json:"ends_at"`
+	ID               string  `json:"id"`
+	MaxRedemptions   *int64  `json:"max_redemptions"`
+	ModifiedAt       string  `json:"modified_at"`
+	Name             string  `json:"name"`
+	RedemptionsCount int64   `json:"redemptions_count"`
+	StartsAt         string  `json:"starts_at"`
+	Status           string  `json:"status"`
+	Type             string  `json:"type"`
 }
 
 // WebhookDispute is a resource of Peráta's API.
@@ -207,6 +276,8 @@ type CheckoutsCreateParams struct {
 // The body of customer-sessions:create.
 type CustomerSessionsCreateParams struct {
 	CustomerID string `json:"customer_id"`
+	// Optional https address of your app the portal offers to go back to.
+	ReturnURL *string `json:"return_url,omitempty"`
 }
 
 // The body of customers:create.
@@ -246,65 +317,87 @@ type SubscriptionsCancelParams struct {
 
 // The values the API answers in an enumerated field.
 const (
-	BenefitGrantStatusGranted           = "granted"
-	BenefitGrantStatusRevoked           = "revoked"
-	CustomerStatusActive                = "active"
-	CustomerStatusArchived              = "archived"
-	OrderCurrencyBRL                    = "BRL"
-	OrderStatusOpen                     = "open"
-	OrderStatusConfirmed                = "confirmed"
-	OrderStatusSucceeded                = "succeeded"
-	OrderStatusFailed                   = "failed"
-	OrderStatusExpired                  = "expired"
-	PaymentCurrencyBRL                  = "BRL"
-	PaymentMethodCard                   = "card"
-	PaymentMethodPix                    = "pix"
-	PaymentMethodBoleto                 = "boleto"
-	PaymentStateUnknown                 = "unknown"
-	PaymentStatePending                 = "pending"
-	PaymentStateAuthorized              = "authorized"
-	PaymentStateCaptured                = "captured"
-	PaymentStateRefused                 = "refused"
-	PaymentStateCanceled                = "canceled"
-	PaymentStateRefunded                = "refunded"
-	PaymentStatePartiallyRefunded       = "partially_refunded"
-	PaymentMethodTypeCard               = "card"
-	PriceCurrencyBRL                    = "BRL"
-	PriceIntervalNone                   = "none"
-	PriceIntervalMonth                  = "month"
-	PriceIntervalYear                   = "year"
-	PriceStatusActive                   = "active"
-	PriceStatusArchived                 = "archived"
-	PriceTypeOneTime                    = "one_time"
-	PriceTypeRecurring                  = "recurring"
-	ProductStatusActive                 = "active"
-	ProductStatusArchived               = "archived"
-	RefundStatusRequested               = "requested"
-	RefundStatusPending                 = "pending"
-	RefundStatusUnknown                 = "unknown"
-	RefundStatusSucceeded               = "succeeded"
-	RefundStatusFailed                  = "failed"
-	RefundStatusCanceled                = "canceled"
-	SubscriptionCurrencyBRL             = "BRL"
-	SubscriptionStatusTrialing          = "trialing"
-	SubscriptionStatusActive            = "active"
-	SubscriptionStatusPastDue           = "past_due"
-	SubscriptionStatusPaused            = "paused"
-	SubscriptionStatusCanceled          = "canceled"
-	WebhookCheckoutCurrencyBRL          = "BRL"
-	WebhookCheckoutStatusOpen           = "open"
-	WebhookCheckoutStatusConfirmed      = "confirmed"
-	WebhookCheckoutStatusSucceeded      = "succeeded"
-	WebhookCheckoutStatusFailed         = "failed"
-	WebhookCheckoutStatusExpired        = "expired"
-	WebhookDisputeCurrencyBRL           = "BRL"
-	WebhookDisputeSourceOperator        = "operator"
-	WebhookDisputeSourceCieloChargeback = "cielo_chargeback"
-	WebhookDisputeStatusOpened          = "opened"
-	WebhookDisputeStatusNeedsEvidence   = "needs_evidence"
-	WebhookDisputeStatusSubmitted       = "submitted"
-	WebhookDisputeStatusUnderReview     = "under_review"
-	WebhookDisputeStatusWon             = "won"
-	WebhookDisputeStatusLost            = "lost"
-	WebhookDisputeStatusClosed          = "closed"
+	BenefitGrantStatusGranted                            = "granted"
+	BenefitGrantStatusRevoked                            = "revoked"
+	CustomerStatusActive                                 = "active"
+	CustomerStatusArchived                               = "archived"
+	CustomerStateStatusActive                            = "active"
+	CustomerStateStatusArchived                          = "archived"
+	CustomerStateBenefitGrantBenefitTypeCustom           = "custom"
+	CustomerStateBenefitGrantBenefitTypeLicenseKey       = "license_key"
+	CustomerStateBenefitGrantBenefitTypeDownloadable     = "downloadable"
+	CustomerStateBenefitGrantBenefitTypeFeatureFlag      = "feature_flag"
+	CustomerStateBenefitGrantBenefitTypeMeterCredit      = "meter_credit"
+	CustomerStateBenefitGrantBenefitTypeDiscord          = "discord"
+	CustomerStateBenefitGrantBenefitTypeGithubRepository = "github_repository"
+	OrderCurrencyBRL                                     = "BRL"
+	OrderStatusOpen                                      = "open"
+	OrderStatusConfirmed                                 = "confirmed"
+	OrderStatusSucceeded                                 = "succeeded"
+	OrderStatusFailed                                    = "failed"
+	OrderStatusExpired                                   = "expired"
+	PaymentCurrencyBRL                                   = "BRL"
+	PaymentMethodCard                                    = "card"
+	PaymentMethodPix                                     = "pix"
+	PaymentMethodBoleto                                  = "boleto"
+	PaymentStateUnknown                                  = "unknown"
+	PaymentStatePending                                  = "pending"
+	PaymentStateAuthorized                               = "authorized"
+	PaymentStateCaptured                                 = "captured"
+	PaymentStateRefused                                  = "refused"
+	PaymentStateCanceled                                 = "canceled"
+	PaymentStateRefunded                                 = "refunded"
+	PaymentStatePartiallyRefunded                        = "partially_refunded"
+	PaymentMethodTypeCard                                = "card"
+	PriceCurrencyBRL                                     = "BRL"
+	PriceIntervalNone                                    = "none"
+	PriceIntervalMonth                                   = "month"
+	PriceIntervalYear                                    = "year"
+	PriceStatusActive                                    = "active"
+	PriceStatusArchived                                  = "archived"
+	PriceTypeOneTime                                     = "one_time"
+	PriceTypeRecurring                                   = "recurring"
+	ProductStatusActive                                  = "active"
+	ProductStatusArchived                                = "archived"
+	RefundStatusRequested                                = "requested"
+	RefundStatusPending                                  = "pending"
+	RefundStatusUnknown                                  = "unknown"
+	RefundStatusSucceeded                                = "succeeded"
+	RefundStatusFailed                                   = "failed"
+	RefundStatusCanceled                                 = "canceled"
+	SubscriptionCurrencyBRL                              = "BRL"
+	SubscriptionStatusTrialing                           = "trialing"
+	SubscriptionStatusActive                             = "active"
+	SubscriptionStatusPastDue                            = "past_due"
+	SubscriptionStatusPaused                             = "paused"
+	SubscriptionStatusCanceled                           = "canceled"
+	WebhookBenefitStatusActive                           = "active"
+	WebhookBenefitStatusArchived                         = "archived"
+	WebhookBenefitVisibilityPublic                       = "public"
+	WebhookBenefitVisibilityPrivate                      = "private"
+	WebhookCheckoutCurrencyBRL                           = "BRL"
+	WebhookCheckoutStatusOpen                            = "open"
+	WebhookCheckoutStatusConfirmed                       = "confirmed"
+	WebhookCheckoutStatusSucceeded                       = "succeeded"
+	WebhookCheckoutStatusFailed                          = "failed"
+	WebhookCheckoutStatusExpired                         = "expired"
+	WebhookDiscountDurationOnce                          = "once"
+	WebhookDiscountDurationForever                       = "forever"
+	WebhookDiscountDurationRepeating                     = "repeating"
+	WebhookDiscountStatusActive                          = "active"
+	WebhookDiscountStatusExpired                         = "expired"
+	WebhookDiscountStatusExhausted                       = "exhausted"
+	WebhookDiscountStatusArchived                        = "archived"
+	WebhookDiscountTypePercentage                        = "percentage"
+	WebhookDiscountTypeFixed                             = "fixed"
+	WebhookDisputeCurrencyBRL                            = "BRL"
+	WebhookDisputeSourceOperator                         = "operator"
+	WebhookDisputeSourceCieloChargeback                  = "cielo_chargeback"
+	WebhookDisputeStatusOpened                           = "opened"
+	WebhookDisputeStatusNeedsEvidence                    = "needs_evidence"
+	WebhookDisputeStatusSubmitted                        = "submitted"
+	WebhookDisputeStatusUnderReview                      = "under_review"
+	WebhookDisputeStatusWon                              = "won"
+	WebhookDisputeStatusLost                             = "lost"
+	WebhookDisputeStatusClosed                           = "closed"
 )

@@ -5,6 +5,7 @@ defmodule Perata.BenefitGrant do
 
   defstruct [
     :benefit_id,
+    :benefit_metadata,
     :benefit_type,
     :created_at,
     :customer_id,
@@ -12,15 +13,19 @@ defmodule Perata.BenefitGrant do
     :id,
     :is_granted,
     :is_revoked,
+    :properties,
     :revoked_at,
     :status
   ]
 
   @typedoc """
+  * `benefit_metadata`: Os metadados do benefício: os valores de uma feature flag.
+  * `properties`: O que a concessão informa, conforme o tipo, sem credenciais.
   * `status` (one of `"granted"`, `"revoked"`)
   """
   @type t :: %__MODULE__{
           benefit_id: String.t(),
+          benefit_metadata: %{optional(String.t()) => term()} | nil,
           benefit_type: String.t(),
           created_at: String.t(),
           customer_id: String.t(),
@@ -28,6 +33,7 @@ defmodule Perata.BenefitGrant do
           id: String.t(),
           is_granted: boolean(),
           is_revoked: boolean(),
+          properties: %{optional(String.t()) => term()} | nil,
           revoked_at: String.t() | nil,
           status: String.t()
         }
@@ -37,6 +43,7 @@ defmodule Perata.BenefitGrant do
   def from_map(%{} = data) do
     %__MODULE__{
       benefit_id: Map.fetch!(data, "benefit_id"),
+      benefit_metadata: data["benefit_metadata"],
       benefit_type: Map.fetch!(data, "benefit_type"),
       created_at: Map.fetch!(data, "created_at"),
       customer_id: Map.fetch!(data, "customer_id"),
@@ -44,6 +51,7 @@ defmodule Perata.BenefitGrant do
       id: Map.fetch!(data, "id"),
       is_granted: Map.fetch!(data, "is_granted"),
       is_revoked: Map.fetch!(data, "is_revoked"),
+      properties: data["properties"],
       revoked_at: data["revoked_at"],
       status: Map.fetch!(data, "status")
     }
@@ -154,6 +162,86 @@ defmodule Perata.CustomerSession do
       customer_portal_url: Map.fetch!(data, "customer_portal_url"),
       expires_at: Map.fetch!(data, "expires_at"),
       token: Map.fetch!(data, "token")
+    }
+  end
+end
+
+defmodule Perata.CustomerState do
+  @moduledoc "CustomerState is a resource of Peráta's API."
+
+  defstruct [
+    :active_subscriptions,
+    :created_at,
+    :email,
+    :external_id,
+    :granted_benefits,
+    :id,
+    :name,
+    :status
+  ]
+
+  @typedoc """
+  * `active_subscriptions`: As assinaturas ativas ou em teste do cliente.
+  * `granted_benefits`: Os benefícios que o cliente tem agora.
+  * `status` (one of `"active"`, `"archived"`)
+  """
+  @type t :: %__MODULE__{
+          active_subscriptions: [Perata.Subscription.t()],
+          created_at: String.t(),
+          email: String.t(),
+          external_id: String.t(),
+          granted_benefits: [Perata.CustomerStateBenefitGrant.t()],
+          id: String.t(),
+          name: String.t(),
+          status: String.t()
+        }
+
+  @doc "Builds a CustomerState from the API's JSON."
+  @spec from_map(map()) :: t()
+  def from_map(%{} = data) do
+    %__MODULE__{
+      active_subscriptions: Enum.map(Map.fetch!(data, "active_subscriptions"), &Perata.Subscription.from_map/1),
+      created_at: Map.fetch!(data, "created_at"),
+      email: Map.fetch!(data, "email"),
+      external_id: Map.fetch!(data, "external_id"),
+      granted_benefits: Enum.map(Map.fetch!(data, "granted_benefits"), &Perata.CustomerStateBenefitGrant.from_map/1),
+      id: Map.fetch!(data, "id"),
+      name: Map.fetch!(data, "name"),
+      status: Map.fetch!(data, "status")
+    }
+  end
+end
+
+defmodule Perata.CustomerStateBenefitGrant do
+  @moduledoc "CustomerStateBenefitGrant is a resource of Peráta's API."
+
+  defstruct [:benefit_id, :benefit_metadata, :benefit_type, :granted_at, :id, :properties]
+
+  @typedoc """
+  * `benefit_metadata`: Os metadados do benefício: os valores de uma feature flag.
+  * `benefit_type` (one of `"custom"`, `"license_key"`, `"downloadable"`, `"feature_flag"`, `"meter_credit"`, `"discord"`, `"github_repository"`)
+  * `id`: A concessão.
+  * `properties`: O que a concessão informa, conforme o tipo.
+  """
+  @type t :: %__MODULE__{
+          benefit_id: String.t(),
+          benefit_metadata: %{optional(String.t()) => term()},
+          benefit_type: String.t(),
+          granted_at: String.t(),
+          id: String.t(),
+          properties: %{optional(String.t()) => term()}
+        }
+
+  @doc "Builds a CustomerStateBenefitGrant from the API's JSON."
+  @spec from_map(map()) :: t()
+  def from_map(%{} = data) do
+    %__MODULE__{
+      benefit_id: Map.fetch!(data, "benefit_id"),
+      benefit_metadata: Map.fetch!(data, "benefit_metadata"),
+      benefit_type: Map.fetch!(data, "benefit_type"),
+      granted_at: Map.fetch!(data, "granted_at"),
+      id: Map.fetch!(data, "id"),
+      properties: Map.fetch!(data, "properties")
     }
   end
 end
@@ -449,13 +537,17 @@ defmodule Perata.Subscription do
     :customer_id,
     :id,
     :interval,
+    :metadata,
     :price_id,
     :product_id,
-    :status
+    :status,
+    :trial_end,
+    :trial_start
   ]
 
   @typedoc """
   * `currency` (one of `"BRL"`)
+  * `metadata`: Metadados do lojista: pares chave e valor (texto, número ou booleano); objeto vazio quando não há.
   * `status` (one of `"trialing"`, `"active"`, `"past_due"`, `"paused"`, `"canceled"`)
   """
   @type t :: %__MODULE__{
@@ -467,9 +559,12 @@ defmodule Perata.Subscription do
           customer_id: String.t(),
           id: String.t(),
           interval: String.t(),
+          metadata: %{optional(String.t()) => term()},
           price_id: String.t(),
           product_id: String.t(),
-          status: String.t()
+          status: String.t(),
+          trial_end: String.t() | nil,
+          trial_start: String.t() | nil
         }
 
   @doc "Builds a Subscription from the API's JSON."
@@ -484,9 +579,48 @@ defmodule Perata.Subscription do
       customer_id: Map.fetch!(data, "customer_id"),
       id: Map.fetch!(data, "id"),
       interval: Map.fetch!(data, "interval"),
+      metadata: Map.fetch!(data, "metadata"),
       price_id: Map.fetch!(data, "price_id"),
       product_id: Map.fetch!(data, "product_id"),
-      status: Map.fetch!(data, "status")
+      status: Map.fetch!(data, "status"),
+      trial_end: data["trial_end"],
+      trial_start: data["trial_start"]
+    }
+  end
+end
+
+defmodule Perata.WebhookBenefit do
+  @moduledoc "WebhookBenefit is a resource of Peráta's API."
+
+  defstruct [:created_at, :description, :id, :modified_at, :name, :status, :type, :visibility]
+
+  @typedoc """
+  * `status` (one of `"active"`, `"archived"`)
+  * `visibility` (one of `"public"`, `"private"`)
+  """
+  @type t :: %__MODULE__{
+          created_at: String.t(),
+          description: String.t(),
+          id: String.t(),
+          modified_at: String.t(),
+          name: String.t(),
+          status: String.t(),
+          type: String.t(),
+          visibility: String.t()
+        }
+
+  @doc "Builds a WebhookBenefit from the API's JSON."
+  @spec from_map(map()) :: t()
+  def from_map(%{} = data) do
+    %__MODULE__{
+      created_at: Map.fetch!(data, "created_at"),
+      description: Map.fetch!(data, "description"),
+      id: Map.fetch!(data, "id"),
+      modified_at: Map.fetch!(data, "modified_at"),
+      name: Map.fetch!(data, "name"),
+      status: Map.fetch!(data, "status"),
+      type: Map.fetch!(data, "type"),
+      visibility: Map.fetch!(data, "visibility")
     }
   end
 end
@@ -545,6 +679,78 @@ defmodule Perata.WebhookCheckout do
       product_id: Map.fetch!(data, "product_id"),
       status: Map.fetch!(data, "status"),
       total_cents: Map.fetch!(data, "total_cents")
+    }
+  end
+end
+
+defmodule Perata.WebhookDiscount do
+  @moduledoc "WebhookDiscount is a resource of Peráta's API."
+
+  defstruct [
+    :amount_cents,
+    :basis_points,
+    :code,
+    :created_at,
+    :currency,
+    :duration,
+    :duration_in_months,
+    :ends_at,
+    :id,
+    :max_redemptions,
+    :modified_at,
+    :name,
+    :redemptions_count,
+    :starts_at,
+    :status,
+    :type
+  ]
+
+  @typedoc """
+  * `amount_cents`: Valor fixo em centavos, quando o tipo é fixed.
+  * `basis_points`: Percentual em pontos-base, quando o tipo é percentage.
+  * `duration` (one of `"once"`, `"forever"`, `"repeating"`)
+  * `status` (one of `"active"`, `"expired"`, `"exhausted"`, `"archived"`)
+  * `type` (one of `"percentage"`, `"fixed"`)
+  """
+  @type t :: %__MODULE__{
+          amount_cents: integer(),
+          basis_points: integer(),
+          code: String.t() | nil,
+          created_at: String.t(),
+          currency: String.t(),
+          duration: String.t(),
+          duration_in_months: integer(),
+          ends_at: String.t() | nil,
+          id: String.t(),
+          max_redemptions: integer() | nil,
+          modified_at: String.t(),
+          name: String.t(),
+          redemptions_count: integer(),
+          starts_at: String.t(),
+          status: String.t(),
+          type: String.t()
+        }
+
+  @doc "Builds a WebhookDiscount from the API's JSON."
+  @spec from_map(map()) :: t()
+  def from_map(%{} = data) do
+    %__MODULE__{
+      amount_cents: Map.fetch!(data, "amount_cents"),
+      basis_points: Map.fetch!(data, "basis_points"),
+      code: data["code"],
+      created_at: Map.fetch!(data, "created_at"),
+      currency: Map.fetch!(data, "currency"),
+      duration: Map.fetch!(data, "duration"),
+      duration_in_months: Map.fetch!(data, "duration_in_months"),
+      ends_at: data["ends_at"],
+      id: Map.fetch!(data, "id"),
+      max_redemptions: data["max_redemptions"],
+      modified_at: Map.fetch!(data, "modified_at"),
+      name: Map.fetch!(data, "name"),
+      redemptions_count: Map.fetch!(data, "redemptions_count"),
+      starts_at: Map.fetch!(data, "starts_at"),
+      status: Map.fetch!(data, "status"),
+      type: Map.fetch!(data, "type")
     }
   end
 end

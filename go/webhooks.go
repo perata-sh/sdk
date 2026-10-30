@@ -40,6 +40,14 @@ type WebhookEvent interface {
 	Message() WebhookMessage
 }
 
+// BenefitWebhookEvent carries a WebhookBenefit, for the types
+//   - benefit.created
+//   - benefit.updated
+type BenefitWebhookEvent struct {
+	WebhookMessage
+	Data WebhookBenefit `json:"data"`
+}
+
 // BenefitGrantWebhookEvent carries a BenefitGrant, for the types
 //   - benefit_grant.created
 //   - benefit_grant.revoked
@@ -67,6 +75,15 @@ type CustomerWebhookEvent struct {
 	Data Customer `json:"data"`
 }
 
+// DiscountWebhookEvent carries a WebhookDiscount, for the types
+//   - discount.created
+//   - discount.deleted
+//   - discount.updated
+type DiscountWebhookEvent struct {
+	WebhookMessage
+	Data WebhookDiscount `json:"data"`
+}
+
 // DisputeWebhookEvent carries a WebhookDispute, for the types
 //   - dispute.lost
 //   - dispute.opened
@@ -78,8 +95,6 @@ type DisputeWebhookEvent struct {
 
 // IdentifiersWebhookEvent carries the event's identifiers, for the types
 //   - benefit.archived
-//   - benefit.created
-//   - benefit.updated
 //   - benefit.version_created
 //   - benefit_product_link.linked
 //   - benefit_product_link.unlinked
@@ -97,13 +112,10 @@ type DisputeWebhookEvent struct {
 //   - checkout_session.opened
 //   - checkout_session.succeeded
 //   - customer.archived
-//   - discount.created
-//   - discount.deleted
 //   - discount.exhausted
 //   - discount.expired
 //   - discount.reactivated
 //   - discount.redeemed
-//   - discount.updated
 //   - discount_redemption.released
 //   - invoice.drafted
 //   - invoice.issued
@@ -113,8 +125,6 @@ type DisputeWebhookEvent struct {
 //   - price.archived
 //   - price.created
 //   - product.archived
-//   - product.created
-//   - product.updated
 //   - refund.canceled
 //   - refund.failed
 //   - refund.requested
@@ -141,6 +151,14 @@ type IdentifiersWebhookEvent struct {
 type OrderWebhookEvent struct {
 	WebhookMessage
 	Data Order `json:"data"`
+}
+
+// ProductWebhookEvent carries a Product, for the types
+//   - product.created
+//   - product.updated
+type ProductWebhookEvent struct {
+	WebhookMessage
+	Data Product `json:"data"`
 }
 
 // RefundWebhookEvent carries a Refund, for the types
@@ -243,18 +261,24 @@ func parseWebhookEvent(body []byte) (WebhookEvent, error) {
 	}
 	var event WebhookEvent
 	switch message.Type {
+	case "benefit.created", "benefit.updated":
+		event = &BenefitWebhookEvent{}
 	case "benefit_grant.created", "benefit_grant.revoked", "benefit_grant.updated":
 		event = &BenefitGrantWebhookEvent{}
 	case "checkout.created", "checkout.expired", "checkout.updated":
 		event = &CheckoutWebhookEvent{}
 	case "customer.created", "customer.deleted", "customer.updated":
 		event = &CustomerWebhookEvent{}
+	case "discount.created", "discount.deleted", "discount.updated":
+		event = &DiscountWebhookEvent{}
 	case "dispute.lost", "dispute.opened", "dispute.won":
 		event = &DisputeWebhookEvent{}
-	case "benefit.archived", "benefit.created", "benefit.updated", "benefit.version_created", "benefit_product_link.linked", "benefit_product_link.unlinked", "checkout_link.archived", "checkout_link.created", "checkout_payment.authorized", "checkout_payment.canceled", "checkout_payment.captured", "checkout_payment.partially_refunded", "checkout_payment.refunded", "checkout_payment.refused", "checkout_session.confirmed", "checkout_session.expired", "checkout_session.failed", "checkout_session.opened", "checkout_session.succeeded", "customer.archived", "discount.created", "discount.deleted", "discount.exhausted", "discount.expired", "discount.reactivated", "discount.redeemed", "discount.updated", "discount_redemption.released", "invoice.drafted", "invoice.issued", "invoice.settled", "invoice.uncollectible", "invoice.voided", "price.archived", "price.created", "product.archived", "product.created", "product.updated", "refund.canceled", "refund.failed", "refund.requested", "refund.succeeded", "seat_allocation.opened", "seat_allocation.resized", "seat_assignment.claimed", "seat_assignment.invited", "seat_assignment.revoked", "usage_event.recorded", "usage_period.closed", "usage_period.opened", "usage_period_adjustment.created":
+	case "benefit.archived", "benefit.version_created", "benefit_product_link.linked", "benefit_product_link.unlinked", "checkout_link.archived", "checkout_link.created", "checkout_payment.authorized", "checkout_payment.canceled", "checkout_payment.captured", "checkout_payment.partially_refunded", "checkout_payment.refunded", "checkout_payment.refused", "checkout_session.confirmed", "checkout_session.expired", "checkout_session.failed", "checkout_session.opened", "checkout_session.succeeded", "customer.archived", "discount.exhausted", "discount.expired", "discount.reactivated", "discount.redeemed", "discount_redemption.released", "invoice.drafted", "invoice.issued", "invoice.settled", "invoice.uncollectible", "invoice.voided", "price.archived", "price.created", "product.archived", "refund.canceled", "refund.failed", "refund.requested", "refund.succeeded", "seat_allocation.opened", "seat_allocation.resized", "seat_assignment.claimed", "seat_assignment.invited", "seat_assignment.revoked", "usage_event.recorded", "usage_period.closed", "usage_period.opened", "usage_period_adjustment.created":
 		event = &IdentifiersWebhookEvent{}
 	case "order.created", "order.paid", "order.refunded", "order.updated":
 		event = &OrderWebhookEvent{}
+	case "product.created", "product.updated":
+		event = &ProductWebhookEvent{}
 	case "refund.created", "refund.updated":
 		event = &RefundWebhookEvent{}
 	case "subscription.active", "subscription.canceled", "subscription.created", "subscription.cycled", "subscription.past_due", "subscription.paused", "subscription.resumed", "subscription.revoked", "subscription.uncanceled", "subscription.updated":

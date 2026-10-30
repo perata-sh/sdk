@@ -67,12 +67,15 @@ final class Webhook
         $data = is_array($event['data'] ?? null) ? $event['data'] : [];
         [$id, $type, $timestamp] = [$event['id'], $event['type'], $event['timestamp']];
         return match (true) {
+            in_array($type, BenefitWebhookEvent::TYPES, true) => new BenefitWebhookEvent($id, $type, $timestamp, Models\WebhookBenefit::fromArray($data)),
             in_array($type, BenefitGrantWebhookEvent::TYPES, true) => new BenefitGrantWebhookEvent($id, $type, $timestamp, Models\BenefitGrant::fromArray($data)),
             in_array($type, CheckoutWebhookEvent::TYPES, true) => new CheckoutWebhookEvent($id, $type, $timestamp, Models\WebhookCheckout::fromArray($data)),
             in_array($type, CustomerWebhookEvent::TYPES, true) => new CustomerWebhookEvent($id, $type, $timestamp, Models\Customer::fromArray($data)),
+            in_array($type, DiscountWebhookEvent::TYPES, true) => new DiscountWebhookEvent($id, $type, $timestamp, Models\WebhookDiscount::fromArray($data)),
             in_array($type, DisputeWebhookEvent::TYPES, true) => new DisputeWebhookEvent($id, $type, $timestamp, Models\WebhookDispute::fromArray($data)),
             in_array($type, IdentifiersWebhookEvent::TYPES, true) => new IdentifiersWebhookEvent($id, $type, $timestamp, array_map(static fn (mixed $value): string => is_scalar($value) ? (string) $value : '', $data)),
             in_array($type, OrderWebhookEvent::TYPES, true) => new OrderWebhookEvent($id, $type, $timestamp, Models\Order::fromArray($data)),
+            in_array($type, ProductWebhookEvent::TYPES, true) => new ProductWebhookEvent($id, $type, $timestamp, Models\Product::fromArray($data)),
             in_array($type, RefundWebhookEvent::TYPES, true) => new RefundWebhookEvent($id, $type, $timestamp, Models\Refund::fromArray($data)),
             in_array($type, SubscriptionWebhookEvent::TYPES, true) => new SubscriptionWebhookEvent($id, $type, $timestamp, Models\Subscription::fromArray($data)),
             default => new UnknownWebhookEvent($id, $type, $timestamp, $data),

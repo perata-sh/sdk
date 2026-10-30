@@ -18,7 +18,7 @@ final class PaymentsService
     }
 
     /**
-     * Read a payment.
+     * Ler um pagamento.
      */
     public function get(string $payment, ?string $apiKey = null): Models\Payment
     {
@@ -27,7 +27,7 @@ final class PaymentsService
     }
 
     /**
-     * List payments. One page; listIter() walks every page.
+     * Listar pagamentos. One page; listIter() walks every page.
      *
      * @param array{page?: int, limit?: int} $params
      * @return Page<Models\Payment>

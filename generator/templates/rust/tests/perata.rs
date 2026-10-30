@@ -116,6 +116,25 @@ fn a_base_url_must_be_https_unless_it_is_loopback() {
 }
 
 #[test]
+fn a_free_form_value_decodes_nested() {
+    let state: serde_json::Value = serde_json::from_str(
+        r#"{"id":"cus_1","name":"Ana","email":"ana@example.com","external_id":"","status":"active","created_at":"2026-10-17T00:00:00Z","active_subscriptions":[],"granted_benefits":[{"id":"gr_1","granted_at":"2026-10-17T00:00:00Z","benefit_id":"ben_1","benefit_type":"feature_flag","benefit_metadata":{"flags":{"beta":true,"limits":{"seats":5,"tiers":["a",2,null,1.5]}}},"properties":{"links":[{"url":"https://example.com","expires":null}]}}]}"#,
+    )
+    .unwrap();
+    let (client, _) = client(move |_| json(200, serde_json::json!({ "data": state.clone() })));
+    let state = client.customers().get_state("cus_1").unwrap();
+    let grant = &state.granted_benefits[0];
+    assert_eq!(
+        serde_json::to_value(&grant.benefit_metadata).unwrap(),
+        serde_json::json!({"flags": {"beta": true, "limits": {"seats": 5, "tiers": ["a", 2, null, 1.5]}}})
+    );
+    assert_eq!(
+        serde_json::to_value(&grant.properties).unwrap(),
+        serde_json::json!({"links": [{"url": "https://example.com", "expires": null}]})
+    );
+}
+
+#[test]
 fn a_post_without_a_key_is_sent_with_its_own_a_get_with_none() {
     let (client, seen) = client(|_| json(201, serde_json::json!({"data": product("prod_1")})));
     let params = ProductsCreateParams::new("Curso");

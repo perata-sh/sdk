@@ -18,7 +18,7 @@ public sealed class CustomersService
 
     internal CustomersService(PerataClient client) => this.client = client;
 
-    /// <summary>Create a customer.</summary>
+    /// <summary>Criar um cliente.</summary>
     /// <param name="parameters">The request.</param>
     /// <param name="options">An idempotency key, or another organization's key for this call.</param>
     /// <param name="cancellationToken">Cancels the call.</param>
@@ -30,7 +30,7 @@ public sealed class CustomersService
         return client.RequestAsync(HttpMethod.Post, "/api/v1/customers", null, JsonSerializer.SerializeToUtf8Bytes(parameters, PerataJson.Default.CustomersCreateParams), PerataJson.Default.CustomerEnvelope, options?.IdempotencyKey, options, cancellationToken);
     }
 
-    /// <summary>Read a customer.</summary>
+    /// <summary>Ler um cliente.</summary>
     /// <param name="customer">The customer.</param>
     /// <param name="options">Another organization's key for this call.</param>
     /// <param name="cancellationToken">Cancels the call.</param>
@@ -41,7 +41,18 @@ public sealed class CustomersService
         return client.RequestAsync(HttpMethod.Get, "/api/v1/customers/" + PerataClient.Segment(customer), null, null, PerataJson.Default.CustomerEnvelope, null, options, cancellationToken);
     }
 
-    /// <summary>List customers. One page; <see cref="ListIterAsync"/> walks every page.</summary>
+    /// <summary>Ler o estado de um cliente: assinaturas ativas e benefícios vigentes, inclusive os feature flags.</summary>
+    /// <param name="customer">The customer.</param>
+    /// <param name="options">Another organization's key for this call.</param>
+    /// <param name="cancellationToken">Cancels the call.</param>
+    /// <returns>The customerstate.</returns>
+    /// <exception cref="PerataException">The API refused the call.</exception>
+    public Task<CustomerState> GetStateAsync(string customer, RequestOptions? options = null, CancellationToken cancellationToken = default)
+    {
+        return client.RequestAsync(HttpMethod.Get, "/api/v1/customers/" + PerataClient.Segment(customer) + "/state", null, null, PerataJson.Default.CustomerStateEnvelope, null, options, cancellationToken);
+    }
+
+    /// <summary>Listar clientes. One page; <see cref="ListIterAsync"/> walks every page.</summary>
     /// <param name="parameters">The page, its size and the filters; the first page when null.</param>
     /// <param name="options">Another organization's key for this call.</param>
     /// <param name="cancellationToken">Cancels the call.</param>

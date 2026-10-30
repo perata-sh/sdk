@@ -18,7 +18,7 @@ final class RefundsService
     }
 
     /**
-     * Refund part or all of a payment.
+     * Reembolsar parte ou todo um pagamento.
      *
      * @param array{amount_cents: int, note?: string, payment_id: string, reason: 'requested_by_customer'|'duplicate'|'fraudulent'|'product_unavailable'|'service_disruption'|'other'} $params
      */

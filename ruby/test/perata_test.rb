@@ -70,6 +70,14 @@ class PerataTest < Minitest::Test
     end
   end
 
+  def test_a_free_form_value_decodes_nested
+    state = JSON.parse('{"id":"cus_1","name":"Ana","email":"ana@example.com","external_id":"","status":"active","created_at":"2026-10-17T00:00:00Z","active_subscriptions":[],"granted_benefits":[{"id":"gr_1","granted_at":"2026-10-17T00:00:00Z","benefit_id":"ben_1","benefit_type":"feature_flag","benefit_metadata":{"flags":{"beta":true,"limits":{"seats":5,"tiers":["a",2,null,1.5]}}},"properties":{"links":[{"url":"https://example.com","expires":null}]}}]}')
+    perata, = client { [200, { "data" => state }, {}] }
+    grant = perata.customers.get_state("cus_1").granted_benefits.first
+    assert_equal({ "flags" => { "beta" => true, "limits" => { "seats" => 5, "tiers" => ["a", 2, nil, 1.5] } } }, grant.benefit_metadata)
+    assert_equal({ "links" => [{ "url" => "https://example.com", "expires" => nil }] }, grant.properties)
+  end
+
   def test_a_post_without_a_key_is_sent_with_its_own_a_get_with_none
     perata, recorder = client { [201, { "data" => product("prod_1") }, {}] }
     2.times { perata.products.create(Perata::ProductsCreateParams.new(name: "Curso")) }

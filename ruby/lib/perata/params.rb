@@ -50,13 +50,18 @@ module Perata
 
   # The body of customer-sessions:create.
   class CustomerSessionsCreateParams < Params
-    MEMBERS = %i[customer_id].freeze
+    MEMBERS = %i[customer_id return_url].freeze
 
     # @return [String]
     attr_reader :customer_id
 
-    def initialize(customer_id:)
+    # Optional https address of your app the portal offers to go back to.
+    # @return [String, nil]
+    attr_reader :return_url
+
+    def initialize(customer_id:, return_url: nil)
       @customer_id = customer_id
+      @return_url = return_url
       freeze
     end
 
@@ -64,6 +69,7 @@ module Perata
     def to_wire
       wire = {}
       wire["customer_id"] = @customer_id
+      wire["return_url"] = @return_url unless @return_url.nil?
       wire
     end
   end

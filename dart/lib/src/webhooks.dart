@@ -26,6 +26,25 @@ sealed class WebhookEvent {
   final String timestamp;
 }
 
+/// The events that carry a WebhookBenefit.
+final class BenefitWebhookEvent extends WebhookEvent {
+  const BenefitWebhookEvent({
+    required super.id,
+    required super.type,
+    required super.timestamp,
+    required this.data,
+  });
+
+  /// The event types this class carries.
+  static const types = {
+    'benefit.created',
+    'benefit.updated',
+  };
+
+  /// What the event carries.
+  final WebhookBenefit data;
+}
+
 /// The events that carry a BenefitGrant.
 final class BenefitGrantWebhookEvent extends WebhookEvent {
   const BenefitGrantWebhookEvent({
@@ -86,6 +105,26 @@ final class CustomerWebhookEvent extends WebhookEvent {
   final Customer data;
 }
 
+/// The events that carry a WebhookDiscount.
+final class DiscountWebhookEvent extends WebhookEvent {
+  const DiscountWebhookEvent({
+    required super.id,
+    required super.type,
+    required super.timestamp,
+    required this.data,
+  });
+
+  /// The event types this class carries.
+  static const types = {
+    'discount.created',
+    'discount.deleted',
+    'discount.updated',
+  };
+
+  /// What the event carries.
+  final WebhookDiscount data;
+}
+
 /// The events that carry a WebhookDispute.
 final class DisputeWebhookEvent extends WebhookEvent {
   const DisputeWebhookEvent({
@@ -118,8 +157,6 @@ final class IdentifiersWebhookEvent extends WebhookEvent {
   /// The event types this class carries.
   static const types = {
     'benefit.archived',
-    'benefit.created',
-    'benefit.updated',
     'benefit.version_created',
     'benefit_product_link.linked',
     'benefit_product_link.unlinked',
@@ -137,13 +174,10 @@ final class IdentifiersWebhookEvent extends WebhookEvent {
     'checkout_session.opened',
     'checkout_session.succeeded',
     'customer.archived',
-    'discount.created',
-    'discount.deleted',
     'discount.exhausted',
     'discount.expired',
     'discount.reactivated',
     'discount.redeemed',
-    'discount.updated',
     'discount_redemption.released',
     'invoice.drafted',
     'invoice.issued',
@@ -153,8 +187,6 @@ final class IdentifiersWebhookEvent extends WebhookEvent {
     'price.archived',
     'price.created',
     'product.archived',
-    'product.created',
-    'product.updated',
     'refund.canceled',
     'refund.failed',
     'refund.requested',
@@ -193,6 +225,25 @@ final class OrderWebhookEvent extends WebhookEvent {
 
   /// What the event carries.
   final Order data;
+}
+
+/// The events that carry a Product.
+final class ProductWebhookEvent extends WebhookEvent {
+  const ProductWebhookEvent({
+    required super.id,
+    required super.type,
+    required super.timestamp,
+    required this.data,
+  });
+
+  /// The event types this class carries.
+  static const types = {
+    'product.created',
+    'product.updated',
+  };
+
+  /// What the event carries.
+  final Product data;
 }
 
 /// The events that carry a Refund.
@@ -363,6 +414,14 @@ WebhookEvent _event(List<int> raw) {
       final Map<String, Object?> data => data,
       _ => const <String, Object?>{},
     };
+    if (BenefitWebhookEvent.types.contains(type)) {
+      return BenefitWebhookEvent(
+        id: id,
+        type: type,
+        timestamp: timestamp,
+        data: WebhookBenefit.fromJson(data),
+      );
+    }
     if (BenefitGrantWebhookEvent.types.contains(type)) {
       return BenefitGrantWebhookEvent(
         id: id,
@@ -385,6 +444,14 @@ WebhookEvent _event(List<int> raw) {
         type: type,
         timestamp: timestamp,
         data: Customer.fromJson(data),
+      );
+    }
+    if (DiscountWebhookEvent.types.contains(type)) {
+      return DiscountWebhookEvent(
+        id: id,
+        type: type,
+        timestamp: timestamp,
+        data: WebhookDiscount.fromJson(data),
       );
     }
     if (DisputeWebhookEvent.types.contains(type)) {
@@ -411,6 +478,14 @@ WebhookEvent _event(List<int> raw) {
         type: type,
         timestamp: timestamp,
         data: Order.fromJson(data),
+      );
+    }
+    if (ProductWebhookEvent.types.contains(type)) {
+      return ProductWebhookEvent(
+        id: id,
+        type: type,
+        timestamp: timestamp,
+        data: Product.fromJson(data),
       );
     }
     if (RefundWebhookEvent.types.contains(type)) {

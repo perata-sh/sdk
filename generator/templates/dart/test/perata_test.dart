@@ -131,6 +131,28 @@ void main() {
     }
   });
 
+  test('a free-form value decodes nested', () async {
+    final state = jsonDecode(
+      '''{"id":"cus_1","name":"Ana","email":"ana@example.com","external_id":"","status":"active","created_at":"2026-10-17T00:00:00Z","active_subscriptions":[],"granted_benefits":[{"id":"gr_1","granted_at":"2026-10-17T00:00:00Z","benefit_id":"ben_1","benefit_type":"feature_flag","benefit_metadata":{"flags":{"beta":true,"limits":{"seats":5,"tiers":["a",2,null,1.5]}}},"properties":{"links":[{"url":"https://example.com","expires":null}]}}]}''',
+    );
+    final (perata, _) = client((_) => json(200, {'data': state}));
+    final grant = (await perata.customers.getState('cus_1')).grantedBenefits[0];
+    expect(grant.benefitMetadata, {
+      'flags': {
+        'beta': true,
+        'limits': {
+          'seats': 5,
+          'tiers': ['a', 2, null, 1.5],
+        },
+      },
+    });
+    expect(grant.properties, {
+      'links': [
+        {'url': 'https://example.com', 'expires': null},
+      ],
+    });
+  });
+
   test('a POST without a key is sent with its own, a GET with none', () async {
     final (perata, seen) = client(
       (_) => json(201, {'data': product('prod_1')}),

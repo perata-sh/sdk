@@ -114,6 +114,24 @@ public class PerataTests
     }
 
     [Fact]
+    public async Task AFreeFormValueDecodesNested()
+    {
+        var recorder = new Recorder(_ => new Answer(HttpStatusCode.OK, """{"data":{"id":"cus_1","name":"Ana","email":"ana@example.com","external_id":"","status":"active","created_at":"2026-10-17T00:00:00Z","active_subscriptions":[],"granted_benefits":[{"id":"gr_1","granted_at":"2026-10-17T00:00:00Z","benefit_id":"ben_1","benefit_type":"feature_flag","benefit_metadata":{"flags":{"beta":true,"limits":{"seats":5,"tiers":["a",2,null,1.5]}}},"properties":{"links":[{"url":"https://example.com","expires":null}]}}]}}"""));
+        var grant = (await Client(recorder).Customers.GetStateAsync("cus_1")).GrantedBenefits[0];
+        var limits = grant.BenefitMetadata["flags"].GetProperty("limits");
+        Assert.True(grant.BenefitMetadata["flags"].GetProperty("beta").GetBoolean());
+        Assert.Equal(5, limits.GetProperty("seats").GetInt32());
+        var tiers = limits.GetProperty("tiers").EnumerateArray().ToArray();
+        Assert.Equal("a", tiers[0].GetString());
+        Assert.Equal(2, tiers[1].GetInt32());
+        Assert.Equal(JsonValueKind.Null, tiers[2].ValueKind);
+        Assert.Equal(1.5, tiers[3].GetDouble());
+        var link = grant.Properties["links"][0];
+        Assert.Equal("https://example.com", link.GetProperty("url").GetString());
+        Assert.Equal(JsonValueKind.Null, link.GetProperty("expires").ValueKind);
+    }
+
+    [Fact]
     public async Task APostWithoutAKeyIsSentWithItsOwnAGetWithNone()
     {
         var recorder = new Recorder(_ => new Answer(HttpStatusCode.Created, $$"""{"data":{{ProductJson("prod_1")}}}"""));

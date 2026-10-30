@@ -29,7 +29,7 @@ await foreach (var each in perata.Products.ListIterAsync())
 |---|---|
 | `perata.Checkouts` | `CreateAsync` |
 | `perata.CustomerSessions` | `CreateAsync` |
-| `perata.Customers` | `CreateAsync`, `GetAsync`, `ListAsync`, `ListIterAsync` |
+| `perata.Customers` | `CreateAsync`, `GetAsync`, `GetStateAsync`, `ListAsync`, `ListIterAsync` |
 | `perata.Orders` | `ListAsync`, `ListIterAsync` |
 | `perata.PaymentMethods` | `DetachAsync`, `ListAsync`, `ListIterAsync` |
 | `perata.Payments` | `GetAsync`, `ListAsync`, `ListIterAsync` |

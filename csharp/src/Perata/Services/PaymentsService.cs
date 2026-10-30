@@ -18,7 +18,7 @@ public sealed class PaymentsService
 
     internal PaymentsService(PerataClient client) => this.client = client;
 
-    /// <summary>Read a payment.</summary>
+    /// <summary>Ler um pagamento.</summary>
     /// <param name="payment">The payment.</param>
     /// <param name="options">Another organization's key for this call.</param>
     /// <param name="cancellationToken">Cancels the call.</param>
@@ -29,7 +29,7 @@ public sealed class PaymentsService
         return client.RequestAsync(HttpMethod.Get, "/api/v1/payments/" + PerataClient.Segment(payment), null, null, PerataJson.Default.PaymentEnvelope, null, options, cancellationToken);
     }
 
-    /// <summary>List payments. One page; <see cref="ListIterAsync"/> walks every page.</summary>
+    /// <summary>Listar pagamentos. One page; <see cref="ListIterAsync"/> walks every page.</summary>
     /// <param name="parameters">The page, its size and the filters; the first page when null.</param>
     /// <param name="options">Another organization's key for this call.</param>
     /// <param name="cancellationToken">Cancels the call.</param>

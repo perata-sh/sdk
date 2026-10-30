@@ -13,6 +13,7 @@ public final class BenefitGrant {
     public static final String STATUS_REVOKED = "revoked";
 
     private final String benefitId;
+    private final Map<String, Object> benefitMetadata;
     private final String benefitType;
     private final String createdAt;
     private final String customerId;
@@ -20,11 +21,13 @@ public final class BenefitGrant {
     private final String id;
     private final boolean isGranted;
     private final boolean isRevoked;
+    private final Map<String, Object> properties;
     private final String revokedAt;
     private final String status;
 
-    BenefitGrant(String benefitId, String benefitType, String createdAt, String customerId, String grantedAt, String id, boolean isGranted, boolean isRevoked, String revokedAt, String status) {
+    BenefitGrant(String benefitId, Map<String, Object> benefitMetadata, String benefitType, String createdAt, String customerId, String grantedAt, String id, boolean isGranted, boolean isRevoked, Map<String, Object> properties, String revokedAt, String status) {
         this.benefitId = benefitId;
+        this.benefitMetadata = benefitMetadata;
         this.benefitType = benefitType;
         this.createdAt = createdAt;
         this.customerId = customerId;
@@ -32,6 +35,7 @@ public final class BenefitGrant {
         this.id = id;
         this.isGranted = isGranted;
         this.isRevoked = isRevoked;
+        this.properties = properties;
         this.revokedAt = revokedAt;
         this.status = status;
     }
@@ -39,6 +43,7 @@ public final class BenefitGrant {
     static BenefitGrant fromJson(Map<String, Object> data) {
         return new BenefitGrant(
                 Json.required(data, "benefit_id", Json::asString),
+                Json.optional(data, "benefit_metadata", Json.map(Json::any)),
                 Json.required(data, "benefit_type", Json::asString),
                 Json.required(data, "created_at", Json::asString),
                 Json.required(data, "customer_id", Json::asString),
@@ -46,6 +51,7 @@ public final class BenefitGrant {
                 Json.required(data, "id", Json::asString),
                 Json.required(data, "is_granted", Json::asBoolean),
                 Json.required(data, "is_revoked", Json::asBoolean),
+                Json.optional(data, "properties", Json.map(Json::any)),
                 Json.optional(data, "revoked_at", Json::asString),
                 Json.required(data, "status", Json::asString));
     }
@@ -53,6 +59,11 @@ public final class BenefitGrant {
     /** @return the API's {@code benefit_id} */
     public String getBenefitId() {
         return benefitId;
+    }
+
+    /** @return Os metadados do benefício: os valores de uma feature flag. (null when the API sends none) */
+    public Map<String, Object> getBenefitMetadata() {
+        return benefitMetadata;
     }
 
     /** @return the API's {@code benefit_type} */
@@ -90,6 +101,11 @@ public final class BenefitGrant {
         return isRevoked;
     }
 
+    /** @return O que a concessão informa, conforme o tipo, sem credenciais. (null when the API sends none) */
+    public Map<String, Object> getProperties() {
+        return properties;
+    }
+
     /** @return the API's {@code revoked_at} (null when the API sends none) */
     public String getRevokedAt() {
         return revokedAt;
@@ -102,6 +118,6 @@ public final class BenefitGrant {
 
     @Override
     public String toString() {
-        return "BenefitGrant{" + "benefitId=" + benefitId + ", benefitType=" + benefitType + ", createdAt=" + createdAt + ", customerId=" + customerId + ", grantedAt=" + grantedAt + ", id=" + id + ", isGranted=" + isGranted + ", isRevoked=" + isRevoked + ", revokedAt=" + revokedAt + ", status=" + status + "}";
+        return "BenefitGrant{" + "benefitId=" + benefitId + ", benefitMetadata=" + benefitMetadata + ", benefitType=" + benefitType + ", createdAt=" + createdAt + ", customerId=" + customerId + ", grantedAt=" + grantedAt + ", id=" + id + ", isGranted=" + isGranted + ", isRevoked=" + isRevoked + ", properties=" + properties + ", revokedAt=" + revokedAt + ", status=" + status + "}";
     }
 }

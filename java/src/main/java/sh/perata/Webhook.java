@@ -144,6 +144,9 @@ public final class Webhook {
         if (data == null) {
             data = Map.of();
         }
+        if (BenefitWebhookEvent.TYPES.contains(type)) {
+            return BenefitWebhookEvent.fromJson(id, type, timestamp, data);
+        }
         if (BenefitGrantWebhookEvent.TYPES.contains(type)) {
             return BenefitGrantWebhookEvent.fromJson(id, type, timestamp, data);
         }
@@ -153,6 +156,9 @@ public final class Webhook {
         if (CustomerWebhookEvent.TYPES.contains(type)) {
             return CustomerWebhookEvent.fromJson(id, type, timestamp, data);
         }
+        if (DiscountWebhookEvent.TYPES.contains(type)) {
+            return DiscountWebhookEvent.fromJson(id, type, timestamp, data);
+        }
         if (DisputeWebhookEvent.TYPES.contains(type)) {
             return DisputeWebhookEvent.fromJson(id, type, timestamp, data);
         }
@@ -161,6 +167,9 @@ public final class Webhook {
         }
         if (OrderWebhookEvent.TYPES.contains(type)) {
             return OrderWebhookEvent.fromJson(id, type, timestamp, data);
+        }
+        if (ProductWebhookEvent.TYPES.contains(type)) {
+            return ProductWebhookEvent.fromJson(id, type, timestamp, data);
         }
         if (RefundWebhookEvent.TYPES.contains(type)) {
             return RefundWebhookEvent.fromJson(id, type, timestamp, data);

@@ -5,6 +5,7 @@ Todos os SDKs da Peráta saem com a mesma versão; as mudanças de cada uma est�
 ## Não lançado
 
 - Os clientes recusam redirecionamentos, para que a chave da API nunca siga um; recusam um endereço base que não seja `https` (`http` só para `localhost`, `127.0.0.0/8` e `::1`), e todo POST sem `Idempotency-Key` sai com uma UUID v4 aleatória, uma por chamada. A verificação de webhooks só aceita um `webhook-timestamp` de dígitos ASCII. **Quem apontava o `baseUrl` para um endereço `http` que não seja local precisa passar a usar `https`.**
+- Contrato novo da API: `customers.getState` (assinaturas ativas e benefícios vigentes de um cliente, inclusive os feature flags), os modelos `CustomerState` e `CustomerStateBenefitGrant`, `benefitMetadata` e `properties` em `BenefitGrant`, `metadata`, `trialStart` e `trialEnd` em `Subscription`, e os modelos `WebhookBenefit` e `WebhookDiscount`. Os valores livres (`Map<String, Object?>`) são qualquer JSON. Os eventos `benefit.created`, `benefit.updated`, `discount.created`, `discount.updated`, `discount.deleted`, `product.created` e `product.updated` agora chegam como `BenefitWebhookEvent`, `DiscountWebhookEvent` e `ProductWebhookEvent`, com o objeto completo, e não mais como `IdentifiersWebhookEvent`. **Mudança incompatível para quem tratava esses tipos como `IdentifiersWebhookEvent`.**
 
 ## 0.2.0
 

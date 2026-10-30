@@ -77,6 +77,13 @@ class PerataTest(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "must be https", msg=base_url):
                 Perata("k", base_url=base_url)
 
+    def test_a_free_form_value_decodes_nested(self):
+        state = {"id": "cus_1", "name": "Ana", "email": "ana@example.com", "external_id": "", "status": "active", "created_at": "2026-10-17T00:00:00Z", "active_subscriptions": [], "granted_benefits": [{"id": "gr_1", "granted_at": "2026-10-17T00:00:00Z", "benefit_id": "ben_1", "benefit_type": "feature_flag", "benefit_metadata": {"flags": {"beta": True, "limits": {"seats": 5, "tiers": ["a", 2, None, 1.5]}}}, "properties": {"links": [{"url": "https://example.com", "expires": None}]}}]}
+        perata, _ = client(lambda request: (200, {"data": state}, {}))
+        grant = perata.customers.get_state("cus_1").granted_benefits[0]
+        self.assertEqual(grant.benefit_metadata, {"flags": {"beta": True, "limits": {"seats": 5, "tiers": ["a", 2, None, 1.5]}}})
+        self.assertEqual(grant.properties, {"links": [{"url": "https://example.com", "expires": None}]})
+
     def test_a_post_without_a_key_is_sent_with_its_own_a_get_with_none(self):
         perata, recorder = client(lambda request: (201, {"data": product("prod_1")}, {}))
         perata.products.create({"name": "Curso"})

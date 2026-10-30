@@ -20,7 +20,7 @@ import 'json.dart';
   factory {{.Name}}.fromJson(Map<String, Object?> json) {
     return {{.Name}}(
 {{- range .Fields}}
-      {{dartName .Wire}}: {{dartRead .}},
+      {{dartReadEntry .}},
 {{- end}}
     );
   }
@@ -35,7 +35,7 @@ import 'json.dart';
 {{- if .Fields}}
   Map<String, Object?> toJson() => {
 {{- range .Fields}}
-    {{dartWrite .}},
+    {{dartWriteEntry .}},
 {{- end}}
   };
 {{- else}}

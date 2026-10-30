@@ -41,6 +41,11 @@ module Perata
     end
   end
 
+  # The events that carry a WebhookBenefit; +data+ is WebhookBenefit.
+  class BenefitWebhookEvent < WebhookEvent
+    TYPES = %w[benefit.created benefit.updated].freeze
+  end
+
   # The events that carry a BenefitGrant; +data+ is BenefitGrant.
   class BenefitGrantWebhookEvent < WebhookEvent
     TYPES = %w[benefit_grant.created benefit_grant.revoked benefit_grant.updated].freeze
@@ -56,6 +61,11 @@ module Perata
     TYPES = %w[customer.created customer.deleted customer.updated].freeze
   end
 
+  # The events that carry a WebhookDiscount; +data+ is WebhookDiscount.
+  class DiscountWebhookEvent < WebhookEvent
+    TYPES = %w[discount.created discount.deleted discount.updated].freeze
+  end
+
   # The events that carry a WebhookDispute; +data+ is WebhookDispute.
   class DisputeWebhookEvent < WebhookEvent
     TYPES = %w[dispute.lost dispute.opened dispute.won].freeze
@@ -63,12 +73,17 @@ module Perata
 
   # The events that carry the event's identifiers; +data+ is Hash{String => String}.
   class IdentifiersWebhookEvent < WebhookEvent
-    TYPES = %w[benefit.archived benefit.created benefit.updated benefit.version_created benefit_product_link.linked benefit_product_link.unlinked checkout_link.archived checkout_link.created checkout_payment.authorized checkout_payment.canceled checkout_payment.captured checkout_payment.partially_refunded checkout_payment.refunded checkout_payment.refused checkout_session.confirmed checkout_session.expired checkout_session.failed checkout_session.opened checkout_session.succeeded customer.archived discount.created discount.deleted discount.exhausted discount.expired discount.reactivated discount.redeemed discount.updated discount_redemption.released invoice.drafted invoice.issued invoice.settled invoice.uncollectible invoice.voided price.archived price.created product.archived product.created product.updated refund.canceled refund.failed refund.requested refund.succeeded seat_allocation.opened seat_allocation.resized seat_assignment.claimed seat_assignment.invited seat_assignment.revoked usage_event.recorded usage_period.closed usage_period.opened usage_period_adjustment.created].freeze
+    TYPES = %w[benefit.archived benefit.version_created benefit_product_link.linked benefit_product_link.unlinked checkout_link.archived checkout_link.created checkout_payment.authorized checkout_payment.canceled checkout_payment.captured checkout_payment.partially_refunded checkout_payment.refunded checkout_payment.refused checkout_session.confirmed checkout_session.expired checkout_session.failed checkout_session.opened checkout_session.succeeded customer.archived discount.exhausted discount.expired discount.reactivated discount.redeemed discount_redemption.released invoice.drafted invoice.issued invoice.settled invoice.uncollectible invoice.voided price.archived price.created product.archived refund.canceled refund.failed refund.requested refund.succeeded seat_allocation.opened seat_allocation.resized seat_assignment.claimed seat_assignment.invited seat_assignment.revoked usage_event.recorded usage_period.closed usage_period.opened usage_period_adjustment.created].freeze
   end
 
   # The events that carry an Order; +data+ is Order.
   class OrderWebhookEvent < WebhookEvent
     TYPES = %w[order.created order.paid order.refunded order.updated].freeze
+  end
+
+  # The events that carry a Product; +data+ is Product.
+  class ProductWebhookEvent < WebhookEvent
+    TYPES = %w[product.created product.updated].freeze
   end
 
   # The events that carry a Refund; +data+ is Refund.
@@ -140,12 +155,15 @@ module Perata
     data = event["data"] || {}
     message = { id: event.fetch("id"), type: event.fetch("type"), timestamp: event.fetch("timestamp") }
     case message[:type]
+    when *BenefitWebhookEvent::TYPES then BenefitWebhookEvent.new(**message, data: WebhookBenefit.from_hash(data))
     when *BenefitGrantWebhookEvent::TYPES then BenefitGrantWebhookEvent.new(**message, data: BenefitGrant.from_hash(data))
     when *CheckoutWebhookEvent::TYPES then CheckoutWebhookEvent.new(**message, data: WebhookCheckout.from_hash(data))
     when *CustomerWebhookEvent::TYPES then CustomerWebhookEvent.new(**message, data: Customer.from_hash(data))
+    when *DiscountWebhookEvent::TYPES then DiscountWebhookEvent.new(**message, data: WebhookDiscount.from_hash(data))
     when *DisputeWebhookEvent::TYPES then DisputeWebhookEvent.new(**message, data: WebhookDispute.from_hash(data))
     when *IdentifiersWebhookEvent::TYPES then IdentifiersWebhookEvent.new(**message, data: data)
     when *OrderWebhookEvent::TYPES then OrderWebhookEvent.new(**message, data: Order.from_hash(data))
+    when *ProductWebhookEvent::TYPES then ProductWebhookEvent.new(**message, data: Product.from_hash(data))
     when *RefundWebhookEvent::TYPES then RefundWebhookEvent.new(**message, data: Refund.from_hash(data))
     when *SubscriptionWebhookEvent::TYPES then SubscriptionWebhookEvent.new(**message, data: Subscription.from_hash(data))
     else UnknownWebhookEvent.new(**message, data: data)

@@ -94,7 +94,12 @@ func phpConvert(t *TypeRef, expr string) string {
 	switch t.Kind {
 	case "model":
 		return t.Model + "::fromArray(" + expr + ")"
-	case "array", "map":
+	case "array":
+		if inner := phpConvert(t.Items, "$item"); inner != "" {
+			// array_map keeps the keys; a list is what the property says.
+			return "array_values(array_map(static fn (array $item) => " + inner + ", " + expr + "))"
+		}
+	case "map":
 		if inner := phpConvert(t.Items, "$item"); inner != "" {
 			return "array_map(static fn (array $item) => " + inner + ", " + expr + ")"
 		}

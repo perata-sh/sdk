@@ -18,7 +18,7 @@ final class SubscriptionsService
     }
 
     /**
-     * Cancel a subscription, by default at the end of its period.
+     * Cancelar uma assinatura, por padrão no fim do período.
      *
      * @param array{at_period_end?: bool, reason?: string} $params
      */
@@ -29,7 +29,7 @@ final class SubscriptionsService
     }
 
     /**
-     * Read a subscription.
+     * Ler uma assinatura.
      */
     public function get(string $subscription, ?string $apiKey = null): Models\Subscription
     {
@@ -38,7 +38,7 @@ final class SubscriptionsService
     }
 
     /**
-     * List subscriptions, optionally of one customer (customer_id). One page; listIter() walks every page.
+     * Listar assinaturas, opcionalmente de um cliente (customer_id). One page; listIter() walks every page.
      *
      * @param array{page?: int, limit?: int, customer_id?: string} $params
      * @return Page<Models\Subscription>

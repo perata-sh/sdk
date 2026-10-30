@@ -3,6 +3,8 @@
 /** BenefitGrant is a resource of Peráta's API. */
 export interface BenefitGrant {
   benefit_id: string;
+  /** Os metadados do benefício: os valores de uma feature flag. */
+  benefit_metadata?: Record<string, unknown>;
   benefit_type: string;
   created_at: string;
   customer_id: string;
@@ -10,6 +12,8 @@ export interface BenefitGrant {
   id: string;
   is_granted: boolean;
   is_revoked: boolean;
+  /** O que a concessão informa, conforme o tipo, sem credenciais. */
+  properties?: Record<string, unknown>;
   revoked_at: string | null;
   status: "granted" | "revoked";
 }
@@ -48,6 +52,33 @@ export interface CustomerSession {
   expires_at: string;
   /** Sessão do portal do cliente, já autenticada. */
   token: string;
+}
+
+/** CustomerState is a resource of Peráta's API. */
+export interface CustomerState {
+  /** As assinaturas ativas ou em teste do cliente. */
+  active_subscriptions: Subscription[];
+  created_at: string;
+  email: string;
+  external_id: string;
+  /** Os benefícios que o cliente tem agora. */
+  granted_benefits: CustomerStateBenefitGrant[];
+  id: string;
+  name: string;
+  status: "active" | "archived";
+}
+
+/** CustomerStateBenefitGrant is a resource of Peráta's API. */
+export interface CustomerStateBenefitGrant {
+  benefit_id: string;
+  /** Os metadados do benefício: os valores de uma feature flag. */
+  benefit_metadata: Record<string, unknown>;
+  benefit_type: "custom" | "license_key" | "downloadable" | "feature_flag" | "meter_credit" | "discord" | "github_repository";
+  granted_at: string;
+  /** A concessão. */
+  id: string;
+  /** O que a concessão informa, conforme o tipo. */
+  properties: Record<string, unknown>;
 }
 
 /** Order is a resource of Peráta's API. */
@@ -146,9 +177,25 @@ export interface Subscription {
   customer_id: string;
   id: string;
   interval: string;
+  /** Metadados do lojista: pares chave e valor (texto, número ou booleano); objeto vazio quando não há. */
+  metadata: Record<string, unknown>;
   price_id: string;
   product_id: string;
   status: "trialing" | "active" | "past_due" | "paused" | "canceled";
+  trial_end: string | null;
+  trial_start: string | null;
+}
+
+/** WebhookBenefit is a resource of Peráta's API. */
+export interface WebhookBenefit {
+  created_at: string;
+  description: string;
+  id: string;
+  modified_at: string;
+  name: string;
+  status: "active" | "archived";
+  type: string;
+  visibility: "public" | "private";
 }
 
 /** WebhookCheckout is a resource of Peráta's API. */
@@ -166,6 +213,28 @@ export interface WebhookCheckout {
   product_id: string;
   status: "open" | "confirmed" | "succeeded" | "failed" | "expired";
   total_cents: number;
+}
+
+/** WebhookDiscount is a resource of Peráta's API. */
+export interface WebhookDiscount {
+  /** Valor fixo em centavos, quando o tipo é fixed. */
+  amount_cents: number;
+  /** Percentual em pontos-base, quando o tipo é percentage. */
+  basis_points: number;
+  code: string | null;
+  created_at: string;
+  currency: string;
+  duration: "once" | "forever" | "repeating";
+  duration_in_months: number;
+  ends_at: string | null;
+  id: string;
+  max_redemptions: number | null;
+  modified_at: string;
+  name: string;
+  redemptions_count: number;
+  starts_at: string;
+  status: "active" | "expired" | "exhausted" | "archived";
+  type: "percentage" | "fixed";
 }
 
 /** WebhookDispute is a resource of Peráta's API. */
@@ -205,6 +274,8 @@ export interface CheckoutsCreateParams {
 /** The body of customer-sessions:create. */
 export interface CustomerSessionsCreateParams {
   customer_id: string;
+  /** Optional https address of your app the portal offers to go back to. */
+  return_url?: string;
 }
 
 /** The body of customers:create. */

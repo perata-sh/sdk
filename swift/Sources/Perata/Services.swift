@@ -4,7 +4,7 @@
 public struct CheckoutsService: Sendable {
     let requester: Requester
 
-    /// Create a checkout address for one product and price.
+    /// Criar o endereço de um checkout para um produto e um preço.
     public func create(_ params: CheckoutsCreateParams, idempotencyKey: String? = nil, apiKey: String? = nil) async throws -> Checkout {
         try await requester.request(
             "POST", "/api/v1/checkouts", body: params, idempotencyKey: idempotencyKey, apiKey: apiKey
@@ -16,7 +16,7 @@ public struct CheckoutsService: Sendable {
 public struct CustomerSessionsService: Sendable {
     let requester: Requester
 
-    /// Sign a customer into the customer portal: the address opens it already signed in.
+    /// Entrar com um cliente no portal do cliente: o endereço o abre já autenticado.
     public func create(_ params: CustomerSessionsCreateParams, idempotencyKey: String? = nil, apiKey: String? = nil) async throws -> CustomerSession {
         try await requester.request(
             "POST", "/api/v1/customer-sessions", body: params, idempotencyKey: idempotencyKey, apiKey: apiKey
@@ -28,21 +28,28 @@ public struct CustomerSessionsService: Sendable {
 public struct CustomersService: Sendable {
     let requester: Requester
 
-    /// Create a customer.
+    /// Criar um cliente.
     public func create(_ params: CustomersCreateParams, idempotencyKey: String? = nil, apiKey: String? = nil) async throws -> Customer {
         try await requester.request(
             "POST", "/api/v1/customers", body: params, idempotencyKey: idempotencyKey, apiKey: apiKey
         )
     }
 
-    /// Read a customer.
+    /// Ler um cliente.
     public func get(_ customer: String, apiKey: String? = nil) async throws -> Customer {
         try await requester.request(
             "GET", "/api/v1/customers/\(escape(customer))", apiKey: apiKey
         )
     }
 
-    /// List customers. One page; `listIter` walks every page.
+    /// Ler o estado de um cliente: assinaturas ativas e benefícios vigentes, inclusive os feature flags.
+    public func getState(_ customer: String, apiKey: String? = nil) async throws -> CustomerState {
+        try await requester.request(
+            "GET", "/api/v1/customers/\(escape(customer))/state", apiKey: apiKey
+        )
+    }
+
+    /// Listar clientes. One page; `listIter` walks every page.
     ///
     /// - Parameters:
     ///   - page: the page, from 1.
@@ -68,7 +75,7 @@ public struct CustomersService: Sendable {
 public struct OrdersService: Sendable {
     let requester: Requester
 
-    /// List orders: paid checkouts. One page; `listIter` walks every page.
+    /// Listar pedidos: checkouts pagos. One page; `listIter` walks every page.
     ///
     /// - Parameters:
     ///   - page: the page, from 1.
@@ -94,14 +101,14 @@ public struct OrdersService: Sendable {
 public struct PaymentMethodsService: Sendable {
     let requester: Requester
 
-    /// Stop charging a stored card; refused while an active subscription charges it.
+    /// Parar de cobrar um cartão guardado; recusado enquanto uma assinatura ativa o cobra.
     public func detach(_ paymentMethod: String, idempotencyKey: String? = nil, apiKey: String? = nil) async throws -> PaymentMethodDetached {
         try await requester.request(
             "POST", "/api/v1/payment_methods/\(escape(paymentMethod))/detach", idempotencyKey: idempotencyKey, apiKey: apiKey
         )
     }
 
-    /// List a customer's stored cards: brand, last four digits and expiry. One page; `listIter` walks every page.
+    /// Listar os cartões guardados de um cliente: bandeira, quatro últimos dígitos e validade. One page; `listIter` walks every page.
     ///
     /// - Parameters:
     ///   - page: the page, from 1.
@@ -127,14 +134,14 @@ public struct PaymentMethodsService: Sendable {
 public struct PaymentsService: Sendable {
     let requester: Requester
 
-    /// Read a payment.
+    /// Ler um pagamento.
     public func get(_ payment: String, apiKey: String? = nil) async throws -> Payment {
         try await requester.request(
             "GET", "/api/v1/payments/\(escape(payment))", apiKey: apiKey
         )
     }
 
-    /// List payments. One page; `listIter` walks every page.
+    /// Listar pagamentos. One page; `listIter` walks every page.
     ///
     /// - Parameters:
     ///   - page: the page, from 1.
@@ -160,14 +167,14 @@ public struct PaymentsService: Sendable {
 public struct PricesService: Sendable {
     let requester: Requester
 
-    /// Create a BRL price, one-time or recurring.
+    /// Criar um preço em reais, avulso ou recorrente.
     public func create(_ params: PricesCreateParams, idempotencyKey: String? = nil, apiKey: String? = nil) async throws -> Price {
         try await requester.request(
             "POST", "/api/v1/prices", body: params, idempotencyKey: idempotencyKey, apiKey: apiKey
         )
     }
 
-    /// List prices, optionally of one product (product_id). One page; `listIter` walks every page.
+    /// Listar preços, opcionalmente de um produto (product_id). One page; `listIter` walks every page.
     ///
     /// - Parameters:
     ///   - page: the page, from 1.
@@ -193,21 +200,21 @@ public struct PricesService: Sendable {
 public struct ProductsService: Sendable {
     let requester: Requester
 
-    /// Create a product.
+    /// Criar um produto.
     public func create(_ params: ProductsCreateParams, idempotencyKey: String? = nil, apiKey: String? = nil) async throws -> Product {
         try await requester.request(
             "POST", "/api/v1/products", body: params, idempotencyKey: idempotencyKey, apiKey: apiKey
         )
     }
 
-    /// Read a product.
+    /// Ler um produto.
     public func get(_ product: String, apiKey: String? = nil) async throws -> Product {
         try await requester.request(
             "GET", "/api/v1/products/\(escape(product))", apiKey: apiKey
         )
     }
 
-    /// List products. One page; `listIter` walks every page.
+    /// Listar produtos. One page; `listIter` walks every page.
     ///
     /// - Parameters:
     ///   - page: the page, from 1.
@@ -233,7 +240,7 @@ public struct ProductsService: Sendable {
 public struct RefundsService: Sendable {
     let requester: Requester
 
-    /// Refund part or all of a payment.
+    /// Reembolsar parte ou todo um pagamento.
     public func create(_ params: RefundsCreateParams, idempotencyKey: String? = nil, apiKey: String? = nil) async throws -> Refund {
         try await requester.request(
             "POST", "/api/v1/refunds", body: params, idempotencyKey: idempotencyKey, apiKey: apiKey
@@ -245,21 +252,21 @@ public struct RefundsService: Sendable {
 public struct SubscriptionsService: Sendable {
     let requester: Requester
 
-    /// Cancel a subscription, by default at the end of its period.
+    /// Cancelar uma assinatura, por padrão no fim do período.
     public func cancel(_ subscription: String, _ params: SubscriptionsCancelParams, idempotencyKey: String? = nil, apiKey: String? = nil) async throws -> Subscription {
         try await requester.request(
             "POST", "/api/v1/subscriptions/\(escape(subscription))/cancel", body: params, idempotencyKey: idempotencyKey, apiKey: apiKey
         )
     }
 
-    /// Read a subscription.
+    /// Ler uma assinatura.
     public func get(_ subscription: String, apiKey: String? = nil) async throws -> Subscription {
         try await requester.request(
             "GET", "/api/v1/subscriptions/\(escape(subscription))", apiKey: apiKey
         )
     }
 
-    /// List subscriptions, optionally of one customer (customer_id). One page; `listIter` walks every page.
+    /// Listar assinaturas, opcionalmente de um cliente (customer_id). One page; `listIter` walks every page.
     ///
     /// - Parameters:
     ///   - page: the page, from 1.

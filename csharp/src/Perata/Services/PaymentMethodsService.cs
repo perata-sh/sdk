@@ -18,7 +18,7 @@ public sealed class PaymentMethodsService
 
     internal PaymentMethodsService(PerataClient client) => this.client = client;
 
-    /// <summary>Stop charging a stored card; refused while an active subscription charges it.</summary>
+    /// <summary>Parar de cobrar um cartão guardado; recusado enquanto uma assinatura ativa o cobra.</summary>
     /// <param name="paymentMethod">The payment_method.</param>
     /// <param name="options">An idempotency key, or another organization's key for this call.</param>
     /// <param name="cancellationToken">Cancels the call.</param>
@@ -29,7 +29,7 @@ public sealed class PaymentMethodsService
         return client.RequestAsync(HttpMethod.Post, "/api/v1/payment_methods/" + PerataClient.Segment(paymentMethod) + "/detach", null, null, PerataJson.Default.PaymentMethodDetachedEnvelope, options?.IdempotencyKey, options, cancellationToken);
     }
 
-    /// <summary>List a customer's stored cards: brand, last four digits and expiry. One page; <see cref="ListIterAsync"/> walks every page.</summary>
+    /// <summary>Listar os cartões guardados de um cliente: bandeira, quatro últimos dígitos e validade. One page; <see cref="ListIterAsync"/> walks every page.</summary>
     /// <param name="customer">The customer.</param>
     /// <param name="parameters">The page, its size and the filters; the first page when null.</param>
     /// <param name="options">Another organization's key for this call.</param>

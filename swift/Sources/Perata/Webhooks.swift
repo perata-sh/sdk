@@ -29,6 +29,9 @@ public struct WebhookMessage<Payload: Codable & Sendable & Hashable>: Codable, S
     }
 }
 
+/// The events that carry a WebhookBenefit: `benefit.created`, `benefit.updated`.
+public typealias BenefitWebhookEvent = WebhookMessage<WebhookBenefit>
+
 /// The events that carry a BenefitGrant: `benefit_grant.created`, `benefit_grant.revoked`, `benefit_grant.updated`.
 public typealias BenefitGrantWebhookEvent = WebhookMessage<BenefitGrant>
 
@@ -38,14 +41,20 @@ public typealias CheckoutWebhookEvent = WebhookMessage<WebhookCheckout>
 /// The events that carry a Customer: `customer.created`, `customer.deleted`, `customer.updated`.
 public typealias CustomerWebhookEvent = WebhookMessage<Customer>
 
+/// The events that carry a WebhookDiscount: `discount.created`, `discount.deleted`, `discount.updated`.
+public typealias DiscountWebhookEvent = WebhookMessage<WebhookDiscount>
+
 /// The events that carry a WebhookDispute: `dispute.lost`, `dispute.opened`, `dispute.won`.
 public typealias DisputeWebhookEvent = WebhookMessage<WebhookDispute>
 
-/// The events that carry the event's identifiers: `benefit.archived`, `benefit.created`, `benefit.updated`, `benefit.version_created`, `benefit_product_link.linked`, `benefit_product_link.unlinked`, `checkout_link.archived`, `checkout_link.created`, `checkout_payment.authorized`, `checkout_payment.canceled`, `checkout_payment.captured`, `checkout_payment.partially_refunded`, `checkout_payment.refunded`, `checkout_payment.refused`, `checkout_session.confirmed`, `checkout_session.expired`, `checkout_session.failed`, `checkout_session.opened`, `checkout_session.succeeded`, `customer.archived`, `discount.created`, `discount.deleted`, `discount.exhausted`, `discount.expired`, `discount.reactivated`, `discount.redeemed`, `discount.updated`, `discount_redemption.released`, `invoice.drafted`, `invoice.issued`, `invoice.settled`, `invoice.uncollectible`, `invoice.voided`, `price.archived`, `price.created`, `product.archived`, `product.created`, `product.updated`, `refund.canceled`, `refund.failed`, `refund.requested`, `refund.succeeded`, `seat_allocation.opened`, `seat_allocation.resized`, `seat_assignment.claimed`, `seat_assignment.invited`, `seat_assignment.revoked`, `usage_event.recorded`, `usage_period.closed`, `usage_period.opened`, `usage_period_adjustment.created`.
+/// The events that carry the event's identifiers: `benefit.archived`, `benefit.version_created`, `benefit_product_link.linked`, `benefit_product_link.unlinked`, `checkout_link.archived`, `checkout_link.created`, `checkout_payment.authorized`, `checkout_payment.canceled`, `checkout_payment.captured`, `checkout_payment.partially_refunded`, `checkout_payment.refunded`, `checkout_payment.refused`, `checkout_session.confirmed`, `checkout_session.expired`, `checkout_session.failed`, `checkout_session.opened`, `checkout_session.succeeded`, `customer.archived`, `discount.exhausted`, `discount.expired`, `discount.reactivated`, `discount.redeemed`, `discount_redemption.released`, `invoice.drafted`, `invoice.issued`, `invoice.settled`, `invoice.uncollectible`, `invoice.voided`, `price.archived`, `price.created`, `product.archived`, `refund.canceled`, `refund.failed`, `refund.requested`, `refund.succeeded`, `seat_allocation.opened`, `seat_allocation.resized`, `seat_assignment.claimed`, `seat_assignment.invited`, `seat_assignment.revoked`, `usage_event.recorded`, `usage_period.closed`, `usage_period.opened`, `usage_period_adjustment.created`.
 public typealias IdentifiersWebhookEvent = WebhookMessage<[String: String]>
 
 /// The events that carry an Order: `order.created`, `order.paid`, `order.refunded`, `order.updated`.
 public typealias OrderWebhookEvent = WebhookMessage<Order>
+
+/// The events that carry a Product: `product.created`, `product.updated`.
+public typealias ProductWebhookEvent = WebhookMessage<Product>
 
 /// The events that carry a Refund: `refund.created`, `refund.updated`.
 public typealias RefundWebhookEvent = WebhookMessage<Refund>
@@ -67,18 +76,24 @@ public struct UnknownWebhookEvent: Sendable, Hashable {
 /// telling apart what happened, or `.unknown` for a type this SDK does not
 /// know yet.
 public enum WebhookEvent: Sendable, Hashable {
+    /// `benefit.created`, `benefit.updated`.
+    case benefit(BenefitWebhookEvent)
     /// `benefit_grant.created`, `benefit_grant.revoked`, `benefit_grant.updated`.
     case benefitGrant(BenefitGrantWebhookEvent)
     /// `checkout.created`, `checkout.expired`, `checkout.updated`.
     case checkout(CheckoutWebhookEvent)
     /// `customer.created`, `customer.deleted`, `customer.updated`.
     case customer(CustomerWebhookEvent)
+    /// `discount.created`, `discount.deleted`, `discount.updated`.
+    case discount(DiscountWebhookEvent)
     /// `dispute.lost`, `dispute.opened`, `dispute.won`.
     case dispute(DisputeWebhookEvent)
-    /// `benefit.archived`, `benefit.created`, `benefit.updated`, `benefit.version_created`, `benefit_product_link.linked`, `benefit_product_link.unlinked`, `checkout_link.archived`, `checkout_link.created`, `checkout_payment.authorized`, `checkout_payment.canceled`, `checkout_payment.captured`, `checkout_payment.partially_refunded`, `checkout_payment.refunded`, `checkout_payment.refused`, `checkout_session.confirmed`, `checkout_session.expired`, `checkout_session.failed`, `checkout_session.opened`, `checkout_session.succeeded`, `customer.archived`, `discount.created`, `discount.deleted`, `discount.exhausted`, `discount.expired`, `discount.reactivated`, `discount.redeemed`, `discount.updated`, `discount_redemption.released`, `invoice.drafted`, `invoice.issued`, `invoice.settled`, `invoice.uncollectible`, `invoice.voided`, `price.archived`, `price.created`, `product.archived`, `product.created`, `product.updated`, `refund.canceled`, `refund.failed`, `refund.requested`, `refund.succeeded`, `seat_allocation.opened`, `seat_allocation.resized`, `seat_assignment.claimed`, `seat_assignment.invited`, `seat_assignment.revoked`, `usage_event.recorded`, `usage_period.closed`, `usage_period.opened`, `usage_period_adjustment.created`.
+    /// `benefit.archived`, `benefit.version_created`, `benefit_product_link.linked`, `benefit_product_link.unlinked`, `checkout_link.archived`, `checkout_link.created`, `checkout_payment.authorized`, `checkout_payment.canceled`, `checkout_payment.captured`, `checkout_payment.partially_refunded`, `checkout_payment.refunded`, `checkout_payment.refused`, `checkout_session.confirmed`, `checkout_session.expired`, `checkout_session.failed`, `checkout_session.opened`, `checkout_session.succeeded`, `customer.archived`, `discount.exhausted`, `discount.expired`, `discount.reactivated`, `discount.redeemed`, `discount_redemption.released`, `invoice.drafted`, `invoice.issued`, `invoice.settled`, `invoice.uncollectible`, `invoice.voided`, `price.archived`, `price.created`, `product.archived`, `refund.canceled`, `refund.failed`, `refund.requested`, `refund.succeeded`, `seat_allocation.opened`, `seat_allocation.resized`, `seat_assignment.claimed`, `seat_assignment.invited`, `seat_assignment.revoked`, `usage_event.recorded`, `usage_period.closed`, `usage_period.opened`, `usage_period_adjustment.created`.
     case identifiers(IdentifiersWebhookEvent)
     /// `order.created`, `order.paid`, `order.refunded`, `order.updated`.
     case order(OrderWebhookEvent)
+    /// `product.created`, `product.updated`.
+    case product(ProductWebhookEvent)
     /// `refund.created`, `refund.updated`.
     case refund(RefundWebhookEvent)
     /// `subscription.active`, `subscription.canceled`, `subscription.created`, `subscription.cycled`, `subscription.past_due`, `subscription.paused`, `subscription.resumed`, `subscription.revoked`, `subscription.uncanceled`, `subscription.updated`.
@@ -89,12 +104,15 @@ public enum WebhookEvent: Sendable, Hashable {
     /// The message's id, the same as the webhook-id header.
     public var id: String {
         switch self {
+        case let .benefit(event): event.id
         case let .benefitGrant(event): event.id
         case let .checkout(event): event.id
         case let .customer(event): event.id
+        case let .discount(event): event.id
         case let .dispute(event): event.id
         case let .identifiers(event): event.id
         case let .order(event): event.id
+        case let .product(event): event.id
         case let .refund(event): event.id
         case let .subscription(event): event.id
         case let .unknown(event): event.id
@@ -104,12 +122,15 @@ public enum WebhookEvent: Sendable, Hashable {
     /// What happened: order.paid…
     public var type: String {
         switch self {
+        case let .benefit(event): event.type
         case let .benefitGrant(event): event.type
         case let .checkout(event): event.type
         case let .customer(event): event.type
+        case let .discount(event): event.type
         case let .dispute(event): event.type
         case let .identifiers(event): event.type
         case let .order(event): event.type
+        case let .product(event): event.type
         case let .refund(event): event.type
         case let .subscription(event): event.type
         case let .unknown(event): event.type
@@ -119,12 +140,15 @@ public enum WebhookEvent: Sendable, Hashable {
     /// When it happened.
     public var timestamp: String {
         switch self {
+        case let .benefit(event): event.timestamp
         case let .benefitGrant(event): event.timestamp
         case let .checkout(event): event.timestamp
         case let .customer(event): event.timestamp
+        case let .discount(event): event.timestamp
         case let .dispute(event): event.timestamp
         case let .identifiers(event): event.timestamp
         case let .order(event): event.timestamp
+        case let .product(event): event.timestamp
         case let .refund(event): event.timestamp
         case let .subscription(event): event.timestamp
         case let .unknown(event): event.timestamp
@@ -142,18 +166,24 @@ public enum WebhookEvent: Sendable, Hashable {
         let decoder = JSONDecoder()
         let header = try decoder.decode(Header.self, from: body)
         switch header.type {
+        case "benefit.created", "benefit.updated":
+            return try .benefit(decoder.decode(BenefitWebhookEvent.self, from: body))
         case "benefit_grant.created", "benefit_grant.revoked", "benefit_grant.updated":
             return try .benefitGrant(decoder.decode(BenefitGrantWebhookEvent.self, from: body))
         case "checkout.created", "checkout.expired", "checkout.updated":
             return try .checkout(decoder.decode(CheckoutWebhookEvent.self, from: body))
         case "customer.created", "customer.deleted", "customer.updated":
             return try .customer(decoder.decode(CustomerWebhookEvent.self, from: body))
+        case "discount.created", "discount.deleted", "discount.updated":
+            return try .discount(decoder.decode(DiscountWebhookEvent.self, from: body))
         case "dispute.lost", "dispute.opened", "dispute.won":
             return try .dispute(decoder.decode(DisputeWebhookEvent.self, from: body))
-        case "benefit.archived", "benefit.created", "benefit.updated", "benefit.version_created", "benefit_product_link.linked", "benefit_product_link.unlinked", "checkout_link.archived", "checkout_link.created", "checkout_payment.authorized", "checkout_payment.canceled", "checkout_payment.captured", "checkout_payment.partially_refunded", "checkout_payment.refunded", "checkout_payment.refused", "checkout_session.confirmed", "checkout_session.expired", "checkout_session.failed", "checkout_session.opened", "checkout_session.succeeded", "customer.archived", "discount.created", "discount.deleted", "discount.exhausted", "discount.expired", "discount.reactivated", "discount.redeemed", "discount.updated", "discount_redemption.released", "invoice.drafted", "invoice.issued", "invoice.settled", "invoice.uncollectible", "invoice.voided", "price.archived", "price.created", "product.archived", "product.created", "product.updated", "refund.canceled", "refund.failed", "refund.requested", "refund.succeeded", "seat_allocation.opened", "seat_allocation.resized", "seat_assignment.claimed", "seat_assignment.invited", "seat_assignment.revoked", "usage_event.recorded", "usage_period.closed", "usage_period.opened", "usage_period_adjustment.created":
+        case "benefit.archived", "benefit.version_created", "benefit_product_link.linked", "benefit_product_link.unlinked", "checkout_link.archived", "checkout_link.created", "checkout_payment.authorized", "checkout_payment.canceled", "checkout_payment.captured", "checkout_payment.partially_refunded", "checkout_payment.refunded", "checkout_payment.refused", "checkout_session.confirmed", "checkout_session.expired", "checkout_session.failed", "checkout_session.opened", "checkout_session.succeeded", "customer.archived", "discount.exhausted", "discount.expired", "discount.reactivated", "discount.redeemed", "discount_redemption.released", "invoice.drafted", "invoice.issued", "invoice.settled", "invoice.uncollectible", "invoice.voided", "price.archived", "price.created", "product.archived", "refund.canceled", "refund.failed", "refund.requested", "refund.succeeded", "seat_allocation.opened", "seat_allocation.resized", "seat_assignment.claimed", "seat_assignment.invited", "seat_assignment.revoked", "usage_event.recorded", "usage_period.closed", "usage_period.opened", "usage_period_adjustment.created":
             return try .identifiers(decoder.decode(IdentifiersWebhookEvent.self, from: body))
         case "order.created", "order.paid", "order.refunded", "order.updated":
             return try .order(decoder.decode(OrderWebhookEvent.self, from: body))
+        case "product.created", "product.updated":
+            return try .product(decoder.decode(ProductWebhookEvent.self, from: body))
         case "refund.created", "refund.updated":
             return try .refund(decoder.decode(RefundWebhookEvent.self, from: body))
         case "subscription.active", "subscription.canceled", "subscription.created", "subscription.cycled", "subscription.past_due", "subscription.paused", "subscription.resumed", "subscription.revoked", "subscription.uncanceled", "subscription.updated":

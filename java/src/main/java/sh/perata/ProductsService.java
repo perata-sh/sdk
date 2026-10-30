@@ -16,7 +16,7 @@ public final class ProductsService {
     }
 
     /**
-     * Create a product.
+     * Criar um produto.
      * @param params the request
      * @param options an idempotency key or another organization's key for this call, or null
      * @return the product
@@ -28,7 +28,7 @@ public final class ProductsService {
     }
 
     /**
-     * Create a product.
+     * Criar um produto.
      * @param params the request
      * @return the product
      * @throws PerataException when the API refuses the call
@@ -112,7 +112,7 @@ public final class ProductsService {
     }
 
     /**
-     * Read a product.
+     * Ler um produto.
      * @param product the product
      * @param options another organization's key for this call, or null
      * @return the product
@@ -124,7 +124,7 @@ public final class ProductsService {
     }
 
     /**
-     * Read a product.
+     * Ler um produto.
      * @param product the product
      * @return the product
      * @throws PerataException when the API refuses the call
@@ -134,7 +134,7 @@ public final class ProductsService {
     }
 
     /**
-     * List products. One page; {@link #listIter} walks every page.
+     * Listar produtos. One page; {@link #listIter} walks every page.
      * @param params the page, its size and the filters, or null
      * @param options options for this call, or null
      * @return the page
@@ -146,7 +146,7 @@ public final class ProductsService {
     }
 
     /**
-     * List products. One page.
+     * Listar produtos. One page.
      * @param params the page, its size and the filters, or null
      * @return the page
      */
@@ -155,7 +155,7 @@ public final class ProductsService {
     }
 
     /**
-     * List products. The first page.
+     * Listar produtos. The first page.
      * @return the page
      */
     public Page<Product> list() {

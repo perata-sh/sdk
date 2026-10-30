@@ -53,10 +53,14 @@ defmodule Perata.CustomerSessionsCreateParams do
   """
 
   @enforce_keys [:customer_id]
-  defstruct [:customer_id]
+  defstruct [:customer_id, :return_url]
 
+  @typedoc """
+  * `return_url` (optional): Optional https address of your app the portal offers to go back to.
+  """
   @type t :: %__MODULE__{
-          customer_id: String.t()
+          customer_id: String.t(),
+          return_url: String.t() | nil
         }
 
   @doc "The params as they are, or built from a keyword list or a map with atom keys."
@@ -70,6 +74,7 @@ defmodule Perata.CustomerSessionsCreateParams do
     params = new(params)
 
     %{"customer_id" => params.customer_id}
+    |> Perata.Encode.put_optional("return_url", params.return_url)
   end
 end
 

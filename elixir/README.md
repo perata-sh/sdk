@@ -23,7 +23,7 @@ client
 |---|---|
 | `Perata.Checkouts` | `create` |
 | `Perata.CustomerSessions` | `create` |
-| `Perata.Customers` | `create`, `get`, `list`, `list_stream` |
+| `Perata.Customers` | `create`, `get`, `get_state`, `list`, `list_stream` |
 | `Perata.Orders` | `list`, `list_stream` |
 | `Perata.PaymentMethods` | `detach`, `list`, `list_stream` |
 | `Perata.Payments` | `get`, `list`, `list_stream` |

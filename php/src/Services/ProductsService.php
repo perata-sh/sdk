@@ -18,7 +18,7 @@ final class ProductsService
     }
 
     /**
-     * Create a product.
+     * Criar um produto.
      *
      * @param array{description?: string, name: string} $params
      */
@@ -29,7 +29,7 @@ final class ProductsService
     }
 
     /**
-     * Read a product.
+     * Ler um produto.
      */
     public function get(string $product, ?string $apiKey = null): Models\Product
     {
@@ -38,7 +38,7 @@ final class ProductsService
     }
 
     /**
-     * List products. One page; listIter() walks every page.
+     * Listar produtos. One page; listIter() walks every page.
      *
      * @param array{page?: int, limit?: int} $params
      * @return Page<Models\Product>

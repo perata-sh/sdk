@@ -12,6 +12,8 @@ class BenefitGrant:
     """BenefitGrant is a resource of Peráta's API."""
 
     benefit_id: str
+    benefit_metadata: dict[str, Any] | None
+    """Os metadados do benefício: os valores de uma feature flag."""
     benefit_type: str
     created_at: str
     customer_id: str
@@ -19,6 +21,8 @@ class BenefitGrant:
     id: str
     is_granted: bool
     is_revoked: bool
+    properties: dict[str, Any] | None
+    """O que a concessão informa, conforme o tipo, sem credenciais."""
     revoked_at: str | None
     status: Literal["granted", "revoked"]
 
@@ -26,6 +30,7 @@ class BenefitGrant:
     def from_dict(cls, data: dict[str, Any]) -> BenefitGrant:
         return cls(
             benefit_id=data["benefit_id"],
+            benefit_metadata=data.get("benefit_metadata"),
             benefit_type=data["benefit_type"],
             created_at=data["created_at"],
             customer_id=data["customer_id"],
@@ -33,6 +38,7 @@ class BenefitGrant:
             id=data["id"],
             is_granted=data["is_granted"],
             is_revoked=data["is_revoked"],
+            properties=data.get("properties"),
             revoked_at=data.get("revoked_at"),
             status=data["status"],
         )
@@ -116,6 +122,61 @@ class CustomerSession:
             customer_portal_url=data["customer_portal_url"],
             expires_at=data["expires_at"],
             token=data["token"],
+        )
+
+
+@dataclass(frozen=True)
+class CustomerState:
+    """CustomerState is a resource of Peráta's API."""
+
+    active_subscriptions: list[Subscription]
+    """As assinaturas ativas ou em teste do cliente."""
+    created_at: str
+    email: str
+    external_id: str
+    granted_benefits: list[CustomerStateBenefitGrant]
+    """Os benefícios que o cliente tem agora."""
+    id: str
+    name: str
+    status: Literal["active", "archived"]
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> CustomerState:
+        return cls(
+            active_subscriptions=[Subscription.from_dict(item) for item in data["active_subscriptions"]],
+            created_at=data["created_at"],
+            email=data["email"],
+            external_id=data["external_id"],
+            granted_benefits=[CustomerStateBenefitGrant.from_dict(item) for item in data["granted_benefits"]],
+            id=data["id"],
+            name=data["name"],
+            status=data["status"],
+        )
+
+
+@dataclass(frozen=True)
+class CustomerStateBenefitGrant:
+    """CustomerStateBenefitGrant is a resource of Peráta's API."""
+
+    benefit_id: str
+    benefit_metadata: dict[str, Any]
+    """Os metadados do benefício: os valores de uma feature flag."""
+    benefit_type: Literal["custom", "license_key", "downloadable", "feature_flag", "meter_credit", "discord", "github_repository"]
+    granted_at: str
+    id: str
+    """A concessão."""
+    properties: dict[str, Any]
+    """O que a concessão informa, conforme o tipo."""
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> CustomerStateBenefitGrant:
+        return cls(
+            benefit_id=data["benefit_id"],
+            benefit_metadata=data["benefit_metadata"],
+            benefit_type=data["benefit_type"],
+            granted_at=data["granted_at"],
+            id=data["id"],
+            properties=data["properties"],
         )
 
 
@@ -321,9 +382,13 @@ class Subscription:
     customer_id: str
     id: str
     interval: str
+    metadata: dict[str, Any]
+    """Metadados do lojista: pares chave e valor (texto, número ou booleano); objeto vazio quando não há."""
     price_id: str
     product_id: str
     status: Literal["trialing", "active", "past_due", "paused", "canceled"]
+    trial_end: str | None
+    trial_start: str | None
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> Subscription:
@@ -336,9 +401,39 @@ class Subscription:
             customer_id=data["customer_id"],
             id=data["id"],
             interval=data["interval"],
+            metadata=data["metadata"],
             price_id=data["price_id"],
             product_id=data["product_id"],
             status=data["status"],
+            trial_end=data.get("trial_end"),
+            trial_start=data.get("trial_start"),
+        )
+
+
+@dataclass(frozen=True)
+class WebhookBenefit:
+    """WebhookBenefit is a resource of Peráta's API."""
+
+    created_at: str
+    description: str
+    id: str
+    modified_at: str
+    name: str
+    status: Literal["active", "archived"]
+    type: str
+    visibility: Literal["public", "private"]
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> WebhookBenefit:
+        return cls(
+            created_at=data["created_at"],
+            description=data["description"],
+            id=data["id"],
+            modified_at=data["modified_at"],
+            name=data["name"],
+            status=data["status"],
+            type=data["type"],
+            visibility=data["visibility"],
         )
 
 
@@ -375,6 +470,51 @@ class WebhookCheckout:
             product_id=data["product_id"],
             status=data["status"],
             total_cents=data["total_cents"],
+        )
+
+
+@dataclass(frozen=True)
+class WebhookDiscount:
+    """WebhookDiscount is a resource of Peráta's API."""
+
+    amount_cents: int
+    """Valor fixo em centavos, quando o tipo é fixed."""
+    basis_points: int
+    """Percentual em pontos-base, quando o tipo é percentage."""
+    code: str | None
+    created_at: str
+    currency: str
+    duration: Literal["once", "forever", "repeating"]
+    duration_in_months: int
+    ends_at: str | None
+    id: str
+    max_redemptions: int | None
+    modified_at: str
+    name: str
+    redemptions_count: int
+    starts_at: str
+    status: Literal["active", "expired", "exhausted", "archived"]
+    type: Literal["percentage", "fixed"]
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> WebhookDiscount:
+        return cls(
+            amount_cents=data["amount_cents"],
+            basis_points=data["basis_points"],
+            code=data.get("code"),
+            created_at=data["created_at"],
+            currency=data["currency"],
+            duration=data["duration"],
+            duration_in_months=data["duration_in_months"],
+            ends_at=data.get("ends_at"),
+            id=data["id"],
+            max_redemptions=data.get("max_redemptions"),
+            modified_at=data["modified_at"],
+            name=data["name"],
+            redemptions_count=data["redemptions_count"],
+            starts_at=data["starts_at"],
+            status=data["status"],
+            type=data["type"],
         )
 
 
@@ -438,6 +578,8 @@ class CustomerSessionsCreateParams(TypedDict):
     """The body of customer-sessions:create."""
 
     customer_id: str
+    return_url: NotRequired[str]
+    """Optional https address of your app the portal offers to go back to."""
 
 
 class CustomersCreateParams(TypedDict):

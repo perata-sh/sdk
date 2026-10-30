@@ -27,7 +27,7 @@ for try await product in perata.products.listIter() {
 |---|---|
 | `perata.checkouts` | `create` |
 | `perata.customerSessions` | `create` |
-| `perata.customers` | `create`, `get`, `list`, `listIter` |
+| `perata.customers` | `create`, `get`, `getState`, `list`, `listIter` |
 | `perata.orders` | `list`, `listIter` |
 | `perata.paymentMethods` | `detach`, `list`, `listIter` |
 | `perata.payments` | `get`, `list`, `listIter` |

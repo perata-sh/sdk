@@ -18,7 +18,7 @@ public sealed class CheckoutsService
 
     internal CheckoutsService(PerataClient client) => this.client = client;
 
-    /// <summary>Create a checkout address for one product and price.</summary>
+    /// <summary>Criar o endereço de um checkout para um produto e um preço.</summary>
     /// <param name="parameters">The request.</param>
     /// <param name="options">An idempotency key, or another organization's key for this call.</param>
     /// <param name="cancellationToken">Cancels the call.</param>

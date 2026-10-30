@@ -92,7 +92,7 @@ impl<'a> CheckoutsService<'a> {
         self
     }
 
-    /// Create a checkout address for one product and price.
+    /// Criar o endereço de um checkout para um produto e um preço.
     pub fn create(&self, params: &CheckoutsCreateParams) -> Result<Checkout, Error> {
         self.client.request("POST", "/api/v1/checkouts", &[], Some(params), &self.options)
     }
@@ -132,7 +132,7 @@ impl<'a> CustomerSessionsService<'a> {
         self
     }
 
-    /// Sign a customer into the customer portal: the address opens it already signed in.
+    /// Entrar com um cliente no portal do cliente: o endereço o abre já autenticado.
     pub fn create(&self, params: &CustomerSessionsCreateParams) -> Result<CustomerSession, Error> {
         self.client.request("POST", "/api/v1/customer-sessions", &[], Some(params), &self.options)
     }
@@ -212,17 +212,22 @@ impl<'a> CustomersService<'a> {
         self
     }
 
-    /// Create a customer.
+    /// Criar um cliente.
     pub fn create(&self, params: &CustomersCreateParams) -> Result<Customer, Error> {
         self.client.request("POST", "/api/v1/customers", &[], Some(params), &self.options)
     }
 
-    /// Read a customer.
+    /// Ler um cliente.
     pub fn get(&self, customer: &str) -> Result<Customer, Error> {
         self.client.request("GET", &format!("/api/v1/customers/{}", crate::client::escape(customer)), &[], None::<&()>, &self.options)
     }
 
-    /// List customers. One page; [`list_iter`](Self::list_iter) walks every page.
+    /// Ler o estado de um cliente: assinaturas ativas e benefícios vigentes, inclusive os feature flags.
+    pub fn get_state(&self, customer: &str) -> Result<CustomerState, Error> {
+        self.client.request("GET", &format!("/api/v1/customers/{}/state", crate::client::escape(customer)), &[], None::<&()>, &self.options)
+    }
+
+    /// Listar clientes. One page; [`list_iter`](Self::list_iter) walks every page.
     pub fn list(&self, params: &CustomersListParams) -> Result<Page<Customer>, Error> {
         self.client.request("GET", "/api/v1/customers", &params.query(), None::<&()>, &self.options)
     }
@@ -314,7 +319,7 @@ impl<'a> OrdersService<'a> {
         self
     }
 
-    /// List orders: paid checkouts. One page; [`list_iter`](Self::list_iter) walks every page.
+    /// Listar pedidos: checkouts pagos. One page; [`list_iter`](Self::list_iter) walks every page.
     pub fn list(&self, params: &OrdersListParams) -> Result<Page<Order>, Error> {
         self.client.request("GET", "/api/v1/orders", &params.query(), None::<&()>, &self.options)
     }
@@ -406,12 +411,12 @@ impl<'a> PaymentMethodsService<'a> {
         self
     }
 
-    /// Stop charging a stored card; refused while an active subscription charges it.
+    /// Parar de cobrar um cartão guardado; recusado enquanto uma assinatura ativa o cobra.
     pub fn detach(&self, payment_method: &str) -> Result<PaymentMethodDetached, Error> {
         self.client.request("POST", &format!("/api/v1/payment_methods/{}/detach", crate::client::escape(payment_method)), &[], None::<&()>, &self.options)
     }
 
-    /// List a customer's stored cards: brand, last four digits and expiry. One page; [`list_iter`](Self::list_iter) walks every page.
+    /// Listar os cartões guardados de um cliente: bandeira, quatro últimos dígitos e validade. One page; [`list_iter`](Self::list_iter) walks every page.
     pub fn list(&self, customer: &str, params: &PaymentMethodsListParams) -> Result<Page<PaymentMethod>, Error> {
         self.client.request("GET", &format!("/api/v1/customers/{}/payment_methods", crate::client::escape(customer)), &params.query(), None::<&()>, &self.options)
     }
@@ -503,12 +508,12 @@ impl<'a> PaymentsService<'a> {
         self
     }
 
-    /// Read a payment.
+    /// Ler um pagamento.
     pub fn get(&self, payment: &str) -> Result<Payment, Error> {
         self.client.request("GET", &format!("/api/v1/payments/{}", crate::client::escape(payment)), &[], None::<&()>, &self.options)
     }
 
-    /// List payments. One page; [`list_iter`](Self::list_iter) walks every page.
+    /// Listar pagamentos. One page; [`list_iter`](Self::list_iter) walks every page.
     pub fn list(&self, params: &PaymentsListParams) -> Result<Page<Payment>, Error> {
         self.client.request("GET", "/api/v1/payments", &params.query(), None::<&()>, &self.options)
     }
@@ -611,12 +616,12 @@ impl<'a> PricesService<'a> {
         self
     }
 
-    /// Create a BRL price, one-time or recurring.
+    /// Criar um preço em reais, avulso ou recorrente.
     pub fn create(&self, params: &PricesCreateParams) -> Result<Price, Error> {
         self.client.request("POST", "/api/v1/prices", &[], Some(params), &self.options)
     }
 
-    /// List prices, optionally of one product (product_id). One page; [`list_iter`](Self::list_iter) walks every page.
+    /// Listar preços, opcionalmente de um produto (product_id). One page; [`list_iter`](Self::list_iter) walks every page.
     pub fn list(&self, params: &PricesListParams) -> Result<Page<Price>, Error> {
         self.client.request("GET", "/api/v1/prices", &params.query(), None::<&()>, &self.options)
     }
@@ -708,17 +713,17 @@ impl<'a> ProductsService<'a> {
         self
     }
 
-    /// Create a product.
+    /// Criar um produto.
     pub fn create(&self, params: &ProductsCreateParams) -> Result<Product, Error> {
         self.client.request("POST", "/api/v1/products", &[], Some(params), &self.options)
     }
 
-    /// Read a product.
+    /// Ler um produto.
     pub fn get(&self, product: &str) -> Result<Product, Error> {
         self.client.request("GET", &format!("/api/v1/products/{}", crate::client::escape(product)), &[], None::<&()>, &self.options)
     }
 
-    /// List products. One page; [`list_iter`](Self::list_iter) walks every page.
+    /// Listar produtos. One page; [`list_iter`](Self::list_iter) walks every page.
     pub fn list(&self, params: &ProductsListParams) -> Result<Page<Product>, Error> {
         self.client.request("GET", "/api/v1/products", &params.query(), None::<&()>, &self.options)
     }
@@ -770,7 +775,7 @@ impl<'a> RefundsService<'a> {
         self
     }
 
-    /// Refund part or all of a payment.
+    /// Reembolsar parte ou todo um pagamento.
     pub fn create(&self, params: &RefundsCreateParams) -> Result<Refund, Error> {
         self.client.request("POST", "/api/v1/refunds", &[], Some(params), &self.options)
     }
@@ -861,17 +866,17 @@ impl<'a> SubscriptionsService<'a> {
         self
     }
 
-    /// Cancel a subscription, by default at the end of its period.
+    /// Cancelar uma assinatura, por padrão no fim do período.
     pub fn cancel(&self, subscription: &str, params: &SubscriptionsCancelParams) -> Result<Subscription, Error> {
         self.client.request("POST", &format!("/api/v1/subscriptions/{}/cancel", crate::client::escape(subscription)), &[], Some(params), &self.options)
     }
 
-    /// Read a subscription.
+    /// Ler uma assinatura.
     pub fn get(&self, subscription: &str) -> Result<Subscription, Error> {
         self.client.request("GET", &format!("/api/v1/subscriptions/{}", crate::client::escape(subscription)), &[], None::<&()>, &self.options)
     }
 
-    /// List subscriptions, optionally of one customer (customer_id). One page; [`list_iter`](Self::list_iter) walks every page.
+    /// Listar assinaturas, opcionalmente de um cliente (customer_id). One page; [`list_iter`](Self::list_iter) walks every page.
     pub fn list(&self, params: &SubscriptionsListParams) -> Result<Page<Subscription>, Error> {
         self.client.request("GET", "/api/v1/subscriptions", &params.query(), None::<&()>, &self.options)
     }

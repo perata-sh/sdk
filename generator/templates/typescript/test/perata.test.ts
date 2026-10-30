@@ -54,6 +54,15 @@ test("a base URL must be https unless it is loopback", () => {
   }
 });
 
+test("a free-form value decodes nested", async () => {
+  const state = {"id": "cus_1", "name": "Ana", "email": "ana@example.com", "external_id": "", "status": "active", "created_at": "2026-10-17T00:00:00Z", "active_subscriptions": [], "granted_benefits": [{"id": "gr_1", "granted_at": "2026-10-17T00:00:00Z", "benefit_id": "ben_1", "benefit_type": "feature_flag", "benefit_metadata": {"flags": {"beta": true, "limits": {"seats": 5, "tiers": ["a", 2, null, 1.5]}}}, "properties": {"links": [{"url": "https://example.com", "expires": null}]}}]};
+  const { perata } = client(() => json(200, { data: state }));
+  const got = await perata.customers.getState("cus_1");
+  const grant = got.granted_benefits[0];
+  assert.deepEqual(grant?.benefit_metadata, { flags: { beta: true, limits: { seats: 5, tiers: ["a", 2, null, 1.5] } } });
+  assert.deepEqual(grant?.properties, { links: [{ url: "https://example.com", expires: null }] });
+});
+
 test("a POST without a key is sent with its own, a GET with none", async () => {
   const { perata, seen } = client(() => json(201, { data: product("prod_1") }));
   await perata.products.create({ name: "Curso" });

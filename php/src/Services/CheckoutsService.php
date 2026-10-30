@@ -18,7 +18,7 @@ final class CheckoutsService
     }
 
     /**
-     * Create a checkout address for one product and price.
+     * Criar o endereço de um checkout para um produto e um preço.
      *
      * @param array{cancel_url?: string, label?: string, price_id: string, product_id: string, quantity?: int, success_url?: string} $params
      */

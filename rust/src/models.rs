@@ -14,6 +14,9 @@ use serde::{Deserialize, Deserializer, Serialize, Serializer};
 #[non_exhaustive]
 pub struct BenefitGrant {
     pub benefit_id: String,
+    /// Os metadados do benefício: os valores de uma feature flag.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub benefit_metadata: Option<std::collections::HashMap<String, serde_json::Value>>,
     pub benefit_type: String,
     pub created_at: String,
     pub customer_id: String,
@@ -21,6 +24,9 @@ pub struct BenefitGrant {
     pub id: String,
     pub is_granted: bool,
     pub is_revoked: bool,
+    /// O que a concessão informa, conforme o tipo, sem credenciais.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub properties: Option<std::collections::HashMap<String, serde_json::Value>>,
     pub revoked_at: Option<String>,
     pub status: BenefitGrantStatus,
 }
@@ -67,6 +73,37 @@ pub struct CustomerSession {
     pub expires_at: String,
     /// Sessão do portal do cliente, já autenticada.
     pub token: String,
+}
+
+/// CustomerState is a resource of Peráta's API.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct CustomerState {
+    /// As assinaturas ativas ou em teste do cliente.
+    pub active_subscriptions: Vec<Subscription>,
+    pub created_at: String,
+    pub email: String,
+    pub external_id: String,
+    /// Os benefícios que o cliente tem agora.
+    pub granted_benefits: Vec<CustomerStateBenefitGrant>,
+    pub id: String,
+    pub name: String,
+    pub status: CustomerStateStatus,
+}
+
+/// CustomerStateBenefitGrant is a resource of Peráta's API.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct CustomerStateBenefitGrant {
+    pub benefit_id: String,
+    /// Os metadados do benefício: os valores de uma feature flag.
+    pub benefit_metadata: std::collections::HashMap<String, serde_json::Value>,
+    pub benefit_type: CustomerStateBenefitGrantBenefitType,
+    pub granted_at: String,
+    /// A concessão.
+    pub id: String,
+    /// O que a concessão informa, conforme o tipo.
+    pub properties: std::collections::HashMap<String, serde_json::Value>,
 }
 
 /// Order is a resource of Peráta's API.
@@ -185,9 +222,28 @@ pub struct Subscription {
     pub customer_id: String,
     pub id: String,
     pub interval: String,
+    /// Metadados do lojista: pares chave e valor (texto, número ou booleano); objeto vazio quando não há.
+    pub metadata: std::collections::HashMap<String, serde_json::Value>,
     pub price_id: String,
     pub product_id: String,
     pub status: SubscriptionStatus,
+    pub trial_end: Option<String>,
+    pub trial_start: Option<String>,
+}
+
+/// WebhookBenefit is a resource of Peráta's API.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct WebhookBenefit {
+    pub created_at: String,
+    pub description: String,
+    pub id: String,
+    pub modified_at: String,
+    pub name: String,
+    pub status: WebhookBenefitStatus,
+    #[serde(rename = "type")]
+    pub type_: String,
+    pub visibility: WebhookBenefitVisibility,
 }
 
 /// WebhookCheckout is a resource of Peráta's API.
@@ -207,6 +263,31 @@ pub struct WebhookCheckout {
     pub product_id: String,
     pub status: WebhookCheckoutStatus,
     pub total_cents: i64,
+}
+
+/// WebhookDiscount is a resource of Peráta's API.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct WebhookDiscount {
+    /// Valor fixo em centavos, quando o tipo é fixed.
+    pub amount_cents: i64,
+    /// Percentual em pontos-base, quando o tipo é percentage.
+    pub basis_points: i64,
+    pub code: Option<String>,
+    pub created_at: String,
+    pub currency: String,
+    pub duration: WebhookDiscountDuration,
+    pub duration_in_months: i64,
+    pub ends_at: Option<String>,
+    pub id: String,
+    pub max_redemptions: Option<i64>,
+    pub modified_at: String,
+    pub name: String,
+    pub redemptions_count: i64,
+    pub starts_at: String,
+    pub status: WebhookDiscountStatus,
+    #[serde(rename = "type")]
+    pub type_: WebhookDiscountType,
 }
 
 /// WebhookDispute is a resource of Peráta's API.
@@ -300,6 +381,9 @@ impl CheckoutsCreateParams {
 #[non_exhaustive]
 pub struct CustomerSessionsCreateParams {
     pub customer_id: String,
+    /// Optional https address of your app the portal offers to go back to.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub return_url: Option<String>,
 }
 
 impl CustomerSessionsCreateParams {
@@ -307,7 +391,14 @@ impl CustomerSessionsCreateParams {
     pub fn new(customer_id: impl Into<String>) -> Self {
         Self {
             customer_id: customer_id.into(),
+            return_url: None,
         }
+    }
+
+    /// Optional https address of your app the portal offers to go back to.
+    pub fn return_url(mut self, return_url: impl Into<String>) -> Self {
+        self.return_url = Some(return_url.into());
+        self
     }
 }
 
@@ -584,6 +675,146 @@ impl Serialize for CustomerStatus {
 }
 
 impl<'de> Deserialize<'de> for CustomerStatus {
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        String::deserialize(deserializer).map(Self::from)
+    }
+}
+
+/// The values of `CustomerState.status`.
+///
+/// A value this SDK does not know yet is kept, as it came, in
+/// [`CustomerStateStatus::Unrecognized`].
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[non_exhaustive]
+pub enum CustomerStateStatus {
+    /// `active`
+    Active,
+    /// `archived`
+    Archived,
+    /// A value this SDK does not know yet.
+    Unrecognized(String),
+}
+
+impl CustomerStateStatus {
+    /// The value as the API writes it.
+    pub fn as_str(&self) -> &str {
+        match self {
+            CustomerStateStatus::Active => "active",
+            CustomerStateStatus::Archived => "archived",
+            CustomerStateStatus::Unrecognized(value) => value,
+        }
+    }
+}
+
+impl From<&str> for CustomerStateStatus {
+    fn from(value: &str) -> Self {
+        match value {
+            "active" => CustomerStateStatus::Active,
+            "archived" => CustomerStateStatus::Archived,
+            other => CustomerStateStatus::Unrecognized(other.to_owned()),
+        }
+    }
+}
+
+impl From<String> for CustomerStateStatus {
+    fn from(value: String) -> Self {
+        Self::from(value.as_str())
+    }
+}
+
+impl fmt::Display for CustomerStateStatus {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
+impl Serialize for CustomerStateStatus {
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        serializer.serialize_str(self.as_str())
+    }
+}
+
+impl<'de> Deserialize<'de> for CustomerStateStatus {
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        String::deserialize(deserializer).map(Self::from)
+    }
+}
+
+/// The values of `CustomerStateBenefitGrant.benefit_type`.
+///
+/// A value this SDK does not know yet is kept, as it came, in
+/// [`CustomerStateBenefitGrantBenefitType::Unrecognized`].
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[non_exhaustive]
+pub enum CustomerStateBenefitGrantBenefitType {
+    /// `custom`
+    Custom,
+    /// `license_key`
+    LicenseKey,
+    /// `downloadable`
+    Downloadable,
+    /// `feature_flag`
+    FeatureFlag,
+    /// `meter_credit`
+    MeterCredit,
+    /// `discord`
+    Discord,
+    /// `github_repository`
+    GithubRepository,
+    /// A value this SDK does not know yet.
+    Unrecognized(String),
+}
+
+impl CustomerStateBenefitGrantBenefitType {
+    /// The value as the API writes it.
+    pub fn as_str(&self) -> &str {
+        match self {
+            CustomerStateBenefitGrantBenefitType::Custom => "custom",
+            CustomerStateBenefitGrantBenefitType::LicenseKey => "license_key",
+            CustomerStateBenefitGrantBenefitType::Downloadable => "downloadable",
+            CustomerStateBenefitGrantBenefitType::FeatureFlag => "feature_flag",
+            CustomerStateBenefitGrantBenefitType::MeterCredit => "meter_credit",
+            CustomerStateBenefitGrantBenefitType::Discord => "discord",
+            CustomerStateBenefitGrantBenefitType::GithubRepository => "github_repository",
+            CustomerStateBenefitGrantBenefitType::Unrecognized(value) => value,
+        }
+    }
+}
+
+impl From<&str> for CustomerStateBenefitGrantBenefitType {
+    fn from(value: &str) -> Self {
+        match value {
+            "custom" => CustomerStateBenefitGrantBenefitType::Custom,
+            "license_key" => CustomerStateBenefitGrantBenefitType::LicenseKey,
+            "downloadable" => CustomerStateBenefitGrantBenefitType::Downloadable,
+            "feature_flag" => CustomerStateBenefitGrantBenefitType::FeatureFlag,
+            "meter_credit" => CustomerStateBenefitGrantBenefitType::MeterCredit,
+            "discord" => CustomerStateBenefitGrantBenefitType::Discord,
+            "github_repository" => CustomerStateBenefitGrantBenefitType::GithubRepository,
+            other => CustomerStateBenefitGrantBenefitType::Unrecognized(other.to_owned()),
+        }
+    }
+}
+
+impl From<String> for CustomerStateBenefitGrantBenefitType {
+    fn from(value: String) -> Self {
+        Self::from(value.as_str())
+    }
+}
+
+impl fmt::Display for CustomerStateBenefitGrantBenefitType {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
+impl Serialize for CustomerStateBenefitGrantBenefitType {
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        serializer.serialize_str(self.as_str())
+    }
+}
+
+impl<'de> Deserialize<'de> for CustomerStateBenefitGrantBenefitType {
     fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
         String::deserialize(deserializer).map(Self::from)
     }
@@ -1481,6 +1712,126 @@ impl<'de> Deserialize<'de> for SubscriptionStatus {
     }
 }
 
+/// The values of `WebhookBenefit.status`.
+///
+/// A value this SDK does not know yet is kept, as it came, in
+/// [`WebhookBenefitStatus::Unrecognized`].
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[non_exhaustive]
+pub enum WebhookBenefitStatus {
+    /// `active`
+    Active,
+    /// `archived`
+    Archived,
+    /// A value this SDK does not know yet.
+    Unrecognized(String),
+}
+
+impl WebhookBenefitStatus {
+    /// The value as the API writes it.
+    pub fn as_str(&self) -> &str {
+        match self {
+            WebhookBenefitStatus::Active => "active",
+            WebhookBenefitStatus::Archived => "archived",
+            WebhookBenefitStatus::Unrecognized(value) => value,
+        }
+    }
+}
+
+impl From<&str> for WebhookBenefitStatus {
+    fn from(value: &str) -> Self {
+        match value {
+            "active" => WebhookBenefitStatus::Active,
+            "archived" => WebhookBenefitStatus::Archived,
+            other => WebhookBenefitStatus::Unrecognized(other.to_owned()),
+        }
+    }
+}
+
+impl From<String> for WebhookBenefitStatus {
+    fn from(value: String) -> Self {
+        Self::from(value.as_str())
+    }
+}
+
+impl fmt::Display for WebhookBenefitStatus {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
+impl Serialize for WebhookBenefitStatus {
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        serializer.serialize_str(self.as_str())
+    }
+}
+
+impl<'de> Deserialize<'de> for WebhookBenefitStatus {
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        String::deserialize(deserializer).map(Self::from)
+    }
+}
+
+/// The values of `WebhookBenefit.visibility`.
+///
+/// A value this SDK does not know yet is kept, as it came, in
+/// [`WebhookBenefitVisibility::Unrecognized`].
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[non_exhaustive]
+pub enum WebhookBenefitVisibility {
+    /// `public`
+    Public,
+    /// `private`
+    Private,
+    /// A value this SDK does not know yet.
+    Unrecognized(String),
+}
+
+impl WebhookBenefitVisibility {
+    /// The value as the API writes it.
+    pub fn as_str(&self) -> &str {
+        match self {
+            WebhookBenefitVisibility::Public => "public",
+            WebhookBenefitVisibility::Private => "private",
+            WebhookBenefitVisibility::Unrecognized(value) => value,
+        }
+    }
+}
+
+impl From<&str> for WebhookBenefitVisibility {
+    fn from(value: &str) -> Self {
+        match value {
+            "public" => WebhookBenefitVisibility::Public,
+            "private" => WebhookBenefitVisibility::Private,
+            other => WebhookBenefitVisibility::Unrecognized(other.to_owned()),
+        }
+    }
+}
+
+impl From<String> for WebhookBenefitVisibility {
+    fn from(value: String) -> Self {
+        Self::from(value.as_str())
+    }
+}
+
+impl fmt::Display for WebhookBenefitVisibility {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
+impl Serialize for WebhookBenefitVisibility {
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        serializer.serialize_str(self.as_str())
+    }
+}
+
+impl<'de> Deserialize<'de> for WebhookBenefitVisibility {
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        String::deserialize(deserializer).map(Self::from)
+    }
+}
+
 /// The values of `WebhookCheckout.currency`.
 ///
 /// A value this SDK does not know yet is kept, as it came, in
@@ -1604,6 +1955,198 @@ impl Serialize for WebhookCheckoutStatus {
 }
 
 impl<'de> Deserialize<'de> for WebhookCheckoutStatus {
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        String::deserialize(deserializer).map(Self::from)
+    }
+}
+
+/// The values of `WebhookDiscount.duration`.
+///
+/// A value this SDK does not know yet is kept, as it came, in
+/// [`WebhookDiscountDuration::Unrecognized`].
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[non_exhaustive]
+pub enum WebhookDiscountDuration {
+    /// `once`
+    Once,
+    /// `forever`
+    Forever,
+    /// `repeating`
+    Repeating,
+    /// A value this SDK does not know yet.
+    Unrecognized(String),
+}
+
+impl WebhookDiscountDuration {
+    /// The value as the API writes it.
+    pub fn as_str(&self) -> &str {
+        match self {
+            WebhookDiscountDuration::Once => "once",
+            WebhookDiscountDuration::Forever => "forever",
+            WebhookDiscountDuration::Repeating => "repeating",
+            WebhookDiscountDuration::Unrecognized(value) => value,
+        }
+    }
+}
+
+impl From<&str> for WebhookDiscountDuration {
+    fn from(value: &str) -> Self {
+        match value {
+            "once" => WebhookDiscountDuration::Once,
+            "forever" => WebhookDiscountDuration::Forever,
+            "repeating" => WebhookDiscountDuration::Repeating,
+            other => WebhookDiscountDuration::Unrecognized(other.to_owned()),
+        }
+    }
+}
+
+impl From<String> for WebhookDiscountDuration {
+    fn from(value: String) -> Self {
+        Self::from(value.as_str())
+    }
+}
+
+impl fmt::Display for WebhookDiscountDuration {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
+impl Serialize for WebhookDiscountDuration {
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        serializer.serialize_str(self.as_str())
+    }
+}
+
+impl<'de> Deserialize<'de> for WebhookDiscountDuration {
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        String::deserialize(deserializer).map(Self::from)
+    }
+}
+
+/// The values of `WebhookDiscount.status`.
+///
+/// A value this SDK does not know yet is kept, as it came, in
+/// [`WebhookDiscountStatus::Unrecognized`].
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[non_exhaustive]
+pub enum WebhookDiscountStatus {
+    /// `active`
+    Active,
+    /// `expired`
+    Expired,
+    /// `exhausted`
+    Exhausted,
+    /// `archived`
+    Archived,
+    /// A value this SDK does not know yet.
+    Unrecognized(String),
+}
+
+impl WebhookDiscountStatus {
+    /// The value as the API writes it.
+    pub fn as_str(&self) -> &str {
+        match self {
+            WebhookDiscountStatus::Active => "active",
+            WebhookDiscountStatus::Expired => "expired",
+            WebhookDiscountStatus::Exhausted => "exhausted",
+            WebhookDiscountStatus::Archived => "archived",
+            WebhookDiscountStatus::Unrecognized(value) => value,
+        }
+    }
+}
+
+impl From<&str> for WebhookDiscountStatus {
+    fn from(value: &str) -> Self {
+        match value {
+            "active" => WebhookDiscountStatus::Active,
+            "expired" => WebhookDiscountStatus::Expired,
+            "exhausted" => WebhookDiscountStatus::Exhausted,
+            "archived" => WebhookDiscountStatus::Archived,
+            other => WebhookDiscountStatus::Unrecognized(other.to_owned()),
+        }
+    }
+}
+
+impl From<String> for WebhookDiscountStatus {
+    fn from(value: String) -> Self {
+        Self::from(value.as_str())
+    }
+}
+
+impl fmt::Display for WebhookDiscountStatus {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
+impl Serialize for WebhookDiscountStatus {
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        serializer.serialize_str(self.as_str())
+    }
+}
+
+impl<'de> Deserialize<'de> for WebhookDiscountStatus {
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        String::deserialize(deserializer).map(Self::from)
+    }
+}
+
+/// The values of `WebhookDiscount.type`.
+///
+/// A value this SDK does not know yet is kept, as it came, in
+/// [`WebhookDiscountType::Unrecognized`].
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[non_exhaustive]
+pub enum WebhookDiscountType {
+    /// `percentage`
+    Percentage,
+    /// `fixed`
+    Fixed,
+    /// A value this SDK does not know yet.
+    Unrecognized(String),
+}
+
+impl WebhookDiscountType {
+    /// The value as the API writes it.
+    pub fn as_str(&self) -> &str {
+        match self {
+            WebhookDiscountType::Percentage => "percentage",
+            WebhookDiscountType::Fixed => "fixed",
+            WebhookDiscountType::Unrecognized(value) => value,
+        }
+    }
+}
+
+impl From<&str> for WebhookDiscountType {
+    fn from(value: &str) -> Self {
+        match value {
+            "percentage" => WebhookDiscountType::Percentage,
+            "fixed" => WebhookDiscountType::Fixed,
+            other => WebhookDiscountType::Unrecognized(other.to_owned()),
+        }
+    }
+}
+
+impl From<String> for WebhookDiscountType {
+    fn from(value: String) -> Self {
+        Self::from(value.as_str())
+    }
+}
+
+impl fmt::Display for WebhookDiscountType {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
+impl Serialize for WebhookDiscountType {
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        serializer.serialize_str(self.as_str())
+    }
+}
+
+impl<'de> Deserialize<'de> for WebhookDiscountType {
     fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
         String::deserialize(deserializer).map(Self::from)
     }

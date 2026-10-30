@@ -12,7 +12,7 @@ export class CheckoutsService {
     this.#client = client;
   }
 
-  /** Create a checkout address for one product and price. */
+  /** Criar o endereço de um checkout para um produto e um preço. */
   create(params: models.CheckoutsCreateParams, options?: RequestOptions): Promise<models.Checkout> {
     return this.#client.request("POST", `/api/v1/checkouts`, { body: params, options });
   }
@@ -26,7 +26,7 @@ export class CustomerSessionsService {
     this.#client = client;
   }
 
-  /** Sign a customer into the customer portal: the address opens it already signed in. */
+  /** Entrar com um cliente no portal do cliente: o endereço o abre já autenticado. */
   create(params: models.CustomerSessionsCreateParams, options?: RequestOptions): Promise<models.CustomerSession> {
     return this.#client.request("POST", `/api/v1/customer-sessions`, { body: params, options });
   }
@@ -48,17 +48,22 @@ export class CustomersService {
     this.#client = client;
   }
 
-  /** Create a customer. */
+  /** Criar um cliente. */
   create(params: models.CustomersCreateParams, options?: RequestOptions): Promise<models.Customer> {
     return this.#client.request("POST", `/api/v1/customers`, { body: params, options });
   }
 
-  /** Read a customer. */
+  /** Ler um cliente. */
   get(customer: string, options?: RequestOptions): Promise<models.Customer> {
     return this.#client.request("GET", `/api/v1/customers/${encodeURIComponent(customer)}`, { options });
   }
 
-  /** List customers. One page; `listIter` walks every page. */
+  /** Ler o estado de um cliente: assinaturas ativas e benefícios vigentes, inclusive os feature flags. */
+  getState(customer: string, options?: RequestOptions): Promise<models.CustomerState> {
+    return this.#client.request("GET", `/api/v1/customers/${encodeURIComponent(customer)}/state`, { options });
+  }
+
+  /** Listar clientes. One page; `listIter` walks every page. */
   list(params: CustomersListParams = {}, options?: RequestOptions): Promise<Page<models.Customer>> {
     return this.#client.request("GET", `/api/v1/customers`, { query: { ...params }, options });
   }
@@ -85,7 +90,7 @@ export class OrdersService {
     this.#client = client;
   }
 
-  /** List orders: paid checkouts. One page; `listIter` walks every page. */
+  /** Listar pedidos: checkouts pagos. One page; `listIter` walks every page. */
   list(params: OrdersListParams = {}, options?: RequestOptions): Promise<Page<models.Order>> {
     return this.#client.request("GET", `/api/v1/orders`, { query: { ...params }, options });
   }
@@ -112,12 +117,12 @@ export class PaymentMethodsService {
     this.#client = client;
   }
 
-  /** Stop charging a stored card; refused while an active subscription charges it. */
+  /** Parar de cobrar um cartão guardado; recusado enquanto uma assinatura ativa o cobra. */
   detach(paymentMethod: string, options?: RequestOptions): Promise<models.PaymentMethodDetached> {
     return this.#client.request("POST", `/api/v1/payment_methods/${encodeURIComponent(paymentMethod)}/detach`, { options });
   }
 
-  /** List a customer's stored cards: brand, last four digits and expiry. One page; `listIter` walks every page. */
+  /** Listar os cartões guardados de um cliente: bandeira, quatro últimos dígitos e validade. One page; `listIter` walks every page. */
   list(customer: string, params: PaymentMethodsListParams = {}, options?: RequestOptions): Promise<Page<models.PaymentMethod>> {
     return this.#client.request("GET", `/api/v1/customers/${encodeURIComponent(customer)}/payment_methods`, { query: { ...params }, options });
   }
@@ -144,12 +149,12 @@ export class PaymentsService {
     this.#client = client;
   }
 
-  /** Read a payment. */
+  /** Ler um pagamento. */
   get(payment: string, options?: RequestOptions): Promise<models.Payment> {
     return this.#client.request("GET", `/api/v1/payments/${encodeURIComponent(payment)}`, { options });
   }
 
-  /** List payments. One page; `listIter` walks every page. */
+  /** Listar pagamentos. One page; `listIter` walks every page. */
   list(params: PaymentsListParams = {}, options?: RequestOptions): Promise<Page<models.Payment>> {
     return this.#client.request("GET", `/api/v1/payments`, { query: { ...params }, options });
   }
@@ -178,12 +183,12 @@ export class PricesService {
     this.#client = client;
   }
 
-  /** Create a BRL price, one-time or recurring. */
+  /** Criar um preço em reais, avulso ou recorrente. */
   create(params: models.PricesCreateParams, options?: RequestOptions): Promise<models.Price> {
     return this.#client.request("POST", `/api/v1/prices`, { body: params, options });
   }
 
-  /** List prices, optionally of one product (product_id). One page; `listIter` walks every page. */
+  /** Listar preços, opcionalmente de um produto (product_id). One page; `listIter` walks every page. */
   list(params: PricesListParams = {}, options?: RequestOptions): Promise<Page<models.Price>> {
     return this.#client.request("GET", `/api/v1/prices`, { query: { ...params }, options });
   }
@@ -210,17 +215,17 @@ export class ProductsService {
     this.#client = client;
   }
 
-  /** Create a product. */
+  /** Criar um produto. */
   create(params: models.ProductsCreateParams, options?: RequestOptions): Promise<models.Product> {
     return this.#client.request("POST", `/api/v1/products`, { body: params, options });
   }
 
-  /** Read a product. */
+  /** Ler um produto. */
   get(product: string, options?: RequestOptions): Promise<models.Product> {
     return this.#client.request("GET", `/api/v1/products/${encodeURIComponent(product)}`, { options });
   }
 
-  /** List products. One page; `listIter` walks every page. */
+  /** Listar produtos. One page; `listIter` walks every page. */
   list(params: ProductsListParams = {}, options?: RequestOptions): Promise<Page<models.Product>> {
     return this.#client.request("GET", `/api/v1/products`, { query: { ...params }, options });
   }
@@ -239,7 +244,7 @@ export class RefundsService {
     this.#client = client;
   }
 
-  /** Refund part or all of a payment. */
+  /** Reembolsar parte ou todo um pagamento. */
   create(params: models.RefundsCreateParams, options?: RequestOptions): Promise<models.Refund> {
     return this.#client.request("POST", `/api/v1/refunds`, { body: params, options });
   }
@@ -263,17 +268,17 @@ export class SubscriptionsService {
     this.#client = client;
   }
 
-  /** Cancel a subscription, by default at the end of its period. */
+  /** Cancelar uma assinatura, por padrão no fim do período. */
   cancel(subscription: string, params: models.SubscriptionsCancelParams, options?: RequestOptions): Promise<models.Subscription> {
     return this.#client.request("POST", `/api/v1/subscriptions/${encodeURIComponent(subscription)}/cancel`, { body: params, options });
   }
 
-  /** Read a subscription. */
+  /** Ler uma assinatura. */
   get(subscription: string, options?: RequestOptions): Promise<models.Subscription> {
     return this.#client.request("GET", `/api/v1/subscriptions/${encodeURIComponent(subscription)}`, { options });
   }
 
-  /** List subscriptions, optionally of one customer (customer_id). One page; `listIter` walks every page. */
+  /** Listar assinaturas, opcionalmente de um cliente (customer_id). One page; `listIter` walks every page. */
   list(params: SubscriptionsListParams = {}, options?: RequestOptions): Promise<Page<models.Subscription>> {
     return this.#client.request("GET", `/api/v1/subscriptions`, { query: { ...params }, options });
   }

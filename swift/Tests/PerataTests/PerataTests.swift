@@ -95,6 +95,18 @@ final class PerataTests: XCTestCase {
         }
     }
 
+    func testAFreeFormValueDecodesNested() async throws {
+        let (perata, _) = client { _ in
+            let state = try! JSONSerialization.jsonObject(with: Data(#"{"id":"cus_1","name":"Ana","email":"ana@example.com","external_id":"","status":"active","created_at":"2026-10-17T00:00:00Z","active_subscriptions":[],"granted_benefits":[{"id":"gr_1","granted_at":"2026-10-17T00:00:00Z","benefit_id":"ben_1","benefit_type":"feature_flag","benefit_metadata":{"flags":{"beta":true,"limits":{"seats":5,"tiers":["a",2,null,1.5]}}},"properties":{"links":[{"url":"https://example.com","expires":null}]}}]}"#.utf8))
+            return (200, [:], ["data": state])
+        }
+        let grant = try await perata.customers.getState("cus_1").grantedBenefits[0]
+        XCTAssertEqual(
+            grant.benefitMetadata,
+            ["flags": .object(["beta": .bool(true), "limits": .object(["seats": .int(5), "tiers": .array([.string("a"), .int(2), .null, .double(1.5)])])])])
+        XCTAssertEqual(grant.properties, ["links": .array([.object(["url": .string("https://example.com"), "expires": .null])])])
+    }
+
     func testAPostWithoutAKeyIsSentWithItsOwnAGetWithNone() async throws {
         let (perata, recorder) = client { _ in (201, [:], ["data": product("prod_1")]) }
         _ = try await perata.products.create(ProductsCreateParams(name: "Curso"))

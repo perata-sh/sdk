@@ -27,7 +27,7 @@ for product in client.products().list_iter(ProductsListParams::new()) {
 |---|---|
 | `client.checkouts()` | `create` |
 | `client.customer_sessions()` | `create` |
-| `client.customers()` | `create`, `get`, `list`, `list_iter` |
+| `client.customers()` | `create`, `get`, `get_state`, `list`, `list_iter` |
 | `client.orders()` | `list`, `list_iter` |
 | `client.payment_methods()` | `detach`, `list`, `list_iter` |
 | `client.payments()` | `get`, `list`, `list_iter` |

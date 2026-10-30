@@ -19,10 +19,17 @@ final class Subscription
         public readonly string $customerId,
         public readonly string $id,
         public readonly string $interval,
+        /**
+         * Metadados do lojista: pares chave e valor (texto, número ou booleano); objeto vazio quando não há.
+         * @var array<string, mixed>
+         */
+        public readonly array $metadata,
         public readonly string $priceId,
         public readonly string $productId,
         /** @var 'trialing'|'active'|'past_due'|'paused'|'canceled' */
         public readonly string $status,
+        public readonly ?string $trialEnd,
+        public readonly ?string $trialStart,
     ) {
     }
 
@@ -40,9 +47,12 @@ final class Subscription
             customerId: $data['customer_id'],
             id: $data['id'],
             interval: $data['interval'],
+            metadata: $data['metadata'],
             priceId: $data['price_id'],
             productId: $data['product_id'],
             status: $data['status'],
+            trialEnd: $data['trial_end'] ?? null,
+            trialStart: $data['trial_start'] ?? null,
         );
     }
 }

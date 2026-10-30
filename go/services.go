@@ -32,7 +32,7 @@ func (c *Client) initServices() {
 // CheckoutsService is the API's checkouts.
 type CheckoutsService struct{ client *Client }
 
-// Create: Create a checkout address for one product and price.
+// Create: Criar o endereço de um checkout para um produto e um preço.
 func (s *CheckoutsService) Create(ctx context.Context, params CheckoutsCreateParams, opts ...RequestOption) (*Checkout, error) {
 	var out Checkout
 	err := s.client.do(ctx, http.MethodPost, "/api/v1/checkouts", nil, params, &out, opts)
@@ -45,7 +45,7 @@ func (s *CheckoutsService) Create(ctx context.Context, params CheckoutsCreatePar
 // CustomerSessionsService is the API's customer-sessions.
 type CustomerSessionsService struct{ client *Client }
 
-// Create: Sign a customer into the customer portal: the address opens it already signed in.
+// Create: Entrar com um cliente no portal do cliente: o endereço o abre já autenticado.
 func (s *CustomerSessionsService) Create(ctx context.Context, params CustomerSessionsCreateParams, opts ...RequestOption) (*CustomerSession, error) {
 	var out CustomerSession
 	err := s.client.do(ctx, http.MethodPost, "/api/v1/customer-sessions", nil, params, &out, opts)
@@ -58,7 +58,7 @@ func (s *CustomerSessionsService) Create(ctx context.Context, params CustomerSes
 // CustomersService is the API's customers.
 type CustomersService struct{ client *Client }
 
-// Create: Create a customer.
+// Create: Criar um cliente.
 func (s *CustomersService) Create(ctx context.Context, params CustomersCreateParams, opts ...RequestOption) (*Customer, error) {
 	var out Customer
 	err := s.client.do(ctx, http.MethodPost, "/api/v1/customers", nil, params, &out, opts)
@@ -68,10 +68,20 @@ func (s *CustomersService) Create(ctx context.Context, params CustomersCreatePar
 	return &out, nil
 }
 
-// Get: Read a customer.
+// Get: Ler um cliente.
 func (s *CustomersService) Get(ctx context.Context, customer string, opts ...RequestOption) (*Customer, error) {
 	var out Customer
 	err := s.client.do(ctx, http.MethodGet, "/api/v1/customers/"+url.PathEscape(customer), nil, nil, &out, opts)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+// GetState: Ler o estado de um cliente: assinaturas ativas e benefícios vigentes, inclusive os feature flags.
+func (s *CustomersService) GetState(ctx context.Context, customer string, opts ...RequestOption) (*CustomerState, error) {
+	var out CustomerState
+	err := s.client.do(ctx, http.MethodGet, "/api/v1/customers/"+url.PathEscape(customer)+"/state", nil, nil, &out, opts)
 	if err != nil {
 		return nil, err
 	}
@@ -98,7 +108,7 @@ func (p *CustomersListParams) query() url.Values {
 	return q
 }
 
-// List: List customers. It answers one page; ListIter walks every page.
+// List: Listar clientes. It answers one page; ListIter walks every page.
 func (s *CustomersService) List(ctx context.Context, params *CustomersListParams, opts ...RequestOption) (*Page[Customer], error) {
 	var page Page[Customer]
 	err := s.client.do(ctx, http.MethodGet, "/api/v1/customers", params.query(), nil, &page, opts)
@@ -143,7 +153,7 @@ func (p *OrdersListParams) query() url.Values {
 	return q
 }
 
-// List: List orders: paid checkouts. It answers one page; ListIter walks every page.
+// List: Listar pedidos: checkouts pagos. It answers one page; ListIter walks every page.
 func (s *OrdersService) List(ctx context.Context, params *OrdersListParams, opts ...RequestOption) (*Page[Order], error) {
 	var page Page[Order]
 	err := s.client.do(ctx, http.MethodGet, "/api/v1/orders", params.query(), nil, &page, opts)
@@ -168,7 +178,7 @@ func (s *OrdersService) ListIter(ctx context.Context, params *OrdersListParams, 
 // PaymentMethodsService is the API's payment_methods.
 type PaymentMethodsService struct{ client *Client }
 
-// Detach: Stop charging a stored card; refused while an active subscription charges it.
+// Detach: Parar de cobrar um cartão guardado; recusado enquanto uma assinatura ativa o cobra.
 func (s *PaymentMethodsService) Detach(ctx context.Context, paymentMethod string, opts ...RequestOption) (*PaymentMethodDetached, error) {
 	var out PaymentMethodDetached
 	err := s.client.do(ctx, http.MethodPost, "/api/v1/payment_methods/"+url.PathEscape(paymentMethod)+"/detach", nil, nil, &out, opts)
@@ -198,7 +208,7 @@ func (p *PaymentMethodsListParams) query() url.Values {
 	return q
 }
 
-// List: List a customer's stored cards: brand, last four digits and expiry. It answers one page; ListIter walks every page.
+// List: Listar os cartões guardados de um cliente: bandeira, quatro últimos dígitos e validade. It answers one page; ListIter walks every page.
 func (s *PaymentMethodsService) List(ctx context.Context, customer string, params *PaymentMethodsListParams, opts ...RequestOption) (*Page[PaymentMethod], error) {
 	var page Page[PaymentMethod]
 	err := s.client.do(ctx, http.MethodGet, "/api/v1/customers/"+url.PathEscape(customer)+"/payment_methods", params.query(), nil, &page, opts)
@@ -223,7 +233,7 @@ func (s *PaymentMethodsService) ListIter(ctx context.Context, customer string, p
 // PaymentsService is the API's payments.
 type PaymentsService struct{ client *Client }
 
-// Get: Read a payment.
+// Get: Ler um pagamento.
 func (s *PaymentsService) Get(ctx context.Context, payment string, opts ...RequestOption) (*Payment, error) {
 	var out Payment
 	err := s.client.do(ctx, http.MethodGet, "/api/v1/payments/"+url.PathEscape(payment), nil, nil, &out, opts)
@@ -253,7 +263,7 @@ func (p *PaymentsListParams) query() url.Values {
 	return q
 }
 
-// List: List payments. It answers one page; ListIter walks every page.
+// List: Listar pagamentos. It answers one page; ListIter walks every page.
 func (s *PaymentsService) List(ctx context.Context, params *PaymentsListParams, opts ...RequestOption) (*Page[Payment], error) {
 	var page Page[Payment]
 	err := s.client.do(ctx, http.MethodGet, "/api/v1/payments", params.query(), nil, &page, opts)
@@ -278,7 +288,7 @@ func (s *PaymentsService) ListIter(ctx context.Context, params *PaymentsListPara
 // PricesService is the API's prices.
 type PricesService struct{ client *Client }
 
-// Create: Create a BRL price, one-time or recurring.
+// Create: Criar um preço em reais, avulso ou recorrente.
 func (s *PricesService) Create(ctx context.Context, params PricesCreateParams, opts ...RequestOption) (*Price, error) {
 	var out Price
 	err := s.client.do(ctx, http.MethodPost, "/api/v1/prices", nil, params, &out, opts)
@@ -313,7 +323,7 @@ func (p *PricesListParams) query() url.Values {
 	return q
 }
 
-// List: List prices, optionally of one product (product_id). It answers one page; ListIter walks every page.
+// List: Listar preços, opcionalmente de um produto (product_id). It answers one page; ListIter walks every page.
 func (s *PricesService) List(ctx context.Context, params *PricesListParams, opts ...RequestOption) (*Page[Price], error) {
 	var page Page[Price]
 	err := s.client.do(ctx, http.MethodGet, "/api/v1/prices", params.query(), nil, &page, opts)
@@ -338,7 +348,7 @@ func (s *PricesService) ListIter(ctx context.Context, params *PricesListParams, 
 // ProductsService is the API's products.
 type ProductsService struct{ client *Client }
 
-// Create: Create a product.
+// Create: Criar um produto.
 func (s *ProductsService) Create(ctx context.Context, params ProductsCreateParams, opts ...RequestOption) (*Product, error) {
 	var out Product
 	err := s.client.do(ctx, http.MethodPost, "/api/v1/products", nil, params, &out, opts)
@@ -348,7 +358,7 @@ func (s *ProductsService) Create(ctx context.Context, params ProductsCreateParam
 	return &out, nil
 }
 
-// Get: Read a product.
+// Get: Ler um produto.
 func (s *ProductsService) Get(ctx context.Context, product string, opts ...RequestOption) (*Product, error) {
 	var out Product
 	err := s.client.do(ctx, http.MethodGet, "/api/v1/products/"+url.PathEscape(product), nil, nil, &out, opts)
@@ -378,7 +388,7 @@ func (p *ProductsListParams) query() url.Values {
 	return q
 }
 
-// List: List products. It answers one page; ListIter walks every page.
+// List: Listar produtos. It answers one page; ListIter walks every page.
 func (s *ProductsService) List(ctx context.Context, params *ProductsListParams, opts ...RequestOption) (*Page[Product], error) {
 	var page Page[Product]
 	err := s.client.do(ctx, http.MethodGet, "/api/v1/products", params.query(), nil, &page, opts)
@@ -403,7 +413,7 @@ func (s *ProductsService) ListIter(ctx context.Context, params *ProductsListPara
 // RefundsService is the API's refunds.
 type RefundsService struct{ client *Client }
 
-// Create: Refund part or all of a payment.
+// Create: Reembolsar parte ou todo um pagamento.
 func (s *RefundsService) Create(ctx context.Context, params RefundsCreateParams, opts ...RequestOption) (*Refund, error) {
 	var out Refund
 	err := s.client.do(ctx, http.MethodPost, "/api/v1/refunds", nil, params, &out, opts)
@@ -416,7 +426,7 @@ func (s *RefundsService) Create(ctx context.Context, params RefundsCreateParams,
 // SubscriptionsService is the API's subscriptions.
 type SubscriptionsService struct{ client *Client }
 
-// Cancel: Cancel a subscription, by default at the end of its period.
+// Cancel: Cancelar uma assinatura, por padrão no fim do período.
 func (s *SubscriptionsService) Cancel(ctx context.Context, subscription string, params SubscriptionsCancelParams, opts ...RequestOption) (*Subscription, error) {
 	var out Subscription
 	err := s.client.do(ctx, http.MethodPost, "/api/v1/subscriptions/"+url.PathEscape(subscription)+"/cancel", nil, params, &out, opts)
@@ -426,7 +436,7 @@ func (s *SubscriptionsService) Cancel(ctx context.Context, subscription string, 
 	return &out, nil
 }
 
-// Get: Read a subscription.
+// Get: Ler uma assinatura.
 func (s *SubscriptionsService) Get(ctx context.Context, subscription string, opts ...RequestOption) (*Subscription, error) {
 	var out Subscription
 	err := s.client.do(ctx, http.MethodGet, "/api/v1/subscriptions/"+url.PathEscape(subscription), nil, nil, &out, opts)
@@ -461,7 +471,7 @@ func (p *SubscriptionsListParams) query() url.Values {
 	return q
 }
 
-// List: List subscriptions, optionally of one customer (customer_id). It answers one page; ListIter walks every page.
+// List: Listar assinaturas, opcionalmente de um cliente (customer_id). It answers one page; ListIter walks every page.
 func (s *SubscriptionsService) List(ctx context.Context, params *SubscriptionsListParams, opts ...RequestOption) (*Page[Subscription], error) {
 	var page Page[Subscription]
 	err := s.client.do(ctx, http.MethodGet, "/api/v1/subscriptions", params.query(), nil, &page, opts)

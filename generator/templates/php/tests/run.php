@@ -78,6 +78,14 @@ $tests['a base URL must be https unless it is loopback'] = static function (): v
     }
 };
 
+$tests['a free-form value decodes nested'] = static function (): void {
+    $state = json_decode('{"id":"cus_1","name":"Ana","email":"ana@example.com","external_id":"","status":"active","created_at":"2026-10-17T00:00:00Z","active_subscriptions":[],"granted_benefits":[{"id":"gr_1","granted_at":"2026-10-17T00:00:00Z","benefit_id":"ben_1","benefit_type":"feature_flag","benefit_metadata":{"flags":{"beta":true,"limits":{"seats":5,"tiers":["a",2,null,1.5]}}},"properties":{"links":[{"url":"https://example.com","expires":null}]}}]}', true);
+    [$perata] = client(static fn (): array => [200, [], ['data' => $state]]);
+    $grant = $perata->customers->getState('cus_1')->grantedBenefits[0];
+    check($grant->benefitMetadata === ['flags' => ['beta' => true, 'limits' => ['seats' => 5, 'tiers' => ['a', 2, null, 1.5]]]], 'metadata ' . json_encode($grant->benefitMetadata));
+    check($grant->properties === ['links' => [['url' => 'https://example.com', 'expires' => null]]], 'properties ' . json_encode($grant->properties));
+};
+
 $tests['a POST without a key is sent with its own, a GET with none'] = static function (): void {
     [$perata, $seen] = client(static fn (): array => [201, [], ['data' => product('prod_1')]]);
     $perata->products->create(['name' => 'Curso']);

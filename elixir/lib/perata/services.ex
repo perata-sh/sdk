@@ -6,7 +6,7 @@ defmodule Perata.Checkouts do
   alias Perata.Client
 
   @doc """
-  Create a checkout address for one product and price.
+  Criar o endereço de um checkout para um produto e um preço.
 
   Options: `:idempotency_key` and `:api_key`.
   """
@@ -33,7 +33,7 @@ defmodule Perata.CustomerSessions do
   alias Perata.Client
 
   @doc """
-  Sign a customer into the customer portal: the address opens it already signed in.
+  Entrar com um cliente no portal do cliente: o endereço o abre já autenticado.
 
   Options: `:idempotency_key` and `:api_key`.
   """
@@ -64,7 +64,7 @@ defmodule Perata.Customers do
   alias Perata.Client
 
   @doc """
-  Create a customer.
+  Criar um cliente.
 
   Options: `:idempotency_key` and `:api_key`.
   """
@@ -85,7 +85,7 @@ defmodule Perata.Customers do
   end
 
   @doc """
-  Read a customer.
+  Ler um cliente.
 
   Options: `:api_key`.
   """
@@ -101,7 +101,23 @@ defmodule Perata.Customers do
   end
 
   @doc """
-  List customers. One page; `list_stream/2` walks every page.
+  Ler o estado de um cliente: assinaturas ativas e benefícios vigentes, inclusive os feature flags.
+
+  Options: `:api_key`.
+  """
+  @spec get_state(Client.t(), String.t(), keyword()) ::
+          {:ok, Perata.CustomerState.t()} | {:error, Perata.Error.t()}
+  def get_state(%Client{} = client, customer, opts \\ []) do
+    path = "/api/v1/customers/#{Client.segment(customer)}/state"
+    request = [api_key: opts[:api_key]]
+
+    with {:ok, data} <- Client.request(client, "GET", path, request) do
+      {:ok, Perata.CustomerState.from_map(data)}
+    end
+  end
+
+  @doc """
+  Listar clientes. One page; `list_stream/2` walks every page.
 
   Options: `:page`, `:limit` and `:api_key`.
   """
@@ -132,7 +148,7 @@ defmodule Perata.Orders do
   alias Perata.Client
 
   @doc """
-  List orders: paid checkouts. One page; `list_stream/2` walks every page.
+  Listar pedidos: checkouts pagos. One page; `list_stream/2` walks every page.
 
   Options: `:page`, `:limit` and `:api_key`.
   """
@@ -163,7 +179,7 @@ defmodule Perata.PaymentMethods do
   alias Perata.Client
 
   @doc """
-  Stop charging a stored card; refused while an active subscription charges it.
+  Parar de cobrar um cartão guardado; recusado enquanto uma assinatura ativa o cobra.
 
   Options: `:idempotency_key` and `:api_key`.
   """
@@ -179,7 +195,7 @@ defmodule Perata.PaymentMethods do
   end
 
   @doc """
-  List a customer's stored cards: brand, last four digits and expiry. One page; `list_stream/3` walks every page.
+  Listar os cartões guardados de um cliente: bandeira, quatro últimos dígitos e validade. One page; `list_stream/3` walks every page.
 
   Options: `:page`, `:limit` and `:api_key`.
   """
@@ -210,7 +226,7 @@ defmodule Perata.Payments do
   alias Perata.Client
 
   @doc """
-  Read a payment.
+  Ler um pagamento.
 
   Options: `:api_key`.
   """
@@ -226,7 +242,7 @@ defmodule Perata.Payments do
   end
 
   @doc """
-  List payments. One page; `list_stream/2` walks every page.
+  Listar pagamentos. One page; `list_stream/2` walks every page.
 
   Options: `:page`, `:limit` and `:api_key`.
   """
@@ -257,7 +273,7 @@ defmodule Perata.Prices do
   alias Perata.Client
 
   @doc """
-  Create a BRL price, one-time or recurring.
+  Criar um preço em reais, avulso ou recorrente.
 
   Options: `:idempotency_key` and `:api_key`.
   """
@@ -278,7 +294,7 @@ defmodule Perata.Prices do
   end
 
   @doc """
-  List prices, optionally of one product (product_id). One page; `list_stream/2` walks every page.
+  Listar preços, opcionalmente de um produto (product_id). One page; `list_stream/2` walks every page.
 
   Options: `:page`, `:limit`, `:product_id` and `:api_key`.
   """
@@ -313,7 +329,7 @@ defmodule Perata.Products do
   alias Perata.Client
 
   @doc """
-  Create a product.
+  Criar um produto.
 
   Options: `:idempotency_key` and `:api_key`.
   """
@@ -334,7 +350,7 @@ defmodule Perata.Products do
   end
 
   @doc """
-  Read a product.
+  Ler um produto.
 
   Options: `:api_key`.
   """
@@ -350,7 +366,7 @@ defmodule Perata.Products do
   end
 
   @doc """
-  List products. One page; `list_stream/2` walks every page.
+  Listar produtos. One page; `list_stream/2` walks every page.
 
   Options: `:page`, `:limit` and `:api_key`.
   """
@@ -381,7 +397,7 @@ defmodule Perata.Refunds do
   alias Perata.Client
 
   @doc """
-  Refund part or all of a payment.
+  Reembolsar parte ou todo um pagamento.
 
   Options: `:idempotency_key` and `:api_key`.
   """
@@ -408,7 +424,7 @@ defmodule Perata.Subscriptions do
   alias Perata.Client
 
   @doc """
-  Cancel a subscription, by default at the end of its period.
+  Cancelar uma assinatura, por padrão no fim do período.
 
   Options: `:idempotency_key` and `:api_key`.
   """
@@ -434,7 +450,7 @@ defmodule Perata.Subscriptions do
   end
 
   @doc """
-  Read a subscription.
+  Ler uma assinatura.
 
   Options: `:api_key`.
   """
@@ -450,7 +466,7 @@ defmodule Perata.Subscriptions do
   end
 
   @doc """
-  List subscriptions, optionally of one customer (customer_id). One page; `list_stream/2` walks every page.
+  Listar assinaturas, opcionalmente de um cliente (customer_id). One page; `list_stream/2` walks every page.
 
   Options: `:page`, `:limit`, `:customer_id` and `:api_key`.
   """

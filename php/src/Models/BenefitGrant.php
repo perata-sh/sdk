@@ -11,6 +11,11 @@ final class BenefitGrant
 {
     public function __construct(
         public readonly string $benefitId,
+        /**
+         * Os metadados do benefício: os valores de uma feature flag.
+         * @var array<string, mixed>|null
+         */
+        public readonly ?array $benefitMetadata,
         public readonly string $benefitType,
         public readonly string $createdAt,
         public readonly string $customerId,
@@ -18,6 +23,11 @@ final class BenefitGrant
         public readonly string $id,
         public readonly bool $isGranted,
         public readonly bool $isRevoked,
+        /**
+         * O que a concessão informa, conforme o tipo, sem credenciais.
+         * @var array<string, mixed>|null
+         */
+        public readonly ?array $properties,
         public readonly ?string $revokedAt,
         /** @var 'granted'|'revoked' */
         public readonly string $status,
@@ -31,6 +41,7 @@ final class BenefitGrant
     {
         return new self(
             benefitId: $data['benefit_id'],
+            benefitMetadata: $data['benefit_metadata'] ?? null,
             benefitType: $data['benefit_type'],
             createdAt: $data['created_at'],
             customerId: $data['customer_id'],
@@ -38,6 +49,7 @@ final class BenefitGrant
             id: $data['id'],
             isGranted: $data['is_granted'],
             isRevoked: $data['is_revoked'],
+            properties: $data['properties'] ?? null,
             revokedAt: $data['revoked_at'] ?? null,
             status: $data['status'],
         );

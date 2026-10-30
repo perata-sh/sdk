@@ -18,7 +18,7 @@ public sealed class SubscriptionsService
 
     internal SubscriptionsService(PerataClient client) => this.client = client;
 
-    /// <summary>Cancel a subscription, by default at the end of its period.</summary>
+    /// <summary>Cancelar uma assinatura, por padrão no fim do período.</summary>
     /// <param name="subscription">The subscription.</param>
     /// <param name="parameters">The request.</param>
     /// <param name="options">An idempotency key, or another organization's key for this call.</param>
@@ -31,7 +31,7 @@ public sealed class SubscriptionsService
         return client.RequestAsync(HttpMethod.Post, "/api/v1/subscriptions/" + PerataClient.Segment(subscription) + "/cancel", null, JsonSerializer.SerializeToUtf8Bytes(parameters, PerataJson.Default.SubscriptionsCancelParams), PerataJson.Default.SubscriptionEnvelope, options?.IdempotencyKey, options, cancellationToken);
     }
 
-    /// <summary>Read a subscription.</summary>
+    /// <summary>Ler uma assinatura.</summary>
     /// <param name="subscription">The subscription.</param>
     /// <param name="options">Another organization's key for this call.</param>
     /// <param name="cancellationToken">Cancels the call.</param>
@@ -42,7 +42,7 @@ public sealed class SubscriptionsService
         return client.RequestAsync(HttpMethod.Get, "/api/v1/subscriptions/" + PerataClient.Segment(subscription), null, null, PerataJson.Default.SubscriptionEnvelope, null, options, cancellationToken);
     }
 
-    /// <summary>List subscriptions, optionally of one customer (customer_id). One page; <see cref="ListIterAsync"/> walks every page.</summary>
+    /// <summary>Listar assinaturas, opcionalmente de um cliente (customer_id). One page; <see cref="ListIterAsync"/> walks every page.</summary>
     /// <param name="parameters">The page, its size and the filters; the first page when null.</param>
     /// <param name="options">Another organization's key for this call.</param>
     /// <param name="cancellationToken">Cancels the call.</param>

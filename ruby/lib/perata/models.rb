@@ -5,10 +5,14 @@
 module Perata
   # BenefitGrant is a resource of Peráta's API.
   class BenefitGrant < Model
-    MEMBERS = %i[benefit_id benefit_type created_at customer_id granted_at id is_granted is_revoked revoked_at status].freeze
+    MEMBERS = %i[benefit_id benefit_metadata benefit_type created_at customer_id granted_at id is_granted is_revoked properties revoked_at status].freeze
 
     # @return [String]
     attr_reader :benefit_id
+
+    # Os metadados do benefício: os valores de uma feature flag.
+    # @return [Hash{String => Object}, nil]
+    attr_reader :benefit_metadata
 
     # @return [String]
     attr_reader :benefit_type
@@ -31,14 +35,19 @@ module Perata
     # @return [Boolean]
     attr_reader :is_revoked
 
+    # O que a concessão informa, conforme o tipo, sem credenciais.
+    # @return [Hash{String => Object}, nil]
+    attr_reader :properties
+
     # @return [String, nil]
     attr_reader :revoked_at
 
     # @return [String ("granted", "revoked")]
     attr_reader :status
 
-    def initialize(benefit_id:, benefit_type:, created_at:, customer_id:, granted_at:, id:, is_granted:, is_revoked:, revoked_at:, status:)
+    def initialize(benefit_id:, benefit_metadata: nil, benefit_type:, created_at:, customer_id:, granted_at:, id:, is_granted:, is_revoked:, properties: nil, revoked_at:, status:)
       @benefit_id = benefit_id
+      @benefit_metadata = benefit_metadata
       @benefit_type = benefit_type
       @created_at = created_at
       @customer_id = customer_id
@@ -46,6 +55,7 @@ module Perata
       @id = id
       @is_granted = is_granted
       @is_revoked = is_revoked
+      @properties = properties
       @revoked_at = revoked_at
       @status = status
       freeze
@@ -55,6 +65,7 @@ module Perata
     def self.from_hash(data)
       new(
         benefit_id: data.fetch("benefit_id"),
+        benefit_metadata: data["benefit_metadata"],
         benefit_type: data.fetch("benefit_type"),
         created_at: data.fetch("created_at"),
         customer_id: data.fetch("customer_id"),
@@ -62,6 +73,7 @@ module Perata
         id: data.fetch("id"),
         is_granted: data.fetch("is_granted"),
         is_revoked: data.fetch("is_revoked"),
+        properties: data["properties"],
         revoked_at: data["revoked_at"],
         status: data.fetch("status")
       )
@@ -212,6 +224,111 @@ module Perata
         customer_portal_url: data.fetch("customer_portal_url"),
         expires_at: data.fetch("expires_at"),
         token: data.fetch("token")
+      )
+    end
+  end
+
+  # CustomerState is a resource of Peráta's API.
+  class CustomerState < Model
+    MEMBERS = %i[active_subscriptions created_at email external_id granted_benefits id name status].freeze
+
+    # As assinaturas ativas ou em teste do cliente.
+    # @return [Array<Subscription>]
+    attr_reader :active_subscriptions
+
+    # @return [String]
+    attr_reader :created_at
+
+    # @return [String]
+    attr_reader :email
+
+    # @return [String]
+    attr_reader :external_id
+
+    # Os benefícios que o cliente tem agora.
+    # @return [Array<CustomerStateBenefitGrant>]
+    attr_reader :granted_benefits
+
+    # @return [String]
+    attr_reader :id
+
+    # @return [String]
+    attr_reader :name
+
+    # @return [String ("active", "archived")]
+    attr_reader :status
+
+    def initialize(active_subscriptions:, created_at:, email:, external_id:, granted_benefits:, id:, name:, status:)
+      @active_subscriptions = active_subscriptions
+      @created_at = created_at
+      @email = email
+      @external_id = external_id
+      @granted_benefits = granted_benefits
+      @id = id
+      @name = name
+      @status = status
+      freeze
+    end
+
+    # Builds a CustomerState from the API's JSON.
+    def self.from_hash(data)
+      new(
+        active_subscriptions: data.fetch("active_subscriptions").map { |item| Subscription.from_hash(item) },
+        created_at: data.fetch("created_at"),
+        email: data.fetch("email"),
+        external_id: data.fetch("external_id"),
+        granted_benefits: data.fetch("granted_benefits").map { |item| CustomerStateBenefitGrant.from_hash(item) },
+        id: data.fetch("id"),
+        name: data.fetch("name"),
+        status: data.fetch("status")
+      )
+    end
+  end
+
+  # CustomerStateBenefitGrant is a resource of Peráta's API.
+  class CustomerStateBenefitGrant < Model
+    MEMBERS = %i[benefit_id benefit_metadata benefit_type granted_at id properties].freeze
+
+    # @return [String]
+    attr_reader :benefit_id
+
+    # Os metadados do benefício: os valores de uma feature flag.
+    # @return [Hash{String => Object}]
+    attr_reader :benefit_metadata
+
+    # @return [String ("custom", "license_key", "downloadable", "feature_flag", "meter_credit", "discord", "github_repository")]
+    attr_reader :benefit_type
+
+    # @return [String]
+    attr_reader :granted_at
+
+    # A concessão.
+    # @return [String]
+    attr_reader :id
+
+    # O que a concessão informa, conforme o tipo.
+    # @return [Hash{String => Object}]
+    attr_reader :properties
+
+    def initialize(benefit_id:, benefit_metadata:, benefit_type:, granted_at:, id:, properties:)
+      @benefit_id = benefit_id
+      @benefit_metadata = benefit_metadata
+      @benefit_type = benefit_type
+      @granted_at = granted_at
+      @id = id
+      @properties = properties
+      freeze
+    end
+
+    # Builds a CustomerStateBenefitGrant from the API's JSON.
+    def self.from_hash(data)
+      new(
+        benefit_id: data.fetch("benefit_id"),
+        benefit_metadata: data.fetch("benefit_metadata"),
+        benefit_type: data.fetch("benefit_type"),
+        granted_at: data.fetch("granted_at"),
+        id: data.fetch("id"),
+        properties: data.fetch("properties")
       )
     end
   end
@@ -584,7 +701,7 @@ module Perata
 
   # Subscription is a resource of Peráta's API.
   class Subscription < Model
-    MEMBERS = %i[amount_cents cancel_at_period_end currency current_period_end current_period_start customer_id id interval price_id product_id status].freeze
+    MEMBERS = %i[amount_cents cancel_at_period_end currency current_period_end current_period_start customer_id id interval metadata price_id product_id status trial_end trial_start].freeze
 
     # @return [Integer]
     attr_reader :amount_cents
@@ -610,6 +727,10 @@ module Perata
     # @return [String]
     attr_reader :interval
 
+    # Metadados do lojista: pares chave e valor (texto, número ou booleano); objeto vazio quando não há.
+    # @return [Hash{String => Object}]
+    attr_reader :metadata
+
     # @return [String]
     attr_reader :price_id
 
@@ -619,7 +740,13 @@ module Perata
     # @return [String ("trialing", "active", "past_due", "paused", "canceled")]
     attr_reader :status
 
-    def initialize(amount_cents:, cancel_at_period_end:, currency:, current_period_end:, current_period_start:, customer_id:, id:, interval:, price_id:, product_id:, status:)
+    # @return [String, nil]
+    attr_reader :trial_end
+
+    # @return [String, nil]
+    attr_reader :trial_start
+
+    def initialize(amount_cents:, cancel_at_period_end:, currency:, current_period_end:, current_period_start:, customer_id:, id:, interval:, metadata:, price_id:, product_id:, status:, trial_end:, trial_start:)
       @amount_cents = amount_cents
       @cancel_at_period_end = cancel_at_period_end
       @currency = currency
@@ -628,9 +755,12 @@ module Perata
       @customer_id = customer_id
       @id = id
       @interval = interval
+      @metadata = metadata
       @price_id = price_id
       @product_id = product_id
       @status = status
+      @trial_end = trial_end
+      @trial_start = trial_start
       freeze
     end
 
@@ -645,9 +775,67 @@ module Perata
         customer_id: data.fetch("customer_id"),
         id: data.fetch("id"),
         interval: data.fetch("interval"),
+        metadata: data.fetch("metadata"),
         price_id: data.fetch("price_id"),
         product_id: data.fetch("product_id"),
-        status: data.fetch("status")
+        status: data.fetch("status"),
+        trial_end: data["trial_end"],
+        trial_start: data["trial_start"]
+      )
+    end
+  end
+
+  # WebhookBenefit is a resource of Peráta's API.
+  class WebhookBenefit < Model
+    MEMBERS = %i[created_at description id modified_at name status type visibility].freeze
+
+    # @return [String]
+    attr_reader :created_at
+
+    # @return [String]
+    attr_reader :description
+
+    # @return [String]
+    attr_reader :id
+
+    # @return [String]
+    attr_reader :modified_at
+
+    # @return [String]
+    attr_reader :name
+
+    # @return [String ("active", "archived")]
+    attr_reader :status
+
+    # @return [String]
+    attr_reader :type
+
+    # @return [String ("public", "private")]
+    attr_reader :visibility
+
+    def initialize(created_at:, description:, id:, modified_at:, name:, status:, type:, visibility:)
+      @created_at = created_at
+      @description = description
+      @id = id
+      @modified_at = modified_at
+      @name = name
+      @status = status
+      @type = type
+      @visibility = visibility
+      freeze
+    end
+
+    # Builds a WebhookBenefit from the API's JSON.
+    def self.from_hash(data)
+      new(
+        created_at: data.fetch("created_at"),
+        description: data.fetch("description"),
+        id: data.fetch("id"),
+        modified_at: data.fetch("modified_at"),
+        name: data.fetch("name"),
+        status: data.fetch("status"),
+        type: data.fetch("type"),
+        visibility: data.fetch("visibility")
       )
     end
   end
@@ -724,6 +912,103 @@ module Perata
         product_id: data.fetch("product_id"),
         status: data.fetch("status"),
         total_cents: data.fetch("total_cents")
+      )
+    end
+  end
+
+  # WebhookDiscount is a resource of Peráta's API.
+  class WebhookDiscount < Model
+    MEMBERS = %i[amount_cents basis_points code created_at currency duration duration_in_months ends_at id max_redemptions modified_at name redemptions_count starts_at status type].freeze
+
+    # Valor fixo em centavos, quando o tipo é fixed.
+    # @return [Integer]
+    attr_reader :amount_cents
+
+    # Percentual em pontos-base, quando o tipo é percentage.
+    # @return [Integer]
+    attr_reader :basis_points
+
+    # @return [String, nil]
+    attr_reader :code
+
+    # @return [String]
+    attr_reader :created_at
+
+    # @return [String]
+    attr_reader :currency
+
+    # @return [String ("once", "forever", "repeating")]
+    attr_reader :duration
+
+    # @return [Integer]
+    attr_reader :duration_in_months
+
+    # @return [String, nil]
+    attr_reader :ends_at
+
+    # @return [String]
+    attr_reader :id
+
+    # @return [Integer, nil]
+    attr_reader :max_redemptions
+
+    # @return [String]
+    attr_reader :modified_at
+
+    # @return [String]
+    attr_reader :name
+
+    # @return [Integer]
+    attr_reader :redemptions_count
+
+    # @return [String]
+    attr_reader :starts_at
+
+    # @return [String ("active", "expired", "exhausted", "archived")]
+    attr_reader :status
+
+    # @return [String ("percentage", "fixed")]
+    attr_reader :type
+
+    def initialize(amount_cents:, basis_points:, code:, created_at:, currency:, duration:, duration_in_months:, ends_at:, id:, max_redemptions:, modified_at:, name:, redemptions_count:, starts_at:, status:, type:)
+      @amount_cents = amount_cents
+      @basis_points = basis_points
+      @code = code
+      @created_at = created_at
+      @currency = currency
+      @duration = duration
+      @duration_in_months = duration_in_months
+      @ends_at = ends_at
+      @id = id
+      @max_redemptions = max_redemptions
+      @modified_at = modified_at
+      @name = name
+      @redemptions_count = redemptions_count
+      @starts_at = starts_at
+      @status = status
+      @type = type
+      freeze
+    end
+
+    # Builds a WebhookDiscount from the API's JSON.
+    def self.from_hash(data)
+      new(
+        amount_cents: data.fetch("amount_cents"),
+        basis_points: data.fetch("basis_points"),
+        code: data["code"],
+        created_at: data.fetch("created_at"),
+        currency: data.fetch("currency"),
+        duration: data.fetch("duration"),
+        duration_in_months: data.fetch("duration_in_months"),
+        ends_at: data["ends_at"],
+        id: data.fetch("id"),
+        max_redemptions: data["max_redemptions"],
+        modified_at: data.fetch("modified_at"),
+        name: data.fetch("name"),
+        redemptions_count: data.fetch("redemptions_count"),
+        starts_at: data.fetch("starts_at"),
+        status: data.fetch("status"),
+        type: data.fetch("type")
       )
     end
   end
