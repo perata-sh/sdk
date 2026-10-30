@@ -6,7 +6,11 @@ namespace Perata;
 /// <summary>How a <see cref="PerataClient"/> reaches the API.</summary>
 public sealed class PerataClientOptions
 {
-    /// <summary>Another address, such as a local server; <see cref="PerataClient.DefaultBaseUrl"/> when null.</summary>
+    /// <summary>
+    /// Another address, such as a local server; <see cref="PerataClient.DefaultBaseUrl"/> when null.
+    /// It must be https; http is accepted only for localhost, 127.0.0.0/8 and ::1, and any other
+    /// makes the <see cref="PerataClient"/> constructor throw <see cref="ArgumentException"/>.
+    /// </summary>
     public string? BaseUrl { get; set; }
 
     /// <summary>How long a call waits for its response; 30 seconds when null.</summary>

@@ -214,7 +214,10 @@ impl fmt::Debug for ClientBuilder {
 }
 
 impl ClientBuilder {
-    /// Points the client at another address, such as a local server.
+    /// Points the client at another address, such as a local server. It must
+    /// be https; http is accepted only for localhost, 127.0.0.0/8 and ::1,
+    /// and any other makes every call answer [`Error::InsecureBaseUrl`]
+    /// before anything is sent.
     pub fn base_url(mut self, base_url: impl Into<String>) -> Self {
         self.base_url = base_url.into().trim_end_matches('/').to_owned();
         self
@@ -280,6 +283,9 @@ impl Client {
         T: DeserializeOwned,
         B: Serialize + ?Sized,
     {
+        if !secure_base_url(&self.base_url) {
+            return Err(Error::InsecureBaseUrl);
+        }
         let mut url = format!("{}{}", self.base_url, path);
         let pairs: Vec<String> = query
             .iter()
@@ -325,6 +331,27 @@ impl Client {
         }
         let envelope: Envelope<T> = serde_json::from_slice(&response.body).map_err(Error::Json)?;
         Ok(envelope.data)
+    }
+}
+
+/// Says the base URL is https, or http to localhost, 127.0.0.0/8 or ::1.
+fn secure_base_url(base_url: &str) -> bool {
+    let Ok(uri) = base_url.parse::<ureq::http::Uri>() else {
+        return false;
+    };
+    let host = uri
+        .host()
+        .unwrap_or("")
+        .trim_matches(['[', ']'])
+        .to_ascii_lowercase();
+    let loopback = host == "localhost"
+        || host
+            .parse::<std::net::IpAddr>()
+            .is_ok_and(|address| address.is_loopback());
+    match uri.scheme_str().map(str::to_ascii_lowercase).as_deref() {
+        Some("https") => true,
+        Some("http") => loopback,
+        _ => false,
     }
 }
 

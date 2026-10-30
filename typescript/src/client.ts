@@ -5,10 +5,25 @@ import { PerataError } from "./errors.ts";
 import { CheckoutsService, CustomerSessionsService, CustomersService, OrdersService, PaymentMethodsService, PaymentsService, PricesService, ProductsService, RefundsService, SubscriptionsService } from "./services.ts";
 import { DEFAULT_BASE_URL, VERSION } from "./version.ts";
 
+/** Throws unless baseUrl is https, or http to localhost, 127.0.0.0/8 or ::1. */
+function checkBaseUrl(baseUrl: string): void {
+  let url: URL;
+  try {
+    url = new URL(baseUrl);
+  } catch {
+    throw new Error("perata: the base URL must be https (http is accepted only for localhost, 127.0.0.0/8 and ::1), so the API key is never sent in clear text");
+  }
+  const host = url.hostname.toLowerCase();
+  const loopback = host === "localhost" || host === "[::1]" || /^127(\.\d{1,3}){3}$/.test(host);
+  if (url.protocol !== "https:" && !(url.protocol === "http:" && loopback)) {
+    throw new Error("perata: the base URL must be https (http is accepted only for localhost, 127.0.0.0/8 and ::1), so the API key is never sent in clear text");
+  }
+}
+
 export interface ClientOptions {
   /** The organization's API key. prk_test_… is the test environment, prk_live_… the live one. */
   apiKey: string;
-  /** Another address, such as a local server. */
+  /** Another address, such as a local server. It must be https; http is accepted only for localhost, 127.0.0.0/8 and ::1. */
   baseUrl?: string;
   /** The fetch the calls go through; the global one by default. Calls are made with `redirect: "manual"`, so the key never follows a redirect. */
   fetch?: typeof fetch;
@@ -44,6 +59,7 @@ export class Perata implements Requester {
     const config = typeof options === "string" ? { apiKey: options } : options;
     this.#apiKey = config.apiKey;
     this.#baseUrl = (config.baseUrl ?? DEFAULT_BASE_URL).replace(/\/+$/, "");
+    checkBaseUrl(this.#baseUrl);
     this.#fetch = config.fetch ?? ((input, init) => fetch(input, init));
     this.#timeoutMs = config.timeoutMs ?? 30_000;
     this.checkouts = new CheckoutsService(this);

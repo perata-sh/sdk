@@ -15,7 +15,7 @@ defmodule PerataTest do
       {:ok, {status, extra, if(payload, do: JSON.encode!(payload), else: "")}}
     end
 
-    Perata.new("prk_test_key", base_url: "http://perata.test/", transport: transport)
+    Perata.new("prk_test_key", base_url: "https://perata.test/", transport: transport)
   end
 
   defp product(id) do
@@ -54,6 +54,32 @@ defmodule PerataTest do
     assert seen.method == "POST"
     assert seen.headers["Idempotency-Key"] == "create-1"
     assert JSON.decode!(seen.body) == %{"name" => "Curso"}
+  end
+
+  test "a base URL must be https unless it is loopback" do
+    for base <- [
+          "https://perata.sh",
+          "http://localhost:8080",
+          "http://LOCALHOST",
+          "http://127.0.0.1:1",
+          "http://127.255.0.3",
+          "http://[::1]:8080"
+        ] do
+      assert %Perata.Client{} = Perata.new("k", base_url: base)
+    end
+
+    for base <- [
+          "http://perata.sh",
+          "http://localhost.evil.test",
+          "http://127.0.0.1.evil.test",
+          "http://10.0.0.1",
+          "ftp://localhost",
+          "perata.sh",
+          "",
+          "http://[::2]"
+        ] do
+      assert_raise ArgumentError, ~r/must be https/, fn -> Perata.new("k", base_url: base) end
+    end
   end
 
   test "a POST without a key is sent with its own, a GET with none" do

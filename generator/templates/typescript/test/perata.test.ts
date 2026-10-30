@@ -19,7 +19,7 @@ function client(answer: (seen: Seen) => Response): { perata: Perata; seen: Seen[
     seen.push(request);
     return answer(request);
   };
-  return { perata: new Perata({ apiKey: "prk_test_key", baseUrl: "http://perata.test/", fetch: fake }), seen };
+  return { perata: new Perata({ apiKey: "prk_test_key", baseUrl: "https://perata.test/", fetch: fake }), seen };
 }
 
 const json = (status: number, body: unknown, headers: Record<string, string> = {}) =>
@@ -43,6 +43,15 @@ test("a write sends its body and idempotency key", async () => {
   assert.equal(seen[0]?.method, "POST");
   assert.equal(seen[0]?.headers.get("idempotency-key"), "create-1");
   assert.deepEqual(JSON.parse(seen[0]?.body ?? ""), { name: "Curso" });
+});
+
+test("a base URL must be https unless it is loopback", () => {
+  for (const baseUrl of ["https://perata.sh", "http://localhost:8080", "http://LOCALHOST", "http://127.0.0.1:1", "http://127.255.0.3", "http://[::1]:8080"]) {
+    assert.doesNotThrow(() => new Perata({ apiKey: "k", baseUrl }), baseUrl);
+  }
+  for (const baseUrl of ["http://perata.sh", "http://localhost.evil.test", "http://127.0.0.1.evil.test", "http://10.0.0.1", "ftp://localhost", "perata.sh", "", "http://[::2]"]) {
+    assert.throws(() => new Perata({ apiKey: "k", baseUrl }), /must be https/, baseUrl);
+  }
 });
 
 test("a POST without a key is sent with its own, a GET with none", async () => {

@@ -34,7 +34,7 @@ func client(_ answer: @escaping Answer) -> (PerataClient, Recorder) {
         let response = HTTPURLResponse(url: request.url!, statusCode: status, httpVersion: "HTTP/1.1", headerFields: headers)!
         return (data, response)
     }
-    let perata = PerataClient(apiKey: "prk_test_key", baseURL: URL(string: "http://perata.test/")!, transport: transport)
+    let perata = PerataClient(apiKey: "prk_test_key", baseURL: URL(string: "https://perata.test/")!, transport: transport)
     return (perata, recorder)
 }
 
@@ -71,6 +71,28 @@ final class PerataTests: XCTestCase {
         let body = try XCTUnwrap(JSONSerialization.jsonObject(with: XCTUnwrap(seen.httpBody)) as? [String: String])
         // The optional description, left nil, is not sent.
         XCTAssertEqual(body, ["name": "Curso"])
+    }
+
+    func testABaseURLMustBeHTTPSUnlessItIsLoopback() async throws {
+        let accepted = ["https://perata.sh", "http://localhost:8080", "http://LOCALHOST", "http://127.0.0.1:1", "http://127.255.0.3", "http://[::1]:8080"]
+        let refused = ["http://perata.sh", "http://localhost.evil.test", "http://127.0.0.1.evil.test", "http://10.0.0.1", "ftp://localhost", "http://[::2]"]
+        for base in accepted + refused {
+            let recorder = Recorder()
+            let transport: PerataTransport = { request in
+                recorder.append(request)
+                let data = try JSONSerialization.data(withJSONObject: ["data": product("prod_1")])
+                return (data, HTTPURLResponse(url: request.url!, statusCode: 200, httpVersion: "HTTP/1.1", headerFields: [:])!)
+            }
+            let perata = PerataClient(apiKey: "k", baseURL: URL(string: base)!, transport: transport)
+            do {
+                _ = try await perata.products.get("prod_1")
+                XCTAssertTrue(accepted.contains(base), base)
+            } catch let error as PerataError {
+                XCTAssertTrue(refused.contains(base), base)
+                XCTAssertEqual(error.code, "insecure_base_url")
+                XCTAssertEqual(recorder.seen.count, 0)
+            }
+        }
     }
 
     func testAPostWithoutAKeyIsSentWithItsOwnAGetWithNone() async throws {

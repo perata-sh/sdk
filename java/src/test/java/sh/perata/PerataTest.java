@@ -41,7 +41,7 @@ class PerataTest {
     }
 
     private static Perata client(Recorder recorder) {
-        return Perata.builder("prk_test_key").baseUrl("http://perata.test/").transport(recorder).build();
+        return Perata.builder("prk_test_key").baseUrl("https://perata.test/").transport(recorder).build();
     }
 
     private static Transport.Response json(int status, Map<String, String> headers, Object payload) {
@@ -99,6 +99,17 @@ class PerataTest {
         assertEquals("create-1", seen.getHeaders().get("Idempotency-Key"));
         assertEquals("application/json", seen.getHeaders().get("Content-Type"));
         assertEquals(Map.of("name", "Curso"), Json.parse(new String(seen.getBody(), StandardCharsets.UTF_8)));
+    }
+
+    @Test
+    void aBaseUrlMustBeHttpsUnlessItIsLoopback() {
+        for (String base : List.of("https://perata.sh", "http://localhost:8080", "http://LOCALHOST", "http://127.0.0.1:1", "http://127.255.0.3", "http://[::1]:8080")) {
+            Perata.builder("k").baseUrl(base).build();
+        }
+        for (String base : List.of("http://perata.sh", "http://localhost.evil.test", "http://127.0.0.1.evil.test", "http://10.0.0.1", "ftp://localhost", "perata.sh", "", "http://[::2]", "http://127.0.0.300")) {
+            IllegalArgumentException refused = assertThrows(IllegalArgumentException.class, () -> Perata.builder("k").baseUrl(base).build(), base);
+            assertTrue(refused.getMessage().contains("must be https"));
+        }
     }
 
     @Test

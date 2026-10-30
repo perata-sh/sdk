@@ -15,6 +15,8 @@ struct Requester: Sendable {
     let baseURL: String
     let timeout: TimeInterval
     let transport: PerataTransport
+    /// Why the base URL is refused; every call throws it before sending anything.
+    var baseURLError: PerataError?
 
     /// Calls the API and answers what it wrapped in `data`; a refusal throws
     /// `PerataError`.
@@ -26,6 +28,9 @@ struct Requester: Sendable {
         idempotencyKey: String? = nil,
         apiKey: String? = nil
     ) async throws -> T {
+        if let baseURLError {
+            throw baseURLError
+        }
         var address = baseURL + path
         let pairs = query.compactMap { name, value -> String? in
             guard let value, !value.isEmpty else { return nil }
@@ -74,6 +79,22 @@ struct Requester: Sendable {
             throw URLError(.badServerResponse)
         }
         return (data, http)
+    }
+}
+
+extension PerataError {
+    /// The refusal of a base URL that is not https and not a loopback address.
+    static func insecureBaseURL(_ url: URL) -> PerataError? {
+        let scheme = url.scheme?.lowercased()
+        let host = (url.host ?? "").trimmingCharacters(in: CharacterSet(charactersIn: "[]")).lowercased()
+        let octets = host.split(separator: ".", omittingEmptySubsequences: false).map { Int($0) }
+        let loopback =
+            host == "localhost" || host == "::1"
+            || (octets.count == 4 && octets[0] == 127 && octets.allSatisfy { ($0 ?? 256) <= 255 })
+        if scheme == "https" || (scheme == "http" && loopback) {
+            return nil
+        }
+        return PerataError(status: 0, code: "insecure_base_url", message: "perata: the base URL must be https (http is accepted only for localhost, 127.0.0.0/8 and ::1), so the API key is never sent in clear text")
     }
 }
 

@@ -41,7 +41,7 @@ function client(callable $answer): array
         [$status, $extra, $payload] = $answer($request);
         return [$status, $extra, $payload === null ? '' : json_encode($payload)];
     };
-    return [new Perata('prk_test_key', 'http://perata.test/', transport: $transport), $seen];
+    return [new Perata('prk_test_key', 'https://perata.test/', transport: $transport), $seen];
 }
 
 function product(string $id): array
@@ -53,7 +53,7 @@ $tests['a call carries the key and unwraps the data'] = static function (): void
     [$perata, $seen] = client(static fn (): array => [200, [], ['data' => product('prod_1')]]);
     $got = $perata->products->get('prod_1');
     check($got->id === 'prod_1' && $got->status === 'active' && $got->createdAt === '2026-10-17T00:00:00Z', 'product');
-    check($seen[0]['method'] === 'GET' && $seen[0]['url'] === 'http://perata.test/api/v1/products/prod_1', 'request ' . $seen[0]['url']);
+    check($seen[0]['method'] === 'GET' && $seen[0]['url'] === 'https://perata.test/api/v1/products/prod_1', 'request ' . $seen[0]['url']);
     check($seen[0]['headers']['Authorization'] === 'Bearer prk_test_key', 'key');
 };
 
@@ -62,6 +62,20 @@ $tests['a write sends its body and idempotency key'] = static function (): void 
     $perata->products->create(['name' => 'Curso'], idempotencyKey: 'create-1');
     check($seen[0]['method'] === 'POST' && $seen[0]['headers']['Idempotency-Key'] === 'create-1', 'request');
     check(json_decode((string) $seen[0]['body'], true) === ['name' => 'Curso'], 'body ' . $seen[0]['body']);
+};
+
+$tests['a base URL must be https unless it is loopback'] = static function (): void {
+    foreach (['https://perata.sh', 'http://localhost:8080', 'http://LOCALHOST', 'http://127.0.0.1:1', 'http://127.255.0.3', 'http://[::1]:8080'] as $base) {
+        new Perata('k', $base);
+    }
+    foreach (['http://perata.sh', 'http://localhost.evil.test', 'http://127.0.0.1.evil.test', 'http://10.0.0.1', 'ftp://localhost', 'perata.sh', '', 'http://[::2]'] as $base) {
+        try {
+            new Perata('k', $base);
+            check(false, "accepted {$base}");
+        } catch (InvalidArgumentException $refused) {
+            check(str_contains($refused->getMessage(), 'must be https'), 'message');
+        }
+    }
 };
 
 $tests['a POST without a key is sent with its own, a GET with none'] = static function (): void {

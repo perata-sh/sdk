@@ -16,7 +16,7 @@ typedef Answer = http.Response Function(http.Request request);
   });
   final perata = Perata(
     'prk_test_key',
-    baseUrl: 'http://perata.test/',
+    baseUrl: 'https://perata.test/',
     httpClient: fake,
   );
   return (perata, seen);
@@ -94,6 +94,41 @@ void main() {
     expect(seen.single.headers['idempotency-key'], 'create-1');
     expect(seen.single.headers['content-type'], 'application/json');
     expect(jsonDecode(seen.single.body), {'name': 'Curso'});
+  });
+
+  test('a base URL must be https unless it is loopback', () {
+    for (final baseUrl in [
+      'https://perata.sh',
+      'http://localhost:8080',
+      'http://LOCALHOST',
+      'http://127.0.0.1:1',
+      'http://127.255.0.3',
+      'http://[::1]:8080',
+    ]) {
+      Perata('k', baseUrl: baseUrl).close();
+    }
+    for (final baseUrl in [
+      'http://perata.sh',
+      'http://localhost.evil.test',
+      'http://127.0.0.1.evil.test',
+      'http://10.0.0.1',
+      'ftp://localhost',
+      'perata.sh',
+      '',
+      'http://[::2]',
+    ]) {
+      expect(
+        () => Perata('k', baseUrl: baseUrl),
+        throwsA(
+          isA<ArgumentError>().having(
+            (error) => error.message,
+            'message',
+            contains('must be https'),
+          ),
+        ),
+        reason: baseUrl,
+      );
+    }
   });
 
   test('a POST without a key is sent with its own, a GET with none', () async {

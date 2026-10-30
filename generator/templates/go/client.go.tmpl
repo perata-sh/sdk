@@ -13,13 +13,20 @@ import (
 	"crypto/rand"
 	"encoding/json"
 	"fmt"
+	"errors"
 	"io"
+	"net"
 	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
 	"time"
 )
+
+// ErrInsecureBaseURL is what every call answers when the client's base URL is
+// not https and not a loopback address, before anything is sent: the API key
+// would cross the network in clear text.
+var ErrInsecureBaseURL = errors.New("perata: the base URL must be https (http is accepted only for localhost, 127.0.0.0/8 and ::1), so the API key is never sent in clear text")
 
 // Client talks to Peráta's API with one organization's API key. The key says
 // the organization and the environment: prk_test_… is the test environment,
@@ -28,6 +35,8 @@ type Client struct {
 	apiKey  string
 	baseURL string
 	http    *http.Client
+	// baseURLErr is why the base URL is refused, answered by every call.
+	baseURLErr error
 {{- range .Services}}
 	{{pascal .Name}} *{{pascal .Name}}Service
 {{- end}}
@@ -37,6 +46,8 @@ type Client struct {
 type Option func(*Client)
 
 // WithBaseURL points the client at another address, such as a local server.
+// It must be https; http is accepted only for localhost, 127.0.0.0/8 and ::1,
+// and any other address makes every call answer ErrInsecureBaseURL.
 func WithBaseURL(baseURL string) Option {
 	return func(c *Client) { c.baseURL = strings.TrimRight(baseURL, "/") }
 }
@@ -59,8 +70,30 @@ func New(apiKey string, opts ...Option) *Client {
 	for _, opt := range opts {
 		opt(c)
 	}
+	c.baseURLErr = checkBaseURL(c.baseURL)
 	c.initServices()
 	return c
+}
+
+// checkBaseURL refuses an address that is not https, unless it is loopback.
+func checkBaseURL(baseURL string) error {
+	u, err := url.Parse(baseURL)
+	if err != nil || u.Host == "" {
+		return ErrInsecureBaseURL
+	}
+	switch strings.ToLower(u.Scheme) {
+	case "https":
+		return nil
+	case "http":
+		host := strings.ToLower(u.Hostname())
+		if host == "localhost" {
+			return nil
+		}
+		if ip := net.ParseIP(host); ip != nil && ip.IsLoopback() {
+			return nil
+		}
+	}
+	return ErrInsecureBaseURL
 }
 
 // RequestOption configures one call.
@@ -84,6 +117,9 @@ func WithAPIKey(key string) RequestOption {
 }
 
 func (c *Client) do(ctx context.Context, method, path string, query url.Values, body any, out any, opts []RequestOption) error {
+	if c.baseURLErr != nil {
+		return c.baseURLErr
+	}
 	config := requestConfig{apiKey: c.apiKey}
 	for _, opt := range opts {
 		opt(&config)

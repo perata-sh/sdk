@@ -21,7 +21,7 @@ fn client(answer: impl Fn(&HttpRequest) -> HttpResponse + Send + Sync + 'static)
         Ok(response)
     };
     let client = Client::builder("prk_test_key")
-        .base_url("http://perata.test/")
+        .base_url("https://perata.test/")
         .transport(transport)
         .build();
     (client, seen)
@@ -51,7 +51,7 @@ fn a_call_carries_the_key_and_unwraps_the_data() {
     assert_eq!(got.status, ProductStatus::Active);
     let seen = seen.lock().unwrap();
     assert_eq!(seen[0].method, "GET");
-    assert_eq!(seen[0].url, "http://perata.test/api/v1/products/prod_1");
+    assert_eq!(seen[0].url, "https://perata.test/api/v1/products/prod_1");
     assert_eq!(seen[0].header("authorization"), Some("Bearer prk_test_key"));
     assert_eq!(
         seen[0].header("user-agent"),
@@ -75,6 +75,44 @@ fn a_write_sends_its_body_and_idempotency_key() {
     let body: serde_json::Value = serde_json::from_slice(seen[0].body.as_deref().unwrap()).unwrap();
     // The optional description, left unset, is not sent.
     assert_eq!(body, serde_json::json!({"name": "Curso"}));
+}
+
+#[test]
+fn a_base_url_must_be_https_unless_it_is_loopback() {
+    let calls = Arc::new(std::sync::atomic::AtomicUsize::new(0));
+    for (base, accepted) in [
+        ("https://perata.sh", true),
+        ("http://localhost:8080", true),
+        ("http://LOCALHOST", true),
+        ("http://127.0.0.1:1", true),
+        ("http://127.255.0.3", true),
+        ("http://[::1]:8080", true),
+        ("http://perata.sh", false),
+        ("http://localhost.evil.test", false),
+        ("http://127.0.0.1.evil.test", false),
+        ("http://10.0.0.1", false),
+        ("ftp://localhost", false),
+        ("perata.sh", false),
+        ("", false),
+        ("http://[::2]", false),
+    ] {
+        let counted = Arc::clone(&calls);
+        let client = Client::builder("k")
+            .base_url(base)
+            .transport(move |_: HttpRequest| -> Result<HttpResponse, BoxError> {
+                counted.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+                Ok(json(200, serde_json::json!({"data": product("prod_1")})))
+            })
+            .build();
+        let answer = client.products().get("prod_1");
+        assert_eq!(
+            !matches!(answer, Err(Error::InsecureBaseUrl)),
+            accepted,
+            "{base}"
+        );
+    }
+    // Only the accepted ones sent anything.
+    assert_eq!(calls.load(std::sync::atomic::Ordering::SeqCst), 6);
 }
 
 #[test]

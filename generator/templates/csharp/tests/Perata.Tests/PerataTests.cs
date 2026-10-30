@@ -49,7 +49,7 @@ public class PerataTests
     }
 
     private static PerataClient Client(Recorder recorder) =>
-        new("prk_test_key", new PerataClientOptions { BaseUrl = "http://perata.test/", Handler = recorder });
+        new("prk_test_key", new PerataClientOptions { BaseUrl = "https://perata.test/", Handler = recorder });
 
     private static string ProductJson(string id) =>
         $$"""{"id":"{{id}}","name":"Curso","description":"","status":"active","created_at":"2026-10-17T00:00:00Z"}""";
@@ -85,6 +85,32 @@ public class PerataTests
         using var body = JsonDocument.Parse(seen.Body!);
         Assert.Equal("Curso", body.RootElement.GetProperty("name").GetString());
         Assert.False(body.RootElement.TryGetProperty("description", out _), "an optional field left out was sent");
+    }
+
+    [Theory]
+    [InlineData("https://perata.sh", true)]
+    [InlineData("http://localhost:8080", true)]
+    [InlineData("http://LOCALHOST", true)]
+    [InlineData("http://127.0.0.1:1", true)]
+    [InlineData("http://127.255.0.3", true)]
+    [InlineData("http://[::1]:8080", true)]
+    [InlineData("http://perata.sh", false)]
+    [InlineData("http://localhost.evil.test", false)]
+    [InlineData("http://127.0.0.1.evil.test", false)]
+    [InlineData("http://10.0.0.1", false)]
+    [InlineData("ftp://localhost", false)]
+    [InlineData("perata.sh", false)]
+    [InlineData("", false)]
+    [InlineData("http://[::2]", false)]
+    public void ABaseUrlMustBeHttpsUnlessItIsLoopback(string baseUrl, bool accepted)
+    {
+        if (accepted)
+        {
+            _ = new PerataClient("k", new PerataClientOptions { BaseUrl = baseUrl });
+            return;
+        }
+        var refused = Assert.Throws<ArgumentException>(() => new PerataClient("k", new PerataClientOptions { BaseUrl = baseUrl }));
+        Assert.Contains("must be https", refused.Message);
     }
 
     [Fact]

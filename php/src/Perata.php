@@ -34,6 +34,9 @@ final class Perata implements Requester
     private $transport;
 
     /**
+     * The base URL must be https; http is accepted only for localhost,
+     * 127.0.0.0/8 and ::1, and any other throws InvalidArgumentException.
+     *
      * @param (callable(string, string, array<string, string>, ?string, float): array{0: int, 1: array<string, string>, 2: string})|null $transport
      *        sends one request: (method, url, headers, body, timeout) to (status, headers in lower case, body)
      */
@@ -44,6 +47,7 @@ final class Perata implements Requester
         ?callable $transport = null,
     ) {
         $this->baseUrl = rtrim($baseUrl ?? Version::DEFAULT_BASE_URL, '/');
+        self::checkBaseUrl($this->baseUrl);
         $this->transport = $transport ?? self::curlTransport(...);
         $this->checkouts = new Services\CheckoutsService($this);
         $this->customerSessions = new Services\CustomerSessionsService($this);
@@ -94,6 +98,20 @@ final class Perata implements Requester
         }
         $decoded = json_decode($raw, true, 512, JSON_THROW_ON_ERROR);
         return $decoded['data'];
+    }
+
+    /** Throws unless the base URL is https, or http to localhost, 127.0.0.0/8 or ::1. */
+    private static function checkBaseUrl(string $baseUrl): void
+    {
+        $parts = parse_url($baseUrl);
+        $scheme = strtolower((string) ($parts['scheme'] ?? ''));
+        $host = strtolower(trim((string) ($parts['host'] ?? ''), '[]'));
+        $loopback = $host === 'localhost'
+            || (filter_var($host, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4) !== false && str_starts_with($host, '127.'))
+            || (filter_var($host, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6) !== false && inet_pton($host) === inet_pton('::1'));
+        if ($scheme !== 'https' && !($scheme === 'http' && $loopback)) {
+            throw new \InvalidArgumentException('perata: the base URL must be https (http is accepted only for localhost, 127.0.0.0/8 and ::1), so the API key is never sent in clear text');
+        }
     }
 
     /** A random UUID (version 4). */

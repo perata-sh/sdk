@@ -17,6 +17,9 @@ pub enum Error {
     /// A body could not be written as JSON, or the API answered something
     /// this SDK does not read.
     Json(serde_json::Error),
+    /// The client's base URL is not https and not a loopback address, so no
+    /// request was sent: the API key would cross the network in clear text.
+    InsecureBaseUrl,
 }
 
 /// A request the API refused.
@@ -83,6 +86,7 @@ impl fmt::Display for Error {
             Error::Api(error) => error.fmt(f),
             Error::Transport(error) => write!(f, "perata: {error}"),
             Error::Json(error) => write!(f, "perata: json: {error}"),
+            Error::InsecureBaseUrl => f.write_str("perata: the base URL must be https (http is accepted only for localhost, 127.0.0.0/8 and ::1), so the API key is never sent in clear text"),
         }
     }
 }
@@ -93,6 +97,7 @@ impl std::error::Error for Error {
             Error::Api(error) => Some(error),
             Error::Transport(error) => Some(error.as_ref()),
             Error::Json(error) => Some(error),
+            Error::InsecureBaseUrl => None,
         }
     }
 }

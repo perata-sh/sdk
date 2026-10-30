@@ -52,6 +52,26 @@ func TestAWriteSendsItsBodyAndIdempotencyKey(t *testing.T) {
 	}
 }
 
+func TestABaseURLMustBeHTTPSUnlessItIsLoopback(t *testing.T) {
+	for base, ok := range map[string]bool{
+		"https://perata.sh": true, "http://localhost:8080": true, "http://LOCALHOST": true, "http://127.0.0.1:1": true,
+		"http://127.255.0.3": true, "http://[::1]:8080": true,
+		"http://perata.sh": false, "http://localhost.evil.test": false, "http://127.0.0.1.evil.test": false,
+		"http://10.0.0.1": false, "ftp://localhost": false, "perata.sh": false, "": false, "http://[::2]": false,
+	} {
+		if got := checkBaseURL(base) == nil; got != ok {
+			t.Errorf("%q accepted: %v, want %v", base, got, ok)
+		}
+	}
+	called := false
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { called = true }))
+	t.Cleanup(srv.Close)
+	client := New("prk_test_key", WithBaseURL("http://perata.test"))
+	if _, err := client.Products.Get(context.Background(), "prod_1"); !errors.Is(err, ErrInsecureBaseURL) || called {
+		t.Fatalf("error %v, called %v", err, called)
+	}
+}
+
 func TestAPostWithoutAKeyIsSentWithItsOwn(t *testing.T) {
 	var keys []string
 	client := server(t, func(w http.ResponseWriter, r *http.Request) {

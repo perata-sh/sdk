@@ -38,7 +38,9 @@ public final class PerataClient: Sendable {
     /// A client for the organization `apiKey` belongs to.
     ///
     /// - Parameters:
-    ///   - baseURL: another address, such as a local server.
+    ///   - baseURL: another address, such as a local server. It must be https;
+    ///     http is accepted only for localhost, 127.0.0.0/8 and ::1, and any
+    ///     other makes every call throw a `PerataError` before sending anything.
     ///   - timeout: how long a call may take, 30 seconds by default.
     ///   - transport: what sends the requests; a `URLSession` that refuses redirects by default.
     public init(
@@ -51,7 +53,8 @@ public final class PerataClient: Sendable {
         while base.hasSuffix("/") {
             base.removeLast()
         }
-        let requester = Requester(apiKey: apiKey, baseURL: base, timeout: timeout, transport: transport ?? Requester.urlSession)
+        var requester = Requester(apiKey: apiKey, baseURL: base, timeout: timeout, transport: transport ?? Requester.urlSession)
+        requester.baseURLError = PerataError.insecureBaseURL(baseURL)
         checkouts = CheckoutsService(requester: requester)
         customerSessions = CustomerSessionsService(requester: requester)
         customers = CustomersService(requester: requester)

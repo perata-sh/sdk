@@ -57,6 +57,7 @@ public sealed class PerataClient
         options ??= new PerataClientOptions();
         this.apiKey = apiKey;
         baseUrl = (options.BaseUrl ?? DefaultBaseUrl).TrimEnd('/');
+        CheckBaseUrl(baseUrl);
         timeout = options.Timeout ?? TimeSpan.FromSeconds(30);
         http = options.HttpClient
             ?? (options.Handler is null ? SharedHttp : new HttpClient(options.Handler, disposeHandler: false) { Timeout = System.Threading.Timeout.InfiniteTimeSpan });
@@ -145,6 +146,23 @@ public sealed class PerataClient
 
     private static string? RetryAfter(HttpResponseMessage response) =>
         response.Headers.TryGetValues("Retry-After", out var values) ? string.Join(",", values) : null;
+
+    /// <summary>Throws unless the base URL is https, or http to localhost, 127.0.0.0/8 or ::1.</summary>
+    private static void CheckBaseUrl(string baseUrl)
+    {
+        const string message = "perata: the base URL must be https (http is accepted only for localhost, 127.0.0.0/8 and ::1), so the API key is never sent in clear text";
+        if (!Uri.TryCreate(baseUrl, UriKind.Absolute, out var uri))
+        {
+            throw new ArgumentException(message, nameof(baseUrl));
+        }
+        var host = uri.Host.Trim('[', ']');
+        var loopback = host.Equals("localhost", StringComparison.OrdinalIgnoreCase)
+            || System.Net.IPAddress.TryParse(host, out var address) && System.Net.IPAddress.IsLoopback(address);
+        if (uri.Scheme != Uri.UriSchemeHttps && !(uri.Scheme == Uri.UriSchemeHttp && loopback))
+        {
+            throw new ArgumentException(message, nameof(baseUrl));
+        }
+    }
 
     /// <summary>A path parameter, escaped.</summary>
     internal static string Segment(string value)

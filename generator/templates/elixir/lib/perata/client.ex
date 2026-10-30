@@ -36,15 +36,20 @@ defmodule Perata.Client do
   @doc """
   A client for the organization `api_key` belongs to.
 
-  Options: `:base_url` (another address, such as a local server), `:timeout`
+  Options: `:base_url` (another address, such as a local server: https, or
+  http only for localhost, 127.0.0.0/8 and ::1, or `ArgumentError`), `:timeout`
   in milliseconds (30 seconds) and `:transport` (see `t:transport/0`).
   """
   @spec new(String.t(), keyword()) :: t()
   def new(api_key, opts \\ []) when is_binary(api_key) do
+    base_url =
+      opts |> Keyword.get(:base_url, Perata.default_base_url()) |> String.trim_trailing("/")
+
+    check_base_url!(base_url)
+
     %__MODULE__{
       api_key: api_key,
-      base_url:
-        opts |> Keyword.get(:base_url, Perata.default_base_url()) |> String.trim_trailing("/"),
+      base_url: base_url,
       timeout: Keyword.get(opts, :timeout, 30_000),
       transport: Keyword.get(opts, :transport, &__MODULE__.httpc/5)
     }
@@ -102,6 +107,30 @@ defmodule Perata.Client do
 
   defp key(override, _default) when is_binary(override) and override != "", do: override
   defp key(_override, default), do: default
+
+  # The base URL must be https; http is accepted only for localhost,
+  # 127.0.0.0/8 and ::1.
+  defp check_base_url!(base_url) do
+    %URI{scheme: scheme, host: host} = URI.parse(base_url)
+    scheme = String.downcase(scheme || "")
+    host = String.downcase(host || "")
+
+    loopback? =
+      host == "localhost" or
+        match?(
+          {:ok, {127, _, _, _}},
+          :inet.parse_address(String.to_charlist(host))
+        ) or
+        match?(
+          {:ok, {0, 0, 0, 0, 0, 0, 0, 1}},
+          :inet.parse_address(String.to_charlist(host))
+        )
+
+    unless scheme == "https" or (scheme == "http" and loopback?) do
+      raise ArgumentError,
+            "perata: the base URL must be https (http is accepted only for localhost, 127.0.0.0/8 and ::1), so the API key is never sent in clear text"
+    end
+  end
 
   # A POST is sent with a key of its own, one a call, unless the caller gave one.
   defp idempotency_key("POST", given) when given in [nil, ""], do: uuid()

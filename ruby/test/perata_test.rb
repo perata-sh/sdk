@@ -29,7 +29,7 @@ class PerataTest < Minitest::Test
 
   def client(&answer)
     recorder = Recorder.new(&answer)
-    [Perata::Client.new("prk_test_key", base_url: "http://perata.test/", transport: recorder), recorder]
+    [Perata::Client.new("prk_test_key", base_url: "https://perata.test/", transport: recorder), recorder]
   end
 
   def product(id)
@@ -58,6 +58,16 @@ class PerataTest < Minitest::Test
     assert_equal "POST", seen[:method]
     assert_equal "create-1", seen[:headers]["Idempotency-Key"]
     assert_equal({ "name" => "Curso" }, JSON.parse(seen[:body]))
+  end
+
+  def test_a_base_url_must_be_https_unless_it_is_loopback
+    ["https://perata.sh", "http://localhost:8080", "http://LOCALHOST", "http://127.0.0.1:1", "http://127.255.0.3", "http://[::1]:8080"].each do |base_url|
+      Perata::Client.new("k", base_url: base_url)
+    end
+    ["http://perata.sh", "http://localhost.evil.test", "http://127.0.0.1.evil.test", "http://10.0.0.1", "ftp://localhost", "perata.sh", "", "http://[::2]"].each do |base_url|
+      error = assert_raises(ArgumentError, base_url) { Perata::Client.new("k", base_url: base_url) }
+      assert_match(/must be https/, error.message)
+    end
   end
 
   def test_a_post_without_a_key_is_sent_with_its_own_a_get_with_none

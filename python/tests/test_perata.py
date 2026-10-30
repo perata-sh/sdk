@@ -48,7 +48,7 @@ class Recorder:
 
 def client(answer):
     recorder = Recorder(answer)
-    return Perata("prk_test_key", base_url="http://perata.test/", transport=recorder), recorder
+    return Perata("prk_test_key", base_url="https://perata.test/", transport=recorder), recorder
 
 
 class PerataTest(unittest.TestCase):
@@ -69,6 +69,13 @@ class PerataTest(unittest.TestCase):
         self.assertEqual(seen["method"], "POST")
         self.assertEqual(seen["headers"]["Idempotency-Key"], "create-1")
         self.assertEqual(json.loads(seen["body"]), {"name": "Curso"})
+
+    def test_a_base_url_must_be_https_unless_it_is_loopback(self):
+        for base_url in ["https://perata.sh", "http://localhost:8080", "http://LOCALHOST", "http://127.0.0.1:1", "http://127.255.0.3", "http://[::1]:8080"]:
+            Perata("k", base_url=base_url)
+        for base_url in ["http://perata.sh", "http://localhost.evil.test", "http://127.0.0.1.evil.test", "http://10.0.0.1", "ftp://localhost", "perata.sh", "", "http://[::2]"]:
+            with self.assertRaisesRegex(ValueError, "must be https", msg=base_url):
+                Perata("k", base_url=base_url)
 
     def test_a_post_without_a_key_is_sent_with_its_own_a_get_with_none(self):
         perata, recorder = client(lambda request: (201, {"data": product("prod_1")}, {}))

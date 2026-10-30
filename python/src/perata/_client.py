@@ -2,13 +2,14 @@
 
 from __future__ import annotations
 
+import ipaddress
 import json
 import urllib.error
 import urllib.request
 import uuid
 from collections.abc import Callable
 from typing import Any
-from urllib.parse import urlencode
+from urllib.parse import urlencode, urlsplit
 
 from ._errors import PerataError
 from ._services import CheckoutsService, CustomerSessionsService, CustomersService, OrdersService, PaymentMethodsService, PaymentsService, PricesService, ProductsService, RefundsService, SubscriptionsService
@@ -38,6 +39,21 @@ def urllib_transport(method: str, url: str, headers: dict[str, str], body: bytes
         return error.code, {key.lower(): value for key, value in error.headers.items()}, error.read()
 
 
+def _check_base_url(base_url: str) -> None:
+    """Raises ValueError unless base_url is https, or http to localhost, 127.0.0.0/8 or ::1."""
+    try:
+        parts = urlsplit(base_url)
+        host = (parts.hostname or "").lower()
+    except ValueError:
+        raise ValueError("perata: the base URL must be https (http is accepted only for localhost, 127.0.0.0/8 and ::1), so the API key is never sent in clear text") from None
+    try:
+        loopback = host == "localhost" or ipaddress.ip_address(host).is_loopback
+    except ValueError:
+        loopback = False
+    if parts.scheme.lower() != "https" and not (parts.scheme.lower() == "http" and loopback):
+        raise ValueError("perata: the base URL must be https (http is accepted only for localhost, 127.0.0.0/8 and ::1), so the API key is never sent in clear text")
+
+
 class Perata:
     """Peráta's API with one organization's API key.
 
@@ -53,6 +69,7 @@ class Perata:
     def __init__(self, api_key: str, *, base_url: str = DEFAULT_BASE_URL, timeout: float = 30.0, transport: Transport | None = None) -> None:
         self._api_key = api_key
         self._base_url = base_url.rstrip("/")
+        _check_base_url(self._base_url)
         self._timeout = timeout
         self._transport = transport or urllib_transport
         self.checkouts = CheckoutsService(self)
