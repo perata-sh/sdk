@@ -139,7 +139,8 @@ func render(file, target string, source []byte, scope Scope, funcs template.Func
 }
 
 // clear empties out, keeping what a package manager or a build put there
-// that the generator does not own.
+// that the generator does not own: the folders they create and the lock file
+// a release installs from.
 func clear(out string) error {
 	entries, err := os.ReadDir(out)
 	if os.IsNotExist(err) {
@@ -149,7 +150,7 @@ func clear(out string) error {
 		return err
 	}
 	keep := map[string]bool{"node_modules": true, "vendor": true, ".venv": true, "dist": true, "__pycache__": true, ".pytest_cache": true,
-		"target": true, "bin": true, "obj": true, "_build": true, "deps": true, ".dart_tool": true, ".build": true}
+		"target": true, "bin": true, "obj": true, "_build": true, "deps": true, ".dart_tool": true, ".build": true, "package-lock.json": true}
 	for _, entry := range entries {
 		if keep[entry.Name()] {
 			continue

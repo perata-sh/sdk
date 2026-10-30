@@ -37,8 +37,10 @@ jobs:
             echo "::notice::npm already has @perata-sh/sdk@$version; nothing to publish."
             exit 0
           fi
-          npm install -g npm@latest
-          npm install --no-audit --no-fund
+          # Trusted publishing needs npm 11.5.1 or later; the version is exact so
+          # the job never runs whatever the registry's latest happens to be.
+          npm install -g npm@11.20.0
+          npm ci --ignore-scripts --no-audit --no-fund
           npm run build
           npm publish --access public --provenance
 
@@ -56,8 +58,11 @@ jobs:
       - working-directory: python
         run: |
           test "v$(cat ../VERSION)" = "$GITHUB_REF_NAME"
-          pip install build
-          python -m build
+          # The build tools come from a hash-locked file
+          # (.github/release/python-build.txt), not from whatever is newest,
+          # and the build runs without fetching its backend again.
+          pip install --require-hashes --no-deps -r ../.github/release/python-build.txt
+          python -m build --no-isolation
       - uses: pypa/gh-action-pypi-publish@7245906fb61fa33a13554f9d5fb856fe61758086 # v1.14.3
         with:
           packages-dir: python/dist
@@ -134,7 +139,8 @@ jobs:
         env:
           HEX_API_KEY_SECRET: ${{ secrets.HEX_API_KEY }}
         run: |
-          mix local.hex --force
+          # Hex is pinned: the job holds the OIDC token that publishes.
+          mix local.hex 2.5.3 --force
           if [ -n "$HEX_API_KEY_SECRET" ]; then
             # Fallback while no workload identity is configured on hex.pm.
             export HEX_API_KEY="$HEX_API_KEY_SECRET"

@@ -22,6 +22,22 @@ registry failing does not stop the others, and a failed job can be re-run alone.
      NuGet, Maven Central) and is what Packagist and Swift read.
    - `go/vX.Y.Z` is the Go module's version.
 
+## What the release installs
+
+The jobs that hold an OIDC token install only pinned tools, so a compromised
+upstream release cannot reach a publish credential:
+
+- npm: `typescript/package-lock.json` is committed and installed with
+  `npm ci --ignore-scripts`; npm itself is installed at an exact version
+  (11.20.0, trusted publishing needs 11.5.1 or later). Raise it on purpose.
+  After a change to `typescript/package.json` run
+  `npm install --package-lock-only --ignore-scripts` there and commit the lock.
+- PyPI: the build tools are in `.github/release/python-build.txt`, hash-locked
+  (`pip-compile --generate-hashes --allow-unsafe --strip-extras
+  python-build.in`, from `.github/release/`).
+- Hex: `mix local.hex 2.5.3`.
+- Every action is pinned to a commit SHA, kept current by Dependabot.
+
 ## One-time setup, per registry
 
 The package belongs to the `perata-sh` organization everywhere the registry has
