@@ -17,11 +17,21 @@ Transport = Callable[[str, str, dict[str, str], "bytes | None", float], "tuple[i
 """Sends one request: (method, url, headers, body, timeout) -> (status, headers in lower case, body)."""
 
 
+class _RefuseRedirects(urllib.request.HTTPRedirectHandler):
+    """The API never redirects, and a redirect would carry the key to wherever it points."""
+
+    def redirect_request(self, req: Any, fp: Any, code: int, msg: str, headers: Any, newurl: str) -> Any:
+        raise PerataError(code, "redirect_refused", "the server answered a redirect; the SDK does not follow redirects, so the API key is never sent elsewhere")
+
+
+_OPENER = urllib.request.build_opener(_RefuseRedirects)
+
+
 def urllib_transport(method: str, url: str, headers: dict[str, str], body: bytes | None, timeout: float) -> tuple[int, dict[str, str], bytes]:
-    """The standard library's HTTP, so the SDK depends on nothing."""
+    """The standard library's HTTP, so the SDK depends on nothing. It refuses redirects."""
     request = urllib.request.Request(url, data=body, headers=headers, method=method)
     try:
-        with urllib.request.urlopen(request, timeout=timeout) as response:
+        with _OPENER.open(request, timeout=timeout) as response:
             return response.status, {key.lower(): value for key, value in response.headers.items()}, response.read()
     except urllib.error.HTTPError as error:
         return error.code, {key.lower(): value for key, value in error.headers.items()}, error.read()

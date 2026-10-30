@@ -178,6 +178,7 @@ public class PerataTests
         using var listener = new HttpListener();
         listener.Prefixes.Add(prefix);
         listener.Start();
+        var landed = false;
         var serving = Task.Run(async () =>
         {
             while (listener.IsListening)
@@ -193,7 +194,18 @@ public class PerataTests
                 }
                 string answer;
                 context.Response.ContentType = "application/json";
-                if (context.Request.Headers["Authorization"] != "Bearer prk_test_key")
+                if (context.Request.RawUrl!.EndsWith("/moved", StringComparison.Ordinal))
+                {
+                    context.Response.StatusCode = 302;
+                    context.Response.AddHeader("Location", prefix + "api/v1/products/landed");
+                    answer = "{}";
+                }
+                else if (context.Request.RawUrl.EndsWith("/landed", StringComparison.Ordinal))
+                {
+                    landed = true;
+                    answer = "{}";
+                }
+                else if (context.Request.Headers["Authorization"] != "Bearer prk_test_key")
                 {
                     context.Response.StatusCode = 401;
                     context.Response.AddHeader("Retry-After", "3");
@@ -233,6 +245,11 @@ public class PerataTests
             Assert.Equal(401, refused.Status);
             Assert.Equal("invalid_credential", refused.Code);
             Assert.Equal(3, refused.RetryAfter);
+
+            var redirected = await Assert.ThrowsAsync<PerataException>(() =>
+                new PerataClient("prk_test_key", new PerataClientOptions { BaseUrl = prefix }).Products.GetAsync("moved"));
+            Assert.Equal(302, redirected.Status);
+            Assert.False(landed, "a redirect was followed");
         }
         finally
         {

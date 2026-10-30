@@ -39,14 +39,21 @@ func WithBaseURL(baseURL string) Option {
 	return func(c *Client) { c.baseURL = strings.TrimRight(baseURL, "/") }
 }
 
-// WithHTTPClient sends the requests through httpClient.
+// WithHTTPClient sends the requests through httpClient. The default client
+// refuses redirects, so the API key never follows one; a client given here
+// decides for itself.
 func WithHTTPClient(httpClient *http.Client) Option {
 	return func(c *Client) { c.http = httpClient }
 }
 
 // New is a client for the organization apiKey belongs to.
 func New(apiKey string, opts ...Option) *Client {
-	c := &Client{apiKey: apiKey, baseURL: DefaultBaseURL, http: &http.Client{Timeout: 30 * time.Second}}
+	c := &Client{apiKey: apiKey, baseURL: DefaultBaseURL, http: &http.Client{
+		Timeout: 30 * time.Second,
+		// The API never redirects, and a redirect would carry the key along:
+		// the 3xx is the answer, and an Error.
+		CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse },
+	}}
 	for _, opt := range opts {
 		opt(c)
 	}

@@ -1,5 +1,7 @@
 import json
+import threading
 import unittest
+from http.server import BaseHTTPRequestHandler, HTTPServer
 from urllib.parse import parse_qs, urlparse
 
 from perata import (
@@ -91,6 +93,43 @@ class PerataTest(unittest.TestCase):
         with self.assertRaises(PerataError) as limited:
             perata.products.list()
         self.assertEqual((limited.exception.status, limited.exception.retry_after), (429, 7))
+
+    def test_a_redirect_is_refused_and_the_key_never_follows_it(self):
+        elsewhere = []
+
+        class Other(BaseHTTPRequestHandler):
+            def do_GET(self):
+                elsewhere.append(self.headers.get("Authorization"))
+                self.send_response(200)
+                self.end_headers()
+
+            def log_message(self, *args):
+                pass
+
+        other = HTTPServer(("127.0.0.1", 0), Other)
+
+        class First(BaseHTTPRequestHandler):
+            def do_GET(self):
+                self.send_response(302)
+                self.send_header("Location", f"http://127.0.0.1:{other.server_port}/steal")
+                self.end_headers()
+
+            def log_message(self, *args):
+                pass
+
+        first = HTTPServer(("127.0.0.1", 0), First)
+        for server in (first, other):
+            threading.Thread(target=server.serve_forever, daemon=True).start()
+        try:
+            perata = Perata("prk_test_key", base_url=f"http://127.0.0.1:{first.server_port}")
+            with self.assertRaises(PerataError) as refused:
+                perata.products.get("prod_1")
+            self.assertEqual((refused.exception.status, refused.exception.code), (302, "redirect_refused"))
+            self.assertEqual(elsewhere, [])
+        finally:
+            for server in (first, other):
+                server.shutdown()
+                server.server_close()
 
     def test_the_standard_webhooks_vector_verifies(self):
         body = b'{"test": 2432232314}'

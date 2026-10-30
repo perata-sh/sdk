@@ -5,7 +5,7 @@ import Foundation
 #endif
 
 /// Sends one request and answers its body and response, whatever the status.
-/// The SDK sends through `URLSession.shared`; a test, or a program with its
+/// The SDK sends through a `URLSession` that refuses redirects; a test, or a program with its
 /// own HTTP stack, gives another one to `PerataClient`.
 public typealias PerataTransport = @Sendable (URLRequest) async throws -> (Data, HTTPURLResponse)
 
@@ -59,9 +59,14 @@ struct Requester: Sendable {
         return try JSONDecoder().decode(Envelope<T>.self, from: data).data
     }
 
-    /// Sends through `URLSession.shared`.
+    /// A session that refuses redirects: the API never redirects, and a
+    /// redirect would carry the key along. The 3xx is the answer.
+    private static let session = URLSession(
+        configuration: .default, delegate: RefuseRedirects(), delegateQueue: nil)
+
+    /// Sends through a `URLSession` that does not follow redirects.
     static let urlSession: PerataTransport = { request in
-        let (data, response) = try await URLSession.shared.data(for: request)
+        let (data, response) = try await session.data(for: request)
         guard let http = response as? HTTPURLResponse else {
             throw URLError(.badServerResponse)
         }
@@ -79,4 +84,14 @@ private let unreserved = CharacterSet(charactersIn: "ABCDEFGHIJKLMNOPQRSTUVWXYZa
 /// and `-._~`.
 func escape(_ value: String) -> String {
     value.addingPercentEncoding(withAllowedCharacters: unreserved) ?? value
+}
+
+private final class RefuseRedirects: NSObject, URLSessionTaskDelegate, @unchecked Sendable {
+    func urlSession(
+        _ session: URLSession, task: URLSessionTask,
+        willPerformHTTPRedirection response: HTTPURLResponse, newRequest request: URLRequest,
+        completionHandler: @escaping (URLRequest?) -> Void
+    ) {
+        completionHandler(nil)
+    }
 }

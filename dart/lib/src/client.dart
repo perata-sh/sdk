@@ -107,7 +107,7 @@ class Perata implements Requester {
     final request = http.Request(
       method,
       parameters.isEmpty ? url : url.replace(queryParameters: parameters),
-    );
+    )..followRedirects = false;
     request.headers['Authorization'] = 'Bearer ${apiKey ?? _apiKey}';
     request.headers['Accept'] = 'application/json';
     if (!_web) {

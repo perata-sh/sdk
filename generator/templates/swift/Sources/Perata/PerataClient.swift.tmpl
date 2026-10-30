@@ -24,7 +24,7 @@ public final class PerataClient: Sendable {
     /// - Parameters:
     ///   - baseURL: another address, such as a local server.
     ///   - timeout: how long a call may take, 30 seconds by default.
-    ///   - transport: what sends the requests; `URLSession.shared` by default.
+    ///   - transport: what sends the requests; a `URLSession` that refuses redirects by default.
     public init(
         apiKey: String,
         baseURL: URL = PerataClient.defaultBaseURL,

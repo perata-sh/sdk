@@ -105,6 +105,9 @@ impl UreqTransport {
     pub fn new() -> Self {
         let agent = ureq::Agent::config_builder()
             .http_status_as_error(false)
+            // The API never redirects, and a redirect would carry the key along.
+            .max_redirects(0)
+            .max_redirects_will_error(false)
             .build()
             .new_agent();
         Self { agent }

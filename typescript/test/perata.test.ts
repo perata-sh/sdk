@@ -1,4 +1,6 @@
 import assert from "node:assert/strict";
+import { createServer } from "node:http";
+import type { AddressInfo } from "node:net";
 import { test } from "node:test";
 
 import { Perata, PerataError, verifyWebhook, verifyWebhookSignature, WebhookVerificationError } from "../src/index.ts";
@@ -53,6 +55,28 @@ test("iterating walks every page", async () => {
   }
   assert.deepEqual(ids, ["prod_1", "prod_2", "prod_3"]);
   assert.equal(seen[0]?.url.searchParams.get("limit"), "1");
+});
+
+test("a redirect is refused and the key never follows it", async () => {
+  const elsewhere: Array<string | undefined> = [];
+  const other = createServer((request, response) => {
+    elsewhere.push(request.headers.authorization);
+    response.end("{}");
+  });
+  await new Promise<void>((resolve) => other.listen(0, "127.0.0.1", resolve));
+  const first = createServer((_request, response) => {
+    response.writeHead(302, { Location: `http://127.0.0.1:${(other.address() as AddressInfo).port}/steal` });
+    response.end();
+  });
+  await new Promise<void>((resolve) => first.listen(0, "127.0.0.1", resolve));
+  try {
+    const perata = new Perata({ apiKey: "prk_test_key", baseUrl: `http://127.0.0.1:${(first.address() as AddressInfo).port}` });
+    await assert.rejects(perata.products.get("prod_1"), (error) => error instanceof PerataError && error.status === 302);
+    assert.deepEqual(elsewhere, []);
+  } finally {
+    first.close();
+    other.close();
+  }
 });
 
 test("a refusal is a typed error", async () => {

@@ -92,6 +92,20 @@ func TestARefusalIsATypedError(t *testing.T) {
 	}
 }
 
+func TestARedirectIsRefusedAndTheKeyNeverFollowsIt(t *testing.T) {
+	elsewhere := 0
+	other := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { elsewhere++ }))
+	t.Cleanup(other.Close)
+	client := server(t, func(w http.ResponseWriter, r *http.Request) {
+		http.Redirect(w, r, other.URL+"/steal", http.StatusFound)
+	})
+	_, err := client.Products.Get(context.Background(), "prod_1")
+	var refused *Error
+	if !errors.As(err, &refused) || refused.StatusCode != http.StatusFound || elsewhere != 0 {
+		t.Fatalf("error %#v, the redirect target was called %d times", err, elsewhere)
+	}
+}
+
 // The webhook vectors every SDK checks: Standard Webhooks' own example, and
 // Peráta events signed under two secrets, as while one is rotated.
 const (

@@ -290,4 +290,35 @@ void main() {
     );
     expect(seen['path'], '/api/v1/products/a%20b%2Fc');
   });
+
+  test('a redirect is refused and the key never follows it', () async {
+    final other = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
+    addTearDown(() => other.close(force: true));
+    var elsewhere = 0;
+    other.listen((request) async {
+      elsewhere++;
+      await request.response.close();
+    });
+    final first = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
+    addTearDown(() => first.close(force: true));
+    first.listen((request) async {
+      request.response
+        ..statusCode = 302
+        ..headers.set('location', 'http://127.0.0.1:${other.port}/steal');
+      await request.response.close();
+    });
+    final perata = Perata(
+      'prk_test_key',
+      baseUrl: 'http://${first.address.host}:${first.port}',
+    );
+    addTearDown(perata.close);
+
+    await expectLater(
+      perata.products.get('prod_1'),
+      throwsA(
+        isA<PerataException>().having((error) => error.status, 'status', 302),
+      ),
+    );
+    expect(elsewhere, 0);
+  });
 }

@@ -10,7 +10,7 @@ export interface ClientOptions {
   apiKey: string;
   /** Another address, such as a local server. */
   baseUrl?: string;
-  /** The fetch the calls go through; the global one by default. */
+  /** The fetch the calls go through; the global one by default. Calls are made with `redirect: "manual"`, so the key never follows a redirect. */
   fetch?: typeof fetch;
   /** Milliseconds before a call gives up; 30 000 by default. */
   timeoutMs?: number;
@@ -69,7 +69,7 @@ export class Perata implements Requester {
     if (spec.options?.signal) {
       signals.push(spec.options.signal);
     }
-    const response = await this.#fetch(url, { method, headers, body, signal: AbortSignal.any(signals) });
+    const response = await this.#fetch(url, { method, headers, body, signal: AbortSignal.any(signals), redirect: "manual" });
     if (!response.ok) {
       throw await PerataError.from(response);
     }

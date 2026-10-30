@@ -320,3 +320,42 @@ fn the_real_http_sends_and_reads_through_ureq() {
     assert_eq!(refused.code, "invalid_credential");
     assert_eq!(refused.retry_after, Some(Duration::from_secs(3)));
 }
+
+/// Answers every request with `response` and counts the connections it gets.
+fn canned_server(response: String) -> (String, Arc<std::sync::atomic::AtomicUsize>) {
+    let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+    let address = listener.local_addr().unwrap();
+    let hits = Arc::new(std::sync::atomic::AtomicUsize::new(0));
+    let count = Arc::clone(&hits);
+    thread::spawn(move || {
+        for stream in listener.incoming() {
+            let Ok(mut stream) = stream else { continue };
+            count.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+            let mut reader = BufReader::new(stream.try_clone().unwrap());
+            loop {
+                let mut header = String::new();
+                if reader.read_line(&mut header).unwrap_or(0) == 0 || header.trim_end().is_empty() {
+                    break;
+                }
+            }
+            let _ = stream.write_all(response.as_bytes());
+        }
+    });
+    (format!("http://{address}"), hits)
+}
+
+#[test]
+fn a_redirect_is_refused_and_the_key_never_follows_it() {
+    let (elsewhere, hits) = canned_server(
+        "HTTP/1.1 200 OK\r\nContent-Length: 2\r\nConnection: close\r\n\r\n{}".to_owned(),
+    );
+    let (first, _) = canned_server(format!(
+        "HTTP/1.1 302 Found\r\nLocation: {elsewhere}/steal\r\nContent-Length: 0\r\nConnection: close\r\n\r\n"
+    ));
+    let client = Client::builder("prk_test_key").base_url(&first).build();
+    let Err(Error::Api(refused)) = client.products().get("prod_1") else {
+        panic!("a redirect was followed");
+    };
+    assert_eq!(refused.status, 302);
+    assert_eq!(hits.load(std::sync::atomic::Ordering::SeqCst), 0);
+}

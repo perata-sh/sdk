@@ -38,7 +38,7 @@ public sealed class PerataClient
 
     // One connection pool for every client that brings no HttpClient of its
     // own, renewed every few minutes so DNS changes are seen.
-    private static readonly HttpClient SharedHttp = new(new SocketsHttpHandler { PooledConnectionLifetime = TimeSpan.FromMinutes(5) })
+    private static readonly HttpClient SharedHttp = new(new SocketsHttpHandler { PooledConnectionLifetime = TimeSpan.FromMinutes(5), AllowAutoRedirect = false })
     {
         Timeout = System.Threading.Timeout.InfiniteTimeSpan,
     };

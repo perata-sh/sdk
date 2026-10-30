@@ -14,9 +14,9 @@ import java.util.Map;
 public final class HttpTransport implements Transport {
     private final HttpClient client;
 
-    /** A transport over a new {@link HttpClient} that connects within 30 seconds. */
+    /** A transport over a new {@link HttpClient} that connects within 30 seconds and never follows a redirect. */
     public HttpTransport() {
-        this(HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(30)).build());
+        this(HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(30)).followRedirects(HttpClient.Redirect.NEVER).build());
     }
 
     /**
