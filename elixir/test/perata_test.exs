@@ -181,6 +181,26 @@ defmodule PerataTest do
     end
   end
 
+  test "a timestamp that is not plain digits is refused" do
+    for {stamp, signature} <- [
+          {"+1614265330", "JQsSpSSK1m9NI2FueDRZN3FL/jU9336idQcq6VmF+c8="},
+          {"²", "PEggIsKE32VQ8J4ZIk9apRhPy7w+a20bxGpjk1K4/HY="},
+          {"", "x"},
+          {"1_6", "x"}
+        ] do
+      headers = [
+        {"Webhook-Id", "msg_p5jXN8AQM9LWM0D4loKWxJek"},
+        {"webhook-timestamp", stamp},
+        {"webhook-signature", "v1," <> signature}
+      ]
+
+      assert {:error, %Perata.WebhookVerificationError{}} =
+               Perata.verify_webhook_signature(@reference_secret, headers, ~s({"test": 2432232314}),
+                 now: 1_614_265_330
+               )
+    end
+  end
+
   test "a webhook answers its typed event" do
     now = @signed_at + 120
 

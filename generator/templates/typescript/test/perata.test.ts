@@ -146,6 +146,14 @@ test("the Standard Webhooks vector verifies", async () => {
   await assert.rejects(verifyWebhookSignature(newSecret, headers, body, 1614265330_000), WebhookVerificationError);
 });
 
+test("a timestamp that is not plain digits is refused", async () => {
+  const body = '{"test": 2432232314}';
+  for (const [stamp, signature] of [["+1614265330", "JQsSpSSK1m9NI2FueDRZN3FL/jU9336idQcq6VmF+c8="], ["²", "PEggIsKE32VQ8J4ZIk9apRhPy7w+a20bxGpjk1K4/HY="], ["", "x"], ["1_6", "x"]] as const) {
+    const headers = { "Webhook-Id": "msg_p5jXN8AQM9LWM0D4loKWxJek", "webhook-timestamp": stamp, "webhook-signature": `v1,${signature}` };
+    await assert.rejects(verifyWebhookSignature(referenceSecret, headers, body, 1614265330_000), WebhookVerificationError, stamp);
+  }
+});
+
 test("a webhook answers its typed event", async () => {
   const now = (signedAt + 120) * 1000;
   const headers = webhookHeaders("msg_2", signedAt, "v1,wYfYi9j4EexjSjLLsUssBYbtAFSwF9KVQBJ2o+qD6Jw= v1,0rD3K6HM83kGY+mZMPVidXSW2zXHHDvy3bMt2QzM8Ak=");

@@ -139,6 +139,7 @@ defmodule Perata.Webhook do
     stamp = header(headers, "webhook-timestamp")
 
     with true <- id != "",
+         true <- String.match?(stamp, ~r/\A[0-9]+\z/),
          {seconds, ""} <- Integer.parse(stamp),
          true <- abs(now - seconds) <= @tolerance_seconds,
          expected = :crypto.mac(:hmac, :sha256, key, [id, ".", stamp, ".", body]),

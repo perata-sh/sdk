@@ -178,6 +178,16 @@ final class PerataTests: XCTestCase {
             }
         }
 
+        func testATimestampThatIsNotPlainDigitsIsRefused() throws {
+            let body = Data(#"{"test": 2432232314}"#.utf8)
+            for (stamp, signature) in [("+1614265330", "JQsSpSSK1m9NI2FueDRZN3FL/jU9336idQcq6VmF+c8="), ("²", "PEggIsKE32VQ8J4ZIk9apRhPy7w+a20bxGpjk1K4/HY="), ("", "x"), ("1_6", "x")] {
+                var headers = webhookHeaders("msg_p5jXN8AQM9LWM0D4loKWxJek", 0, "v1,\(signature)")
+                headers["webhook-timestamp"] = stamp
+                XCTAssertThrowsError(
+                    try verifyWebhookSignature(secret: Self.referenceSecret, headers: headers, body: body, now: Date(timeIntervalSince1970: 1_614_265_330)), stamp)
+            }
+        }
+
         func testAWebhookAnswersItsTypedEvent() throws {
             let now = Date(timeIntervalSince1970: TimeInterval(Self.signedAt + 120))
             let headers = webhookHeaders("msg_2", Self.signedAt, "v1,wYfYi9j4EexjSjLLsUssBYbtAFSwF9KVQBJ2o+qD6Jw= v1,0rD3K6HM83kGY+mZMPVidXSW2zXHHDvy3bMt2QzM8Ak=")

@@ -140,7 +140,8 @@ public enum WebhookVerificationError: Error, Sendable, Equatable {
         }
         let id = header("webhook-id")
         let stamp = header("webhook-timestamp")
-        guard !id.isEmpty, let seconds = Int64(stamp) else {
+        // Only ASCII digits: Int64(_:) also takes a sign, which the signer never sends.
+        guard !id.isEmpty, !stamp.isEmpty, stamp.utf8.allSatisfy({ $0 >= 0x30 && $0 <= 0x39 }), let seconds = Int64(stamp) else {
             throw WebhookVerificationError.invalidSignature
         }
         guard abs(now.timeIntervalSince1970 - TimeInterval(seconds)) <= webhookTolerance else {

@@ -218,6 +218,10 @@ where
         .filter(|id| !id.is_empty())
         .ok_or(WebhookError::InvalidSignature)?;
     let stamp = stamp.ok_or(WebhookError::InvalidSignature)?;
+    // Only ASCII digits: parse also takes a sign, which the signer never sends.
+    if stamp.is_empty() || !stamp.bytes().all(|byte| byte.is_ascii_digit()) {
+        return Err(WebhookError::InvalidSignature);
+    }
     let seconds: i64 = stamp.parse().map_err(|_| WebhookError::InvalidSignature)?;
     let now = match now.duration_since(UNIX_EPOCH) {
         Ok(since) => i64::try_from(since.as_secs()).unwrap_or(i64::MAX),

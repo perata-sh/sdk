@@ -163,6 +163,13 @@ class PerataTest(unittest.TestCase):
             with self.assertRaises(WebhookVerificationError):
                 verify_webhook_signature(secret, headers, payload, now=now)
 
+    def test_a_timestamp_that_is_not_plain_digits_is_refused(self):
+        body = b'{"test": 2432232314}'
+        for stamp, signature in [("+1614265330", "JQsSpSSK1m9NI2FueDRZN3FL/jU9336idQcq6VmF+c8="), ("²", "PEggIsKE32VQ8J4ZIk9apRhPy7w+a20bxGpjk1K4/HY="), ("", "x"), ("1_6", "x")]:
+            headers = {"Webhook-Id": "msg_p5jXN8AQM9LWM0D4loKWxJek", "webhook-timestamp": stamp, "webhook-signature": "v1," + signature}
+            with self.assertRaises(WebhookVerificationError, msg=stamp):
+                verify_webhook_signature(REFERENCE_SECRET, headers, body, now=1614265330)
+
     def test_a_webhook_answers_its_typed_event(self):
         now = SIGNED_AT + 120
         headers = webhook_headers("msg_2", SIGNED_AT, "v1,wYfYi9j4EexjSjLLsUssBYbtAFSwF9KVQBJ2o+qD6Jw= v1,0rD3K6HM83kGY+mZMPVidXSW2zXHHDvy3bMt2QzM8Ak=")

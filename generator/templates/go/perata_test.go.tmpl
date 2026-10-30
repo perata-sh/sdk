@@ -189,6 +189,19 @@ func TestTheStandardWebhooksVectorVerifies(t *testing.T) {
 	}
 }
 
+func TestATimestampThatIsNotPlainDigitsIsRefused(t *testing.T) {
+	body := []byte(`{"test": 2432232314}`)
+	for stamp, signature := range map[string]string{"+1614265330": "JQsSpSSK1m9NI2FueDRZN3FL/jU9336idQcq6VmF+c8=", "²": "PEggIsKE32VQ8J4ZIk9apRhPy7w+a20bxGpjk1K4/HY=", "": "x", "1_6": "x"} {
+		header := http.Header{}
+		header.Set("Webhook-Id", "msg_p5jXN8AQM9LWM0D4loKWxJek")
+		header.Set("webhook-timestamp", stamp)
+		header.Set("webhook-signature", "v1,"+signature)
+		if err := verifyWebhookSignatureAt(referenceSecret, header, body, time.Unix(1614265330, 0)); !errors.Is(err, ErrWebhookSignature) {
+			t.Errorf("%q verified: %v", stamp, err)
+		}
+	}
+}
+
 func TestAWebhookAnswersItsTypedEvent(t *testing.T) {
 	now := time.Unix(signedAt+120, 0)
 	header := webhookHeader("msg_2", signedAt, "v1,wYfYi9j4EexjSjLLsUssBYbtAFSwF9KVQBJ2o+qD6Jw= v1,0rD3K6HM83kGY+mZMPVidXSW2zXHHDvy3bMt2QzM8Ak=")

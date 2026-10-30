@@ -129,7 +129,9 @@ List<int> _verified(
   };
   final id = _header(headers, 'webhook-id');
   final stamp = _header(headers, 'webhook-timestamp');
-  final seconds = _digits.hasMatch(stamp) ? int.tryParse(stamp) : null;
+  final seconds = _digits.hasMatch(stamp) && stamp.length <= 18
+      ? int.tryParse(stamp)
+      : null;
   if (id.isEmpty || seconds == null) {
     throw const WebhookVerificationException();
   }

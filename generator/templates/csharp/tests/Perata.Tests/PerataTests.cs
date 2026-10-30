@@ -193,6 +193,18 @@ public class PerataTests
         Assert.Throws<WebhookVerificationException>(() => Webhook.VerifySignature(NewSecret, headers, body, at));
     }
 
+    [Theory]
+    [InlineData("+1614265330", "JQsSpSSK1m9NI2FueDRZN3FL/jU9336idQcq6VmF+c8=")]
+    [InlineData("\u00b2", "PEggIsKE32VQ8J4ZIk9apRhPy7w+a20bxGpjk1K4/HY=")]
+    [InlineData("", "x")]
+    [InlineData("1_6", "x")]
+    public void ATimestampThatIsNotPlainDigitsIsRefused(string stamp, string signature)
+    {
+        var headers = WebhookHeaders("msg_p5jXN8AQM9LWM0D4loKWxJek", 0, "v1," + signature);
+        headers["webhook-timestamp"] = stamp;
+        Assert.Throws<WebhookVerificationException>(() => Webhook.VerifySignature(ReferenceSecret, headers, "{\"test\": 2432232314}"u8.ToArray(), DateTimeOffset.FromUnixTimeSeconds(1614265330)));
+    }
+
     [Fact]
     public void AWebhookAnswersItsTypedEvent()
     {

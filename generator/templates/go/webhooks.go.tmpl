@@ -92,7 +92,8 @@ func verifyWebhookSignatureAt(secret string, header http.Header, body []byte, no
 	}
 	id, stamp := header.Get("webhook-id"), header.Get("webhook-timestamp")
 	seconds, err := strconv.ParseInt(stamp, 10, 64)
-	if id == "" || err != nil {
+	// Only ASCII digits: ParseInt also takes a sign, which the signer never sends.
+	if id == "" || err != nil || strings.Trim(stamp, "0123456789") != "" {
 		return ErrWebhookSignature
 	}
 	if delta := now.Sub(time.Unix(seconds, 0)); delta > WebhookTolerance || delta < -WebhookTolerance {

@@ -193,6 +193,17 @@ class PerataTest {
     }
 
     @Test
+    void aTimestampThatIsNotPlainDigitsIsRefused() {
+        byte[] body = "{\"test\": 2432232314}".getBytes(StandardCharsets.UTF_8);
+        String[][] cases = {{"+1614265330", "JQsSpSSK1m9NI2FueDRZN3FL/jU9336idQcq6VmF+c8="}, {"\u00b2", "PEggIsKE32VQ8J4ZIk9apRhPy7w+a20bxGpjk1K4/HY="}, {"", "x"}, {"1_6", "x"}};
+        for (String[] each : cases) {
+            Map<String, String> headers = webhookHeaders("msg_p5jXN8AQM9LWM0D4loKWxJek", 0L, "v1," + each[1]);
+            headers.put("webhook-timestamp", each[0]);
+            assertThrows(WebhookVerificationException.class, () -> Webhook.verifySignature(REFERENCE_SECRET, headers, body, Instant.ofEpochSecond(1614265330L)), each[0]);
+        }
+    }
+
+    @Test
     void aWebhookAnswersItsTypedEvent() {
         Instant now = Instant.ofEpochSecond(SIGNED_AT + 120);
         Map<String, String> headers = webhookHeaders("msg_2", SIGNED_AT, "v1,wYfYi9j4EexjSjLLsUssBYbtAFSwF9KVQBJ2o+qD6Jw= v1,0rD3K6HM83kGY+mZMPVidXSW2zXHHDvy3bMt2QzM8Ak=");

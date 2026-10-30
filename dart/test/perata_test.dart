@@ -223,6 +223,34 @@ void main() {
     }
   });
 
+  test('a timestamp that is not plain digits is refused', () {
+    for (final (stamp, signature) in [
+      ('+1614265330', 'JQsSpSSK1m9NI2FueDRZN3FL/jU9336idQcq6VmF+c8='),
+      ('²', 'PEggIsKE32VQ8J4ZIk9apRhPy7w+a20bxGpjk1K4/HY='),
+      ('', 'x'),
+      ('1_6', 'x'),
+    ]) {
+      final headers = {
+        ...webhookHeaders(
+          'msg_p5jXN8AQM9LWM0D4loKWxJek',
+          0,
+          'v1,$signature',
+        ),
+        'Webhook-Timestamp': stamp,
+      };
+      expect(
+        () => verifyWebhookSignature(
+          referenceSecret,
+          headers,
+          '{"test": 2432232314}',
+          now: DateTime.fromMillisecondsSinceEpoch(1614265330000, isUtc: true),
+        ),
+        throwsA(isA<WebhookVerificationException>()),
+        reason: stamp,
+      );
+    }
+  });
+
   test('a webhook answers its typed event', () {
     final now = DateTime.fromMillisecondsSinceEpoch(
       (signedAt + 120) * 1000,

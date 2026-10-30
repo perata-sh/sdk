@@ -245,7 +245,7 @@ def verify_webhook_signature(secret: str, headers: Mapping[str, str], body: byte
     raw = body.encode() if isinstance(body, str) else body
     webhook_id = _header(headers, "webhook-id")
     stamp = _header(headers, "webhook-timestamp")
-    if not webhook_id or not stamp.isdigit():
+    if not webhook_id or not (stamp.isascii() and stamp.isdigit()):
         raise WebhookVerificationError()
     if abs((time.time() if now is None else now) - int(stamp)) > WEBHOOK_TOLERANCE_SECONDS:
         raise WebhookVerificationError()

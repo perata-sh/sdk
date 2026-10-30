@@ -131,6 +131,14 @@ class PerataTest < Minitest::Test
     end
   end
 
+  def test_a_timestamp_that_is_not_plain_digits_is_refused
+    body = '{"test": 2432232314}'
+    [["+1614265330", "JQsSpSSK1m9NI2FueDRZN3FL/jU9336idQcq6VmF+c8="], ["²", "PEggIsKE32VQ8J4ZIk9apRhPy7w+a20bxGpjk1K4/HY="], ["", "x"], ["1_6", "x"]].each do |stamp, signature|
+      headers = webhook_headers("msg_p5jXN8AQM9LWM0D4loKWxJek", stamp, "v1,#{signature}")
+      assert_raises(Perata::WebhookVerificationError, stamp) { Perata.verify_webhook_signature(REFERENCE_SECRET, headers, body, now: Time.at(1_614_265_330)) }
+    end
+  end
+
   def test_a_webhook_answers_its_typed_event
     now = Time.at(SIGNED_AT + 120)
     headers = webhook_headers("msg_2", SIGNED_AT, "v1,wYfYi9j4EexjSjLLsUssBYbtAFSwF9KVQBJ2o+qD6Jw= v1,0rD3K6HM83kGY+mZMPVidXSW2zXHHDvy3bMt2QzM8Ak=")

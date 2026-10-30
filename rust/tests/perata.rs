@@ -243,6 +243,37 @@ fn the_standard_webhooks_vector_verifies() {
 }
 
 #[test]
+fn a_timestamp_that_is_not_plain_digits_is_refused() {
+    let body: &[u8] = br#"{"test": 2432232314}"#;
+    let at = UNIX_EPOCH + Duration::from_secs(1_614_265_330);
+    for (stamp, signature) in [
+        (
+            "+1614265330",
+            "JQsSpSSK1m9NI2FueDRZN3FL/jU9336idQcq6VmF+c8=",
+        ),
+        ("²", "PEggIsKE32VQ8J4ZIk9apRhPy7w+a20bxGpjk1K4/HY="),
+        ("", "x"),
+        ("1_6", "x"),
+    ] {
+        let headers = vec![
+            (
+                "Webhook-Id".to_owned(),
+                "msg_p5jXN8AQM9LWM0D4loKWxJek".to_owned(),
+            ),
+            ("webhook-timestamp".to_owned(), stamp.to_owned()),
+            ("webhook-signature".to_owned(), format!("v1,{signature}")),
+        ];
+        assert!(
+            matches!(
+                verify_webhook_signature_at(REFERENCE_SECRET, headers, body, at),
+                Err(WebhookError::InvalidSignature)
+            ),
+            "{stamp:?} verified"
+        );
+    }
+}
+
+#[test]
 fn a_webhook_answers_its_typed_event() {
     let now = UNIX_EPOCH + Duration::from_secs(SIGNED_AT + 120);
     let headers = webhook_headers(
