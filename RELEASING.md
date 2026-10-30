@@ -7,6 +7,18 @@ and does nothing if it is, so a version published by hand beforehand, or a
 re-run of the tag, never fails on a duplicate. The jobs are independent: one
 registry failing does not stop the others, and a failed job can be re-run alone.
 
+## What gates a release
+
+- The first job, `guard`, fails unless the tagged commit is an ancestor of
+  `origin/main`, and every publish job needs it. A tag on a commit that is not
+  on `main` publishes nothing. Fast-forward `main` first, then tag.
+- Every publish job runs in a GitHub environment, so required reviewers can
+  hold the publish for a human: `release` for npm, RubyGems, crates.io, pub.dev,
+  NuGet and Maven Central, `pypi` for PyPI and `hex` for Hex (those two are
+  already the environments their trusted publishers name, and a job has only
+  one). Those registries' publishers leave the environment blank, which accepts
+  any, so naming `release` does not change what they match.
+
 ## Each release
 
 1. Bump `VERSION`, run `go run ./cmd/sdkgen` and `./check.sh`, commit on
@@ -43,7 +55,11 @@ upstream release cannot reach a publish credential:
 The package belongs to the `perata-sh` organization everywhere the registry has
 one. In every trusted publisher form the values are the same: owner
 `perata-sh`, repository `sdk`, workflow `release.yml`; the environment is blank
-unless this file says otherwise. Names are fixed in `AGENTS.md`.
+unless this file says otherwise (blank accepts any environment, so the jobs
+that run in `release` match). Binding a publisher to `release` is a follow-up
+once the environment's reviewers are set; PyPI and Hex stay on `pypi` and
+`hex` until their publishers are moved to `release`. Names are fixed in
+`AGENTS.md`.
 
 | Registry | Package | Auth in the workflow |
 | --- | --- | --- |
@@ -64,8 +80,13 @@ publisher for a package that does not exist yet.
 
 ### GitHub (repository perata-sh/sdk)
 
-- Environments `pypi` and `hex` (created by the first run that names them; add
-  required reviewers if wanted). They must match the ones named below.
+- Environments `release`, `pypi` and `hex` (created by the first run that names
+  them). Add required reviewers to all three, and restrict deployment to the
+  `v*` tags (deployment protection rules, selected tags); until then nothing
+  holds a publish for approval. `pypi` and `hex` must keep the names the
+  trusted publishers below use.
+- Branch protection on `main` and a tag ruleset for `v*` and `go/v*` (only
+  maintainers may create them) back up the `guard` job.
 - Repository secrets: only those listed under NuGet, Maven Central and, if used,
   Hex.
 
@@ -108,9 +129,9 @@ publish permission for the package); the job uses it when present.
    publisher chosen for `perata-sh` (confirm the publisher name before creating
    it, see `AGENTS.md`).
 2. Package Admin, Automated publishing, enable publishing from GitHub Actions:
-   repository `perata-sh/sdk`, tag pattern `v{{version}}`. Do not require an
-   environment (the job does not set one); if one is required later, add
-   `environment:` to the `pubdev` job with the same name.
+   repository `perata-sh/sdk`, tag pattern `v{{version}}`. Do not require a
+   specific environment: the job runs in `release`. Requiring `release` there
+   is a follow-up that tightens it once the environment's reviewers are set.
 
 ### NuGet
 

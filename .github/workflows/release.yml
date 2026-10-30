@@ -18,8 +18,27 @@ permissions:
   contents: read
 
 jobs:
+  # A tag on any commit would publish everywhere, so every publish job waits for
+  # this one: the tagged commit must already be on main.
+  guard:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          fetch-depth: 0
+      - run: |
+          git fetch --no-tags origin +refs/heads/main:refs/remotes/origin/main
+          if ! git merge-base --is-ancestor "$GITHUB_SHA" origin/main; then
+            echo "::error::$GITHUB_REF_NAME points at $GITHUB_SHA, which is not on main; fast-forward main to it before tagging."
+            exit 1
+          fi
+
   npm:
     runs-on: ubuntu-latest
+    needs: guard
+    environment: release
     permissions:
       contents: read
       id-token: write
@@ -46,6 +65,7 @@ jobs:
 
   pypi:
     runs-on: ubuntu-latest
+    needs: guard
     environment: pypi
     permissions:
       contents: read
@@ -70,6 +90,8 @@ jobs:
 
   rubygems:
     runs-on: ubuntu-latest
+    needs: guard
+    environment: release
     permissions:
       contents: read
       id-token: write
@@ -95,6 +117,8 @@ jobs:
 
   crates:
     runs-on: ubuntu-latest
+    needs: guard
+    environment: release
     permissions:
       contents: read
       id-token: write
@@ -117,6 +141,7 @@ jobs:
 
   hex:
     runs-on: ubuntu-latest
+    needs: guard
     # Hex requires the environment of a public repository's workload identity.
     environment: hex
     permissions:
@@ -160,6 +185,8 @@ jobs:
 
   pubdev:
     runs-on: ubuntu-latest
+    needs: guard
+    environment: release
     permissions:
       contents: read
       id-token: write
@@ -181,6 +208,8 @@ jobs:
 
   nuget:
     runs-on: ubuntu-latest
+    needs: guard
+    environment: release
     permissions:
       contents: read
       id-token: write
@@ -209,6 +238,8 @@ jobs:
 
   maven:
     runs-on: ubuntu-latest
+    needs: guard
+    environment: release
     # The portal waits for the deployment to be validated and published.
     timeout-minutes: 60
     permissions:
