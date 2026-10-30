@@ -122,6 +122,8 @@ func dartBase(t *TypeRef) string {
 		return "List<" + dartBase(t.Items) + ">"
 	case "map":
 		return "Map<String, " + dartBase(t.Items) + ">"
+	case "any":
+		return "Object?"
 	}
 	return "Object?"
 }

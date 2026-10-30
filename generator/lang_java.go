@@ -119,6 +119,8 @@ func javaRef(t *TypeRef, boxed bool) string {
 		return "List<" + javaRef(t.Items, true) + ">"
 	case "map":
 		return "Map<String, " + javaRef(t.Items, true) + ">"
+	case "any":
+		return "Object"
 	}
 	return "Object"
 }
@@ -143,6 +145,8 @@ func javaConvert(t *TypeRef) string {
 		return "Json.list(" + javaConvert(t.Items) + ")"
 	case "map":
 		return "Json.map(" + javaConvert(t.Items) + ")"
+	case "any":
+		return "Json::any"
 	}
 	return "Json::any"
 }

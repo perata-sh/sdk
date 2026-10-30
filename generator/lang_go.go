@@ -40,7 +40,7 @@ func goType(t *TypeRef, f *Field, input bool) string {
 		return base
 	}
 	pointer := f.Nullable || input && !f.Required
-	if pointer && t.Kind != "array" && t.Kind != "map" {
+	if pointer && t.Kind != "array" && t.Kind != "map" && t.Kind != "any" {
 		return "*" + base
 	}
 	return base
@@ -62,6 +62,8 @@ func goBase(t *TypeRef) string {
 		return "[]" + goBase(t.Items)
 	case "map":
 		return "map[string]" + goBase(t.Items)
+	case "any":
+		return "any"
 	}
 	return "any"
 }

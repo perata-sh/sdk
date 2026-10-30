@@ -48,6 +48,8 @@ func tsType(t *TypeRef) string {
 		return inner + "[]"
 	case "map":
 		return "Record<string, " + tsType(t.Items) + ">"
+	case "any":
+		return "unknown"
 	}
 	return "unknown"
 }

@@ -34,6 +34,8 @@ func phpType(f *Field) string {
 		base = f.Type.Model
 	case "array", "map":
 		base = "array"
+	case "any":
+		base = "mixed"
 	default:
 		base = "mixed"
 	}

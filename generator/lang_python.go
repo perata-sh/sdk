@@ -68,6 +68,8 @@ func pyType(t *TypeRef) string {
 		return "list[" + pyType(t.Items) + "]"
 	case "map":
 		return "dict[str, " + pyType(t.Items) + "]"
+	case "any":
+		return "Any"
 	}
 	return "Any"
 }

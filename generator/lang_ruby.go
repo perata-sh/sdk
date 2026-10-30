@@ -78,6 +78,8 @@ func rbType(t *TypeRef) string {
 		return "Array<" + rbType(t.Items) + ">"
 	case "map":
 		return "Hash{String => " + rbType(t.Items) + "}"
+	case "any":
+		return "Object"
 	}
 	return "Object"
 }

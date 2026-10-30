@@ -64,7 +64,8 @@ type Field struct {
 
 // TypeRef is a field's type.
 type TypeRef struct {
-	// Kind is string, integer, number, boolean, model, array or map.
+	// Kind is string, integer, number, boolean, model, array, map or any: a
+	// free-form JSON value, which a schema with no type allows.
 	Kind  string
 	Model string
 	Items *TypeRef
@@ -154,6 +155,12 @@ type schema struct {
 	Items       *schema            `json:"items"`
 	// AdditionalProperties is a schema, or false for a closed object.
 	AdditionalProperties json.RawMessage `json:"additionalProperties"`
+}
+
+// free says the schema constrains nothing: no type, no shape, no values. Its
+// value is any JSON.
+func (s *schema) free() bool {
+	return s.Type == nil && s.Ref == "" && len(s.Properties) == 0 && s.Items == nil && len(s.Enum) == 0 && s.Format == "" && s.additional() == nil && len(s.AdditionalProperties) == 0
 }
 
 // additional is the schema of a map's values, or nil.
@@ -471,6 +478,9 @@ func (l *loader) typeOf(s *schema) (*TypeRef, bool, error) {
 				kind, _ = each.(string)
 			}
 		}
+	}
+	if kind == "" && s.free() {
+		return &TypeRef{Kind: "any"}, false, nil
 	}
 	switch kind {
 	case "string", "integer", "number", "boolean":

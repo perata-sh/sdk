@@ -210,6 +210,8 @@ func exType(t *TypeRef) string {
 		return "[" + exType(t.Items) + "]"
 	case "map":
 		return "%{optional(String.t()) => " + exType(t.Items) + "}"
+	case "any":
+		return "term()"
 	}
 	return "term()"
 }

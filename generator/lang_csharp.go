@@ -119,6 +119,8 @@ func csRef(t *TypeRef) string {
 		return "IReadOnlyList<" + csRef(t.Items) + ">"
 	case "map":
 		return "IReadOnlyDictionary<string, " + csRef(t.Items) + ">"
+	case "any":
+		return "JsonElement"
 	}
 	return "JsonElement"
 }

@@ -96,6 +96,8 @@ func swBase(models []*Model, model *Model, field *Field, t *TypeRef) string {
 		return "[" + swBase(models, model, field, t.Items) + "]"
 	case "map":
 		return "[String: " + swBase(models, model, field, t.Items) + "]"
+	case "any":
+		return "JSONValue"
 	}
 	return "String"
 }
