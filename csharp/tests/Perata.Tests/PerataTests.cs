@@ -88,6 +88,24 @@ public class PerataTests
     }
 
     [Fact]
+    public async Task APostWithoutAKeyIsSentWithItsOwnAGetWithNone()
+    {
+        var recorder = new Recorder(_ => new Answer(HttpStatusCode.Created, $$"""{"data":{{ProductJson("prod_1")}}}"""));
+        var perata = Client(recorder);
+        await perata.Products.CreateAsync(new ProductsCreateParams { Name = "Curso" });
+        await perata.Products.CreateAsync(new ProductsCreateParams { Name = "Curso" });
+        await perata.Products.CreateAsync(new ProductsCreateParams { Name = "Curso" }, new RequestOptions { IdempotencyKey = "mine" });
+        await perata.Products.GetAsync("prod_1");
+        var keys = recorder.Requests.Select(seen => seen.Headers.GetValueOrDefault("Idempotency-Key")).ToArray();
+        var uuid = @"^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$";
+        Assert.Matches(uuid, keys[0]!);
+        Assert.Matches(uuid, keys[1]!);
+        Assert.NotEqual(keys[0], keys[1]);
+        Assert.Equal("mine", keys[2]);
+        Assert.Null(keys[3]);
+    }
+
+    [Fact]
     public async Task IteratingWalksEveryPage()
     {
         var recorder = new Recorder(seen =>

@@ -49,8 +49,11 @@ struct Requester: Sendable {
             request.httpBody = try encoder.encode(body)
             request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         }
+        // A POST is sent with a key of its own, one a call, unless the caller gave one.
         if let idempotencyKey, !idempotencyKey.isEmpty {
             request.setValue(idempotencyKey, forHTTPHeaderField: "Idempotency-Key")
+        } else if method == "POST" {
+            request.setValue(UUID().uuidString.lowercased(), forHTTPHeaderField: "Idempotency-Key")
         }
         let (data, response) = try await transport(request)
         if response.statusCode >= 300 {

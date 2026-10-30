@@ -2,6 +2,7 @@
 
 import 'dart:async';
 import 'dart:convert';
+import 'dart:math';
 
 import 'package:http/http.dart' as http;
 
@@ -90,8 +91,13 @@ class Perata implements Requester {
       request.headers['Content-Type'] = 'application/json';
       request.bodyBytes = utf8.encode(jsonEncode(body));
     }
-    if (idempotencyKey != null && idempotencyKey.isNotEmpty) {
-      request.headers['Idempotency-Key'] = idempotencyKey;
+    // A POST is sent with a key of its own, one a call, unless the caller
+    // gave one.
+    final key = idempotencyKey != null && idempotencyKey.isNotEmpty
+        ? idempotencyKey
+        : (method == 'POST' ? _uuid() : null);
+    if (key != null) {
+      request.headers['Idempotency-Key'] = key;
     }
     final response = await _send(request).timeout(_timeout);
     if (response.statusCode >= 300) {
@@ -106,6 +112,19 @@ class Perata implements Requester {
       return data;
     }
     throw const FormatException('perata: the answer has no data object');
+  }
+
+  /// A random UUID (version 4).
+  static String _uuid() {
+    final random = Random.secure();
+    final bytes = List<int>.generate(16, (_) => random.nextInt(256));
+    bytes[6] = (bytes[6] & 0x0f) | 0x40;
+    bytes[8] = (bytes[8] & 0x3f) | 0x80;
+    String hex(int from, int to) => bytes
+        .sublist(from, to)
+        .map((byte) => byte.toRadixString(16).padLeft(2, '0'))
+        .join();
+    return '${hex(0, 4)}-${hex(4, 6)}-${hex(6, 8)}-${hex(8, 10)}-${hex(10, 16)}';
   }
 
   Future<http.Response> _send(http.Request request) async =>

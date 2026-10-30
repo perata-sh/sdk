@@ -144,6 +144,11 @@ public sealed class PerataClient
             request.Content = new ByteArrayContent(body);
             request.Content.Headers.ContentType = new MediaTypeHeaderValue("application/json");
         }
+        if (string.IsNullOrEmpty(idempotencyKey) && method == HttpMethod.Post)
+        {
+            // A POST is sent with a key of its own, one a call, unless the caller gave one.
+            idempotencyKey = Guid.NewGuid().ToString();
+        }
         if (!string.IsNullOrEmpty(idempotencyKey))
         {
             request.Headers.TryAddWithoutValidation("Idempotency-Key", idempotencyKey);

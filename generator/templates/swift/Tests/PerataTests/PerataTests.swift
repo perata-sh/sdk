@@ -73,6 +73,21 @@ final class PerataTests: XCTestCase {
         XCTAssertEqual(body, ["name": "Curso"])
     }
 
+    func testAPostWithoutAKeyIsSentWithItsOwnAGetWithNone() async throws {
+        let (perata, recorder) = client { _ in (201, [:], ["data": product("prod_1")]) }
+        _ = try await perata.products.create(ProductsCreateParams(name: "Curso"))
+        _ = try await perata.products.create(ProductsCreateParams(name: "Curso"))
+        _ = try await perata.products.create(ProductsCreateParams(name: "Curso"), idempotencyKey: "mine")
+        _ = try await perata.products.get("prod_1")
+        let keys = recorder.seen.map { $0.value(forHTTPHeaderField: "Idempotency-Key") }
+        let uuid = "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+        XCTAssertNotNil(keys[0]?.range(of: uuid, options: .regularExpression))
+        XCTAssertNotNil(keys[1]?.range(of: uuid, options: .regularExpression))
+        XCTAssertNotEqual(keys[0], keys[1])
+        XCTAssertEqual(keys[2], "mine")
+        XCTAssertNil(keys[3])
+    }
+
     func testIteratingWalksEveryPage() async throws {
         let (perata, recorder) = client { request in
             let page = queryItem(request, "page") ?? ""

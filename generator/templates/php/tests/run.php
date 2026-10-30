@@ -64,6 +64,18 @@ $tests['a write sends its body and idempotency key'] = static function (): void 
     check(json_decode((string) $seen[0]['body'], true) === ['name' => 'Curso'], 'body ' . $seen[0]['body']);
 };
 
+$tests['a POST without a key is sent with its own, a GET with none'] = static function (): void {
+    [$perata, $seen] = client(static fn (): array => [201, [], ['data' => product('prod_1')]]);
+    $perata->products->create(['name' => 'Curso']);
+    $perata->products->create(['name' => 'Curso']);
+    $perata->products->create(['name' => 'Curso'], idempotencyKey: 'mine');
+    $perata->products->get('prod_1');
+    $keys = array_map(static fn (array $each): ?string => $each['headers']['Idempotency-Key'] ?? null, $seen->getArrayCopy());
+    $uuid = '/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/';
+    check(preg_match($uuid, (string) $keys[0]) === 1 && preg_match($uuid, (string) $keys[1]) === 1, 'a UUID v4: ' . json_encode($keys));
+    check($keys[0] !== $keys[1] && $keys[2] === 'mine' && $keys[3] === null, 'keys ' . json_encode($keys));
+};
+
 $tests['iterating walks every page'] = static function (): void {
     [$perata, $seen] = client(static function (array $request): array {
         parse_str((string) parse_url($request['url'], PHP_URL_QUERY), $query);

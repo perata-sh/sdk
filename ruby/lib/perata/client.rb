@@ -4,6 +4,7 @@
 
 require "json"
 require "net/http"
+require "securerandom"
 require "uri"
 
 module Perata
@@ -84,6 +85,8 @@ module Perata
         data = JSON.generate(body)
         headers["Content-Type"] = "application/json"
       end
+      # A POST is sent with a key of its own, one a call, unless the caller gave one.
+      idempotency_key = SecureRandom.uuid if (idempotency_key.nil? || idempotency_key.empty?) && method == "POST"
       headers["Idempotency-Key"] = idempotency_key if idempotency_key && !idempotency_key.empty?
       status, response_headers, raw = @transport.call(method, url, headers, data, @timeout)
       raise Error.from_response(status, response_headers, raw) if status >= 300

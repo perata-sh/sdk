@@ -76,8 +76,10 @@ export class Perata implements Requester {
       body = JSON.stringify(spec.body);
       headers["Content-Type"] = "application/json";
     }
-    if (spec.options?.idempotencyKey) {
-      headers["Idempotency-Key"] = spec.options.idempotencyKey;
+    // A POST is sent with a key of its own, one a call, unless the caller gave one.
+    const idempotencyKey = spec.options?.idempotencyKey || (method === "POST" ? crypto.randomUUID() : "");
+    if (idempotencyKey) {
+      headers["Idempotency-Key"] = idempotencyKey;
     }
     const signals = [AbortSignal.timeout(this.#timeoutMs)];
     if (spec.options?.signal) {

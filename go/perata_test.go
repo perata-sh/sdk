@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"regexp"
 	"strconv"
 	"testing"
 	"time"
@@ -48,6 +49,30 @@ func TestAWriteSendsItsBodyAndIdempotencyKey(t *testing.T) {
 	product, err := client.Products.Create(context.Background(), ProductsCreateParams{Name: "Curso"}, WithIdempotencyKey("create-1"))
 	if err != nil || product.Name != "Curso" {
 		t.Fatalf("product %+v, %v", product, err)
+	}
+}
+
+func TestAPostWithoutAKeyIsSentWithItsOwn(t *testing.T) {
+	var keys []string
+	client := server(t, func(w http.ResponseWriter, r *http.Request) {
+		keys = append(keys, r.Method+" "+r.Header.Get("Idempotency-Key"))
+		w.WriteHeader(http.StatusCreated)
+		fmt.Fprint(w, `{"data":{"id":"prod_1","name":"Curso","description":"","status":"active","created_at":"2026-10-17T00:00:00Z"}}`)
+	})
+	for range 2 {
+		if _, err := client.Products.Create(context.Background(), ProductsCreateParams{Name: "Curso"}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if _, err := client.Products.Create(context.Background(), ProductsCreateParams{Name: "Curso"}, WithIdempotencyKey("mine")); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := client.Products.Get(context.Background(), "prod_1"); err != nil {
+		t.Fatal(err)
+	}
+	uuid := regexp.MustCompile(`^POST [0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$`)
+	if !uuid.MatchString(keys[0]) || !uuid.MatchString(keys[1]) || keys[0] == keys[1] || keys[2] != "POST mine" || keys[3] != "GET " {
+		t.Fatalf("keys %q", keys)
 	}
 }
 

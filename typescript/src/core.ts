@@ -2,7 +2,8 @@
 export interface RequestOptions {
   /**
    * Makes a write safe to repeat: the same key with the same body answers the
-   * first response again; with another body, a 409.
+   * first response again; with another body, a 409. A POST without one is
+   * sent with a random UUID of its own, one a call.
    */
   idempotencyKey?: string;
   /** Sends this call with another organization's key. */

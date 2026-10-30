@@ -56,6 +56,30 @@ defmodule PerataTest do
     assert JSON.decode!(seen.body) == %{"name" => "Curso"}
   end
 
+  test "a POST without a key is sent with its own, a GET with none" do
+    perata = client(fn _request -> {201, %{"data" => product("prod_1")}, []} end)
+    params = %Perata.ProductsCreateParams{name: "Curso"}
+
+    {:ok, _} = Perata.Products.create(perata, params)
+    {:ok, _} = Perata.Products.create(perata, params)
+    {:ok, _} = Perata.Products.create(perata, params, idempotency_key: "mine")
+    {:ok, _} = Perata.Products.get(perata, "prod_1")
+
+    keys =
+      for _ <- 1..4 do
+        assert_received {:request, seen}
+        seen.headers["Idempotency-Key"]
+      end
+
+    uuid = ~r/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/
+    [first, second, third, fourth] = keys
+    assert first =~ uuid
+    assert second =~ uuid
+    assert first != second
+    assert third == "mine"
+    assert fourth == nil
+  end
+
   test "iterating walks every page" do
     perata =
       client(fn request ->

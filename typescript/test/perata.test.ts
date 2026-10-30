@@ -45,6 +45,21 @@ test("a write sends its body and idempotency key", async () => {
   assert.deepEqual(JSON.parse(seen[0]?.body ?? ""), { name: "Curso" });
 });
 
+test("a POST without a key is sent with its own, a GET with none", async () => {
+  const { perata, seen } = client(() => json(201, { data: product("prod_1") }));
+  await perata.products.create({ name: "Curso" });
+  await perata.products.create({ name: "Curso" });
+  await perata.products.create({ name: "Curso" }, { idempotencyKey: "mine" });
+  await perata.products.get("prod_1");
+  const keys = seen.map((each) => each.headers.get("idempotency-key"));
+  const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
+  assert.match(keys[0] ?? "", uuid);
+  assert.match(keys[1] ?? "", uuid);
+  assert.notEqual(keys[0], keys[1]);
+  assert.equal(keys[2], "mine");
+  assert.equal(keys[3], null);
+});
+
 test("iterating walks every page", async () => {
   const { perata, seen } = client(({ url }) =>
     json(200, { data: { items: [product(`prod_${url.searchParams.get("page")}`)], pagination: { total_count: 3, max_page: 3 } } }),

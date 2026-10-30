@@ -81,6 +81,10 @@ final class Perata implements Requester
             $payload = json_encode((object) $body, JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
             $headers['Content-Type'] = 'application/json';
         }
+        if (($idempotencyKey === null || $idempotencyKey === '') && $method === 'POST') {
+            // A POST is sent with a key of its own, one a call, unless the caller gave one.
+            $idempotencyKey = self::uuid();
+        }
         if ($idempotencyKey !== null && $idempotencyKey !== '') {
             $headers['Idempotency-Key'] = $idempotencyKey;
         }
@@ -90,6 +94,15 @@ final class Perata implements Requester
         }
         $decoded = json_decode($raw, true, 512, JSON_THROW_ON_ERROR);
         return $decoded['data'];
+    }
+
+    /** A random UUID (version 4). */
+    private static function uuid(): string
+    {
+        $bytes = random_bytes(16);
+        $bytes[6] = chr((ord($bytes[6]) & 0x0f) | 0x40);
+        $bytes[8] = chr((ord($bytes[8]) & 0x3f) | 0x80);
+        return vsprintf('%s%s-%s-%s-%s-%s%s%s', str_split(bin2hex($bytes), 4));
     }
 
     /**

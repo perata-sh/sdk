@@ -78,6 +78,40 @@ fn a_write_sends_its_body_and_idempotency_key() {
 }
 
 #[test]
+fn a_post_without_a_key_is_sent_with_its_own_a_get_with_none() {
+    let (client, seen) = client(|_| json(201, serde_json::json!({"data": product("prod_1")})));
+    let params = ProductsCreateParams::new("Curso");
+    client.products().create(&params).unwrap();
+    client.products().create(&params).unwrap();
+    client
+        .products()
+        .idempotency_key("mine")
+        .create(&params)
+        .unwrap();
+    client.products().get("prod_1").unwrap();
+    let seen = seen.lock().unwrap();
+    let keys: Vec<Option<&str>> = seen
+        .iter()
+        .map(|request| request.header("idempotency-key"))
+        .collect();
+    for key in &keys[..2] {
+        let key = key.unwrap();
+        let groups: Vec<&str> = key.split('-').collect();
+        assert_eq!(
+            groups.iter().map(|group| group.len()).collect::<Vec<_>>(),
+            [8, 4, 4, 4, 12]
+        );
+        assert!(key
+            .chars()
+            .all(|c| c == '-' || c.is_ascii_hexdigit() && !c.is_ascii_uppercase()));
+        assert!(groups[2].starts_with('4') && "89ab".contains(&groups[3][..1]));
+    }
+    assert_ne!(keys[0], keys[1]);
+    assert_eq!(keys[2], Some("mine"));
+    assert_eq!(keys[3], None);
+}
+
+#[test]
 fn iterating_walks_every_page() {
     let (client, seen) = client(|request| {
         let page = query(&request.url, "page").unwrap();

@@ -70,6 +70,19 @@ class PerataTest(unittest.TestCase):
         self.assertEqual(seen["headers"]["Idempotency-Key"], "create-1")
         self.assertEqual(json.loads(seen["body"]), {"name": "Curso"})
 
+    def test_a_post_without_a_key_is_sent_with_its_own_a_get_with_none(self):
+        perata, recorder = client(lambda request: (201, {"data": product("prod_1")}, {}))
+        perata.products.create({"name": "Curso"})
+        perata.products.create({"name": "Curso"})
+        perata.products.create({"name": "Curso"}, idempotency_key="mine")
+        perata.products.get("prod_1")
+        keys = [seen["headers"].get("Idempotency-Key") for seen in recorder.seen]
+        uuid = r"^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+        self.assertRegex(keys[0], uuid)
+        self.assertRegex(keys[1], uuid)
+        self.assertNotEqual(keys[0], keys[1])
+        self.assertEqual(keys[2:], ["mine", None])
+
     def test_iterating_walks_every_page(self):
         def answer(request):
             page = parse_qs(request["url"].query)["page"][0]

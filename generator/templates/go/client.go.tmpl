@@ -10,7 +10,9 @@ package perata
 import (
 	"bytes"
 	"context"
+	"crypto/rand"
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 	"net/url"
@@ -70,7 +72,8 @@ type requestConfig struct {
 }
 
 // WithIdempotencyKey makes a write safe to repeat: the same key with the same
-// body answers the first response again; with another body, a 409.
+// body answers the first response again; with another body, a 409. A POST
+// without one is sent with a random key of its own, one a call.
 func WithIdempotencyKey(key string) RequestOption {
 	return func(r *requestConfig) { r.idempotencyKey = key }
 }
@@ -107,6 +110,11 @@ func (c *Client) do(ctx context.Context, method, path string, query url.Values, 
 	if body != nil {
 		req.Header.Set("Content-Type", "application/json")
 	}
+	if config.idempotencyKey == "" && method == http.MethodPost {
+		if config.idempotencyKey, err = newIdempotencyKey(); err != nil {
+			return err
+		}
+	}
 	if config.idempotencyKey != "" {
 		req.Header.Set("Idempotency-Key", config.idempotencyKey)
 	}
@@ -126,6 +134,17 @@ func (c *Client) do(ctx context.Context, method, path string, query url.Values, 
 		Data any `json:"data"`
 	}{Data: out}
 	return json.Unmarshal(raw, &envelope)
+}
+
+// newIdempotencyKey is a random UUID (version 4).
+func newIdempotencyKey() (string, error) {
+	var b [16]byte
+	if _, err := rand.Read(b[:]); err != nil {
+		return "", err
+	}
+	b[6] = b[6]&0x0f | 0x40
+	b[8] = b[8]&0x3f | 0x80
+	return fmt.Sprintf("%x-%x-%x-%x-%x", b[0:4], b[4:6], b[6:8], b[8:10], b[10:]), nil
 }
 
 func errorOf(resp *http.Response, raw []byte) *Error {

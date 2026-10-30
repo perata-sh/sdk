@@ -96,6 +96,26 @@ void main() {
     expect(jsonDecode(seen.single.body), {'name': 'Curso'});
   });
 
+  test('a POST without a key is sent with its own, a GET with none', () async {
+    final (perata, seen) = client(
+      (_) => json(201, {'data': product('prod_1')}),
+    );
+    const params = ProductsCreateParams(name: 'Curso');
+    await perata.products.create(params);
+    await perata.products.create(params);
+    await perata.products.create(params, idempotencyKey: 'mine');
+    await perata.products.get('prod_1');
+    final keys = [for (final each in seen) each.headers['idempotency-key']];
+    final uuid = RegExp(
+      r'^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$',
+    );
+    expect(keys[0], matches(uuid));
+    expect(keys[1], matches(uuid));
+    expect(keys[0], isNot(keys[1]));
+    expect(keys[2], 'mine');
+    expect(keys[3], isNull);
+  });
+
   test('iterating walks every page', () async {
     final (perata, seen) = client(
       (request) => json(200, {

@@ -11,6 +11,7 @@ import java.time.Duration;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Objects;
+import java.util.UUID;
 
 /**
  * Peráta's API with one organization's API key. The key says the
@@ -104,6 +105,10 @@ public final class Perata {
         if (body != null) {
             payload = Json.write(body).getBytes(StandardCharsets.UTF_8);
             headers.put("Content-Type", "application/json");
+        }
+        if ((idempotencyKey == null || idempotencyKey.isEmpty()) && method.equals("POST")) {
+            // A POST is sent with a key of its own, one a call, unless the caller gave one.
+            idempotencyKey = UUID.randomUUID().toString();
         }
         if (idempotencyKey != null && !idempotencyKey.isEmpty()) {
             headers.put("Idempotency-Key", idempotencyKey);

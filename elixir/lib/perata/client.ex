@@ -54,7 +54,8 @@ defmodule Perata.Client do
   Calls the API and answers what it wrapped in `data`.
 
   Options: `:query`, `:body`, `:idempotency_key` and `:api_key`, another
-  organization's key for this call.
+  organization's key for this call. A POST without an `:idempotency_key` is
+  sent with a random one of its own, one a call.
   """
   @spec request(t(), String.t(), String.t(), keyword()) ::
           {:ok, term()} | {:error, Perata.Error.t()}
@@ -66,7 +67,7 @@ defmodule Perata.Client do
         {"User-Agent", "perata-elixir/" <> Perata.version()}
       ]
       |> put_header("Content-Type", opts[:body] && "application/json")
-      |> put_header("Idempotency-Key", opts[:idempotency_key])
+      |> put_header("Idempotency-Key", idempotency_key(method, opts[:idempotency_key]))
 
     body = if opts[:body], do: JSON.encode!(opts[:body])
     url = client.base_url <> path <> query(opts[:query])
@@ -101,6 +102,20 @@ defmodule Perata.Client do
 
   defp key(override, _default) when is_binary(override) and override != "", do: override
   defp key(_override, default), do: default
+
+  # A POST is sent with a key of its own, one a call, unless the caller gave one.
+  defp idempotency_key("POST", given) when given in [nil, ""], do: uuid()
+  defp idempotency_key(_method, given), do: given
+
+  # A random UUID (version 4).
+  defp uuid do
+    <<a::32, b::16, _::4, c::12, _::2, d::14, e::48>> = :crypto.strong_rand_bytes(16)
+
+    [{a, 8}, {b, 4}, {Bitwise.bor(0x4000, c), 4}, {Bitwise.bor(0x8000, d), 4}, {e, 12}]
+    |> Enum.map_join("-", fn {number, width} ->
+      number |> Integer.to_string(16) |> String.downcase() |> String.pad_leading(width, "0")
+    end)
+  end
 
   defp put_header(headers, _name, value) when value in [nil, false, ""], do: headers
   defp put_header(headers, name, value), do: headers ++ [{name, value}]

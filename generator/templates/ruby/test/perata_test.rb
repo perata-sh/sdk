@@ -60,6 +60,19 @@ class PerataTest < Minitest::Test
     assert_equal({ "name" => "Curso" }, JSON.parse(seen[:body]))
   end
 
+  def test_a_post_without_a_key_is_sent_with_its_own_a_get_with_none
+    perata, recorder = client { [201, { "data" => product("prod_1") }, {}] }
+    2.times { perata.products.create(Perata::ProductsCreateParams.new(name: "Curso")) }
+    perata.products.create(Perata::ProductsCreateParams.new(name: "Curso"), idempotency_key: "mine")
+    perata.products.get("prod_1")
+    keys = recorder.seen.map { |seen| seen[:headers]["Idempotency-Key"] }
+    uuid = /\A[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\z/
+    assert_match uuid, keys[0]
+    assert_match uuid, keys[1]
+    refute_equal keys[0], keys[1]
+    assert_equal ["mine", nil], keys[2..]
+  end
+
   def test_iterating_walks_every_page
     perata, recorder = client do |request|
       page = query(request)["page"]

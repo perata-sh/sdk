@@ -1,6 +1,8 @@
 use std::fmt;
+use std::hash::{BuildHasher, Hasher, RandomState};
+use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
-use std::time::Duration;
+use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
@@ -165,7 +167,8 @@ impl Transport for UreqTransport {
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct RequestOptions {
     /// Makes a write safe to repeat: the same key with the same body answers
-    /// the first response again; with another body, a 409.
+    /// the first response again; with another body, a 409. A POST without one
+    /// is sent with a random key of its own, one a call.
     pub idempotency_key: Option<String>,
     /// Sends the call with another organization's key.
     pub api_key: Option<String>,
@@ -300,12 +303,14 @@ impl Client {
             }
             None => None,
         };
-        if let Some(key) = options
+        let key = options
             .idempotency_key
             .as_deref()
             .filter(|key| !key.is_empty())
-        {
-            headers.push(("Idempotency-Key".to_owned(), key.to_owned()));
+            .map(str::to_owned)
+            .or_else(|| (method == "POST").then(new_idempotency_key));
+        if let Some(key) = key {
+            headers.push(("Idempotency-Key".to_owned(), key));
         }
         let request = HttpRequest {
             method: method.to_owned(),
@@ -321,6 +326,35 @@ impl Client {
         let envelope: Envelope<T> = serde_json::from_slice(&response.body).map_err(Error::Json)?;
         Ok(envelope.data)
     }
+}
+
+/// A random UUID (version 4). The standard library has no CSPRNG and the SDK
+/// takes no dependency for one, so the bytes are SipHash outputs under keys the
+/// operating system seeds for each [`RandomState`], mixed with a counter and
+/// the clock: a key has to be unique, not secret.
+fn new_idempotency_key() -> String {
+    static COUNTER: AtomicU64 = AtomicU64::new(0);
+    let nanos = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map_or(0, |since| since.as_nanos());
+    let mut bytes = [0u8; 16];
+    for half in bytes.chunks_mut(8) {
+        let mut hasher = RandomState::new().build_hasher();
+        hasher.write_u64(COUNTER.fetch_add(1, Ordering::Relaxed));
+        hasher.write_u128(nanos);
+        half.copy_from_slice(&hasher.finish().to_be_bytes());
+    }
+    bytes[6] = bytes[6] & 0x0f | 0x40;
+    bytes[8] = bytes[8] & 0x3f | 0x80;
+    let hex: String = bytes.iter().map(|byte| format!("{byte:02x}")).collect();
+    format!(
+        "{}-{}-{}-{}-{}",
+        &hex[0..8],
+        &hex[8..12],
+        &hex[12..16],
+        &hex[16..20],
+        &hex[20..32]
+    )
 }
 
 /// A path parameter or a query value, escaped: everything but letters,

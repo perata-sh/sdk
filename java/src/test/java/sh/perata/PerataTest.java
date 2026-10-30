@@ -3,6 +3,8 @@ package sh.perata;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -97,6 +99,24 @@ class PerataTest {
         assertEquals("create-1", seen.getHeaders().get("Idempotency-Key"));
         assertEquals("application/json", seen.getHeaders().get("Content-Type"));
         assertEquals(Map.of("name", "Curso"), Json.parse(new String(seen.getBody(), StandardCharsets.UTF_8)));
+    }
+
+    @Test
+    void aPostWithoutAKeyIsSentWithItsOwnAGetWithNone() {
+        Recorder recorder = new Recorder(request -> json(201, Map.of(), data(product("prod_1"))));
+        Perata perata = client(recorder);
+        ProductsService.CreateParams params = ProductsService.CreateParams.builder().name("Curso").build();
+        perata.products().create(params);
+        perata.products().create(params);
+        perata.products().create(params, RequestOptions.builder().idempotencyKey("mine").build());
+        perata.products().get("prod_1");
+        String uuid = "[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}";
+        String first = recorder.seen.get(0).getHeaders().get("Idempotency-Key");
+        String second = recorder.seen.get(1).getHeaders().get("Idempotency-Key");
+        assertTrue(first.matches(uuid) && second.matches(uuid), first + " " + second);
+        assertNotEquals(first, second);
+        assertEquals("mine", recorder.seen.get(2).getHeaders().get("Idempotency-Key"));
+        assertNull(recorder.seen.get(3).getHeaders().get("Idempotency-Key"));
     }
 
     @Test
