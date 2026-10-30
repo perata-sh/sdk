@@ -24,8 +24,8 @@ jobs:
       contents: read
       id-token: write
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: '24'
           registry-url: 'https://registry.npmjs.org'
@@ -49,8 +49,8 @@ jobs:
       contents: read
       id-token: write
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
         with:
           python-version: '3.12'
       - working-directory: python
@@ -58,7 +58,7 @@ jobs:
           test "v$(cat ../VERSION)" = "$GITHUB_REF_NAME"
           pip install build
           python -m build
-      - uses: pypa/gh-action-pypi-publish@release/v1
+      - uses: pypa/gh-action-pypi-publish@7245906fb61fa33a13554f9d5fb856fe61758086 # v1.14.3
         with:
           packages-dir: python/dist
           skip-existing: true
@@ -69,19 +69,19 @@ jobs:
       contents: read
       id-token: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
       - id: check
         run: |
           version=$(cat VERSION)
           test "v$version" = "$GITHUB_REF_NAME"
           .github/scripts/published.sh RubyGems "https://rubygems.org/api/v2/rubygems/perata-sdk/versions/$version.json"
       - if: steps.check.outputs.published != 'true'
-        uses: ruby/setup-ruby@v1
+        uses: ruby/setup-ruby@7f797815d8adceb1c412e7abefdd1ab4abc47a5f # v1.335.0
         with:
           ruby-version: '3.4'
       # Exchanges the job's OIDC token for a short-lived API key (GEM_HOST_API_KEY).
       - if: steps.check.outputs.published != 'true'
-        uses: rubygems/configure-rubygems-credentials@v2.1.0
+        uses: rubygems/configure-rubygems-credentials@dc5a8d8553e6ee01fc26761a49e99e733d17954a # v2.1.0
       - if: steps.check.outputs.published != 'true'
         working-directory: ruby
         run: |
@@ -94,7 +94,7 @@ jobs:
       contents: read
       id-token: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
       - id: check
         run: |
           version=$(cat VERSION)
@@ -103,7 +103,7 @@ jobs:
       # Exchanges the job's OIDC token for a temporary crates.io token.
       - if: steps.check.outputs.published != 'true'
         id: auth
-        uses: rust-lang/crates-io-auth-action@v1
+        uses: rust-lang/crates-io-auth-action@3268eb413133e2960fa4ae0e963ca76380c54cd9 # v1.0.6
       - if: steps.check.outputs.published != 'true'
         working-directory: rust
         env:
@@ -118,14 +118,14 @@ jobs:
       contents: read
       id-token: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
       - id: check
         run: |
           version=$(cat VERSION)
           test "v$version" = "$GITHUB_REF_NAME"
           .github/scripts/published.sh Hex "https://hex.pm/api/packages/perata_sdk/releases/$version"
       - if: steps.check.outputs.published != 'true'
-        uses: erlef/setup-beam@v1
+        uses: erlef/setup-beam@54075bcc5e249e4758d363f27d099f55d843f124 # v1.24.1
         with:
           elixir-version: '1.18'
           otp-version: '27'
@@ -158,7 +158,7 @@ jobs:
       contents: read
       id-token: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
       - id: check
         run: |
           version=$(cat VERSION)
@@ -166,7 +166,7 @@ jobs:
           .github/scripts/published.sh pub.dev "https://pub.dev/api/packages/perata_sdk/versions/$version"
       # Sets up Dart and provisions the OIDC token pub.dev accepts.
       - if: steps.check.outputs.published != 'true'
-        uses: dart-lang/setup-dart@v1
+        uses: dart-lang/setup-dart@6afc89df92d6eb3834022f73cd65adc8cdfcb92d # v1.8.1
       - if: steps.check.outputs.published != 'true'
         working-directory: dart
         run: |
@@ -179,14 +179,14 @@ jobs:
       contents: read
       id-token: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
       - id: check
         run: |
           version=$(cat VERSION)
           test "v$version" = "$GITHUB_REF_NAME"
           .github/scripts/published.sh NuGet "https://api.nuget.org/v3-flatcontainer/perata.sh.sdk/$version/perata.sh.sdk.nuspec"
       - if: steps.check.outputs.published != 'true'
-        uses: actions/setup-dotnet@v5
+        uses: actions/setup-dotnet@26b0ec14cb23fa6904739307f278c14f94c95bf1 # v5.4.0
         with:
           dotnet-version: '10.0.x'
       - if: steps.check.outputs.published != 'true'
@@ -195,7 +195,7 @@ jobs:
       # Exchanges the job's OIDC token for a one-hour API key.
       - if: steps.check.outputs.published != 'true'
         id: login
-        uses: NuGet/login@v1
+        uses: NuGet/login@8d196754b4036150537f80ac539e15c2f1028841 # v1.2.0
         with:
           user: ${{ secrets.NUGET_USER }}
       - if: steps.check.outputs.published != 'true'
@@ -208,14 +208,14 @@ jobs:
     permissions:
       contents: read
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
       - id: check
         run: |
           version=$(cat VERSION)
           test "v$version" = "$GITHUB_REF_NAME"
           .github/scripts/published.sh "Maven Central" "https://repo1.maven.org/maven2/sh/perata/sdk/$version/sdk-$version.pom"
       - if: steps.check.outputs.published != 'true'
-        uses: actions/setup-java@v6
+        uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
         with:
           distribution: temurin
           java-version: '21'
