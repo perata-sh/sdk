@@ -21,6 +21,8 @@ var dartLocals = map[string]bool{"at": true, "data": true, "page": true, "limit"
 
 func init() {
 	register(Language{Name: "dart", Funcs: template.FuncMap{
+		// quote writes a string literal, escaped the way dart reads it.
+		"quote":      dartQuote,
 		"dartType":   dartFieldType,
 		"dartBase":   dartBase,
 		"dartName":   dartName,
@@ -192,7 +194,7 @@ func dartWrite(f *Field) string {
 	if !f.Required {
 		expr = "?" + expr
 	}
-	return "'" + f.Wire + "': " + expr
+	return dartQuote(f.Wire) + ": " + expr
 }
 
 // dartWriter writes expr, of type t, as JSON; nested lists and maps name
@@ -230,8 +232,7 @@ func dartPath(m *Method) string {
 			b.WriteString("${Uri.encodeComponent(" + dartParam(part.Param) + ")}")
 			continue
 		}
-		literal := strings.NewReplacer(`\`, `\\`, `'`, `\'`, `$`, `\$`).Replace(part.Literal)
-		b.WriteString(literal)
+		b.WriteString(inner(dartQuote(part.Literal)))
 	}
 	b.WriteString("'")
 	return b.String()

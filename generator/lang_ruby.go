@@ -19,6 +19,8 @@ var rbReserved = map[string]bool{
 
 func init() {
 	register(Language{Name: "ruby", Funcs: template.FuncMap{
+		// quote writes a string literal, escaped the way ruby reads it.
+		"quote":   rubyQuote,
 		"rbName":  rbName,
 		"rbType":  rbType,
 		"rbRead":  rbRead,

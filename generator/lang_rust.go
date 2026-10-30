@@ -19,6 +19,8 @@ var rustKeywords = map[string]bool{
 
 func init() {
 	register(Language{Name: "rust", Funcs: template.FuncMap{
+		// quote writes a string literal, escaped the way rust reads it.
+		"quote":       rustQuote,
 		"rsName":      rsName,
 		"rsType":      rsType,
 		"rsArg":       rsArg,
@@ -216,7 +218,7 @@ func rsInit(field *Field) string {
 func rsAttrs(field *Field) string {
 	var parts []string
 	if rsName(field.Wire) != field.Wire {
-		parts = append(parts, "rename = "+`"`+field.Wire+`"`)
+		parts = append(parts, "rename = "+rustQuote(field.Wire))
 	}
 	if !field.Required {
 		parts = append(parts, `default, skip_serializing_if = "Option::is_none"`)
@@ -239,7 +241,7 @@ func rsDoc(indent, text string) string {
 // rsPath is a method's path as a &str expression, its parameters escaped.
 func rsPath(m *Method) string {
 	if len(m.PathParams) == 0 {
-		return `"` + m.Path + `"`
+		return rustQuote(m.Path)
 	}
 	return "&" + rsFormat(m)
 }

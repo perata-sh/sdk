@@ -18,18 +18,18 @@ defmodule Perata do
 
   @doc "This SDK's version."
   @spec version() :: String.t()
-  def version, do: "{{.Version}}"
+  def version, do: {{quote .Version}}
 
   @doc "The contract this SDK was generated from."
   @spec api_version() :: String.t()
-  def api_version, do: "{{.APIVersion}}"
+  def api_version, do: {{quote .APIVersion}}
 
   @doc """
   Peráta's API. The environment, test or live, is the API key's: `prk_test_…`
   or `prk_live_…`.
   """
   @spec default_base_url() :: String.t()
-  def default_base_url, do: "{{.BaseURL}}"
+  def default_base_url, do: {{quote .BaseURL}}
 
   @doc "A client for the organization `api_key` belongs to; see `Perata.Client.new/2`."
   @spec new(String.t(), keyword()) :: Perata.Client.t()

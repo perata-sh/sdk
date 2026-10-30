@@ -9,7 +9,7 @@ from typing import Any, Literal, NotRequired, TypedDict
 
 @dataclass(frozen=True)
 class {{.Name}}:
-    """{{if .Description}}{{.Description}}{{else}}{{.Name}} is a resource of Peráta's API.{{end}}"""
+    """{{if .Description}}{{pyText .Description}}{{else}}{{.Name}} is a resource of Peráta's API.{{end}}"""
 {{range .Fields}}
     {{.Wire}}: {{pyType .Type}}{{if or .Nullable (not .Required)}} | None{{end}}{{pyDoc "    " .Description}}
 {{- end}}
@@ -25,7 +25,7 @@ class {{.Name}}:
 {{- range inputs .Models}}
 
 class {{.Name}}(TypedDict):
-    """{{.Description}}"""
+    """{{pyText .Description}}"""
 {{range .Fields}}
     {{.Wire}}: {{if not .Required}}NotRequired[{{end}}{{pyType .Type}}{{if .Nullable}} | None{{end}}{{if not .Required}}]{{end}}{{pyDoc "    " .Description}}
 {{- end}}

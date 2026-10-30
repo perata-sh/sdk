@@ -18,7 +18,7 @@ public final class {{pascal .Service.Name}}Service {
 {{- if .Paginated}}
 
     /**
-     * {{.Summary}}. One page; {@link #{{camel .Name}}Iter} walks every page.
+     * {{javaText .Summary}}. One page; {@link #{{camel .Name}}Iter} walks every page.
 {{- range .PathParams}}
      * @param {{javaName .}} the {{.}}
 {{- end}}
@@ -28,12 +28,12 @@ public final class {{pascal .Service.Name}}Service {
      * @throws PerataException when the API refuses the call
      */
     public Page<{{.Item}}> {{camel .Name}}({{template "sig" .}}{{pascal .Name}}Params params, RequestOptions options) {
-        Object data = client.request("{{.HTTPMethod}}", {{template "path" .}}, params == null ? null : params.query(), null, null, options);
+        Object data = client.request({{quote .HTTPMethod}}, {{template "path" .}}, params == null ? null : params.query(), null, null, options);
         return Page.fromJson(data, Json.model({{.Item}}::fromJson));
     }
 
     /**
-     * {{.Summary}}. One page.
+     * {{javaText .Summary}}. One page.
 {{- range .PathParams}}
      * @param {{javaName .}} the {{.}}
 {{- end}}
@@ -45,7 +45,7 @@ public final class {{pascal .Service.Name}}Service {
     }
 
     /**
-     * {{.Summary}}. The first page.
+     * {{javaText .Summary}}. The first page.
 {{- range .PathParams}}
      * @param {{javaName .}} the {{.}}
 {{- end}}
@@ -200,7 +200,7 @@ public final class {{pascal .Service.Name}}Service {
 {{- else}}
 
     /**
-     * {{.Summary}}.
+     * {{javaText .Summary}}.
 {{- range .PathParams}}
      * @param {{javaName .}} the {{.}}
 {{- end}}
@@ -212,12 +212,12 @@ public final class {{pascal .Service.Name}}Service {
      * @throws PerataException when the API refuses the call
      */
     public {{.Response}} {{camel .Name}}({{template "sig" .}}{{if .Body}}{{pascal .Name}}Params params, {{end}}RequestOptions options) {
-        Object data = client.request("{{.HTTPMethod}}", {{template "path" .}}, null, {{if .Body}}Objects.requireNonNull(params, "params").toJson(){{else}}null{{end}}, {{if .Write}}options == null ? null : options.getIdempotencyKey(){{else}}null{{end}}, options);
+        Object data = client.request({{quote .HTTPMethod}}, {{template "path" .}}, null, {{if .Body}}Objects.requireNonNull(params, "params").toJson(){{else}}null{{end}}, {{if .Write}}options == null ? null : options.getIdempotencyKey(){{else}}null{{end}}, options);
         return {{.Response}}.fromJson(Json.asObject(data));
     }
 
     /**
-     * {{.Summary}}.
+     * {{javaText .Summary}}.
 {{- range .PathParams}}
      * @param {{javaName .}} the {{.}}
 {{- end}}

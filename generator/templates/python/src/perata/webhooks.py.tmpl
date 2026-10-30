@@ -26,7 +26,7 @@ class WebhookVerificationError(Exception):
         super().__init__(message)
 
 
-{{range .Webhooks}}{{.Name}}WebhookEventType: TypeAlias = Literal[{{range $i, $t := .Types}}{{if $i}}, {{end}}"{{$t}}"{{end}}]
+{{range .Webhooks}}{{.Name}}WebhookEventType: TypeAlias = Literal[{{range $i, $t := .Types}}{{if $i}}, {{end}}{{quote $t}}{{end}}]
 
 
 @dataclass(frozen=True)

@@ -7,6 +7,8 @@ import (
 
 func init() {
 	register(Language{Name: "typescript", Funcs: template.FuncMap{
+		// quote writes a string literal, escaped the way typescript reads it.
+		"quote":  tsQuote,
 		"tsType": tsType,
 		// tsDoc writes a description as a JSDoc comment, or nothing.
 		"tsDoc": func(indent, text string) string {
@@ -27,7 +29,7 @@ func tsType(t *TypeRef) string {
 		if len(t.Enum) > 0 {
 			values := make([]string, len(t.Enum))
 			for i, value := range t.Enum {
-				values[i] = `"` + value + `"`
+				values[i] = tsQuote(value)
 			}
 			return strings.Join(values, " | ")
 		}

@@ -12,7 +12,7 @@ public struct {{pascal .Name}}Service: Sendable {
     ///   - limit: items a page, 1 to 100 (10 by default).
     public func {{swName .Name}}({{range .PathParams}}_ {{swName .}}: String, {{end}}page: Int? = nil, limit: Int? = nil{{range .Query}}, {{swName .Name}}: String? = nil{{end}}, apiKey: String? = nil) async throws -> Page<{{.Item}}> {
         try await requester.request(
-            "{{.HTTPMethod}}", {{swPath .}},
+            {{quote .HTTPMethod}}, {{swPath .}},
             query: [("page", page.map(String.init)), ("limit", limit.map(String.init)){{range .Query}}, ({{swLiteral .Name}}, {{swName .Name}}){{end}}],
             apiKey: apiKey
         )
@@ -29,7 +29,7 @@ public struct {{pascal .Name}}Service: Sendable {
     /// {{.Summary}}.
     public func {{swName .Name}}({{range .PathParams}}_ {{swName .}}: String, {{end}}{{if .Body}}_ params: {{.Body.Name}}, {{end}}{{if .Write}}idempotencyKey: String? = nil, {{end}}apiKey: String? = nil) async throws -> {{.Response}} {
         try await requester.request(
-            "{{.HTTPMethod}}", {{swPath .}}{{if .Body}}, body: params{{end}}{{if .Write}}, idempotencyKey: idempotencyKey{{end}}, apiKey: apiKey
+            {{quote .HTTPMethod}}, {{swPath .}}{{if .Body}}, body: params{{end}}{{if .Write}}, idempotencyKey: idempotencyKey{{end}}, apiKey: apiKey
         )
     }
 {{- end}}

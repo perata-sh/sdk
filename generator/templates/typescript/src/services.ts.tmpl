@@ -27,7 +27,7 @@ export class {{pascal .Name}}Service {
 {{- if .Paginated}}
   /** {{.Summary}}. One page; `{{camel .Name}}Iter` walks every page. */
   {{camel .Name}}({{range .PathParams}}{{camel .}}: string, {{end}}params: {{pascal $service.Name}}{{pascal .Name}}Params = {}, options?: RequestOptions): Promise<Page<models.{{.Item}}>> {
-    return this.#client.request("{{.HTTPMethod}}", {{template "path" .}}, { query: { ...params }, options });
+    return this.#client.request({{quote .HTTPMethod}}, {{template "path" .}}, { query: { ...params }, options });
   }
 
   /** Walks every page of {{.OperationID}}, item by item: `for await (const item of …)`. */
@@ -37,7 +37,7 @@ export class {{pascal .Name}}Service {
 {{- else}}
   /** {{.Summary}}. */
   {{camel .Name}}({{range .PathParams}}{{camel .}}: string, {{end}}{{if .Body}}params: models.{{.Body.Name}}, {{end}}options?: RequestOptions): Promise<models.{{.Response}}> {
-    return this.#client.request("{{.HTTPMethod}}", {{template "path" .}}, { {{if .Body}}body: params, {{end}}options });
+    return this.#client.request({{quote .HTTPMethod}}, {{template "path" .}}, { {{if .Body}}body: params, {{end}}options });
   }
 {{- end}}
 {{end}}}

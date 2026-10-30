@@ -28,13 +28,13 @@ namespace Perata;
 public sealed class PerataClient
 {
     /// <summary>This SDK's version.</summary>
-    public const string Version = "{{.Version}}";
+    public const string Version = {{quote .Version}};
 
     /// <summary>The contract this SDK was generated from.</summary>
-    public const string ApiVersion = "{{.APIVersion}}";
+    public const string ApiVersion = {{quote .APIVersion}};
 
     /// <summary>Peráta's API. The environment, test or live, is the API key's: <c>prk_test_…</c> or <c>prk_live_…</c>.</summary>
-    public const string DefaultBaseUrl = "{{.BaseURL}}";
+    public const string DefaultBaseUrl = {{quote .BaseURL}};
 
     // One connection pool for every client that brings no HttpClient of its
     // own, renewed every few minutes so DNS changes are seen.

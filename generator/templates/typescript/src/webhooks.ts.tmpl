@@ -11,7 +11,7 @@ export interface WebhookMessage<Type extends string, Data> {
 }
 {{range .Webhooks}}
 /** The events that carry {{if eq .Data.Kind "model"}}{{article .Data.Model}}{{else}}the event's identifiers{{end}}. */
-export type {{.Name}}WebhookEvent = WebhookMessage<{{range $i, $t := .Types}}{{if $i}} | {{end}}"{{$t}}"{{end}}, {{tsType .Data}}>;
+export type {{.Name}}WebhookEvent = WebhookMessage<{{range $i, $t := .Types}}{{if $i}} | {{end}}{{quote $t}}{{end}}, {{tsType .Data}}>;
 {{end}}
 /**
  * A webhook Peráta sent, verified: a union discriminated by `type`, so

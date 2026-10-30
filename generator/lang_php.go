@@ -7,6 +7,8 @@ import (
 
 func init() {
 	register(Language{Name: "php", Funcs: template.FuncMap{
+		// quote writes a string literal, escaped the way php reads it.
+		"quote":    phpQuote,
 		"phpType":  phpType,
 		"phpDoc":   phpDoc,
 		"phpRead":  phpRead,

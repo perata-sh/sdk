@@ -18,8 +18,8 @@ class {{pascal .Name}}Service:
 {{- if .Paginated}}
 
     def {{snake .Name}}(self{{range .PathParams}}, {{pyName .}}: str{{end}}, *, page: int | None = None, limit: int | None = None{{range .Query}}, {{pyName .Name}}: str | None = None{{end}}, api_key: str | None = None) -> Page[models.{{.Item}}]:
-        """{{.Summary}}. One page; ``{{snake .Name}}_iter`` walks every page."""
-        data = self._client.request("{{.HTTPMethod}}", {{template "path" .}}, query={"page": page, "limit": limit{{range .Query}}, "{{.Name}}": {{pyName .Name}}{{end}}}, api_key=api_key)
+        """{{pyText .Summary}}. One page; ``{{snake .Name}}_iter`` walks every page."""
+        data = self._client.request({{quote .HTTPMethod}}, {{template "path" .}}, query={"page": page, "limit": limit{{range .Query}}, {{quote .Name}}: {{pyName .Name}}{{end}}}, api_key=api_key)
         return Page.from_dict(data, models.{{.Item}}.from_dict)
 
     def {{snake .Name}}_iter(self{{range .PathParams}}, {{pyName .}}: str{{end}}, *, page: int | None = None, limit: int | None = None{{range .Query}}, {{pyName .Name}}: str | None = None{{end}}, api_key: str | None = None) -> Iterator[models.{{.Item}}]:
@@ -28,8 +28,8 @@ class {{pascal .Name}}Service:
 {{- else}}
 
     def {{snake .Name}}(self{{range .PathParams}}, {{pyName .}}: str{{end}}{{if .Body}}, params: models.{{.Body.Name}}{{end}}, *{{if .Write}}, idempotency_key: str | None = None{{end}}, api_key: str | None = None) -> models.{{.Response}}:
-        """{{.Summary}}."""
-        data = self._client.request("{{.HTTPMethod}}", {{template "path" .}}{{if .Body}}, body=params{{end}}{{if .Write}}, idempotency_key=idempotency_key{{end}}, api_key=api_key)
+        """{{pyText .Summary}}."""
+        data = self._client.request({{quote .HTTPMethod}}, {{template "path" .}}{{if .Body}}, body=params{{end}}{{if .Write}}, idempotency_key=idempotency_key{{end}}, api_key=api_key)
         return models.{{.Response}}.from_dict(data)
 {{- end}}
 {{- end}}

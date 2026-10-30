@@ -38,7 +38,7 @@ final class {{.Name}}WebhookEvent extends WebhookEvent {
   /// The event types this class carries.
   static const types = {
 {{- range .Types}}
-    '{{.}}',
+    {{quote .}},
 {{- end}}
   };
 

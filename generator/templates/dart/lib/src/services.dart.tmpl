@@ -18,13 +18,13 @@ class {{pascal .Name}}Service {
   /// [{{dartName .Name}}Iter] walks every page.
   Future<Page<{{.Item}}>> {{dartName .Name}}{{dartParams . "list"}} async {
     final data = await _client.request(
-      '{{.HTTPMethod}}',
+      {{quote .HTTPMethod}},
       {{dartPath .}},
       query: {
         'page': page,
         'limit': limit,
 {{- range .Query}}
-        '{{.Name}}': {{dartParam .Name}},
+        {{quote .Name}}: {{dartParam .Name}},
 {{- end}}
       },
       apiKey: apiKey,
@@ -54,7 +54,7 @@ class {{pascal .Name}}Service {
   /// {{.Summary}}.
   Future<{{.Response}}> {{dartName .Name}}{{dartParams . "call"}} async {
     final data = await _client.request(
-      '{{.HTTPMethod}}',
+      {{quote .HTTPMethod}},
       {{dartPath .}},
 {{- if .Body}}
       body: params.toJson(),

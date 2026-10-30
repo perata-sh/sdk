@@ -11,6 +11,8 @@ var goKeywords = map[string]bool{"type": true, "func": true, "range": true, "map
 
 func init() {
 	register(Language{Name: "go", Funcs: template.FuncMap{
+		// quote writes a string literal, escaped the way go reads it.
+		"quote":  goQuote,
 		"goType": goType,
 		"goBase": goBase,
 		"goParam": func(name string) string {

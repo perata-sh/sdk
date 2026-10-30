@@ -20,6 +20,8 @@ var swiftKeywords = map[string]bool{
 
 func init() {
 	register(Language{Name: "swift", Funcs: template.FuncMap{
+		// quote writes a string literal, escaped the way swift reads it.
+		"quote":     swiftQuote,
 		"swName":    swName,
 		"swType":    swType,
 		"swDoc":     swDoc,
@@ -72,7 +74,7 @@ func swKey(field *Field) string {
 
 // swLiteral is a Swift string literal.
 func swLiteral(s string) string {
-	return `"` + strings.NewReplacer(`\`, `\\`, `"`, `\"`).Replace(s) + `"`
+	return swiftQuote(s)
 }
 
 func swBase(models []*Model, model *Model, field *Field, t *TypeRef) string {
@@ -139,7 +141,7 @@ func swPath(m *Method) string {
 			b.WriteString(`\(escape(` + swName(part.Param) + `))`)
 			continue
 		}
-		b.WriteString(strings.NewReplacer(`\`, `\\`, `"`, `\"`).Replace(part.Literal))
+		b.WriteString(inner(swiftQuote(part.Literal)))
 	}
 	b.WriteByte('"')
 	return b.String()

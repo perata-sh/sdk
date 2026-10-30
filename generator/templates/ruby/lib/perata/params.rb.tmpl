@@ -6,7 +6,7 @@ module Perata
 {{- range $i, $model := inputs .Models}}
 {{- if $i}}
 {{end}}
-  # {{.Description}}
+  # {{lines "  # " .Description}}
   class {{.Name}} < Params
     MEMBERS = %i[{{range $j, $f := .Fields}}{{if $j}} {{end}}{{rbName .Wire}}{{end}}].freeze
 {{range .Fields}}
@@ -24,7 +24,7 @@ module Perata
     def to_wire
       wire = {}
 {{- range .Fields}}
-      wire["{{.Wire}}"] = {{rbWrite .}}{{if not .Required}} unless @{{rbName .Wire}}.nil?{{end}}
+      wire[{{quote .Wire}}] = {{rbWrite .}}{{if not .Required}} unless @{{rbName .Wire}}.nil?{{end}}
 {{- end}}
       wire
     end

@@ -26,6 +26,8 @@ var csKeywords = map[string]bool{
 
 func init() {
 	register(Language{Name: "csharp", Funcs: template.FuncMap{
+		// quote writes a string literal, escaped the way csharp reads it.
+		"quote":  csharpQuote,
 		"csName": idiomPascal,
 		// csProp is a field's property name; a property cannot take its
 		// class's name.
@@ -131,14 +133,19 @@ func csWrite(f *Field) (string, error) {
 	return "", nil
 }
 
-// csText escapes a description for an XML doc comment.
+// csText escapes a description for an XML doc comment, on one line.
 func csText(text string) string {
+	return strings.Join(strings.Fields(xmlText(text)), " ")
+}
+
+// xmlText escapes text for an XML doc comment, keeping its lines.
+func xmlText(text string) string {
 	return strings.NewReplacer("&", "&amp;", "<", "&lt;", ">", "&gt;").Replace(strings.TrimSpace(text))
 }
 
 // csDoc writes a description as an XML doc summary.
 func csDoc(indent, text string) string {
-	text = csText(text)
+	text = xmlText(text)
 	return indent + "/// <summary>" + strings.ReplaceAll(text, "\n", "\n"+indent+"/// ") + "</summary>\n"
 }
 

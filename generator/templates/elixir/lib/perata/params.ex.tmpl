@@ -29,7 +29,7 @@ defmodule Perata.{{.Name}} do
 
 {{exMapWrite .}}
 {{- range .Fields}}{{if not .Required}}
-    |> Perata.Encode.put_optional("{{.Wire}}", {{exWrite .}})
+    |> Perata.Encode.put_optional({{quote .Wire}}, {{exWrite .}})
 {{- end}}{{end}}
   end
 end

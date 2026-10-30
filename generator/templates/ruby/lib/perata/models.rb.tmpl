@@ -6,7 +6,7 @@ module Perata
 {{- range $i, $model := outputs .Models}}
 {{- if $i}}
 {{end}}
-  # {{if .Description}}{{.Description}}{{else}}{{.Name}} is a resource of Peráta's API.{{end}}
+  # {{if .Description}}{{lines "  # " .Description}}{{else}}{{.Name}} is a resource of Peráta's API.{{end}}
   class {{.Name}} < Model
     MEMBERS = %i[{{range $j, $f := .Fields}}{{if $j}} {{end}}{{rbName .Wire}}{{end}}].freeze
 {{range .Fields}}

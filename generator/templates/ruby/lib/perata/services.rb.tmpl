@@ -18,8 +18,8 @@ module Perata
     #
     # @return [Page<{{.Item}}>]
     def {{snake .Name}}({{range .PathParams}}{{rbName .}}, {{end}}page: nil, limit: nil, {{range .Query}}{{rbName .Name}}: nil, {{end}}api_key: nil)
-      query = { "page" => page, "limit" => limit{{range .Query}}, "{{.Name}}" => {{rbName .Name}}{{end}} }
-      data = @client.request("{{.HTTPMethod}}", {{template "path" .}}, query: query, api_key: api_key)
+      query = { "page" => page, "limit" => limit{{range .Query}}, {{quote .Name}} => {{rbName .Name}}{{end}} }
+      data = @client.request({{quote .HTTPMethod}}, {{template "path" .}}, query: query, api_key: api_key)
       Page.from_hash(data) { |item| {{.Item}}.from_hash(item) }
     end
 
@@ -41,7 +41,7 @@ module Perata
 {{- end}}
     # @return [{{.Response}}]
     def {{snake .Name}}({{range .PathParams}}{{rbName .}}, {{end}}{{if .Body}}params, {{end}}{{if .Write}}idempotency_key: nil, {{end}}api_key: nil)
-      data = @client.request("{{.HTTPMethod}}", {{template "path" .}}{{if .Body}}, body: {{.Body.Name}}.coerce(params).to_wire{{end}}{{if .Write}}, idempotency_key: idempotency_key{{end}}, api_key: api_key)
+      data = @client.request({{quote .HTTPMethod}}, {{template "path" .}}{{if .Body}}, body: {{.Body.Name}}.coerce(params).to_wire{{end}}{{if .Write}}, idempotency_key: idempotency_key{{end}}, api_key: api_key)
       {{.Response}}.from_hash(data)
     end
 {{- end}}

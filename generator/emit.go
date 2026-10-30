@@ -167,10 +167,12 @@ func commonFuncs() template.FuncMap {
 		"pascal": Pascal,
 		"camel":  Camel,
 		"snake":  func(name string) string { return strings.ReplaceAll(strings.ToLower(name), "-", "_") },
-		"upper":  strings.ToUpper,
-		"lower":  strings.ToLower,
-		"join":   strings.Join,
-		"quote":  func(s string) string { return fmt.Sprintf("%q", s) },
+		// lines continues a line comment over every line of text: prefix is
+		// what each line after the first starts with.
+		"lines": func(prefix, text string) string { return strings.ReplaceAll(text, "\n", "\n"+prefix) },
+		"upper": strings.ToUpper,
+		"lower": strings.ToLower,
+		"join":  strings.Join,
 		// singular writes a service as the noun of one of its resources.
 		"singular": func(name string) string {
 			if strings.HasSuffix(name, "ies") {

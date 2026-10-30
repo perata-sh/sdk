@@ -10,6 +10,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"regexp"
 	"sort"
 	"strings"
 )
@@ -210,6 +211,14 @@ func build(doc *spec, version string) (*IR, error) {
 	if len(doc.Servers) > 0 {
 		ir.BaseURL = doc.Servers[0].URL
 	}
+	for what, check := range map[string]struct {
+		value   string
+		pattern *regexp.Regexp
+	}{"SDK version": {ir.Version, versionText}, "contract version": {ir.APIVersion, versionText}, "server address": {ir.BaseURL, baseURL}} {
+		if err := checkMatch(what, check.value, check.pattern); err != nil {
+			return nil, err
+		}
+	}
 	l := newLoader(doc)
 	names := make([]string, 0, len(doc.Components.Schemas))
 	for name := range doc.Components.Schemas {
@@ -246,6 +255,18 @@ func build(doc *spec, version string) (*IR, error) {
 			if !ok {
 				return nil, fmt.Errorf("generator: %s %s has no service:method operationId", httpMethod, path)
 			}
+			if !httpMethods[httpMethod] {
+				return nil, fmt.Errorf("generator: %s is not an HTTP method the SDKs send (%s)", httpMethod, path)
+			}
+			if err := checkPath(path); err != nil {
+				return nil, err
+			}
+			if err := checkMatch("service", serviceName, slug); err != nil {
+				return nil, err
+			}
+			if err := checkMatch("method", methodName, slug); err != nil {
+				return nil, err
+			}
 			method, err := l.methodOf(op, strings.ToUpper(httpMethod), path, serviceName, methodName)
 			if err != nil {
 				return nil, err
@@ -279,11 +300,17 @@ func build(doc *spec, version string) (*IR, error) {
 	return ir, nil
 }
 
+// httpMethods are the verbs an SDK sends.
+var httpMethods = map[string]bool{"get": true, "post": true, "put": true, "patch": true, "delete": true}
+
 // webhooks reads the contract's webhooks: each event a POST whose body is
 // {id, type, timestamp, data}, type one value, data the object it carries.
 func (l *loader) webhooks(doc *spec) ([]*WebhookGroup, error) {
 	groups := map[string]*WebhookGroup{}
 	for name, item := range doc.Webhooks {
+		if err := checkMatch("webhook", name, eventType); err != nil {
+			return nil, err
+		}
 		op := item["post"]
 		if op == nil || op.RequestBody == nil {
 			return nil, fmt.Errorf("generator: webhook %s is not a POST with a body", name)
@@ -310,6 +337,9 @@ func (l *loader) webhooks(doc *spec) ([]*WebhookGroup, error) {
 		}
 		if group == "" {
 			return nil, fmt.Errorf("generator: webhook %s carries an unnamed map", name)
+		}
+		if err := checkIdentifier("webhook group of "+name, group); err != nil {
+			return nil, err
 		}
 		if groups[group] == nil {
 			groups[group] = &WebhookGroup{Name: group, Data: data}
@@ -338,14 +368,20 @@ func apiKeyOperation(op *operation) bool {
 }
 
 func (l *loader) methodOf(op *operation, httpMethod, path, serviceName, methodName string) (*Method, error) {
-	method := &Method{Name: methodName, OperationID: op.OperationID, Summary: op.Summary, HTTPMethod: httpMethod, Path: path,
+	method := &Method{Name: methodName, OperationID: op.OperationID, Summary: cleanLine(op.Summary), HTTPMethod: httpMethod, Path: path,
 		Write: httpMethod != "GET"}
 	for _, param := range op.Parameters {
 		switch {
 		case param.In == "path":
+			if err := checkIdentifier("path parameter", param.Name); err != nil {
+				return nil, err
+			}
 			method.PathParams = append(method.PathParams, param.Name)
 		case param.In == "query" && param.Name != "page" && param.Name != "limit":
-			method.Query = append(method.Query, &Param{Name: param.Name, Description: param.Description})
+			if err := checkIdentifier("query parameter", param.Name); err != nil {
+				return nil, err
+			}
+			method.Query = append(method.Query, &Param{Name: param.Name, Description: cleanText(param.Description)})
 		}
 	}
 	for status, response := range op.Responses {
@@ -363,6 +399,9 @@ func (l *loader) methodOf(op *operation, httpMethod, path, serviceName, methodNa
 	}
 	if method.Response == "" {
 		return nil, fmt.Errorf("generator: %s answers no model", op.OperationID)
+	}
+	if err := checkIdentifier("response model of "+op.OperationID, method.Response); err != nil {
+		return nil, err
 	}
 	if method.Paginated && op.Pagination["item_schema"] != method.Item {
 		return nil, fmt.Errorf("generator: %s pages %q but declares %q", op.OperationID, method.Item, op.Pagination["item_schema"])
@@ -382,7 +421,10 @@ func (l *loader) methodOf(op *operation, httpMethod, path, serviceName, methodNa
 }
 
 func (l *loader) modelOf(name string, s *schema, input bool) (*Model, error) {
-	model := &Model{Name: name, Description: s.Description, Input: input}
+	if err := checkIdentifier("model", name); err != nil {
+		return nil, err
+	}
+	model := &Model{Name: name, Description: cleanText(s.Description), Input: input}
 	required := map[string]bool{}
 	for _, field := range s.Required {
 		required[field] = true
@@ -394,11 +436,14 @@ func (l *loader) modelOf(name string, s *schema, input bool) (*Model, error) {
 	sort.Strings(wires)
 	for _, wire := range wires {
 		property := s.Properties[wire]
+		if err := checkIdentifier("field of "+name, wire); err != nil {
+			return nil, err
+		}
 		typ, nullable, err := l.typeOf(property)
 		if err != nil {
 			return nil, fmt.Errorf("generator: %s.%s: %w", name, wire, err)
 		}
-		model.Fields = append(model.Fields, &Field{Wire: wire, Description: property.Description, Type: typ, Required: required[wire], Nullable: nullable})
+		model.Fields = append(model.Fields, &Field{Wire: wire, Description: cleanText(property.Description), Type: typ, Required: required[wire], Nullable: nullable})
 	}
 	return model, nil
 }
@@ -408,6 +453,9 @@ func (l *loader) typeOf(s *schema) (*TypeRef, bool, error) {
 		name := strings.TrimPrefix(s.Ref, "#/components/schemas/")
 		if alias := l.aliases[name]; alias != nil {
 			return l.typeOf(alias)
+		}
+		if err := checkIdentifier("referenced model", name); err != nil {
+			return nil, false, err
 		}
 		return &TypeRef{Kind: "model", Model: name}, false, nil
 	}
@@ -426,6 +474,11 @@ func (l *loader) typeOf(s *schema) (*TypeRef, bool, error) {
 	}
 	switch kind {
 	case "string", "integer", "number", "boolean":
+		for _, value := range s.Enum {
+			if err := checkMatch("allowed value", value, enumValue); err != nil {
+				return nil, false, err
+			}
+		}
 		return &TypeRef{Kind: kind, Enum: s.Enum, Format: s.Format}, nullable, nil
 	case "array":
 		items, _, err := l.typeOf(s.Items)

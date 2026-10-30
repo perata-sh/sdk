@@ -9,11 +9,11 @@ namespace Perata;
 final class Version
 {
     /** This SDK's version. */
-    public const SDK = '{{.Version}}';
+    public const SDK = {{quote .Version}};
 
     /** The contract this SDK was generated from. */
-    public const API = '{{.APIVersion}}';
+    public const API = {{quote .APIVersion}};
 
     /** Peráta's API. The environment, test or live, is the API key's: prk_test_… or prk_live_…. */
-    public const DEFAULT_BASE_URL = '{{.BaseURL}}';
+    public const DEFAULT_BASE_URL = {{quote .BaseURL}};
 }

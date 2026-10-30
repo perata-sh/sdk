@@ -15,7 +15,7 @@ namespace Perata;
 final class {{.Webhook.Name}}WebhookEvent extends WebhookEvent
 {
     /** The event types this class carries. */
-    public const TYPES = [{{range $i, $t := .Webhook.Types}}{{if $i}}, {{end}}'{{$t}}'{{end}}];
+    public const TYPES = [{{range $i, $t := .Webhook.Types}}{{if $i}}, {{end}}{{quote $t}}{{end}}];
 
 {{- if eq .Webhook.Data.Kind "model"}}
 

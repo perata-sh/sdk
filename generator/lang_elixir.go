@@ -14,6 +14,8 @@ var exReserved = map[string]bool{
 
 func init() {
 	register(Language{Name: "elixir", Funcs: template.FuncMap{
+		// quote writes a string literal, escaped the way elixir reads it.
+		"quote":   elixirQuote,
 		"exName":  exName,
 		"exType":  exType,
 		"exRead":  exRead,
@@ -98,7 +100,7 @@ func exTypedoc(m *Model) string {
 			line += " (" + strings.Join(says, "; ") + ")"
 		}
 		if description != "" {
-			line += ": " + strings.ReplaceAll(strings.ReplaceAll(description, "\n", " "), `"""`, `\"\"\"`)
+			line += ": " + exHeredoc(description)
 		}
 		lines = append(lines, line)
 	}
@@ -172,7 +174,7 @@ func exMapWrite(m *Model) string {
 	var items []string
 	for _, f := range m.Fields {
 		if f.Required {
-			items = append(items, `"`+f.Wire+`" => `+exWrite(f))
+			items = append(items, elixirQuote(f.Wire)+" => "+exWrite(f))
 		}
 	}
 	if len(items) == 0 {
@@ -261,4 +263,11 @@ func exWrite(f *Field) string {
 		return "Perata.Encode.value(" + value + ")"
 	}
 	return value
+}
+
+// exHeredoc is text on one line inside a """ heredoc, where a backslash starts
+// an escape and #{ interpolates.
+func exHeredoc(text string) string {
+	text = strings.NewReplacer(`\`, `\\`, "#{", `\#{`, `"""`, `\"\"\"`).Replace(text)
+	return strings.Join(strings.Fields(text), " ")
 }

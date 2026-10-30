@@ -21,6 +21,8 @@ var javaKeywords = map[string]bool{
 
 func init() {
 	register(Language{Name: "java", Funcs: template.FuncMap{
+		// quote writes a string literal, escaped the way java reads it.
+		"quote":      javaQuote,
 		"javaPascal": idiomPascal,
 		"javaName": func(wire string) string {
 			name := idiomCamel(wire)
@@ -183,5 +185,5 @@ func javaDoc(indent, text string) string {
 
 // javaText escapes a description for Javadoc.
 func javaText(text string) string {
-	return strings.NewReplacer("&", "&amp;", "<", "&lt;", ">", "&gt;", "*/", "*&#47;", "@", "&#64;").Replace(strings.TrimSpace(text))
+	return strings.NewReplacer("&", "&amp;", "<", "&lt;", ">", "&gt;", "*/", "*&#47;", "@", "&#64;", `\`, "&#92;").Replace(strings.TrimSpace(text))
 }

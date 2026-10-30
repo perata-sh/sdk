@@ -27,7 +27,7 @@ final class {{pascal .Service.Name}}Service
      */
     public function {{camel .Name}}({{range .PathParams}}string ${{phpName .}}, {{end}}array $params = [], ?string $apiKey = null): Page
     {
-        $data = $this->client->request('{{.HTTPMethod}}', {{template "path" .}}, query: $params, apiKey: $apiKey);
+        $data = $this->client->request({{quote .HTTPMethod}}, {{template "path" .}}, query: $params, apiKey: $apiKey);
         return Page::fromArray($data, Models\{{.Item}}::fromArray(...));
     }
 
@@ -52,7 +52,7 @@ final class {{pascal .Service.Name}}Service
      */
     public function {{camel .Name}}({{range .PathParams}}string ${{phpName .}}, {{end}}{{if .Body}}array $params, {{end}}{{if .Write}}?string $idempotencyKey = null, {{end}}?string $apiKey = null): Models\{{.Response}}
     {
-        $data = $this->client->request('{{.HTTPMethod}}', {{template "path" .}}{{if .Body}}, body: $params{{end}}{{if .Write}}, idempotencyKey: $idempotencyKey{{end}}, apiKey: $apiKey);
+        $data = $this->client->request({{quote .HTTPMethod}}, {{template "path" .}}{{if .Body}}, body: $params{{end}}{{if .Write}}, idempotencyKey: $idempotencyKey{{end}}, apiKey: $apiKey);
         return Models\{{.Response}}::fromArray($data);
     }
 {{- end}}

@@ -22,7 +22,7 @@
 }
 {{end}}
 {{- range $model := inputs .Models}}
-/// {{.Description}}
+/// {{lines "/// " .Description}}
 ///
 /// The initializer takes the required fields first; an optional field left
 /// nil is not sent.
@@ -52,7 +52,7 @@ public struct {{.Name}}: Encodable, Sendable, Hashable {
 }
 {{end}}
 {{- range swEnums .Models}}
-/// The values of `{{.Model}}.{{.Field}}`.{{if .Description}} {{.Description}}{{end}}
+/// The values of `{{.Model}}.{{.Field}}`.{{if .Description}} {{lines "/// " .Description}}{{end}}
 ///
 /// A value this SDK does not know yet is kept as it came, in `rawValue`.
 public struct {{.Name}}: RawRepresentable, Codable, Sendable, Hashable, ExpressibleByStringLiteral {

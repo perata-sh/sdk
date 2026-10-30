@@ -10,7 +10,12 @@ var pyKeywords = map[string]bool{"from": true, "class": true, "def": true, "glob
 
 func init() {
 	register(Language{Name: "python", Funcs: template.FuncMap{
+		// quote writes a string literal, escaped the way python reads it.
+		"quote":  pythonQuote,
 		"pyType": pyType,
+		// pyText escapes text for a docstring: a backslash starts an escape
+		// there, and a quote could end it.
+		"pyText": pyText,
 		"pyRead": pyRead,
 		// pyBuild builds expr into t, or takes it as it is.
 		"pyBuild": func(t *TypeRef, expr string) string {
@@ -33,7 +38,7 @@ func init() {
 			if text == "" {
 				return ""
 			}
-			return "\n" + indent + `"""` + strings.ReplaceAll(text, `"""`, `\"\"\"`) + `"""`
+			return "\n" + indent + `"""` + pyText(text) + `"""`
 		},
 	}})
 }
@@ -46,7 +51,7 @@ func pyType(t *TypeRef) string {
 		if len(t.Enum) > 0 {
 			values := make([]string, len(t.Enum))
 			for i, value := range t.Enum {
-				values[i] = `"` + value + `"`
+				values[i] = pythonQuote(value)
 			}
 			return "Literal[" + strings.Join(values, ", ") + "]"
 		}
@@ -72,15 +77,15 @@ func pyType(t *TypeRef) string {
 // the API always sends is indexed, so a missing one fails loudly.
 func pyRead(f *Field) string {
 	if f.Required && !f.Nullable {
-		if convert := pyConvert(f.Type, `data["`+f.Wire+`"]`); convert != "" {
+		if convert := pyConvert(f.Type, "data["+pythonQuote(f.Wire)+"]"); convert != "" {
 			return convert
 		}
 		return `data["` + f.Wire + `"]`
 	}
-	if convert := pyConvert(f.Type, `data["`+f.Wire+`"]`); convert != "" {
-		return `None if data.get("` + f.Wire + `") is None else ` + convert
+	if convert := pyConvert(f.Type, "data["+pythonQuote(f.Wire)+"]"); convert != "" {
+		return "None if data.get(" + pythonQuote(f.Wire) + ") is None else " + convert
 	}
-	return `data.get("` + f.Wire + `")`
+	return "data.get(" + pythonQuote(f.Wire) + ")"
 }
 
 // pyConvert builds expr into t, or is empty when nothing is to be built.
@@ -98,4 +103,8 @@ func pyConvert(t *TypeRef, expr string) string {
 		}
 	}
 	return ""
+}
+
+func pyText(text string) string {
+	return strings.NewReplacer(`\`, `\\`, `"`, `\"`).Replace(strings.TrimSpace(text))
 }

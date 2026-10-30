@@ -9,7 +9,7 @@ defmodule Perata.{{pascal .Name}} do
 {{- if .Paginated}}
 
   @doc """
-  {{.Summary}}. One page; `{{snake .Name}}_stream/{{if hasPath .}}3{{else}}2{{end}}` walks every page.
+  {{exDoc .Summary}}. One page; `{{snake .Name}}_stream/{{if hasPath .}}3{{else}}2{{end}}` walks every page.
 
   Options: `:page`, `:limit`{{range .Query}}, `:{{.Name}}`{{end}} and `:api_key`.
   """
@@ -17,7 +17,7 @@ defmodule Perata.{{pascal .Name}} do
   def {{snake .Name}}(%Client{} = client{{range .PathParams}}, {{exName .}}{{end}}, opts \\ []) do
     path = {{template "path" .}}{{exRequest .}}
 
-    with {:ok, data} <- Client.request(client, "{{.HTTPMethod}}", path, request) do
+    with {:ok, data} <- Client.request(client, {{quote .HTTPMethod}}, path, request) do
       {:ok, Perata.Page.from_map(data, &Perata.{{.Item}}.from_map/1)}
     end
   end
@@ -33,7 +33,7 @@ defmodule Perata.{{pascal .Name}} do
 {{- else}}
 
   @doc """
-  {{.Summary}}.
+  {{exDoc .Summary}}.
 
   Options: {{if .Write}}`:idempotency_key` and {{end}}`:api_key`.
   """
@@ -41,7 +41,7 @@ defmodule Perata.{{pascal .Name}} do
   def {{snake .Name}}(%Client{} = client{{range .PathParams}}, {{exName .}}{{end}}{{if .Body}}, params{{end}}, opts \\ []) do
     path = {{template "path" .}}{{exRequest .}}
 
-    with {:ok, data} <- Client.request(client, "{{.HTTPMethod}}", path, request) do
+    with {:ok, data} <- Client.request(client, {{quote .HTTPMethod}}, path, request) do
       {:ok, Perata.{{.Response}}.from_map(data)}
     end
   end

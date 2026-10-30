@@ -29,13 +29,13 @@ import java.util.Objects;
  */
 public final class Perata {
     /** This SDK's version. */
-    public static final String VERSION = "{{.Version}}";
+    public static final String VERSION = {{quote .Version}};
 
     /** The contract this SDK was generated from. */
-    public static final String API_VERSION = "{{.APIVersion}}";
+    public static final String API_VERSION = {{quote .APIVersion}};
 
     /** Peráta's API. The environment, test or live, is the API key's: prk_test_… or prk_live_…. */
-    public static final String DEFAULT_BASE_URL = "{{.BaseURL}}";
+    public static final String DEFAULT_BASE_URL = {{quote .BaseURL}};
 
     private final String apiKey;
     private final String baseUrl;
