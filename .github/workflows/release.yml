@@ -1,8 +1,15 @@
 name: release
 
-# A tag vX.Y.Z publishes that version of every SDK. npm and PyPI trust this
-# workflow through OIDC (trusted publishing), so no token is stored here. Go
-# is published by the go/vX.Y.Z tag itself, and PHP and Swift by the v tag through the root composer.json and Package.swift.
+# A tag vX.Y.Z publishes that version of every SDK to its registry. The jobs
+# are independent: one registry failing does not stop the others, and the tag
+# can be run again, because every job first asks its registry whether the
+# version is already there and does nothing if it is.
+#
+# Trusted publishing (OIDC, no stored token): npm, PyPI, RubyGems, crates.io,
+# Hex, pub.dev and NuGet. Secrets only for Maven Central (portal token and GPG
+# key) and NuGet's account name. Go is published by the go/vX.Y.Z tag itself,
+# and PHP and Swift by the v tag through the root composer.json and
+# Package.swift. RELEASING.md lists what each registry needs set up once.
 on:
   push:
     tags: ['v*']
@@ -22,10 +29,15 @@ jobs:
         with:
           node-version: '24'
           registry-url: 'https://registry.npmjs.org'
-      - run: npm install -g npm@latest
       - working-directory: typescript
         run: |
-          test "v$(node -p 'require("./package.json").version')" = "$GITHUB_REF_NAME"
+          version=$(node -p 'require("./package.json").version')
+          test "v$version" = "$GITHUB_REF_NAME"
+          if [ "$(npm view "@perata-sh/sdk@$version" version 2>/dev/null)" = "$version" ]; then
+            echo "::notice::npm already has @perata-sh/sdk@$version; nothing to publish."
+            exit 0
+          fi
+          npm install -g npm@latest
           npm install --no-audit --no-fund
           npm run build
           npm publish --access public --provenance
@@ -49,3 +61,173 @@ jobs:
       - uses: pypa/gh-action-pypi-publish@release/v1
         with:
           packages-dir: python/dist
+          skip-existing: true
+
+  rubygems:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+      - id: check
+        run: |
+          version=$(cat VERSION)
+          test "v$version" = "$GITHUB_REF_NAME"
+          .github/scripts/published.sh RubyGems "https://rubygems.org/api/v2/rubygems/perata-sdk/versions/$version.json"
+      - if: steps.check.outputs.published != 'true'
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.4'
+      # Exchanges the job's OIDC token for a short-lived API key (GEM_HOST_API_KEY).
+      - if: steps.check.outputs.published != 'true'
+        uses: rubygems/configure-rubygems-credentials@v2.1.0
+      - if: steps.check.outputs.published != 'true'
+        working-directory: ruby
+        run: |
+          gem build perata-sdk.gemspec
+          gem push perata-sdk-*.gem
+
+  crates:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+      - id: check
+        run: |
+          version=$(cat VERSION)
+          test "v$version" = "$GITHUB_REF_NAME"
+          .github/scripts/published.sh crates.io "https://crates.io/api/v1/crates/perata-sdk/$version"
+      # Exchanges the job's OIDC token for a temporary crates.io token.
+      - if: steps.check.outputs.published != 'true'
+        id: auth
+        uses: rust-lang/crates-io-auth-action@v1
+      - if: steps.check.outputs.published != 'true'
+        working-directory: rust
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ steps.auth.outputs.token }}
+        run: cargo publish
+
+  hex:
+    runs-on: ubuntu-latest
+    # Hex requires the environment of a public repository's workload identity.
+    environment: hex
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+      - id: check
+        run: |
+          version=$(cat VERSION)
+          test "v$version" = "$GITHUB_REF_NAME"
+          .github/scripts/published.sh Hex "https://hex.pm/api/packages/perata_sdk/releases/$version"
+      - if: steps.check.outputs.published != 'true'
+        uses: erlef/setup-beam@v1
+        with:
+          elixir-version: '1.18'
+          otp-version: '27'
+      - if: steps.check.outputs.published != 'true'
+        working-directory: elixir
+        env:
+          HEX_API_KEY_SECRET: ${{ secrets.HEX_API_KEY }}
+        run: |
+          mix local.hex --force
+          if [ -n "$HEX_API_KEY_SECRET" ]; then
+            # Fallback while no workload identity is configured on hex.pm.
+            export HEX_API_KEY="$HEX_API_KEY_SECRET"
+          else
+            # Workload identity: GitHub's OIDC token (audience hexpm) for a
+            # 15-minute Hex token that can publish this one package.
+            oidc=$(curl -fsS -H "Authorization: Bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
+              "$ACTIONS_ID_TOKEN_REQUEST_URL&audience=hexpm" | jq -r .value)
+            token=$(curl -fsS -X POST https://hex.pm/api/oauth/token \
+              --data-urlencode "grant_type=urn:ietf:params:oauth:grant-type:jwt-bearer" \
+              --data-urlencode "assertion=$oidc" \
+              --data-urlencode "scope=package:hexpm/perata_sdk" | jq -r .access_token)
+            echo "::add-mask::$token"
+            export HEX_API_KEY="Bearer $token"
+          fi
+          mix hex.publish package --yes
+
+  pubdev:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+      - id: check
+        run: |
+          version=$(cat VERSION)
+          test "v$version" = "$GITHUB_REF_NAME"
+          .github/scripts/published.sh pub.dev "https://pub.dev/api/packages/perata_sdk/versions/$version"
+      # Sets up Dart and provisions the OIDC token pub.dev accepts.
+      - if: steps.check.outputs.published != 'true'
+        uses: dart-lang/setup-dart@v1
+      - if: steps.check.outputs.published != 'true'
+        working-directory: dart
+        run: |
+          dart pub get
+          dart pub publish --force
+
+  nuget:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+      - id: check
+        run: |
+          version=$(cat VERSION)
+          test "v$version" = "$GITHUB_REF_NAME"
+          .github/scripts/published.sh NuGet "https://api.nuget.org/v3-flatcontainer/perata.sh.sdk/$version/perata.sh.sdk.nuspec"
+      - if: steps.check.outputs.published != 'true'
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: '10.0.x'
+      - if: steps.check.outputs.published != 'true'
+        working-directory: csharp
+        run: dotnet pack src/Perata/Perata.csproj --configuration Release --output "$RUNNER_TEMP/nupkg"
+      # Exchanges the job's OIDC token for a one-hour API key.
+      - if: steps.check.outputs.published != 'true'
+        id: login
+        uses: NuGet/login@v1
+        with:
+          user: ${{ secrets.NUGET_USER }}
+      - if: steps.check.outputs.published != 'true'
+        run: dotnet nuget push "$RUNNER_TEMP/nupkg/*.nupkg" --api-key "${{ steps.login.outputs.NUGET_API_KEY }}" --source https://api.nuget.org/v3/index.json --skip-duplicate
+
+  maven:
+    runs-on: ubuntu-latest
+    # The portal waits for the deployment to be validated and published.
+    timeout-minutes: 60
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - id: check
+        run: |
+          version=$(cat VERSION)
+          test "v$version" = "$GITHUB_REF_NAME"
+          .github/scripts/published.sh "Maven Central" "https://repo1.maven.org/maven2/sh/perata/sdk/$version/sdk-$version.pom"
+      - if: steps.check.outputs.published != 'true'
+        uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: '21'
+          server-id: central
+          server-username-env-var: MAVEN_CENTRAL_USERNAME
+          server-password-env-var: MAVEN_CENTRAL_TOKEN
+          gpg-private-key: ${{ secrets.MAVEN_GPG_PRIVATE_KEY }}
+          gpg-passphrase-env-var: MAVEN_GPG_PASSPHRASE
+      - if: steps.check.outputs.published != 'true'
+        working-directory: java
+        env:
+          MAVEN_CENTRAL_USERNAME: ${{ secrets.MAVEN_CENTRAL_USERNAME }}
+          MAVEN_CENTRAL_TOKEN: ${{ secrets.MAVEN_CENTRAL_TOKEN }}
+          MAVEN_GPG_PASSPHRASE: ${{ secrets.MAVEN_GPG_PASSPHRASE }}
+        run: mvn -B -Prelease deploy

@@ -78,8 +78,11 @@ One version for every language.
 1. Bump `VERSION`, run `go run ./cmd/sdkgen` and `./check.sh`, and commit on
    develop; after CI, fast-forward main.
 2. Tag `vX.Y.Z` and `go/vX.Y.Z` on that commit and push both. The `v` tag runs
-   `.github/workflows/release.yml` (npm and PyPI by trusted publishing); the
-   `go/` tag is the Go module's version, and Swift and Packagist read the `v`
-   tag from this repository through the root `Package.swift` and
-   `composer.json`, which are hand-written and must stay in step with
-   `swift/Package.swift` and `php/composer.json`.
+   `.github/workflows/release.yml`, which publishes npm, PyPI, RubyGems,
+   crates.io, Hex, pub.dev, NuGet and Maven Central (trusted publishing where
+   the registry has it, secrets otherwise; each job skips a version the
+   registry already has); the `go/` tag is the Go module's version, and Swift
+   and Packagist read the `v` tag from this repository through the root
+   `Package.swift` and `composer.json`, which are hand-written and must stay in
+   step with `swift/Package.swift` and `php/composer.json`. The one-time
+   account-side setup per registry is in `RELEASING.md`.
