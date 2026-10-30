@@ -33,7 +33,7 @@ for product in perata.products.list_iter():
 | `perata.refunds` | `create` |
 | `perata.subscriptions` | `cancel`, `get`, `list`, `list_iter` |
 
-As escritas aceitam `idempotency_key=`, e todas aceitam `api_key=` para usar a chave de outra organização numa chamada.
+As escritas aceitam `idempotency_key=`, e todas aceitam `api_key=` para usar a chave de outra organização numa chamada. Um POST sem chave de idempotência é enviado com uma `Idempotency-Key` própria (UUID v4 aleatório, uma por chamada); passe a sua para poder repetir a mesma operação com segurança.
 
 ## Erros
 

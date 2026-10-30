@@ -48,7 +48,7 @@ for (Product each : perata.products().listIter()) {
 | `perata.refunds()` | `create` |
 | `perata.subscriptions()` | `cancel`, `get`, `list`, `listIter` |
 
-Os modelos são imutáveis, com getters em camelCase (`payment.getAmountCents()`) e os valores enumerados como constantes (`Product.STATUS_ACTIVE`). O corpo de cada escrita é um builder aninhado no serviço (`ProductsService.CreateParams`); um campo opcional não definido fica fora da requisição. As listas aceitam `ListParams` (`page`, `limit` e os filtros) e o `…Iter` devolve um `Iterable` que percorre todas as páginas. As escritas aceitam `RequestOptions` com `idempotencyKey`, e todas aceitam `apiKey` para usar a chave de outra organização numa chamada.
+Os modelos são imutáveis, com getters em camelCase (`payment.getAmountCents()`) e os valores enumerados como constantes (`Product.STATUS_ACTIVE`). O corpo de cada escrita é um builder aninhado no serviço (`ProductsService.CreateParams`); um campo opcional não definido fica fora da requisição. As listas aceitam `ListParams` (`page`, `limit` e os filtros) e o `…Iter` devolve um `Iterable` que percorre todas as páginas. As escritas aceitam `RequestOptions` com `idempotencyKey`, e todas aceitam `apiKey` para usar a chave de outra organização numa chamada. Um POST sem chave de idempotência é enviado com uma `Idempotency-Key` própria (UUID v4 aleatório, uma por chamada); passe a sua para poder repetir a mesma operação com segurança.
 
 ## Erros
 

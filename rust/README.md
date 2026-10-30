@@ -36,7 +36,7 @@ for product in client.products().list_iter(ProductsListParams::new()) {
 | `client.refunds()` | `create` |
 | `client.subscriptions()` | `cancel`, `get`, `list`, `list_iter` |
 
-Os corpos das escritas são structs com `new(obrigatórios…)` e um método por campo opcional; os campos opcionais não definidos não são enviados. Os campos enumerados são enums (`ProductStatus::Active`) que guardam em `Unrecognized` um valor que esta versão ainda não conhece. Antes da chamada, `.idempotency_key(…)` torna uma escrita segura para repetir, e `.api_key(…)` usa a chave de outra organização. `Client::builder(chave)` aceita `base_url`, `timeout` (30 s por padrão) e `transport`, para usar outro cliente HTTP ou testar sem rede.
+Os corpos das escritas são structs com `new(obrigatórios…)` e um método por campo opcional; os campos opcionais não definidos não são enviados. Os campos enumerados são enums (`ProductStatus::Active`) que guardam em `Unrecognized` um valor que esta versão ainda não conhece. Antes da chamada, `.idempotency_key(…)` torna uma escrita segura para repetir, e `.api_key(…)` usa a chave de outra organização. `Client::builder(chave)` aceita `base_url`, `timeout` (30 s por padrão) e `transport`, para usar outro cliente HTTP ou testar sem rede. Um POST sem chave de idempotência é enviado com uma `Idempotency-Key` própria (UUID v4 aleatório, uma por chamada); passe a sua para poder repetir a mesma operação com segurança.
 
 ## Erros
 

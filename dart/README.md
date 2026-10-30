@@ -42,7 +42,7 @@ A chave da API é da organização e dá acesso a ela inteira: use o SDK no serv
 | `perata.refunds` | `create` |
 | `perata.subscriptions` | `cancel`, `get`, `list`, `listIter` |
 
-Os modelos são classes imutáveis com campos em camelCase (`payment.amountCents`) e `fromJson`/`toJson` com os nomes da API; os corpos das escritas são classes `…Params`, e um campo opcional deixado nulo não é enviado. As listas devolvem uma `Page` (`items`, `pagination.totalCount`, `pagination.maxPage`), e o `…Iter` devolve um `Stream` que percorre todas as páginas. As escritas aceitam `idempotencyKey:`, e todas aceitam `apiKey:` para usar a chave de outra organização numa chamada. `Perata(…, baseUrl:, httpClient:, timeout:)` troca o endereço, o `http.Client` (por exemplo, um `MockClient` nos testes) e o limite de 30 segundos.
+Os modelos são classes imutáveis com campos em camelCase (`payment.amountCents`) e `fromJson`/`toJson` com os nomes da API; os corpos das escritas são classes `…Params`, e um campo opcional deixado nulo não é enviado. As listas devolvem uma `Page` (`items`, `pagination.totalCount`, `pagination.maxPage`), e o `…Iter` devolve um `Stream` que percorre todas as páginas. As escritas aceitam `idempotencyKey:`, e todas aceitam `apiKey:` para usar a chave de outra organização numa chamada. `Perata(…, baseUrl:, httpClient:, timeout:)` troca o endereço, o `http.Client` (por exemplo, um `MockClient` nos testes) e o limite de 30 segundos. Um POST sem chave de idempotência é enviado com uma `Idempotency-Key` própria (UUID v4 aleatório, uma por chamada); passe a sua para poder repetir a mesma operação com segurança.
 
 ## Erros
 

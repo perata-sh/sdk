@@ -26,7 +26,7 @@ for product in perata.products.list_iter():
 | `perata.{{snake .Name}}` | {{range $i, $m := .Methods}}{{if $i}}, {{end}}`{{snake $m.Name}}`{{if $m.Paginated}}, `{{snake $m.Name}}_iter`{{end}}{{end}} |
 {{- end}}
 
-As escritas aceitam `idempotency_key=`, e todas aceitam `api_key=` para usar a chave de outra organização numa chamada.
+As escritas aceitam `idempotency_key=`, e todas aceitam `api_key=` para usar a chave de outra organização numa chamada. Um POST sem chave de idempotência é enviado com uma `Idempotency-Key` própria (UUID v4 aleatório, uma por chamada); passe a sua para poder repetir a mesma operação com segurança.
 
 ## Erros
 

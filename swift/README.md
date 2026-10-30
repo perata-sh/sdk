@@ -36,7 +36,7 @@ for try await product in perata.products.listIter() {
 | `perata.refunds` | `create` |
 | `perata.subscriptions` | `cancel`, `get`, `list`, `listIter` |
 
-Os modelos são structs `Codable` com propriedades em camelCase (`payment.amountCents`); os corpos das escritas são structs cujo inicializador pede primeiro os campos obrigatórios, e um campo opcional `nil` não é enviado. Os campos enumerados (`ProductStatus.active`) guardam em `rawValue` um valor que esta versão ainda não conhece. As escritas aceitam `idempotencyKey:`, e todas aceitam `apiKey:` para usar a chave de outra organização numa chamada. `PerataClient` aceita `baseURL`, `timeout` (30 s por padrão) e `transport`, para usar outro cliente HTTP ou testar sem rede.
+Os modelos são structs `Codable` com propriedades em camelCase (`payment.amountCents`); os corpos das escritas são structs cujo inicializador pede primeiro os campos obrigatórios, e um campo opcional `nil` não é enviado. Os campos enumerados (`ProductStatus.active`) guardam em `rawValue` um valor que esta versão ainda não conhece. As escritas aceitam `idempotencyKey:`, e todas aceitam `apiKey:` para usar a chave de outra organização numa chamada. `PerataClient` aceita `baseURL`, `timeout` (30 s por padrão) e `transport`, para usar outro cliente HTTP ou testar sem rede. Um POST sem chave de idempotência é enviado com uma `Idempotency-Key` própria (UUID v4 aleatório, uma por chamada); passe a sua para poder repetir a mesma operação com segurança.
 
 ## Erros
 

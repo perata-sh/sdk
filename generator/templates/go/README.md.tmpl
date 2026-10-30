@@ -20,6 +20,8 @@ for product, err := range client.Products.ListIter(ctx, nil) {
 }
 ```
 
+Um POST sem chave de idempotência é enviado com uma `Idempotency-Key` própria (UUID v4 aleatório, uma por chamada); passe a sua para poder repetir a mesma operação com segurança.
+
 ## Recursos
 
 | Serviço | Métodos |

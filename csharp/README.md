@@ -38,7 +38,7 @@ await foreach (var each in perata.Products.ListIterAsync())
 | `perata.Refunds` | `CreateAsync` |
 | `perata.Subscriptions` | `CancelAsync`, `GetAsync`, `ListAsync`, `ListIterAsync` |
 
-Os modelos são `record`s imutáveis em PascalCase (`payment.AmountCents`), com os valores enumerados como constantes (`Product.StatusActive`). O corpo de cada escrita é um `record` com membros `required` (`ProductsCreateParams`); um campo opcional nulo fica fora da requisição. As listas aceitam `…ListParams` (`Page`, `Limit` e os filtros) e o `…IterAsync` devolve um `IAsyncEnumerable` que percorre todas as páginas. Todo método aceita, por último, `RequestOptions` (`IdempotencyKey` nas escritas, `ApiKey` para usar a chave de outra organização numa chamada) e um `CancellationToken`.
+Os modelos são `record`s imutáveis em PascalCase (`payment.AmountCents`), com os valores enumerados como constantes (`Product.StatusActive`). O corpo de cada escrita é um `record` com membros `required` (`ProductsCreateParams`); um campo opcional nulo fica fora da requisição. As listas aceitam `…ListParams` (`Page`, `Limit` e os filtros) e o `…IterAsync` devolve um `IAsyncEnumerable` que percorre todas as páginas. Todo método aceita, por último, `RequestOptions` (`IdempotencyKey` nas escritas, `ApiKey` para usar a chave de outra organização numa chamada) e um `CancellationToken`. Um POST sem chave de idempotência é enviado com uma `Idempotency-Key` própria (UUID v4 aleatório, uma por chamada); passe a sua para poder repetir a mesma operação com segurança.
 
 ## Erros
 

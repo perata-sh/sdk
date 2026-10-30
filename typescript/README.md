@@ -33,7 +33,7 @@ for await (const product of perata.products.listIter()) {
 | `perata.refunds` | `create` |
 | `perata.subscriptions` | `cancel`, `get`, `list`, `listIter` |
 
-Cada método aceita, por último, `{ idempotencyKey, apiKey, signal }`.
+Cada método aceita, por último, `{ idempotencyKey, apiKey, signal }`. Um POST sem chave de idempotência é enviado com uma `Idempotency-Key` própria (UUID v4 aleatório, uma por chamada); passe a sua para poder repetir a mesma operação com segurança.
 
 ## Erros
 

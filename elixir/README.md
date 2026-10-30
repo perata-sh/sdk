@@ -34,7 +34,7 @@ client
 
 Cada função recebe o cliente primeiro e devolve `{:ok, valor}` ou `{:error, %Perata.Error{}}`. Os modelos são structs com os nomes da API (`payment.amount_cents`). O corpo de uma escrita é a struct de parâmetros do método (`%Perata.ProductsCreateParams{name: "Curso"}`), uma keyword list ou um mapa com chaves atom; um campo opcional não informado fica fora do JSON. As funções `_stream` devolvem um `Stream` preguiçoso que percorre todas as páginas a partir de `page:` e levantam `Perata.Error` numa recusa.
 
-As escritas aceitam `idempotency_key:`, e todas aceitam `api_key:` para usar a chave de outra organização numa chamada. `Perata.new/2` aceita `base_url:`, `timeout:` (30 segundos, em milissegundos) e `transport:`.
+As escritas aceitam `idempotency_key:`, e todas aceitam `api_key:` para usar a chave de outra organização numa chamada. `Perata.new/2` aceita `base_url:`, `timeout:` (30 segundos, em milissegundos) e `transport:`. Um POST sem chave de idempotência é enviado com uma `Idempotency-Key` própria (UUID v4 aleatório, uma por chamada); passe a sua para poder repetir a mesma operação com segurança.
 
 ## Erros
 

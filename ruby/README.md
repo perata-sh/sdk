@@ -35,7 +35,7 @@ end
 
 Os modelos são objetos imutáveis com leitores em snake_case (`payment.amount_cents`). O corpo de uma escrita é a classe de parâmetros do método (`Perata::ProductsCreateParams.new(name: "Curso")`) ou um `Hash` com os mesmos nomes; um campo opcional não informado fica fora do JSON. Os métodos `_iter` devolvem um `Enumerator` que percorre todas as páginas a partir de `page:` (ou recebem um bloco).
 
-As escritas aceitam `idempotency_key:`, e todas aceitam `api_key:` para usar a chave de outra organização numa chamada. `Perata::Client.new` aceita `base_url:`, `timeout:` (30 segundos) e `transport:`.
+As escritas aceitam `idempotency_key:`, e todas aceitam `api_key:` para usar a chave de outra organização numa chamada. `Perata::Client.new` aceita `base_url:`, `timeout:` (30 segundos) e `transport:`. Um POST sem chave de idempotência é enviado com uma `Idempotency-Key` própria (UUID v4 aleatório, uma por chamada); passe a sua para poder repetir a mesma operação com segurança.
 
 ## Erros
 
