@@ -61,6 +61,19 @@ public sealed class SubscriptionsService
         var walk = parameters ?? new SubscriptionsListParams();
         return Pages.IterateAsync((page, token) => ListAsync(walk with { Page = page }, options, token), walk.Page, cancellationToken);
     }
+
+    /// <summary>Trocar o plano de uma assinatura: outro preço e, se quiser, outra quantidade, com a forma de ratear a diferença (proration_behavior).</summary>
+    /// <param name="subscription">The subscription.</param>
+    /// <param name="parameters">The request.</param>
+    /// <param name="options">An idempotency key, or another organization's key for this call.</param>
+    /// <param name="cancellationToken">Cancels the call.</param>
+    /// <returns>The subscription.</returns>
+    /// <exception cref="PerataException">The API refused the call.</exception>
+    public Task<Subscription> UpdateAsync(string subscription, SubscriptionsUpdateParams parameters, RequestOptions? options = null, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(parameters);
+        return client.RequestAsync(HttpMethod.Patch, "/api/v1/subscriptions/" + PerataClient.Segment(subscription), null, JsonSerializer.SerializeToUtf8Bytes(parameters, PerataJson.Default.SubscriptionsUpdateParams), PerataJson.Default.SubscriptionEnvelope, options?.IdempotencyKey, options, cancellationToken);
+    }
 }
 
 /// <summary>The body of subscriptions:cancel.</summary>
@@ -93,5 +106,33 @@ public sealed record SubscriptionsListParams
         new("limit", Limit?.ToString(CultureInfo.InvariantCulture)),
         new("customer_id", CustomerId),
     ];
+}
+
+/// <summary>The body of subscriptions:update.</summary>
+public sealed record SubscriptionsUpdateParams
+{
+    /// <summary>A value of <see cref="ProrationBehavior"/>.</summary>
+    public const string ProrationBehaviorProrate = "prorate";
+
+    /// <summary>A value of <see cref="ProrationBehavior"/>.</summary>
+    public const string ProrationBehaviorInvoice = "invoice";
+
+    /// <summary>A value of <see cref="ProrationBehavior"/>.</summary>
+    public const string ProrationBehaviorNextPeriod = "next_period";
+
+    /// <summary>A value of <see cref="ProrationBehavior"/>.</summary>
+    public const string ProrationBehaviorReset = "reset";
+
+    /// <summary>O preço recorrente para onde a assinatura vai.</summary>
+    [JsonPropertyName("price_id")]
+    public required string PriceId { get; init; }
+
+    /// <summary>prorate (padrão): rateia o resto do período no próximo valor cobrado; invoice: cobra a diferença agora; next_period: troca no fim do período; reset: cobra o período inteiro do novo plano agora e reinicia o ciclo. Left out of the request when null.</summary>
+    [JsonPropertyName("proration_behavior")]
+    public string? ProrationBehavior { get; init; }
+
+    /// <summary>A nova quantidade; omitida, fica a atual. Left out of the request when null.</summary>
+    [JsonPropertyName("quantity")]
+    public long? Quantity { get; init; }
 }
 

@@ -18,6 +18,39 @@ public sealed class OrdersService
 
     internal OrdersService(PerataClient client) => this.client = client;
 
+    /// <summary>Ler um pedido: um checkout pago.</summary>
+    /// <param name="order">The order.</param>
+    /// <param name="options">Another organization's key for this call.</param>
+    /// <param name="cancellationToken">Cancels the call.</param>
+    /// <returns>The order.</returns>
+    /// <exception cref="PerataException">The API refused the call.</exception>
+    public Task<Order> GetAsync(string order, RequestOptions? options = null, CancellationToken cancellationToken = default)
+    {
+        return client.RequestAsync(HttpMethod.Get, "/api/v1/orders/" + PerataClient.Segment(order), null, null, PerataJson.Default.OrderEnvelope, null, options, cancellationToken);
+    }
+
+    /// <summary>Ler a fatura de um pedido, o documento comercial que o lojista gerou; sem ela, 404.</summary>
+    /// <param name="order">The order.</param>
+    /// <param name="options">Another organization's key for this call.</param>
+    /// <param name="cancellationToken">Cancels the call.</param>
+    /// <returns>The orderinvoice.</returns>
+    /// <exception cref="PerataException">The API refused the call.</exception>
+    public Task<OrderInvoice> GetInvoiceAsync(string order, RequestOptions? options = null, CancellationToken cancellationToken = default)
+    {
+        return client.RequestAsync(HttpMethod.Get, "/api/v1/orders/" + PerataClient.Segment(order) + "/invoice", null, null, PerataJson.Default.OrderInvoiceEnvelope, null, options, cancellationToken);
+    }
+
+    /// <summary>Ler o recibo de um pedido: o que foi pago, quando e como.</summary>
+    /// <param name="order">The order.</param>
+    /// <param name="options">Another organization's key for this call.</param>
+    /// <param name="cancellationToken">Cancels the call.</param>
+    /// <returns>The orderreceipt.</returns>
+    /// <exception cref="PerataException">The API refused the call.</exception>
+    public Task<OrderReceipt> GetReceiptAsync(string order, RequestOptions? options = null, CancellationToken cancellationToken = default)
+    {
+        return client.RequestAsync(HttpMethod.Get, "/api/v1/orders/" + PerataClient.Segment(order) + "/receipt", null, null, PerataJson.Default.OrderReceiptEnvelope, null, options, cancellationToken);
+    }
+
     /// <summary>Listar pedidos: checkouts pagos. One page; <see cref="ListIterAsync"/> walks every page.</summary>
     /// <param name="parameters">The page, its size and the filters; the first page when null.</param>
     /// <param name="options">Another organization's key for this call.</param>

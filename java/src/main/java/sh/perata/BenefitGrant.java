@@ -7,6 +7,20 @@ import java.util.Map;
 
 /** BenefitGrant is a resource of Peráta's API. */
 public final class BenefitGrant {
+    /** A value of {@link #getBenefitType()}. */
+    public static final String BENEFIT_TYPE_CUSTOM = "custom";
+    /** A value of {@link #getBenefitType()}. */
+    public static final String BENEFIT_TYPE_LICENSE_KEY = "license_key";
+    /** A value of {@link #getBenefitType()}. */
+    public static final String BENEFIT_TYPE_DOWNLOADABLE = "downloadable";
+    /** A value of {@link #getBenefitType()}. */
+    public static final String BENEFIT_TYPE_FEATURE_FLAG = "feature_flag";
+    /** A value of {@link #getBenefitType()}. */
+    public static final String BENEFIT_TYPE_METER_CREDIT = "meter_credit";
+    /** A value of {@link #getBenefitType()}. */
+    public static final String BENEFIT_TYPE_DISCORD = "discord";
+    /** A value of {@link #getBenefitType()}. */
+    public static final String BENEFIT_TYPE_GITHUB_REPOSITORY = "github_repository";
     /** A value of {@link #getStatus()}. */
     public static final String STATUS_GRANTED = "granted";
     /** A value of {@link #getStatus()}. */
@@ -43,7 +57,7 @@ public final class BenefitGrant {
     static BenefitGrant fromJson(Map<String, Object> data) {
         return new BenefitGrant(
                 Json.required(data, "benefit_id", Json::asString),
-                Json.optional(data, "benefit_metadata", Json.map(Json::any)),
+                Json.required(data, "benefit_metadata", Json.map(Json::any)),
                 Json.required(data, "benefit_type", Json::asString),
                 Json.required(data, "created_at", Json::asString),
                 Json.required(data, "customer_id", Json::asString),
@@ -51,7 +65,7 @@ public final class BenefitGrant {
                 Json.required(data, "id", Json::asString),
                 Json.required(data, "is_granted", Json::asBoolean),
                 Json.required(data, "is_revoked", Json::asBoolean),
-                Json.optional(data, "properties", Json.map(Json::any)),
+                Json.required(data, "properties", Json.map(Json::any)),
                 Json.optional(data, "revoked_at", Json::asString),
                 Json.required(data, "status", Json::asString));
     }
@@ -61,7 +75,7 @@ public final class BenefitGrant {
         return benefitId;
     }
 
-    /** @return Os metadados do benefício: os valores de uma feature flag. (null when the API sends none) */
+    /** @return Os metadados do benefício: os valores de uma feature flag. */
     public Map<String, Object> getBenefitMetadata() {
         return benefitMetadata;
     }
@@ -101,7 +115,7 @@ public final class BenefitGrant {
         return isRevoked;
     }
 
-    /** @return O que a concessão informa, conforme o tipo, sem credenciais. (null when the API sends none) */
+    /** @return O que a concessão informa, conforme o tipo, sem credenciais. */
     public Map<String, Object> getProperties() {
         return properties;
     }

@@ -7,30 +7,75 @@ import java.util.Map;
 
 /** Checkout is a resource of Peráta's API. */
 public final class Checkout {
+    /** A value of {@link #getStatus()}. */
+    public static final String STATUS_ACTIVE = "active";
+    /** A value of {@link #getStatus()}. */
+    public static final String STATUS_ARCHIVED = "archived";
 
+    private final String cancelUrl;
+    private final String createdAt;
+    private final String expiresAt;
     private final String id;
+    private final String label;
     private final String priceId;
     private final String productId;
+    private final long quantity;
+    private final String status;
+    private final String successUrl;
     private final String url;
 
-    Checkout(String id, String priceId, String productId, String url) {
+    Checkout(String cancelUrl, String createdAt, String expiresAt, String id, String label, String priceId, String productId, long quantity, String status, String successUrl, String url) {
+        this.cancelUrl = cancelUrl;
+        this.createdAt = createdAt;
+        this.expiresAt = expiresAt;
         this.id = id;
+        this.label = label;
         this.priceId = priceId;
         this.productId = productId;
+        this.quantity = quantity;
+        this.status = status;
+        this.successUrl = successUrl;
         this.url = url;
     }
 
     static Checkout fromJson(Map<String, Object> data) {
         return new Checkout(
+                Json.required(data, "cancel_url", Json::asString),
+                Json.required(data, "created_at", Json::asString),
+                Json.optional(data, "expires_at", Json::asString),
                 Json.required(data, "id", Json::asString),
+                Json.required(data, "label", Json::asString),
                 Json.required(data, "price_id", Json::asString),
                 Json.required(data, "product_id", Json::asString),
+                Json.required(data, "quantity", Json::asLong),
+                Json.required(data, "status", Json::asString),
+                Json.required(data, "success_url", Json::asString),
                 Json.required(data, "url", Json::asString));
+    }
+
+    /** @return Endereço https para onde o comprador volta se desistir; vazio sem ele. */
+    public String getCancelUrl() {
+        return cancelUrl;
+    }
+
+    /** @return the API's {@code created_at} */
+    public String getCreatedAt() {
+        return createdAt;
+    }
+
+    /** @return Quando o checkout deixa de abrir sessões; nulo sem prazo. (null when the API sends none) */
+    public String getExpiresAt() {
+        return expiresAt;
     }
 
     /** @return the API's {@code id} */
     public String getId() {
         return id;
+    }
+
+    /** @return Como o lojista chama o checkout nas próprias telas; o comprador não vê. */
+    public String getLabel() {
+        return label;
     }
 
     /** @return the API's {@code price_id} */
@@ -43,6 +88,21 @@ public final class Checkout {
         return productId;
     }
 
+    /** @return the API's {@code quantity} */
+    public long getQuantity() {
+        return quantity;
+    }
+
+    /** @return active abre sessões de compra; archived saiu de circulação. */
+    public String getStatus() {
+        return status;
+    }
+
+    /** @return Endereço https para onde o comprador volta depois de pagar; vazio sem ele. */
+    public String getSuccessUrl() {
+        return successUrl;
+    }
+
     /** @return Endereço para onde o comprador é enviado. */
     public String getUrl() {
         return url;
@@ -50,6 +110,6 @@ public final class Checkout {
 
     @Override
     public String toString() {
-        return "Checkout{" + "id=" + id + ", priceId=" + priceId + ", productId=" + productId + ", url=" + url + "}";
+        return "Checkout{" + "cancelUrl=" + cancelUrl + ", createdAt=" + createdAt + ", expiresAt=" + expiresAt + ", id=" + id + ", label=" + label + ", priceId=" + priceId + ", productId=" + productId + ", quantity=" + quantity + ", status=" + status + ", successUrl=" + successUrl + ", url=" + url + "}";
     }
 }

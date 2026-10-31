@@ -82,6 +82,58 @@ defmodule PerataTest do
     end
   end
 
+  test "a discount goes through create, get, list and delete" do
+    discount = fn id -> JSON.decode!(String.replace(~S|{"id":"__ID__","name":"Black","code":null,"type":"percentage","basis_points":1000,"amount_cents":0,"currency":"BRL","duration":"once","duration_in_months":0,"max_redemptions":null,"max_redemptions_per_customer":null,"redemptions_count":0,"starts_at":"2026-10-17T00:00:00Z","ends_at":null,"status":"active","product_ids":["prod_1"],"created_at":"2026-10-17T00:00:00Z","modified_at":"2026-10-17T00:00:00Z"}|, "__ID__", id)) end
+
+    perata =
+      client(fn request ->
+        cond do
+          request.method == "POST" ->
+            {201, %{"data" => discount.("disc_1")}, []}
+
+          request.method == "DELETE" ->
+            {204, nil, []}
+
+          request.url.path == "/api/v1/discounts" ->
+            page = query(request)["page"]
+
+            {200,
+             %{
+               "data" => %{
+                 "items" => [discount.("disc_#{page}")],
+                 "pagination" => %{"total_count" => 2, "max_page" => 2}
+               }
+             }, []}
+
+          true ->
+            {200, %{"data" => discount.("disc_1")}, []}
+        end
+      end)
+
+    assert {:ok, %Perata.Discount{id: "disc_1", code: nil, product_ids: ["prod_1"]}} =
+             Perata.Discounts.create(perata, %Perata.DiscountsCreateParams{
+               name: "Black",
+               type: "percentage",
+               duration: "once",
+               basis_points: 1000
+             })
+
+    assert {:ok, %Perata.Discount{name: "Black"}} = Perata.Discounts.get(perata, "disc_1")
+
+    assert Perata.Discounts.list_stream(perata, limit: 1) |> Enum.map(& &1.id) == ["disc_1", "disc_2"]
+    assert :ok = Perata.Discounts.delete(perata, "disc_1")
+
+    requests = for _ <- 1..5, do: (assert_received {:request, seen}; "#{seen.method} #{seen.url.path}")
+
+    assert requests == [
+             "POST /api/v1/discounts",
+             "GET /api/v1/discounts/disc_1",
+             "GET /api/v1/discounts",
+             "GET /api/v1/discounts",
+             "DELETE /api/v1/discounts/disc_1"
+           ]
+  end
+
   test "a free-form value decodes nested" do
     state = JSON.decode!(~S|{"id":"cus_1","name":"Ana","email":"ana@example.com","external_id":"","status":"active","created_at":"2026-10-17T00:00:00Z","active_subscriptions":[],"granted_benefits":[{"id":"gr_1","granted_at":"2026-10-17T00:00:00Z","benefit_id":"ben_1","benefit_type":"feature_flag","benefit_metadata":{"flags":{"beta":true,"limits":{"seats":5,"tiers":["a",2,null,1.5]}}},"properties":{"links":[{"url":"https://example.com","expires":null}]}}]}|)
     perata = client(fn _request -> {200, %{"data" => state}, []} end)

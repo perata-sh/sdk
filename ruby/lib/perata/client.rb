@@ -32,12 +32,24 @@ module Perata
   #   product = perata.products.create({ name: "Curso" })
   #   perata.products.list_iter { |product| puts product.name }
   class Client
+    # @return [BenefitsService]
+    attr_reader :benefits
+    # @return [CheckoutLinksService]
+    attr_reader :checkout_links
     # @return [CheckoutsService]
     attr_reader :checkouts
     # @return [CustomerSessionsService]
     attr_reader :customer_sessions
     # @return [CustomersService]
     attr_reader :customers
+    # @return [DiscountsService]
+    attr_reader :discounts
+    # @return [DisputesService]
+    attr_reader :disputes
+    # @return [EventsService]
+    attr_reader :events
+    # @return [MetersService]
+    attr_reader :meters
     # @return [OrdersService]
     attr_reader :orders
     # @return [PaymentMethodsService]
@@ -52,6 +64,8 @@ module Perata
     attr_reader :refunds
     # @return [SubscriptionsService]
     attr_reader :subscriptions
+    # @return [WebhooksService]
+    attr_reader :webhooks
 
     # The base URL must be https; http is accepted only for localhost,
     # 127.0.0.0/8 and ::1, and any other raises ArgumentError.
@@ -61,9 +75,15 @@ module Perata
       check_base_url!(@base_url)
       @timeout = timeout
       @transport = transport
+      @benefits = BenefitsService.new(self)
+      @checkout_links = CheckoutLinksService.new(self)
       @checkouts = CheckoutsService.new(self)
       @customer_sessions = CustomerSessionsService.new(self)
       @customers = CustomersService.new(self)
+      @discounts = DiscountsService.new(self)
+      @disputes = DisputesService.new(self)
+      @events = EventsService.new(self)
+      @meters = MetersService.new(self)
       @orders = OrdersService.new(self)
       @payment_methods = PaymentMethodsService.new(self)
       @payments = PaymentsService.new(self)
@@ -71,6 +91,7 @@ module Perata
       @products = ProductsService.new(self)
       @refunds = RefundsService.new(self)
       @subscriptions = SubscriptionsService.new(self)
+      @webhooks = WebhooksService.new(self)
     end
 
     # Calls the API and answers what it wrapped in +data+; a refusal raises

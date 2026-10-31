@@ -27,5 +27,28 @@ final class RefundsService
         $data = $this->client->request('POST', '/api/v1/refunds', body: $params, idempotencyKey: $idempotencyKey, apiKey: $apiKey);
         return Models\Refund::fromArray($data);
     }
+
+    /**
+     * Listar reembolsos, opcionalmente de um pagamento (payment_id). One page; listIter() walks every page.
+     *
+     * @param array{page?: int, limit?: int, payment_id?: string} $params
+     * @return Page<Models\Refund>
+     */
+    public function list(array $params = [], ?string $apiKey = null): Page
+    {
+        $data = $this->client->request('GET', '/api/v1/refunds', query: $params, apiKey: $apiKey);
+        return Page::fromArray($data, Models\Refund::fromArray(...));
+    }
+
+    /**
+     * Walks every page of refunds:list, item by item.
+     *
+     * @param array{page?: int, limit?: int, payment_id?: string} $params
+     * @return \Generator<int, Models\Refund>
+     */
+    public function listIter(array $params = [], ?string $apiKey = null): \Generator
+    {
+        return Page::iterate(fn (int $page): Page => $this->list(['page' => $page] + $params, $apiKey), $params['page'] ?? 1);
+    }
 }
 

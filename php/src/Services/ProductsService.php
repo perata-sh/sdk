@@ -18,6 +18,15 @@ final class ProductsService
     }
 
     /**
+     * Arquivar um produto: sai das vendas novas e o que já foi vendido continua apontando para ele.
+     */
+    public function archive(string $product, ?string $idempotencyKey = null, ?string $apiKey = null): Models\Product
+    {
+        $data = $this->client->request('POST', '/api/v1/products/' . rawurlencode($product) . '/archive', idempotencyKey: $idempotencyKey, apiKey: $apiKey);
+        return Models\Product::fromArray($data);
+    }
+
+    /**
      * Criar um produto.
      *
      * @param array{description?: string, name: string} $params
@@ -58,6 +67,17 @@ final class ProductsService
     public function listIter(array $params = [], ?string $apiKey = null): \Generator
     {
         return Page::iterate(fn (int $page): Page => $this->list(['page' => $page] + $params, $apiKey), $params['page'] ?? 1);
+    }
+
+    /**
+     * Atualizar o nome ou a descrição de um produto ativo.
+     *
+     * @param array{description?: string, name?: string} $params
+     */
+    public function update(string $product, array $params, ?string $idempotencyKey = null, ?string $apiKey = null): Models\Product
+    {
+        $data = $this->client->request('PATCH', '/api/v1/products/' . rawurlencode($product), body: $params, idempotencyKey: $idempotencyKey, apiKey: $apiKey);
+        return Models\Product::fromArray($data);
     }
 }
 

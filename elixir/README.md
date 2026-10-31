@@ -21,16 +21,23 @@ client
 
 | Módulo | Funções |
 |---|---|
-| `Perata.Checkouts` | `create` |
+| `Perata.Benefits` | `create`, `delete`, `get`, `list`, `list_stream`, `list_grants`, `list_grants_stream`, `update` |
+| `Perata.CheckoutLinks` | `create`, `delete`, `get`, `list`, `list_stream`, `update` |
+| `Perata.Checkouts` | `create`, `get`, `update` |
 | `Perata.CustomerSessions` | `create` |
-| `Perata.Customers` | `create`, `get`, `get_state`, `list`, `list_stream` |
-| `Perata.Orders` | `list`, `list_stream` |
+| `Perata.Customers` | `create`, `delete`, `get`, `get_external`, `get_state`, `list`, `list_stream`, `update`, `update_external` |
+| `Perata.Discounts` | `create`, `delete`, `get`, `list`, `list_stream`, `update` |
+| `Perata.Disputes` | `get`, `list`, `list_stream` |
+| `Perata.Events` | `list`, `list_stream` |
+| `Perata.Meters` | `get`, `list`, `list_stream` |
+| `Perata.Orders` | `get`, `get_invoice`, `get_receipt`, `list`, `list_stream` |
 | `Perata.PaymentMethods` | `detach`, `list`, `list_stream` |
 | `Perata.Payments` | `get`, `list`, `list_stream` |
 | `Perata.Prices` | `create`, `list`, `list_stream` |
-| `Perata.Products` | `create`, `get`, `list`, `list_stream` |
-| `Perata.Refunds` | `create` |
-| `Perata.Subscriptions` | `cancel`, `get`, `list`, `list_stream` |
+| `Perata.Products` | `archive`, `create`, `get`, `list`, `list_stream`, `update` |
+| `Perata.Refunds` | `create`, `list`, `list_stream` |
+| `Perata.Subscriptions` | `cancel`, `get`, `list`, `list_stream`, `update` |
+| `Perata.Webhooks` | `create_endpoint`, `delete_endpoint`, `get_endpoint`, `list_deliveries`, `list_deliveries_stream`, `list_endpoints`, `list_endpoints_stream`, `update_endpoint` |
 
 Cada função recebe o cliente primeiro e devolve `{:ok, valor}` ou `{:error, %Perata.Error{}}`. Os modelos são structs com os nomes da API (`payment.amount_cents`). O corpo de uma escrita é a struct de parâmetros do método (`%Perata.ProductsCreateParams{name: "Curso"}`), uma keyword list ou um mapa com chaves atom; um campo opcional não informado fica fora do JSON. As funções `_stream` devolvem um `Stream` preguiçoso que percorre todas as páginas a partir de `page:` e levantam `Perata.Error` numa recusa.
 

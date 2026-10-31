@@ -26,16 +26,23 @@ Um POST sem chave de idempotência é enviado com uma `Idempotency-Key` própria
 
 | Serviço | Métodos |
 |---|---|
-| `client.Checkouts` | `Create` |
+| `client.Benefits` | `Create`, `Delete`, `Get`, `List`, `ListIter`, `ListGrants`, `ListGrantsIter`, `Update` |
+| `client.CheckoutLinks` | `Create`, `Delete`, `Get`, `List`, `ListIter`, `Update` |
+| `client.Checkouts` | `Create`, `Get`, `Update` |
 | `client.CustomerSessions` | `Create` |
-| `client.Customers` | `Create`, `Get`, `GetState`, `List`, `ListIter` |
-| `client.Orders` | `List`, `ListIter` |
+| `client.Customers` | `Create`, `Delete`, `Get`, `GetExternal`, `GetState`, `List`, `ListIter`, `Update`, `UpdateExternal` |
+| `client.Discounts` | `Create`, `Delete`, `Get`, `List`, `ListIter`, `Update` |
+| `client.Disputes` | `Get`, `List`, `ListIter` |
+| `client.Events` | `List`, `ListIter` |
+| `client.Meters` | `Get`, `List`, `ListIter` |
+| `client.Orders` | `Get`, `GetInvoice`, `GetReceipt`, `List`, `ListIter` |
 | `client.PaymentMethods` | `Detach`, `List`, `ListIter` |
 | `client.Payments` | `Get`, `List`, `ListIter` |
 | `client.Prices` | `Create`, `List`, `ListIter` |
-| `client.Products` | `Create`, `Get`, `List`, `ListIter` |
-| `client.Refunds` | `Create` |
-| `client.Subscriptions` | `Cancel`, `Get`, `List`, `ListIter` |
+| `client.Products` | `Archive`, `Create`, `Get`, `List`, `ListIter`, `Update` |
+| `client.Refunds` | `Create`, `List`, `ListIter` |
+| `client.Subscriptions` | `Cancel`, `Get`, `List`, `ListIter`, `Update` |
+| `client.Webhooks` | `CreateEndpoint`, `DeleteEndpoint`, `GetEndpoint`, `ListDeliveries`, `ListDeliveriesIter`, `ListEndpoints`, `ListEndpointsIter`, `UpdateEndpoint` |
 
 ## Erros
 

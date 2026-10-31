@@ -17,9 +17,15 @@ var (
 )
 
 func (c *Client) initServices() {
+	c.Benefits = &BenefitsService{client: c}
+	c.CheckoutLinks = &CheckoutLinksService{client: c}
 	c.Checkouts = &CheckoutsService{client: c}
 	c.CustomerSessions = &CustomerSessionsService{client: c}
 	c.Customers = &CustomersService{client: c}
+	c.Discounts = &DiscountsService{client: c}
+	c.Disputes = &DisputesService{client: c}
+	c.Events = &EventsService{client: c}
+	c.Meters = &MetersService{client: c}
 	c.Orders = &OrdersService{client: c}
 	c.PaymentMethods = &PaymentMethodsService{client: c}
 	c.Payments = &PaymentsService{client: c}
@@ -27,6 +33,224 @@ func (c *Client) initServices() {
 	c.Products = &ProductsService{client: c}
 	c.Refunds = &RefundsService{client: c}
 	c.Subscriptions = &SubscriptionsService{client: c}
+	c.Webhooks = &WebhooksService{client: c}
+}
+
+// BenefitsService is the API's benefits.
+type BenefitsService struct{ client *Client }
+
+// Create: Criar um benefício custom, license_key, feature_flag ou meter_credit; downloads e os benefícios do Discord e do GitHub se configuram no painel.
+func (s *BenefitsService) Create(ctx context.Context, params BenefitsCreateParams, opts ...RequestOption) (*Benefit, error) {
+	var out Benefit
+	err := s.client.do(ctx, http.MethodPost, "/api/v1/benefits", nil, params, &out, opts)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+// Delete: Excluir um benefício: ele sai de todos os produtos e é revogado de quem o tem. The API answers 204, so there is nothing to return.
+func (s *BenefitsService) Delete(ctx context.Context, benefit string, opts ...RequestOption) error {
+	return s.client.do(ctx, http.MethodDelete, "/api/v1/benefits/"+url.PathEscape(benefit), nil, nil, nil, opts)
+}
+
+// Get: Ler um benefício.
+func (s *BenefitsService) Get(ctx context.Context, benefit string, opts ...RequestOption) (*Benefit, error) {
+	var out Benefit
+	err := s.client.do(ctx, http.MethodGet, "/api/v1/benefits/"+url.PathEscape(benefit), nil, nil, &out, opts)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+// BenefitsListParams are the page and filters of benefits:list.
+type BenefitsListParams struct {
+	// Page is the page, from 1; Limit the items a page, 1 to 100 (10 by default).
+	Page, Limit int
+	// Só os benefícios deste tipo: custom, license_key, downloadable, feature_flag, meter_credit, discord ou github_repository.
+	Type string
+}
+
+func (p *BenefitsListParams) query() url.Values {
+	q := url.Values{}
+	if p == nil {
+		return q
+	}
+	if p.Page > 0 {
+		q.Set("page", strconv.Itoa(p.Page))
+	}
+	if p.Limit > 0 {
+		q.Set("limit", strconv.Itoa(p.Limit))
+	}
+	if p.Type != "" {
+		q.Set("type", p.Type)
+	}
+	return q
+}
+
+// List: Listar benefícios, opcionalmente de um tipo (type). It answers one page; ListIter walks every page.
+func (s *BenefitsService) List(ctx context.Context, params *BenefitsListParams, opts ...RequestOption) (*Page[Benefit], error) {
+	var page Page[Benefit]
+	err := s.client.do(ctx, http.MethodGet, "/api/v1/benefits", params.query(), nil, &page, opts)
+	if err != nil {
+		return nil, err
+	}
+	return &page, nil
+}
+
+// ListIter walks every page of benefits:list, item by item.
+func (s *BenefitsService) ListIter(ctx context.Context, params *BenefitsListParams, opts ...RequestOption) iter.Seq2[Benefit, error] {
+	walk := BenefitsListParams{}
+	if params != nil {
+		walk = *params
+	}
+	return iterate(func(page int) (*Page[Benefit], error) {
+		walk.Page = page
+		return s.List(ctx, &walk, opts...)
+	}, walk.Page)
+}
+
+// BenefitsListGrantsParams are the page and filters of benefits:list_grants.
+type BenefitsListGrantsParams struct {
+	// Page is the page, from 1; Limit the items a page, 1 to 100 (10 by default).
+	Page, Limit int
+	// Só as concessões deste cliente.
+	CustomerID string
+	// true: só as vigentes; false: só as revogadas.
+	IsGranted string
+}
+
+func (p *BenefitsListGrantsParams) query() url.Values {
+	q := url.Values{}
+	if p == nil {
+		return q
+	}
+	if p.Page > 0 {
+		q.Set("page", strconv.Itoa(p.Page))
+	}
+	if p.Limit > 0 {
+		q.Set("limit", strconv.Itoa(p.Limit))
+	}
+	if p.CustomerID != "" {
+		q.Set("customer_id", p.CustomerID)
+	}
+	if p.IsGranted != "" {
+		q.Set("is_granted", p.IsGranted)
+	}
+	return q
+}
+
+// ListGrants: Listar as concessões de um benefício, opcionalmente de um cliente (customer_id) ou só as vigentes (is_granted). It answers one page; ListGrantsIter walks every page.
+func (s *BenefitsService) ListGrants(ctx context.Context, benefit string, params *BenefitsListGrantsParams, opts ...RequestOption) (*Page[BenefitGrant], error) {
+	var page Page[BenefitGrant]
+	err := s.client.do(ctx, http.MethodGet, "/api/v1/benefits/"+url.PathEscape(benefit)+"/grants", params.query(), nil, &page, opts)
+	if err != nil {
+		return nil, err
+	}
+	return &page, nil
+}
+
+// ListGrantsIter walks every page of benefits:list_grants, item by item.
+func (s *BenefitsService) ListGrantsIter(ctx context.Context, benefit string, params *BenefitsListGrantsParams, opts ...RequestOption) iter.Seq2[BenefitGrant, error] {
+	walk := BenefitsListGrantsParams{}
+	if params != nil {
+		walk = *params
+	}
+	return iterate(func(page int) (*Page[BenefitGrant], error) {
+		walk.Page = page
+		return s.ListGrants(ctx, benefit, &walk, opts...)
+	}, walk.Page)
+}
+
+// Update: Atualizar o nome, a visibilidade, as propriedades e os metadados de um benefício; o tipo e a descrição dada na criação não mudam, e o que a concessão já entregou fica como foi entregue.
+func (s *BenefitsService) Update(ctx context.Context, benefit string, params BenefitsUpdateParams, opts ...RequestOption) (*Benefit, error) {
+	var out Benefit
+	err := s.client.do(ctx, http.MethodPatch, "/api/v1/benefits/"+url.PathEscape(benefit), nil, params, &out, opts)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+// CheckoutLinksService is the API's checkout-links.
+type CheckoutLinksService struct{ client *Client }
+
+// Create: Criar um link de checkout: uma oferta durável de um ou mais produtos, com desconto, quantidade e páginas de retorno.
+func (s *CheckoutLinksService) Create(ctx context.Context, params CheckoutLinksCreateParams, opts ...RequestOption) (*CheckoutLink, error) {
+	var out CheckoutLink
+	err := s.client.do(ctx, http.MethodPost, "/api/v1/checkout-links", nil, params, &out, opts)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+// Delete: Excluir um link de checkout: ele deixa de abrir checkouts; os que já abriu continuam. The API answers 204, so there is nothing to return.
+func (s *CheckoutLinksService) Delete(ctx context.Context, checkoutLink string, opts ...RequestOption) error {
+	return s.client.do(ctx, http.MethodDelete, "/api/v1/checkout-links/"+url.PathEscape(checkoutLink), nil, nil, nil, opts)
+}
+
+// Get: Ler um link de checkout.
+func (s *CheckoutLinksService) Get(ctx context.Context, checkoutLink string, opts ...RequestOption) (*CheckoutLink, error) {
+	var out CheckoutLink
+	err := s.client.do(ctx, http.MethodGet, "/api/v1/checkout-links/"+url.PathEscape(checkoutLink), nil, nil, &out, opts)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+// CheckoutLinksListParams are the page and filters of checkout-links:list.
+type CheckoutLinksListParams struct {
+	// Page is the page, from 1; Limit the items a page, 1 to 100 (10 by default).
+	Page, Limit int
+}
+
+func (p *CheckoutLinksListParams) query() url.Values {
+	q := url.Values{}
+	if p == nil {
+		return q
+	}
+	if p.Page > 0 {
+		q.Set("page", strconv.Itoa(p.Page))
+	}
+	if p.Limit > 0 {
+		q.Set("limit", strconv.Itoa(p.Limit))
+	}
+	return q
+}
+
+// List: Listar links de checkout. It answers one page; ListIter walks every page.
+func (s *CheckoutLinksService) List(ctx context.Context, params *CheckoutLinksListParams, opts ...RequestOption) (*Page[CheckoutLink], error) {
+	var page Page[CheckoutLink]
+	err := s.client.do(ctx, http.MethodGet, "/api/v1/checkout-links", params.query(), nil, &page, opts)
+	if err != nil {
+		return nil, err
+	}
+	return &page, nil
+}
+
+// ListIter walks every page of checkout-links:list, item by item.
+func (s *CheckoutLinksService) ListIter(ctx context.Context, params *CheckoutLinksListParams, opts ...RequestOption) iter.Seq2[CheckoutLink, error] {
+	walk := CheckoutLinksListParams{}
+	if params != nil {
+		walk = *params
+	}
+	return iterate(func(page int) (*Page[CheckoutLink], error) {
+		walk.Page = page
+		return s.List(ctx, &walk, opts...)
+	}, walk.Page)
+}
+
+// Update: Atualizar o rótulo, as páginas de retorno, os produtos e os metadados de um link; a quantidade e o desconto ficam como foram publicados.
+func (s *CheckoutLinksService) Update(ctx context.Context, checkoutLink string, params CheckoutLinksUpdateParams, opts ...RequestOption) (*CheckoutLink, error) {
+	var out CheckoutLink
+	err := s.client.do(ctx, http.MethodPatch, "/api/v1/checkout-links/"+url.PathEscape(checkoutLink), nil, params, &out, opts)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
 }
 
 // CheckoutsService is the API's checkouts.
@@ -36,6 +260,26 @@ type CheckoutsService struct{ client *Client }
 func (s *CheckoutsService) Create(ctx context.Context, params CheckoutsCreateParams, opts ...RequestOption) (*Checkout, error) {
 	var out Checkout
 	err := s.client.do(ctx, http.MethodPost, "/api/v1/checkouts", nil, params, &out, opts)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+// Get: Ler um checkout: o endereço, o estado e as páginas de retorno.
+func (s *CheckoutsService) Get(ctx context.Context, checkout string, opts ...RequestOption) (*Checkout, error) {
+	var out Checkout
+	err := s.client.do(ctx, http.MethodGet, "/api/v1/checkouts/"+url.PathEscape(checkout), nil, nil, &out, opts)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+// Update: Atualizar o rótulo e as páginas de retorno de um checkout ativo.
+func (s *CheckoutsService) Update(ctx context.Context, checkout string, params CheckoutsUpdateParams, opts ...RequestOption) (*Checkout, error) {
+	var out Checkout
+	err := s.client.do(ctx, http.MethodPatch, "/api/v1/checkouts/"+url.PathEscape(checkout), nil, params, &out, opts)
 	if err != nil {
 		return nil, err
 	}
@@ -68,10 +312,25 @@ func (s *CustomersService) Create(ctx context.Context, params CustomersCreatePar
 	return &out, nil
 }
 
+// Delete: Excluir um cliente: as assinaturas terminam na hora, os benefícios são revogados e o ID externo é liberado; pedidos e pagamentos continuam. The API answers 204, so there is nothing to return.
+func (s *CustomersService) Delete(ctx context.Context, customer string, opts ...RequestOption) error {
+	return s.client.do(ctx, http.MethodDelete, "/api/v1/customers/"+url.PathEscape(customer), nil, nil, nil, opts)
+}
+
 // Get: Ler um cliente.
 func (s *CustomersService) Get(ctx context.Context, customer string, opts ...RequestOption) (*Customer, error) {
 	var out Customer
 	err := s.client.do(ctx, http.MethodGet, "/api/v1/customers/"+url.PathEscape(customer), nil, nil, &out, opts)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+// GetExternal: Ler um cliente pelo ID dele no sistema do lojista (external_id).
+func (s *CustomersService) GetExternal(ctx context.Context, externalID string, opts ...RequestOption) (*Customer, error) {
+	var out Customer
+	err := s.client.do(ctx, http.MethodGet, "/api/v1/external-customers/"+url.PathEscape(externalID), nil, nil, &out, opts)
 	if err != nil {
 		return nil, err
 	}
@@ -130,8 +389,318 @@ func (s *CustomersService) ListIter(ctx context.Context, params *CustomersListPa
 	}, walk.Page)
 }
 
+// Update: Atualizar o nome, o e-mail ou o ID externo de um cliente; o ID externo não muda depois de definido.
+func (s *CustomersService) Update(ctx context.Context, customer string, params CustomersUpdateParams, opts ...RequestOption) (*Customer, error) {
+	var out Customer
+	err := s.client.do(ctx, http.MethodPatch, "/api/v1/customers/"+url.PathEscape(customer), nil, params, &out, opts)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+// UpdateExternal: Atualizar um cliente pelo ID dele no sistema do lojista (external_id).
+func (s *CustomersService) UpdateExternal(ctx context.Context, externalID string, params CustomersUpdateExternalParams, opts ...RequestOption) (*Customer, error) {
+	var out Customer
+	err := s.client.do(ctx, http.MethodPatch, "/api/v1/external-customers/"+url.PathEscape(externalID), nil, params, &out, opts)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+// DiscountsService is the API's discounts.
+type DiscountsService struct{ client *Client }
+
+// Create: Criar um desconto percentual (basis_points) ou fixo em reais (amount_cents).
+func (s *DiscountsService) Create(ctx context.Context, params DiscountsCreateParams, opts ...RequestOption) (*Discount, error) {
+	var out Discount
+	err := s.client.do(ctx, http.MethodPost, "/api/v1/discounts", nil, params, &out, opts)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+// Delete: Excluir um desconto: sai das listas e dos checkouts e o código fica livre; o que ele já descontou continua nos registros. The API answers 204, so there is nothing to return.
+func (s *DiscountsService) Delete(ctx context.Context, discount string, opts ...RequestOption) error {
+	return s.client.do(ctx, http.MethodDelete, "/api/v1/discounts/"+url.PathEscape(discount), nil, nil, nil, opts)
+}
+
+// Get: Ler um desconto.
+func (s *DiscountsService) Get(ctx context.Context, discount string, opts ...RequestOption) (*Discount, error) {
+	var out Discount
+	err := s.client.do(ctx, http.MethodGet, "/api/v1/discounts/"+url.PathEscape(discount), nil, nil, &out, opts)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+// DiscountsListParams are the page and filters of discounts:list.
+type DiscountsListParams struct {
+	// Page is the page, from 1; Limit the items a page, 1 to 100 (10 by default).
+	Page, Limit int
+}
+
+func (p *DiscountsListParams) query() url.Values {
+	q := url.Values{}
+	if p == nil {
+		return q
+	}
+	if p.Page > 0 {
+		q.Set("page", strconv.Itoa(p.Page))
+	}
+	if p.Limit > 0 {
+		q.Set("limit", strconv.Itoa(p.Limit))
+	}
+	return q
+}
+
+// List: Listar descontos. It answers one page; ListIter walks every page.
+func (s *DiscountsService) List(ctx context.Context, params *DiscountsListParams, opts ...RequestOption) (*Page[Discount], error) {
+	var page Page[Discount]
+	err := s.client.do(ctx, http.MethodGet, "/api/v1/discounts", params.query(), nil, &page, opts)
+	if err != nil {
+		return nil, err
+	}
+	return &page, nil
+}
+
+// ListIter walks every page of discounts:list, item by item.
+func (s *DiscountsService) ListIter(ctx context.Context, params *DiscountsListParams, opts ...RequestOption) iter.Seq2[Discount, error] {
+	walk := DiscountsListParams{}
+	if params != nil {
+		walk = *params
+	}
+	return iterate(func(page int) (*Page[Discount], error) {
+		walk.Page = page
+		return s.List(ctx, &walk, opts...)
+	}, walk.Page)
+}
+
+// Update: Atualizar um desconto; o tipo e a duração não mudam, e depois do primeiro uso o valor e os meses também não.
+func (s *DiscountsService) Update(ctx context.Context, discount string, params DiscountsUpdateParams, opts ...RequestOption) (*Discount, error) {
+	var out Discount
+	err := s.client.do(ctx, http.MethodPatch, "/api/v1/discounts/"+url.PathEscape(discount), nil, params, &out, opts)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+// DisputesService is the API's disputes.
+type DisputesService struct{ client *Client }
+
+// Get: Ler uma disputa.
+func (s *DisputesService) Get(ctx context.Context, dispute string, opts ...RequestOption) (*Dispute, error) {
+	var out Dispute
+	err := s.client.do(ctx, http.MethodGet, "/api/v1/disputes/"+url.PathEscape(dispute), nil, nil, &out, opts)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+// DisputesListParams are the page and filters of disputes:list.
+type DisputesListParams struct {
+	// Page is the page, from 1; Limit the items a page, 1 to 100 (10 by default).
+	Page, Limit int
+	// opened, needs_evidence, submitted, under_review, won, lost ou closed.
+	Status string
+}
+
+func (p *DisputesListParams) query() url.Values {
+	q := url.Values{}
+	if p == nil {
+		return q
+	}
+	if p.Page > 0 {
+		q.Set("page", strconv.Itoa(p.Page))
+	}
+	if p.Limit > 0 {
+		q.Set("limit", strconv.Itoa(p.Limit))
+	}
+	if p.Status != "" {
+		q.Set("status", p.Status)
+	}
+	return q
+}
+
+// List: Listar disputas, opcionalmente de um status (status). It answers one page; ListIter walks every page.
+func (s *DisputesService) List(ctx context.Context, params *DisputesListParams, opts ...RequestOption) (*Page[Dispute], error) {
+	var page Page[Dispute]
+	err := s.client.do(ctx, http.MethodGet, "/api/v1/disputes", params.query(), nil, &page, opts)
+	if err != nil {
+		return nil, err
+	}
+	return &page, nil
+}
+
+// ListIter walks every page of disputes:list, item by item.
+func (s *DisputesService) ListIter(ctx context.Context, params *DisputesListParams, opts ...RequestOption) iter.Seq2[Dispute, error] {
+	walk := DisputesListParams{}
+	if params != nil {
+		walk = *params
+	}
+	return iterate(func(page int) (*Page[Dispute], error) {
+		walk.Page = page
+		return s.List(ctx, &walk, opts...)
+	}, walk.Page)
+}
+
+// EventsService is the API's events.
+type EventsService struct{ client *Client }
+
+// EventsListParams are the page and filters of events:list.
+type EventsListParams struct {
+	// Page is the page, from 1; Limit the items a page, 1 to 100 (10 by default).
+	Page, Limit int
+	// Só os eventos deste cliente.
+	CustomerID string
+	// Só os eventos a partir deste instante (RFC 3339).
+	Start string
+	// Só os eventos até este instante (RFC 3339).
+	End string
+}
+
+func (p *EventsListParams) query() url.Values {
+	q := url.Values{}
+	if p == nil {
+		return q
+	}
+	if p.Page > 0 {
+		q.Set("page", strconv.Itoa(p.Page))
+	}
+	if p.Limit > 0 {
+		q.Set("limit", strconv.Itoa(p.Limit))
+	}
+	if p.CustomerID != "" {
+		q.Set("customer_id", p.CustomerID)
+	}
+	if p.Start != "" {
+		q.Set("start", p.Start)
+	}
+	if p.End != "" {
+		q.Set("end", p.End)
+	}
+	return q
+}
+
+// List: Listar os eventos de consumo que as origens enviaram, do mais novo ao mais antigo. It answers one page; ListIter walks every page.
+func (s *EventsService) List(ctx context.Context, params *EventsListParams, opts ...RequestOption) (*Page[Event], error) {
+	var page Page[Event]
+	err := s.client.do(ctx, http.MethodGet, "/api/v1/events", params.query(), nil, &page, opts)
+	if err != nil {
+		return nil, err
+	}
+	return &page, nil
+}
+
+// ListIter walks every page of events:list, item by item.
+func (s *EventsService) ListIter(ctx context.Context, params *EventsListParams, opts ...RequestOption) iter.Seq2[Event, error] {
+	walk := EventsListParams{}
+	if params != nil {
+		walk = *params
+	}
+	return iterate(func(page int) (*Page[Event], error) {
+		walk.Page = page
+		return s.List(ctx, &walk, opts...)
+	}, walk.Page)
+}
+
+// MetersService is the API's meters.
+type MetersService struct{ client *Client }
+
+// Get: Ler um medidor: o filtro dos eventos que ele conta, a agregação e a unidade.
+func (s *MetersService) Get(ctx context.Context, meter string, opts ...RequestOption) (*Meter, error) {
+	var out Meter
+	err := s.client.do(ctx, http.MethodGet, "/api/v1/meters/"+url.PathEscape(meter), nil, nil, &out, opts)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+// MetersListParams are the page and filters of meters:list.
+type MetersListParams struct {
+	// Page is the page, from 1; Limit the items a page, 1 to 100 (10 by default).
+	Page, Limit int
+	// true: só os medidores arquivados; false (padrão): só os ativos.
+	IsArchived string
+}
+
+func (p *MetersListParams) query() url.Values {
+	q := url.Values{}
+	if p == nil {
+		return q
+	}
+	if p.Page > 0 {
+		q.Set("page", strconv.Itoa(p.Page))
+	}
+	if p.Limit > 0 {
+		q.Set("limit", strconv.Itoa(p.Limit))
+	}
+	if p.IsArchived != "" {
+		q.Set("is_archived", p.IsArchived)
+	}
+	return q
+}
+
+// List: Listar medidores; os arquivados só com is_archived=true. It answers one page; ListIter walks every page.
+func (s *MetersService) List(ctx context.Context, params *MetersListParams, opts ...RequestOption) (*Page[Meter], error) {
+	var page Page[Meter]
+	err := s.client.do(ctx, http.MethodGet, "/api/v1/meters", params.query(), nil, &page, opts)
+	if err != nil {
+		return nil, err
+	}
+	return &page, nil
+}
+
+// ListIter walks every page of meters:list, item by item.
+func (s *MetersService) ListIter(ctx context.Context, params *MetersListParams, opts ...RequestOption) iter.Seq2[Meter, error] {
+	walk := MetersListParams{}
+	if params != nil {
+		walk = *params
+	}
+	return iterate(func(page int) (*Page[Meter], error) {
+		walk.Page = page
+		return s.List(ctx, &walk, opts...)
+	}, walk.Page)
+}
+
 // OrdersService is the API's orders.
 type OrdersService struct{ client *Client }
+
+// Get: Ler um pedido: um checkout pago.
+func (s *OrdersService) Get(ctx context.Context, order string, opts ...RequestOption) (*Order, error) {
+	var out Order
+	err := s.client.do(ctx, http.MethodGet, "/api/v1/orders/"+url.PathEscape(order), nil, nil, &out, opts)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+// GetInvoice: Ler a fatura de um pedido, o documento comercial que o lojista gerou; sem ela, 404.
+func (s *OrdersService) GetInvoice(ctx context.Context, order string, opts ...RequestOption) (*OrderInvoice, error) {
+	var out OrderInvoice
+	err := s.client.do(ctx, http.MethodGet, "/api/v1/orders/"+url.PathEscape(order)+"/invoice", nil, nil, &out, opts)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+// GetReceipt: Ler o recibo de um pedido: o que foi pago, quando e como.
+func (s *OrdersService) GetReceipt(ctx context.Context, order string, opts ...RequestOption) (*OrderReceipt, error) {
+	var out OrderReceipt
+	err := s.client.do(ctx, http.MethodGet, "/api/v1/orders/"+url.PathEscape(order)+"/receipt", nil, nil, &out, opts)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
 
 // OrdersListParams are the page and filters of orders:list.
 type OrdersListParams struct {
@@ -348,6 +917,16 @@ func (s *PricesService) ListIter(ctx context.Context, params *PricesListParams, 
 // ProductsService is the API's products.
 type ProductsService struct{ client *Client }
 
+// Archive: Arquivar um produto: sai das vendas novas e o que já foi vendido continua apontando para ele.
+func (s *ProductsService) Archive(ctx context.Context, product string, opts ...RequestOption) (*Product, error) {
+	var out Product
+	err := s.client.do(ctx, http.MethodPost, "/api/v1/products/"+url.PathEscape(product)+"/archive", nil, nil, &out, opts)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
 // Create: Criar um produto.
 func (s *ProductsService) Create(ctx context.Context, params ProductsCreateParams, opts ...RequestOption) (*Product, error) {
 	var out Product
@@ -410,6 +989,16 @@ func (s *ProductsService) ListIter(ctx context.Context, params *ProductsListPara
 	}, walk.Page)
 }
 
+// Update: Atualizar o nome ou a descrição de um produto ativo.
+func (s *ProductsService) Update(ctx context.Context, product string, params ProductsUpdateParams, opts ...RequestOption) (*Product, error) {
+	var out Product
+	err := s.client.do(ctx, http.MethodPatch, "/api/v1/products/"+url.PathEscape(product), nil, params, &out, opts)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
 // RefundsService is the API's refunds.
 type RefundsService struct{ client *Client }
 
@@ -421,6 +1010,53 @@ func (s *RefundsService) Create(ctx context.Context, params RefundsCreateParams,
 		return nil, err
 	}
 	return &out, nil
+}
+
+// RefundsListParams are the page and filters of refunds:list.
+type RefundsListParams struct {
+	// Page is the page, from 1; Limit the items a page, 1 to 100 (10 by default).
+	Page, Limit int
+	// Só os reembolsos deste pagamento.
+	PaymentID string
+}
+
+func (p *RefundsListParams) query() url.Values {
+	q := url.Values{}
+	if p == nil {
+		return q
+	}
+	if p.Page > 0 {
+		q.Set("page", strconv.Itoa(p.Page))
+	}
+	if p.Limit > 0 {
+		q.Set("limit", strconv.Itoa(p.Limit))
+	}
+	if p.PaymentID != "" {
+		q.Set("payment_id", p.PaymentID)
+	}
+	return q
+}
+
+// List: Listar reembolsos, opcionalmente de um pagamento (payment_id). It answers one page; ListIter walks every page.
+func (s *RefundsService) List(ctx context.Context, params *RefundsListParams, opts ...RequestOption) (*Page[Refund], error) {
+	var page Page[Refund]
+	err := s.client.do(ctx, http.MethodGet, "/api/v1/refunds", params.query(), nil, &page, opts)
+	if err != nil {
+		return nil, err
+	}
+	return &page, nil
+}
+
+// ListIter walks every page of refunds:list, item by item.
+func (s *RefundsService) ListIter(ctx context.Context, params *RefundsListParams, opts ...RequestOption) iter.Seq2[Refund, error] {
+	walk := RefundsListParams{}
+	if params != nil {
+		walk = *params
+	}
+	return iterate(func(page int) (*Page[Refund], error) {
+		walk.Page = page
+		return s.List(ctx, &walk, opts...)
+	}, walk.Page)
 }
 
 // SubscriptionsService is the API's subscriptions.
@@ -491,4 +1127,146 @@ func (s *SubscriptionsService) ListIter(ctx context.Context, params *Subscriptio
 		walk.Page = page
 		return s.List(ctx, &walk, opts...)
 	}, walk.Page)
+}
+
+// Update: Trocar o plano de uma assinatura: outro preço e, se quiser, outra quantidade, com a forma de ratear a diferença (proration_behavior).
+func (s *SubscriptionsService) Update(ctx context.Context, subscription string, params SubscriptionsUpdateParams, opts ...RequestOption) (*Subscription, error) {
+	var out Subscription
+	err := s.client.do(ctx, http.MethodPatch, "/api/v1/subscriptions/"+url.PathEscape(subscription), nil, params, &out, opts)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+// WebhooksService is the API's webhooks.
+type WebhooksService struct{ client *Client }
+
+// CreateEndpoint: Criar um endpoint de webhook; o segredo que assina as mensagens vem só nesta resposta.
+func (s *WebhooksService) CreateEndpoint(ctx context.Context, params WebhooksCreateEndpointParams, opts ...RequestOption) (*WebhookEndpointCreated, error) {
+	var out WebhookEndpointCreated
+	err := s.client.do(ctx, http.MethodPost, "/api/v1/webhooks/endpoints", nil, params, &out, opts)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+// DeleteEndpoint: Excluir um endpoint de webhook; as entregas que ainda esperavam por ele falham. The API answers 204, so there is nothing to return.
+func (s *WebhooksService) DeleteEndpoint(ctx context.Context, endpoint string, opts ...RequestOption) error {
+	return s.client.do(ctx, http.MethodDelete, "/api/v1/webhooks/endpoints/"+url.PathEscape(endpoint), nil, nil, nil, opts)
+}
+
+// GetEndpoint: Ler um endpoint de webhook.
+func (s *WebhooksService) GetEndpoint(ctx context.Context, endpoint string, opts ...RequestOption) (*WebhookEndpoint, error) {
+	var out WebhookEndpoint
+	err := s.client.do(ctx, http.MethodGet, "/api/v1/webhooks/endpoints/"+url.PathEscape(endpoint), nil, nil, &out, opts)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+// WebhooksListDeliveriesParams are the page and filters of webhooks:list_deliveries.
+type WebhooksListDeliveriesParams struct {
+	// Page is the page, from 1; Limit the items a page, 1 to 100 (10 by default).
+	Page, Limit int
+	// Só as entregas deste endpoint.
+	EndpointID string
+	// pending, succeeded ou exhausted.
+	Status string
+}
+
+func (p *WebhooksListDeliveriesParams) query() url.Values {
+	q := url.Values{}
+	if p == nil {
+		return q
+	}
+	if p.Page > 0 {
+		q.Set("page", strconv.Itoa(p.Page))
+	}
+	if p.Limit > 0 {
+		q.Set("limit", strconv.Itoa(p.Limit))
+	}
+	if p.EndpointID != "" {
+		q.Set("endpoint_id", p.EndpointID)
+	}
+	if p.Status != "" {
+		q.Set("status", p.Status)
+	}
+	return q
+}
+
+// ListDeliveries: Listar as últimas 100 entregas de eventos aos endpoints, opcionalmente de um endpoint (endpoint_id) ou de uma situação (status). It answers one page; ListDeliveriesIter walks every page.
+func (s *WebhooksService) ListDeliveries(ctx context.Context, params *WebhooksListDeliveriesParams, opts ...RequestOption) (*Page[WebhookDelivery], error) {
+	var page Page[WebhookDelivery]
+	err := s.client.do(ctx, http.MethodGet, "/api/v1/webhooks/deliveries", params.query(), nil, &page, opts)
+	if err != nil {
+		return nil, err
+	}
+	return &page, nil
+}
+
+// ListDeliveriesIter walks every page of webhooks:list_deliveries, item by item.
+func (s *WebhooksService) ListDeliveriesIter(ctx context.Context, params *WebhooksListDeliveriesParams, opts ...RequestOption) iter.Seq2[WebhookDelivery, error] {
+	walk := WebhooksListDeliveriesParams{}
+	if params != nil {
+		walk = *params
+	}
+	return iterate(func(page int) (*Page[WebhookDelivery], error) {
+		walk.Page = page
+		return s.ListDeliveries(ctx, &walk, opts...)
+	}, walk.Page)
+}
+
+// WebhooksListEndpointsParams are the page and filters of webhooks:list_endpoints.
+type WebhooksListEndpointsParams struct {
+	// Page is the page, from 1; Limit the items a page, 1 to 100 (10 by default).
+	Page, Limit int
+}
+
+func (p *WebhooksListEndpointsParams) query() url.Values {
+	q := url.Values{}
+	if p == nil {
+		return q
+	}
+	if p.Page > 0 {
+		q.Set("page", strconv.Itoa(p.Page))
+	}
+	if p.Limit > 0 {
+		q.Set("limit", strconv.Itoa(p.Limit))
+	}
+	return q
+}
+
+// ListEndpoints: Listar os endpoints de webhook do lojista. It answers one page; ListEndpointsIter walks every page.
+func (s *WebhooksService) ListEndpoints(ctx context.Context, params *WebhooksListEndpointsParams, opts ...RequestOption) (*Page[WebhookEndpoint], error) {
+	var page Page[WebhookEndpoint]
+	err := s.client.do(ctx, http.MethodGet, "/api/v1/webhooks/endpoints", params.query(), nil, &page, opts)
+	if err != nil {
+		return nil, err
+	}
+	return &page, nil
+}
+
+// ListEndpointsIter walks every page of webhooks:list_endpoints, item by item.
+func (s *WebhooksService) ListEndpointsIter(ctx context.Context, params *WebhooksListEndpointsParams, opts ...RequestOption) iter.Seq2[WebhookEndpoint, error] {
+	walk := WebhooksListEndpointsParams{}
+	if params != nil {
+		walk = *params
+	}
+	return iterate(func(page int) (*Page[WebhookEndpoint], error) {
+		walk.Page = page
+		return s.ListEndpoints(ctx, &walk, opts...)
+	}, walk.Page)
+}
+
+// UpdateEndpoint: Atualizar o endereço, o formato, os eventos ou a descrição de um endpoint, ou ligar e desligar o envio (enabled); o segredo não muda.
+func (s *WebhooksService) UpdateEndpoint(ctx context.Context, endpoint string, params WebhooksUpdateEndpointParams, opts ...RequestOption) (*WebhookEndpoint, error) {
+	var out WebhookEndpoint
+	err := s.client.do(ctx, http.MethodPatch, "/api/v1/webhooks/endpoints/"+url.PathEscape(endpoint), nil, params, &out, opts)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
 }

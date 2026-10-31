@@ -9,9 +9,31 @@ namespace Perata;
 /// <summary>Checkout is a resource of Peráta's API.</summary>
 public sealed record Checkout
 {
+    /// <summary>A value of <see cref="Status"/>.</summary>
+    public const string StatusActive = "active";
+
+    /// <summary>A value of <see cref="Status"/>.</summary>
+    public const string StatusArchived = "archived";
+
+    /// <summary>Endereço https para onde o comprador volta se desistir; vazio sem ele.</summary>
+    [JsonPropertyName("cancel_url")]
+    public required string CancelUrl { get; init; }
+
+    /// <summary>The API's <c>created_at</c>.</summary>
+    [JsonPropertyName("created_at")]
+    public required string CreatedAt { get; init; }
+
+    /// <summary>Quando o checkout deixa de abrir sessões; nulo sem prazo. Null when the API sends none.</summary>
+    [JsonPropertyName("expires_at")]
+    public string? ExpiresAt { get; init; }
+
     /// <summary>The API's <c>id</c>.</summary>
     [JsonPropertyName("id")]
     public required string Id { get; init; }
+
+    /// <summary>Como o lojista chama o checkout nas próprias telas; o comprador não vê.</summary>
+    [JsonPropertyName("label")]
+    public required string Label { get; init; }
 
     /// <summary>The API's <c>price_id</c>.</summary>
     [JsonPropertyName("price_id")]
@@ -20,6 +42,18 @@ public sealed record Checkout
     /// <summary>The API's <c>product_id</c>.</summary>
     [JsonPropertyName("product_id")]
     public required string ProductId { get; init; }
+
+    /// <summary>The API's <c>quantity</c>.</summary>
+    [JsonPropertyName("quantity")]
+    public required long Quantity { get; init; }
+
+    /// <summary>active abre sessões de compra; archived saiu de circulação.</summary>
+    [JsonPropertyName("status")]
+    public required string Status { get; init; }
+
+    /// <summary>Endereço https para onde o comprador volta depois de pagar; vazio sem ele.</summary>
+    [JsonPropertyName("success_url")]
+    public required string SuccessUrl { get; init; }
 
     /// <summary>Endereço para onde o comprador é enviado.</summary>
     [JsonPropertyName("url")]

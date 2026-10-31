@@ -4,6 +4,124 @@ import type { Requester, RequestOptions } from "./core.ts";
 import type * as models from "./models.ts";
 import { iterate, type Page } from "./pagination.ts";
 
+/** The page and filters of benefits:list. */
+export interface BenefitsListParams {
+  /** The page, from 1. */
+  page?: number;
+  /** Items a page, 1 to 100 (10 by default). */
+  limit?: number;
+  /** Só os benefícios deste tipo: custom, license_key, downloadable, feature_flag, meter_credit, discord ou github_repository. */
+  type?: string;
+}
+
+/** The page and filters of benefits:list_grants. */
+export interface BenefitsListGrantsParams {
+  /** The page, from 1. */
+  page?: number;
+  /** Items a page, 1 to 100 (10 by default). */
+  limit?: number;
+  /** Só as concessões deste cliente. */
+  customer_id?: string;
+  /** true: só as vigentes; false: só as revogadas. */
+  is_granted?: string;
+}
+
+/** The API's benefits. */
+export class BenefitsService {
+  readonly #client: Requester;
+
+  constructor(client: Requester) {
+    this.#client = client;
+  }
+
+  /** Criar um benefício custom, license_key, feature_flag ou meter_credit; downloads e os benefícios do Discord e do GitHub se configuram no painel. */
+  create(params: models.BenefitsCreateParams, options?: RequestOptions): Promise<models.Benefit> {
+    return this.#client.request("POST", `/api/v1/benefits`, { body: params, options });
+  }
+
+  /** Excluir um benefício: ele sai de todos os produtos e é revogado de quem o tem. The API answers 204, so there is nothing to return. */
+  async delete(benefit: string, options?: RequestOptions): Promise<void> {
+    await this.#client.request<undefined>("DELETE", `/api/v1/benefits/${encodeURIComponent(benefit)}`, { options });
+  }
+
+  /** Ler um benefício. */
+  get(benefit: string, options?: RequestOptions): Promise<models.Benefit> {
+    return this.#client.request("GET", `/api/v1/benefits/${encodeURIComponent(benefit)}`, { options });
+  }
+
+  /** Listar benefícios, opcionalmente de um tipo (type). One page; `listIter` walks every page. */
+  list(params: BenefitsListParams = {}, options?: RequestOptions): Promise<Page<models.Benefit>> {
+    return this.#client.request("GET", `/api/v1/benefits`, { query: { ...params }, options });
+  }
+
+  /** Walks every page of benefits:list, item by item: `for await (const item of …)`. */
+  listIter(params: BenefitsListParams = {}, options?: RequestOptions): AsyncGenerator<models.Benefit, void, undefined> {
+    return iterate((page) => this.list({ ...params, page }, options), params.page);
+  }
+
+  /** Listar as concessões de um benefício, opcionalmente de um cliente (customer_id) ou só as vigentes (is_granted). One page; `listGrantsIter` walks every page. */
+  listGrants(benefit: string, params: BenefitsListGrantsParams = {}, options?: RequestOptions): Promise<Page<models.BenefitGrant>> {
+    return this.#client.request("GET", `/api/v1/benefits/${encodeURIComponent(benefit)}/grants`, { query: { ...params }, options });
+  }
+
+  /** Walks every page of benefits:list_grants, item by item: `for await (const item of …)`. */
+  listGrantsIter(benefit: string, params: BenefitsListGrantsParams = {}, options?: RequestOptions): AsyncGenerator<models.BenefitGrant, void, undefined> {
+    return iterate((page) => this.listGrants(benefit, { ...params, page }, options), params.page);
+  }
+
+  /** Atualizar o nome, a visibilidade, as propriedades e os metadados de um benefício; o tipo e a descrição dada na criação não mudam, e o que a concessão já entregou fica como foi entregue. */
+  update(benefit: string, params: models.BenefitsUpdateParams, options?: RequestOptions): Promise<models.Benefit> {
+    return this.#client.request("PATCH", `/api/v1/benefits/${encodeURIComponent(benefit)}`, { body: params, options });
+  }
+}
+
+/** The page and filters of checkout-links:list. */
+export interface CheckoutLinksListParams {
+  /** The page, from 1. */
+  page?: number;
+  /** Items a page, 1 to 100 (10 by default). */
+  limit?: number;
+}
+
+/** The API's checkout-links. */
+export class CheckoutLinksService {
+  readonly #client: Requester;
+
+  constructor(client: Requester) {
+    this.#client = client;
+  }
+
+  /** Criar um link de checkout: uma oferta durável de um ou mais produtos, com desconto, quantidade e páginas de retorno. */
+  create(params: models.CheckoutLinksCreateParams, options?: RequestOptions): Promise<models.CheckoutLink> {
+    return this.#client.request("POST", `/api/v1/checkout-links`, { body: params, options });
+  }
+
+  /** Excluir um link de checkout: ele deixa de abrir checkouts; os que já abriu continuam. The API answers 204, so there is nothing to return. */
+  async delete(checkoutLink: string, options?: RequestOptions): Promise<void> {
+    await this.#client.request<undefined>("DELETE", `/api/v1/checkout-links/${encodeURIComponent(checkoutLink)}`, { options });
+  }
+
+  /** Ler um link de checkout. */
+  get(checkoutLink: string, options?: RequestOptions): Promise<models.CheckoutLink> {
+    return this.#client.request("GET", `/api/v1/checkout-links/${encodeURIComponent(checkoutLink)}`, { options });
+  }
+
+  /** Listar links de checkout. One page; `listIter` walks every page. */
+  list(params: CheckoutLinksListParams = {}, options?: RequestOptions): Promise<Page<models.CheckoutLink>> {
+    return this.#client.request("GET", `/api/v1/checkout-links`, { query: { ...params }, options });
+  }
+
+  /** Walks every page of checkout-links:list, item by item: `for await (const item of …)`. */
+  listIter(params: CheckoutLinksListParams = {}, options?: RequestOptions): AsyncGenerator<models.CheckoutLink, void, undefined> {
+    return iterate((page) => this.list({ ...params, page }, options), params.page);
+  }
+
+  /** Atualizar o rótulo, as páginas de retorno, os produtos e os metadados de um link; a quantidade e o desconto ficam como foram publicados. */
+  update(checkoutLink: string, params: models.CheckoutLinksUpdateParams, options?: RequestOptions): Promise<models.CheckoutLink> {
+    return this.#client.request("PATCH", `/api/v1/checkout-links/${encodeURIComponent(checkoutLink)}`, { body: params, options });
+  }
+}
+
 /** The API's checkouts. */
 export class CheckoutsService {
   readonly #client: Requester;
@@ -15,6 +133,16 @@ export class CheckoutsService {
   /** Criar o endereço de um checkout para um produto e um preço. */
   create(params: models.CheckoutsCreateParams, options?: RequestOptions): Promise<models.Checkout> {
     return this.#client.request("POST", `/api/v1/checkouts`, { body: params, options });
+  }
+
+  /** Ler um checkout: o endereço, o estado e as páginas de retorno. */
+  get(checkout: string, options?: RequestOptions): Promise<models.Checkout> {
+    return this.#client.request("GET", `/api/v1/checkouts/${encodeURIComponent(checkout)}`, { options });
+  }
+
+  /** Atualizar o rótulo e as páginas de retorno de um checkout ativo. */
+  update(checkout: string, params: models.CheckoutsUpdateParams, options?: RequestOptions): Promise<models.Checkout> {
+    return this.#client.request("PATCH", `/api/v1/checkouts/${encodeURIComponent(checkout)}`, { body: params, options });
   }
 }
 
@@ -53,9 +181,19 @@ export class CustomersService {
     return this.#client.request("POST", `/api/v1/customers`, { body: params, options });
   }
 
+  /** Excluir um cliente: as assinaturas terminam na hora, os benefícios são revogados e o ID externo é liberado; pedidos e pagamentos continuam. The API answers 204, so there is nothing to return. */
+  async delete(customer: string, options?: RequestOptions): Promise<void> {
+    await this.#client.request<undefined>("DELETE", `/api/v1/customers/${encodeURIComponent(customer)}`, { options });
+  }
+
   /** Ler um cliente. */
   get(customer: string, options?: RequestOptions): Promise<models.Customer> {
     return this.#client.request("GET", `/api/v1/customers/${encodeURIComponent(customer)}`, { options });
+  }
+
+  /** Ler um cliente pelo ID dele no sistema do lojista (external_id). */
+  getExternal(externalID: string, options?: RequestOptions): Promise<models.Customer> {
+    return this.#client.request("GET", `/api/v1/external-customers/${encodeURIComponent(externalID)}`, { options });
   }
 
   /** Ler o estado de um cliente: assinaturas ativas e benefícios vigentes, inclusive os feature flags. */
@@ -70,6 +208,164 @@ export class CustomersService {
 
   /** Walks every page of customers:list, item by item: `for await (const item of …)`. */
   listIter(params: CustomersListParams = {}, options?: RequestOptions): AsyncGenerator<models.Customer, void, undefined> {
+    return iterate((page) => this.list({ ...params, page }, options), params.page);
+  }
+
+  /** Atualizar o nome, o e-mail ou o ID externo de um cliente; o ID externo não muda depois de definido. */
+  update(customer: string, params: models.CustomersUpdateParams, options?: RequestOptions): Promise<models.Customer> {
+    return this.#client.request("PATCH", `/api/v1/customers/${encodeURIComponent(customer)}`, { body: params, options });
+  }
+
+  /** Atualizar um cliente pelo ID dele no sistema do lojista (external_id). */
+  updateExternal(externalID: string, params: models.CustomersUpdateExternalParams, options?: RequestOptions): Promise<models.Customer> {
+    return this.#client.request("PATCH", `/api/v1/external-customers/${encodeURIComponent(externalID)}`, { body: params, options });
+  }
+}
+
+/** The page and filters of discounts:list. */
+export interface DiscountsListParams {
+  /** The page, from 1. */
+  page?: number;
+  /** Items a page, 1 to 100 (10 by default). */
+  limit?: number;
+}
+
+/** The API's discounts. */
+export class DiscountsService {
+  readonly #client: Requester;
+
+  constructor(client: Requester) {
+    this.#client = client;
+  }
+
+  /** Criar um desconto percentual (basis_points) ou fixo em reais (amount_cents). */
+  create(params: models.DiscountsCreateParams, options?: RequestOptions): Promise<models.Discount> {
+    return this.#client.request("POST", `/api/v1/discounts`, { body: params, options });
+  }
+
+  /** Excluir um desconto: sai das listas e dos checkouts e o código fica livre; o que ele já descontou continua nos registros. The API answers 204, so there is nothing to return. */
+  async delete(discount: string, options?: RequestOptions): Promise<void> {
+    await this.#client.request<undefined>("DELETE", `/api/v1/discounts/${encodeURIComponent(discount)}`, { options });
+  }
+
+  /** Ler um desconto. */
+  get(discount: string, options?: RequestOptions): Promise<models.Discount> {
+    return this.#client.request("GET", `/api/v1/discounts/${encodeURIComponent(discount)}`, { options });
+  }
+
+  /** Listar descontos. One page; `listIter` walks every page. */
+  list(params: DiscountsListParams = {}, options?: RequestOptions): Promise<Page<models.Discount>> {
+    return this.#client.request("GET", `/api/v1/discounts`, { query: { ...params }, options });
+  }
+
+  /** Walks every page of discounts:list, item by item: `for await (const item of …)`. */
+  listIter(params: DiscountsListParams = {}, options?: RequestOptions): AsyncGenerator<models.Discount, void, undefined> {
+    return iterate((page) => this.list({ ...params, page }, options), params.page);
+  }
+
+  /** Atualizar um desconto; o tipo e a duração não mudam, e depois do primeiro uso o valor e os meses também não. */
+  update(discount: string, params: models.DiscountsUpdateParams, options?: RequestOptions): Promise<models.Discount> {
+    return this.#client.request("PATCH", `/api/v1/discounts/${encodeURIComponent(discount)}`, { body: params, options });
+  }
+}
+
+/** The page and filters of disputes:list. */
+export interface DisputesListParams {
+  /** The page, from 1. */
+  page?: number;
+  /** Items a page, 1 to 100 (10 by default). */
+  limit?: number;
+  /** opened, needs_evidence, submitted, under_review, won, lost ou closed. */
+  status?: string;
+}
+
+/** The API's disputes. */
+export class DisputesService {
+  readonly #client: Requester;
+
+  constructor(client: Requester) {
+    this.#client = client;
+  }
+
+  /** Ler uma disputa. */
+  get(dispute: string, options?: RequestOptions): Promise<models.Dispute> {
+    return this.#client.request("GET", `/api/v1/disputes/${encodeURIComponent(dispute)}`, { options });
+  }
+
+  /** Listar disputas, opcionalmente de um status (status). One page; `listIter` walks every page. */
+  list(params: DisputesListParams = {}, options?: RequestOptions): Promise<Page<models.Dispute>> {
+    return this.#client.request("GET", `/api/v1/disputes`, { query: { ...params }, options });
+  }
+
+  /** Walks every page of disputes:list, item by item: `for await (const item of …)`. */
+  listIter(params: DisputesListParams = {}, options?: RequestOptions): AsyncGenerator<models.Dispute, void, undefined> {
+    return iterate((page) => this.list({ ...params, page }, options), params.page);
+  }
+}
+
+/** The page and filters of events:list. */
+export interface EventsListParams {
+  /** The page, from 1. */
+  page?: number;
+  /** Items a page, 1 to 100 (10 by default). */
+  limit?: number;
+  /** Só os eventos deste cliente. */
+  customer_id?: string;
+  /** Só os eventos a partir deste instante (RFC 3339). */
+  start?: string;
+  /** Só os eventos até este instante (RFC 3339). */
+  end?: string;
+}
+
+/** The API's events. */
+export class EventsService {
+  readonly #client: Requester;
+
+  constructor(client: Requester) {
+    this.#client = client;
+  }
+
+  /** Listar os eventos de consumo que as origens enviaram, do mais novo ao mais antigo. One page; `listIter` walks every page. */
+  list(params: EventsListParams = {}, options?: RequestOptions): Promise<Page<models.Event>> {
+    return this.#client.request("GET", `/api/v1/events`, { query: { ...params }, options });
+  }
+
+  /** Walks every page of events:list, item by item: `for await (const item of …)`. */
+  listIter(params: EventsListParams = {}, options?: RequestOptions): AsyncGenerator<models.Event, void, undefined> {
+    return iterate((page) => this.list({ ...params, page }, options), params.page);
+  }
+}
+
+/** The page and filters of meters:list. */
+export interface MetersListParams {
+  /** The page, from 1. */
+  page?: number;
+  /** Items a page, 1 to 100 (10 by default). */
+  limit?: number;
+  /** true: só os medidores arquivados; false (padrão): só os ativos. */
+  is_archived?: string;
+}
+
+/** The API's meters. */
+export class MetersService {
+  readonly #client: Requester;
+
+  constructor(client: Requester) {
+    this.#client = client;
+  }
+
+  /** Ler um medidor: o filtro dos eventos que ele conta, a agregação e a unidade. */
+  get(meter: string, options?: RequestOptions): Promise<models.Meter> {
+    return this.#client.request("GET", `/api/v1/meters/${encodeURIComponent(meter)}`, { options });
+  }
+
+  /** Listar medidores; os arquivados só com is_archived=true. One page; `listIter` walks every page. */
+  list(params: MetersListParams = {}, options?: RequestOptions): Promise<Page<models.Meter>> {
+    return this.#client.request("GET", `/api/v1/meters`, { query: { ...params }, options });
+  }
+
+  /** Walks every page of meters:list, item by item: `for await (const item of …)`. */
+  listIter(params: MetersListParams = {}, options?: RequestOptions): AsyncGenerator<models.Meter, void, undefined> {
     return iterate((page) => this.list({ ...params, page }, options), params.page);
   }
 }
@@ -88,6 +384,21 @@ export class OrdersService {
 
   constructor(client: Requester) {
     this.#client = client;
+  }
+
+  /** Ler um pedido: um checkout pago. */
+  get(order: string, options?: RequestOptions): Promise<models.Order> {
+    return this.#client.request("GET", `/api/v1/orders/${encodeURIComponent(order)}`, { options });
+  }
+
+  /** Ler a fatura de um pedido, o documento comercial que o lojista gerou; sem ela, 404. */
+  getInvoice(order: string, options?: RequestOptions): Promise<models.OrderInvoice> {
+    return this.#client.request("GET", `/api/v1/orders/${encodeURIComponent(order)}/invoice`, { options });
+  }
+
+  /** Ler o recibo de um pedido: o que foi pago, quando e como. */
+  getReceipt(order: string, options?: RequestOptions): Promise<models.OrderReceipt> {
+    return this.#client.request("GET", `/api/v1/orders/${encodeURIComponent(order)}/receipt`, { options });
   }
 
   /** Listar pedidos: checkouts pagos. One page; `listIter` walks every page. */
@@ -215,6 +526,11 @@ export class ProductsService {
     this.#client = client;
   }
 
+  /** Arquivar um produto: sai das vendas novas e o que já foi vendido continua apontando para ele. */
+  archive(product: string, options?: RequestOptions): Promise<models.Product> {
+    return this.#client.request("POST", `/api/v1/products/${encodeURIComponent(product)}/archive`, { options });
+  }
+
   /** Criar um produto. */
   create(params: models.ProductsCreateParams, options?: RequestOptions): Promise<models.Product> {
     return this.#client.request("POST", `/api/v1/products`, { body: params, options });
@@ -234,6 +550,21 @@ export class ProductsService {
   listIter(params: ProductsListParams = {}, options?: RequestOptions): AsyncGenerator<models.Product, void, undefined> {
     return iterate((page) => this.list({ ...params, page }, options), params.page);
   }
+
+  /** Atualizar o nome ou a descrição de um produto ativo. */
+  update(product: string, params: models.ProductsUpdateParams, options?: RequestOptions): Promise<models.Product> {
+    return this.#client.request("PATCH", `/api/v1/products/${encodeURIComponent(product)}`, { body: params, options });
+  }
+}
+
+/** The page and filters of refunds:list. */
+export interface RefundsListParams {
+  /** The page, from 1. */
+  page?: number;
+  /** Items a page, 1 to 100 (10 by default). */
+  limit?: number;
+  /** Só os reembolsos deste pagamento. */
+  payment_id?: string;
 }
 
 /** The API's refunds. */
@@ -247,6 +578,16 @@ export class RefundsService {
   /** Reembolsar parte ou todo um pagamento. */
   create(params: models.RefundsCreateParams, options?: RequestOptions): Promise<models.Refund> {
     return this.#client.request("POST", `/api/v1/refunds`, { body: params, options });
+  }
+
+  /** Listar reembolsos, opcionalmente de um pagamento (payment_id). One page; `listIter` walks every page. */
+  list(params: RefundsListParams = {}, options?: RequestOptions): Promise<Page<models.Refund>> {
+    return this.#client.request("GET", `/api/v1/refunds`, { query: { ...params }, options });
+  }
+
+  /** Walks every page of refunds:list, item by item: `for await (const item of …)`. */
+  listIter(params: RefundsListParams = {}, options?: RequestOptions): AsyncGenerator<models.Refund, void, undefined> {
+    return iterate((page) => this.list({ ...params, page }, options), params.page);
   }
 }
 
@@ -286,6 +627,80 @@ export class SubscriptionsService {
   /** Walks every page of subscriptions:list, item by item: `for await (const item of …)`. */
   listIter(params: SubscriptionsListParams = {}, options?: RequestOptions): AsyncGenerator<models.Subscription, void, undefined> {
     return iterate((page) => this.list({ ...params, page }, options), params.page);
+  }
+
+  /** Trocar o plano de uma assinatura: outro preço e, se quiser, outra quantidade, com a forma de ratear a diferença (proration_behavior). */
+  update(subscription: string, params: models.SubscriptionsUpdateParams, options?: RequestOptions): Promise<models.Subscription> {
+    return this.#client.request("PATCH", `/api/v1/subscriptions/${encodeURIComponent(subscription)}`, { body: params, options });
+  }
+}
+
+/** The page and filters of webhooks:list_deliveries. */
+export interface WebhooksListDeliveriesParams {
+  /** The page, from 1. */
+  page?: number;
+  /** Items a page, 1 to 100 (10 by default). */
+  limit?: number;
+  /** Só as entregas deste endpoint. */
+  endpoint_id?: string;
+  /** pending, succeeded ou exhausted. */
+  status?: string;
+}
+
+/** The page and filters of webhooks:list_endpoints. */
+export interface WebhooksListEndpointsParams {
+  /** The page, from 1. */
+  page?: number;
+  /** Items a page, 1 to 100 (10 by default). */
+  limit?: number;
+}
+
+/** The API's webhooks. */
+export class WebhooksService {
+  readonly #client: Requester;
+
+  constructor(client: Requester) {
+    this.#client = client;
+  }
+
+  /** Criar um endpoint de webhook; o segredo que assina as mensagens vem só nesta resposta. */
+  createEndpoint(params: models.WebhooksCreateEndpointParams, options?: RequestOptions): Promise<models.WebhookEndpointCreated> {
+    return this.#client.request("POST", `/api/v1/webhooks/endpoints`, { body: params, options });
+  }
+
+  /** Excluir um endpoint de webhook; as entregas que ainda esperavam por ele falham. The API answers 204, so there is nothing to return. */
+  async deleteEndpoint(endpoint: string, options?: RequestOptions): Promise<void> {
+    await this.#client.request<undefined>("DELETE", `/api/v1/webhooks/endpoints/${encodeURIComponent(endpoint)}`, { options });
+  }
+
+  /** Ler um endpoint de webhook. */
+  getEndpoint(endpoint: string, options?: RequestOptions): Promise<models.WebhookEndpoint> {
+    return this.#client.request("GET", `/api/v1/webhooks/endpoints/${encodeURIComponent(endpoint)}`, { options });
+  }
+
+  /** Listar as últimas 100 entregas de eventos aos endpoints, opcionalmente de um endpoint (endpoint_id) ou de uma situação (status). One page; `listDeliveriesIter` walks every page. */
+  listDeliveries(params: WebhooksListDeliveriesParams = {}, options?: RequestOptions): Promise<Page<models.WebhookDelivery>> {
+    return this.#client.request("GET", `/api/v1/webhooks/deliveries`, { query: { ...params }, options });
+  }
+
+  /** Walks every page of webhooks:list_deliveries, item by item: `for await (const item of …)`. */
+  listDeliveriesIter(params: WebhooksListDeliveriesParams = {}, options?: RequestOptions): AsyncGenerator<models.WebhookDelivery, void, undefined> {
+    return iterate((page) => this.listDeliveries({ ...params, page }, options), params.page);
+  }
+
+  /** Listar os endpoints de webhook do lojista. One page; `listEndpointsIter` walks every page. */
+  listEndpoints(params: WebhooksListEndpointsParams = {}, options?: RequestOptions): Promise<Page<models.WebhookEndpoint>> {
+    return this.#client.request("GET", `/api/v1/webhooks/endpoints`, { query: { ...params }, options });
+  }
+
+  /** Walks every page of webhooks:list_endpoints, item by item: `for await (const item of …)`. */
+  listEndpointsIter(params: WebhooksListEndpointsParams = {}, options?: RequestOptions): AsyncGenerator<models.WebhookEndpoint, void, undefined> {
+    return iterate((page) => this.listEndpoints({ ...params, page }, options), params.page);
+  }
+
+  /** Atualizar o endereço, o formato, os eventos ou a descrição de um endpoint, ou ligar e desligar o envio (enabled); o segredo não muda. */
+  updateEndpoint(endpoint: string, params: models.WebhooksUpdateEndpointParams, options?: RequestOptions): Promise<models.WebhookEndpoint> {
+    return this.#client.request("PATCH", `/api/v1/webhooks/endpoints/${encodeURIComponent(endpoint)}`, { body: params, options });
   }
 }
 

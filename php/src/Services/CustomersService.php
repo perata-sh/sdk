@@ -29,11 +29,28 @@ final class CustomersService
     }
 
     /**
+     * Excluir um cliente: as assinaturas terminam na hora, os benefícios são revogados e o ID externo é liberado; pedidos e pagamentos continuam. The API answers 204, so there is nothing to return.
+     */
+    public function delete(string $customer, ?string $idempotencyKey = null, ?string $apiKey = null): void
+    {
+        $this->client->request('DELETE', '/api/v1/customers/' . rawurlencode($customer), idempotencyKey: $idempotencyKey, apiKey: $apiKey);
+    }
+
+    /**
      * Ler um cliente.
      */
     public function get(string $customer, ?string $apiKey = null): Models\Customer
     {
         $data = $this->client->request('GET', '/api/v1/customers/' . rawurlencode($customer), apiKey: $apiKey);
+        return Models\Customer::fromArray($data);
+    }
+
+    /**
+     * Ler um cliente pelo ID dele no sistema do lojista (external_id).
+     */
+    public function getExternal(string $externalId, ?string $apiKey = null): Models\Customer
+    {
+        $data = $this->client->request('GET', '/api/v1/external-customers/' . rawurlencode($externalId), apiKey: $apiKey);
         return Models\Customer::fromArray($data);
     }
 
@@ -67,6 +84,28 @@ final class CustomersService
     public function listIter(array $params = [], ?string $apiKey = null): \Generator
     {
         return Page::iterate(fn (int $page): Page => $this->list(['page' => $page] + $params, $apiKey), $params['page'] ?? 1);
+    }
+
+    /**
+     * Atualizar o nome, o e-mail ou o ID externo de um cliente; o ID externo não muda depois de definido.
+     *
+     * @param array{email?: string, external_id?: string, name?: string} $params
+     */
+    public function update(string $customer, array $params, ?string $idempotencyKey = null, ?string $apiKey = null): Models\Customer
+    {
+        $data = $this->client->request('PATCH', '/api/v1/customers/' . rawurlencode($customer), body: $params, idempotencyKey: $idempotencyKey, apiKey: $apiKey);
+        return Models\Customer::fromArray($data);
+    }
+
+    /**
+     * Atualizar um cliente pelo ID dele no sistema do lojista (external_id).
+     *
+     * @param array{email?: string, external_id?: string, name?: string} $params
+     */
+    public function updateExternal(string $externalId, array $params, ?string $idempotencyKey = null, ?string $apiKey = null): Models\Customer
+    {
+        $data = $this->client->request('PATCH', '/api/v1/external-customers/' . rawurlencode($externalId), body: $params, idempotencyKey: $idempotencyKey, apiKey: $apiKey);
+        return Models\Customer::fromArray($data);
     }
 }
 

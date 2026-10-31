@@ -6,6 +6,16 @@ use crate::models::*;
 use crate::pagination::{iterate, Page};
 
 impl Client {
+    /// The API's benefits.
+    pub fn benefits(&self) -> BenefitsService<'_> {
+        BenefitsService::new(self)
+    }
+
+    /// The API's checkout-links.
+    pub fn checkout_links(&self) -> CheckoutLinksService<'_> {
+        CheckoutLinksService::new(self)
+    }
+
     /// The API's checkouts.
     pub fn checkouts(&self) -> CheckoutsService<'_> {
         CheckoutsService::new(self)
@@ -19,6 +29,26 @@ impl Client {
     /// The API's customers.
     pub fn customers(&self) -> CustomersService<'_> {
         CustomersService::new(self)
+    }
+
+    /// The API's discounts.
+    pub fn discounts(&self) -> DiscountsService<'_> {
+        DiscountsService::new(self)
+    }
+
+    /// The API's disputes.
+    pub fn disputes(&self) -> DisputesService<'_> {
+        DisputesService::new(self)
+    }
+
+    /// The API's events.
+    pub fn events(&self) -> EventsService<'_> {
+        EventsService::new(self)
+    }
+
+    /// The API's meters.
+    pub fn meters(&self) -> MetersService<'_> {
+        MetersService::new(self)
     }
 
     /// The API's orders.
@@ -55,8 +85,327 @@ impl Client {
     pub fn subscriptions(&self) -> SubscriptionsService<'_> {
         SubscriptionsService::new(self)
     }
+
+    /// The API's webhooks.
+    pub fn webhooks(&self) -> WebhooksService<'_> {
+        WebhooksService::new(self)
+    }
 }
 
+
+/// The page and filters of benefits:list.
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+#[non_exhaustive]
+pub struct BenefitsListParams {
+    /// The page, from 1.
+    pub page: Option<u32>,
+    /// Items a page, 1 to 100 (10 by default).
+    pub limit: Option<u32>,
+    /// Só os benefícios deste tipo: custom, license_key, downloadable, feature_flag, meter_credit, discord ou github_repository.
+    pub type_: Option<String>,
+}
+
+impl BenefitsListParams {
+    /// The first page, with the API's default limit and no filter.
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    /// Sets the page, from 1.
+    pub fn page(mut self, page: u32) -> Self {
+        self.page = Some(page);
+        self
+    }
+
+    /// Sets the items a page, 1 to 100.
+    pub fn limit(mut self, limit: u32) -> Self {
+        self.limit = Some(limit);
+        self
+    }
+
+    /// Só os benefícios deste tipo: custom, license_key, downloadable, feature_flag, meter_credit, discord ou github_repository.
+    pub fn type_(mut self, type_: impl Into<String>) -> Self {
+        self.type_ = Some(type_.into());
+        self
+    }
+
+    fn query(&self) -> Vec<(&'static str, String)> {
+        let mut query = Vec::new();
+        if let Some(page) = self.page {
+            query.push(("page", page.to_string()));
+        }
+        if let Some(limit) = self.limit {
+            query.push(("limit", limit.to_string()));
+        }
+        if let Some(value) = &self.type_ {
+            query.push(("type", value.clone()));
+        }
+        query
+    }
+}
+
+/// The page and filters of benefits:list_grants.
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+#[non_exhaustive]
+pub struct BenefitsListGrantsParams {
+    /// The page, from 1.
+    pub page: Option<u32>,
+    /// Items a page, 1 to 100 (10 by default).
+    pub limit: Option<u32>,
+    /// Só as concessões deste cliente.
+    pub customer_id: Option<String>,
+    /// true: só as vigentes; false: só as revogadas.
+    pub is_granted: Option<String>,
+}
+
+impl BenefitsListGrantsParams {
+    /// The first page, with the API's default limit and no filter.
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    /// Sets the page, from 1.
+    pub fn page(mut self, page: u32) -> Self {
+        self.page = Some(page);
+        self
+    }
+
+    /// Sets the items a page, 1 to 100.
+    pub fn limit(mut self, limit: u32) -> Self {
+        self.limit = Some(limit);
+        self
+    }
+
+    /// Só as concessões deste cliente.
+    pub fn customer_id(mut self, customer_id: impl Into<String>) -> Self {
+        self.customer_id = Some(customer_id.into());
+        self
+    }
+
+    /// true: só as vigentes; false: só as revogadas.
+    pub fn is_granted(mut self, is_granted: impl Into<String>) -> Self {
+        self.is_granted = Some(is_granted.into());
+        self
+    }
+
+    fn query(&self) -> Vec<(&'static str, String)> {
+        let mut query = Vec::new();
+        if let Some(page) = self.page {
+            query.push(("page", page.to_string()));
+        }
+        if let Some(limit) = self.limit {
+            query.push(("limit", limit.to_string()));
+        }
+        if let Some(value) = &self.customer_id {
+            query.push(("customer_id", value.clone()));
+        }
+        if let Some(value) = &self.is_granted {
+            query.push(("is_granted", value.clone()));
+        }
+        query
+    }
+}
+
+/// The API's benefits: `client.benefits()`.
+///
+/// [`idempotency_key`](Self::idempotency_key) and [`api_key`](Self::api_key)
+/// set the options of the call made through it.
+#[derive(Debug, Clone)]
+pub struct BenefitsService<'a> {
+    client: &'a Client,
+    options: RequestOptions,
+}
+
+impl<'a> BenefitsService<'a> {
+    pub(crate) fn new(client: &'a Client) -> Self {
+        Self { client, options: RequestOptions::default() }
+    }
+
+    /// Makes the write safe to repeat: the same key with the same body
+    /// answers the first response again; with another body, a 409.
+    pub fn idempotency_key(mut self, key: impl Into<String>) -> Self {
+        self.options.idempotency_key = Some(key.into());
+        self
+    }
+
+    /// Calls with another organization's key.
+    pub fn api_key(mut self, key: impl Into<String>) -> Self {
+        self.options.api_key = Some(key.into());
+        self
+    }
+
+    /// Calls with these options.
+    pub fn options(mut self, options: RequestOptions) -> Self {
+        self.options = options;
+        self
+    }
+
+    /// Criar um benefício custom, license_key, feature_flag ou meter_credit; downloads e os benefícios do Discord e do GitHub se configuram no painel.
+    pub fn create(&self, params: &BenefitsCreateParams) -> Result<Benefit, Error> {
+        self.client.request("POST", "/api/v1/benefits", &[], Some(params), &self.options)
+    }
+
+    /// Excluir um benefício: ele sai de todos os produtos e é revogado de quem o tem. The API answers 204, so there is nothing to return.
+    pub fn delete(&self, benefit: &str) -> Result<(), Error> {
+        self.client.request("DELETE", &format!("/api/v1/benefits/{}", crate::client::escape(benefit)), &[], None::<&()>, &self.options)
+    }
+
+    /// Ler um benefício.
+    pub fn get(&self, benefit: &str) -> Result<Benefit, Error> {
+        self.client.request("GET", &format!("/api/v1/benefits/{}", crate::client::escape(benefit)), &[], None::<&()>, &self.options)
+    }
+
+    /// Listar benefícios, opcionalmente de um tipo (type). One page; [`list_iter`](Self::list_iter) walks every page.
+    pub fn list(&self, params: &BenefitsListParams) -> Result<Page<Benefit>, Error> {
+        self.client.request("GET", "/api/v1/benefits", &params.query(), None::<&()>, &self.options)
+    }
+
+    /// Walks every page of benefits:list, from `params.page`, item by item.
+    pub fn list_iter(&self, params: BenefitsListParams) -> impl Iterator<Item = Result<Benefit, Error>> + 'a {
+        let client = self.client;
+        let options = self.options.clone();
+        let path = String::from("/api/v1/benefits");
+        let first = params.page.unwrap_or(1);
+        iterate(first, move |page| {
+            let query = params.clone().page(page).query();
+            client.request("GET", &path, &query, None::<&()>, &options)
+        })
+    }
+
+    /// Listar as concessões de um benefício, opcionalmente de um cliente (customer_id) ou só as vigentes (is_granted). One page; [`list_grants_iter`](Self::list_grants_iter) walks every page.
+    pub fn list_grants(&self, benefit: &str, params: &BenefitsListGrantsParams) -> Result<Page<BenefitGrant>, Error> {
+        self.client.request("GET", &format!("/api/v1/benefits/{}/grants", crate::client::escape(benefit)), &params.query(), None::<&()>, &self.options)
+    }
+
+    /// Walks every page of benefits:list_grants, from `params.page`, item by item.
+    pub fn list_grants_iter(&self, benefit: &str, params: BenefitsListGrantsParams) -> impl Iterator<Item = Result<BenefitGrant, Error>> + 'a {
+        let client = self.client;
+        let options = self.options.clone();
+        let path = format!("/api/v1/benefits/{}/grants", crate::client::escape(benefit));
+        let first = params.page.unwrap_or(1);
+        iterate(first, move |page| {
+            let query = params.clone().page(page).query();
+            client.request("GET", &path, &query, None::<&()>, &options)
+        })
+    }
+
+    /// Atualizar o nome, a visibilidade, as propriedades e os metadados de um benefício; o tipo e a descrição dada na criação não mudam, e o que a concessão já entregou fica como foi entregue.
+    pub fn update(&self, benefit: &str, params: &BenefitsUpdateParams) -> Result<Benefit, Error> {
+        self.client.request("PATCH", &format!("/api/v1/benefits/{}", crate::client::escape(benefit)), &[], Some(params), &self.options)
+    }
+}
+
+/// The page and filters of checkout-links:list.
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+#[non_exhaustive]
+pub struct CheckoutLinksListParams {
+    /// The page, from 1.
+    pub page: Option<u32>,
+    /// Items a page, 1 to 100 (10 by default).
+    pub limit: Option<u32>,
+}
+
+impl CheckoutLinksListParams {
+    /// The first page, with the API's default limit and no filter.
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    /// Sets the page, from 1.
+    pub fn page(mut self, page: u32) -> Self {
+        self.page = Some(page);
+        self
+    }
+
+    /// Sets the items a page, 1 to 100.
+    pub fn limit(mut self, limit: u32) -> Self {
+        self.limit = Some(limit);
+        self
+    }
+
+    fn query(&self) -> Vec<(&'static str, String)> {
+        let mut query = Vec::new();
+        if let Some(page) = self.page {
+            query.push(("page", page.to_string()));
+        }
+        if let Some(limit) = self.limit {
+            query.push(("limit", limit.to_string()));
+        }
+        query
+    }
+}
+
+/// The API's checkout-links: `client.checkout_links()`.
+///
+/// [`idempotency_key`](Self::idempotency_key) and [`api_key`](Self::api_key)
+/// set the options of the call made through it.
+#[derive(Debug, Clone)]
+pub struct CheckoutLinksService<'a> {
+    client: &'a Client,
+    options: RequestOptions,
+}
+
+impl<'a> CheckoutLinksService<'a> {
+    pub(crate) fn new(client: &'a Client) -> Self {
+        Self { client, options: RequestOptions::default() }
+    }
+
+    /// Makes the write safe to repeat: the same key with the same body
+    /// answers the first response again; with another body, a 409.
+    pub fn idempotency_key(mut self, key: impl Into<String>) -> Self {
+        self.options.idempotency_key = Some(key.into());
+        self
+    }
+
+    /// Calls with another organization's key.
+    pub fn api_key(mut self, key: impl Into<String>) -> Self {
+        self.options.api_key = Some(key.into());
+        self
+    }
+
+    /// Calls with these options.
+    pub fn options(mut self, options: RequestOptions) -> Self {
+        self.options = options;
+        self
+    }
+
+    /// Criar um link de checkout: uma oferta durável de um ou mais produtos, com desconto, quantidade e páginas de retorno.
+    pub fn create(&self, params: &CheckoutLinksCreateParams) -> Result<CheckoutLink, Error> {
+        self.client.request("POST", "/api/v1/checkout-links", &[], Some(params), &self.options)
+    }
+
+    /// Excluir um link de checkout: ele deixa de abrir checkouts; os que já abriu continuam. The API answers 204, so there is nothing to return.
+    pub fn delete(&self, checkout_link: &str) -> Result<(), Error> {
+        self.client.request("DELETE", &format!("/api/v1/checkout-links/{}", crate::client::escape(checkout_link)), &[], None::<&()>, &self.options)
+    }
+
+    /// Ler um link de checkout.
+    pub fn get(&self, checkout_link: &str) -> Result<CheckoutLink, Error> {
+        self.client.request("GET", &format!("/api/v1/checkout-links/{}", crate::client::escape(checkout_link)), &[], None::<&()>, &self.options)
+    }
+
+    /// Listar links de checkout. One page; [`list_iter`](Self::list_iter) walks every page.
+    pub fn list(&self, params: &CheckoutLinksListParams) -> Result<Page<CheckoutLink>, Error> {
+        self.client.request("GET", "/api/v1/checkout-links", &params.query(), None::<&()>, &self.options)
+    }
+
+    /// Walks every page of checkout-links:list, from `params.page`, item by item.
+    pub fn list_iter(&self, params: CheckoutLinksListParams) -> impl Iterator<Item = Result<CheckoutLink, Error>> + 'a {
+        let client = self.client;
+        let options = self.options.clone();
+        let path = String::from("/api/v1/checkout-links");
+        let first = params.page.unwrap_or(1);
+        iterate(first, move |page| {
+            let query = params.clone().page(page).query();
+            client.request("GET", &path, &query, None::<&()>, &options)
+        })
+    }
+
+    /// Atualizar o rótulo, as páginas de retorno, os produtos e os metadados de um link; a quantidade e o desconto ficam como foram publicados.
+    pub fn update(&self, checkout_link: &str, params: &CheckoutLinksUpdateParams) -> Result<CheckoutLink, Error> {
+        self.client.request("PATCH", &format!("/api/v1/checkout-links/{}", crate::client::escape(checkout_link)), &[], Some(params), &self.options)
+    }
+}
 
 /// The API's checkouts: `client.checkouts()`.
 ///
@@ -95,6 +444,16 @@ impl<'a> CheckoutsService<'a> {
     /// Criar o endereço de um checkout para um produto e um preço.
     pub fn create(&self, params: &CheckoutsCreateParams) -> Result<Checkout, Error> {
         self.client.request("POST", "/api/v1/checkouts", &[], Some(params), &self.options)
+    }
+
+    /// Ler um checkout: o endereço, o estado e as páginas de retorno.
+    pub fn get(&self, checkout: &str) -> Result<Checkout, Error> {
+        self.client.request("GET", &format!("/api/v1/checkouts/{}", crate::client::escape(checkout)), &[], None::<&()>, &self.options)
+    }
+
+    /// Atualizar o rótulo e as páginas de retorno de um checkout ativo.
+    pub fn update(&self, checkout: &str, params: &CheckoutsUpdateParams) -> Result<Checkout, Error> {
+        self.client.request("PATCH", &format!("/api/v1/checkouts/{}", crate::client::escape(checkout)), &[], Some(params), &self.options)
     }
 }
 
@@ -217,9 +576,19 @@ impl<'a> CustomersService<'a> {
         self.client.request("POST", "/api/v1/customers", &[], Some(params), &self.options)
     }
 
+    /// Excluir um cliente: as assinaturas terminam na hora, os benefícios são revogados e o ID externo é liberado; pedidos e pagamentos continuam. The API answers 204, so there is nothing to return.
+    pub fn delete(&self, customer: &str) -> Result<(), Error> {
+        self.client.request("DELETE", &format!("/api/v1/customers/{}", crate::client::escape(customer)), &[], None::<&()>, &self.options)
+    }
+
     /// Ler um cliente.
     pub fn get(&self, customer: &str) -> Result<Customer, Error> {
         self.client.request("GET", &format!("/api/v1/customers/{}", crate::client::escape(customer)), &[], None::<&()>, &self.options)
+    }
+
+    /// Ler um cliente pelo ID dele no sistema do lojista (external_id).
+    pub fn get_external(&self, external_id: &str) -> Result<Customer, Error> {
+        self.client.request("GET", &format!("/api/v1/external-customers/{}", crate::client::escape(external_id)), &[], None::<&()>, &self.options)
     }
 
     /// Ler o estado de um cliente: assinaturas ativas e benefícios vigentes, inclusive os feature flags.
@@ -237,6 +606,469 @@ impl<'a> CustomersService<'a> {
         let client = self.client;
         let options = self.options.clone();
         let path = String::from("/api/v1/customers");
+        let first = params.page.unwrap_or(1);
+        iterate(first, move |page| {
+            let query = params.clone().page(page).query();
+            client.request("GET", &path, &query, None::<&()>, &options)
+        })
+    }
+
+    /// Atualizar o nome, o e-mail ou o ID externo de um cliente; o ID externo não muda depois de definido.
+    pub fn update(&self, customer: &str, params: &CustomersUpdateParams) -> Result<Customer, Error> {
+        self.client.request("PATCH", &format!("/api/v1/customers/{}", crate::client::escape(customer)), &[], Some(params), &self.options)
+    }
+
+    /// Atualizar um cliente pelo ID dele no sistema do lojista (external_id).
+    pub fn update_external(&self, external_id: &str, params: &CustomersUpdateExternalParams) -> Result<Customer, Error> {
+        self.client.request("PATCH", &format!("/api/v1/external-customers/{}", crate::client::escape(external_id)), &[], Some(params), &self.options)
+    }
+}
+
+/// The page and filters of discounts:list.
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+#[non_exhaustive]
+pub struct DiscountsListParams {
+    /// The page, from 1.
+    pub page: Option<u32>,
+    /// Items a page, 1 to 100 (10 by default).
+    pub limit: Option<u32>,
+}
+
+impl DiscountsListParams {
+    /// The first page, with the API's default limit and no filter.
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    /// Sets the page, from 1.
+    pub fn page(mut self, page: u32) -> Self {
+        self.page = Some(page);
+        self
+    }
+
+    /// Sets the items a page, 1 to 100.
+    pub fn limit(mut self, limit: u32) -> Self {
+        self.limit = Some(limit);
+        self
+    }
+
+    fn query(&self) -> Vec<(&'static str, String)> {
+        let mut query = Vec::new();
+        if let Some(page) = self.page {
+            query.push(("page", page.to_string()));
+        }
+        if let Some(limit) = self.limit {
+            query.push(("limit", limit.to_string()));
+        }
+        query
+    }
+}
+
+/// The API's discounts: `client.discounts()`.
+///
+/// [`idempotency_key`](Self::idempotency_key) and [`api_key`](Self::api_key)
+/// set the options of the call made through it.
+#[derive(Debug, Clone)]
+pub struct DiscountsService<'a> {
+    client: &'a Client,
+    options: RequestOptions,
+}
+
+impl<'a> DiscountsService<'a> {
+    pub(crate) fn new(client: &'a Client) -> Self {
+        Self { client, options: RequestOptions::default() }
+    }
+
+    /// Makes the write safe to repeat: the same key with the same body
+    /// answers the first response again; with another body, a 409.
+    pub fn idempotency_key(mut self, key: impl Into<String>) -> Self {
+        self.options.idempotency_key = Some(key.into());
+        self
+    }
+
+    /// Calls with another organization's key.
+    pub fn api_key(mut self, key: impl Into<String>) -> Self {
+        self.options.api_key = Some(key.into());
+        self
+    }
+
+    /// Calls with these options.
+    pub fn options(mut self, options: RequestOptions) -> Self {
+        self.options = options;
+        self
+    }
+
+    /// Criar um desconto percentual (basis_points) ou fixo em reais (amount_cents).
+    pub fn create(&self, params: &DiscountsCreateParams) -> Result<Discount, Error> {
+        self.client.request("POST", "/api/v1/discounts", &[], Some(params), &self.options)
+    }
+
+    /// Excluir um desconto: sai das listas e dos checkouts e o código fica livre; o que ele já descontou continua nos registros. The API answers 204, so there is nothing to return.
+    pub fn delete(&self, discount: &str) -> Result<(), Error> {
+        self.client.request("DELETE", &format!("/api/v1/discounts/{}", crate::client::escape(discount)), &[], None::<&()>, &self.options)
+    }
+
+    /// Ler um desconto.
+    pub fn get(&self, discount: &str) -> Result<Discount, Error> {
+        self.client.request("GET", &format!("/api/v1/discounts/{}", crate::client::escape(discount)), &[], None::<&()>, &self.options)
+    }
+
+    /// Listar descontos. One page; [`list_iter`](Self::list_iter) walks every page.
+    pub fn list(&self, params: &DiscountsListParams) -> Result<Page<Discount>, Error> {
+        self.client.request("GET", "/api/v1/discounts", &params.query(), None::<&()>, &self.options)
+    }
+
+    /// Walks every page of discounts:list, from `params.page`, item by item.
+    pub fn list_iter(&self, params: DiscountsListParams) -> impl Iterator<Item = Result<Discount, Error>> + 'a {
+        let client = self.client;
+        let options = self.options.clone();
+        let path = String::from("/api/v1/discounts");
+        let first = params.page.unwrap_or(1);
+        iterate(first, move |page| {
+            let query = params.clone().page(page).query();
+            client.request("GET", &path, &query, None::<&()>, &options)
+        })
+    }
+
+    /// Atualizar um desconto; o tipo e a duração não mudam, e depois do primeiro uso o valor e os meses também não.
+    pub fn update(&self, discount: &str, params: &DiscountsUpdateParams) -> Result<Discount, Error> {
+        self.client.request("PATCH", &format!("/api/v1/discounts/{}", crate::client::escape(discount)), &[], Some(params), &self.options)
+    }
+}
+
+/// The page and filters of disputes:list.
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+#[non_exhaustive]
+pub struct DisputesListParams {
+    /// The page, from 1.
+    pub page: Option<u32>,
+    /// Items a page, 1 to 100 (10 by default).
+    pub limit: Option<u32>,
+    /// opened, needs_evidence, submitted, under_review, won, lost ou closed.
+    pub status: Option<String>,
+}
+
+impl DisputesListParams {
+    /// The first page, with the API's default limit and no filter.
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    /// Sets the page, from 1.
+    pub fn page(mut self, page: u32) -> Self {
+        self.page = Some(page);
+        self
+    }
+
+    /// Sets the items a page, 1 to 100.
+    pub fn limit(mut self, limit: u32) -> Self {
+        self.limit = Some(limit);
+        self
+    }
+
+    /// opened, needs_evidence, submitted, under_review, won, lost ou closed.
+    pub fn status(mut self, status: impl Into<String>) -> Self {
+        self.status = Some(status.into());
+        self
+    }
+
+    fn query(&self) -> Vec<(&'static str, String)> {
+        let mut query = Vec::new();
+        if let Some(page) = self.page {
+            query.push(("page", page.to_string()));
+        }
+        if let Some(limit) = self.limit {
+            query.push(("limit", limit.to_string()));
+        }
+        if let Some(value) = &self.status {
+            query.push(("status", value.clone()));
+        }
+        query
+    }
+}
+
+/// The API's disputes: `client.disputes()`.
+///
+/// [`idempotency_key`](Self::idempotency_key) and [`api_key`](Self::api_key)
+/// set the options of the call made through it.
+#[derive(Debug, Clone)]
+pub struct DisputesService<'a> {
+    client: &'a Client,
+    options: RequestOptions,
+}
+
+impl<'a> DisputesService<'a> {
+    pub(crate) fn new(client: &'a Client) -> Self {
+        Self { client, options: RequestOptions::default() }
+    }
+
+    /// Makes the write safe to repeat: the same key with the same body
+    /// answers the first response again; with another body, a 409.
+    pub fn idempotency_key(mut self, key: impl Into<String>) -> Self {
+        self.options.idempotency_key = Some(key.into());
+        self
+    }
+
+    /// Calls with another organization's key.
+    pub fn api_key(mut self, key: impl Into<String>) -> Self {
+        self.options.api_key = Some(key.into());
+        self
+    }
+
+    /// Calls with these options.
+    pub fn options(mut self, options: RequestOptions) -> Self {
+        self.options = options;
+        self
+    }
+
+    /// Ler uma disputa.
+    pub fn get(&self, dispute: &str) -> Result<Dispute, Error> {
+        self.client.request("GET", &format!("/api/v1/disputes/{}", crate::client::escape(dispute)), &[], None::<&()>, &self.options)
+    }
+
+    /// Listar disputas, opcionalmente de um status (status). One page; [`list_iter`](Self::list_iter) walks every page.
+    pub fn list(&self, params: &DisputesListParams) -> Result<Page<Dispute>, Error> {
+        self.client.request("GET", "/api/v1/disputes", &params.query(), None::<&()>, &self.options)
+    }
+
+    /// Walks every page of disputes:list, from `params.page`, item by item.
+    pub fn list_iter(&self, params: DisputesListParams) -> impl Iterator<Item = Result<Dispute, Error>> + 'a {
+        let client = self.client;
+        let options = self.options.clone();
+        let path = String::from("/api/v1/disputes");
+        let first = params.page.unwrap_or(1);
+        iterate(first, move |page| {
+            let query = params.clone().page(page).query();
+            client.request("GET", &path, &query, None::<&()>, &options)
+        })
+    }
+}
+
+/// The page and filters of events:list.
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+#[non_exhaustive]
+pub struct EventsListParams {
+    /// The page, from 1.
+    pub page: Option<u32>,
+    /// Items a page, 1 to 100 (10 by default).
+    pub limit: Option<u32>,
+    /// Só os eventos deste cliente.
+    pub customer_id: Option<String>,
+    /// Só os eventos a partir deste instante (RFC 3339).
+    pub start: Option<String>,
+    /// Só os eventos até este instante (RFC 3339).
+    pub end: Option<String>,
+}
+
+impl EventsListParams {
+    /// The first page, with the API's default limit and no filter.
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    /// Sets the page, from 1.
+    pub fn page(mut self, page: u32) -> Self {
+        self.page = Some(page);
+        self
+    }
+
+    /// Sets the items a page, 1 to 100.
+    pub fn limit(mut self, limit: u32) -> Self {
+        self.limit = Some(limit);
+        self
+    }
+
+    /// Só os eventos deste cliente.
+    pub fn customer_id(mut self, customer_id: impl Into<String>) -> Self {
+        self.customer_id = Some(customer_id.into());
+        self
+    }
+
+    /// Só os eventos a partir deste instante (RFC 3339).
+    pub fn start(mut self, start: impl Into<String>) -> Self {
+        self.start = Some(start.into());
+        self
+    }
+
+    /// Só os eventos até este instante (RFC 3339).
+    pub fn end(mut self, end: impl Into<String>) -> Self {
+        self.end = Some(end.into());
+        self
+    }
+
+    fn query(&self) -> Vec<(&'static str, String)> {
+        let mut query = Vec::new();
+        if let Some(page) = self.page {
+            query.push(("page", page.to_string()));
+        }
+        if let Some(limit) = self.limit {
+            query.push(("limit", limit.to_string()));
+        }
+        if let Some(value) = &self.customer_id {
+            query.push(("customer_id", value.clone()));
+        }
+        if let Some(value) = &self.start {
+            query.push(("start", value.clone()));
+        }
+        if let Some(value) = &self.end {
+            query.push(("end", value.clone()));
+        }
+        query
+    }
+}
+
+/// The API's events: `client.events()`.
+///
+/// [`idempotency_key`](Self::idempotency_key) and [`api_key`](Self::api_key)
+/// set the options of the call made through it.
+#[derive(Debug, Clone)]
+pub struct EventsService<'a> {
+    client: &'a Client,
+    options: RequestOptions,
+}
+
+impl<'a> EventsService<'a> {
+    pub(crate) fn new(client: &'a Client) -> Self {
+        Self { client, options: RequestOptions::default() }
+    }
+
+    /// Makes the write safe to repeat: the same key with the same body
+    /// answers the first response again; with another body, a 409.
+    pub fn idempotency_key(mut self, key: impl Into<String>) -> Self {
+        self.options.idempotency_key = Some(key.into());
+        self
+    }
+
+    /// Calls with another organization's key.
+    pub fn api_key(mut self, key: impl Into<String>) -> Self {
+        self.options.api_key = Some(key.into());
+        self
+    }
+
+    /// Calls with these options.
+    pub fn options(mut self, options: RequestOptions) -> Self {
+        self.options = options;
+        self
+    }
+
+    /// Listar os eventos de consumo que as origens enviaram, do mais novo ao mais antigo. One page; [`list_iter`](Self::list_iter) walks every page.
+    pub fn list(&self, params: &EventsListParams) -> Result<Page<Event>, Error> {
+        self.client.request("GET", "/api/v1/events", &params.query(), None::<&()>, &self.options)
+    }
+
+    /// Walks every page of events:list, from `params.page`, item by item.
+    pub fn list_iter(&self, params: EventsListParams) -> impl Iterator<Item = Result<Event, Error>> + 'a {
+        let client = self.client;
+        let options = self.options.clone();
+        let path = String::from("/api/v1/events");
+        let first = params.page.unwrap_or(1);
+        iterate(first, move |page| {
+            let query = params.clone().page(page).query();
+            client.request("GET", &path, &query, None::<&()>, &options)
+        })
+    }
+}
+
+/// The page and filters of meters:list.
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+#[non_exhaustive]
+pub struct MetersListParams {
+    /// The page, from 1.
+    pub page: Option<u32>,
+    /// Items a page, 1 to 100 (10 by default).
+    pub limit: Option<u32>,
+    /// true: só os medidores arquivados; false (padrão): só os ativos.
+    pub is_archived: Option<String>,
+}
+
+impl MetersListParams {
+    /// The first page, with the API's default limit and no filter.
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    /// Sets the page, from 1.
+    pub fn page(mut self, page: u32) -> Self {
+        self.page = Some(page);
+        self
+    }
+
+    /// Sets the items a page, 1 to 100.
+    pub fn limit(mut self, limit: u32) -> Self {
+        self.limit = Some(limit);
+        self
+    }
+
+    /// true: só os medidores arquivados; false (padrão): só os ativos.
+    pub fn is_archived(mut self, is_archived: impl Into<String>) -> Self {
+        self.is_archived = Some(is_archived.into());
+        self
+    }
+
+    fn query(&self) -> Vec<(&'static str, String)> {
+        let mut query = Vec::new();
+        if let Some(page) = self.page {
+            query.push(("page", page.to_string()));
+        }
+        if let Some(limit) = self.limit {
+            query.push(("limit", limit.to_string()));
+        }
+        if let Some(value) = &self.is_archived {
+            query.push(("is_archived", value.clone()));
+        }
+        query
+    }
+}
+
+/// The API's meters: `client.meters()`.
+///
+/// [`idempotency_key`](Self::idempotency_key) and [`api_key`](Self::api_key)
+/// set the options of the call made through it.
+#[derive(Debug, Clone)]
+pub struct MetersService<'a> {
+    client: &'a Client,
+    options: RequestOptions,
+}
+
+impl<'a> MetersService<'a> {
+    pub(crate) fn new(client: &'a Client) -> Self {
+        Self { client, options: RequestOptions::default() }
+    }
+
+    /// Makes the write safe to repeat: the same key with the same body
+    /// answers the first response again; with another body, a 409.
+    pub fn idempotency_key(mut self, key: impl Into<String>) -> Self {
+        self.options.idempotency_key = Some(key.into());
+        self
+    }
+
+    /// Calls with another organization's key.
+    pub fn api_key(mut self, key: impl Into<String>) -> Self {
+        self.options.api_key = Some(key.into());
+        self
+    }
+
+    /// Calls with these options.
+    pub fn options(mut self, options: RequestOptions) -> Self {
+        self.options = options;
+        self
+    }
+
+    /// Ler um medidor: o filtro dos eventos que ele conta, a agregação e a unidade.
+    pub fn get(&self, meter: &str) -> Result<Meter, Error> {
+        self.client.request("GET", &format!("/api/v1/meters/{}", crate::client::escape(meter)), &[], None::<&()>, &self.options)
+    }
+
+    /// Listar medidores; os arquivados só com is_archived=true. One page; [`list_iter`](Self::list_iter) walks every page.
+    pub fn list(&self, params: &MetersListParams) -> Result<Page<Meter>, Error> {
+        self.client.request("GET", "/api/v1/meters", &params.query(), None::<&()>, &self.options)
+    }
+
+    /// Walks every page of meters:list, from `params.page`, item by item.
+    pub fn list_iter(&self, params: MetersListParams) -> impl Iterator<Item = Result<Meter, Error>> + 'a {
+        let client = self.client;
+        let options = self.options.clone();
+        let path = String::from("/api/v1/meters");
         let first = params.page.unwrap_or(1);
         iterate(first, move |page| {
             let query = params.clone().page(page).query();
@@ -317,6 +1149,21 @@ impl<'a> OrdersService<'a> {
     pub fn options(mut self, options: RequestOptions) -> Self {
         self.options = options;
         self
+    }
+
+    /// Ler um pedido: um checkout pago.
+    pub fn get(&self, order: &str) -> Result<Order, Error> {
+        self.client.request("GET", &format!("/api/v1/orders/{}", crate::client::escape(order)), &[], None::<&()>, &self.options)
+    }
+
+    /// Ler a fatura de um pedido, o documento comercial que o lojista gerou; sem ela, 404.
+    pub fn get_invoice(&self, order: &str) -> Result<OrderInvoice, Error> {
+        self.client.request("GET", &format!("/api/v1/orders/{}/invoice", crate::client::escape(order)), &[], None::<&()>, &self.options)
+    }
+
+    /// Ler o recibo de um pedido: o que foi pago, quando e como.
+    pub fn get_receipt(&self, order: &str) -> Result<OrderReceipt, Error> {
+        self.client.request("GET", &format!("/api/v1/orders/{}/receipt", crate::client::escape(order)), &[], None::<&()>, &self.options)
     }
 
     /// Listar pedidos: checkouts pagos. One page; [`list_iter`](Self::list_iter) walks every page.
@@ -713,6 +1560,11 @@ impl<'a> ProductsService<'a> {
         self
     }
 
+    /// Arquivar um produto: sai das vendas novas e o que já foi vendido continua apontando para ele.
+    pub fn archive(&self, product: &str) -> Result<Product, Error> {
+        self.client.request("POST", &format!("/api/v1/products/{}/archive", crate::client::escape(product)), &[], None::<&()>, &self.options)
+    }
+
     /// Criar um produto.
     pub fn create(&self, params: &ProductsCreateParams) -> Result<Product, Error> {
         self.client.request("POST", "/api/v1/products", &[], Some(params), &self.options)
@@ -738,6 +1590,62 @@ impl<'a> ProductsService<'a> {
             let query = params.clone().page(page).query();
             client.request("GET", &path, &query, None::<&()>, &options)
         })
+    }
+
+    /// Atualizar o nome ou a descrição de um produto ativo.
+    pub fn update(&self, product: &str, params: &ProductsUpdateParams) -> Result<Product, Error> {
+        self.client.request("PATCH", &format!("/api/v1/products/{}", crate::client::escape(product)), &[], Some(params), &self.options)
+    }
+}
+
+/// The page and filters of refunds:list.
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+#[non_exhaustive]
+pub struct RefundsListParams {
+    /// The page, from 1.
+    pub page: Option<u32>,
+    /// Items a page, 1 to 100 (10 by default).
+    pub limit: Option<u32>,
+    /// Só os reembolsos deste pagamento.
+    pub payment_id: Option<String>,
+}
+
+impl RefundsListParams {
+    /// The first page, with the API's default limit and no filter.
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    /// Sets the page, from 1.
+    pub fn page(mut self, page: u32) -> Self {
+        self.page = Some(page);
+        self
+    }
+
+    /// Sets the items a page, 1 to 100.
+    pub fn limit(mut self, limit: u32) -> Self {
+        self.limit = Some(limit);
+        self
+    }
+
+    /// Só os reembolsos deste pagamento.
+    pub fn payment_id(mut self, payment_id: impl Into<String>) -> Self {
+        self.payment_id = Some(payment_id.into());
+        self
+    }
+
+    fn query(&self) -> Vec<(&'static str, String)> {
+        let mut query = Vec::new();
+        if let Some(page) = self.page {
+            query.push(("page", page.to_string()));
+        }
+        if let Some(limit) = self.limit {
+            query.push(("limit", limit.to_string()));
+        }
+        if let Some(value) = &self.payment_id {
+            query.push(("payment_id", value.clone()));
+        }
+        query
     }
 }
 
@@ -778,6 +1686,23 @@ impl<'a> RefundsService<'a> {
     /// Reembolsar parte ou todo um pagamento.
     pub fn create(&self, params: &RefundsCreateParams) -> Result<Refund, Error> {
         self.client.request("POST", "/api/v1/refunds", &[], Some(params), &self.options)
+    }
+
+    /// Listar reembolsos, opcionalmente de um pagamento (payment_id). One page; [`list_iter`](Self::list_iter) walks every page.
+    pub fn list(&self, params: &RefundsListParams) -> Result<Page<Refund>, Error> {
+        self.client.request("GET", "/api/v1/refunds", &params.query(), None::<&()>, &self.options)
+    }
+
+    /// Walks every page of refunds:list, from `params.page`, item by item.
+    pub fn list_iter(&self, params: RefundsListParams) -> impl Iterator<Item = Result<Refund, Error>> + 'a {
+        let client = self.client;
+        let options = self.options.clone();
+        let path = String::from("/api/v1/refunds");
+        let first = params.page.unwrap_or(1);
+        iterate(first, move |page| {
+            let query = params.clone().page(page).query();
+            client.request("GET", &path, &query, None::<&()>, &options)
+        })
     }
 }
 
@@ -891,6 +1816,202 @@ impl<'a> SubscriptionsService<'a> {
             let query = params.clone().page(page).query();
             client.request("GET", &path, &query, None::<&()>, &options)
         })
+    }
+
+    /// Trocar o plano de uma assinatura: outro preço e, se quiser, outra quantidade, com a forma de ratear a diferença (proration_behavior).
+    pub fn update(&self, subscription: &str, params: &SubscriptionsUpdateParams) -> Result<Subscription, Error> {
+        self.client.request("PATCH", &format!("/api/v1/subscriptions/{}", crate::client::escape(subscription)), &[], Some(params), &self.options)
+    }
+}
+
+/// The page and filters of webhooks:list_deliveries.
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+#[non_exhaustive]
+pub struct WebhooksListDeliveriesParams {
+    /// The page, from 1.
+    pub page: Option<u32>,
+    /// Items a page, 1 to 100 (10 by default).
+    pub limit: Option<u32>,
+    /// Só as entregas deste endpoint.
+    pub endpoint_id: Option<String>,
+    /// pending, succeeded ou exhausted.
+    pub status: Option<String>,
+}
+
+impl WebhooksListDeliveriesParams {
+    /// The first page, with the API's default limit and no filter.
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    /// Sets the page, from 1.
+    pub fn page(mut self, page: u32) -> Self {
+        self.page = Some(page);
+        self
+    }
+
+    /// Sets the items a page, 1 to 100.
+    pub fn limit(mut self, limit: u32) -> Self {
+        self.limit = Some(limit);
+        self
+    }
+
+    /// Só as entregas deste endpoint.
+    pub fn endpoint_id(mut self, endpoint_id: impl Into<String>) -> Self {
+        self.endpoint_id = Some(endpoint_id.into());
+        self
+    }
+
+    /// pending, succeeded ou exhausted.
+    pub fn status(mut self, status: impl Into<String>) -> Self {
+        self.status = Some(status.into());
+        self
+    }
+
+    fn query(&self) -> Vec<(&'static str, String)> {
+        let mut query = Vec::new();
+        if let Some(page) = self.page {
+            query.push(("page", page.to_string()));
+        }
+        if let Some(limit) = self.limit {
+            query.push(("limit", limit.to_string()));
+        }
+        if let Some(value) = &self.endpoint_id {
+            query.push(("endpoint_id", value.clone()));
+        }
+        if let Some(value) = &self.status {
+            query.push(("status", value.clone()));
+        }
+        query
+    }
+}
+
+/// The page and filters of webhooks:list_endpoints.
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+#[non_exhaustive]
+pub struct WebhooksListEndpointsParams {
+    /// The page, from 1.
+    pub page: Option<u32>,
+    /// Items a page, 1 to 100 (10 by default).
+    pub limit: Option<u32>,
+}
+
+impl WebhooksListEndpointsParams {
+    /// The first page, with the API's default limit and no filter.
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    /// Sets the page, from 1.
+    pub fn page(mut self, page: u32) -> Self {
+        self.page = Some(page);
+        self
+    }
+
+    /// Sets the items a page, 1 to 100.
+    pub fn limit(mut self, limit: u32) -> Self {
+        self.limit = Some(limit);
+        self
+    }
+
+    fn query(&self) -> Vec<(&'static str, String)> {
+        let mut query = Vec::new();
+        if let Some(page) = self.page {
+            query.push(("page", page.to_string()));
+        }
+        if let Some(limit) = self.limit {
+            query.push(("limit", limit.to_string()));
+        }
+        query
+    }
+}
+
+/// The API's webhooks: `client.webhooks()`.
+///
+/// [`idempotency_key`](Self::idempotency_key) and [`api_key`](Self::api_key)
+/// set the options of the call made through it.
+#[derive(Debug, Clone)]
+pub struct WebhooksService<'a> {
+    client: &'a Client,
+    options: RequestOptions,
+}
+
+impl<'a> WebhooksService<'a> {
+    pub(crate) fn new(client: &'a Client) -> Self {
+        Self { client, options: RequestOptions::default() }
+    }
+
+    /// Makes the write safe to repeat: the same key with the same body
+    /// answers the first response again; with another body, a 409.
+    pub fn idempotency_key(mut self, key: impl Into<String>) -> Self {
+        self.options.idempotency_key = Some(key.into());
+        self
+    }
+
+    /// Calls with another organization's key.
+    pub fn api_key(mut self, key: impl Into<String>) -> Self {
+        self.options.api_key = Some(key.into());
+        self
+    }
+
+    /// Calls with these options.
+    pub fn options(mut self, options: RequestOptions) -> Self {
+        self.options = options;
+        self
+    }
+
+    /// Criar um endpoint de webhook; o segredo que assina as mensagens vem só nesta resposta.
+    pub fn create_endpoint(&self, params: &WebhooksCreateEndpointParams) -> Result<WebhookEndpointCreated, Error> {
+        self.client.request("POST", "/api/v1/webhooks/endpoints", &[], Some(params), &self.options)
+    }
+
+    /// Excluir um endpoint de webhook; as entregas que ainda esperavam por ele falham. The API answers 204, so there is nothing to return.
+    pub fn delete_endpoint(&self, endpoint: &str) -> Result<(), Error> {
+        self.client.request("DELETE", &format!("/api/v1/webhooks/endpoints/{}", crate::client::escape(endpoint)), &[], None::<&()>, &self.options)
+    }
+
+    /// Ler um endpoint de webhook.
+    pub fn get_endpoint(&self, endpoint: &str) -> Result<WebhookEndpoint, Error> {
+        self.client.request("GET", &format!("/api/v1/webhooks/endpoints/{}", crate::client::escape(endpoint)), &[], None::<&()>, &self.options)
+    }
+
+    /// Listar as últimas 100 entregas de eventos aos endpoints, opcionalmente de um endpoint (endpoint_id) ou de uma situação (status). One page; [`list_deliveries_iter`](Self::list_deliveries_iter) walks every page.
+    pub fn list_deliveries(&self, params: &WebhooksListDeliveriesParams) -> Result<Page<WebhookDelivery>, Error> {
+        self.client.request("GET", "/api/v1/webhooks/deliveries", &params.query(), None::<&()>, &self.options)
+    }
+
+    /// Walks every page of webhooks:list_deliveries, from `params.page`, item by item.
+    pub fn list_deliveries_iter(&self, params: WebhooksListDeliveriesParams) -> impl Iterator<Item = Result<WebhookDelivery, Error>> + 'a {
+        let client = self.client;
+        let options = self.options.clone();
+        let path = String::from("/api/v1/webhooks/deliveries");
+        let first = params.page.unwrap_or(1);
+        iterate(first, move |page| {
+            let query = params.clone().page(page).query();
+            client.request("GET", &path, &query, None::<&()>, &options)
+        })
+    }
+
+    /// Listar os endpoints de webhook do lojista. One page; [`list_endpoints_iter`](Self::list_endpoints_iter) walks every page.
+    pub fn list_endpoints(&self, params: &WebhooksListEndpointsParams) -> Result<Page<WebhookEndpoint>, Error> {
+        self.client.request("GET", "/api/v1/webhooks/endpoints", &params.query(), None::<&()>, &self.options)
+    }
+
+    /// Walks every page of webhooks:list_endpoints, from `params.page`, item by item.
+    pub fn list_endpoints_iter(&self, params: WebhooksListEndpointsParams) -> impl Iterator<Item = Result<WebhookEndpoint, Error>> + 'a {
+        let client = self.client;
+        let options = self.options.clone();
+        let path = String::from("/api/v1/webhooks/endpoints");
+        let first = params.page.unwrap_or(1);
+        iterate(first, move |page| {
+            let query = params.clone().page(page).query();
+            client.request("GET", &path, &query, None::<&()>, &options)
+        })
+    }
+
+    /// Atualizar o endereço, o formato, os eventos ou a descrição de um endpoint, ou ligar e desligar o envio (enabled); o segredo não muda.
+    pub fn update_endpoint(&self, endpoint: &str, params: &WebhooksUpdateEndpointParams) -> Result<WebhookEndpoint, Error> {
+        self.client.request("PATCH", &format!("/api/v1/webhooks/endpoints/{}", crate::client::escape(endpoint)), &[], Some(params), &self.options)
     }
 }
 

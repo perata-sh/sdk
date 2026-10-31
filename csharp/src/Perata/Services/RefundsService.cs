@@ -29,6 +29,26 @@ public sealed class RefundsService
         ArgumentNullException.ThrowIfNull(parameters);
         return client.RequestAsync(HttpMethod.Post, "/api/v1/refunds", null, JsonSerializer.SerializeToUtf8Bytes(parameters, PerataJson.Default.RefundsCreateParams), PerataJson.Default.RefundEnvelope, options?.IdempotencyKey, options, cancellationToken);
     }
+
+    /// <summary>Listar reembolsos, opcionalmente de um pagamento (payment_id). One page; <see cref="ListIterAsync"/> walks every page.</summary>
+    /// <param name="parameters">The page, its size and the filters; the first page when null.</param>
+    /// <param name="options">Another organization's key for this call.</param>
+    /// <param name="cancellationToken">Cancels the call.</param>
+    /// <returns>The page.</returns>
+    /// <exception cref="PerataException">The API refused the call.</exception>
+    public Task<Page<Refund>> ListAsync(RefundsListParams? parameters = null, RequestOptions? options = null, CancellationToken cancellationToken = default) =>
+        client.RequestAsync(HttpMethod.Get, "/api/v1/refunds", parameters?.Query(), null, PerataJson.Default.RefundPageEnvelope, null, options, cancellationToken);
+
+    /// <summary>Walks every page of refunds:list from the parameters' page (the first by default), item by item, fetching a page only when the previous one is used up.</summary>
+    /// <param name="parameters">The first page, the page size and the filters.</param>
+    /// <param name="options">Another organization's key for every call.</param>
+    /// <param name="cancellationToken">Cancels the walk.</param>
+    /// <returns>The items, page after page.</returns>
+    public IAsyncEnumerable<Refund> ListIterAsync(RefundsListParams? parameters = null, RequestOptions? options = null, CancellationToken cancellationToken = default)
+    {
+        var walk = parameters ?? new RefundsListParams();
+        return Pages.IterateAsync((page, token) => ListAsync(walk with { Page = page }, options, token), walk.Page, cancellationToken);
+    }
 }
 
 /// <summary>The body of refunds:create.</summary>
@@ -67,5 +87,25 @@ public sealed record RefundsCreateParams
     /// <summary>The <c>reason</c> to send.</summary>
     [JsonPropertyName("reason")]
     public required string Reason { get; init; }
+}
+
+/// <summary>The page and filters of refunds:list.</summary>
+public sealed record RefundsListParams
+{
+    /// <summary>The page, from 1; the first when null.</summary>
+    public int? Page { get; init; }
+
+    /// <summary>The items a page, 1 to 100; the API's 10 when null.</summary>
+    public int? Limit { get; init; }
+
+    /// <summary>Só os reembolsos deste pagamento.</summary>
+    public string? PaymentId { get; init; }
+
+    internal IEnumerable<KeyValuePair<string, string?>> Query() =>
+    [
+        new("page", Page?.ToString(CultureInfo.InvariantCulture)),
+        new("limit", Limit?.ToString(CultureInfo.InvariantCulture)),
+        new("payment_id", PaymentId),
+    ];
 }
 

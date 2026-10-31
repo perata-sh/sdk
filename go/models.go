@@ -2,11 +2,28 @@
 
 package perata
 
+// Benefit is a resource of Peráta's API.
+type Benefit struct {
+	CreatedAt   string `json:"created_at"`
+	Description string `json:"description"`
+	ID          string `json:"id"`
+	// Metadados do lojista: pares chave e valor (texto, número ou booleano); no tipo feature_flag, os valores da flag.
+	Metadata   map[string]any `json:"metadata"`
+	ModifiedAt string         `json:"modified_at"`
+	// Como o benefício aparece nos produtos e para o cliente.
+	Name string `json:"name"`
+	// Os campos do tipo do benefício.
+	Properties map[string]any `json:"properties"`
+	Status     string         `json:"status"`
+	Type       string         `json:"type"`
+	Visibility string         `json:"visibility"`
+}
+
 // BenefitGrant is a resource of Peráta's API.
 type BenefitGrant struct {
 	BenefitID string `json:"benefit_id"`
 	// Os metadados do benefício: os valores de uma feature flag.
-	BenefitMetadata map[string]any `json:"benefit_metadata,omitempty"`
+	BenefitMetadata map[string]any `json:"benefit_metadata"`
 	BenefitType     string         `json:"benefit_type"`
 	CreatedAt       string         `json:"created_at"`
 	CustomerID      string         `json:"customer_id"`
@@ -15,9 +32,23 @@ type BenefitGrant struct {
 	IsGranted       bool           `json:"is_granted"`
 	IsRevoked       bool           `json:"is_revoked"`
 	// O que a concessão informa, conforme o tipo, sem credenciais.
-	Properties map[string]any `json:"properties,omitempty"`
+	Properties map[string]any `json:"properties"`
 	RevokedAt  *string        `json:"revoked_at"`
 	Status     string         `json:"status"`
+}
+
+// BillingAddress is a resource of Peráta's API.
+type BillingAddress struct {
+	City    string `json:"city"`
+	Country string `json:"country"`
+	// Bairro.
+	District string `json:"district"`
+	Line1    string `json:"line1"`
+	Line2    string `json:"line2"`
+	// CEP, só dígitos.
+	PostalCode string `json:"postal_code"`
+	// UF.
+	State string `json:"state"`
 }
 
 // Card is a resource of Peráta's API.
@@ -30,11 +61,68 @@ type Card struct {
 
 // Checkout is a resource of Peráta's API.
 type Checkout struct {
-	ID        string `json:"id"`
+	// Endereço https para onde o comprador volta se desistir; vazio sem ele.
+	CancelURL string `json:"cancel_url"`
+	CreatedAt string `json:"created_at"`
+	// Quando o checkout deixa de abrir sessões; nulo sem prazo.
+	ExpiresAt *string `json:"expires_at"`
+	ID        string  `json:"id"`
+	// Como o lojista chama o checkout nas próprias telas; o comprador não vê.
+	Label     string `json:"label"`
 	PriceID   string `json:"price_id"`
 	ProductID string `json:"product_id"`
+	Quantity  int64  `json:"quantity"`
+	// active abre sessões de compra; archived saiu de circulação.
+	Status string `json:"status"`
+	// Endereço https para onde o comprador volta depois de pagar; vazio sem ele.
+	SuccessURL string `json:"success_url"`
 	// Endereço para onde o comprador é enviado.
 	URL string `json:"url"`
+}
+
+// CheckoutLink is a resource of Peráta's API.
+type CheckoutLink struct {
+	// Se o comprador pode digitar um código de desconto.
+	AllowDiscountCodes bool `json:"allow_discount_codes"`
+	// Endereço https para onde o comprador volta se desistir; vazio sem ele.
+	CancelURL string `json:"cancel_url"`
+	// manual segura a venda no cartão para o lojista capturar depois.
+	CaptureMode string `json:"capture_mode"`
+	CreatedAt   string `json:"created_at"`
+	// O desconto fixado no link; nulo sem ele.
+	DiscountID *string `json:"discount_id"`
+	// Quando o link deixa de abrir checkouts; nulo sem prazo.
+	ExpiresAt *string `json:"expires_at"`
+	ID        string  `json:"id"`
+	// Como o lojista chama o link nas próprias telas; o comprador não vê.
+	Label string `json:"label"`
+	// O máximo de parcelas no cartão de crédito; 0 segue o que a organização definiu.
+	MaxInstallments int64 `json:"max_installments"`
+	// Metadados do lojista: pares chave e valor (texto, número ou booleano); objeto vazio quando não há.
+	Metadata   map[string]any `json:"metadata"`
+	ModifiedAt string         `json:"modified_at"`
+	// O preço do primeiro produto.
+	PriceID string `json:"price_id"`
+	// O primeiro produto do link.
+	ProductID string `json:"product_id"`
+	// Os produtos que o link vende, na ordem em que o comprador os vê.
+	Products              []CheckoutLinkProduct `json:"products"`
+	Quantity              int64                 `json:"quantity"`
+	RequireBillingAddress bool                  `json:"require_billing_address"`
+	Status                string                `json:"status"`
+	// Endereço https para onde o comprador volta depois de pagar; vazio sem ele.
+	SuccessURL string `json:"success_url"`
+	// O período de teste gratuito do link, no lugar do produto; nulo mantém o do produto.
+	TrialInterval      *string `json:"trial_interval"`
+	TrialIntervalCount *int64  `json:"trial_interval_count"`
+	// Endereço para onde o comprador é enviado.
+	URL string `json:"url"`
+}
+
+// CheckoutLinkProduct is a resource of Peráta's API.
+type CheckoutLinkProduct struct {
+	PriceID   string `json:"price_id"`
+	ProductID string `json:"product_id"`
 }
 
 // Customer is a resource of Peráta's API.
@@ -83,6 +171,118 @@ type CustomerStateBenefitGrant struct {
 	Properties map[string]any `json:"properties"`
 }
 
+// Discount is a resource of Peráta's API.
+type Discount struct {
+	// O valor fixo em centavos; 0 em um desconto percentual.
+	AmountCents int64 `json:"amount_cents"`
+	// O percentual em centésimos de ponto percentual, 10000 é 100%; 0 em um desconto fixo.
+	BasisPoints int64 `json:"basis_points"`
+	// O código que o cliente digita no checkout; nulo quando o desconto só se aplica por um link de checkout ou pela API.
+	Code      *string `json:"code"`
+	CreatedAt string  `json:"created_at"`
+	Currency  string  `json:"currency"`
+	// Em uma assinatura: só na primeira fatura, por duration_in_months meses ou para sempre.
+	Duration string `json:"duration"`
+	// Os meses de um desconto repeating; 0 nos outros.
+	DurationInMonths int64 `json:"duration_in_months"`
+	// Depois de quando deixa de valer; nulo sem fim.
+	EndsAt *string `json:"ends_at"`
+	ID     string  `json:"id"`
+	// Quantas vezes o desconto pode ser usado no total; nulo sem limite.
+	MaxRedemptions *int64 `json:"max_redemptions"`
+	// Quantas vezes um mesmo cliente pode usá-lo, de 1 a 100; nulo sem limite.
+	MaxRedemptionsPerCustomer *int64 `json:"max_redemptions_per_customer"`
+	ModifiedAt                string `json:"modified_at"`
+	// Mostrado ao cliente quando o desconto é aplicado.
+	Name string `json:"name"`
+	// Os produtos a que o desconto se aplica; vazio, todos os do catálogo.
+	ProductIds       []string `json:"product_ids"`
+	RedemptionsCount int64    `json:"redemptions_count"`
+	// A partir de quando o desconto vale.
+	StartsAt string `json:"starts_at"`
+	Status   string `json:"status"`
+	Type     string `json:"type"`
+}
+
+// Dispute is a resource of Peráta's API.
+type Dispute struct {
+	// Valor contestado, em centavos.
+	AmountCents int64   `json:"amount_cents"`
+	Currency    string  `json:"currency"`
+	CustomerID  *string `json:"customer_id"`
+	DecidedAt   *string `json:"decided_at"`
+	// Prazo da defesa.
+	DueBy     *string `json:"due_by"`
+	ID        string  `json:"id"`
+	InvoiceID *string `json:"invoice_id"`
+	OpenedAt  string  `json:"opened_at"`
+	// O pedido que a venda contestada pagou; nulo quando não é de um checkout.
+	OrderID *string `json:"order_id"`
+	// O PaymentId da venda contestada na Cielo.
+	PaymentID string `json:"payment_id"`
+	// O número do caso na Cielo.
+	ProviderDisputeID string `json:"provider_dispute_id"`
+	// O motivo nas palavras da Cielo.
+	ProviderReason string `json:"provider_reason"`
+	// Motivo, do conjunto fechado; unknown quando a adquirente não informou.
+	Reason string `json:"reason"`
+	Source string `json:"source"`
+	Status string `json:"status"`
+}
+
+// Event is a resource of Peráta's API.
+type Event struct {
+	CachedTokens int64  `json:"cached_tokens"`
+	CostCurrency string `json:"cost_currency"`
+	// O custo da chamada em milionésimos de centavo.
+	CostMicroCents int64  `json:"cost_micro_cents"`
+	CustomerID     string `json:"customer_id"`
+	// O identificador do evento no sistema da origem.
+	ExternalID   string `json:"external_id"`
+	ID           string `json:"id"`
+	InputTokens  int64  `json:"input_tokens"`
+	LlmModel     string `json:"llm_model"`
+	LlmVendor    string `json:"llm_vendor"`
+	Name         string `json:"name"`
+	OutputTokens int64  `json:"output_tokens"`
+	// O evento de que este é filho; nulo na raiz.
+	ParentID   *string `json:"parent_id"`
+	ReceivedAt string  `json:"received_at"`
+	// A origem que enviou o evento.
+	SourceID string `json:"source_id"`
+	// Quando o evento aconteceu.
+	Timestamp string `json:"timestamp"`
+}
+
+// Meter is a resource of Peráta's API.
+type Meter struct {
+	Aggregation MeterAggregation `json:"aggregation"`
+	// Quando o medidor foi arquivado; nulo se está ativo.
+	ArchivedAt *string `json:"archived_at"`
+	CreatedAt  string  `json:"created_at"`
+	// Os eventos que o medidor conta: grupos de condições, em conjunction and ou or, sobre name, timestamp ou metadata.<chave>.
+	Filter     map[string]any `json:"filter"`
+	ID         string         `json:"id"`
+	ModifiedAt string         `json:"modified_at"`
+	Name       string         `json:"name"`
+	Unit       MeterUnit      `json:"unit"`
+}
+
+// MeterAggregation is a resource of Peráta's API.
+type MeterAggregation struct {
+	Func string `json:"func"`
+	// A propriedade do evento que as funções, menos count, leem; vazia no count.
+	Property string `json:"property"`
+}
+
+// MeterUnit is a resource of Peráta's API.
+type MeterUnit struct {
+	Label string `json:"label"`
+	// Por quantas unidades o preço é mostrado.
+	Multiplier int64  `json:"multiplier"`
+	Type       string `json:"type"`
+}
+
 // Order is a resource of Peráta's API.
 type Order struct {
 	AmountCents int64  `json:"amount_cents"`
@@ -97,6 +297,46 @@ type Order struct {
 	PriceID      string  `json:"price_id"`
 	ProductID    string  `json:"product_id"`
 	Status       string  `json:"status"`
+}
+
+// OrderInvoice is a resource of Peráta's API.
+type OrderInvoice struct {
+	Address       BillingAddress `json:"address"`
+	AmountCents   int64          `json:"amount_cents"`
+	BillingName   string         `json:"billing_name"`
+	Currency      string         `json:"currency"`
+	DiscountCents int64          `json:"discount_cents"`
+	GeneratedAt   string         `json:"generated_at"`
+	// Número da fatura, na série da organização (PREFIXO-0001).
+	Number      string `json:"number"`
+	OrderID     string `json:"order_id"`
+	ProductName string `json:"product_name"`
+	// CPF ou CNPJ, só dígitos.
+	TaxID string `json:"tax_id"`
+	// cpf ou cnpj; vazio sem documento.
+	TaxIDKind  string `json:"tax_id_kind"`
+	TotalCents int64  `json:"total_cents"`
+}
+
+// OrderReceipt is a resource of Peráta's API.
+type OrderReceipt struct {
+	AmountCents              int64  `json:"amount_cents"`
+	Currency                 string `json:"currency"`
+	CustomerEmail            string `json:"customer_email"`
+	CustomerName             string `json:"customer_name"`
+	DiscountCents            int64  `json:"discount_cents"`
+	InstallmentInterestCents int64  `json:"installment_interest_cents"`
+	// Em quantas parcelas o cartão de crédito foi cobrado; 1 à vista.
+	Installments int64 `json:"installments"`
+	// Número do pedido na série da organização; vazio antes de ter um.
+	Number  string  `json:"number"`
+	OrderID string  `json:"order_id"`
+	PaidAt  *string `json:"paid_at"`
+	// card, pix ou boleto; vazio quando o pagamento não foi achado.
+	PaymentMethod string `json:"payment_method"`
+	ProductName   string `json:"product_name"`
+	RefundedCents int64  `json:"refunded_cents"`
+	TotalCents    int64  `json:"total_cents"`
 }
 
 // Pagination is a resource of Peráta's API.
@@ -217,6 +457,24 @@ type WebhookCheckout struct {
 	TotalCents    int64   `json:"total_cents"`
 }
 
+// WebhookDelivery is a resource of Peráta's API.
+type WebhookDelivery struct {
+	Attempts      int64   `json:"attempts"`
+	CreatedAt     string  `json:"created_at"`
+	EndpointID    string  `json:"endpoint_id"`
+	EventID       string  `json:"event_id"`
+	EventType     string  `json:"event_type"`
+	ID            string  `json:"id"`
+	LastAttemptAt *string `json:"last_attempt_at"`
+	LastError     string  `json:"last_error"`
+	MaxAttempts   int64   `json:"max_attempts"`
+	NextAttemptAt *string `json:"next_attempt_at"`
+	// O status HTTP da última resposta; nulo quando não houve.
+	ResponseStatus *int64 `json:"response_status"`
+	// pending enquanto é repetida; exhausted quando todas as tentativas falharam.
+	Status string `json:"status"`
+}
+
 // WebhookDiscount is a resource of Peráta's API.
 type WebhookDiscount struct {
 	// Valor fixo em centavos, quando o tipo é fixed.
@@ -263,6 +521,97 @@ type WebhookDispute struct {
 	Status string `json:"status"`
 }
 
+// WebhookEndpoint is a resource of Peráta's API.
+type WebhookEndpoint struct {
+	ConsecutiveFailures int64  `json:"consecutive_failures"`
+	CreatedAt           string `json:"created_at"`
+	// Como o lojista chama o endpoint; sem ele, o domínio do endereço.
+	Description string `json:"description"`
+	// Os eventos de que o endpoint é avisado, em ordem alfabética.
+	Events []string `json:"events"`
+	// O corpo da mensagem; o que o endereço indica quando não é dito.
+	Format string `json:"format"`
+	ID     string `json:"id"`
+	Status string `json:"status"`
+	// Endereço https para onde as mensagens são enviadas.
+	URL string `json:"url"`
+}
+
+// WebhookEndpointCreated is a resource of Peráta's API.
+type WebhookEndpointCreated struct {
+	ConsecutiveFailures int64    `json:"consecutive_failures"`
+	CreatedAt           string   `json:"created_at"`
+	Description         string   `json:"description"`
+	Events              []string `json:"events"`
+	Format              string   `json:"format"`
+	ID                  string   `json:"id"`
+	// O segredo (whsec_…) com que as mensagens são assinadas. Só esta resposta o traz; na repetição da criação sob a mesma Idempotency-Key vem vazio.
+	Secret string `json:"secret"`
+	Status string `json:"status"`
+	URL    string `json:"url"`
+}
+
+// The body of benefits:create.
+type BenefitsCreateParams struct {
+	Description *string `json:"description,omitempty"`
+	// Até 50 pares; valor em texto, número ou booleano. No feature_flag, os valores da flag.
+	Metadata map[string]any `json:"metadata,omitempty"`
+	// Como o benefício aparece nos produtos e para o cliente; até 80 caracteres.
+	Name string `json:"name"`
+	// Os campos do tipo. custom: note. license_key: prefix, expires_in, expires_unit (day, month, year), activation_limit, customer_can_deactivate, usage_limit. meter_credit: meter_id, units, rollover. feature_flag: nenhum.
+	Properties map[string]any `json:"properties,omitempty"`
+	Type       string         `json:"type"`
+	Visibility *string        `json:"visibility,omitempty"`
+}
+
+// The body of benefits:update.
+type BenefitsUpdateParams struct {
+	// Substitui os metadados; {} os limpa.
+	Metadata map[string]any `json:"metadata,omitempty"`
+	Name     *string        `json:"name,omitempty"`
+	// Os campos do tipo, aplicados sobre os guardados; o que ficar de fora não muda.
+	Properties map[string]any `json:"properties,omitempty"`
+	Visibility *string        `json:"visibility,omitempty"`
+}
+
+// The body of checkout-links:create.
+type CheckoutLinksCreateParams struct {
+	AllowDiscountCodes *bool   `json:"allow_discount_codes,omitempty"`
+	CancelURL          *string `json:"cancel_url,omitempty"`
+	CaptureMode        *string `json:"capture_mode,omitempty"`
+	// Desconto fixado no link.
+	DiscountID *string `json:"discount_id,omitempty"`
+	// Data e hora RFC 3339 no futuro.
+	ExpiresAt *string `json:"expires_at,omitempty"`
+	Label     *string `json:"label,omitempty"`
+	// De 0 a 12; 0 segue a organização.
+	MaxInstallments *int64 `json:"max_installments,omitempty"`
+	// Até 50 pares; valor em texto, número ou booleano.
+	Metadata map[string]any `json:"metadata,omitempty"`
+	PriceID  *string        `json:"price_id,omitempty"`
+	// Um preço de cada produto, na ordem em que o comprador os vê; até 20.
+	PriceIds []string `json:"price_ids,omitempty"`
+	// Com price_id, o produto que o link vende; ou use price_ids.
+	ProductID             *string `json:"product_id,omitempty"`
+	Quantity              *int64  `json:"quantity,omitempty"`
+	RequireBillingAddress *bool   `json:"require_billing_address,omitempty"`
+	SuccessURL            *string `json:"success_url,omitempty"`
+	TrialInterval         *string `json:"trial_interval,omitempty"`
+	TrialIntervalCount    *int64  `json:"trial_interval_count,omitempty"`
+}
+
+// The body of checkout-links:update.
+type CheckoutLinksUpdateParams struct {
+	CancelURL *string `json:"cancel_url,omitempty"`
+	Label     *string `json:"label,omitempty"`
+	// Substitui os metadados; {} os limpa.
+	Metadata map[string]any `json:"metadata,omitempty"`
+	// Substitui os produtos do link.
+	PriceIds              []string `json:"price_ids,omitempty"`
+	RequireBillingAddress *bool    `json:"require_billing_address,omitempty"`
+	SuccessURL            *string  `json:"success_url,omitempty"`
+}
+
 // The body of checkouts:create.
 type CheckoutsCreateParams struct {
 	CancelURL  *string `json:"cancel_url,omitempty"`
@@ -270,6 +619,15 @@ type CheckoutsCreateParams struct {
 	PriceID    string  `json:"price_id"`
 	ProductID  string  `json:"product_id"`
 	Quantity   *int64  `json:"quantity,omitempty"`
+	SuccessURL *string `json:"success_url,omitempty"`
+}
+
+// The body of checkouts:update.
+type CheckoutsUpdateParams struct {
+	// Endereço https; vazio retira.
+	CancelURL *string `json:"cancel_url,omitempty"`
+	Label     *string `json:"label,omitempty"`
+	// Endereço https; vazio retira.
 	SuccessURL *string `json:"success_url,omitempty"`
 }
 
@@ -287,6 +645,64 @@ type CustomersCreateParams struct {
 	Name       string  `json:"name"`
 }
 
+// The body of customers:update.
+type CustomersUpdateParams struct {
+	Email *string `json:"email,omitempty"`
+	// Só pode ser definido uma vez.
+	ExternalID *string `json:"external_id,omitempty"`
+	Name       *string `json:"name,omitempty"`
+}
+
+// The body of discounts:create.
+type DiscountsCreateParams struct {
+	// Em centavos, obrigatório no tipo fixed.
+	AmountCents *int64 `json:"amount_cents,omitempty"`
+	// De 1 a 10000, obrigatório no tipo percentage.
+	BasisPoints *int64 `json:"basis_points,omitempty"`
+	// Até 64 letras, números, hífens ou sublinhados; sem ele o desconto só se aplica por um link de checkout ou pela API.
+	Code     *string `json:"code,omitempty"`
+	Duration string  `json:"duration"`
+	// De 1 a 120, só no duration repeating.
+	DurationInMonths *int64 `json:"duration_in_months,omitempty"`
+	// Data e hora RFC 3339, depois de starts_at.
+	EndsAt                    *string `json:"ends_at,omitempty"`
+	MaxRedemptions            *int64  `json:"max_redemptions,omitempty"`
+	MaxRedemptionsPerCustomer *int64  `json:"max_redemptions_per_customer,omitempty"`
+	Name                      string  `json:"name"`
+	// Os produtos do desconto; vazio, todos.
+	ProductIds []string `json:"product_ids,omitempty"`
+	// Data e hora RFC 3339; agora, se omitida.
+	StartsAt *string `json:"starts_at,omitempty"`
+	Type     string  `json:"type"`
+}
+
+// The body of discounts:update.
+type DiscountsUpdateParams struct {
+	AmountCents *int64 `json:"amount_cents,omitempty"`
+	BasisPoints *int64 `json:"basis_points,omitempty"`
+	// null tira o código.
+	Code             *string `json:"code,omitempty"`
+	DurationInMonths *int64  `json:"duration_in_months,omitempty"`
+	// null tira o fim.
+	EndsAt *string `json:"ends_at,omitempty"`
+	// null tira o limite.
+	MaxRedemptions *int64 `json:"max_redemptions,omitempty"`
+	// null tira o limite.
+	MaxRedemptionsPerCustomer *int64  `json:"max_redemptions_per_customer,omitempty"`
+	Name                      *string `json:"name,omitempty"`
+	// Substitui os produtos do desconto.
+	ProductIds []string `json:"product_ids,omitempty"`
+	StartsAt   *string  `json:"starts_at,omitempty"`
+}
+
+// The body of customers:update_external.
+type CustomersUpdateExternalParams struct {
+	Email *string `json:"email,omitempty"`
+	// Só pode ser definido uma vez.
+	ExternalID *string `json:"external_id,omitempty"`
+	Name       *string `json:"name,omitempty"`
+}
+
 // The body of prices:create.
 type PricesCreateParams struct {
 	AmountCents int64   `json:"amount_cents"`
@@ -301,6 +717,12 @@ type ProductsCreateParams struct {
 	Name        string  `json:"name"`
 }
 
+// The body of products:update.
+type ProductsUpdateParams struct {
+	Description *string `json:"description,omitempty"`
+	Name        *string `json:"name,omitempty"`
+}
+
 // The body of refunds:create.
 type RefundsCreateParams struct {
 	AmountCents int64   `json:"amount_cents"`
@@ -309,16 +731,77 @@ type RefundsCreateParams struct {
 	Reason      string  `json:"reason"`
 }
 
+// The body of subscriptions:update.
+type SubscriptionsUpdateParams struct {
+	// O preço recorrente para onde a assinatura vai.
+	PriceID string `json:"price_id"`
+	// prorate (padrão): rateia o resto do período no próximo valor cobrado; invoice: cobra a diferença agora; next_period: troca no fim do período; reset: cobra o período inteiro do novo plano agora e reinicia o ciclo.
+	ProrationBehavior *string `json:"proration_behavior,omitempty"`
+	// A nova quantidade; omitida, fica a atual.
+	Quantity *int64 `json:"quantity,omitempty"`
+}
+
 // The body of subscriptions:cancel.
 type SubscriptionsCancelParams struct {
 	AtPeriodEnd *bool   `json:"at_period_end,omitempty"`
 	Reason      *string `json:"reason,omitempty"`
 }
 
+// The body of webhooks:create_endpoint.
+type WebhooksCreateEndpointParams struct {
+	// Sem ele, o domínio do endereço. Único por organização e ambiente.
+	Description *string `json:"description,omitempty"`
+	// Os eventos de que o endpoint é avisado, da lista de eventos deste documento; sem eles, nenhum é enviado.
+	Events []string `json:"events,omitempty"`
+	// Sem ele, o que o endereço indica.
+	Format *string `json:"format,omitempty"`
+	// Endereço https público; endereços internos são recusados.
+	URL string `json:"url"`
+}
+
+// The body of webhooks:update_endpoint.
+type WebhooksUpdateEndpointParams struct {
+	Description *string `json:"description,omitempty"`
+	// false desliga o envio, e as entregas esperam; true o religa.
+	Enabled *bool `json:"enabled,omitempty"`
+	// Substitui os eventos.
+	Events []string `json:"events,omitempty"`
+	Format *string  `json:"format,omitempty"`
+	URL    *string  `json:"url,omitempty"`
+}
+
 // The values the API answers in an enumerated field.
 const (
+	BenefitStatusActive                                  = "active"
+	BenefitStatusArchived                                = "archived"
+	BenefitTypeCustom                                    = "custom"
+	BenefitTypeLicenseKey                                = "license_key"
+	BenefitTypeDownloadable                              = "downloadable"
+	BenefitTypeFeatureFlag                               = "feature_flag"
+	BenefitTypeMeterCredit                               = "meter_credit"
+	BenefitTypeDiscord                                   = "discord"
+	BenefitTypeGithubRepository                          = "github_repository"
+	BenefitVisibilityPublic                              = "public"
+	BenefitVisibilityPrivate                             = "private"
+	BenefitGrantBenefitTypeCustom                        = "custom"
+	BenefitGrantBenefitTypeLicenseKey                    = "license_key"
+	BenefitGrantBenefitTypeDownloadable                  = "downloadable"
+	BenefitGrantBenefitTypeFeatureFlag                   = "feature_flag"
+	BenefitGrantBenefitTypeMeterCredit                   = "meter_credit"
+	BenefitGrantBenefitTypeDiscord                       = "discord"
+	BenefitGrantBenefitTypeGithubRepository              = "github_repository"
 	BenefitGrantStatusGranted                            = "granted"
 	BenefitGrantStatusRevoked                            = "revoked"
+	CheckoutStatusActive                                 = "active"
+	CheckoutStatusArchived                               = "archived"
+	CheckoutLinkCaptureModeAutomatic                     = "automatic"
+	CheckoutLinkCaptureModeManual                        = "manual"
+	CheckoutLinkStatusActive                             = "active"
+	CheckoutLinkStatusArchived                           = "archived"
+	CheckoutLinkTrialIntervalDay                         = "day"
+	CheckoutLinkTrialIntervalWeek                        = "week"
+	CheckoutLinkTrialIntervalMonth                       = "month"
+	CheckoutLinkTrialIntervalYear                        = "year"
 	CustomerStatusActive                                 = "active"
 	CustomerStatusArchived                               = "archived"
 	CustomerStateStatusActive                            = "active"
@@ -330,12 +813,43 @@ const (
 	CustomerStateBenefitGrantBenefitTypeMeterCredit      = "meter_credit"
 	CustomerStateBenefitGrantBenefitTypeDiscord          = "discord"
 	CustomerStateBenefitGrantBenefitTypeGithubRepository = "github_repository"
+	DiscountCurrencyBRL                                  = "BRL"
+	DiscountDurationOnce                                 = "once"
+	DiscountDurationRepeating                            = "repeating"
+	DiscountDurationForever                              = "forever"
+	DiscountStatusActive                                 = "active"
+	DiscountStatusExpired                                = "expired"
+	DiscountStatusExhausted                              = "exhausted"
+	DiscountTypePercentage                               = "percentage"
+	DiscountTypeFixed                                    = "fixed"
+	DisputeCurrencyBRL                                   = "BRL"
+	DisputeSourceOperator                                = "operator"
+	DisputeSourceCieloChargeback                         = "cielo_chargeback"
+	DisputeStatusOpened                                  = "opened"
+	DisputeStatusNeedsEvidence                           = "needs_evidence"
+	DisputeStatusSubmitted                               = "submitted"
+	DisputeStatusUnderReview                             = "under_review"
+	DisputeStatusWon                                     = "won"
+	DisputeStatusLost                                    = "lost"
+	DisputeStatusClosed                                  = "closed"
+	EventNameTokenUsage                                  = "token_usage"
+	MeterAggregationFuncCount                            = "count"
+	MeterAggregationFuncSum                              = "sum"
+	MeterAggregationFuncAvg                              = "avg"
+	MeterAggregationFuncMin                              = "min"
+	MeterAggregationFuncMax                              = "max"
+	MeterAggregationFuncUnique                           = "unique"
+	MeterUnitTypeScalar                                  = "scalar"
+	MeterUnitTypeToken                                   = "token"
+	MeterUnitTypeCustom                                  = "custom"
 	OrderCurrencyBRL                                     = "BRL"
 	OrderStatusOpen                                      = "open"
 	OrderStatusConfirmed                                 = "confirmed"
 	OrderStatusSucceeded                                 = "succeeded"
 	OrderStatusFailed                                    = "failed"
 	OrderStatusExpired                                   = "expired"
+	OrderInvoiceCurrencyBRL                              = "BRL"
+	OrderReceiptCurrencyBRL                              = "BRL"
 	PaymentCurrencyBRL                                   = "BRL"
 	PaymentMethodCard                                    = "card"
 	PaymentMethodPix                                     = "pix"
@@ -381,6 +895,9 @@ const (
 	WebhookCheckoutStatusSucceeded                       = "succeeded"
 	WebhookCheckoutStatusFailed                          = "failed"
 	WebhookCheckoutStatusExpired                         = "expired"
+	WebhookDeliveryStatusPending                         = "pending"
+	WebhookDeliveryStatusSucceeded                       = "succeeded"
+	WebhookDeliveryStatusExhausted                       = "exhausted"
 	WebhookDiscountDurationOnce                          = "once"
 	WebhookDiscountDurationForever                       = "forever"
 	WebhookDiscountDurationRepeating                     = "repeating"
@@ -400,4 +917,14 @@ const (
 	WebhookDisputeStatusWon                              = "won"
 	WebhookDisputeStatusLost                             = "lost"
 	WebhookDisputeStatusClosed                           = "closed"
+	WebhookEndpointFormatRaw                             = "raw"
+	WebhookEndpointFormatDiscord                         = "discord"
+	WebhookEndpointFormatSlack                           = "slack"
+	WebhookEndpointStatusActive                          = "active"
+	WebhookEndpointStatusDisabled                        = "disabled"
+	WebhookEndpointCreatedFormatRaw                      = "raw"
+	WebhookEndpointCreatedFormatDiscord                  = "discord"
+	WebhookEndpointCreatedFormatSlack                    = "slack"
+	WebhookEndpointCreatedStatusActive                   = "active"
+	WebhookEndpointCreatedStatusDisabled                 = "disabled"
 )

@@ -12,7 +12,7 @@ from typing import Any
 from urllib.parse import urlencode, urlsplit
 
 from ._errors import PerataError
-from ._services import CheckoutsService, CustomerSessionsService, CustomersService, OrdersService, PaymentMethodsService, PaymentsService, PricesService, ProductsService, RefundsService, SubscriptionsService
+from ._services import BenefitsService, CheckoutLinksService, CheckoutsService, CustomerSessionsService, CustomersService, DiscountsService, DisputesService, EventsService, MetersService, OrdersService, PaymentMethodsService, PaymentsService, PricesService, ProductsService, RefundsService, SubscriptionsService, WebhooksService
 from ._version import DEFAULT_BASE_URL, VERSION
 
 Transport = Callable[[str, str, dict[str, str], "bytes | None", float], "tuple[int, dict[str, str], bytes]"]
@@ -72,9 +72,15 @@ class Perata:
         _check_base_url(self._base_url)
         self._timeout = timeout
         self._transport = transport or urllib_transport
+        self.benefits = BenefitsService(self)
+        self.checkout_links = CheckoutLinksService(self)
         self.checkouts = CheckoutsService(self)
         self.customer_sessions = CustomerSessionsService(self)
         self.customers = CustomersService(self)
+        self.discounts = DiscountsService(self)
+        self.disputes = DisputesService(self)
+        self.events = EventsService(self)
+        self.meters = MetersService(self)
         self.orders = OrdersService(self)
         self.payment_methods = PaymentMethodsService(self)
         self.payments = PaymentsService(self)
@@ -82,6 +88,7 @@ class Perata:
         self.products = ProductsService(self)
         self.refunds = RefundsService(self)
         self.subscriptions = SubscriptionsService(self)
+        self.webhooks = WebhooksService(self)
 
     def request(
         self,

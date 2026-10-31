@@ -17,9 +17,15 @@ namespace Perata;
  */
 final class Perata implements Requester
 {
+    public readonly Services\BenefitsService $benefits;
+    public readonly Services\CheckoutLinksService $checkoutLinks;
     public readonly Services\CheckoutsService $checkouts;
     public readonly Services\CustomerSessionsService $customerSessions;
     public readonly Services\CustomersService $customers;
+    public readonly Services\DiscountsService $discounts;
+    public readonly Services\DisputesService $disputes;
+    public readonly Services\EventsService $events;
+    public readonly Services\MetersService $meters;
     public readonly Services\OrdersService $orders;
     public readonly Services\PaymentMethodsService $paymentMethods;
     public readonly Services\PaymentsService $payments;
@@ -27,6 +33,7 @@ final class Perata implements Requester
     public readonly Services\ProductsService $products;
     public readonly Services\RefundsService $refunds;
     public readonly Services\SubscriptionsService $subscriptions;
+    public readonly Services\WebhooksService $webhooks;
 
     private readonly string $baseUrl;
 
@@ -49,9 +56,15 @@ final class Perata implements Requester
         $this->baseUrl = rtrim($baseUrl ?? Version::DEFAULT_BASE_URL, '/');
         self::checkBaseUrl($this->baseUrl);
         $this->transport = $transport ?? self::curlTransport(...);
+        $this->benefits = new Services\BenefitsService($this);
+        $this->checkoutLinks = new Services\CheckoutLinksService($this);
         $this->checkouts = new Services\CheckoutsService($this);
         $this->customerSessions = new Services\CustomerSessionsService($this);
         $this->customers = new Services\CustomersService($this);
+        $this->discounts = new Services\DiscountsService($this);
+        $this->disputes = new Services\DisputesService($this);
+        $this->events = new Services\EventsService($this);
+        $this->meters = new Services\MetersService($this);
         $this->orders = new Services\OrdersService($this);
         $this->paymentMethods = new Services\PaymentMethodsService($this);
         $this->payments = new Services\PaymentsService($this);
@@ -59,6 +72,7 @@ final class Perata implements Requester
         $this->products = new Services\ProductsService($this);
         $this->refunds = new Services\RefundsService($this);
         $this->subscriptions = new Services\SubscriptionsService($this);
+        $this->webhooks = new Services\WebhooksService($this);
     }
 
     /**

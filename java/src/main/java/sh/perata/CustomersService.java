@@ -133,6 +133,25 @@ public final class CustomersService {
     }
 
     /**
+     * Excluir um cliente: as assinaturas terminam na hora, os benefícios são revogados e o ID externo é liberado; pedidos e pagamentos continuam.
+     * @param customer the customer
+     * @param options an idempotency key or another organization's key for this call, or null
+     * @throws PerataException when the API refuses the call
+     */
+    public void delete(String customer, RequestOptions options) {
+        client.request("DELETE", "/api/v1/customers/" + Perata.segment(customer), null, null, options == null ? null : options.getIdempotencyKey(), options);
+    }
+
+    /**
+     * Excluir um cliente: as assinaturas terminam na hora, os benefícios são revogados e o ID externo é liberado; pedidos e pagamentos continuam.
+     * @param customer the customer
+     * @throws PerataException when the API refuses the call
+     */
+    public void delete(String customer) {
+        delete(customer, null);
+    }
+
+    /**
      * Ler um cliente.
      * @param customer the customer
      * @param options another organization's key for this call, or null
@@ -152,6 +171,28 @@ public final class CustomersService {
      */
     public Customer get(String customer) {
         return get(customer, null);
+    }
+
+    /**
+     * Ler um cliente pelo ID dele no sistema do lojista (external_id).
+     * @param externalId the external_id
+     * @param options another organization's key for this call, or null
+     * @return the customer
+     * @throws PerataException when the API refuses the call
+     */
+    public Customer getExternal(String externalId, RequestOptions options) {
+        Object data = client.request("GET", "/api/v1/external-customers/" + Perata.segment(externalId), null, null, null, options);
+        return Customer.fromJson(Json.asObject(data));
+    }
+
+    /**
+     * Ler um cliente pelo ID dele no sistema do lojista (external_id).
+     * @param externalId the external_id
+     * @return the customer
+     * @throws PerataException when the API refuses the call
+     */
+    public Customer getExternal(String externalId) {
+        return getExternal(externalId, null);
     }
 
     /**
@@ -302,6 +343,240 @@ public final class CustomersService {
             /** @return the page and filters */
             public ListParams build() {
                 return new ListParams(this);
+            }
+        }
+    }
+
+    /**
+     * Atualizar o nome, o e-mail ou o ID externo de um cliente; o ID externo não muda depois de definido.
+     * @param customer the customer
+     * @param params the request
+     * @param options an idempotency key or another organization's key for this call, or null
+     * @return the customer
+     * @throws PerataException when the API refuses the call
+     */
+    public Customer update(String customer, UpdateParams params, RequestOptions options) {
+        Object data = client.request("PATCH", "/api/v1/customers/" + Perata.segment(customer), null, Objects.requireNonNull(params, "params").toJson(), options == null ? null : options.getIdempotencyKey(), options);
+        return Customer.fromJson(Json.asObject(data));
+    }
+
+    /**
+     * Atualizar o nome, o e-mail ou o ID externo de um cliente; o ID externo não muda depois de definido.
+     * @param customer the customer
+     * @param params the request
+     * @return the customer
+     * @throws PerataException when the API refuses the call
+     */
+    public Customer update(String customer, UpdateParams params) {
+        return update(customer, params, null);
+    }
+
+    /** The body of customers:update. */
+    public static final class UpdateParams {
+
+        private final String email;
+        private final String externalId;
+        private final String name;
+
+        private UpdateParams(Builder builder) {
+            this.email = builder.email;
+            this.externalId = builder.externalId;
+            this.name = builder.name;
+        }
+
+        /** @return a builder of the request */
+        public static Builder builder() {
+            return new Builder();
+        }
+
+        /** @return the {@code email} sent (null when left out) */
+        public String getEmail() {
+            return email;
+        }
+
+        /** @return Só pode ser definido uma vez. (null when left out) */
+        public String getExternalId() {
+            return externalId;
+        }
+
+        /** @return the {@code name} sent (null when left out) */
+        public String getName() {
+            return name;
+        }
+
+        Map<String, Object> toJson() {
+            Map<String, Object> body = new LinkedHashMap<>();
+            if (email != null) {
+                body.put("email", email);
+            }
+            if (externalId != null) {
+                body.put("external_id", externalId);
+            }
+            if (name != null) {
+                body.put("name", name);
+            }
+            return body;
+        }
+
+        /** Builds {@link UpdateParams}; the fields left unset are left out of the request. */
+        public static final class Builder {
+            private String email;
+            private String externalId;
+            private String name;
+
+            private Builder() {
+            }
+
+            /**
+             * @param email the {@code email} to send
+             * @return this builder
+             */
+            public Builder email(String email) {
+                this.email = email;
+                return this;
+            }
+
+            /**
+             * @param externalId Só pode ser definido uma vez.
+             * @return this builder
+             */
+            public Builder externalId(String externalId) {
+                this.externalId = externalId;
+                return this;
+            }
+
+            /**
+             * @param name the {@code name} to send
+             * @return this builder
+             */
+            public Builder name(String name) {
+                this.name = name;
+                return this;
+            }
+
+            /**
+             * @return the request
+             * @throws IllegalStateException when a required field is unset
+             */
+            public UpdateParams build() {
+                return new UpdateParams(this);
+            }
+        }
+    }
+
+    /**
+     * Atualizar um cliente pelo ID dele no sistema do lojista (external_id).
+     * @param externalId the external_id
+     * @param params the request
+     * @param options an idempotency key or another organization's key for this call, or null
+     * @return the customer
+     * @throws PerataException when the API refuses the call
+     */
+    public Customer updateExternal(String externalId, UpdateExternalParams params, RequestOptions options) {
+        Object data = client.request("PATCH", "/api/v1/external-customers/" + Perata.segment(externalId), null, Objects.requireNonNull(params, "params").toJson(), options == null ? null : options.getIdempotencyKey(), options);
+        return Customer.fromJson(Json.asObject(data));
+    }
+
+    /**
+     * Atualizar um cliente pelo ID dele no sistema do lojista (external_id).
+     * @param externalId the external_id
+     * @param params the request
+     * @return the customer
+     * @throws PerataException when the API refuses the call
+     */
+    public Customer updateExternal(String externalId, UpdateExternalParams params) {
+        return updateExternal(externalId, params, null);
+    }
+
+    /** The body of customers:update_external. */
+    public static final class UpdateExternalParams {
+
+        private final String email;
+        private final String externalId;
+        private final String name;
+
+        private UpdateExternalParams(Builder builder) {
+            this.email = builder.email;
+            this.externalId = builder.externalId;
+            this.name = builder.name;
+        }
+
+        /** @return a builder of the request */
+        public static Builder builder() {
+            return new Builder();
+        }
+
+        /** @return the {@code email} sent (null when left out) */
+        public String getEmail() {
+            return email;
+        }
+
+        /** @return Só pode ser definido uma vez. (null when left out) */
+        public String getExternalId() {
+            return externalId;
+        }
+
+        /** @return the {@code name} sent (null when left out) */
+        public String getName() {
+            return name;
+        }
+
+        Map<String, Object> toJson() {
+            Map<String, Object> body = new LinkedHashMap<>();
+            if (email != null) {
+                body.put("email", email);
+            }
+            if (externalId != null) {
+                body.put("external_id", externalId);
+            }
+            if (name != null) {
+                body.put("name", name);
+            }
+            return body;
+        }
+
+        /** Builds {@link UpdateExternalParams}; the fields left unset are left out of the request. */
+        public static final class Builder {
+            private String email;
+            private String externalId;
+            private String name;
+
+            private Builder() {
+            }
+
+            /**
+             * @param email the {@code email} to send
+             * @return this builder
+             */
+            public Builder email(String email) {
+                this.email = email;
+                return this;
+            }
+
+            /**
+             * @param externalId Só pode ser definido uma vez.
+             * @return this builder
+             */
+            public Builder externalId(String externalId) {
+                this.externalId = externalId;
+                return this;
+            }
+
+            /**
+             * @param name the {@code name} to send
+             * @return this builder
+             */
+            public Builder name(String name) {
+                this.name = name;
+                return this;
+            }
+
+            /**
+             * @return the request
+             * @throws IllegalStateException when a required field is unset
+             */
+            public UpdateExternalParams build() {
+                return new UpdateExternalParams(this);
             }
         }
     }

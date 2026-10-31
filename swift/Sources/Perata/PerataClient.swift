@@ -14,12 +14,24 @@ import Foundation
 ///     let product = try await perata.products.create(ProductsCreateParams(name: "Curso"))
 ///     for try await product in perata.products.listIter() { … }
 public final class PerataClient: Sendable {
+    /// The API's benefits.
+    public let benefits: BenefitsService
+    /// The API's checkout-links.
+    public let checkoutLinks: CheckoutLinksService
     /// The API's checkouts.
     public let checkouts: CheckoutsService
     /// The API's customer-sessions.
     public let customerSessions: CustomerSessionsService
     /// The API's customers.
     public let customers: CustomersService
+    /// The API's discounts.
+    public let discounts: DiscountsService
+    /// The API's disputes.
+    public let disputes: DisputesService
+    /// The API's events.
+    public let events: EventsService
+    /// The API's meters.
+    public let meters: MetersService
     /// The API's orders.
     public let orders: OrdersService
     /// The API's payment_methods.
@@ -34,6 +46,8 @@ public final class PerataClient: Sendable {
     public let refunds: RefundsService
     /// The API's subscriptions.
     public let subscriptions: SubscriptionsService
+    /// The API's webhooks.
+    public let webhooks: WebhooksService
 
     /// A client for the organization `apiKey` belongs to.
     ///
@@ -55,9 +69,15 @@ public final class PerataClient: Sendable {
         }
         var requester = Requester(apiKey: apiKey, baseURL: base, timeout: timeout, transport: transport ?? Requester.urlSession)
         requester.baseURLError = PerataError.insecureBaseURL(baseURL)
+        benefits = BenefitsService(requester: requester)
+        checkoutLinks = CheckoutLinksService(requester: requester)
         checkouts = CheckoutsService(requester: requester)
         customerSessions = CustomerSessionsService(requester: requester)
         customers = CustomersService(requester: requester)
+        discounts = DiscountsService(requester: requester)
+        disputes = DisputesService(requester: requester)
+        events = EventsService(requester: requester)
+        meters = MetersService(requester: requester)
         orders = OrdersService(requester: requester)
         paymentMethods = PaymentMethodsService(requester: requester)
         payments = PaymentsService(requester: requester)
@@ -65,5 +85,6 @@ public final class PerataClient: Sendable {
         products = ProductsService(requester: requester)
         refunds = RefundsService(requester: requester)
         subscriptions = SubscriptionsService(requester: requester)
+        webhooks = WebhooksService(requester: requester)
     }
 }

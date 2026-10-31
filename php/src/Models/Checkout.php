@@ -10,9 +10,24 @@ namespace Perata\Models;
 final class Checkout
 {
     public function __construct(
+        /** Endereço https para onde o comprador volta se desistir; vazio sem ele. */
+        public readonly string $cancelUrl,
+        public readonly string $createdAt,
+        /** Quando o checkout deixa de abrir sessões; nulo sem prazo. */
+        public readonly ?string $expiresAt,
         public readonly string $id,
+        /** Como o lojista chama o checkout nas próprias telas; o comprador não vê. */
+        public readonly string $label,
         public readonly string $priceId,
         public readonly string $productId,
+        public readonly int $quantity,
+        /**
+         * active abre sessões de compra; archived saiu de circulação.
+         * @var 'active'|'archived'
+         */
+        public readonly string $status,
+        /** Endereço https para onde o comprador volta depois de pagar; vazio sem ele. */
+        public readonly string $successUrl,
         /** Endereço para onde o comprador é enviado. */
         public readonly string $url,
     ) {
@@ -24,9 +39,16 @@ final class Checkout
     public static function fromArray(array $data): self
     {
         return new self(
+            cancelUrl: $data['cancel_url'],
+            createdAt: $data['created_at'],
+            expiresAt: $data['expires_at'] ?? null,
             id: $data['id'],
+            label: $data['label'],
             priceId: $data['price_id'],
             productId: $data['product_id'],
+            quantity: $data['quantity'],
+            status: $data['status'],
+            successUrl: $data['success_url'],
             url: $data['url'],
         );
     }

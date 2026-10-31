@@ -37,16 +37,23 @@ for (Product each : perata.products().listIter()) {
 
 | Serviço | Métodos |
 |---|---|
-| `perata.checkouts()` | `create` |
+| `perata.benefits()` | `create`, `delete`, `get`, `list`, `listIter`, `listGrants`, `listGrantsIter`, `update` |
+| `perata.checkoutLinks()` | `create`, `delete`, `get`, `list`, `listIter`, `update` |
+| `perata.checkouts()` | `create`, `get`, `update` |
 | `perata.customerSessions()` | `create` |
-| `perata.customers()` | `create`, `get`, `getState`, `list`, `listIter` |
-| `perata.orders()` | `list`, `listIter` |
+| `perata.customers()` | `create`, `delete`, `get`, `getExternal`, `getState`, `list`, `listIter`, `update`, `updateExternal` |
+| `perata.discounts()` | `create`, `delete`, `get`, `list`, `listIter`, `update` |
+| `perata.disputes()` | `get`, `list`, `listIter` |
+| `perata.events()` | `list`, `listIter` |
+| `perata.meters()` | `get`, `list`, `listIter` |
+| `perata.orders()` | `get`, `getInvoice`, `getReceipt`, `list`, `listIter` |
 | `perata.paymentMethods()` | `detach`, `list`, `listIter` |
 | `perata.payments()` | `get`, `list`, `listIter` |
 | `perata.prices()` | `create`, `list`, `listIter` |
-| `perata.products()` | `create`, `get`, `list`, `listIter` |
-| `perata.refunds()` | `create` |
-| `perata.subscriptions()` | `cancel`, `get`, `list`, `listIter` |
+| `perata.products()` | `archive`, `create`, `get`, `list`, `listIter`, `update` |
+| `perata.refunds()` | `create`, `list`, `listIter` |
+| `perata.subscriptions()` | `cancel`, `get`, `list`, `listIter`, `update` |
+| `perata.webhooks()` | `createEndpoint`, `deleteEndpoint`, `getEndpoint`, `listDeliveries`, `listDeliveriesIter`, `listEndpoints`, `listEndpointsIter`, `updateEndpoint` |
 
 Os modelos são imutáveis, com getters em camelCase (`payment.getAmountCents()`) e os valores enumerados como constantes (`Product.STATUS_ACTIVE`). O corpo de cada escrita é um builder aninhado no serviço (`ProductsService.CreateParams`); um campo opcional não definido fica fora da requisição. As listas aceitam `ListParams` (`page`, `limit` e os filtros) e o `…Iter` devolve um `Iterable` que percorre todas as páginas. As escritas aceitam `RequestOptions` com `idempotencyKey`, e todas aceitam `apiKey` para usar a chave de outra organização numa chamada. Um POST sem chave de idempotência é enviado com uma `Idempotency-Key` própria (UUID v4 aleatório, uma por chamada); passe a sua para poder repetir a mesma operação com segurança.
 

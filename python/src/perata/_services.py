@@ -9,6 +9,85 @@ from ._core import Requester, segment
 from ._pagination import Page, iterate
 
 
+class BenefitsService:
+    """The API's benefits."""
+
+    def __init__(self, client: Requester) -> None:
+        self._client = client
+
+    def create(self, params: models.BenefitsCreateParams, *, idempotency_key: str | None = None, api_key: str | None = None) -> models.Benefit:
+        """Criar um benefício custom, license_key, feature_flag ou meter_credit; downloads e os benefícios do Discord e do GitHub se configuram no painel."""
+        data = self._client.request("POST", "/api/v1/benefits", body=params, idempotency_key=idempotency_key, api_key=api_key)
+        return models.Benefit.from_dict(data)
+
+    def delete(self, benefit: str, *, idempotency_key: str | None = None, api_key: str | None = None) -> None:
+        """Excluir um benefício: ele sai de todos os produtos e é revogado de quem o tem. The API answers 204, so there is nothing to return."""
+        self._client.request("DELETE", f"/api/v1/benefits/{segment(benefit)}", idempotency_key=idempotency_key, api_key=api_key)
+
+    def get(self, benefit: str, *, api_key: str | None = None) -> models.Benefit:
+        """Ler um benefício."""
+        data = self._client.request("GET", f"/api/v1/benefits/{segment(benefit)}", api_key=api_key)
+        return models.Benefit.from_dict(data)
+
+    def list(self, *, page: int | None = None, limit: int | None = None, type: str | None = None, api_key: str | None = None) -> Page[models.Benefit]:
+        """Listar benefícios, opcionalmente de um tipo (type). One page; ``list_iter`` walks every page."""
+        data = self._client.request("GET", "/api/v1/benefits", query={"page": page, "limit": limit, "type": type}, api_key=api_key)
+        return Page.from_dict(data, models.Benefit.from_dict)
+
+    def list_iter(self, *, page: int | None = None, limit: int | None = None, type: str | None = None, api_key: str | None = None) -> Iterator[models.Benefit]:
+        """Walks every page of benefits:list, item by item."""
+        return iterate(lambda at: self.list(page=at, limit=limit, type=type, api_key=api_key), page)
+
+    def list_grants(self, benefit: str, *, page: int | None = None, limit: int | None = None, customer_id: str | None = None, is_granted: str | None = None, api_key: str | None = None) -> Page[models.BenefitGrant]:
+        """Listar as concessões de um benefício, opcionalmente de um cliente (customer_id) ou só as vigentes (is_granted). One page; ``list_grants_iter`` walks every page."""
+        data = self._client.request("GET", f"/api/v1/benefits/{segment(benefit)}/grants", query={"page": page, "limit": limit, "customer_id": customer_id, "is_granted": is_granted}, api_key=api_key)
+        return Page.from_dict(data, models.BenefitGrant.from_dict)
+
+    def list_grants_iter(self, benefit: str, *, page: int | None = None, limit: int | None = None, customer_id: str | None = None, is_granted: str | None = None, api_key: str | None = None) -> Iterator[models.BenefitGrant]:
+        """Walks every page of benefits:list_grants, item by item."""
+        return iterate(lambda at: self.list_grants(benefit, page=at, limit=limit, customer_id=customer_id, is_granted=is_granted, api_key=api_key), page)
+
+    def update(self, benefit: str, params: models.BenefitsUpdateParams, *, idempotency_key: str | None = None, api_key: str | None = None) -> models.Benefit:
+        """Atualizar o nome, a visibilidade, as propriedades e os metadados de um benefício; o tipo e a descrição dada na criação não mudam, e o que a concessão já entregou fica como foi entregue."""
+        data = self._client.request("PATCH", f"/api/v1/benefits/{segment(benefit)}", body=params, idempotency_key=idempotency_key, api_key=api_key)
+        return models.Benefit.from_dict(data)
+
+
+class CheckoutLinksService:
+    """The API's checkout-links."""
+
+    def __init__(self, client: Requester) -> None:
+        self._client = client
+
+    def create(self, params: models.CheckoutLinksCreateParams, *, idempotency_key: str | None = None, api_key: str | None = None) -> models.CheckoutLink:
+        """Criar um link de checkout: uma oferta durável de um ou mais produtos, com desconto, quantidade e páginas de retorno."""
+        data = self._client.request("POST", "/api/v1/checkout-links", body=params, idempotency_key=idempotency_key, api_key=api_key)
+        return models.CheckoutLink.from_dict(data)
+
+    def delete(self, checkout_link: str, *, idempotency_key: str | None = None, api_key: str | None = None) -> None:
+        """Excluir um link de checkout: ele deixa de abrir checkouts; os que já abriu continuam. The API answers 204, so there is nothing to return."""
+        self._client.request("DELETE", f"/api/v1/checkout-links/{segment(checkout_link)}", idempotency_key=idempotency_key, api_key=api_key)
+
+    def get(self, checkout_link: str, *, api_key: str | None = None) -> models.CheckoutLink:
+        """Ler um link de checkout."""
+        data = self._client.request("GET", f"/api/v1/checkout-links/{segment(checkout_link)}", api_key=api_key)
+        return models.CheckoutLink.from_dict(data)
+
+    def list(self, *, page: int | None = None, limit: int | None = None, api_key: str | None = None) -> Page[models.CheckoutLink]:
+        """Listar links de checkout. One page; ``list_iter`` walks every page."""
+        data = self._client.request("GET", "/api/v1/checkout-links", query={"page": page, "limit": limit}, api_key=api_key)
+        return Page.from_dict(data, models.CheckoutLink.from_dict)
+
+    def list_iter(self, *, page: int | None = None, limit: int | None = None, api_key: str | None = None) -> Iterator[models.CheckoutLink]:
+        """Walks every page of checkout-links:list, item by item."""
+        return iterate(lambda at: self.list(page=at, limit=limit, api_key=api_key), page)
+
+    def update(self, checkout_link: str, params: models.CheckoutLinksUpdateParams, *, idempotency_key: str | None = None, api_key: str | None = None) -> models.CheckoutLink:
+        """Atualizar o rótulo, as páginas de retorno, os produtos e os metadados de um link; a quantidade e o desconto ficam como foram publicados."""
+        data = self._client.request("PATCH", f"/api/v1/checkout-links/{segment(checkout_link)}", body=params, idempotency_key=idempotency_key, api_key=api_key)
+        return models.CheckoutLink.from_dict(data)
+
+
 class CheckoutsService:
     """The API's checkouts."""
 
@@ -18,6 +97,16 @@ class CheckoutsService:
     def create(self, params: models.CheckoutsCreateParams, *, idempotency_key: str | None = None, api_key: str | None = None) -> models.Checkout:
         """Criar o endereço de um checkout para um produto e um preço."""
         data = self._client.request("POST", "/api/v1/checkouts", body=params, idempotency_key=idempotency_key, api_key=api_key)
+        return models.Checkout.from_dict(data)
+
+    def get(self, checkout: str, *, api_key: str | None = None) -> models.Checkout:
+        """Ler um checkout: o endereço, o estado e as páginas de retorno."""
+        data = self._client.request("GET", f"/api/v1/checkouts/{segment(checkout)}", api_key=api_key)
+        return models.Checkout.from_dict(data)
+
+    def update(self, checkout: str, params: models.CheckoutsUpdateParams, *, idempotency_key: str | None = None, api_key: str | None = None) -> models.Checkout:
+        """Atualizar o rótulo e as páginas de retorno de um checkout ativo."""
+        data = self._client.request("PATCH", f"/api/v1/checkouts/{segment(checkout)}", body=params, idempotency_key=idempotency_key, api_key=api_key)
         return models.Checkout.from_dict(data)
 
 
@@ -44,9 +133,18 @@ class CustomersService:
         data = self._client.request("POST", "/api/v1/customers", body=params, idempotency_key=idempotency_key, api_key=api_key)
         return models.Customer.from_dict(data)
 
+    def delete(self, customer: str, *, idempotency_key: str | None = None, api_key: str | None = None) -> None:
+        """Excluir um cliente: as assinaturas terminam na hora, os benefícios são revogados e o ID externo é liberado; pedidos e pagamentos continuam. The API answers 204, so there is nothing to return."""
+        self._client.request("DELETE", f"/api/v1/customers/{segment(customer)}", idempotency_key=idempotency_key, api_key=api_key)
+
     def get(self, customer: str, *, api_key: str | None = None) -> models.Customer:
         """Ler um cliente."""
         data = self._client.request("GET", f"/api/v1/customers/{segment(customer)}", api_key=api_key)
+        return models.Customer.from_dict(data)
+
+    def get_external(self, external_id: str, *, api_key: str | None = None) -> models.Customer:
+        """Ler um cliente pelo ID dele no sistema do lojista (external_id)."""
+        data = self._client.request("GET", f"/api/v1/external-customers/{segment(external_id)}", api_key=api_key)
         return models.Customer.from_dict(data)
 
     def get_state(self, customer: str, *, api_key: str | None = None) -> models.CustomerState:
@@ -63,12 +161,130 @@ class CustomersService:
         """Walks every page of customers:list, item by item."""
         return iterate(lambda at: self.list(page=at, limit=limit, api_key=api_key), page)
 
+    def update(self, customer: str, params: models.CustomersUpdateParams, *, idempotency_key: str | None = None, api_key: str | None = None) -> models.Customer:
+        """Atualizar o nome, o e-mail ou o ID externo de um cliente; o ID externo não muda depois de definido."""
+        data = self._client.request("PATCH", f"/api/v1/customers/{segment(customer)}", body=params, idempotency_key=idempotency_key, api_key=api_key)
+        return models.Customer.from_dict(data)
+
+    def update_external(self, external_id: str, params: models.CustomersUpdateExternalParams, *, idempotency_key: str | None = None, api_key: str | None = None) -> models.Customer:
+        """Atualizar um cliente pelo ID dele no sistema do lojista (external_id)."""
+        data = self._client.request("PATCH", f"/api/v1/external-customers/{segment(external_id)}", body=params, idempotency_key=idempotency_key, api_key=api_key)
+        return models.Customer.from_dict(data)
+
+
+class DiscountsService:
+    """The API's discounts."""
+
+    def __init__(self, client: Requester) -> None:
+        self._client = client
+
+    def create(self, params: models.DiscountsCreateParams, *, idempotency_key: str | None = None, api_key: str | None = None) -> models.Discount:
+        """Criar um desconto percentual (basis_points) ou fixo em reais (amount_cents)."""
+        data = self._client.request("POST", "/api/v1/discounts", body=params, idempotency_key=idempotency_key, api_key=api_key)
+        return models.Discount.from_dict(data)
+
+    def delete(self, discount: str, *, idempotency_key: str | None = None, api_key: str | None = None) -> None:
+        """Excluir um desconto: sai das listas e dos checkouts e o código fica livre; o que ele já descontou continua nos registros. The API answers 204, so there is nothing to return."""
+        self._client.request("DELETE", f"/api/v1/discounts/{segment(discount)}", idempotency_key=idempotency_key, api_key=api_key)
+
+    def get(self, discount: str, *, api_key: str | None = None) -> models.Discount:
+        """Ler um desconto."""
+        data = self._client.request("GET", f"/api/v1/discounts/{segment(discount)}", api_key=api_key)
+        return models.Discount.from_dict(data)
+
+    def list(self, *, page: int | None = None, limit: int | None = None, api_key: str | None = None) -> Page[models.Discount]:
+        """Listar descontos. One page; ``list_iter`` walks every page."""
+        data = self._client.request("GET", "/api/v1/discounts", query={"page": page, "limit": limit}, api_key=api_key)
+        return Page.from_dict(data, models.Discount.from_dict)
+
+    def list_iter(self, *, page: int | None = None, limit: int | None = None, api_key: str | None = None) -> Iterator[models.Discount]:
+        """Walks every page of discounts:list, item by item."""
+        return iterate(lambda at: self.list(page=at, limit=limit, api_key=api_key), page)
+
+    def update(self, discount: str, params: models.DiscountsUpdateParams, *, idempotency_key: str | None = None, api_key: str | None = None) -> models.Discount:
+        """Atualizar um desconto; o tipo e a duração não mudam, e depois do primeiro uso o valor e os meses também não."""
+        data = self._client.request("PATCH", f"/api/v1/discounts/{segment(discount)}", body=params, idempotency_key=idempotency_key, api_key=api_key)
+        return models.Discount.from_dict(data)
+
+
+class DisputesService:
+    """The API's disputes."""
+
+    def __init__(self, client: Requester) -> None:
+        self._client = client
+
+    def get(self, dispute: str, *, api_key: str | None = None) -> models.Dispute:
+        """Ler uma disputa."""
+        data = self._client.request("GET", f"/api/v1/disputes/{segment(dispute)}", api_key=api_key)
+        return models.Dispute.from_dict(data)
+
+    def list(self, *, page: int | None = None, limit: int | None = None, status: str | None = None, api_key: str | None = None) -> Page[models.Dispute]:
+        """Listar disputas, opcionalmente de um status (status). One page; ``list_iter`` walks every page."""
+        data = self._client.request("GET", "/api/v1/disputes", query={"page": page, "limit": limit, "status": status}, api_key=api_key)
+        return Page.from_dict(data, models.Dispute.from_dict)
+
+    def list_iter(self, *, page: int | None = None, limit: int | None = None, status: str | None = None, api_key: str | None = None) -> Iterator[models.Dispute]:
+        """Walks every page of disputes:list, item by item."""
+        return iterate(lambda at: self.list(page=at, limit=limit, status=status, api_key=api_key), page)
+
+
+class EventsService:
+    """The API's events."""
+
+    def __init__(self, client: Requester) -> None:
+        self._client = client
+
+    def list(self, *, page: int | None = None, limit: int | None = None, customer_id: str | None = None, start: str | None = None, end: str | None = None, api_key: str | None = None) -> Page[models.Event]:
+        """Listar os eventos de consumo que as origens enviaram, do mais novo ao mais antigo. One page; ``list_iter`` walks every page."""
+        data = self._client.request("GET", "/api/v1/events", query={"page": page, "limit": limit, "customer_id": customer_id, "start": start, "end": end}, api_key=api_key)
+        return Page.from_dict(data, models.Event.from_dict)
+
+    def list_iter(self, *, page: int | None = None, limit: int | None = None, customer_id: str | None = None, start: str | None = None, end: str | None = None, api_key: str | None = None) -> Iterator[models.Event]:
+        """Walks every page of events:list, item by item."""
+        return iterate(lambda at: self.list(page=at, limit=limit, customer_id=customer_id, start=start, end=end, api_key=api_key), page)
+
+
+class MetersService:
+    """The API's meters."""
+
+    def __init__(self, client: Requester) -> None:
+        self._client = client
+
+    def get(self, meter: str, *, api_key: str | None = None) -> models.Meter:
+        """Ler um medidor: o filtro dos eventos que ele conta, a agregação e a unidade."""
+        data = self._client.request("GET", f"/api/v1/meters/{segment(meter)}", api_key=api_key)
+        return models.Meter.from_dict(data)
+
+    def list(self, *, page: int | None = None, limit: int | None = None, is_archived: str | None = None, api_key: str | None = None) -> Page[models.Meter]:
+        """Listar medidores; os arquivados só com is_archived=true. One page; ``list_iter`` walks every page."""
+        data = self._client.request("GET", "/api/v1/meters", query={"page": page, "limit": limit, "is_archived": is_archived}, api_key=api_key)
+        return Page.from_dict(data, models.Meter.from_dict)
+
+    def list_iter(self, *, page: int | None = None, limit: int | None = None, is_archived: str | None = None, api_key: str | None = None) -> Iterator[models.Meter]:
+        """Walks every page of meters:list, item by item."""
+        return iterate(lambda at: self.list(page=at, limit=limit, is_archived=is_archived, api_key=api_key), page)
+
 
 class OrdersService:
     """The API's orders."""
 
     def __init__(self, client: Requester) -> None:
         self._client = client
+
+    def get(self, order: str, *, api_key: str | None = None) -> models.Order:
+        """Ler um pedido: um checkout pago."""
+        data = self._client.request("GET", f"/api/v1/orders/{segment(order)}", api_key=api_key)
+        return models.Order.from_dict(data)
+
+    def get_invoice(self, order: str, *, api_key: str | None = None) -> models.OrderInvoice:
+        """Ler a fatura de um pedido, o documento comercial que o lojista gerou; sem ela, 404."""
+        data = self._client.request("GET", f"/api/v1/orders/{segment(order)}/invoice", api_key=api_key)
+        return models.OrderInvoice.from_dict(data)
+
+    def get_receipt(self, order: str, *, api_key: str | None = None) -> models.OrderReceipt:
+        """Ler o recibo de um pedido: o que foi pago, quando e como."""
+        data = self._client.request("GET", f"/api/v1/orders/{segment(order)}/receipt", api_key=api_key)
+        return models.OrderReceipt.from_dict(data)
 
     def list(self, *, page: int | None = None, limit: int | None = None, api_key: str | None = None) -> Page[models.Order]:
         """Listar pedidos: checkouts pagos. One page; ``list_iter`` walks every page."""
@@ -149,6 +365,11 @@ class ProductsService:
     def __init__(self, client: Requester) -> None:
         self._client = client
 
+    def archive(self, product: str, *, idempotency_key: str | None = None, api_key: str | None = None) -> models.Product:
+        """Arquivar um produto: sai das vendas novas e o que já foi vendido continua apontando para ele."""
+        data = self._client.request("POST", f"/api/v1/products/{segment(product)}/archive", idempotency_key=idempotency_key, api_key=api_key)
+        return models.Product.from_dict(data)
+
     def create(self, params: models.ProductsCreateParams, *, idempotency_key: str | None = None, api_key: str | None = None) -> models.Product:
         """Criar um produto."""
         data = self._client.request("POST", "/api/v1/products", body=params, idempotency_key=idempotency_key, api_key=api_key)
@@ -168,6 +389,11 @@ class ProductsService:
         """Walks every page of products:list, item by item."""
         return iterate(lambda at: self.list(page=at, limit=limit, api_key=api_key), page)
 
+    def update(self, product: str, params: models.ProductsUpdateParams, *, idempotency_key: str | None = None, api_key: str | None = None) -> models.Product:
+        """Atualizar o nome ou a descrição de um produto ativo."""
+        data = self._client.request("PATCH", f"/api/v1/products/{segment(product)}", body=params, idempotency_key=idempotency_key, api_key=api_key)
+        return models.Product.from_dict(data)
+
 
 class RefundsService:
     """The API's refunds."""
@@ -179,6 +405,15 @@ class RefundsService:
         """Reembolsar parte ou todo um pagamento."""
         data = self._client.request("POST", "/api/v1/refunds", body=params, idempotency_key=idempotency_key, api_key=api_key)
         return models.Refund.from_dict(data)
+
+    def list(self, *, page: int | None = None, limit: int | None = None, payment_id: str | None = None, api_key: str | None = None) -> Page[models.Refund]:
+        """Listar reembolsos, opcionalmente de um pagamento (payment_id). One page; ``list_iter`` walks every page."""
+        data = self._client.request("GET", "/api/v1/refunds", query={"page": page, "limit": limit, "payment_id": payment_id}, api_key=api_key)
+        return Page.from_dict(data, models.Refund.from_dict)
+
+    def list_iter(self, *, page: int | None = None, limit: int | None = None, payment_id: str | None = None, api_key: str | None = None) -> Iterator[models.Refund]:
+        """Walks every page of refunds:list, item by item."""
+        return iterate(lambda at: self.list(page=at, limit=limit, payment_id=payment_id, api_key=api_key), page)
 
 
 class SubscriptionsService:
@@ -205,4 +440,53 @@ class SubscriptionsService:
     def list_iter(self, *, page: int | None = None, limit: int | None = None, customer_id: str | None = None, api_key: str | None = None) -> Iterator[models.Subscription]:
         """Walks every page of subscriptions:list, item by item."""
         return iterate(lambda at: self.list(page=at, limit=limit, customer_id=customer_id, api_key=api_key), page)
+
+    def update(self, subscription: str, params: models.SubscriptionsUpdateParams, *, idempotency_key: str | None = None, api_key: str | None = None) -> models.Subscription:
+        """Trocar o plano de uma assinatura: outro preço e, se quiser, outra quantidade, com a forma de ratear a diferença (proration_behavior)."""
+        data = self._client.request("PATCH", f"/api/v1/subscriptions/{segment(subscription)}", body=params, idempotency_key=idempotency_key, api_key=api_key)
+        return models.Subscription.from_dict(data)
+
+
+class WebhooksService:
+    """The API's webhooks."""
+
+    def __init__(self, client: Requester) -> None:
+        self._client = client
+
+    def create_endpoint(self, params: models.WebhooksCreateEndpointParams, *, idempotency_key: str | None = None, api_key: str | None = None) -> models.WebhookEndpointCreated:
+        """Criar um endpoint de webhook; o segredo que assina as mensagens vem só nesta resposta."""
+        data = self._client.request("POST", "/api/v1/webhooks/endpoints", body=params, idempotency_key=idempotency_key, api_key=api_key)
+        return models.WebhookEndpointCreated.from_dict(data)
+
+    def delete_endpoint(self, endpoint: str, *, idempotency_key: str | None = None, api_key: str | None = None) -> None:
+        """Excluir um endpoint de webhook; as entregas que ainda esperavam por ele falham. The API answers 204, so there is nothing to return."""
+        self._client.request("DELETE", f"/api/v1/webhooks/endpoints/{segment(endpoint)}", idempotency_key=idempotency_key, api_key=api_key)
+
+    def get_endpoint(self, endpoint: str, *, api_key: str | None = None) -> models.WebhookEndpoint:
+        """Ler um endpoint de webhook."""
+        data = self._client.request("GET", f"/api/v1/webhooks/endpoints/{segment(endpoint)}", api_key=api_key)
+        return models.WebhookEndpoint.from_dict(data)
+
+    def list_deliveries(self, *, page: int | None = None, limit: int | None = None, endpoint_id: str | None = None, status: str | None = None, api_key: str | None = None) -> Page[models.WebhookDelivery]:
+        """Listar as últimas 100 entregas de eventos aos endpoints, opcionalmente de um endpoint (endpoint_id) ou de uma situação (status). One page; ``list_deliveries_iter`` walks every page."""
+        data = self._client.request("GET", "/api/v1/webhooks/deliveries", query={"page": page, "limit": limit, "endpoint_id": endpoint_id, "status": status}, api_key=api_key)
+        return Page.from_dict(data, models.WebhookDelivery.from_dict)
+
+    def list_deliveries_iter(self, *, page: int | None = None, limit: int | None = None, endpoint_id: str | None = None, status: str | None = None, api_key: str | None = None) -> Iterator[models.WebhookDelivery]:
+        """Walks every page of webhooks:list_deliveries, item by item."""
+        return iterate(lambda at: self.list_deliveries(page=at, limit=limit, endpoint_id=endpoint_id, status=status, api_key=api_key), page)
+
+    def list_endpoints(self, *, page: int | None = None, limit: int | None = None, api_key: str | None = None) -> Page[models.WebhookEndpoint]:
+        """Listar os endpoints de webhook do lojista. One page; ``list_endpoints_iter`` walks every page."""
+        data = self._client.request("GET", "/api/v1/webhooks/endpoints", query={"page": page, "limit": limit}, api_key=api_key)
+        return Page.from_dict(data, models.WebhookEndpoint.from_dict)
+
+    def list_endpoints_iter(self, *, page: int | None = None, limit: int | None = None, api_key: str | None = None) -> Iterator[models.WebhookEndpoint]:
+        """Walks every page of webhooks:list_endpoints, item by item."""
+        return iterate(lambda at: self.list_endpoints(page=at, limit=limit, api_key=api_key), page)
+
+    def update_endpoint(self, endpoint: str, params: models.WebhooksUpdateEndpointParams, *, idempotency_key: str | None = None, api_key: str | None = None) -> models.WebhookEndpoint:
+        """Atualizar o endereço, o formato, os eventos ou a descrição de um endpoint, ou ligar e desligar o envio (enabled); o segredo não muda."""
+        data = self._client.request("PATCH", f"/api/v1/webhooks/endpoints/{segment(endpoint)}", body=params, idempotency_key=idempotency_key, api_key=api_key)
+        return models.WebhookEndpoint.from_dict(data)
 

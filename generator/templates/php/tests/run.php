@@ -78,6 +78,35 @@ $tests['a base URL must be https unless it is loopback'] = static function (): v
     }
 };
 
+$tests['a discount goes through create, get, list and delete'] = static function (): void {
+    $discount = static fn (string $id): mixed => json_decode(str_replace('__ID__', $id, '{"id":"__ID__","name":"Black","code":null,"type":"percentage","basis_points":1000,"amount_cents":0,"currency":"BRL","duration":"once","duration_in_months":0,"max_redemptions":null,"max_redemptions_per_customer":null,"redemptions_count":0,"starts_at":"2026-10-17T00:00:00Z","ends_at":null,"status":"active","product_ids":["prod_1"],"created_at":"2026-10-17T00:00:00Z","modified_at":"2026-10-17T00:00:00Z"}'), true);
+    [$perata, $seen] = client(static function (array $request) use ($discount): array {
+        if ($request['method'] === 'POST') {
+            return [201, [], ['data' => $discount('disc_1')]];
+        }
+        if ($request['method'] === 'DELETE') {
+            return [204, [], null];
+        }
+        if (str_ends_with((string) parse_url($request['url'], PHP_URL_PATH), '/api/v1/discounts')) {
+            parse_str((string) parse_url($request['url'], PHP_URL_QUERY), $query);
+            return [200, [], ['data' => ['items' => [$discount('disc_' . $query['page'])], 'pagination' => ['total_count' => 2, 'max_page' => 2]]]];
+        }
+        return [200, [], ['data' => $discount('disc_1')]];
+    });
+    $created = $perata->discounts->create(['name' => 'Black', 'type' => 'percentage', 'duration' => 'once', 'basis_points' => 1000]);
+    check($created->id === 'disc_1' && $created->code === null && $created->productIds === ['prod_1'], 'created');
+    check($perata->discounts->get('disc_1')->name === 'Black', 'get');
+    $ids = [];
+    foreach ($perata->discounts->listIter(['limit' => 1]) as $each) {
+        $ids[] = $each->id;
+    }
+    check($ids === ['disc_1', 'disc_2'], 'walked ' . implode(',', $ids));
+    $perata->discounts->delete('disc_1');
+    $requests = array_map(static fn (array $each): string => $each['method'] . ' ' . parse_url($each['url'], PHP_URL_PATH), $seen->getArrayCopy());
+    check($requests === ['POST /api/v1/discounts', 'GET /api/v1/discounts/disc_1', 'GET /api/v1/discounts', 'GET /api/v1/discounts', 'DELETE /api/v1/discounts/disc_1'], implode(' | ', $requests));
+    check(json_decode((string) $seen[0]['body'], true) === ['name' => 'Black', 'type' => 'percentage', 'duration' => 'once', 'basis_points' => 1000], 'body');
+};
+
 $tests['a free-form value decodes nested'] = static function (): void {
     $state = json_decode('{"id":"cus_1","name":"Ana","email":"ana@example.com","external_id":"","status":"active","created_at":"2026-10-17T00:00:00Z","active_subscriptions":[],"granted_benefits":[{"id":"gr_1","granted_at":"2026-10-17T00:00:00Z","benefit_id":"ben_1","benefit_type":"feature_flag","benefit_metadata":{"flags":{"beta":true,"limits":{"seats":5,"tiers":["a",2,null,1.5]}}},"properties":{"links":[{"url":"https://example.com","expires":null}]}}]}', true);
     [$perata] = client(static fn (): array => [200, [], ['data' => $state]]);

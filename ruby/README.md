@@ -22,16 +22,23 @@ end
 
 | Serviço | Métodos |
 |---|---|
-| `perata.checkouts` | `create` |
+| `perata.benefits` | `create`, `delete`, `get`, `list`, `list_iter`, `list_grants`, `list_grants_iter`, `update` |
+| `perata.checkout_links` | `create`, `delete`, `get`, `list`, `list_iter`, `update` |
+| `perata.checkouts` | `create`, `get`, `update` |
 | `perata.customer_sessions` | `create` |
-| `perata.customers` | `create`, `get`, `get_state`, `list`, `list_iter` |
-| `perata.orders` | `list`, `list_iter` |
+| `perata.customers` | `create`, `delete`, `get`, `get_external`, `get_state`, `list`, `list_iter`, `update`, `update_external` |
+| `perata.discounts` | `create`, `delete`, `get`, `list`, `list_iter`, `update` |
+| `perata.disputes` | `get`, `list`, `list_iter` |
+| `perata.events` | `list`, `list_iter` |
+| `perata.meters` | `get`, `list`, `list_iter` |
+| `perata.orders` | `get`, `get_invoice`, `get_receipt`, `list`, `list_iter` |
 | `perata.payment_methods` | `detach`, `list`, `list_iter` |
 | `perata.payments` | `get`, `list`, `list_iter` |
 | `perata.prices` | `create`, `list`, `list_iter` |
-| `perata.products` | `create`, `get`, `list`, `list_iter` |
-| `perata.refunds` | `create` |
-| `perata.subscriptions` | `cancel`, `get`, `list`, `list_iter` |
+| `perata.products` | `archive`, `create`, `get`, `list`, `list_iter`, `update` |
+| `perata.refunds` | `create`, `list`, `list_iter` |
+| `perata.subscriptions` | `cancel`, `get`, `list`, `list_iter`, `update` |
+| `perata.webhooks` | `create_endpoint`, `delete_endpoint`, `get_endpoint`, `list_deliveries`, `list_deliveries_iter`, `list_endpoints`, `list_endpoints_iter`, `update_endpoint` |
 
 Os modelos são objetos imutáveis com leitores em snake_case (`payment.amount_cents`). O corpo de uma escrita é a classe de parâmetros do método (`Perata::ProductsCreateParams.new(name: "Curso")`) ou um `Hash` com os mesmos nomes; um campo opcional não informado fica fora do JSON. Os métodos `_iter` devolvem um `Enumerator` que percorre todas as páginas a partir de `page:` (ou recebem um bloco).
 

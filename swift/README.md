@@ -25,16 +25,23 @@ for try await product in perata.products.listIter() {
 
 | Serviço | Métodos |
 |---|---|
-| `perata.checkouts` | `create` |
+| `perata.benefits` | `create`, `delete`, `get`, `list`, `listIter`, `listGrants`, `listGrantsIter`, `update` |
+| `perata.checkoutLinks` | `create`, `delete`, `get`, `list`, `listIter`, `update` |
+| `perata.checkouts` | `create`, `get`, `update` |
 | `perata.customerSessions` | `create` |
-| `perata.customers` | `create`, `get`, `getState`, `list`, `listIter` |
-| `perata.orders` | `list`, `listIter` |
+| `perata.customers` | `create`, `delete`, `get`, `getExternal`, `getState`, `list`, `listIter`, `update`, `updateExternal` |
+| `perata.discounts` | `create`, `delete`, `get`, `list`, `listIter`, `update` |
+| `perata.disputes` | `get`, `list`, `listIter` |
+| `perata.events` | `list`, `listIter` |
+| `perata.meters` | `get`, `list`, `listIter` |
+| `perata.orders` | `get`, `getInvoice`, `getReceipt`, `list`, `listIter` |
 | `perata.paymentMethods` | `detach`, `list`, `listIter` |
 | `perata.payments` | `get`, `list`, `listIter` |
 | `perata.prices` | `create`, `list`, `listIter` |
-| `perata.products` | `create`, `get`, `list`, `listIter` |
-| `perata.refunds` | `create` |
-| `perata.subscriptions` | `cancel`, `get`, `list`, `listIter` |
+| `perata.products` | `archive`, `create`, `get`, `list`, `listIter`, `update` |
+| `perata.refunds` | `create`, `list`, `listIter` |
+| `perata.subscriptions` | `cancel`, `get`, `list`, `listIter`, `update` |
+| `perata.webhooks` | `createEndpoint`, `deleteEndpoint`, `getEndpoint`, `listDeliveries`, `listDeliveriesIter`, `listEndpoints`, `listEndpointsIter`, `updateEndpoint` |
 
 Os modelos são structs `Codable` com propriedades em camelCase (`payment.amountCents`); os corpos das escritas são structs cujo inicializador pede primeiro os campos obrigatórios, e um campo opcional `nil` não é enviado. Os campos enumerados (`ProductStatus.active`) guardam em `rawValue` um valor que esta versão ainda não conhece. As escritas aceitam `idempotencyKey:`, e todas aceitam `apiKey:` para usar a chave de outra organização numa chamada. `PerataClient` aceita `baseURL`, `timeout` (30 s por padrão) e `transport`, para usar outro cliente HTTP ou testar sem rede. Um POST sem chave de idempotência é enviado com uma `Idempotency-Key` própria (UUID v4 aleatório, uma por chamada); passe a sua para poder repetir a mesma operação com segurança.
 

@@ -113,6 +113,44 @@ class PerataTest {
     }
 
     @Test
+    void aDiscountGoesThroughCreateGetListAndDelete() {
+        String template = "{\"id\":\"__ID__\",\"name\":\"Black\",\"code\":null,\"type\":\"percentage\",\"basis_points\":1000,\"amount_cents\":0,\"currency\":\"BRL\",\"duration\":\"once\",\"duration_in_months\":0,\"max_redemptions\":null,\"max_redemptions_per_customer\":null,\"redemptions_count\":0,\"starts_at\":\"2026-10-17T00:00:00Z\",\"ends_at\":null,\"status\":\"active\",\"product_ids\":[\"prod_1\"],\"created_at\":\"2026-10-17T00:00:00Z\",\"modified_at\":\"2026-10-17T00:00:00Z\"}";
+        Recorder recorder = new Recorder(request -> {
+            if (request.getMethod().equals("POST")) {
+                return json(201, Map.of(), data(Json.parse(template.replace("__ID__", "disc_1"))));
+            }
+            if (request.getMethod().equals("DELETE")) {
+                return json(204, Map.of(), null);
+            }
+            if (URI.create(request.getUrl()).getPath().equals("/api/v1/discounts")) {
+                String page = query(request.getUrl()).get("page");
+                return json(200, Map.of(), data(Map.of(
+                        "items", List.of(Json.parse(template.replace("__ID__", "disc_" + page))),
+                        "pagination", Map.of("total_count", 2, "max_page", 2))));
+            }
+            return json(200, Map.of(), data(Json.parse(template.replace("__ID__", "disc_1"))));
+        });
+        Perata perata = client(recorder);
+        Discount created = perata.discounts().create(DiscountsService.CreateParams.builder().name("Black").type("percentage").duration("once").basisPoints(1000L).build());
+        assertEquals("disc_1", created.getId());
+        assertNull(created.getCode());
+        assertEquals(List.of("prod_1"), created.getProductIds());
+        assertEquals("Black", perata.discounts().get("disc_1").getName());
+        List<String> ids = new ArrayList<>();
+        for (Discount each : perata.discounts().listIter(DiscountsService.ListParams.builder().limit(1).build())) {
+            ids.add(each.getId());
+        }
+        assertEquals(List.of("disc_1", "disc_2"), ids);
+        perata.discounts().delete("disc_1");
+        List<String> requests = new ArrayList<>();
+        for (Transport.Request each : recorder.seen) {
+            requests.add(each.getMethod() + " " + URI.create(each.getUrl()).getPath());
+        }
+        assertEquals(List.of("POST /api/v1/discounts", "GET /api/v1/discounts/disc_1", "GET /api/v1/discounts", "GET /api/v1/discounts", "DELETE /api/v1/discounts/disc_1"), requests);
+        assertEquals(Map.of("name", "Black", "type", "percentage", "duration", "once", "basis_points", 1000L), Json.parse(new String(recorder.seen.get(0).getBody(), StandardCharsets.UTF_8)));
+    }
+
+    @Test
     void aFreeFormValueDecodesNested() {
         String state = "{\"id\":\"cus_1\",\"name\":\"Ana\",\"email\":\"ana@example.com\",\"external_id\":\"\",\"status\":\"active\",\"created_at\":\"2026-10-17T00:00:00Z\",\"active_subscriptions\":[],\"granted_benefits\":[{\"id\":\"gr_1\",\"granted_at\":\"2026-10-17T00:00:00Z\",\"benefit_id\":\"ben_1\",\"benefit_type\":\"feature_flag\",\"benefit_metadata\":{\"flags\":{\"beta\":true,\"limits\":{\"seats\":5,\"tiers\":[\"a\",2,null,1.5]}}},\"properties\":{\"links\":[{\"url\":\"https://example.com\",\"expires\":null}]}}]}";
         Recorder recorder = new Recorder(request -> json(200, Map.of(), data(Json.parse(state))));

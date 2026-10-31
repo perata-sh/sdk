@@ -70,6 +70,31 @@ class PerataTest < Minitest::Test
     end
   end
 
+  def test_a_discount_goes_through_create_get_list_and_delete
+    discount = ->(id) { JSON.parse(%q({"id":"__ID__","name":"Black","code":null,"type":"percentage","basis_points":1000,"amount_cents":0,"currency":"BRL","duration":"once","duration_in_months":0,"max_redemptions":null,"max_redemptions_per_customer":null,"redemptions_count":0,"starts_at":"2026-10-17T00:00:00Z","ends_at":null,"status":"active","product_ids":["prod_1"],"created_at":"2026-10-17T00:00:00Z","modified_at":"2026-10-17T00:00:00Z"}).sub("__ID__", id)) }
+    perata, recorder = client do |request|
+      case request[:method]
+      when "POST" then [201, { "data" => discount.call("disc_1") }, {}]
+      when "DELETE" then [204, nil, {}]
+      else
+        if request[:url].path == "/api/v1/discounts"
+          page = query(request)["page"]
+          [200, { "data" => { "items" => [discount.call("disc_#{page}")], "pagination" => { "total_count" => 2, "max_page" => 2 } } }, {}]
+        else
+          [200, { "data" => discount.call("disc_1") }, {}]
+        end
+      end
+    end
+    created = perata.discounts.create({ name: "Black", type: "percentage", duration: "once", basis_points: 1000 })
+    assert_equal ["disc_1", nil, ["prod_1"]], [created.id, created.code, created.product_ids]
+    assert_equal "Black", perata.discounts.get("disc_1").name
+    assert_equal %w[disc_1 disc_2], perata.discounts.list_iter(limit: 1).map(&:id)
+    assert_nil perata.discounts.delete("disc_1")
+    assert_equal [["POST", "/api/v1/discounts"], ["GET", "/api/v1/discounts/disc_1"], ["GET", "/api/v1/discounts"], ["GET", "/api/v1/discounts"], ["DELETE", "/api/v1/discounts/disc_1"]],
+                 recorder.seen.map { |seen| [seen[:method], seen[:url].path] }
+    assert_equal({ "name" => "Black", "type" => "percentage", "duration" => "once", "basis_points" => 1000 }, JSON.parse(recorder.seen.first[:body]))
+  end
+
   def test_a_free_form_value_decodes_nested
     state = JSON.parse('{"id":"cus_1","name":"Ana","email":"ana@example.com","external_id":"","status":"active","created_at":"2026-10-17T00:00:00Z","active_subscriptions":[],"granted_benefits":[{"id":"gr_1","granted_at":"2026-10-17T00:00:00Z","benefit_id":"ben_1","benefit_type":"feature_flag","benefit_metadata":{"flags":{"beta":true,"limits":{"seats":5,"tiers":["a",2,null,1.5]}}},"properties":{"links":[{"url":"https://example.com","expires":null}]}}]}')
     perata, = client { [200, { "data" => state }, {}] }

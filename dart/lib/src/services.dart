@@ -4,6 +4,266 @@ import 'core.dart';
 import 'models.dart';
 import 'pagination.dart';
 
+/// The API's benefits.
+class BenefitsService {
+  const BenefitsService(this._client);
+
+  final Requester _client;
+
+  /// Criar um benefício custom, license_key, feature_flag ou meter_credit; downloads e os benefícios do Discord e do GitHub se configuram no painel.
+  Future<Benefit> create(
+    BenefitsCreateParams params, {
+    String? idempotencyKey,
+    String? apiKey,
+  }) async {
+    final data = await _client.request(
+      'POST',
+      '/api/v1/benefits',
+      body: params.toJson(),
+      idempotencyKey: idempotencyKey,
+      apiKey: apiKey,
+    );
+    return Benefit.fromJson(data);
+  }
+
+  /// Excluir um benefício: ele sai de todos os produtos e é revogado de quem o tem. The API answers 204, so there is nothing to return.
+  Future<void> delete(
+    String benefit, {
+    String? idempotencyKey,
+    String? apiKey,
+  }) async {
+    await _client.request(
+      'DELETE',
+      '/api/v1/benefits/${Uri.encodeComponent(benefit)}',
+      idempotencyKey: idempotencyKey,
+      apiKey: apiKey,
+    );
+  }
+
+  /// Ler um benefício.
+  Future<Benefit> get(
+    String benefit, {
+    String? apiKey,
+  }) async {
+    final data = await _client.request(
+      'GET',
+      '/api/v1/benefits/${Uri.encodeComponent(benefit)}',
+      apiKey: apiKey,
+    );
+    return Benefit.fromJson(data);
+  }
+
+  /// Listar benefícios, opcionalmente de um tipo (type).
+  ///
+  /// One page, from 1, of [limit] items (1 to 100, 10 by default);
+  /// [listIter] walks every page.
+  Future<Page<Benefit>> list({
+    int? page,
+    int? limit,
+    String? type,
+    String? apiKey,
+  }) async {
+    final data = await _client.request(
+      'GET',
+      '/api/v1/benefits',
+      query: {
+        'page': page,
+        'limit': limit,
+        'type': type,
+      },
+      apiKey: apiKey,
+    );
+    return Page.fromJson(data, Benefit.fromJson);
+  }
+
+  /// Walks every page of benefits:list, item by item, from [page].
+  Stream<Benefit> listIter({
+    int page = 1,
+    int? limit,
+    String? type,
+    String? apiKey,
+  }) {
+    return iterate(
+      (at) => list(
+        page: at,
+        limit: limit,
+        type: type,
+        apiKey: apiKey,
+      ),
+      page,
+    );
+  }
+
+  /// Listar as concessões de um benefício, opcionalmente de um cliente (customer_id) ou só as vigentes (is_granted).
+  ///
+  /// One page, from 1, of [limit] items (1 to 100, 10 by default);
+  /// [listGrantsIter] walks every page.
+  Future<Page<BenefitGrant>> listGrants(
+    String benefit, {
+    int? page,
+    int? limit,
+    String? customerId,
+    String? isGranted,
+    String? apiKey,
+  }) async {
+    final data = await _client.request(
+      'GET',
+      '/api/v1/benefits/${Uri.encodeComponent(benefit)}/grants',
+      query: {
+        'page': page,
+        'limit': limit,
+        'customer_id': customerId,
+        'is_granted': isGranted,
+      },
+      apiKey: apiKey,
+    );
+    return Page.fromJson(data, BenefitGrant.fromJson);
+  }
+
+  /// Walks every page of benefits:list_grants, item by item, from [page].
+  Stream<BenefitGrant> listGrantsIter(
+    String benefit, {
+    int page = 1,
+    int? limit,
+    String? customerId,
+    String? isGranted,
+    String? apiKey,
+  }) {
+    return iterate(
+      (at) => listGrants(
+        benefit,
+        page: at,
+        limit: limit,
+        customerId: customerId,
+        isGranted: isGranted,
+        apiKey: apiKey,
+      ),
+      page,
+    );
+  }
+
+  /// Atualizar o nome, a visibilidade, as propriedades e os metadados de um benefício; o tipo e a descrição dada na criação não mudam, e o que a concessão já entregou fica como foi entregue.
+  Future<Benefit> update(
+    String benefit,
+    BenefitsUpdateParams params, {
+    String? idempotencyKey,
+    String? apiKey,
+  }) async {
+    final data = await _client.request(
+      'PATCH',
+      '/api/v1/benefits/${Uri.encodeComponent(benefit)}',
+      body: params.toJson(),
+      idempotencyKey: idempotencyKey,
+      apiKey: apiKey,
+    );
+    return Benefit.fromJson(data);
+  }
+}
+
+/// The API's checkout-links.
+class CheckoutLinksService {
+  const CheckoutLinksService(this._client);
+
+  final Requester _client;
+
+  /// Criar um link de checkout: uma oferta durável de um ou mais produtos, com desconto, quantidade e páginas de retorno.
+  Future<CheckoutLink> create(
+    CheckoutLinksCreateParams params, {
+    String? idempotencyKey,
+    String? apiKey,
+  }) async {
+    final data = await _client.request(
+      'POST',
+      '/api/v1/checkout-links',
+      body: params.toJson(),
+      idempotencyKey: idempotencyKey,
+      apiKey: apiKey,
+    );
+    return CheckoutLink.fromJson(data);
+  }
+
+  /// Excluir um link de checkout: ele deixa de abrir checkouts; os que já abriu continuam. The API answers 204, so there is nothing to return.
+  Future<void> delete(
+    String checkoutLink, {
+    String? idempotencyKey,
+    String? apiKey,
+  }) async {
+    await _client.request(
+      'DELETE',
+      '/api/v1/checkout-links/${Uri.encodeComponent(checkoutLink)}',
+      idempotencyKey: idempotencyKey,
+      apiKey: apiKey,
+    );
+  }
+
+  /// Ler um link de checkout.
+  Future<CheckoutLink> get(
+    String checkoutLink, {
+    String? apiKey,
+  }) async {
+    final data = await _client.request(
+      'GET',
+      '/api/v1/checkout-links/${Uri.encodeComponent(checkoutLink)}',
+      apiKey: apiKey,
+    );
+    return CheckoutLink.fromJson(data);
+  }
+
+  /// Listar links de checkout.
+  ///
+  /// One page, from 1, of [limit] items (1 to 100, 10 by default);
+  /// [listIter] walks every page.
+  Future<Page<CheckoutLink>> list({
+    int? page,
+    int? limit,
+    String? apiKey,
+  }) async {
+    final data = await _client.request(
+      'GET',
+      '/api/v1/checkout-links',
+      query: {
+        'page': page,
+        'limit': limit,
+      },
+      apiKey: apiKey,
+    );
+    return Page.fromJson(data, CheckoutLink.fromJson);
+  }
+
+  /// Walks every page of checkout-links:list, item by item, from [page].
+  Stream<CheckoutLink> listIter({
+    int page = 1,
+    int? limit,
+    String? apiKey,
+  }) {
+    return iterate(
+      (at) => list(
+        page: at,
+        limit: limit,
+        apiKey: apiKey,
+      ),
+      page,
+    );
+  }
+
+  /// Atualizar o rótulo, as páginas de retorno, os produtos e os metadados de um link; a quantidade e o desconto ficam como foram publicados.
+  Future<CheckoutLink> update(
+    String checkoutLink,
+    CheckoutLinksUpdateParams params, {
+    String? idempotencyKey,
+    String? apiKey,
+  }) async {
+    final data = await _client.request(
+      'PATCH',
+      '/api/v1/checkout-links/${Uri.encodeComponent(checkoutLink)}',
+      body: params.toJson(),
+      idempotencyKey: idempotencyKey,
+      apiKey: apiKey,
+    );
+    return CheckoutLink.fromJson(data);
+  }
+}
+
 /// The API's checkouts.
 class CheckoutsService {
   const CheckoutsService(this._client);
@@ -19,6 +279,36 @@ class CheckoutsService {
     final data = await _client.request(
       'POST',
       '/api/v1/checkouts',
+      body: params.toJson(),
+      idempotencyKey: idempotencyKey,
+      apiKey: apiKey,
+    );
+    return Checkout.fromJson(data);
+  }
+
+  /// Ler um checkout: o endereço, o estado e as páginas de retorno.
+  Future<Checkout> get(
+    String checkout, {
+    String? apiKey,
+  }) async {
+    final data = await _client.request(
+      'GET',
+      '/api/v1/checkouts/${Uri.encodeComponent(checkout)}',
+      apiKey: apiKey,
+    );
+    return Checkout.fromJson(data);
+  }
+
+  /// Atualizar o rótulo e as páginas de retorno de um checkout ativo.
+  Future<Checkout> update(
+    String checkout,
+    CheckoutsUpdateParams params, {
+    String? idempotencyKey,
+    String? apiKey,
+  }) async {
+    final data = await _client.request(
+      'PATCH',
+      '/api/v1/checkouts/${Uri.encodeComponent(checkout)}',
       body: params.toJson(),
       idempotencyKey: idempotencyKey,
       apiKey: apiKey,
@@ -72,6 +362,20 @@ class CustomersService {
     return Customer.fromJson(data);
   }
 
+  /// Excluir um cliente: as assinaturas terminam na hora, os benefícios são revogados e o ID externo é liberado; pedidos e pagamentos continuam. The API answers 204, so there is nothing to return.
+  Future<void> delete(
+    String customer, {
+    String? idempotencyKey,
+    String? apiKey,
+  }) async {
+    await _client.request(
+      'DELETE',
+      '/api/v1/customers/${Uri.encodeComponent(customer)}',
+      idempotencyKey: idempotencyKey,
+      apiKey: apiKey,
+    );
+  }
+
   /// Ler um cliente.
   Future<Customer> get(
     String customer, {
@@ -80,6 +384,19 @@ class CustomersService {
     final data = await _client.request(
       'GET',
       '/api/v1/customers/${Uri.encodeComponent(customer)}',
+      apiKey: apiKey,
+    );
+    return Customer.fromJson(data);
+  }
+
+  /// Ler um cliente pelo ID dele no sistema do lojista (external_id).
+  Future<Customer> getExternal(
+    String externalId, {
+    String? apiKey,
+  }) async {
+    final data = await _client.request(
+      'GET',
+      '/api/v1/external-customers/${Uri.encodeComponent(externalId)}',
       apiKey: apiKey,
     );
     return Customer.fromJson(data);
@@ -134,6 +451,322 @@ class CustomersService {
       page,
     );
   }
+
+  /// Atualizar o nome, o e-mail ou o ID externo de um cliente; o ID externo não muda depois de definido.
+  Future<Customer> update(
+    String customer,
+    CustomersUpdateParams params, {
+    String? idempotencyKey,
+    String? apiKey,
+  }) async {
+    final data = await _client.request(
+      'PATCH',
+      '/api/v1/customers/${Uri.encodeComponent(customer)}',
+      body: params.toJson(),
+      idempotencyKey: idempotencyKey,
+      apiKey: apiKey,
+    );
+    return Customer.fromJson(data);
+  }
+
+  /// Atualizar um cliente pelo ID dele no sistema do lojista (external_id).
+  Future<Customer> updateExternal(
+    String externalId,
+    CustomersUpdateExternalParams params, {
+    String? idempotencyKey,
+    String? apiKey,
+  }) async {
+    final data = await _client.request(
+      'PATCH',
+      '/api/v1/external-customers/${Uri.encodeComponent(externalId)}',
+      body: params.toJson(),
+      idempotencyKey: idempotencyKey,
+      apiKey: apiKey,
+    );
+    return Customer.fromJson(data);
+  }
+}
+
+/// The API's discounts.
+class DiscountsService {
+  const DiscountsService(this._client);
+
+  final Requester _client;
+
+  /// Criar um desconto percentual (basis_points) ou fixo em reais (amount_cents).
+  Future<Discount> create(
+    DiscountsCreateParams params, {
+    String? idempotencyKey,
+    String? apiKey,
+  }) async {
+    final data = await _client.request(
+      'POST',
+      '/api/v1/discounts',
+      body: params.toJson(),
+      idempotencyKey: idempotencyKey,
+      apiKey: apiKey,
+    );
+    return Discount.fromJson(data);
+  }
+
+  /// Excluir um desconto: sai das listas e dos checkouts e o código fica livre; o que ele já descontou continua nos registros. The API answers 204, so there is nothing to return.
+  Future<void> delete(
+    String discount, {
+    String? idempotencyKey,
+    String? apiKey,
+  }) async {
+    await _client.request(
+      'DELETE',
+      '/api/v1/discounts/${Uri.encodeComponent(discount)}',
+      idempotencyKey: idempotencyKey,
+      apiKey: apiKey,
+    );
+  }
+
+  /// Ler um desconto.
+  Future<Discount> get(
+    String discount, {
+    String? apiKey,
+  }) async {
+    final data = await _client.request(
+      'GET',
+      '/api/v1/discounts/${Uri.encodeComponent(discount)}',
+      apiKey: apiKey,
+    );
+    return Discount.fromJson(data);
+  }
+
+  /// Listar descontos.
+  ///
+  /// One page, from 1, of [limit] items (1 to 100, 10 by default);
+  /// [listIter] walks every page.
+  Future<Page<Discount>> list({
+    int? page,
+    int? limit,
+    String? apiKey,
+  }) async {
+    final data = await _client.request(
+      'GET',
+      '/api/v1/discounts',
+      query: {
+        'page': page,
+        'limit': limit,
+      },
+      apiKey: apiKey,
+    );
+    return Page.fromJson(data, Discount.fromJson);
+  }
+
+  /// Walks every page of discounts:list, item by item, from [page].
+  Stream<Discount> listIter({
+    int page = 1,
+    int? limit,
+    String? apiKey,
+  }) {
+    return iterate(
+      (at) => list(
+        page: at,
+        limit: limit,
+        apiKey: apiKey,
+      ),
+      page,
+    );
+  }
+
+  /// Atualizar um desconto; o tipo e a duração não mudam, e depois do primeiro uso o valor e os meses também não.
+  Future<Discount> update(
+    String discount,
+    DiscountsUpdateParams params, {
+    String? idempotencyKey,
+    String? apiKey,
+  }) async {
+    final data = await _client.request(
+      'PATCH',
+      '/api/v1/discounts/${Uri.encodeComponent(discount)}',
+      body: params.toJson(),
+      idempotencyKey: idempotencyKey,
+      apiKey: apiKey,
+    );
+    return Discount.fromJson(data);
+  }
+}
+
+/// The API's disputes.
+class DisputesService {
+  const DisputesService(this._client);
+
+  final Requester _client;
+
+  /// Ler uma disputa.
+  Future<Dispute> get(
+    String dispute, {
+    String? apiKey,
+  }) async {
+    final data = await _client.request(
+      'GET',
+      '/api/v1/disputes/${Uri.encodeComponent(dispute)}',
+      apiKey: apiKey,
+    );
+    return Dispute.fromJson(data);
+  }
+
+  /// Listar disputas, opcionalmente de um status (status).
+  ///
+  /// One page, from 1, of [limit] items (1 to 100, 10 by default);
+  /// [listIter] walks every page.
+  Future<Page<Dispute>> list({
+    int? page,
+    int? limit,
+    String? status,
+    String? apiKey,
+  }) async {
+    final data = await _client.request(
+      'GET',
+      '/api/v1/disputes',
+      query: {
+        'page': page,
+        'limit': limit,
+        'status': status,
+      },
+      apiKey: apiKey,
+    );
+    return Page.fromJson(data, Dispute.fromJson);
+  }
+
+  /// Walks every page of disputes:list, item by item, from [page].
+  Stream<Dispute> listIter({
+    int page = 1,
+    int? limit,
+    String? status,
+    String? apiKey,
+  }) {
+    return iterate(
+      (at) => list(
+        page: at,
+        limit: limit,
+        status: status,
+        apiKey: apiKey,
+      ),
+      page,
+    );
+  }
+}
+
+/// The API's events.
+class EventsService {
+  const EventsService(this._client);
+
+  final Requester _client;
+
+  /// Listar os eventos de consumo que as origens enviaram, do mais novo ao mais antigo.
+  ///
+  /// One page, from 1, of [limit] items (1 to 100, 10 by default);
+  /// [listIter] walks every page.
+  Future<Page<Event>> list({
+    int? page,
+    int? limit,
+    String? customerId,
+    String? start,
+    String? end,
+    String? apiKey,
+  }) async {
+    final data = await _client.request(
+      'GET',
+      '/api/v1/events',
+      query: {
+        'page': page,
+        'limit': limit,
+        'customer_id': customerId,
+        'start': start,
+        'end': end,
+      },
+      apiKey: apiKey,
+    );
+    return Page.fromJson(data, Event.fromJson);
+  }
+
+  /// Walks every page of events:list, item by item, from [page].
+  Stream<Event> listIter({
+    int page = 1,
+    int? limit,
+    String? customerId,
+    String? start,
+    String? end,
+    String? apiKey,
+  }) {
+    return iterate(
+      (at) => list(
+        page: at,
+        limit: limit,
+        customerId: customerId,
+        start: start,
+        end: end,
+        apiKey: apiKey,
+      ),
+      page,
+    );
+  }
+}
+
+/// The API's meters.
+class MetersService {
+  const MetersService(this._client);
+
+  final Requester _client;
+
+  /// Ler um medidor: o filtro dos eventos que ele conta, a agregação e a unidade.
+  Future<Meter> get(
+    String meter, {
+    String? apiKey,
+  }) async {
+    final data = await _client.request(
+      'GET',
+      '/api/v1/meters/${Uri.encodeComponent(meter)}',
+      apiKey: apiKey,
+    );
+    return Meter.fromJson(data);
+  }
+
+  /// Listar medidores; os arquivados só com is_archived=true.
+  ///
+  /// One page, from 1, of [limit] items (1 to 100, 10 by default);
+  /// [listIter] walks every page.
+  Future<Page<Meter>> list({
+    int? page,
+    int? limit,
+    String? isArchived,
+    String? apiKey,
+  }) async {
+    final data = await _client.request(
+      'GET',
+      '/api/v1/meters',
+      query: {
+        'page': page,
+        'limit': limit,
+        'is_archived': isArchived,
+      },
+      apiKey: apiKey,
+    );
+    return Page.fromJson(data, Meter.fromJson);
+  }
+
+  /// Walks every page of meters:list, item by item, from [page].
+  Stream<Meter> listIter({
+    int page = 1,
+    int? limit,
+    String? isArchived,
+    String? apiKey,
+  }) {
+    return iterate(
+      (at) => list(
+        page: at,
+        limit: limit,
+        isArchived: isArchived,
+        apiKey: apiKey,
+      ),
+      page,
+    );
+  }
 }
 
 /// The API's orders.
@@ -141,6 +774,45 @@ class OrdersService {
   const OrdersService(this._client);
 
   final Requester _client;
+
+  /// Ler um pedido: um checkout pago.
+  Future<Order> get(
+    String order, {
+    String? apiKey,
+  }) async {
+    final data = await _client.request(
+      'GET',
+      '/api/v1/orders/${Uri.encodeComponent(order)}',
+      apiKey: apiKey,
+    );
+    return Order.fromJson(data);
+  }
+
+  /// Ler a fatura de um pedido, o documento comercial que o lojista gerou; sem ela, 404.
+  Future<OrderInvoice> getInvoice(
+    String order, {
+    String? apiKey,
+  }) async {
+    final data = await _client.request(
+      'GET',
+      '/api/v1/orders/${Uri.encodeComponent(order)}/invoice',
+      apiKey: apiKey,
+    );
+    return OrderInvoice.fromJson(data);
+  }
+
+  /// Ler o recibo de um pedido: o que foi pago, quando e como.
+  Future<OrderReceipt> getReceipt(
+    String order, {
+    String? apiKey,
+  }) async {
+    final data = await _client.request(
+      'GET',
+      '/api/v1/orders/${Uri.encodeComponent(order)}/receipt',
+      apiKey: apiKey,
+    );
+    return OrderReceipt.fromJson(data);
+  }
 
   /// Listar pedidos: checkouts pagos.
   ///
@@ -369,6 +1041,21 @@ class ProductsService {
 
   final Requester _client;
 
+  /// Arquivar um produto: sai das vendas novas e o que já foi vendido continua apontando para ele.
+  Future<Product> archive(
+    String product, {
+    String? idempotencyKey,
+    String? apiKey,
+  }) async {
+    final data = await _client.request(
+      'POST',
+      '/api/v1/products/${Uri.encodeComponent(product)}/archive',
+      idempotencyKey: idempotencyKey,
+      apiKey: apiKey,
+    );
+    return Product.fromJson(data);
+  }
+
   /// Criar um produto.
   Future<Product> create(
     ProductsCreateParams params, {
@@ -434,6 +1121,23 @@ class ProductsService {
       page,
     );
   }
+
+  /// Atualizar o nome ou a descrição de um produto ativo.
+  Future<Product> update(
+    String product,
+    ProductsUpdateParams params, {
+    String? idempotencyKey,
+    String? apiKey,
+  }) async {
+    final data = await _client.request(
+      'PATCH',
+      '/api/v1/products/${Uri.encodeComponent(product)}',
+      body: params.toJson(),
+      idempotencyKey: idempotencyKey,
+      apiKey: apiKey,
+    );
+    return Product.fromJson(data);
+  }
 }
 
 /// The API's refunds.
@@ -456,6 +1160,47 @@ class RefundsService {
       apiKey: apiKey,
     );
     return Refund.fromJson(data);
+  }
+
+  /// Listar reembolsos, opcionalmente de um pagamento (payment_id).
+  ///
+  /// One page, from 1, of [limit] items (1 to 100, 10 by default);
+  /// [listIter] walks every page.
+  Future<Page<Refund>> list({
+    int? page,
+    int? limit,
+    String? paymentId,
+    String? apiKey,
+  }) async {
+    final data = await _client.request(
+      'GET',
+      '/api/v1/refunds',
+      query: {
+        'page': page,
+        'limit': limit,
+        'payment_id': paymentId,
+      },
+      apiKey: apiKey,
+    );
+    return Page.fromJson(data, Refund.fromJson);
+  }
+
+  /// Walks every page of refunds:list, item by item, from [page].
+  Stream<Refund> listIter({
+    int page = 1,
+    int? limit,
+    String? paymentId,
+    String? apiKey,
+  }) {
+    return iterate(
+      (at) => list(
+        page: at,
+        limit: limit,
+        paymentId: paymentId,
+        apiKey: apiKey,
+      ),
+      page,
+    );
   }
 }
 
@@ -534,5 +1279,171 @@ class SubscriptionsService {
       ),
       page,
     );
+  }
+
+  /// Trocar o plano de uma assinatura: outro preço e, se quiser, outra quantidade, com a forma de ratear a diferença (proration_behavior).
+  Future<Subscription> update(
+    String subscription,
+    SubscriptionsUpdateParams params, {
+    String? idempotencyKey,
+    String? apiKey,
+  }) async {
+    final data = await _client.request(
+      'PATCH',
+      '/api/v1/subscriptions/${Uri.encodeComponent(subscription)}',
+      body: params.toJson(),
+      idempotencyKey: idempotencyKey,
+      apiKey: apiKey,
+    );
+    return Subscription.fromJson(data);
+  }
+}
+
+/// The API's webhooks.
+class WebhooksService {
+  const WebhooksService(this._client);
+
+  final Requester _client;
+
+  /// Criar um endpoint de webhook; o segredo que assina as mensagens vem só nesta resposta.
+  Future<WebhookEndpointCreated> createEndpoint(
+    WebhooksCreateEndpointParams params, {
+    String? idempotencyKey,
+    String? apiKey,
+  }) async {
+    final data = await _client.request(
+      'POST',
+      '/api/v1/webhooks/endpoints',
+      body: params.toJson(),
+      idempotencyKey: idempotencyKey,
+      apiKey: apiKey,
+    );
+    return WebhookEndpointCreated.fromJson(data);
+  }
+
+  /// Excluir um endpoint de webhook; as entregas que ainda esperavam por ele falham. The API answers 204, so there is nothing to return.
+  Future<void> deleteEndpoint(
+    String endpoint, {
+    String? idempotencyKey,
+    String? apiKey,
+  }) async {
+    await _client.request(
+      'DELETE',
+      '/api/v1/webhooks/endpoints/${Uri.encodeComponent(endpoint)}',
+      idempotencyKey: idempotencyKey,
+      apiKey: apiKey,
+    );
+  }
+
+  /// Ler um endpoint de webhook.
+  Future<WebhookEndpoint> getEndpoint(
+    String endpoint, {
+    String? apiKey,
+  }) async {
+    final data = await _client.request(
+      'GET',
+      '/api/v1/webhooks/endpoints/${Uri.encodeComponent(endpoint)}',
+      apiKey: apiKey,
+    );
+    return WebhookEndpoint.fromJson(data);
+  }
+
+  /// Listar as últimas 100 entregas de eventos aos endpoints, opcionalmente de um endpoint (endpoint_id) ou de uma situação (status).
+  ///
+  /// One page, from 1, of [limit] items (1 to 100, 10 by default);
+  /// [listDeliveriesIter] walks every page.
+  Future<Page<WebhookDelivery>> listDeliveries({
+    int? page,
+    int? limit,
+    String? endpointId,
+    String? status,
+    String? apiKey,
+  }) async {
+    final data = await _client.request(
+      'GET',
+      '/api/v1/webhooks/deliveries',
+      query: {
+        'page': page,
+        'limit': limit,
+        'endpoint_id': endpointId,
+        'status': status,
+      },
+      apiKey: apiKey,
+    );
+    return Page.fromJson(data, WebhookDelivery.fromJson);
+  }
+
+  /// Walks every page of webhooks:list_deliveries, item by item, from [page].
+  Stream<WebhookDelivery> listDeliveriesIter({
+    int page = 1,
+    int? limit,
+    String? endpointId,
+    String? status,
+    String? apiKey,
+  }) {
+    return iterate(
+      (at) => listDeliveries(
+        page: at,
+        limit: limit,
+        endpointId: endpointId,
+        status: status,
+        apiKey: apiKey,
+      ),
+      page,
+    );
+  }
+
+  /// Listar os endpoints de webhook do lojista.
+  ///
+  /// One page, from 1, of [limit] items (1 to 100, 10 by default);
+  /// [listEndpointsIter] walks every page.
+  Future<Page<WebhookEndpoint>> listEndpoints({
+    int? page,
+    int? limit,
+    String? apiKey,
+  }) async {
+    final data = await _client.request(
+      'GET',
+      '/api/v1/webhooks/endpoints',
+      query: {
+        'page': page,
+        'limit': limit,
+      },
+      apiKey: apiKey,
+    );
+    return Page.fromJson(data, WebhookEndpoint.fromJson);
+  }
+
+  /// Walks every page of webhooks:list_endpoints, item by item, from [page].
+  Stream<WebhookEndpoint> listEndpointsIter({
+    int page = 1,
+    int? limit,
+    String? apiKey,
+  }) {
+    return iterate(
+      (at) => listEndpoints(
+        page: at,
+        limit: limit,
+        apiKey: apiKey,
+      ),
+      page,
+    );
+  }
+
+  /// Atualizar o endereço, o formato, os eventos ou a descrição de um endpoint, ou ligar e desligar o envio (enabled); o segredo não muda.
+  Future<WebhookEndpoint> updateEndpoint(
+    String endpoint,
+    WebhooksUpdateEndpointParams params, {
+    String? idempotencyKey,
+    String? apiKey,
+  }) async {
+    final data = await _client.request(
+      'PATCH',
+      '/api/v1/webhooks/endpoints/${Uri.encodeComponent(endpoint)}',
+      body: params.toJson(),
+      idempotencyKey: idempotencyKey,
+      apiKey: apiKey,
+    );
+    return WebhookEndpoint.fromJson(data);
   }
 }

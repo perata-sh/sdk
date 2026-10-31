@@ -18,6 +18,17 @@ public sealed class ProductsService
 
     internal ProductsService(PerataClient client) => this.client = client;
 
+    /// <summary>Arquivar um produto: sai das vendas novas e o que já foi vendido continua apontando para ele.</summary>
+    /// <param name="product">The product.</param>
+    /// <param name="options">An idempotency key, or another organization's key for this call.</param>
+    /// <param name="cancellationToken">Cancels the call.</param>
+    /// <returns>The product.</returns>
+    /// <exception cref="PerataException">The API refused the call.</exception>
+    public Task<Product> ArchiveAsync(string product, RequestOptions? options = null, CancellationToken cancellationToken = default)
+    {
+        return client.RequestAsync(HttpMethod.Post, "/api/v1/products/" + PerataClient.Segment(product) + "/archive", null, null, PerataJson.Default.ProductEnvelope, options?.IdempotencyKey, options, cancellationToken);
+    }
+
     /// <summary>Criar um produto.</summary>
     /// <param name="parameters">The request.</param>
     /// <param name="options">An idempotency key, or another organization's key for this call.</param>
@@ -60,6 +71,19 @@ public sealed class ProductsService
         var walk = parameters ?? new ProductsListParams();
         return Pages.IterateAsync((page, token) => ListAsync(walk with { Page = page }, options, token), walk.Page, cancellationToken);
     }
+
+    /// <summary>Atualizar o nome ou a descrição de um produto ativo.</summary>
+    /// <param name="product">The product.</param>
+    /// <param name="parameters">The request.</param>
+    /// <param name="options">An idempotency key, or another organization's key for this call.</param>
+    /// <param name="cancellationToken">Cancels the call.</param>
+    /// <returns>The product.</returns>
+    /// <exception cref="PerataException">The API refused the call.</exception>
+    public Task<Product> UpdateAsync(string product, ProductsUpdateParams parameters, RequestOptions? options = null, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(parameters);
+        return client.RequestAsync(HttpMethod.Patch, "/api/v1/products/" + PerataClient.Segment(product), null, JsonSerializer.SerializeToUtf8Bytes(parameters, PerataJson.Default.ProductsUpdateParams), PerataJson.Default.ProductEnvelope, options?.IdempotencyKey, options, cancellationToken);
+    }
 }
 
 /// <summary>The body of products:create.</summary>
@@ -88,5 +112,17 @@ public sealed record ProductsListParams
         new("page", Page?.ToString(CultureInfo.InvariantCulture)),
         new("limit", Limit?.ToString(CultureInfo.InvariantCulture)),
     ];
+}
+
+/// <summary>The body of products:update.</summary>
+public sealed record ProductsUpdateParams
+{
+    /// <summary>The <c>description</c> to send. Left out of the request when null.</summary>
+    [JsonPropertyName("description")]
+    public string? Description { get; init; }
+
+    /// <summary>The <c>name</c> to send. Left out of the request when null.</summary>
+    [JsonPropertyName("name")]
+    public string? Name { get; init; }
 }
 

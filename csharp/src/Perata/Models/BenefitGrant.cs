@@ -9,6 +9,27 @@ namespace Perata;
 /// <summary>BenefitGrant is a resource of Peráta's API.</summary>
 public sealed record BenefitGrant
 {
+    /// <summary>A value of <see cref="BenefitType"/>.</summary>
+    public const string BenefitTypeCustom = "custom";
+
+    /// <summary>A value of <see cref="BenefitType"/>.</summary>
+    public const string BenefitTypeLicenseKey = "license_key";
+
+    /// <summary>A value of <see cref="BenefitType"/>.</summary>
+    public const string BenefitTypeDownloadable = "downloadable";
+
+    /// <summary>A value of <see cref="BenefitType"/>.</summary>
+    public const string BenefitTypeFeatureFlag = "feature_flag";
+
+    /// <summary>A value of <see cref="BenefitType"/>.</summary>
+    public const string BenefitTypeMeterCredit = "meter_credit";
+
+    /// <summary>A value of <see cref="BenefitType"/>.</summary>
+    public const string BenefitTypeDiscord = "discord";
+
+    /// <summary>A value of <see cref="BenefitType"/>.</summary>
+    public const string BenefitTypeGithubRepository = "github_repository";
+
     /// <summary>A value of <see cref="Status"/>.</summary>
     public const string StatusGranted = "granted";
 
@@ -19,9 +40,9 @@ public sealed record BenefitGrant
     [JsonPropertyName("benefit_id")]
     public required string BenefitId { get; init; }
 
-    /// <summary>Os metadados do benefício: os valores de uma feature flag. Null when the API sends none.</summary>
+    /// <summary>Os metadados do benefício: os valores de uma feature flag.</summary>
     [JsonPropertyName("benefit_metadata")]
-    public IReadOnlyDictionary<string, JsonElement>? BenefitMetadata { get; init; }
+    public required IReadOnlyDictionary<string, JsonElement> BenefitMetadata { get; init; }
 
     /// <summary>The API's <c>benefit_type</c>.</summary>
     [JsonPropertyName("benefit_type")]
@@ -51,9 +72,9 @@ public sealed record BenefitGrant
     [JsonPropertyName("is_revoked")]
     public required bool IsRevoked { get; init; }
 
-    /// <summary>O que a concessão informa, conforme o tipo, sem credenciais. Null when the API sends none.</summary>
+    /// <summary>O que a concessão informa, conforme o tipo, sem credenciais.</summary>
     [JsonPropertyName("properties")]
-    public IReadOnlyDictionary<string, JsonElement>? Properties { get; init; }
+    public required IReadOnlyDictionary<string, JsonElement> Properties { get; init; }
 
     /// <summary>The API's <c>revoked_at</c>. Null when the API sends none.</summary>
     [JsonPropertyName("revoked_at")]

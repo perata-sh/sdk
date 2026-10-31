@@ -191,5 +191,144 @@ public final class CheckoutsService {
             }
         }
     }
+
+    /**
+     * Ler um checkout: o endereço, o estado e as páginas de retorno.
+     * @param checkout the checkout
+     * @param options another organization's key for this call, or null
+     * @return the checkout
+     * @throws PerataException when the API refuses the call
+     */
+    public Checkout get(String checkout, RequestOptions options) {
+        Object data = client.request("GET", "/api/v1/checkouts/" + Perata.segment(checkout), null, null, null, options);
+        return Checkout.fromJson(Json.asObject(data));
+    }
+
+    /**
+     * Ler um checkout: o endereço, o estado e as páginas de retorno.
+     * @param checkout the checkout
+     * @return the checkout
+     * @throws PerataException when the API refuses the call
+     */
+    public Checkout get(String checkout) {
+        return get(checkout, null);
+    }
+
+    /**
+     * Atualizar o rótulo e as páginas de retorno de um checkout ativo.
+     * @param checkout the checkout
+     * @param params the request
+     * @param options an idempotency key or another organization's key for this call, or null
+     * @return the checkout
+     * @throws PerataException when the API refuses the call
+     */
+    public Checkout update(String checkout, UpdateParams params, RequestOptions options) {
+        Object data = client.request("PATCH", "/api/v1/checkouts/" + Perata.segment(checkout), null, Objects.requireNonNull(params, "params").toJson(), options == null ? null : options.getIdempotencyKey(), options);
+        return Checkout.fromJson(Json.asObject(data));
+    }
+
+    /**
+     * Atualizar o rótulo e as páginas de retorno de um checkout ativo.
+     * @param checkout the checkout
+     * @param params the request
+     * @return the checkout
+     * @throws PerataException when the API refuses the call
+     */
+    public Checkout update(String checkout, UpdateParams params) {
+        return update(checkout, params, null);
+    }
+
+    /** The body of checkouts:update. */
+    public static final class UpdateParams {
+
+        private final String cancelUrl;
+        private final String label;
+        private final String successUrl;
+
+        private UpdateParams(Builder builder) {
+            this.cancelUrl = builder.cancelUrl;
+            this.label = builder.label;
+            this.successUrl = builder.successUrl;
+        }
+
+        /** @return a builder of the request */
+        public static Builder builder() {
+            return new Builder();
+        }
+
+        /** @return Endereço https; vazio retira. (null when left out) */
+        public String getCancelUrl() {
+            return cancelUrl;
+        }
+
+        /** @return the {@code label} sent (null when left out) */
+        public String getLabel() {
+            return label;
+        }
+
+        /** @return Endereço https; vazio retira. (null when left out) */
+        public String getSuccessUrl() {
+            return successUrl;
+        }
+
+        Map<String, Object> toJson() {
+            Map<String, Object> body = new LinkedHashMap<>();
+            if (cancelUrl != null) {
+                body.put("cancel_url", cancelUrl);
+            }
+            if (label != null) {
+                body.put("label", label);
+            }
+            if (successUrl != null) {
+                body.put("success_url", successUrl);
+            }
+            return body;
+        }
+
+        /** Builds {@link UpdateParams}; the fields left unset are left out of the request. */
+        public static final class Builder {
+            private String cancelUrl;
+            private String label;
+            private String successUrl;
+
+            private Builder() {
+            }
+
+            /**
+             * @param cancelUrl Endereço https; vazio retira.
+             * @return this builder
+             */
+            public Builder cancelUrl(String cancelUrl) {
+                this.cancelUrl = cancelUrl;
+                return this;
+            }
+
+            /**
+             * @param label the {@code label} to send
+             * @return this builder
+             */
+            public Builder label(String label) {
+                this.label = label;
+                return this;
+            }
+
+            /**
+             * @param successUrl Endereço https; vazio retira.
+             * @return this builder
+             */
+            public Builder successUrl(String successUrl) {
+                this.successUrl = successUrl;
+                return this;
+            }
+
+            /**
+             * @return the request
+             * @throws IllegalStateException when a required field is unset
+             */
+            public UpdateParams build() {
+                return new UpdateParams(this);
+            }
+        }
+    }
 }
 

@@ -13,9 +13,10 @@ final class BenefitGrant
         public readonly string $benefitId,
         /**
          * Os metadados do benefício: os valores de uma feature flag.
-         * @var array<string, mixed>|null
+         * @var array<string, mixed>
          */
-        public readonly ?array $benefitMetadata,
+        public readonly array $benefitMetadata,
+        /** @var 'custom'|'license_key'|'downloadable'|'feature_flag'|'meter_credit'|'discord'|'github_repository' */
         public readonly string $benefitType,
         public readonly string $createdAt,
         public readonly string $customerId,
@@ -25,9 +26,9 @@ final class BenefitGrant
         public readonly bool $isRevoked,
         /**
          * O que a concessão informa, conforme o tipo, sem credenciais.
-         * @var array<string, mixed>|null
+         * @var array<string, mixed>
          */
-        public readonly ?array $properties,
+        public readonly array $properties,
         public readonly ?string $revokedAt,
         /** @var 'granted'|'revoked' */
         public readonly string $status,
@@ -41,7 +42,7 @@ final class BenefitGrant
     {
         return new self(
             benefitId: $data['benefit_id'],
-            benefitMetadata: $data['benefit_metadata'] ?? null,
+            benefitMetadata: $data['benefit_metadata'],
             benefitType: $data['benefit_type'],
             createdAt: $data['created_at'],
             customerId: $data['customer_id'],
@@ -49,7 +50,7 @@ final class BenefitGrant
             id: $data['id'],
             isGranted: $data['is_granted'],
             isRevoked: $data['is_revoked'],
-            properties: $data['properties'] ?? null,
+            properties: $data['properties'],
             revokedAt: $data['revoked_at'] ?? null,
             status: $data['status'],
         );

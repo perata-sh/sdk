@@ -46,9 +46,15 @@ public final class Perata {
     private final String baseUrl;
     private final Duration timeout;
     private final Transport transport;
+    private final BenefitsService benefits;
+    private final CheckoutLinksService checkoutLinks;
     private final CheckoutsService checkouts;
     private final CustomerSessionsService customerSessions;
     private final CustomersService customers;
+    private final DiscountsService discounts;
+    private final DisputesService disputes;
+    private final EventsService events;
+    private final MetersService meters;
     private final OrdersService orders;
     private final PaymentMethodsService paymentMethods;
     private final PaymentsService payments;
@@ -56,6 +62,7 @@ public final class Perata {
     private final ProductsService products;
     private final RefundsService refunds;
     private final SubscriptionsService subscriptions;
+    private final WebhooksService webhooks;
 
     /**
      * A client for the organization apiKey belongs to.
@@ -72,9 +79,15 @@ public final class Perata {
         checkBaseUrl(this.baseUrl);
         this.timeout = builder.timeout;
         this.transport = builder.transport == null ? new HttpTransport() : builder.transport;
+        this.benefits = new BenefitsService(this);
+        this.checkoutLinks = new CheckoutLinksService(this);
         this.checkouts = new CheckoutsService(this);
         this.customerSessions = new CustomerSessionsService(this);
         this.customers = new CustomersService(this);
+        this.discounts = new DiscountsService(this);
+        this.disputes = new DisputesService(this);
+        this.events = new EventsService(this);
+        this.meters = new MetersService(this);
         this.orders = new OrdersService(this);
         this.paymentMethods = new PaymentMethodsService(this);
         this.payments = new PaymentsService(this);
@@ -82,6 +95,7 @@ public final class Perata {
         this.products = new ProductsService(this);
         this.refunds = new RefundsService(this);
         this.subscriptions = new SubscriptionsService(this);
+        this.webhooks = new WebhooksService(this);
     }
 
     /**
@@ -92,6 +106,16 @@ public final class Perata {
      */
     public static Builder builder(String apiKey) {
         return new Builder(apiKey);
+    }
+
+    /** @return the API's benefits */
+    public BenefitsService benefits() {
+        return benefits;
+    }
+
+    /** @return the API's checkout-links */
+    public CheckoutLinksService checkoutLinks() {
+        return checkoutLinks;
     }
 
     /** @return the API's checkouts */
@@ -107,6 +131,26 @@ public final class Perata {
     /** @return the API's customers */
     public CustomersService customers() {
         return customers;
+    }
+
+    /** @return the API's discounts */
+    public DiscountsService discounts() {
+        return discounts;
+    }
+
+    /** @return the API's disputes */
+    public DisputesService disputes() {
+        return disputes;
+    }
+
+    /** @return the API's events */
+    public EventsService events() {
+        return events;
+    }
+
+    /** @return the API's meters */
+    public MetersService meters() {
+        return meters;
     }
 
     /** @return the API's orders */
@@ -142,6 +186,11 @@ public final class Perata {
     /** @return the API's subscriptions */
     public SubscriptionsService subscriptions() {
         return subscriptions;
+    }
+
+    /** @return the API's webhooks */
+    public WebhooksService webhooks() {
+        return webhooks;
     }
 
     /**

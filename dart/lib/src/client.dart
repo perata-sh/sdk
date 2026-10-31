@@ -52,6 +52,12 @@ class Perata implements Requester {
   final bool _ownsHttp;
   final Duration _timeout;
 
+  /// The API's benefits.
+  late final benefits = BenefitsService(this);
+
+  /// The API's checkout-links.
+  late final checkoutLinks = CheckoutLinksService(this);
+
   /// The API's checkouts.
   late final checkouts = CheckoutsService(this);
 
@@ -60,6 +66,18 @@ class Perata implements Requester {
 
   /// The API's customers.
   late final customers = CustomersService(this);
+
+  /// The API's discounts.
+  late final discounts = DiscountsService(this);
+
+  /// The API's disputes.
+  late final disputes = DisputesService(this);
+
+  /// The API's events.
+  late final events = EventsService(this);
+
+  /// The API's meters.
+  late final meters = MetersService(this);
 
   /// The API's orders.
   late final orders = OrdersService(this);
@@ -81,6 +99,9 @@ class Perata implements Requester {
 
   /// The API's subscriptions.
   late final subscriptions = SubscriptionsService(this);
+
+  /// The API's webhooks.
+  late final webhooks = WebhooksService(this);
 
   /// Closes the HTTP client, unless it was given to this one.
   void close() {

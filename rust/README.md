@@ -25,16 +25,23 @@ for product in client.products().list_iter(ProductsListParams::new()) {
 
 | Serviço | Métodos |
 |---|---|
-| `client.checkouts()` | `create` |
+| `client.benefits()` | `create`, `delete`, `get`, `list`, `list_iter`, `list_grants`, `list_grants_iter`, `update` |
+| `client.checkout_links()` | `create`, `delete`, `get`, `list`, `list_iter`, `update` |
+| `client.checkouts()` | `create`, `get`, `update` |
 | `client.customer_sessions()` | `create` |
-| `client.customers()` | `create`, `get`, `get_state`, `list`, `list_iter` |
-| `client.orders()` | `list`, `list_iter` |
+| `client.customers()` | `create`, `delete`, `get`, `get_external`, `get_state`, `list`, `list_iter`, `update`, `update_external` |
+| `client.discounts()` | `create`, `delete`, `get`, `list`, `list_iter`, `update` |
+| `client.disputes()` | `get`, `list`, `list_iter` |
+| `client.events()` | `list`, `list_iter` |
+| `client.meters()` | `get`, `list`, `list_iter` |
+| `client.orders()` | `get`, `get_invoice`, `get_receipt`, `list`, `list_iter` |
 | `client.payment_methods()` | `detach`, `list`, `list_iter` |
 | `client.payments()` | `get`, `list`, `list_iter` |
 | `client.prices()` | `create`, `list`, `list_iter` |
-| `client.products()` | `create`, `get`, `list`, `list_iter` |
-| `client.refunds()` | `create` |
-| `client.subscriptions()` | `cancel`, `get`, `list`, `list_iter` |
+| `client.products()` | `archive`, `create`, `get`, `list`, `list_iter`, `update` |
+| `client.refunds()` | `create`, `list`, `list_iter` |
+| `client.subscriptions()` | `cancel`, `get`, `list`, `list_iter`, `update` |
+| `client.webhooks()` | `create_endpoint`, `delete_endpoint`, `get_endpoint`, `list_deliveries`, `list_deliveries_iter`, `list_endpoints`, `list_endpoints_iter`, `update_endpoint` |
 
 Os corpos das escritas são structs com `new(obrigatórios…)` e um método por campo opcional; os campos opcionais não definidos não são enviados. Os campos enumerados são enums (`ProductStatus::Active`) que guardam em `Unrecognized` um valor que esta versão ainda não conhece. Antes da chamada, `.idempotency_key(…)` torna uma escrita segura para repetir, e `.api_key(…)` usa a chave de outra organização. `Client::builder(chave)` aceita `base_url`, `timeout` (30 s por padrão) e `transport`, para usar outro cliente HTTP ou testar sem rede. Um POST sem chave de idempotência é enviado com uma `Idempotency-Key` própria (UUID v4 aleatório, uma por chamada); passe a sua para poder repetir a mesma operação com segurança.
 

@@ -282,5 +282,131 @@ public final class SubscriptionsService {
             }
         }
     }
+
+    /**
+     * Trocar o plano de uma assinatura: outro preço e, se quiser, outra quantidade, com a forma de ratear a diferença (proration_behavior).
+     * @param subscription the subscription
+     * @param params the request
+     * @param options an idempotency key or another organization's key for this call, or null
+     * @return the subscription
+     * @throws PerataException when the API refuses the call
+     */
+    public Subscription update(String subscription, UpdateParams params, RequestOptions options) {
+        Object data = client.request("PATCH", "/api/v1/subscriptions/" + Perata.segment(subscription), null, Objects.requireNonNull(params, "params").toJson(), options == null ? null : options.getIdempotencyKey(), options);
+        return Subscription.fromJson(Json.asObject(data));
+    }
+
+    /**
+     * Trocar o plano de uma assinatura: outro preço e, se quiser, outra quantidade, com a forma de ratear a diferença (proration_behavior).
+     * @param subscription the subscription
+     * @param params the request
+     * @return the subscription
+     * @throws PerataException when the API refuses the call
+     */
+    public Subscription update(String subscription, UpdateParams params) {
+        return update(subscription, params, null);
+    }
+
+    /** The body of subscriptions:update. */
+    public static final class UpdateParams {
+        /** A value of {@link #getProrationBehavior()}. */
+        public static final String PRORATION_BEHAVIOR_PRORATE = "prorate";
+        /** A value of {@link #getProrationBehavior()}. */
+        public static final String PRORATION_BEHAVIOR_INVOICE = "invoice";
+        /** A value of {@link #getProrationBehavior()}. */
+        public static final String PRORATION_BEHAVIOR_NEXT_PERIOD = "next_period";
+        /** A value of {@link #getProrationBehavior()}. */
+        public static final String PRORATION_BEHAVIOR_RESET = "reset";
+
+        private final String priceId;
+        private final String prorationBehavior;
+        private final Long quantity;
+
+        private UpdateParams(Builder builder) {
+            this.priceId = builder.priceId;
+            this.prorationBehavior = builder.prorationBehavior;
+            this.quantity = builder.quantity;
+        }
+
+        /** @return a builder of the request */
+        public static Builder builder() {
+            return new Builder();
+        }
+
+        /** @return O preço recorrente para onde a assinatura vai. */
+        public String getPriceId() {
+            return priceId;
+        }
+
+        /** @return prorate (padrão): rateia o resto do período no próximo valor cobrado; invoice: cobra a diferença agora; next_period: troca no fim do período; reset: cobra o período inteiro do novo plano agora e reinicia o ciclo. (null when left out) */
+        public String getProrationBehavior() {
+            return prorationBehavior;
+        }
+
+        /** @return A nova quantidade; omitida, fica a atual. (null when left out) */
+        public Long getQuantity() {
+            return quantity;
+        }
+
+        Map<String, Object> toJson() {
+            Map<String, Object> body = new LinkedHashMap<>();
+            body.put("price_id", priceId);
+            if (prorationBehavior != null) {
+                body.put("proration_behavior", prorationBehavior);
+            }
+            if (quantity != null) {
+                body.put("quantity", quantity);
+            }
+            return body;
+        }
+
+        /** Builds {@link UpdateParams}; the fields left unset are left out of the request. */
+        public static final class Builder {
+            private String priceId;
+            private String prorationBehavior;
+            private Long quantity;
+
+            private Builder() {
+            }
+
+            /**
+             * @param priceId O preço recorrente para onde a assinatura vai. (required)
+             * @return this builder
+             */
+            public Builder priceId(String priceId) {
+                this.priceId = priceId;
+                return this;
+            }
+
+            /**
+             * @param prorationBehavior prorate (padrão): rateia o resto do período no próximo valor cobrado; invoice: cobra a diferença agora; next_period: troca no fim do período; reset: cobra o período inteiro do novo plano agora e reinicia o ciclo.
+             * @return this builder
+             */
+            public Builder prorationBehavior(String prorationBehavior) {
+                this.prorationBehavior = prorationBehavior;
+                return this;
+            }
+
+            /**
+             * @param quantity A nova quantidade; omitida, fica a atual.
+             * @return this builder
+             */
+            public Builder quantity(Long quantity) {
+                this.quantity = quantity;
+                return this;
+            }
+
+            /**
+             * @return the request
+             * @throws IllegalStateException when a required field is unset
+             */
+            public UpdateParams build() {
+                if (priceId == null) {
+                    throw new IllegalStateException("perata: UpdateParams needs priceId");
+                }
+                return new UpdateParams(this);
+            }
+        }
+    }
 }
 

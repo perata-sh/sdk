@@ -8,20 +8,54 @@ from typing import Any, Literal, NotRequired, TypedDict
 
 
 @dataclass(frozen=True)
+class Benefit:
+    """Benefit is a resource of Peráta's API."""
+
+    created_at: str
+    description: str
+    id: str
+    metadata: dict[str, Any]
+    """Metadados do lojista: pares chave e valor (texto, número ou booleano); no tipo feature_flag, os valores da flag."""
+    modified_at: str
+    name: str
+    """Como o benefício aparece nos produtos e para o cliente."""
+    properties: dict[str, Any]
+    """Os campos do tipo do benefício."""
+    status: Literal["active", "archived"]
+    type: Literal["custom", "license_key", "downloadable", "feature_flag", "meter_credit", "discord", "github_repository"]
+    visibility: Literal["public", "private"]
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> Benefit:
+        return cls(
+            created_at=data["created_at"],
+            description=data["description"],
+            id=data["id"],
+            metadata=data["metadata"],
+            modified_at=data["modified_at"],
+            name=data["name"],
+            properties=data["properties"],
+            status=data["status"],
+            type=data["type"],
+            visibility=data["visibility"],
+        )
+
+
+@dataclass(frozen=True)
 class BenefitGrant:
     """BenefitGrant is a resource of Peráta's API."""
 
     benefit_id: str
-    benefit_metadata: dict[str, Any] | None
+    benefit_metadata: dict[str, Any]
     """Os metadados do benefício: os valores de uma feature flag."""
-    benefit_type: str
+    benefit_type: Literal["custom", "license_key", "downloadable", "feature_flag", "meter_credit", "discord", "github_repository"]
     created_at: str
     customer_id: str
     granted_at: str
     id: str
     is_granted: bool
     is_revoked: bool
-    properties: dict[str, Any] | None
+    properties: dict[str, Any]
     """O que a concessão informa, conforme o tipo, sem credenciais."""
     revoked_at: str | None
     status: Literal["granted", "revoked"]
@@ -30,7 +64,7 @@ class BenefitGrant:
     def from_dict(cls, data: dict[str, Any]) -> BenefitGrant:
         return cls(
             benefit_id=data["benefit_id"],
-            benefit_metadata=data.get("benefit_metadata"),
+            benefit_metadata=data["benefit_metadata"],
             benefit_type=data["benefit_type"],
             created_at=data["created_at"],
             customer_id=data["customer_id"],
@@ -38,9 +72,37 @@ class BenefitGrant:
             id=data["id"],
             is_granted=data["is_granted"],
             is_revoked=data["is_revoked"],
-            properties=data.get("properties"),
+            properties=data["properties"],
             revoked_at=data.get("revoked_at"),
             status=data["status"],
+        )
+
+
+@dataclass(frozen=True)
+class BillingAddress:
+    """BillingAddress is a resource of Peráta's API."""
+
+    city: str
+    country: str
+    district: str
+    """Bairro."""
+    line1: str
+    line2: str
+    postal_code: str
+    """CEP, só dígitos."""
+    state: str
+    """UF."""
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> BillingAddress:
+        return cls(
+            city=data["city"],
+            country=data["country"],
+            district=data["district"],
+            line1=data["line1"],
+            line2=data["line2"],
+            postal_code=data["postal_code"],
+            state=data["state"],
         )
 
 
@@ -67,19 +129,120 @@ class Card:
 class Checkout:
     """Checkout is a resource of Peráta's API."""
 
+    cancel_url: str
+    """Endereço https para onde o comprador volta se desistir; vazio sem ele."""
+    created_at: str
+    expires_at: str | None
+    """Quando o checkout deixa de abrir sessões; nulo sem prazo."""
     id: str
+    label: str
+    """Como o lojista chama o checkout nas próprias telas; o comprador não vê."""
     price_id: str
     product_id: str
+    quantity: int
+    status: Literal["active", "archived"]
+    """active abre sessões de compra; archived saiu de circulação."""
+    success_url: str
+    """Endereço https para onde o comprador volta depois de pagar; vazio sem ele."""
     url: str
     """Endereço para onde o comprador é enviado."""
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> Checkout:
         return cls(
+            cancel_url=data["cancel_url"],
+            created_at=data["created_at"],
+            expires_at=data.get("expires_at"),
             id=data["id"],
+            label=data["label"],
             price_id=data["price_id"],
             product_id=data["product_id"],
+            quantity=data["quantity"],
+            status=data["status"],
+            success_url=data["success_url"],
             url=data["url"],
+        )
+
+
+@dataclass(frozen=True)
+class CheckoutLink:
+    """CheckoutLink is a resource of Peráta's API."""
+
+    allow_discount_codes: bool
+    """Se o comprador pode digitar um código de desconto."""
+    cancel_url: str
+    """Endereço https para onde o comprador volta se desistir; vazio sem ele."""
+    capture_mode: Literal["automatic", "manual"]
+    """manual segura a venda no cartão para o lojista capturar depois."""
+    created_at: str
+    discount_id: str | None
+    """O desconto fixado no link; nulo sem ele."""
+    expires_at: str | None
+    """Quando o link deixa de abrir checkouts; nulo sem prazo."""
+    id: str
+    label: str
+    """Como o lojista chama o link nas próprias telas; o comprador não vê."""
+    max_installments: int
+    """O máximo de parcelas no cartão de crédito; 0 segue o que a organização definiu."""
+    metadata: dict[str, Any]
+    """Metadados do lojista: pares chave e valor (texto, número ou booleano); objeto vazio quando não há."""
+    modified_at: str
+    price_id: str
+    """O preço do primeiro produto."""
+    product_id: str
+    """O primeiro produto do link."""
+    products: list[CheckoutLinkProduct]
+    """Os produtos que o link vende, na ordem em que o comprador os vê."""
+    quantity: int
+    require_billing_address: bool
+    status: Literal["active", "archived"]
+    success_url: str
+    """Endereço https para onde o comprador volta depois de pagar; vazio sem ele."""
+    trial_interval: Literal["day", "week", "month", "year"] | None
+    """O período de teste gratuito do link, no lugar do produto; nulo mantém o do produto."""
+    trial_interval_count: int | None
+    url: str
+    """Endereço para onde o comprador é enviado."""
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> CheckoutLink:
+        return cls(
+            allow_discount_codes=data["allow_discount_codes"],
+            cancel_url=data["cancel_url"],
+            capture_mode=data["capture_mode"],
+            created_at=data["created_at"],
+            discount_id=data.get("discount_id"),
+            expires_at=data.get("expires_at"),
+            id=data["id"],
+            label=data["label"],
+            max_installments=data["max_installments"],
+            metadata=data["metadata"],
+            modified_at=data["modified_at"],
+            price_id=data["price_id"],
+            product_id=data["product_id"],
+            products=[CheckoutLinkProduct.from_dict(item) for item in data["products"]],
+            quantity=data["quantity"],
+            require_billing_address=data["require_billing_address"],
+            status=data["status"],
+            success_url=data["success_url"],
+            trial_interval=data.get("trial_interval"),
+            trial_interval_count=data.get("trial_interval_count"),
+            url=data["url"],
+        )
+
+
+@dataclass(frozen=True)
+class CheckoutLinkProduct:
+    """CheckoutLinkProduct is a resource of Peráta's API."""
+
+    price_id: str
+    product_id: str
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> CheckoutLinkProduct:
+        return cls(
+            price_id=data["price_id"],
+            product_id=data["product_id"],
         )
 
 
@@ -181,6 +344,221 @@ class CustomerStateBenefitGrant:
 
 
 @dataclass(frozen=True)
+class Discount:
+    """Discount is a resource of Peráta's API."""
+
+    amount_cents: int
+    """O valor fixo em centavos; 0 em um desconto percentual."""
+    basis_points: int
+    """O percentual em centésimos de ponto percentual, 10000 é 100%; 0 em um desconto fixo."""
+    code: str | None
+    """O código que o cliente digita no checkout; nulo quando o desconto só se aplica por um link de checkout ou pela API."""
+    created_at: str
+    currency: Literal["BRL"]
+    duration: Literal["once", "repeating", "forever"]
+    """Em uma assinatura: só na primeira fatura, por duration_in_months meses ou para sempre."""
+    duration_in_months: int
+    """Os meses de um desconto repeating; 0 nos outros."""
+    ends_at: str | None
+    """Depois de quando deixa de valer; nulo sem fim."""
+    id: str
+    max_redemptions: int | None
+    """Quantas vezes o desconto pode ser usado no total; nulo sem limite."""
+    max_redemptions_per_customer: int | None
+    """Quantas vezes um mesmo cliente pode usá-lo, de 1 a 100; nulo sem limite."""
+    modified_at: str
+    name: str
+    """Mostrado ao cliente quando o desconto é aplicado."""
+    product_ids: list[str]
+    """Os produtos a que o desconto se aplica; vazio, todos os do catálogo."""
+    redemptions_count: int
+    starts_at: str
+    """A partir de quando o desconto vale."""
+    status: Literal["active", "expired", "exhausted"]
+    type: Literal["percentage", "fixed"]
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> Discount:
+        return cls(
+            amount_cents=data["amount_cents"],
+            basis_points=data["basis_points"],
+            code=data.get("code"),
+            created_at=data["created_at"],
+            currency=data["currency"],
+            duration=data["duration"],
+            duration_in_months=data["duration_in_months"],
+            ends_at=data.get("ends_at"),
+            id=data["id"],
+            max_redemptions=data.get("max_redemptions"),
+            max_redemptions_per_customer=data.get("max_redemptions_per_customer"),
+            modified_at=data["modified_at"],
+            name=data["name"],
+            product_ids=data["product_ids"],
+            redemptions_count=data["redemptions_count"],
+            starts_at=data["starts_at"],
+            status=data["status"],
+            type=data["type"],
+        )
+
+
+@dataclass(frozen=True)
+class Dispute:
+    """Dispute is a resource of Peráta's API."""
+
+    amount_cents: int
+    """Valor contestado, em centavos."""
+    currency: Literal["BRL"]
+    customer_id: str | None
+    decided_at: str | None
+    due_by: str | None
+    """Prazo da defesa."""
+    id: str
+    invoice_id: str | None
+    opened_at: str
+    order_id: str | None
+    """O pedido que a venda contestada pagou; nulo quando não é de um checkout."""
+    payment_id: str
+    """O PaymentId da venda contestada na Cielo."""
+    provider_dispute_id: str
+    """O número do caso na Cielo."""
+    provider_reason: str
+    """O motivo nas palavras da Cielo."""
+    reason: str
+    """Motivo, do conjunto fechado; unknown quando a adquirente não informou."""
+    source: Literal["operator", "cielo_chargeback"]
+    status: Literal["opened", "needs_evidence", "submitted", "under_review", "won", "lost", "closed"]
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> Dispute:
+        return cls(
+            amount_cents=data["amount_cents"],
+            currency=data["currency"],
+            customer_id=data.get("customer_id"),
+            decided_at=data.get("decided_at"),
+            due_by=data.get("due_by"),
+            id=data["id"],
+            invoice_id=data.get("invoice_id"),
+            opened_at=data["opened_at"],
+            order_id=data.get("order_id"),
+            payment_id=data["payment_id"],
+            provider_dispute_id=data["provider_dispute_id"],
+            provider_reason=data["provider_reason"],
+            reason=data["reason"],
+            source=data["source"],
+            status=data["status"],
+        )
+
+
+@dataclass(frozen=True)
+class Event:
+    """Event is a resource of Peráta's API."""
+
+    cached_tokens: int
+    cost_currency: str
+    cost_micro_cents: int
+    """O custo da chamada em milionésimos de centavo."""
+    customer_id: str
+    external_id: str
+    """O identificador do evento no sistema da origem."""
+    id: str
+    input_tokens: int
+    llm_model: str
+    llm_vendor: str
+    name: Literal["token_usage"]
+    output_tokens: int
+    parent_id: str | None
+    """O evento de que este é filho; nulo na raiz."""
+    received_at: str
+    source_id: str
+    """A origem que enviou o evento."""
+    timestamp: str
+    """Quando o evento aconteceu."""
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> Event:
+        return cls(
+            cached_tokens=data["cached_tokens"],
+            cost_currency=data["cost_currency"],
+            cost_micro_cents=data["cost_micro_cents"],
+            customer_id=data["customer_id"],
+            external_id=data["external_id"],
+            id=data["id"],
+            input_tokens=data["input_tokens"],
+            llm_model=data["llm_model"],
+            llm_vendor=data["llm_vendor"],
+            name=data["name"],
+            output_tokens=data["output_tokens"],
+            parent_id=data.get("parent_id"),
+            received_at=data["received_at"],
+            source_id=data["source_id"],
+            timestamp=data["timestamp"],
+        )
+
+
+@dataclass(frozen=True)
+class Meter:
+    """Meter is a resource of Peráta's API."""
+
+    aggregation: MeterAggregation
+    archived_at: str | None
+    """Quando o medidor foi arquivado; nulo se está ativo."""
+    created_at: str
+    filter: dict[str, Any]
+    """Os eventos que o medidor conta: grupos de condições, em conjunction and ou or, sobre name, timestamp ou metadata.<chave>."""
+    id: str
+    modified_at: str
+    name: str
+    unit: MeterUnit
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> Meter:
+        return cls(
+            aggregation=MeterAggregation.from_dict(data["aggregation"]),
+            archived_at=data.get("archived_at"),
+            created_at=data["created_at"],
+            filter=data["filter"],
+            id=data["id"],
+            modified_at=data["modified_at"],
+            name=data["name"],
+            unit=MeterUnit.from_dict(data["unit"]),
+        )
+
+
+@dataclass(frozen=True)
+class MeterAggregation:
+    """MeterAggregation is a resource of Peráta's API."""
+
+    func: Literal["count", "sum", "avg", "min", "max", "unique"]
+    property: str
+    """A propriedade do evento que as funções, menos count, leem; vazia no count."""
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> MeterAggregation:
+        return cls(
+            func=data["func"],
+            property=data["property"],
+        )
+
+
+@dataclass(frozen=True)
+class MeterUnit:
+    """MeterUnit is a resource of Peráta's API."""
+
+    label: str
+    multiplier: int
+    """Por quantas unidades o preço é mostrado."""
+    type: Literal["scalar", "token", "custom"]
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> MeterUnit:
+        return cls(
+            label=data["label"],
+            multiplier=data["multiplier"],
+            type=data["type"],
+        )
+
+
+@dataclass(frozen=True)
 class Order:
     """Order is a resource of Peráta's API."""
 
@@ -210,6 +588,86 @@ class Order:
             price_id=data["price_id"],
             product_id=data["product_id"],
             status=data["status"],
+        )
+
+
+@dataclass(frozen=True)
+class OrderInvoice:
+    """OrderInvoice is a resource of Peráta's API."""
+
+    address: BillingAddress
+    amount_cents: int
+    billing_name: str
+    currency: Literal["BRL"]
+    discount_cents: int
+    generated_at: str
+    number: str
+    """Número da fatura, na série da organização (PREFIXO-0001)."""
+    order_id: str
+    product_name: str
+    tax_id: str
+    """CPF ou CNPJ, só dígitos."""
+    tax_id_kind: str
+    """cpf ou cnpj; vazio sem documento."""
+    total_cents: int
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> OrderInvoice:
+        return cls(
+            address=BillingAddress.from_dict(data["address"]),
+            amount_cents=data["amount_cents"],
+            billing_name=data["billing_name"],
+            currency=data["currency"],
+            discount_cents=data["discount_cents"],
+            generated_at=data["generated_at"],
+            number=data["number"],
+            order_id=data["order_id"],
+            product_name=data["product_name"],
+            tax_id=data["tax_id"],
+            tax_id_kind=data["tax_id_kind"],
+            total_cents=data["total_cents"],
+        )
+
+
+@dataclass(frozen=True)
+class OrderReceipt:
+    """OrderReceipt is a resource of Peráta's API."""
+
+    amount_cents: int
+    currency: Literal["BRL"]
+    customer_email: str
+    customer_name: str
+    discount_cents: int
+    installment_interest_cents: int
+    installments: int
+    """Em quantas parcelas o cartão de crédito foi cobrado; 1 à vista."""
+    number: str
+    """Número do pedido na série da organização; vazio antes de ter um."""
+    order_id: str
+    paid_at: str | None
+    payment_method: str
+    """card, pix ou boleto; vazio quando o pagamento não foi achado."""
+    product_name: str
+    refunded_cents: int
+    total_cents: int
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> OrderReceipt:
+        return cls(
+            amount_cents=data["amount_cents"],
+            currency=data["currency"],
+            customer_email=data["customer_email"],
+            customer_name=data["customer_name"],
+            discount_cents=data["discount_cents"],
+            installment_interest_cents=data["installment_interest_cents"],
+            installments=data["installments"],
+            number=data["number"],
+            order_id=data["order_id"],
+            paid_at=data.get("paid_at"),
+            payment_method=data["payment_method"],
+            product_name=data["product_name"],
+            refunded_cents=data["refunded_cents"],
+            total_cents=data["total_cents"],
         )
 
 
@@ -474,6 +932,43 @@ class WebhookCheckout:
 
 
 @dataclass(frozen=True)
+class WebhookDelivery:
+    """WebhookDelivery is a resource of Peráta's API."""
+
+    attempts: int
+    created_at: str
+    endpoint_id: str
+    event_id: str
+    event_type: str
+    id: str
+    last_attempt_at: str | None
+    last_error: str
+    max_attempts: int
+    next_attempt_at: str | None
+    response_status: int | None
+    """O status HTTP da última resposta; nulo quando não houve."""
+    status: Literal["pending", "succeeded", "exhausted"]
+    """pending enquanto é repetida; exhausted quando todas as tentativas falharam."""
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> WebhookDelivery:
+        return cls(
+            attempts=data["attempts"],
+            created_at=data["created_at"],
+            endpoint_id=data["endpoint_id"],
+            event_id=data["event_id"],
+            event_type=data["event_type"],
+            id=data["id"],
+            last_attempt_at=data.get("last_attempt_at"),
+            last_error=data["last_error"],
+            max_attempts=data["max_attempts"],
+            next_attempt_at=data.get("next_attempt_at"),
+            response_status=data.get("response_status"),
+            status=data["status"],
+        )
+
+
+@dataclass(frozen=True)
 class WebhookDiscount:
     """WebhookDiscount is a resource of Peráta's API."""
 
@@ -563,6 +1058,132 @@ class WebhookDispute:
         )
 
 
+@dataclass(frozen=True)
+class WebhookEndpoint:
+    """WebhookEndpoint is a resource of Peráta's API."""
+
+    consecutive_failures: int
+    created_at: str
+    description: str
+    """Como o lojista chama o endpoint; sem ele, o domínio do endereço."""
+    events: list[str]
+    """Os eventos de que o endpoint é avisado, em ordem alfabética."""
+    format: Literal["raw", "discord", "slack"]
+    """O corpo da mensagem; o que o endereço indica quando não é dito."""
+    id: str
+    status: Literal["active", "disabled"]
+    url: str
+    """Endereço https para onde as mensagens são enviadas."""
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> WebhookEndpoint:
+        return cls(
+            consecutive_failures=data["consecutive_failures"],
+            created_at=data["created_at"],
+            description=data["description"],
+            events=data["events"],
+            format=data["format"],
+            id=data["id"],
+            status=data["status"],
+            url=data["url"],
+        )
+
+
+@dataclass(frozen=True)
+class WebhookEndpointCreated:
+    """WebhookEndpointCreated is a resource of Peráta's API."""
+
+    consecutive_failures: int
+    created_at: str
+    description: str
+    events: list[str]
+    format: Literal["raw", "discord", "slack"]
+    id: str
+    secret: str
+    """O segredo (whsec_…) com que as mensagens são assinadas. Só esta resposta o traz; na repetição da criação sob a mesma Idempotency-Key vem vazio."""
+    status: Literal["active", "disabled"]
+    url: str
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> WebhookEndpointCreated:
+        return cls(
+            consecutive_failures=data["consecutive_failures"],
+            created_at=data["created_at"],
+            description=data["description"],
+            events=data["events"],
+            format=data["format"],
+            id=data["id"],
+            secret=data["secret"],
+            status=data["status"],
+            url=data["url"],
+        )
+
+
+class BenefitsCreateParams(TypedDict):
+    """The body of benefits:create."""
+
+    description: NotRequired[str]
+    metadata: NotRequired[dict[str, Any]]
+    """Até 50 pares; valor em texto, número ou booleano. No feature_flag, os valores da flag."""
+    name: str
+    """Como o benefício aparece nos produtos e para o cliente; até 80 caracteres."""
+    properties: NotRequired[dict[str, Any]]
+    """Os campos do tipo. custom: note. license_key: prefix, expires_in, expires_unit (day, month, year), activation_limit, customer_can_deactivate, usage_limit. meter_credit: meter_id, units, rollover. feature_flag: nenhum."""
+    type: Literal["custom", "license_key", "feature_flag", "meter_credit"]
+    visibility: NotRequired[Literal["public", "private"]]
+
+
+class BenefitsUpdateParams(TypedDict):
+    """The body of benefits:update."""
+
+    metadata: NotRequired[dict[str, Any]]
+    """Substitui os metadados; {} os limpa."""
+    name: NotRequired[str]
+    properties: NotRequired[dict[str, Any]]
+    """Os campos do tipo, aplicados sobre os guardados; o que ficar de fora não muda."""
+    visibility: NotRequired[Literal["public", "private"]]
+
+
+class CheckoutLinksCreateParams(TypedDict):
+    """The body of checkout-links:create."""
+
+    allow_discount_codes: NotRequired[bool]
+    cancel_url: NotRequired[str]
+    capture_mode: NotRequired[Literal["automatic", "manual"]]
+    discount_id: NotRequired[str]
+    """Desconto fixado no link."""
+    expires_at: NotRequired[str]
+    """Data e hora RFC 3339 no futuro."""
+    label: NotRequired[str]
+    max_installments: NotRequired[int]
+    """De 0 a 12; 0 segue a organização."""
+    metadata: NotRequired[dict[str, Any]]
+    """Até 50 pares; valor em texto, número ou booleano."""
+    price_id: NotRequired[str]
+    price_ids: NotRequired[list[str]]
+    """Um preço de cada produto, na ordem em que o comprador os vê; até 20."""
+    product_id: NotRequired[str]
+    """Com price_id, o produto que o link vende; ou use price_ids."""
+    quantity: NotRequired[int]
+    require_billing_address: NotRequired[bool]
+    success_url: NotRequired[str]
+    trial_interval: NotRequired[Literal["day", "week", "month", "year"]]
+    trial_interval_count: NotRequired[int]
+
+
+class CheckoutLinksUpdateParams(TypedDict):
+    """The body of checkout-links:update."""
+
+    cancel_url: NotRequired[str]
+    label: NotRequired[str]
+    metadata: NotRequired[dict[str, Any]]
+    """Substitui os metadados; {} os limpa."""
+    price_ids: NotRequired[list[str]]
+    """Substitui os produtos do link."""
+    require_billing_address: NotRequired[bool]
+    success_url: NotRequired[str]
+
+
 class CheckoutsCreateParams(TypedDict):
     """The body of checkouts:create."""
 
@@ -572,6 +1193,16 @@ class CheckoutsCreateParams(TypedDict):
     product_id: str
     quantity: NotRequired[int]
     success_url: NotRequired[str]
+
+
+class CheckoutsUpdateParams(TypedDict):
+    """The body of checkouts:update."""
+
+    cancel_url: NotRequired[str]
+    """Endereço https; vazio retira."""
+    label: NotRequired[str]
+    success_url: NotRequired[str]
+    """Endereço https; vazio retira."""
 
 
 class CustomerSessionsCreateParams(TypedDict):
@@ -590,6 +1221,68 @@ class CustomersCreateParams(TypedDict):
     name: str
 
 
+class CustomersUpdateParams(TypedDict):
+    """The body of customers:update."""
+
+    email: NotRequired[str]
+    external_id: NotRequired[str]
+    """Só pode ser definido uma vez."""
+    name: NotRequired[str]
+
+
+class DiscountsCreateParams(TypedDict):
+    """The body of discounts:create."""
+
+    amount_cents: NotRequired[int]
+    """Em centavos, obrigatório no tipo fixed."""
+    basis_points: NotRequired[int]
+    """De 1 a 10000, obrigatório no tipo percentage."""
+    code: NotRequired[str]
+    """Até 64 letras, números, hífens ou sublinhados; sem ele o desconto só se aplica por um link de checkout ou pela API."""
+    duration: Literal["once", "repeating", "forever"]
+    duration_in_months: NotRequired[int]
+    """De 1 a 120, só no duration repeating."""
+    ends_at: NotRequired[str]
+    """Data e hora RFC 3339, depois de starts_at."""
+    max_redemptions: NotRequired[int]
+    max_redemptions_per_customer: NotRequired[int]
+    name: str
+    product_ids: NotRequired[list[str]]
+    """Os produtos do desconto; vazio, todos."""
+    starts_at: NotRequired[str]
+    """Data e hora RFC 3339; agora, se omitida."""
+    type: Literal["percentage", "fixed"]
+
+
+class DiscountsUpdateParams(TypedDict):
+    """The body of discounts:update."""
+
+    amount_cents: NotRequired[int]
+    basis_points: NotRequired[int]
+    code: NotRequired[str]
+    """null tira o código."""
+    duration_in_months: NotRequired[int]
+    ends_at: NotRequired[str]
+    """null tira o fim."""
+    max_redemptions: NotRequired[int]
+    """null tira o limite."""
+    max_redemptions_per_customer: NotRequired[int]
+    """null tira o limite."""
+    name: NotRequired[str]
+    product_ids: NotRequired[list[str]]
+    """Substitui os produtos do desconto."""
+    starts_at: NotRequired[str]
+
+
+class CustomersUpdateExternalParams(TypedDict):
+    """The body of customers:update_external."""
+
+    email: NotRequired[str]
+    external_id: NotRequired[str]
+    """Só pode ser definido uma vez."""
+    name: NotRequired[str]
+
+
 class PricesCreateParams(TypedDict):
     """The body of prices:create."""
 
@@ -606,6 +1299,13 @@ class ProductsCreateParams(TypedDict):
     name: str
 
 
+class ProductsUpdateParams(TypedDict):
+    """The body of products:update."""
+
+    description: NotRequired[str]
+    name: NotRequired[str]
+
+
 class RefundsCreateParams(TypedDict):
     """The body of refunds:create."""
 
@@ -615,9 +1315,45 @@ class RefundsCreateParams(TypedDict):
     reason: Literal["requested_by_customer", "duplicate", "fraudulent", "product_unavailable", "service_disruption", "other"]
 
 
+class SubscriptionsUpdateParams(TypedDict):
+    """The body of subscriptions:update."""
+
+    price_id: str
+    """O preço recorrente para onde a assinatura vai."""
+    proration_behavior: NotRequired[Literal["prorate", "invoice", "next_period", "reset"]]
+    """prorate (padrão): rateia o resto do período no próximo valor cobrado; invoice: cobra a diferença agora; next_period: troca no fim do período; reset: cobra o período inteiro do novo plano agora e reinicia o ciclo."""
+    quantity: NotRequired[int]
+    """A nova quantidade; omitida, fica a atual."""
+
+
 class SubscriptionsCancelParams(TypedDict):
     """The body of subscriptions:cancel."""
 
     at_period_end: NotRequired[bool]
     reason: NotRequired[str]
+
+
+class WebhooksCreateEndpointParams(TypedDict):
+    """The body of webhooks:create_endpoint."""
+
+    description: NotRequired[str]
+    """Sem ele, o domínio do endereço. Único por organização e ambiente."""
+    events: NotRequired[list[str]]
+    """Os eventos de que o endpoint é avisado, da lista de eventos deste documento; sem eles, nenhum é enviado."""
+    format: NotRequired[Literal["raw", "discord", "slack"]]
+    """Sem ele, o que o endereço indica."""
+    url: str
+    """Endereço https público; endereços internos são recusados."""
+
+
+class WebhooksUpdateEndpointParams(TypedDict):
+    """The body of webhooks:update_endpoint."""
+
+    description: NotRequired[str]
+    enabled: NotRequired[bool]
+    """false desliga o envio, e as entregas esperam; true o religa."""
+    events: NotRequired[list[str]]
+    """Substitui os eventos."""
+    format: NotRequired[Literal["raw", "discord", "slack"]]
+    url: NotRequired[str]
 

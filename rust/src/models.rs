@@ -9,15 +9,34 @@ use std::fmt;
 
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
+/// Benefit is a resource of Peráta's API.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct Benefit {
+    pub created_at: String,
+    pub description: String,
+    pub id: String,
+    /// Metadados do lojista: pares chave e valor (texto, número ou booleano); no tipo feature_flag, os valores da flag.
+    pub metadata: std::collections::HashMap<String, serde_json::Value>,
+    pub modified_at: String,
+    /// Como o benefício aparece nos produtos e para o cliente.
+    pub name: String,
+    /// Os campos do tipo do benefício.
+    pub properties: std::collections::HashMap<String, serde_json::Value>,
+    pub status: BenefitStatus,
+    #[serde(rename = "type")]
+    pub type_: BenefitType,
+    pub visibility: BenefitVisibility,
+}
+
 /// BenefitGrant is a resource of Peráta's API.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[non_exhaustive]
 pub struct BenefitGrant {
     pub benefit_id: String,
     /// Os metadados do benefício: os valores de uma feature flag.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub benefit_metadata: Option<std::collections::HashMap<String, serde_json::Value>>,
-    pub benefit_type: String,
+    pub benefit_metadata: std::collections::HashMap<String, serde_json::Value>,
+    pub benefit_type: BenefitGrantBenefitType,
     pub created_at: String,
     pub customer_id: String,
     pub granted_at: String,
@@ -25,10 +44,25 @@ pub struct BenefitGrant {
     pub is_granted: bool,
     pub is_revoked: bool,
     /// O que a concessão informa, conforme o tipo, sem credenciais.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub properties: Option<std::collections::HashMap<String, serde_json::Value>>,
+    pub properties: std::collections::HashMap<String, serde_json::Value>,
     pub revoked_at: Option<String>,
     pub status: BenefitGrantStatus,
+}
+
+/// BillingAddress is a resource of Peráta's API.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct BillingAddress {
+    pub city: String,
+    pub country: String,
+    /// Bairro.
+    pub district: String,
+    pub line1: String,
+    pub line2: String,
+    /// CEP, só dígitos.
+    pub postal_code: String,
+    /// UF.
+    pub state: String,
 }
 
 /// Card is a resource of Peráta's API.
@@ -45,11 +79,72 @@ pub struct Card {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[non_exhaustive]
 pub struct Checkout {
+    /// Endereço https para onde o comprador volta se desistir; vazio sem ele.
+    pub cancel_url: String,
+    pub created_at: String,
+    /// Quando o checkout deixa de abrir sessões; nulo sem prazo.
+    pub expires_at: Option<String>,
     pub id: String,
+    /// Como o lojista chama o checkout nas próprias telas; o comprador não vê.
+    pub label: String,
     pub price_id: String,
     pub product_id: String,
+    pub quantity: i64,
+    /// active abre sessões de compra; archived saiu de circulação.
+    pub status: CheckoutStatus,
+    /// Endereço https para onde o comprador volta depois de pagar; vazio sem ele.
+    pub success_url: String,
     /// Endereço para onde o comprador é enviado.
     pub url: String,
+}
+
+/// CheckoutLink is a resource of Peráta's API.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct CheckoutLink {
+    /// Se o comprador pode digitar um código de desconto.
+    pub allow_discount_codes: bool,
+    /// Endereço https para onde o comprador volta se desistir; vazio sem ele.
+    pub cancel_url: String,
+    /// manual segura a venda no cartão para o lojista capturar depois.
+    pub capture_mode: CheckoutLinkCaptureMode,
+    pub created_at: String,
+    /// O desconto fixado no link; nulo sem ele.
+    pub discount_id: Option<String>,
+    /// Quando o link deixa de abrir checkouts; nulo sem prazo.
+    pub expires_at: Option<String>,
+    pub id: String,
+    /// Como o lojista chama o link nas próprias telas; o comprador não vê.
+    pub label: String,
+    /// O máximo de parcelas no cartão de crédito; 0 segue o que a organização definiu.
+    pub max_installments: i64,
+    /// Metadados do lojista: pares chave e valor (texto, número ou booleano); objeto vazio quando não há.
+    pub metadata: std::collections::HashMap<String, serde_json::Value>,
+    pub modified_at: String,
+    /// O preço do primeiro produto.
+    pub price_id: String,
+    /// O primeiro produto do link.
+    pub product_id: String,
+    /// Os produtos que o link vende, na ordem em que o comprador os vê.
+    pub products: Vec<CheckoutLinkProduct>,
+    pub quantity: i64,
+    pub require_billing_address: bool,
+    pub status: CheckoutLinkStatus,
+    /// Endereço https para onde o comprador volta depois de pagar; vazio sem ele.
+    pub success_url: String,
+    /// O período de teste gratuito do link, no lugar do produto; nulo mantém o do produto.
+    pub trial_interval: Option<CheckoutLinkTrialInterval>,
+    pub trial_interval_count: Option<i64>,
+    /// Endereço para onde o comprador é enviado.
+    pub url: String,
+}
+
+/// CheckoutLinkProduct is a resource of Peráta's API.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct CheckoutLinkProduct {
+    pub price_id: String,
+    pub product_id: String,
 }
 
 /// Customer is a resource of Peráta's API.
@@ -106,6 +201,132 @@ pub struct CustomerStateBenefitGrant {
     pub properties: std::collections::HashMap<String, serde_json::Value>,
 }
 
+/// Discount is a resource of Peráta's API.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct Discount {
+    /// O valor fixo em centavos; 0 em um desconto percentual.
+    pub amount_cents: i64,
+    /// O percentual em centésimos de ponto percentual, 10000 é 100%; 0 em um desconto fixo.
+    pub basis_points: i64,
+    /// O código que o cliente digita no checkout; nulo quando o desconto só se aplica por um link de checkout ou pela API.
+    pub code: Option<String>,
+    pub created_at: String,
+    pub currency: DiscountCurrency,
+    /// Em uma assinatura: só na primeira fatura, por duration_in_months meses ou para sempre.
+    pub duration: DiscountDuration,
+    /// Os meses de um desconto repeating; 0 nos outros.
+    pub duration_in_months: i64,
+    /// Depois de quando deixa de valer; nulo sem fim.
+    pub ends_at: Option<String>,
+    pub id: String,
+    /// Quantas vezes o desconto pode ser usado no total; nulo sem limite.
+    pub max_redemptions: Option<i64>,
+    /// Quantas vezes um mesmo cliente pode usá-lo, de 1 a 100; nulo sem limite.
+    pub max_redemptions_per_customer: Option<i64>,
+    pub modified_at: String,
+    /// Mostrado ao cliente quando o desconto é aplicado.
+    pub name: String,
+    /// Os produtos a que o desconto se aplica; vazio, todos os do catálogo.
+    pub product_ids: Vec<String>,
+    pub redemptions_count: i64,
+    /// A partir de quando o desconto vale.
+    pub starts_at: String,
+    pub status: DiscountStatus,
+    #[serde(rename = "type")]
+    pub type_: DiscountType,
+}
+
+/// Dispute is a resource of Peráta's API.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct Dispute {
+    /// Valor contestado, em centavos.
+    pub amount_cents: i64,
+    pub currency: DisputeCurrency,
+    pub customer_id: Option<String>,
+    pub decided_at: Option<String>,
+    /// Prazo da defesa.
+    pub due_by: Option<String>,
+    pub id: String,
+    pub invoice_id: Option<String>,
+    pub opened_at: String,
+    /// O pedido que a venda contestada pagou; nulo quando não é de um checkout.
+    pub order_id: Option<String>,
+    /// O PaymentId da venda contestada na Cielo.
+    pub payment_id: String,
+    /// O número do caso na Cielo.
+    pub provider_dispute_id: String,
+    /// O motivo nas palavras da Cielo.
+    pub provider_reason: String,
+    /// Motivo, do conjunto fechado; unknown quando a adquirente não informou.
+    pub reason: String,
+    pub source: DisputeSource,
+    pub status: DisputeStatus,
+}
+
+/// Event is a resource of Peráta's API.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct Event {
+    pub cached_tokens: i64,
+    pub cost_currency: String,
+    /// O custo da chamada em milionésimos de centavo.
+    pub cost_micro_cents: i64,
+    pub customer_id: String,
+    /// O identificador do evento no sistema da origem.
+    pub external_id: String,
+    pub id: String,
+    pub input_tokens: i64,
+    pub llm_model: String,
+    pub llm_vendor: String,
+    pub name: EventName,
+    pub output_tokens: i64,
+    /// O evento de que este é filho; nulo na raiz.
+    pub parent_id: Option<String>,
+    pub received_at: String,
+    /// A origem que enviou o evento.
+    pub source_id: String,
+    /// Quando o evento aconteceu.
+    pub timestamp: String,
+}
+
+/// Meter is a resource of Peráta's API.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct Meter {
+    pub aggregation: MeterAggregation,
+    /// Quando o medidor foi arquivado; nulo se está ativo.
+    pub archived_at: Option<String>,
+    pub created_at: String,
+    /// Os eventos que o medidor conta: grupos de condições, em conjunction and ou or, sobre name, timestamp ou metadata.<chave>.
+    pub filter: std::collections::HashMap<String, serde_json::Value>,
+    pub id: String,
+    pub modified_at: String,
+    pub name: String,
+    pub unit: MeterUnit,
+}
+
+/// MeterAggregation is a resource of Peráta's API.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct MeterAggregation {
+    pub func: MeterAggregationFunc,
+    /// A propriedade do evento que as funções, menos count, leem; vazia no count.
+    pub property: String,
+}
+
+/// MeterUnit is a resource of Peráta's API.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct MeterUnit {
+    pub label: String,
+    /// Por quantas unidades o preço é mostrado.
+    pub multiplier: i64,
+    #[serde(rename = "type")]
+    pub type_: MeterUnitType,
+}
+
 /// Order is a resource of Peráta's API.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[non_exhaustive]
@@ -122,6 +343,50 @@ pub struct Order {
     pub price_id: String,
     pub product_id: String,
     pub status: OrderStatus,
+}
+
+/// OrderInvoice is a resource of Peráta's API.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct OrderInvoice {
+    pub address: BillingAddress,
+    pub amount_cents: i64,
+    pub billing_name: String,
+    pub currency: OrderInvoiceCurrency,
+    pub discount_cents: i64,
+    pub generated_at: String,
+    /// Número da fatura, na série da organização (PREFIXO-0001).
+    pub number: String,
+    pub order_id: String,
+    pub product_name: String,
+    /// CPF ou CNPJ, só dígitos.
+    pub tax_id: String,
+    /// cpf ou cnpj; vazio sem documento.
+    pub tax_id_kind: String,
+    pub total_cents: i64,
+}
+
+/// OrderReceipt is a resource of Peráta's API.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct OrderReceipt {
+    pub amount_cents: i64,
+    pub currency: OrderReceiptCurrency,
+    pub customer_email: String,
+    pub customer_name: String,
+    pub discount_cents: i64,
+    pub installment_interest_cents: i64,
+    /// Em quantas parcelas o cartão de crédito foi cobrado; 1 à vista.
+    pub installments: i64,
+    /// Número do pedido na série da organização; vazio antes de ter um.
+    pub number: String,
+    pub order_id: String,
+    pub paid_at: Option<String>,
+    /// card, pix ou boleto; vazio quando o pagamento não foi achado.
+    pub payment_method: String,
+    pub product_name: String,
+    pub refunded_cents: i64,
+    pub total_cents: i64,
 }
 
 /// Pagination is a resource of Peráta's API.
@@ -265,6 +530,26 @@ pub struct WebhookCheckout {
     pub total_cents: i64,
 }
 
+/// WebhookDelivery is a resource of Peráta's API.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct WebhookDelivery {
+    pub attempts: i64,
+    pub created_at: String,
+    pub endpoint_id: String,
+    pub event_id: String,
+    pub event_type: String,
+    pub id: String,
+    pub last_attempt_at: Option<String>,
+    pub last_error: String,
+    pub max_attempts: i64,
+    pub next_attempt_at: Option<String>,
+    /// O status HTTP da última resposta; nulo quando não houve.
+    pub response_status: Option<i64>,
+    /// pending enquanto é repetida; exhausted quando todas as tentativas falharam.
+    pub status: WebhookDeliveryStatus,
+}
+
 /// WebhookDiscount is a resource of Peráta's API.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[non_exhaustive]
@@ -314,6 +599,396 @@ pub struct WebhookDispute {
     pub reason: String,
     pub source: WebhookDisputeSource,
     pub status: WebhookDisputeStatus,
+}
+
+/// WebhookEndpoint is a resource of Peráta's API.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct WebhookEndpoint {
+    pub consecutive_failures: i64,
+    pub created_at: String,
+    /// Como o lojista chama o endpoint; sem ele, o domínio do endereço.
+    pub description: String,
+    /// Os eventos de que o endpoint é avisado, em ordem alfabética.
+    pub events: Vec<String>,
+    /// O corpo da mensagem; o que o endereço indica quando não é dito.
+    pub format: WebhookEndpointFormat,
+    pub id: String,
+    pub status: WebhookEndpointStatus,
+    /// Endereço https para onde as mensagens são enviadas.
+    pub url: String,
+}
+
+/// WebhookEndpointCreated is a resource of Peráta's API.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct WebhookEndpointCreated {
+    pub consecutive_failures: i64,
+    pub created_at: String,
+    pub description: String,
+    pub events: Vec<String>,
+    pub format: WebhookEndpointCreatedFormat,
+    pub id: String,
+    /// O segredo (whsec_…) com que as mensagens são assinadas. Só esta resposta o traz; na repetição da criação sob a mesma Idempotency-Key vem vazio.
+    pub secret: String,
+    pub status: WebhookEndpointCreatedStatus,
+    pub url: String,
+}
+
+/// The body of benefits:create.
+///
+/// [`BenefitsCreateParams::new`] takes the required fields; each optional one is set by
+/// the method of its name.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct BenefitsCreateParams {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub description: Option<String>,
+    /// Até 50 pares; valor em texto, número ou booleano. No feature_flag, os valores da flag.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub metadata: Option<std::collections::HashMap<String, serde_json::Value>>,
+    /// Como o benefício aparece nos produtos e para o cliente; até 80 caracteres.
+    pub name: String,
+    /// Os campos do tipo. custom: note. license_key: prefix, expires_in, expires_unit (day, month, year), activation_limit, customer_can_deactivate, usage_limit. meter_credit: meter_id, units, rollover. feature_flag: nenhum.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub properties: Option<std::collections::HashMap<String, serde_json::Value>>,
+    #[serde(rename = "type")]
+    pub type_: BenefitsCreateParamsType,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub visibility: Option<BenefitsCreateParamsVisibility>,
+}
+
+impl BenefitsCreateParams {
+    /// A body with its required fields.
+    pub fn new(name: impl Into<String>, type_: impl Into<BenefitsCreateParamsType>) -> Self {
+        Self {
+            description: None,
+            metadata: None,
+            name: name.into(),
+            properties: None,
+            type_: type_.into(),
+            visibility: None,
+        }
+    }
+
+    /// Sets `description`.
+    pub fn description(mut self, description: impl Into<String>) -> Self {
+        self.description = Some(description.into());
+        self
+    }
+
+    /// Até 50 pares; valor em texto, número ou booleano. No feature_flag, os valores da flag.
+    pub fn metadata(mut self, metadata: std::collections::HashMap<String, serde_json::Value>) -> Self {
+        self.metadata = Some(metadata);
+        self
+    }
+
+    /// Os campos do tipo. custom: note. license_key: prefix, expires_in, expires_unit (day, month, year), activation_limit, customer_can_deactivate, usage_limit. meter_credit: meter_id, units, rollover. feature_flag: nenhum.
+    pub fn properties(mut self, properties: std::collections::HashMap<String, serde_json::Value>) -> Self {
+        self.properties = Some(properties);
+        self
+    }
+
+    /// Sets `visibility`.
+    pub fn visibility(mut self, visibility: impl Into<BenefitsCreateParamsVisibility>) -> Self {
+        self.visibility = Some(visibility.into());
+        self
+    }
+}
+
+/// The body of benefits:update.
+///
+/// [`BenefitsUpdateParams::new`] takes the required fields; each optional one is set by
+/// the method of its name.
+#[derive(Debug, Clone, PartialEq, Default, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct BenefitsUpdateParams {
+    /// Substitui os metadados; {} os limpa.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub metadata: Option<std::collections::HashMap<String, serde_json::Value>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub name: Option<String>,
+    /// Os campos do tipo, aplicados sobre os guardados; o que ficar de fora não muda.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub properties: Option<std::collections::HashMap<String, serde_json::Value>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub visibility: Option<BenefitsUpdateParamsVisibility>,
+}
+
+impl BenefitsUpdateParams {
+    /// A body with its required fields.
+    pub fn new() -> Self {
+        Self {
+            metadata: None,
+            name: None,
+            properties: None,
+            visibility: None,
+        }
+    }
+
+    /// Substitui os metadados; {} os limpa.
+    pub fn metadata(mut self, metadata: std::collections::HashMap<String, serde_json::Value>) -> Self {
+        self.metadata = Some(metadata);
+        self
+    }
+
+    /// Sets `name`.
+    pub fn name(mut self, name: impl Into<String>) -> Self {
+        self.name = Some(name.into());
+        self
+    }
+
+    /// Os campos do tipo, aplicados sobre os guardados; o que ficar de fora não muda.
+    pub fn properties(mut self, properties: std::collections::HashMap<String, serde_json::Value>) -> Self {
+        self.properties = Some(properties);
+        self
+    }
+
+    /// Sets `visibility`.
+    pub fn visibility(mut self, visibility: impl Into<BenefitsUpdateParamsVisibility>) -> Self {
+        self.visibility = Some(visibility.into());
+        self
+    }
+}
+
+/// The body of checkout-links:create.
+///
+/// [`CheckoutLinksCreateParams::new`] takes the required fields; each optional one is set by
+/// the method of its name.
+#[derive(Debug, Clone, PartialEq, Default, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct CheckoutLinksCreateParams {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub allow_discount_codes: Option<bool>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub cancel_url: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub capture_mode: Option<CheckoutLinksCreateParamsCaptureMode>,
+    /// Desconto fixado no link.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub discount_id: Option<String>,
+    /// Data e hora RFC 3339 no futuro.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub expires_at: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub label: Option<String>,
+    /// De 0 a 12; 0 segue a organização.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub max_installments: Option<i64>,
+    /// Até 50 pares; valor em texto, número ou booleano.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub metadata: Option<std::collections::HashMap<String, serde_json::Value>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub price_id: Option<String>,
+    /// Um preço de cada produto, na ordem em que o comprador os vê; até 20.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub price_ids: Option<Vec<String>>,
+    /// Com price_id, o produto que o link vende; ou use price_ids.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub product_id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub quantity: Option<i64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub require_billing_address: Option<bool>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub success_url: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub trial_interval: Option<CheckoutLinksCreateParamsTrialInterval>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub trial_interval_count: Option<i64>,
+}
+
+impl CheckoutLinksCreateParams {
+    /// A body with its required fields.
+    pub fn new() -> Self {
+        Self {
+            allow_discount_codes: None,
+            cancel_url: None,
+            capture_mode: None,
+            discount_id: None,
+            expires_at: None,
+            label: None,
+            max_installments: None,
+            metadata: None,
+            price_id: None,
+            price_ids: None,
+            product_id: None,
+            quantity: None,
+            require_billing_address: None,
+            success_url: None,
+            trial_interval: None,
+            trial_interval_count: None,
+        }
+    }
+
+    /// Sets `allow_discount_codes`.
+    pub fn allow_discount_codes(mut self, allow_discount_codes: bool) -> Self {
+        self.allow_discount_codes = Some(allow_discount_codes);
+        self
+    }
+
+    /// Sets `cancel_url`.
+    pub fn cancel_url(mut self, cancel_url: impl Into<String>) -> Self {
+        self.cancel_url = Some(cancel_url.into());
+        self
+    }
+
+    /// Sets `capture_mode`.
+    pub fn capture_mode(mut self, capture_mode: impl Into<CheckoutLinksCreateParamsCaptureMode>) -> Self {
+        self.capture_mode = Some(capture_mode.into());
+        self
+    }
+
+    /// Desconto fixado no link.
+    pub fn discount_id(mut self, discount_id: impl Into<String>) -> Self {
+        self.discount_id = Some(discount_id.into());
+        self
+    }
+
+    /// Data e hora RFC 3339 no futuro.
+    pub fn expires_at(mut self, expires_at: impl Into<String>) -> Self {
+        self.expires_at = Some(expires_at.into());
+        self
+    }
+
+    /// Sets `label`.
+    pub fn label(mut self, label: impl Into<String>) -> Self {
+        self.label = Some(label.into());
+        self
+    }
+
+    /// De 0 a 12; 0 segue a organização.
+    pub fn max_installments(mut self, max_installments: i64) -> Self {
+        self.max_installments = Some(max_installments);
+        self
+    }
+
+    /// Até 50 pares; valor em texto, número ou booleano.
+    pub fn metadata(mut self, metadata: std::collections::HashMap<String, serde_json::Value>) -> Self {
+        self.metadata = Some(metadata);
+        self
+    }
+
+    /// Sets `price_id`.
+    pub fn price_id(mut self, price_id: impl Into<String>) -> Self {
+        self.price_id = Some(price_id.into());
+        self
+    }
+
+    /// Um preço de cada produto, na ordem em que o comprador os vê; até 20.
+    pub fn price_ids(mut self, price_ids: Vec<String>) -> Self {
+        self.price_ids = Some(price_ids);
+        self
+    }
+
+    /// Com price_id, o produto que o link vende; ou use price_ids.
+    pub fn product_id(mut self, product_id: impl Into<String>) -> Self {
+        self.product_id = Some(product_id.into());
+        self
+    }
+
+    /// Sets `quantity`.
+    pub fn quantity(mut self, quantity: i64) -> Self {
+        self.quantity = Some(quantity);
+        self
+    }
+
+    /// Sets `require_billing_address`.
+    pub fn require_billing_address(mut self, require_billing_address: bool) -> Self {
+        self.require_billing_address = Some(require_billing_address);
+        self
+    }
+
+    /// Sets `success_url`.
+    pub fn success_url(mut self, success_url: impl Into<String>) -> Self {
+        self.success_url = Some(success_url.into());
+        self
+    }
+
+    /// Sets `trial_interval`.
+    pub fn trial_interval(mut self, trial_interval: impl Into<CheckoutLinksCreateParamsTrialInterval>) -> Self {
+        self.trial_interval = Some(trial_interval.into());
+        self
+    }
+
+    /// Sets `trial_interval_count`.
+    pub fn trial_interval_count(mut self, trial_interval_count: i64) -> Self {
+        self.trial_interval_count = Some(trial_interval_count);
+        self
+    }
+}
+
+/// The body of checkout-links:update.
+///
+/// [`CheckoutLinksUpdateParams::new`] takes the required fields; each optional one is set by
+/// the method of its name.
+#[derive(Debug, Clone, PartialEq, Default, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct CheckoutLinksUpdateParams {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub cancel_url: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub label: Option<String>,
+    /// Substitui os metadados; {} os limpa.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub metadata: Option<std::collections::HashMap<String, serde_json::Value>>,
+    /// Substitui os produtos do link.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub price_ids: Option<Vec<String>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub require_billing_address: Option<bool>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub success_url: Option<String>,
+}
+
+impl CheckoutLinksUpdateParams {
+    /// A body with its required fields.
+    pub fn new() -> Self {
+        Self {
+            cancel_url: None,
+            label: None,
+            metadata: None,
+            price_ids: None,
+            require_billing_address: None,
+            success_url: None,
+        }
+    }
+
+    /// Sets `cancel_url`.
+    pub fn cancel_url(mut self, cancel_url: impl Into<String>) -> Self {
+        self.cancel_url = Some(cancel_url.into());
+        self
+    }
+
+    /// Sets `label`.
+    pub fn label(mut self, label: impl Into<String>) -> Self {
+        self.label = Some(label.into());
+        self
+    }
+
+    /// Substitui os metadados; {} os limpa.
+    pub fn metadata(mut self, metadata: std::collections::HashMap<String, serde_json::Value>) -> Self {
+        self.metadata = Some(metadata);
+        self
+    }
+
+    /// Substitui os produtos do link.
+    pub fn price_ids(mut self, price_ids: Vec<String>) -> Self {
+        self.price_ids = Some(price_ids);
+        self
+    }
+
+    /// Sets `require_billing_address`.
+    pub fn require_billing_address(mut self, require_billing_address: bool) -> Self {
+        self.require_billing_address = Some(require_billing_address);
+        self
+    }
+
+    /// Sets `success_url`.
+    pub fn success_url(mut self, success_url: impl Into<String>) -> Self {
+        self.success_url = Some(success_url.into());
+        self
+    }
 }
 
 /// The body of checkouts:create.
@@ -367,6 +1042,52 @@ impl CheckoutsCreateParams {
     }
 
     /// Sets `success_url`.
+    pub fn success_url(mut self, success_url: impl Into<String>) -> Self {
+        self.success_url = Some(success_url.into());
+        self
+    }
+}
+
+/// The body of checkouts:update.
+///
+/// [`CheckoutsUpdateParams::new`] takes the required fields; each optional one is set by
+/// the method of its name.
+#[derive(Debug, Clone, PartialEq, Default, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct CheckoutsUpdateParams {
+    /// Endereço https; vazio retira.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub cancel_url: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub label: Option<String>,
+    /// Endereço https; vazio retira.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub success_url: Option<String>,
+}
+
+impl CheckoutsUpdateParams {
+    /// A body with its required fields.
+    pub fn new() -> Self {
+        Self {
+            cancel_url: None,
+            label: None,
+            success_url: None,
+        }
+    }
+
+    /// Endereço https; vazio retira.
+    pub fn cancel_url(mut self, cancel_url: impl Into<String>) -> Self {
+        self.cancel_url = Some(cancel_url.into());
+        self
+    }
+
+    /// Sets `label`.
+    pub fn label(mut self, label: impl Into<String>) -> Self {
+        self.label = Some(label.into());
+        self
+    }
+
+    /// Endereço https; vazio retira.
     pub fn success_url(mut self, success_url: impl Into<String>) -> Self {
         self.success_url = Some(success_url.into());
         self
@@ -432,6 +1153,320 @@ impl CustomersCreateParams {
     }
 }
 
+/// The body of customers:update.
+///
+/// [`CustomersUpdateParams::new`] takes the required fields; each optional one is set by
+/// the method of its name.
+#[derive(Debug, Clone, PartialEq, Default, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct CustomersUpdateParams {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub email: Option<String>,
+    /// Só pode ser definido uma vez.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub external_id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub name: Option<String>,
+}
+
+impl CustomersUpdateParams {
+    /// A body with its required fields.
+    pub fn new() -> Self {
+        Self {
+            email: None,
+            external_id: None,
+            name: None,
+        }
+    }
+
+    /// Sets `email`.
+    pub fn email(mut self, email: impl Into<String>) -> Self {
+        self.email = Some(email.into());
+        self
+    }
+
+    /// Só pode ser definido uma vez.
+    pub fn external_id(mut self, external_id: impl Into<String>) -> Self {
+        self.external_id = Some(external_id.into());
+        self
+    }
+
+    /// Sets `name`.
+    pub fn name(mut self, name: impl Into<String>) -> Self {
+        self.name = Some(name.into());
+        self
+    }
+}
+
+/// The body of discounts:create.
+///
+/// [`DiscountsCreateParams::new`] takes the required fields; each optional one is set by
+/// the method of its name.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct DiscountsCreateParams {
+    /// Em centavos, obrigatório no tipo fixed.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub amount_cents: Option<i64>,
+    /// De 1 a 10000, obrigatório no tipo percentage.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub basis_points: Option<i64>,
+    /// Até 64 letras, números, hífens ou sublinhados; sem ele o desconto só se aplica por um link de checkout ou pela API.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub code: Option<String>,
+    pub duration: DiscountsCreateParamsDuration,
+    /// De 1 a 120, só no duration repeating.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub duration_in_months: Option<i64>,
+    /// Data e hora RFC 3339, depois de starts_at.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub ends_at: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub max_redemptions: Option<i64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub max_redemptions_per_customer: Option<i64>,
+    pub name: String,
+    /// Os produtos do desconto; vazio, todos.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub product_ids: Option<Vec<String>>,
+    /// Data e hora RFC 3339; agora, se omitida.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub starts_at: Option<String>,
+    #[serde(rename = "type")]
+    pub type_: DiscountsCreateParamsType,
+}
+
+impl DiscountsCreateParams {
+    /// A body with its required fields.
+    pub fn new(duration: impl Into<DiscountsCreateParamsDuration>, name: impl Into<String>, type_: impl Into<DiscountsCreateParamsType>) -> Self {
+        Self {
+            amount_cents: None,
+            basis_points: None,
+            code: None,
+            duration: duration.into(),
+            duration_in_months: None,
+            ends_at: None,
+            max_redemptions: None,
+            max_redemptions_per_customer: None,
+            name: name.into(),
+            product_ids: None,
+            starts_at: None,
+            type_: type_.into(),
+        }
+    }
+
+    /// Em centavos, obrigatório no tipo fixed.
+    pub fn amount_cents(mut self, amount_cents: i64) -> Self {
+        self.amount_cents = Some(amount_cents);
+        self
+    }
+
+    /// De 1 a 10000, obrigatório no tipo percentage.
+    pub fn basis_points(mut self, basis_points: i64) -> Self {
+        self.basis_points = Some(basis_points);
+        self
+    }
+
+    /// Até 64 letras, números, hífens ou sublinhados; sem ele o desconto só se aplica por um link de checkout ou pela API.
+    pub fn code(mut self, code: impl Into<String>) -> Self {
+        self.code = Some(code.into());
+        self
+    }
+
+    /// De 1 a 120, só no duration repeating.
+    pub fn duration_in_months(mut self, duration_in_months: i64) -> Self {
+        self.duration_in_months = Some(duration_in_months);
+        self
+    }
+
+    /// Data e hora RFC 3339, depois de starts_at.
+    pub fn ends_at(mut self, ends_at: impl Into<String>) -> Self {
+        self.ends_at = Some(ends_at.into());
+        self
+    }
+
+    /// Sets `max_redemptions`.
+    pub fn max_redemptions(mut self, max_redemptions: i64) -> Self {
+        self.max_redemptions = Some(max_redemptions);
+        self
+    }
+
+    /// Sets `max_redemptions_per_customer`.
+    pub fn max_redemptions_per_customer(mut self, max_redemptions_per_customer: i64) -> Self {
+        self.max_redemptions_per_customer = Some(max_redemptions_per_customer);
+        self
+    }
+
+    /// Os produtos do desconto; vazio, todos.
+    pub fn product_ids(mut self, product_ids: Vec<String>) -> Self {
+        self.product_ids = Some(product_ids);
+        self
+    }
+
+    /// Data e hora RFC 3339; agora, se omitida.
+    pub fn starts_at(mut self, starts_at: impl Into<String>) -> Self {
+        self.starts_at = Some(starts_at.into());
+        self
+    }
+}
+
+/// The body of discounts:update.
+///
+/// [`DiscountsUpdateParams::new`] takes the required fields; each optional one is set by
+/// the method of its name.
+#[derive(Debug, Clone, PartialEq, Default, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct DiscountsUpdateParams {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub amount_cents: Option<i64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub basis_points: Option<i64>,
+    /// null tira o código.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub code: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub duration_in_months: Option<i64>,
+    /// null tira o fim.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub ends_at: Option<String>,
+    /// null tira o limite.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub max_redemptions: Option<i64>,
+    /// null tira o limite.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub max_redemptions_per_customer: Option<i64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub name: Option<String>,
+    /// Substitui os produtos do desconto.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub product_ids: Option<Vec<String>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub starts_at: Option<String>,
+}
+
+impl DiscountsUpdateParams {
+    /// A body with its required fields.
+    pub fn new() -> Self {
+        Self {
+            amount_cents: None,
+            basis_points: None,
+            code: None,
+            duration_in_months: None,
+            ends_at: None,
+            max_redemptions: None,
+            max_redemptions_per_customer: None,
+            name: None,
+            product_ids: None,
+            starts_at: None,
+        }
+    }
+
+    /// Sets `amount_cents`.
+    pub fn amount_cents(mut self, amount_cents: i64) -> Self {
+        self.amount_cents = Some(amount_cents);
+        self
+    }
+
+    /// Sets `basis_points`.
+    pub fn basis_points(mut self, basis_points: i64) -> Self {
+        self.basis_points = Some(basis_points);
+        self
+    }
+
+    /// null tira o código.
+    pub fn code(mut self, code: impl Into<String>) -> Self {
+        self.code = Some(code.into());
+        self
+    }
+
+    /// Sets `duration_in_months`.
+    pub fn duration_in_months(mut self, duration_in_months: i64) -> Self {
+        self.duration_in_months = Some(duration_in_months);
+        self
+    }
+
+    /// null tira o fim.
+    pub fn ends_at(mut self, ends_at: impl Into<String>) -> Self {
+        self.ends_at = Some(ends_at.into());
+        self
+    }
+
+    /// null tira o limite.
+    pub fn max_redemptions(mut self, max_redemptions: i64) -> Self {
+        self.max_redemptions = Some(max_redemptions);
+        self
+    }
+
+    /// null tira o limite.
+    pub fn max_redemptions_per_customer(mut self, max_redemptions_per_customer: i64) -> Self {
+        self.max_redemptions_per_customer = Some(max_redemptions_per_customer);
+        self
+    }
+
+    /// Sets `name`.
+    pub fn name(mut self, name: impl Into<String>) -> Self {
+        self.name = Some(name.into());
+        self
+    }
+
+    /// Substitui os produtos do desconto.
+    pub fn product_ids(mut self, product_ids: Vec<String>) -> Self {
+        self.product_ids = Some(product_ids);
+        self
+    }
+
+    /// Sets `starts_at`.
+    pub fn starts_at(mut self, starts_at: impl Into<String>) -> Self {
+        self.starts_at = Some(starts_at.into());
+        self
+    }
+}
+
+/// The body of customers:update_external.
+///
+/// [`CustomersUpdateExternalParams::new`] takes the required fields; each optional one is set by
+/// the method of its name.
+#[derive(Debug, Clone, PartialEq, Default, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct CustomersUpdateExternalParams {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub email: Option<String>,
+    /// Só pode ser definido uma vez.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub external_id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub name: Option<String>,
+}
+
+impl CustomersUpdateExternalParams {
+    /// A body with its required fields.
+    pub fn new() -> Self {
+        Self {
+            email: None,
+            external_id: None,
+            name: None,
+        }
+    }
+
+    /// Sets `email`.
+    pub fn email(mut self, email: impl Into<String>) -> Self {
+        self.email = Some(email.into());
+        self
+    }
+
+    /// Só pode ser definido uma vez.
+    pub fn external_id(mut self, external_id: impl Into<String>) -> Self {
+        self.external_id = Some(external_id.into());
+        self
+    }
+
+    /// Sets `name`.
+    pub fn name(mut self, name: impl Into<String>) -> Self {
+        self.name = Some(name.into());
+        self
+    }
+}
+
 /// The body of prices:create.
 ///
 /// [`PricesCreateParams::new`] takes the required fields; each optional one is set by
@@ -493,6 +1528,41 @@ impl ProductsCreateParams {
     }
 }
 
+/// The body of products:update.
+///
+/// [`ProductsUpdateParams::new`] takes the required fields; each optional one is set by
+/// the method of its name.
+#[derive(Debug, Clone, PartialEq, Default, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct ProductsUpdateParams {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub description: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub name: Option<String>,
+}
+
+impl ProductsUpdateParams {
+    /// A body with its required fields.
+    pub fn new() -> Self {
+        Self {
+            description: None,
+            name: None,
+        }
+    }
+
+    /// Sets `description`.
+    pub fn description(mut self, description: impl Into<String>) -> Self {
+        self.description = Some(description.into());
+        self
+    }
+
+    /// Sets `name`.
+    pub fn name(mut self, name: impl Into<String>) -> Self {
+        self.name = Some(name.into());
+        self
+    }
+}
+
 /// The body of refunds:create.
 ///
 /// [`RefundsCreateParams::new`] takes the required fields; each optional one is set by
@@ -521,6 +1591,46 @@ impl RefundsCreateParams {
     /// Sets `note`.
     pub fn note(mut self, note: impl Into<String>) -> Self {
         self.note = Some(note.into());
+        self
+    }
+}
+
+/// The body of subscriptions:update.
+///
+/// [`SubscriptionsUpdateParams::new`] takes the required fields; each optional one is set by
+/// the method of its name.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct SubscriptionsUpdateParams {
+    /// O preço recorrente para onde a assinatura vai.
+    pub price_id: String,
+    /// prorate (padrão): rateia o resto do período no próximo valor cobrado; invoice: cobra a diferença agora; next_period: troca no fim do período; reset: cobra o período inteiro do novo plano agora e reinicia o ciclo.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub proration_behavior: Option<SubscriptionsUpdateParamsProrationBehavior>,
+    /// A nova quantidade; omitida, fica a atual.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub quantity: Option<i64>,
+}
+
+impl SubscriptionsUpdateParams {
+    /// A body with its required fields.
+    pub fn new(price_id: impl Into<String>) -> Self {
+        Self {
+            price_id: price_id.into(),
+            proration_behavior: None,
+            quantity: None,
+        }
+    }
+
+    /// prorate (padrão): rateia o resto do período no próximo valor cobrado; invoice: cobra a diferença agora; next_period: troca no fim do período; reset: cobra o período inteiro do novo plano agora e reinicia o ciclo.
+    pub fn proration_behavior(mut self, proration_behavior: impl Into<SubscriptionsUpdateParamsProrationBehavior>) -> Self {
+        self.proration_behavior = Some(proration_behavior.into());
+        self
+    }
+
+    /// A nova quantidade; omitida, fica a atual.
+    pub fn quantity(mut self, quantity: i64) -> Self {
+        self.quantity = Some(quantity);
         self
     }
 }
@@ -557,6 +1667,400 @@ impl SubscriptionsCancelParams {
     pub fn reason(mut self, reason: impl Into<String>) -> Self {
         self.reason = Some(reason.into());
         self
+    }
+}
+
+/// The body of webhooks:create_endpoint.
+///
+/// [`WebhooksCreateEndpointParams::new`] takes the required fields; each optional one is set by
+/// the method of its name.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct WebhooksCreateEndpointParams {
+    /// Sem ele, o domínio do endereço. Único por organização e ambiente.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub description: Option<String>,
+    /// Os eventos de que o endpoint é avisado, da lista de eventos deste documento; sem eles, nenhum é enviado.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub events: Option<Vec<String>>,
+    /// Sem ele, o que o endereço indica.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub format: Option<WebhooksCreateEndpointParamsFormat>,
+    /// Endereço https público; endereços internos são recusados.
+    pub url: String,
+}
+
+impl WebhooksCreateEndpointParams {
+    /// A body with its required fields.
+    pub fn new(url: impl Into<String>) -> Self {
+        Self {
+            description: None,
+            events: None,
+            format: None,
+            url: url.into(),
+        }
+    }
+
+    /// Sem ele, o domínio do endereço. Único por organização e ambiente.
+    pub fn description(mut self, description: impl Into<String>) -> Self {
+        self.description = Some(description.into());
+        self
+    }
+
+    /// Os eventos de que o endpoint é avisado, da lista de eventos deste documento; sem eles, nenhum é enviado.
+    pub fn events(mut self, events: Vec<String>) -> Self {
+        self.events = Some(events);
+        self
+    }
+
+    /// Sem ele, o que o endereço indica.
+    pub fn format(mut self, format: impl Into<WebhooksCreateEndpointParamsFormat>) -> Self {
+        self.format = Some(format.into());
+        self
+    }
+}
+
+/// The body of webhooks:update_endpoint.
+///
+/// [`WebhooksUpdateEndpointParams::new`] takes the required fields; each optional one is set by
+/// the method of its name.
+#[derive(Debug, Clone, PartialEq, Default, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct WebhooksUpdateEndpointParams {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub description: Option<String>,
+    /// false desliga o envio, e as entregas esperam; true o religa.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub enabled: Option<bool>,
+    /// Substitui os eventos.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub events: Option<Vec<String>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub format: Option<WebhooksUpdateEndpointParamsFormat>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub url: Option<String>,
+}
+
+impl WebhooksUpdateEndpointParams {
+    /// A body with its required fields.
+    pub fn new() -> Self {
+        Self {
+            description: None,
+            enabled: None,
+            events: None,
+            format: None,
+            url: None,
+        }
+    }
+
+    /// Sets `description`.
+    pub fn description(mut self, description: impl Into<String>) -> Self {
+        self.description = Some(description.into());
+        self
+    }
+
+    /// false desliga o envio, e as entregas esperam; true o religa.
+    pub fn enabled(mut self, enabled: bool) -> Self {
+        self.enabled = Some(enabled);
+        self
+    }
+
+    /// Substitui os eventos.
+    pub fn events(mut self, events: Vec<String>) -> Self {
+        self.events = Some(events);
+        self
+    }
+
+    /// Sets `format`.
+    pub fn format(mut self, format: impl Into<WebhooksUpdateEndpointParamsFormat>) -> Self {
+        self.format = Some(format.into());
+        self
+    }
+
+    /// Sets `url`.
+    pub fn url(mut self, url: impl Into<String>) -> Self {
+        self.url = Some(url.into());
+        self
+    }
+}
+
+/// The values of `Benefit.status`.
+///
+/// A value this SDK does not know yet is kept, as it came, in
+/// [`BenefitStatus::Unrecognized`].
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[non_exhaustive]
+pub enum BenefitStatus {
+    /// `active`
+    Active,
+    /// `archived`
+    Archived,
+    /// A value this SDK does not know yet.
+    Unrecognized(String),
+}
+
+impl BenefitStatus {
+    /// The value as the API writes it.
+    pub fn as_str(&self) -> &str {
+        match self {
+            BenefitStatus::Active => "active",
+            BenefitStatus::Archived => "archived",
+            BenefitStatus::Unrecognized(value) => value,
+        }
+    }
+}
+
+impl From<&str> for BenefitStatus {
+    fn from(value: &str) -> Self {
+        match value {
+            "active" => BenefitStatus::Active,
+            "archived" => BenefitStatus::Archived,
+            other => BenefitStatus::Unrecognized(other.to_owned()),
+        }
+    }
+}
+
+impl From<String> for BenefitStatus {
+    fn from(value: String) -> Self {
+        Self::from(value.as_str())
+    }
+}
+
+impl fmt::Display for BenefitStatus {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
+impl Serialize for BenefitStatus {
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        serializer.serialize_str(self.as_str())
+    }
+}
+
+impl<'de> Deserialize<'de> for BenefitStatus {
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        String::deserialize(deserializer).map(Self::from)
+    }
+}
+
+/// The values of `Benefit.type`.
+///
+/// A value this SDK does not know yet is kept, as it came, in
+/// [`BenefitType::Unrecognized`].
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[non_exhaustive]
+pub enum BenefitType {
+    /// `custom`
+    Custom,
+    /// `license_key`
+    LicenseKey,
+    /// `downloadable`
+    Downloadable,
+    /// `feature_flag`
+    FeatureFlag,
+    /// `meter_credit`
+    MeterCredit,
+    /// `discord`
+    Discord,
+    /// `github_repository`
+    GithubRepository,
+    /// A value this SDK does not know yet.
+    Unrecognized(String),
+}
+
+impl BenefitType {
+    /// The value as the API writes it.
+    pub fn as_str(&self) -> &str {
+        match self {
+            BenefitType::Custom => "custom",
+            BenefitType::LicenseKey => "license_key",
+            BenefitType::Downloadable => "downloadable",
+            BenefitType::FeatureFlag => "feature_flag",
+            BenefitType::MeterCredit => "meter_credit",
+            BenefitType::Discord => "discord",
+            BenefitType::GithubRepository => "github_repository",
+            BenefitType::Unrecognized(value) => value,
+        }
+    }
+}
+
+impl From<&str> for BenefitType {
+    fn from(value: &str) -> Self {
+        match value {
+            "custom" => BenefitType::Custom,
+            "license_key" => BenefitType::LicenseKey,
+            "downloadable" => BenefitType::Downloadable,
+            "feature_flag" => BenefitType::FeatureFlag,
+            "meter_credit" => BenefitType::MeterCredit,
+            "discord" => BenefitType::Discord,
+            "github_repository" => BenefitType::GithubRepository,
+            other => BenefitType::Unrecognized(other.to_owned()),
+        }
+    }
+}
+
+impl From<String> for BenefitType {
+    fn from(value: String) -> Self {
+        Self::from(value.as_str())
+    }
+}
+
+impl fmt::Display for BenefitType {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
+impl Serialize for BenefitType {
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        serializer.serialize_str(self.as_str())
+    }
+}
+
+impl<'de> Deserialize<'de> for BenefitType {
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        String::deserialize(deserializer).map(Self::from)
+    }
+}
+
+/// The values of `Benefit.visibility`.
+///
+/// A value this SDK does not know yet is kept, as it came, in
+/// [`BenefitVisibility::Unrecognized`].
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[non_exhaustive]
+pub enum BenefitVisibility {
+    /// `public`
+    Public,
+    /// `private`
+    Private,
+    /// A value this SDK does not know yet.
+    Unrecognized(String),
+}
+
+impl BenefitVisibility {
+    /// The value as the API writes it.
+    pub fn as_str(&self) -> &str {
+        match self {
+            BenefitVisibility::Public => "public",
+            BenefitVisibility::Private => "private",
+            BenefitVisibility::Unrecognized(value) => value,
+        }
+    }
+}
+
+impl From<&str> for BenefitVisibility {
+    fn from(value: &str) -> Self {
+        match value {
+            "public" => BenefitVisibility::Public,
+            "private" => BenefitVisibility::Private,
+            other => BenefitVisibility::Unrecognized(other.to_owned()),
+        }
+    }
+}
+
+impl From<String> for BenefitVisibility {
+    fn from(value: String) -> Self {
+        Self::from(value.as_str())
+    }
+}
+
+impl fmt::Display for BenefitVisibility {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
+impl Serialize for BenefitVisibility {
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        serializer.serialize_str(self.as_str())
+    }
+}
+
+impl<'de> Deserialize<'de> for BenefitVisibility {
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        String::deserialize(deserializer).map(Self::from)
+    }
+}
+
+/// The values of `BenefitGrant.benefit_type`.
+///
+/// A value this SDK does not know yet is kept, as it came, in
+/// [`BenefitGrantBenefitType::Unrecognized`].
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[non_exhaustive]
+pub enum BenefitGrantBenefitType {
+    /// `custom`
+    Custom,
+    /// `license_key`
+    LicenseKey,
+    /// `downloadable`
+    Downloadable,
+    /// `feature_flag`
+    FeatureFlag,
+    /// `meter_credit`
+    MeterCredit,
+    /// `discord`
+    Discord,
+    /// `github_repository`
+    GithubRepository,
+    /// A value this SDK does not know yet.
+    Unrecognized(String),
+}
+
+impl BenefitGrantBenefitType {
+    /// The value as the API writes it.
+    pub fn as_str(&self) -> &str {
+        match self {
+            BenefitGrantBenefitType::Custom => "custom",
+            BenefitGrantBenefitType::LicenseKey => "license_key",
+            BenefitGrantBenefitType::Downloadable => "downloadable",
+            BenefitGrantBenefitType::FeatureFlag => "feature_flag",
+            BenefitGrantBenefitType::MeterCredit => "meter_credit",
+            BenefitGrantBenefitType::Discord => "discord",
+            BenefitGrantBenefitType::GithubRepository => "github_repository",
+            BenefitGrantBenefitType::Unrecognized(value) => value,
+        }
+    }
+}
+
+impl From<&str> for BenefitGrantBenefitType {
+    fn from(value: &str) -> Self {
+        match value {
+            "custom" => BenefitGrantBenefitType::Custom,
+            "license_key" => BenefitGrantBenefitType::LicenseKey,
+            "downloadable" => BenefitGrantBenefitType::Downloadable,
+            "feature_flag" => BenefitGrantBenefitType::FeatureFlag,
+            "meter_credit" => BenefitGrantBenefitType::MeterCredit,
+            "discord" => BenefitGrantBenefitType::Discord,
+            "github_repository" => BenefitGrantBenefitType::GithubRepository,
+            other => BenefitGrantBenefitType::Unrecognized(other.to_owned()),
+        }
+    }
+}
+
+impl From<String> for BenefitGrantBenefitType {
+    fn from(value: String) -> Self {
+        Self::from(value.as_str())
+    }
+}
+
+impl fmt::Display for BenefitGrantBenefitType {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
+impl Serialize for BenefitGrantBenefitType {
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        serializer.serialize_str(self.as_str())
+    }
+}
+
+impl<'de> Deserialize<'de> for BenefitGrantBenefitType {
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        String::deserialize(deserializer).map(Self::from)
     }
 }
 
@@ -615,6 +2119,254 @@ impl Serialize for BenefitGrantStatus {
 }
 
 impl<'de> Deserialize<'de> for BenefitGrantStatus {
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        String::deserialize(deserializer).map(Self::from)
+    }
+}
+
+/// The values of `Checkout.status`. active abre sessões de compra; archived saiu de circulação.
+///
+/// A value this SDK does not know yet is kept, as it came, in
+/// [`CheckoutStatus::Unrecognized`].
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[non_exhaustive]
+pub enum CheckoutStatus {
+    /// `active`
+    Active,
+    /// `archived`
+    Archived,
+    /// A value this SDK does not know yet.
+    Unrecognized(String),
+}
+
+impl CheckoutStatus {
+    /// The value as the API writes it.
+    pub fn as_str(&self) -> &str {
+        match self {
+            CheckoutStatus::Active => "active",
+            CheckoutStatus::Archived => "archived",
+            CheckoutStatus::Unrecognized(value) => value,
+        }
+    }
+}
+
+impl From<&str> for CheckoutStatus {
+    fn from(value: &str) -> Self {
+        match value {
+            "active" => CheckoutStatus::Active,
+            "archived" => CheckoutStatus::Archived,
+            other => CheckoutStatus::Unrecognized(other.to_owned()),
+        }
+    }
+}
+
+impl From<String> for CheckoutStatus {
+    fn from(value: String) -> Self {
+        Self::from(value.as_str())
+    }
+}
+
+impl fmt::Display for CheckoutStatus {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
+impl Serialize for CheckoutStatus {
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        serializer.serialize_str(self.as_str())
+    }
+}
+
+impl<'de> Deserialize<'de> for CheckoutStatus {
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        String::deserialize(deserializer).map(Self::from)
+    }
+}
+
+/// The values of `CheckoutLink.capture_mode`. manual segura a venda no cartão para o lojista capturar depois.
+///
+/// A value this SDK does not know yet is kept, as it came, in
+/// [`CheckoutLinkCaptureMode::Unrecognized`].
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[non_exhaustive]
+pub enum CheckoutLinkCaptureMode {
+    /// `automatic`
+    Automatic,
+    /// `manual`
+    Manual,
+    /// A value this SDK does not know yet.
+    Unrecognized(String),
+}
+
+impl CheckoutLinkCaptureMode {
+    /// The value as the API writes it.
+    pub fn as_str(&self) -> &str {
+        match self {
+            CheckoutLinkCaptureMode::Automatic => "automatic",
+            CheckoutLinkCaptureMode::Manual => "manual",
+            CheckoutLinkCaptureMode::Unrecognized(value) => value,
+        }
+    }
+}
+
+impl From<&str> for CheckoutLinkCaptureMode {
+    fn from(value: &str) -> Self {
+        match value {
+            "automatic" => CheckoutLinkCaptureMode::Automatic,
+            "manual" => CheckoutLinkCaptureMode::Manual,
+            other => CheckoutLinkCaptureMode::Unrecognized(other.to_owned()),
+        }
+    }
+}
+
+impl From<String> for CheckoutLinkCaptureMode {
+    fn from(value: String) -> Self {
+        Self::from(value.as_str())
+    }
+}
+
+impl fmt::Display for CheckoutLinkCaptureMode {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
+impl Serialize for CheckoutLinkCaptureMode {
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        serializer.serialize_str(self.as_str())
+    }
+}
+
+impl<'de> Deserialize<'de> for CheckoutLinkCaptureMode {
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        String::deserialize(deserializer).map(Self::from)
+    }
+}
+
+/// The values of `CheckoutLink.status`.
+///
+/// A value this SDK does not know yet is kept, as it came, in
+/// [`CheckoutLinkStatus::Unrecognized`].
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[non_exhaustive]
+pub enum CheckoutLinkStatus {
+    /// `active`
+    Active,
+    /// `archived`
+    Archived,
+    /// A value this SDK does not know yet.
+    Unrecognized(String),
+}
+
+impl CheckoutLinkStatus {
+    /// The value as the API writes it.
+    pub fn as_str(&self) -> &str {
+        match self {
+            CheckoutLinkStatus::Active => "active",
+            CheckoutLinkStatus::Archived => "archived",
+            CheckoutLinkStatus::Unrecognized(value) => value,
+        }
+    }
+}
+
+impl From<&str> for CheckoutLinkStatus {
+    fn from(value: &str) -> Self {
+        match value {
+            "active" => CheckoutLinkStatus::Active,
+            "archived" => CheckoutLinkStatus::Archived,
+            other => CheckoutLinkStatus::Unrecognized(other.to_owned()),
+        }
+    }
+}
+
+impl From<String> for CheckoutLinkStatus {
+    fn from(value: String) -> Self {
+        Self::from(value.as_str())
+    }
+}
+
+impl fmt::Display for CheckoutLinkStatus {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
+impl Serialize for CheckoutLinkStatus {
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        serializer.serialize_str(self.as_str())
+    }
+}
+
+impl<'de> Deserialize<'de> for CheckoutLinkStatus {
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        String::deserialize(deserializer).map(Self::from)
+    }
+}
+
+/// The values of `CheckoutLink.trial_interval`. O período de teste gratuito do link, no lugar do produto; nulo mantém o do produto.
+///
+/// A value this SDK does not know yet is kept, as it came, in
+/// [`CheckoutLinkTrialInterval::Unrecognized`].
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[non_exhaustive]
+pub enum CheckoutLinkTrialInterval {
+    /// `day`
+    Day,
+    /// `week`
+    Week,
+    /// `month`
+    Month,
+    /// `year`
+    Year,
+    /// A value this SDK does not know yet.
+    Unrecognized(String),
+}
+
+impl CheckoutLinkTrialInterval {
+    /// The value as the API writes it.
+    pub fn as_str(&self) -> &str {
+        match self {
+            CheckoutLinkTrialInterval::Day => "day",
+            CheckoutLinkTrialInterval::Week => "week",
+            CheckoutLinkTrialInterval::Month => "month",
+            CheckoutLinkTrialInterval::Year => "year",
+            CheckoutLinkTrialInterval::Unrecognized(value) => value,
+        }
+    }
+}
+
+impl From<&str> for CheckoutLinkTrialInterval {
+    fn from(value: &str) -> Self {
+        match value {
+            "day" => CheckoutLinkTrialInterval::Day,
+            "week" => CheckoutLinkTrialInterval::Week,
+            "month" => CheckoutLinkTrialInterval::Month,
+            "year" => CheckoutLinkTrialInterval::Year,
+            other => CheckoutLinkTrialInterval::Unrecognized(other.to_owned()),
+        }
+    }
+}
+
+impl From<String> for CheckoutLinkTrialInterval {
+    fn from(value: String) -> Self {
+        Self::from(value.as_str())
+    }
+}
+
+impl fmt::Display for CheckoutLinkTrialInterval {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
+impl Serialize for CheckoutLinkTrialInterval {
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        serializer.serialize_str(self.as_str())
+    }
+}
+
+impl<'de> Deserialize<'de> for CheckoutLinkTrialInterval {
     fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
         String::deserialize(deserializer).map(Self::from)
     }
@@ -820,6 +2572,642 @@ impl<'de> Deserialize<'de> for CustomerStateBenefitGrantBenefitType {
     }
 }
 
+/// The values of `Discount.currency`.
+///
+/// A value this SDK does not know yet is kept, as it came, in
+/// [`DiscountCurrency::Unrecognized`].
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[non_exhaustive]
+pub enum DiscountCurrency {
+    /// `BRL`
+    Brl,
+    /// A value this SDK does not know yet.
+    Unrecognized(String),
+}
+
+impl DiscountCurrency {
+    /// The value as the API writes it.
+    pub fn as_str(&self) -> &str {
+        match self {
+            DiscountCurrency::Brl => "BRL",
+            DiscountCurrency::Unrecognized(value) => value,
+        }
+    }
+}
+
+impl From<&str> for DiscountCurrency {
+    fn from(value: &str) -> Self {
+        match value {
+            "BRL" => DiscountCurrency::Brl,
+            other => DiscountCurrency::Unrecognized(other.to_owned()),
+        }
+    }
+}
+
+impl From<String> for DiscountCurrency {
+    fn from(value: String) -> Self {
+        Self::from(value.as_str())
+    }
+}
+
+impl fmt::Display for DiscountCurrency {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
+impl Serialize for DiscountCurrency {
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        serializer.serialize_str(self.as_str())
+    }
+}
+
+impl<'de> Deserialize<'de> for DiscountCurrency {
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        String::deserialize(deserializer).map(Self::from)
+    }
+}
+
+/// The values of `Discount.duration`. Em uma assinatura: só na primeira fatura, por duration_in_months meses ou para sempre.
+///
+/// A value this SDK does not know yet is kept, as it came, in
+/// [`DiscountDuration::Unrecognized`].
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[non_exhaustive]
+pub enum DiscountDuration {
+    /// `once`
+    Once,
+    /// `repeating`
+    Repeating,
+    /// `forever`
+    Forever,
+    /// A value this SDK does not know yet.
+    Unrecognized(String),
+}
+
+impl DiscountDuration {
+    /// The value as the API writes it.
+    pub fn as_str(&self) -> &str {
+        match self {
+            DiscountDuration::Once => "once",
+            DiscountDuration::Repeating => "repeating",
+            DiscountDuration::Forever => "forever",
+            DiscountDuration::Unrecognized(value) => value,
+        }
+    }
+}
+
+impl From<&str> for DiscountDuration {
+    fn from(value: &str) -> Self {
+        match value {
+            "once" => DiscountDuration::Once,
+            "repeating" => DiscountDuration::Repeating,
+            "forever" => DiscountDuration::Forever,
+            other => DiscountDuration::Unrecognized(other.to_owned()),
+        }
+    }
+}
+
+impl From<String> for DiscountDuration {
+    fn from(value: String) -> Self {
+        Self::from(value.as_str())
+    }
+}
+
+impl fmt::Display for DiscountDuration {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
+impl Serialize for DiscountDuration {
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        serializer.serialize_str(self.as_str())
+    }
+}
+
+impl<'de> Deserialize<'de> for DiscountDuration {
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        String::deserialize(deserializer).map(Self::from)
+    }
+}
+
+/// The values of `Discount.status`.
+///
+/// A value this SDK does not know yet is kept, as it came, in
+/// [`DiscountStatus::Unrecognized`].
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[non_exhaustive]
+pub enum DiscountStatus {
+    /// `active`
+    Active,
+    /// `expired`
+    Expired,
+    /// `exhausted`
+    Exhausted,
+    /// A value this SDK does not know yet.
+    Unrecognized(String),
+}
+
+impl DiscountStatus {
+    /// The value as the API writes it.
+    pub fn as_str(&self) -> &str {
+        match self {
+            DiscountStatus::Active => "active",
+            DiscountStatus::Expired => "expired",
+            DiscountStatus::Exhausted => "exhausted",
+            DiscountStatus::Unrecognized(value) => value,
+        }
+    }
+}
+
+impl From<&str> for DiscountStatus {
+    fn from(value: &str) -> Self {
+        match value {
+            "active" => DiscountStatus::Active,
+            "expired" => DiscountStatus::Expired,
+            "exhausted" => DiscountStatus::Exhausted,
+            other => DiscountStatus::Unrecognized(other.to_owned()),
+        }
+    }
+}
+
+impl From<String> for DiscountStatus {
+    fn from(value: String) -> Self {
+        Self::from(value.as_str())
+    }
+}
+
+impl fmt::Display for DiscountStatus {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
+impl Serialize for DiscountStatus {
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        serializer.serialize_str(self.as_str())
+    }
+}
+
+impl<'de> Deserialize<'de> for DiscountStatus {
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        String::deserialize(deserializer).map(Self::from)
+    }
+}
+
+/// The values of `Discount.type`.
+///
+/// A value this SDK does not know yet is kept, as it came, in
+/// [`DiscountType::Unrecognized`].
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[non_exhaustive]
+pub enum DiscountType {
+    /// `percentage`
+    Percentage,
+    /// `fixed`
+    Fixed,
+    /// A value this SDK does not know yet.
+    Unrecognized(String),
+}
+
+impl DiscountType {
+    /// The value as the API writes it.
+    pub fn as_str(&self) -> &str {
+        match self {
+            DiscountType::Percentage => "percentage",
+            DiscountType::Fixed => "fixed",
+            DiscountType::Unrecognized(value) => value,
+        }
+    }
+}
+
+impl From<&str> for DiscountType {
+    fn from(value: &str) -> Self {
+        match value {
+            "percentage" => DiscountType::Percentage,
+            "fixed" => DiscountType::Fixed,
+            other => DiscountType::Unrecognized(other.to_owned()),
+        }
+    }
+}
+
+impl From<String> for DiscountType {
+    fn from(value: String) -> Self {
+        Self::from(value.as_str())
+    }
+}
+
+impl fmt::Display for DiscountType {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
+impl Serialize for DiscountType {
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        serializer.serialize_str(self.as_str())
+    }
+}
+
+impl<'de> Deserialize<'de> for DiscountType {
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        String::deserialize(deserializer).map(Self::from)
+    }
+}
+
+/// The values of `Dispute.currency`.
+///
+/// A value this SDK does not know yet is kept, as it came, in
+/// [`DisputeCurrency::Unrecognized`].
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[non_exhaustive]
+pub enum DisputeCurrency {
+    /// `BRL`
+    Brl,
+    /// A value this SDK does not know yet.
+    Unrecognized(String),
+}
+
+impl DisputeCurrency {
+    /// The value as the API writes it.
+    pub fn as_str(&self) -> &str {
+        match self {
+            DisputeCurrency::Brl => "BRL",
+            DisputeCurrency::Unrecognized(value) => value,
+        }
+    }
+}
+
+impl From<&str> for DisputeCurrency {
+    fn from(value: &str) -> Self {
+        match value {
+            "BRL" => DisputeCurrency::Brl,
+            other => DisputeCurrency::Unrecognized(other.to_owned()),
+        }
+    }
+}
+
+impl From<String> for DisputeCurrency {
+    fn from(value: String) -> Self {
+        Self::from(value.as_str())
+    }
+}
+
+impl fmt::Display for DisputeCurrency {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
+impl Serialize for DisputeCurrency {
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        serializer.serialize_str(self.as_str())
+    }
+}
+
+impl<'de> Deserialize<'de> for DisputeCurrency {
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        String::deserialize(deserializer).map(Self::from)
+    }
+}
+
+/// The values of `Dispute.source`.
+///
+/// A value this SDK does not know yet is kept, as it came, in
+/// [`DisputeSource::Unrecognized`].
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[non_exhaustive]
+pub enum DisputeSource {
+    /// `operator`
+    Operator,
+    /// `cielo_chargeback`
+    CieloChargeback,
+    /// A value this SDK does not know yet.
+    Unrecognized(String),
+}
+
+impl DisputeSource {
+    /// The value as the API writes it.
+    pub fn as_str(&self) -> &str {
+        match self {
+            DisputeSource::Operator => "operator",
+            DisputeSource::CieloChargeback => "cielo_chargeback",
+            DisputeSource::Unrecognized(value) => value,
+        }
+    }
+}
+
+impl From<&str> for DisputeSource {
+    fn from(value: &str) -> Self {
+        match value {
+            "operator" => DisputeSource::Operator,
+            "cielo_chargeback" => DisputeSource::CieloChargeback,
+            other => DisputeSource::Unrecognized(other.to_owned()),
+        }
+    }
+}
+
+impl From<String> for DisputeSource {
+    fn from(value: String) -> Self {
+        Self::from(value.as_str())
+    }
+}
+
+impl fmt::Display for DisputeSource {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
+impl Serialize for DisputeSource {
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        serializer.serialize_str(self.as_str())
+    }
+}
+
+impl<'de> Deserialize<'de> for DisputeSource {
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        String::deserialize(deserializer).map(Self::from)
+    }
+}
+
+/// The values of `Dispute.status`.
+///
+/// A value this SDK does not know yet is kept, as it came, in
+/// [`DisputeStatus::Unrecognized`].
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[non_exhaustive]
+pub enum DisputeStatus {
+    /// `opened`
+    Opened,
+    /// `needs_evidence`
+    NeedsEvidence,
+    /// `submitted`
+    Submitted,
+    /// `under_review`
+    UnderReview,
+    /// `won`
+    Won,
+    /// `lost`
+    Lost,
+    /// `closed`
+    Closed,
+    /// A value this SDK does not know yet.
+    Unrecognized(String),
+}
+
+impl DisputeStatus {
+    /// The value as the API writes it.
+    pub fn as_str(&self) -> &str {
+        match self {
+            DisputeStatus::Opened => "opened",
+            DisputeStatus::NeedsEvidence => "needs_evidence",
+            DisputeStatus::Submitted => "submitted",
+            DisputeStatus::UnderReview => "under_review",
+            DisputeStatus::Won => "won",
+            DisputeStatus::Lost => "lost",
+            DisputeStatus::Closed => "closed",
+            DisputeStatus::Unrecognized(value) => value,
+        }
+    }
+}
+
+impl From<&str> for DisputeStatus {
+    fn from(value: &str) -> Self {
+        match value {
+            "opened" => DisputeStatus::Opened,
+            "needs_evidence" => DisputeStatus::NeedsEvidence,
+            "submitted" => DisputeStatus::Submitted,
+            "under_review" => DisputeStatus::UnderReview,
+            "won" => DisputeStatus::Won,
+            "lost" => DisputeStatus::Lost,
+            "closed" => DisputeStatus::Closed,
+            other => DisputeStatus::Unrecognized(other.to_owned()),
+        }
+    }
+}
+
+impl From<String> for DisputeStatus {
+    fn from(value: String) -> Self {
+        Self::from(value.as_str())
+    }
+}
+
+impl fmt::Display for DisputeStatus {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
+impl Serialize for DisputeStatus {
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        serializer.serialize_str(self.as_str())
+    }
+}
+
+impl<'de> Deserialize<'de> for DisputeStatus {
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        String::deserialize(deserializer).map(Self::from)
+    }
+}
+
+/// The values of `Event.name`.
+///
+/// A value this SDK does not know yet is kept, as it came, in
+/// [`EventName::Unrecognized`].
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[non_exhaustive]
+pub enum EventName {
+    /// `token_usage`
+    TokenUsage,
+    /// A value this SDK does not know yet.
+    Unrecognized(String),
+}
+
+impl EventName {
+    /// The value as the API writes it.
+    pub fn as_str(&self) -> &str {
+        match self {
+            EventName::TokenUsage => "token_usage",
+            EventName::Unrecognized(value) => value,
+        }
+    }
+}
+
+impl From<&str> for EventName {
+    fn from(value: &str) -> Self {
+        match value {
+            "token_usage" => EventName::TokenUsage,
+            other => EventName::Unrecognized(other.to_owned()),
+        }
+    }
+}
+
+impl From<String> for EventName {
+    fn from(value: String) -> Self {
+        Self::from(value.as_str())
+    }
+}
+
+impl fmt::Display for EventName {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
+impl Serialize for EventName {
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        serializer.serialize_str(self.as_str())
+    }
+}
+
+impl<'de> Deserialize<'de> for EventName {
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        String::deserialize(deserializer).map(Self::from)
+    }
+}
+
+/// The values of `MeterAggregation.func`.
+///
+/// A value this SDK does not know yet is kept, as it came, in
+/// [`MeterAggregationFunc::Unrecognized`].
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[non_exhaustive]
+pub enum MeterAggregationFunc {
+    /// `count`
+    Count,
+    /// `sum`
+    Sum,
+    /// `avg`
+    Avg,
+    /// `min`
+    Min,
+    /// `max`
+    Max,
+    /// `unique`
+    Unique,
+    /// A value this SDK does not know yet.
+    Unrecognized(String),
+}
+
+impl MeterAggregationFunc {
+    /// The value as the API writes it.
+    pub fn as_str(&self) -> &str {
+        match self {
+            MeterAggregationFunc::Count => "count",
+            MeterAggregationFunc::Sum => "sum",
+            MeterAggregationFunc::Avg => "avg",
+            MeterAggregationFunc::Min => "min",
+            MeterAggregationFunc::Max => "max",
+            MeterAggregationFunc::Unique => "unique",
+            MeterAggregationFunc::Unrecognized(value) => value,
+        }
+    }
+}
+
+impl From<&str> for MeterAggregationFunc {
+    fn from(value: &str) -> Self {
+        match value {
+            "count" => MeterAggregationFunc::Count,
+            "sum" => MeterAggregationFunc::Sum,
+            "avg" => MeterAggregationFunc::Avg,
+            "min" => MeterAggregationFunc::Min,
+            "max" => MeterAggregationFunc::Max,
+            "unique" => MeterAggregationFunc::Unique,
+            other => MeterAggregationFunc::Unrecognized(other.to_owned()),
+        }
+    }
+}
+
+impl From<String> for MeterAggregationFunc {
+    fn from(value: String) -> Self {
+        Self::from(value.as_str())
+    }
+}
+
+impl fmt::Display for MeterAggregationFunc {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
+impl Serialize for MeterAggregationFunc {
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        serializer.serialize_str(self.as_str())
+    }
+}
+
+impl<'de> Deserialize<'de> for MeterAggregationFunc {
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        String::deserialize(deserializer).map(Self::from)
+    }
+}
+
+/// The values of `MeterUnit.type`.
+///
+/// A value this SDK does not know yet is kept, as it came, in
+/// [`MeterUnitType::Unrecognized`].
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[non_exhaustive]
+pub enum MeterUnitType {
+    /// `scalar`
+    Scalar,
+    /// `token`
+    Token,
+    /// `custom`
+    Custom,
+    /// A value this SDK does not know yet.
+    Unrecognized(String),
+}
+
+impl MeterUnitType {
+    /// The value as the API writes it.
+    pub fn as_str(&self) -> &str {
+        match self {
+            MeterUnitType::Scalar => "scalar",
+            MeterUnitType::Token => "token",
+            MeterUnitType::Custom => "custom",
+            MeterUnitType::Unrecognized(value) => value,
+        }
+    }
+}
+
+impl From<&str> for MeterUnitType {
+    fn from(value: &str) -> Self {
+        match value {
+            "scalar" => MeterUnitType::Scalar,
+            "token" => MeterUnitType::Token,
+            "custom" => MeterUnitType::Custom,
+            other => MeterUnitType::Unrecognized(other.to_owned()),
+        }
+    }
+}
+
+impl From<String> for MeterUnitType {
+    fn from(value: String) -> Self {
+        Self::from(value.as_str())
+    }
+}
+
+impl fmt::Display for MeterUnitType {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
+impl Serialize for MeterUnitType {
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        serializer.serialize_str(self.as_str())
+    }
+}
+
+impl<'de> Deserialize<'de> for MeterUnitType {
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        String::deserialize(deserializer).map(Self::from)
+    }
+}
+
 /// The values of `Order.currency`.
 ///
 /// A value this SDK does not know yet is kept, as it came, in
@@ -943,6 +3331,118 @@ impl Serialize for OrderStatus {
 }
 
 impl<'de> Deserialize<'de> for OrderStatus {
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        String::deserialize(deserializer).map(Self::from)
+    }
+}
+
+/// The values of `OrderInvoice.currency`.
+///
+/// A value this SDK does not know yet is kept, as it came, in
+/// [`OrderInvoiceCurrency::Unrecognized`].
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[non_exhaustive]
+pub enum OrderInvoiceCurrency {
+    /// `BRL`
+    Brl,
+    /// A value this SDK does not know yet.
+    Unrecognized(String),
+}
+
+impl OrderInvoiceCurrency {
+    /// The value as the API writes it.
+    pub fn as_str(&self) -> &str {
+        match self {
+            OrderInvoiceCurrency::Brl => "BRL",
+            OrderInvoiceCurrency::Unrecognized(value) => value,
+        }
+    }
+}
+
+impl From<&str> for OrderInvoiceCurrency {
+    fn from(value: &str) -> Self {
+        match value {
+            "BRL" => OrderInvoiceCurrency::Brl,
+            other => OrderInvoiceCurrency::Unrecognized(other.to_owned()),
+        }
+    }
+}
+
+impl From<String> for OrderInvoiceCurrency {
+    fn from(value: String) -> Self {
+        Self::from(value.as_str())
+    }
+}
+
+impl fmt::Display for OrderInvoiceCurrency {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
+impl Serialize for OrderInvoiceCurrency {
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        serializer.serialize_str(self.as_str())
+    }
+}
+
+impl<'de> Deserialize<'de> for OrderInvoiceCurrency {
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        String::deserialize(deserializer).map(Self::from)
+    }
+}
+
+/// The values of `OrderReceipt.currency`.
+///
+/// A value this SDK does not know yet is kept, as it came, in
+/// [`OrderReceiptCurrency::Unrecognized`].
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[non_exhaustive]
+pub enum OrderReceiptCurrency {
+    /// `BRL`
+    Brl,
+    /// A value this SDK does not know yet.
+    Unrecognized(String),
+}
+
+impl OrderReceiptCurrency {
+    /// The value as the API writes it.
+    pub fn as_str(&self) -> &str {
+        match self {
+            OrderReceiptCurrency::Brl => "BRL",
+            OrderReceiptCurrency::Unrecognized(value) => value,
+        }
+    }
+}
+
+impl From<&str> for OrderReceiptCurrency {
+    fn from(value: &str) -> Self {
+        match value {
+            "BRL" => OrderReceiptCurrency::Brl,
+            other => OrderReceiptCurrency::Unrecognized(other.to_owned()),
+        }
+    }
+}
+
+impl From<String> for OrderReceiptCurrency {
+    fn from(value: String) -> Self {
+        Self::from(value.as_str())
+    }
+}
+
+impl fmt::Display for OrderReceiptCurrency {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
+impl Serialize for OrderReceiptCurrency {
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        serializer.serialize_str(self.as_str())
+    }
+}
+
+impl<'de> Deserialize<'de> for OrderReceiptCurrency {
     fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
         String::deserialize(deserializer).map(Self::from)
     }
@@ -1960,6 +4460,70 @@ impl<'de> Deserialize<'de> for WebhookCheckoutStatus {
     }
 }
 
+/// The values of `WebhookDelivery.status`. pending enquanto é repetida; exhausted quando todas as tentativas falharam.
+///
+/// A value this SDK does not know yet is kept, as it came, in
+/// [`WebhookDeliveryStatus::Unrecognized`].
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[non_exhaustive]
+pub enum WebhookDeliveryStatus {
+    /// `pending`
+    Pending,
+    /// `succeeded`
+    Succeeded,
+    /// `exhausted`
+    Exhausted,
+    /// A value this SDK does not know yet.
+    Unrecognized(String),
+}
+
+impl WebhookDeliveryStatus {
+    /// The value as the API writes it.
+    pub fn as_str(&self) -> &str {
+        match self {
+            WebhookDeliveryStatus::Pending => "pending",
+            WebhookDeliveryStatus::Succeeded => "succeeded",
+            WebhookDeliveryStatus::Exhausted => "exhausted",
+            WebhookDeliveryStatus::Unrecognized(value) => value,
+        }
+    }
+}
+
+impl From<&str> for WebhookDeliveryStatus {
+    fn from(value: &str) -> Self {
+        match value {
+            "pending" => WebhookDeliveryStatus::Pending,
+            "succeeded" => WebhookDeliveryStatus::Succeeded,
+            "exhausted" => WebhookDeliveryStatus::Exhausted,
+            other => WebhookDeliveryStatus::Unrecognized(other.to_owned()),
+        }
+    }
+}
+
+impl From<String> for WebhookDeliveryStatus {
+    fn from(value: String) -> Self {
+        Self::from(value.as_str())
+    }
+}
+
+impl fmt::Display for WebhookDeliveryStatus {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
+impl Serialize for WebhookDeliveryStatus {
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        serializer.serialize_str(self.as_str())
+    }
+}
+
+impl<'de> Deserialize<'de> for WebhookDeliveryStatus {
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        String::deserialize(deserializer).map(Self::from)
+    }
+}
+
 /// The values of `WebhookDiscount.duration`.
 ///
 /// A value this SDK does not know yet is kept, as it came, in
@@ -2348,6 +4912,694 @@ impl<'de> Deserialize<'de> for WebhookDisputeStatus {
     }
 }
 
+/// The values of `WebhookEndpoint.format`. O corpo da mensagem; o que o endereço indica quando não é dito.
+///
+/// A value this SDK does not know yet is kept, as it came, in
+/// [`WebhookEndpointFormat::Unrecognized`].
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[non_exhaustive]
+pub enum WebhookEndpointFormat {
+    /// `raw`
+    Raw,
+    /// `discord`
+    Discord,
+    /// `slack`
+    Slack,
+    /// A value this SDK does not know yet.
+    Unrecognized(String),
+}
+
+impl WebhookEndpointFormat {
+    /// The value as the API writes it.
+    pub fn as_str(&self) -> &str {
+        match self {
+            WebhookEndpointFormat::Raw => "raw",
+            WebhookEndpointFormat::Discord => "discord",
+            WebhookEndpointFormat::Slack => "slack",
+            WebhookEndpointFormat::Unrecognized(value) => value,
+        }
+    }
+}
+
+impl From<&str> for WebhookEndpointFormat {
+    fn from(value: &str) -> Self {
+        match value {
+            "raw" => WebhookEndpointFormat::Raw,
+            "discord" => WebhookEndpointFormat::Discord,
+            "slack" => WebhookEndpointFormat::Slack,
+            other => WebhookEndpointFormat::Unrecognized(other.to_owned()),
+        }
+    }
+}
+
+impl From<String> for WebhookEndpointFormat {
+    fn from(value: String) -> Self {
+        Self::from(value.as_str())
+    }
+}
+
+impl fmt::Display for WebhookEndpointFormat {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
+impl Serialize for WebhookEndpointFormat {
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        serializer.serialize_str(self.as_str())
+    }
+}
+
+impl<'de> Deserialize<'de> for WebhookEndpointFormat {
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        String::deserialize(deserializer).map(Self::from)
+    }
+}
+
+/// The values of `WebhookEndpoint.status`.
+///
+/// A value this SDK does not know yet is kept, as it came, in
+/// [`WebhookEndpointStatus::Unrecognized`].
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[non_exhaustive]
+pub enum WebhookEndpointStatus {
+    /// `active`
+    Active,
+    /// `disabled`
+    Disabled,
+    /// A value this SDK does not know yet.
+    Unrecognized(String),
+}
+
+impl WebhookEndpointStatus {
+    /// The value as the API writes it.
+    pub fn as_str(&self) -> &str {
+        match self {
+            WebhookEndpointStatus::Active => "active",
+            WebhookEndpointStatus::Disabled => "disabled",
+            WebhookEndpointStatus::Unrecognized(value) => value,
+        }
+    }
+}
+
+impl From<&str> for WebhookEndpointStatus {
+    fn from(value: &str) -> Self {
+        match value {
+            "active" => WebhookEndpointStatus::Active,
+            "disabled" => WebhookEndpointStatus::Disabled,
+            other => WebhookEndpointStatus::Unrecognized(other.to_owned()),
+        }
+    }
+}
+
+impl From<String> for WebhookEndpointStatus {
+    fn from(value: String) -> Self {
+        Self::from(value.as_str())
+    }
+}
+
+impl fmt::Display for WebhookEndpointStatus {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
+impl Serialize for WebhookEndpointStatus {
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        serializer.serialize_str(self.as_str())
+    }
+}
+
+impl<'de> Deserialize<'de> for WebhookEndpointStatus {
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        String::deserialize(deserializer).map(Self::from)
+    }
+}
+
+/// The values of `WebhookEndpointCreated.format`.
+///
+/// A value this SDK does not know yet is kept, as it came, in
+/// [`WebhookEndpointCreatedFormat::Unrecognized`].
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[non_exhaustive]
+pub enum WebhookEndpointCreatedFormat {
+    /// `raw`
+    Raw,
+    /// `discord`
+    Discord,
+    /// `slack`
+    Slack,
+    /// A value this SDK does not know yet.
+    Unrecognized(String),
+}
+
+impl WebhookEndpointCreatedFormat {
+    /// The value as the API writes it.
+    pub fn as_str(&self) -> &str {
+        match self {
+            WebhookEndpointCreatedFormat::Raw => "raw",
+            WebhookEndpointCreatedFormat::Discord => "discord",
+            WebhookEndpointCreatedFormat::Slack => "slack",
+            WebhookEndpointCreatedFormat::Unrecognized(value) => value,
+        }
+    }
+}
+
+impl From<&str> for WebhookEndpointCreatedFormat {
+    fn from(value: &str) -> Self {
+        match value {
+            "raw" => WebhookEndpointCreatedFormat::Raw,
+            "discord" => WebhookEndpointCreatedFormat::Discord,
+            "slack" => WebhookEndpointCreatedFormat::Slack,
+            other => WebhookEndpointCreatedFormat::Unrecognized(other.to_owned()),
+        }
+    }
+}
+
+impl From<String> for WebhookEndpointCreatedFormat {
+    fn from(value: String) -> Self {
+        Self::from(value.as_str())
+    }
+}
+
+impl fmt::Display for WebhookEndpointCreatedFormat {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
+impl Serialize for WebhookEndpointCreatedFormat {
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        serializer.serialize_str(self.as_str())
+    }
+}
+
+impl<'de> Deserialize<'de> for WebhookEndpointCreatedFormat {
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        String::deserialize(deserializer).map(Self::from)
+    }
+}
+
+/// The values of `WebhookEndpointCreated.status`.
+///
+/// A value this SDK does not know yet is kept, as it came, in
+/// [`WebhookEndpointCreatedStatus::Unrecognized`].
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[non_exhaustive]
+pub enum WebhookEndpointCreatedStatus {
+    /// `active`
+    Active,
+    /// `disabled`
+    Disabled,
+    /// A value this SDK does not know yet.
+    Unrecognized(String),
+}
+
+impl WebhookEndpointCreatedStatus {
+    /// The value as the API writes it.
+    pub fn as_str(&self) -> &str {
+        match self {
+            WebhookEndpointCreatedStatus::Active => "active",
+            WebhookEndpointCreatedStatus::Disabled => "disabled",
+            WebhookEndpointCreatedStatus::Unrecognized(value) => value,
+        }
+    }
+}
+
+impl From<&str> for WebhookEndpointCreatedStatus {
+    fn from(value: &str) -> Self {
+        match value {
+            "active" => WebhookEndpointCreatedStatus::Active,
+            "disabled" => WebhookEndpointCreatedStatus::Disabled,
+            other => WebhookEndpointCreatedStatus::Unrecognized(other.to_owned()),
+        }
+    }
+}
+
+impl From<String> for WebhookEndpointCreatedStatus {
+    fn from(value: String) -> Self {
+        Self::from(value.as_str())
+    }
+}
+
+impl fmt::Display for WebhookEndpointCreatedStatus {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
+impl Serialize for WebhookEndpointCreatedStatus {
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        serializer.serialize_str(self.as_str())
+    }
+}
+
+impl<'de> Deserialize<'de> for WebhookEndpointCreatedStatus {
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        String::deserialize(deserializer).map(Self::from)
+    }
+}
+
+/// The values of `BenefitsCreateParams.type`.
+///
+/// A value this SDK does not know yet is kept, as it came, in
+/// [`BenefitsCreateParamsType::Unrecognized`].
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[non_exhaustive]
+pub enum BenefitsCreateParamsType {
+    /// `custom`
+    Custom,
+    /// `license_key`
+    LicenseKey,
+    /// `feature_flag`
+    FeatureFlag,
+    /// `meter_credit`
+    MeterCredit,
+    /// A value this SDK does not know yet.
+    Unrecognized(String),
+}
+
+impl BenefitsCreateParamsType {
+    /// The value as the API writes it.
+    pub fn as_str(&self) -> &str {
+        match self {
+            BenefitsCreateParamsType::Custom => "custom",
+            BenefitsCreateParamsType::LicenseKey => "license_key",
+            BenefitsCreateParamsType::FeatureFlag => "feature_flag",
+            BenefitsCreateParamsType::MeterCredit => "meter_credit",
+            BenefitsCreateParamsType::Unrecognized(value) => value,
+        }
+    }
+}
+
+impl From<&str> for BenefitsCreateParamsType {
+    fn from(value: &str) -> Self {
+        match value {
+            "custom" => BenefitsCreateParamsType::Custom,
+            "license_key" => BenefitsCreateParamsType::LicenseKey,
+            "feature_flag" => BenefitsCreateParamsType::FeatureFlag,
+            "meter_credit" => BenefitsCreateParamsType::MeterCredit,
+            other => BenefitsCreateParamsType::Unrecognized(other.to_owned()),
+        }
+    }
+}
+
+impl From<String> for BenefitsCreateParamsType {
+    fn from(value: String) -> Self {
+        Self::from(value.as_str())
+    }
+}
+
+impl fmt::Display for BenefitsCreateParamsType {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
+impl Serialize for BenefitsCreateParamsType {
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        serializer.serialize_str(self.as_str())
+    }
+}
+
+impl<'de> Deserialize<'de> for BenefitsCreateParamsType {
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        String::deserialize(deserializer).map(Self::from)
+    }
+}
+
+/// The values of `BenefitsCreateParams.visibility`.
+///
+/// A value this SDK does not know yet is kept, as it came, in
+/// [`BenefitsCreateParamsVisibility::Unrecognized`].
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[non_exhaustive]
+pub enum BenefitsCreateParamsVisibility {
+    /// `public`
+    Public,
+    /// `private`
+    Private,
+    /// A value this SDK does not know yet.
+    Unrecognized(String),
+}
+
+impl BenefitsCreateParamsVisibility {
+    /// The value as the API writes it.
+    pub fn as_str(&self) -> &str {
+        match self {
+            BenefitsCreateParamsVisibility::Public => "public",
+            BenefitsCreateParamsVisibility::Private => "private",
+            BenefitsCreateParamsVisibility::Unrecognized(value) => value,
+        }
+    }
+}
+
+impl From<&str> for BenefitsCreateParamsVisibility {
+    fn from(value: &str) -> Self {
+        match value {
+            "public" => BenefitsCreateParamsVisibility::Public,
+            "private" => BenefitsCreateParamsVisibility::Private,
+            other => BenefitsCreateParamsVisibility::Unrecognized(other.to_owned()),
+        }
+    }
+}
+
+impl From<String> for BenefitsCreateParamsVisibility {
+    fn from(value: String) -> Self {
+        Self::from(value.as_str())
+    }
+}
+
+impl fmt::Display for BenefitsCreateParamsVisibility {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
+impl Serialize for BenefitsCreateParamsVisibility {
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        serializer.serialize_str(self.as_str())
+    }
+}
+
+impl<'de> Deserialize<'de> for BenefitsCreateParamsVisibility {
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        String::deserialize(deserializer).map(Self::from)
+    }
+}
+
+/// The values of `BenefitsUpdateParams.visibility`.
+///
+/// A value this SDK does not know yet is kept, as it came, in
+/// [`BenefitsUpdateParamsVisibility::Unrecognized`].
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[non_exhaustive]
+pub enum BenefitsUpdateParamsVisibility {
+    /// `public`
+    Public,
+    /// `private`
+    Private,
+    /// A value this SDK does not know yet.
+    Unrecognized(String),
+}
+
+impl BenefitsUpdateParamsVisibility {
+    /// The value as the API writes it.
+    pub fn as_str(&self) -> &str {
+        match self {
+            BenefitsUpdateParamsVisibility::Public => "public",
+            BenefitsUpdateParamsVisibility::Private => "private",
+            BenefitsUpdateParamsVisibility::Unrecognized(value) => value,
+        }
+    }
+}
+
+impl From<&str> for BenefitsUpdateParamsVisibility {
+    fn from(value: &str) -> Self {
+        match value {
+            "public" => BenefitsUpdateParamsVisibility::Public,
+            "private" => BenefitsUpdateParamsVisibility::Private,
+            other => BenefitsUpdateParamsVisibility::Unrecognized(other.to_owned()),
+        }
+    }
+}
+
+impl From<String> for BenefitsUpdateParamsVisibility {
+    fn from(value: String) -> Self {
+        Self::from(value.as_str())
+    }
+}
+
+impl fmt::Display for BenefitsUpdateParamsVisibility {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
+impl Serialize for BenefitsUpdateParamsVisibility {
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        serializer.serialize_str(self.as_str())
+    }
+}
+
+impl<'de> Deserialize<'de> for BenefitsUpdateParamsVisibility {
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        String::deserialize(deserializer).map(Self::from)
+    }
+}
+
+/// The values of `CheckoutLinksCreateParams.capture_mode`.
+///
+/// A value this SDK does not know yet is kept, as it came, in
+/// [`CheckoutLinksCreateParamsCaptureMode::Unrecognized`].
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[non_exhaustive]
+pub enum CheckoutLinksCreateParamsCaptureMode {
+    /// `automatic`
+    Automatic,
+    /// `manual`
+    Manual,
+    /// A value this SDK does not know yet.
+    Unrecognized(String),
+}
+
+impl CheckoutLinksCreateParamsCaptureMode {
+    /// The value as the API writes it.
+    pub fn as_str(&self) -> &str {
+        match self {
+            CheckoutLinksCreateParamsCaptureMode::Automatic => "automatic",
+            CheckoutLinksCreateParamsCaptureMode::Manual => "manual",
+            CheckoutLinksCreateParamsCaptureMode::Unrecognized(value) => value,
+        }
+    }
+}
+
+impl From<&str> for CheckoutLinksCreateParamsCaptureMode {
+    fn from(value: &str) -> Self {
+        match value {
+            "automatic" => CheckoutLinksCreateParamsCaptureMode::Automatic,
+            "manual" => CheckoutLinksCreateParamsCaptureMode::Manual,
+            other => CheckoutLinksCreateParamsCaptureMode::Unrecognized(other.to_owned()),
+        }
+    }
+}
+
+impl From<String> for CheckoutLinksCreateParamsCaptureMode {
+    fn from(value: String) -> Self {
+        Self::from(value.as_str())
+    }
+}
+
+impl fmt::Display for CheckoutLinksCreateParamsCaptureMode {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
+impl Serialize for CheckoutLinksCreateParamsCaptureMode {
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        serializer.serialize_str(self.as_str())
+    }
+}
+
+impl<'de> Deserialize<'de> for CheckoutLinksCreateParamsCaptureMode {
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        String::deserialize(deserializer).map(Self::from)
+    }
+}
+
+/// The values of `CheckoutLinksCreateParams.trial_interval`.
+///
+/// A value this SDK does not know yet is kept, as it came, in
+/// [`CheckoutLinksCreateParamsTrialInterval::Unrecognized`].
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[non_exhaustive]
+pub enum CheckoutLinksCreateParamsTrialInterval {
+    /// `day`
+    Day,
+    /// `week`
+    Week,
+    /// `month`
+    Month,
+    /// `year`
+    Year,
+    /// A value this SDK does not know yet.
+    Unrecognized(String),
+}
+
+impl CheckoutLinksCreateParamsTrialInterval {
+    /// The value as the API writes it.
+    pub fn as_str(&self) -> &str {
+        match self {
+            CheckoutLinksCreateParamsTrialInterval::Day => "day",
+            CheckoutLinksCreateParamsTrialInterval::Week => "week",
+            CheckoutLinksCreateParamsTrialInterval::Month => "month",
+            CheckoutLinksCreateParamsTrialInterval::Year => "year",
+            CheckoutLinksCreateParamsTrialInterval::Unrecognized(value) => value,
+        }
+    }
+}
+
+impl From<&str> for CheckoutLinksCreateParamsTrialInterval {
+    fn from(value: &str) -> Self {
+        match value {
+            "day" => CheckoutLinksCreateParamsTrialInterval::Day,
+            "week" => CheckoutLinksCreateParamsTrialInterval::Week,
+            "month" => CheckoutLinksCreateParamsTrialInterval::Month,
+            "year" => CheckoutLinksCreateParamsTrialInterval::Year,
+            other => CheckoutLinksCreateParamsTrialInterval::Unrecognized(other.to_owned()),
+        }
+    }
+}
+
+impl From<String> for CheckoutLinksCreateParamsTrialInterval {
+    fn from(value: String) -> Self {
+        Self::from(value.as_str())
+    }
+}
+
+impl fmt::Display for CheckoutLinksCreateParamsTrialInterval {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
+impl Serialize for CheckoutLinksCreateParamsTrialInterval {
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        serializer.serialize_str(self.as_str())
+    }
+}
+
+impl<'de> Deserialize<'de> for CheckoutLinksCreateParamsTrialInterval {
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        String::deserialize(deserializer).map(Self::from)
+    }
+}
+
+/// The values of `DiscountsCreateParams.duration`.
+///
+/// A value this SDK does not know yet is kept, as it came, in
+/// [`DiscountsCreateParamsDuration::Unrecognized`].
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[non_exhaustive]
+pub enum DiscountsCreateParamsDuration {
+    /// `once`
+    Once,
+    /// `repeating`
+    Repeating,
+    /// `forever`
+    Forever,
+    /// A value this SDK does not know yet.
+    Unrecognized(String),
+}
+
+impl DiscountsCreateParamsDuration {
+    /// The value as the API writes it.
+    pub fn as_str(&self) -> &str {
+        match self {
+            DiscountsCreateParamsDuration::Once => "once",
+            DiscountsCreateParamsDuration::Repeating => "repeating",
+            DiscountsCreateParamsDuration::Forever => "forever",
+            DiscountsCreateParamsDuration::Unrecognized(value) => value,
+        }
+    }
+}
+
+impl From<&str> for DiscountsCreateParamsDuration {
+    fn from(value: &str) -> Self {
+        match value {
+            "once" => DiscountsCreateParamsDuration::Once,
+            "repeating" => DiscountsCreateParamsDuration::Repeating,
+            "forever" => DiscountsCreateParamsDuration::Forever,
+            other => DiscountsCreateParamsDuration::Unrecognized(other.to_owned()),
+        }
+    }
+}
+
+impl From<String> for DiscountsCreateParamsDuration {
+    fn from(value: String) -> Self {
+        Self::from(value.as_str())
+    }
+}
+
+impl fmt::Display for DiscountsCreateParamsDuration {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
+impl Serialize for DiscountsCreateParamsDuration {
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        serializer.serialize_str(self.as_str())
+    }
+}
+
+impl<'de> Deserialize<'de> for DiscountsCreateParamsDuration {
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        String::deserialize(deserializer).map(Self::from)
+    }
+}
+
+/// The values of `DiscountsCreateParams.type`.
+///
+/// A value this SDK does not know yet is kept, as it came, in
+/// [`DiscountsCreateParamsType::Unrecognized`].
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[non_exhaustive]
+pub enum DiscountsCreateParamsType {
+    /// `percentage`
+    Percentage,
+    /// `fixed`
+    Fixed,
+    /// A value this SDK does not know yet.
+    Unrecognized(String),
+}
+
+impl DiscountsCreateParamsType {
+    /// The value as the API writes it.
+    pub fn as_str(&self) -> &str {
+        match self {
+            DiscountsCreateParamsType::Percentage => "percentage",
+            DiscountsCreateParamsType::Fixed => "fixed",
+            DiscountsCreateParamsType::Unrecognized(value) => value,
+        }
+    }
+}
+
+impl From<&str> for DiscountsCreateParamsType {
+    fn from(value: &str) -> Self {
+        match value {
+            "percentage" => DiscountsCreateParamsType::Percentage,
+            "fixed" => DiscountsCreateParamsType::Fixed,
+            other => DiscountsCreateParamsType::Unrecognized(other.to_owned()),
+        }
+    }
+}
+
+impl From<String> for DiscountsCreateParamsType {
+    fn from(value: String) -> Self {
+        Self::from(value.as_str())
+    }
+}
+
+impl fmt::Display for DiscountsCreateParamsType {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
+impl Serialize for DiscountsCreateParamsType {
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        serializer.serialize_str(self.as_str())
+    }
+}
+
+impl<'de> Deserialize<'de> for DiscountsCreateParamsType {
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        String::deserialize(deserializer).map(Self::from)
+    }
+}
+
 /// The values of `PricesCreateParams.interval`.
 ///
 /// A value this SDK does not know yet is kept, as it came, in
@@ -2539,6 +5791,202 @@ impl Serialize for RefundsCreateParamsReason {
 }
 
 impl<'de> Deserialize<'de> for RefundsCreateParamsReason {
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        String::deserialize(deserializer).map(Self::from)
+    }
+}
+
+/// The values of `SubscriptionsUpdateParams.proration_behavior`. prorate (padrão): rateia o resto do período no próximo valor cobrado; invoice: cobra a diferença agora; next_period: troca no fim do período; reset: cobra o período inteiro do novo plano agora e reinicia o ciclo.
+///
+/// A value this SDK does not know yet is kept, as it came, in
+/// [`SubscriptionsUpdateParamsProrationBehavior::Unrecognized`].
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[non_exhaustive]
+pub enum SubscriptionsUpdateParamsProrationBehavior {
+    /// `prorate`
+    Prorate,
+    /// `invoice`
+    Invoice,
+    /// `next_period`
+    NextPeriod,
+    /// `reset`
+    Reset,
+    /// A value this SDK does not know yet.
+    Unrecognized(String),
+}
+
+impl SubscriptionsUpdateParamsProrationBehavior {
+    /// The value as the API writes it.
+    pub fn as_str(&self) -> &str {
+        match self {
+            SubscriptionsUpdateParamsProrationBehavior::Prorate => "prorate",
+            SubscriptionsUpdateParamsProrationBehavior::Invoice => "invoice",
+            SubscriptionsUpdateParamsProrationBehavior::NextPeriod => "next_period",
+            SubscriptionsUpdateParamsProrationBehavior::Reset => "reset",
+            SubscriptionsUpdateParamsProrationBehavior::Unrecognized(value) => value,
+        }
+    }
+}
+
+impl From<&str> for SubscriptionsUpdateParamsProrationBehavior {
+    fn from(value: &str) -> Self {
+        match value {
+            "prorate" => SubscriptionsUpdateParamsProrationBehavior::Prorate,
+            "invoice" => SubscriptionsUpdateParamsProrationBehavior::Invoice,
+            "next_period" => SubscriptionsUpdateParamsProrationBehavior::NextPeriod,
+            "reset" => SubscriptionsUpdateParamsProrationBehavior::Reset,
+            other => SubscriptionsUpdateParamsProrationBehavior::Unrecognized(other.to_owned()),
+        }
+    }
+}
+
+impl From<String> for SubscriptionsUpdateParamsProrationBehavior {
+    fn from(value: String) -> Self {
+        Self::from(value.as_str())
+    }
+}
+
+impl fmt::Display for SubscriptionsUpdateParamsProrationBehavior {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
+impl Serialize for SubscriptionsUpdateParamsProrationBehavior {
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        serializer.serialize_str(self.as_str())
+    }
+}
+
+impl<'de> Deserialize<'de> for SubscriptionsUpdateParamsProrationBehavior {
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        String::deserialize(deserializer).map(Self::from)
+    }
+}
+
+/// The values of `WebhooksCreateEndpointParams.format`. Sem ele, o que o endereço indica.
+///
+/// A value this SDK does not know yet is kept, as it came, in
+/// [`WebhooksCreateEndpointParamsFormat::Unrecognized`].
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[non_exhaustive]
+pub enum WebhooksCreateEndpointParamsFormat {
+    /// `raw`
+    Raw,
+    /// `discord`
+    Discord,
+    /// `slack`
+    Slack,
+    /// A value this SDK does not know yet.
+    Unrecognized(String),
+}
+
+impl WebhooksCreateEndpointParamsFormat {
+    /// The value as the API writes it.
+    pub fn as_str(&self) -> &str {
+        match self {
+            WebhooksCreateEndpointParamsFormat::Raw => "raw",
+            WebhooksCreateEndpointParamsFormat::Discord => "discord",
+            WebhooksCreateEndpointParamsFormat::Slack => "slack",
+            WebhooksCreateEndpointParamsFormat::Unrecognized(value) => value,
+        }
+    }
+}
+
+impl From<&str> for WebhooksCreateEndpointParamsFormat {
+    fn from(value: &str) -> Self {
+        match value {
+            "raw" => WebhooksCreateEndpointParamsFormat::Raw,
+            "discord" => WebhooksCreateEndpointParamsFormat::Discord,
+            "slack" => WebhooksCreateEndpointParamsFormat::Slack,
+            other => WebhooksCreateEndpointParamsFormat::Unrecognized(other.to_owned()),
+        }
+    }
+}
+
+impl From<String> for WebhooksCreateEndpointParamsFormat {
+    fn from(value: String) -> Self {
+        Self::from(value.as_str())
+    }
+}
+
+impl fmt::Display for WebhooksCreateEndpointParamsFormat {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
+impl Serialize for WebhooksCreateEndpointParamsFormat {
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        serializer.serialize_str(self.as_str())
+    }
+}
+
+impl<'de> Deserialize<'de> for WebhooksCreateEndpointParamsFormat {
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        String::deserialize(deserializer).map(Self::from)
+    }
+}
+
+/// The values of `WebhooksUpdateEndpointParams.format`.
+///
+/// A value this SDK does not know yet is kept, as it came, in
+/// [`WebhooksUpdateEndpointParamsFormat::Unrecognized`].
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[non_exhaustive]
+pub enum WebhooksUpdateEndpointParamsFormat {
+    /// `raw`
+    Raw,
+    /// `discord`
+    Discord,
+    /// `slack`
+    Slack,
+    /// A value this SDK does not know yet.
+    Unrecognized(String),
+}
+
+impl WebhooksUpdateEndpointParamsFormat {
+    /// The value as the API writes it.
+    pub fn as_str(&self) -> &str {
+        match self {
+            WebhooksUpdateEndpointParamsFormat::Raw => "raw",
+            WebhooksUpdateEndpointParamsFormat::Discord => "discord",
+            WebhooksUpdateEndpointParamsFormat::Slack => "slack",
+            WebhooksUpdateEndpointParamsFormat::Unrecognized(value) => value,
+        }
+    }
+}
+
+impl From<&str> for WebhooksUpdateEndpointParamsFormat {
+    fn from(value: &str) -> Self {
+        match value {
+            "raw" => WebhooksUpdateEndpointParamsFormat::Raw,
+            "discord" => WebhooksUpdateEndpointParamsFormat::Discord,
+            "slack" => WebhooksUpdateEndpointParamsFormat::Slack,
+            other => WebhooksUpdateEndpointParamsFormat::Unrecognized(other.to_owned()),
+        }
+    }
+}
+
+impl From<String> for WebhooksUpdateEndpointParamsFormat {
+    fn from(value: String) -> Self {
+        Self::from(value.as_str())
+    }
+}
+
+impl fmt::Display for WebhooksUpdateEndpointParamsFormat {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
+impl Serialize for WebhooksUpdateEndpointParamsFormat {
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        serializer.serialize_str(self.as_str())
+    }
+}
+
+impl<'de> Deserialize<'de> for WebhooksUpdateEndpointParamsFormat {
     fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
         String::deserialize(deserializer).map(Self::from)
     }

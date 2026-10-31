@@ -61,9 +61,15 @@ public sealed class PerataClient
         timeout = options.Timeout ?? TimeSpan.FromSeconds(30);
         http = options.HttpClient
             ?? (options.Handler is null ? SharedHttp : new HttpClient(options.Handler, disposeHandler: false) { Timeout = System.Threading.Timeout.InfiniteTimeSpan });
+        Benefits = new BenefitsService(this);
+        CheckoutLinks = new CheckoutLinksService(this);
         Checkouts = new CheckoutsService(this);
         CustomerSessions = new CustomerSessionsService(this);
         Customers = new CustomersService(this);
+        Discounts = new DiscountsService(this);
+        Disputes = new DisputesService(this);
+        Events = new EventsService(this);
+        Meters = new MetersService(this);
         Orders = new OrdersService(this);
         PaymentMethods = new PaymentMethodsService(this);
         Payments = new PaymentsService(this);
@@ -71,7 +77,14 @@ public sealed class PerataClient
         Products = new ProductsService(this);
         Refunds = new RefundsService(this);
         Subscriptions = new SubscriptionsService(this);
+        Webhooks = new WebhooksService(this);
     }
+
+    /// <summary>The API's benefits.</summary>
+    public BenefitsService Benefits { get; }
+
+    /// <summary>The API's checkout-links.</summary>
+    public CheckoutLinksService CheckoutLinks { get; }
 
     /// <summary>The API's checkouts.</summary>
     public CheckoutsService Checkouts { get; }
@@ -81,6 +94,18 @@ public sealed class PerataClient
 
     /// <summary>The API's customers.</summary>
     public CustomersService Customers { get; }
+
+    /// <summary>The API's discounts.</summary>
+    public DiscountsService Discounts { get; }
+
+    /// <summary>The API's disputes.</summary>
+    public DisputesService Disputes { get; }
+
+    /// <summary>The API's events.</summary>
+    public EventsService Events { get; }
+
+    /// <summary>The API's meters.</summary>
+    public MetersService Meters { get; }
 
     /// <summary>The API's orders.</summary>
     public OrdersService Orders { get; }
@@ -102,6 +127,9 @@ public sealed class PerataClient
 
     /// <summary>The API's subscriptions.</summary>
     public SubscriptionsService Subscriptions { get; }
+
+    /// <summary>The API's webhooks.</summary>
+    public WebhooksService Webhooks { get; }
 
     /// <summary>
     /// Calls the API and answers what it wrapped in <c>data</c>; a refusal

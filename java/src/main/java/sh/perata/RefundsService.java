@@ -164,5 +164,154 @@ public final class RefundsService {
             }
         }
     }
+
+    /**
+     * Listar reembolsos, opcionalmente de um pagamento (payment_id). One page; {@link #listIter} walks every page.
+     * @param params the page, its size and the filters, or null
+     * @param options options for this call, or null
+     * @return the page
+     * @throws PerataException when the API refuses the call
+     */
+    public Page<Refund> list(ListParams params, RequestOptions options) {
+        Object data = client.request("GET", "/api/v1/refunds", params == null ? null : params.query(), null, null, options);
+        return Page.fromJson(data, Json.model(Refund::fromJson));
+    }
+
+    /**
+     * Listar reembolsos, opcionalmente de um pagamento (payment_id). One page.
+     * @param params the page, its size and the filters, or null
+     * @return the page
+     */
+    public Page<Refund> list(ListParams params) {
+        return list(params, null);
+    }
+
+    /**
+     * Listar reembolsos, opcionalmente de um pagamento (payment_id). The first page.
+     * @return the page
+     */
+    public Page<Refund> list() {
+        return list(null, null);
+    }
+
+    /**
+     * Walks every page of refunds:list from params' page (the first by
+     * default), item by item, fetching a page only when the previous one is
+     * used up.
+     * @param params the first page, the page size and the filters, or null
+     * @param options options for every call, or null
+     * @return the items, page after page
+     */
+    public Iterable<Refund> listIter(ListParams params, RequestOptions options) {
+        ListParams walk = params == null ? ListParams.builder().build() : params;
+        return Page.iterate(page -> list(walk.withPage(page), options), walk.getPage());
+    }
+
+    /**
+     * Walks every page of refunds:list, item by item.
+     * @param params the first page, the page size and the filters, or null
+     * @return the items, page after page
+     */
+    public Iterable<Refund> listIter(ListParams params) {
+        return listIter(params, null);
+    }
+
+    /**
+     * Walks every page of refunds:list, item by item.
+     * @return the items, page after page
+     */
+    public Iterable<Refund> listIter() {
+        return listIter(null, null);
+    }
+
+    /** The page and filters of refunds:list. */
+    public static final class ListParams {
+        private final Integer page;
+        private final Integer limit;
+        private final String paymentId;
+
+        private ListParams(Builder builder) {
+            this.page = builder.page;
+            this.limit = builder.limit;
+            this.paymentId = builder.paymentId;
+        }
+
+        /** @return a builder of the page and filters */
+        public static Builder builder() {
+            return new Builder();
+        }
+
+        /** @return the page, from 1, or null for the first */
+        public Integer getPage() {
+            return page;
+        }
+
+        /** @return the items a page, or null for the API's 10 */
+        public Integer getLimit() {
+            return limit;
+        }
+
+        /** @return Só os reembolsos deste pagamento. (null when not filtered) */
+        public String getPaymentId() {
+            return paymentId;
+        }
+
+        ListParams withPage(int page) {
+            Builder builder = builder().page(page);
+            builder.limit = limit;
+            builder.paymentId = paymentId;
+            return builder.build();
+        }
+
+        Map<String, String> query() {
+            Map<String, String> query = new LinkedHashMap<>();
+            query.put("page", page == null ? null : page.toString());
+            query.put("limit", limit == null ? null : limit.toString());
+            query.put("payment_id", paymentId);
+            return query;
+        }
+
+        /** Builds {@link ListParams}. */
+        public static final class Builder {
+            private Integer page;
+            private Integer limit;
+            private String paymentId;
+
+            private Builder() {
+            }
+
+            /**
+             * @param page the page, from 1
+             * @return this builder
+             */
+            public Builder page(int page) {
+                this.page = page;
+                return this;
+            }
+
+            /**
+             * @param limit the items a page, 1 to 100 (10 by default)
+             * @return this builder
+             */
+            public Builder limit(int limit) {
+                this.limit = limit;
+                return this;
+            }
+
+            /**
+             * @param paymentId Só os reembolsos deste pagamento.
+             * @return this builder
+             */
+            public Builder paymentId(String paymentId) {
+                this.paymentId = paymentId;
+                return this;
+            }
+
+            /** @return the page and filters */
+            public ListParams build() {
+                return new ListParams(this);
+            }
+        }
+    }
 }
 

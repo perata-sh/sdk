@@ -77,6 +77,32 @@ class PerataTest(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "must be https", msg=base_url):
                 Perata("k", base_url=base_url)
 
+    def test_a_discount_goes_through_create_get_list_and_delete(self):
+        def discount(identifier):
+            return json.loads("{\"id\":\"__ID__\",\"name\":\"Black\",\"code\":null,\"type\":\"percentage\",\"basis_points\":1000,\"amount_cents\":0,\"currency\":\"BRL\",\"duration\":\"once\",\"duration_in_months\":0,\"max_redemptions\":null,\"max_redemptions_per_customer\":null,\"redemptions_count\":0,\"starts_at\":\"2026-10-17T00:00:00Z\",\"ends_at\":null,\"status\":\"active\",\"product_ids\":[\"prod_1\"],\"created_at\":\"2026-10-17T00:00:00Z\",\"modified_at\":\"2026-10-17T00:00:00Z\"}".replace("__ID__", identifier))
+
+        def answer(request):
+            if request["method"] == "POST":
+                return 201, {"data": discount("disc_1")}, {}
+            if request["method"] == "DELETE":
+                return 204, None, {}
+            if request["url"].path == "/api/v1/discounts":
+                page = parse_qs(request["url"].query)["page"][0]
+                return 200, {"data": {"items": [discount(f"disc_{page}")], "pagination": {"total_count": 2, "max_page": 2}}}, {}
+            return 200, {"data": discount("disc_1")}, {}
+
+        perata, recorder = client(answer)
+        created = perata.discounts.create({"name": "Black", "type": "percentage", "duration": "once", "basis_points": 1000})
+        self.assertEqual((created.id, created.code, created.product_ids), ("disc_1", None, ["prod_1"]))
+        self.assertEqual(perata.discounts.get("disc_1").name, "Black")
+        self.assertEqual([each.id for each in perata.discounts.list_iter(limit=1)], ["disc_1", "disc_2"])
+        self.assertIsNone(perata.discounts.delete("disc_1"))
+        self.assertEqual(
+            [(seen["method"], seen["url"].path) for seen in recorder.seen],
+            [("POST", "/api/v1/discounts"), ("GET", "/api/v1/discounts/disc_1"), ("GET", "/api/v1/discounts"), ("GET", "/api/v1/discounts"), ("DELETE", "/api/v1/discounts/disc_1")],
+        )
+        self.assertEqual(json.loads(recorder.seen[0]["body"]), {"name": "Black", "type": "percentage", "duration": "once", "basis_points": 1000})
+
     def test_a_free_form_value_decodes_nested(self):
         state = {"id": "cus_1", "name": "Ana", "email": "ana@example.com", "external_id": "", "status": "active", "created_at": "2026-10-17T00:00:00Z", "active_subscriptions": [], "granted_benefits": [{"id": "gr_1", "granted_at": "2026-10-17T00:00:00Z", "benefit_id": "ben_1", "benefit_type": "feature_flag", "benefit_metadata": {"flags": {"beta": True, "limits": {"seats": 5, "tiers": ["a", 2, None, 1.5]}}}, "properties": {"links": [{"url": "https://example.com", "expires": None}]}}]}
         perata, _ = client(lambda request: (200, {"data": state}, {}))

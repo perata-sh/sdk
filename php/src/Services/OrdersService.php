@@ -18,6 +18,33 @@ final class OrdersService
     }
 
     /**
+     * Ler um pedido: um checkout pago.
+     */
+    public function get(string $order, ?string $apiKey = null): Models\Order
+    {
+        $data = $this->client->request('GET', '/api/v1/orders/' . rawurlencode($order), apiKey: $apiKey);
+        return Models\Order::fromArray($data);
+    }
+
+    /**
+     * Ler a fatura de um pedido, o documento comercial que o lojista gerou; sem ela, 404.
+     */
+    public function getInvoice(string $order, ?string $apiKey = null): Models\OrderInvoice
+    {
+        $data = $this->client->request('GET', '/api/v1/orders/' . rawurlencode($order) . '/invoice', apiKey: $apiKey);
+        return Models\OrderInvoice::fromArray($data);
+    }
+
+    /**
+     * Ler o recibo de um pedido: o que foi pago, quando e como.
+     */
+    public function getReceipt(string $order, ?string $apiKey = null): Models\OrderReceipt
+    {
+        $data = $this->client->request('GET', '/api/v1/orders/' . rawurlencode($order) . '/receipt', apiKey: $apiKey);
+        return Models\OrderReceipt::fromArray($data);
+    }
+
+    /**
      * Listar pedidos: checkouts pagos. One page; listIter() walks every page.
      *
      * @param array{page?: int, limit?: int} $params

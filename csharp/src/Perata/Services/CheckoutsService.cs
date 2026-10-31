@@ -29,6 +29,30 @@ public sealed class CheckoutsService
         ArgumentNullException.ThrowIfNull(parameters);
         return client.RequestAsync(HttpMethod.Post, "/api/v1/checkouts", null, JsonSerializer.SerializeToUtf8Bytes(parameters, PerataJson.Default.CheckoutsCreateParams), PerataJson.Default.CheckoutEnvelope, options?.IdempotencyKey, options, cancellationToken);
     }
+
+    /// <summary>Ler um checkout: o endereço, o estado e as páginas de retorno.</summary>
+    /// <param name="checkout">The checkout.</param>
+    /// <param name="options">Another organization's key for this call.</param>
+    /// <param name="cancellationToken">Cancels the call.</param>
+    /// <returns>The checkout.</returns>
+    /// <exception cref="PerataException">The API refused the call.</exception>
+    public Task<Checkout> GetAsync(string checkout, RequestOptions? options = null, CancellationToken cancellationToken = default)
+    {
+        return client.RequestAsync(HttpMethod.Get, "/api/v1/checkouts/" + PerataClient.Segment(checkout), null, null, PerataJson.Default.CheckoutEnvelope, null, options, cancellationToken);
+    }
+
+    /// <summary>Atualizar o rótulo e as páginas de retorno de um checkout ativo.</summary>
+    /// <param name="checkout">The checkout.</param>
+    /// <param name="parameters">The request.</param>
+    /// <param name="options">An idempotency key, or another organization's key for this call.</param>
+    /// <param name="cancellationToken">Cancels the call.</param>
+    /// <returns>The checkout.</returns>
+    /// <exception cref="PerataException">The API refused the call.</exception>
+    public Task<Checkout> UpdateAsync(string checkout, CheckoutsUpdateParams parameters, RequestOptions? options = null, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(parameters);
+        return client.RequestAsync(HttpMethod.Patch, "/api/v1/checkouts/" + PerataClient.Segment(checkout), null, JsonSerializer.SerializeToUtf8Bytes(parameters, PerataJson.Default.CheckoutsUpdateParams), PerataJson.Default.CheckoutEnvelope, options?.IdempotencyKey, options, cancellationToken);
+    }
 }
 
 /// <summary>The body of checkouts:create.</summary>
@@ -55,6 +79,22 @@ public sealed record CheckoutsCreateParams
     public long? Quantity { get; init; }
 
     /// <summary>The <c>success_url</c> to send. Left out of the request when null.</summary>
+    [JsonPropertyName("success_url")]
+    public string? SuccessUrl { get; init; }
+}
+
+/// <summary>The body of checkouts:update.</summary>
+public sealed record CheckoutsUpdateParams
+{
+    /// <summary>Endereço https; vazio retira. Left out of the request when null.</summary>
+    [JsonPropertyName("cancel_url")]
+    public string? CancelUrl { get; init; }
+
+    /// <summary>The <c>label</c> to send. Left out of the request when null.</summary>
+    [JsonPropertyName("label")]
+    public string? Label { get; init; }
+
+    /// <summary>Endereço https; vazio retira. Left out of the request when null.</summary>
     [JsonPropertyName("success_url")]
     public string? SuccessUrl { get; init; }
 }

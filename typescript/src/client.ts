@@ -2,7 +2,7 @@
 
 import type { Requester, RequestSpec } from "./core.ts";
 import { PerataError } from "./errors.ts";
-import { CheckoutsService, CustomerSessionsService, CustomersService, OrdersService, PaymentMethodsService, PaymentsService, PricesService, ProductsService, RefundsService, SubscriptionsService } from "./services.ts";
+import { BenefitsService, CheckoutLinksService, CheckoutsService, CustomerSessionsService, CustomersService, DiscountsService, DisputesService, EventsService, MetersService, OrdersService, PaymentMethodsService, PaymentsService, PricesService, ProductsService, RefundsService, SubscriptionsService, WebhooksService } from "./services.ts";
 import { DEFAULT_BASE_URL, VERSION } from "./version.ts";
 
 /** Throws unless baseUrl is https, or http to localhost, 127.0.0.0/8 or ::1. */
@@ -39,9 +39,15 @@ export interface ClientOptions {
  *     for await (const product of perata.products.listIter()) { … }
  */
 export class Perata implements Requester {
+  readonly benefits: BenefitsService;
+  readonly checkoutLinks: CheckoutLinksService;
   readonly checkouts: CheckoutsService;
   readonly customerSessions: CustomerSessionsService;
   readonly customers: CustomersService;
+  readonly discounts: DiscountsService;
+  readonly disputes: DisputesService;
+  readonly events: EventsService;
+  readonly meters: MetersService;
   readonly orders: OrdersService;
   readonly paymentMethods: PaymentMethodsService;
   readonly payments: PaymentsService;
@@ -49,6 +55,7 @@ export class Perata implements Requester {
   readonly products: ProductsService;
   readonly refunds: RefundsService;
   readonly subscriptions: SubscriptionsService;
+  readonly webhooks: WebhooksService;
 
   readonly #apiKey: string;
   readonly #baseUrl: string;
@@ -62,9 +69,15 @@ export class Perata implements Requester {
     checkBaseUrl(this.#baseUrl);
     this.#fetch = config.fetch ?? ((input, init) => fetch(input, init));
     this.#timeoutMs = config.timeoutMs ?? 30_000;
+    this.benefits = new BenefitsService(this);
+    this.checkoutLinks = new CheckoutLinksService(this);
     this.checkouts = new CheckoutsService(this);
     this.customerSessions = new CustomerSessionsService(this);
     this.customers = new CustomersService(this);
+    this.discounts = new DiscountsService(this);
+    this.disputes = new DisputesService(this);
+    this.events = new EventsService(this);
+    this.meters = new MetersService(this);
     this.orders = new OrdersService(this);
     this.paymentMethods = new PaymentMethodsService(this);
     this.payments = new PaymentsService(this);
@@ -72,6 +85,7 @@ export class Perata implements Requester {
     this.products = new ProductsService(this);
     this.refunds = new RefundsService(this);
     this.subscriptions = new SubscriptionsService(this);
+    this.webhooks = new WebhooksService(this);
   }
 
   /** Calls the API and answers what it wrapped in `data`; a refusal throws PerataError. */

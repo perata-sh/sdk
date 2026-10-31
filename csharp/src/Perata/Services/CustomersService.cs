@@ -30,6 +30,16 @@ public sealed class CustomersService
         return client.RequestAsync(HttpMethod.Post, "/api/v1/customers", null, JsonSerializer.SerializeToUtf8Bytes(parameters, PerataJson.Default.CustomersCreateParams), PerataJson.Default.CustomerEnvelope, options?.IdempotencyKey, options, cancellationToken);
     }
 
+    /// <summary>Excluir um cliente: as assinaturas terminam na hora, os benefícios são revogados e o ID externo é liberado; pedidos e pagamentos continuam. The API answers 204, so there is nothing to return.</summary>
+    /// <param name="customer">The customer.</param>
+    /// <param name="options">An idempotency key, or another organization's key for this call.</param>
+    /// <param name="cancellationToken">Cancels the call.</param>
+    /// <exception cref="PerataException">The API refused the call.</exception>
+    public Task DeleteAsync(string customer, RequestOptions? options = null, CancellationToken cancellationToken = default)
+    {
+        return client.RequestNoContentAsync(HttpMethod.Delete, "/api/v1/customers/" + PerataClient.Segment(customer), null, null, options?.IdempotencyKey, options, cancellationToken);
+    }
+
     /// <summary>Ler um cliente.</summary>
     /// <param name="customer">The customer.</param>
     /// <param name="options">Another organization's key for this call.</param>
@@ -39,6 +49,17 @@ public sealed class CustomersService
     public Task<Customer> GetAsync(string customer, RequestOptions? options = null, CancellationToken cancellationToken = default)
     {
         return client.RequestAsync(HttpMethod.Get, "/api/v1/customers/" + PerataClient.Segment(customer), null, null, PerataJson.Default.CustomerEnvelope, null, options, cancellationToken);
+    }
+
+    /// <summary>Ler um cliente pelo ID dele no sistema do lojista (external_id).</summary>
+    /// <param name="externalId">The external_id.</param>
+    /// <param name="options">Another organization's key for this call.</param>
+    /// <param name="cancellationToken">Cancels the call.</param>
+    /// <returns>The customer.</returns>
+    /// <exception cref="PerataException">The API refused the call.</exception>
+    public Task<Customer> GetExternalAsync(string externalId, RequestOptions? options = null, CancellationToken cancellationToken = default)
+    {
+        return client.RequestAsync(HttpMethod.Get, "/api/v1/external-customers/" + PerataClient.Segment(externalId), null, null, PerataJson.Default.CustomerEnvelope, null, options, cancellationToken);
     }
 
     /// <summary>Ler o estado de um cliente: assinaturas ativas e benefícios vigentes, inclusive os feature flags.</summary>
@@ -70,6 +91,32 @@ public sealed class CustomersService
     {
         var walk = parameters ?? new CustomersListParams();
         return Pages.IterateAsync((page, token) => ListAsync(walk with { Page = page }, options, token), walk.Page, cancellationToken);
+    }
+
+    /// <summary>Atualizar o nome, o e-mail ou o ID externo de um cliente; o ID externo não muda depois de definido.</summary>
+    /// <param name="customer">The customer.</param>
+    /// <param name="parameters">The request.</param>
+    /// <param name="options">An idempotency key, or another organization's key for this call.</param>
+    /// <param name="cancellationToken">Cancels the call.</param>
+    /// <returns>The customer.</returns>
+    /// <exception cref="PerataException">The API refused the call.</exception>
+    public Task<Customer> UpdateAsync(string customer, CustomersUpdateParams parameters, RequestOptions? options = null, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(parameters);
+        return client.RequestAsync(HttpMethod.Patch, "/api/v1/customers/" + PerataClient.Segment(customer), null, JsonSerializer.SerializeToUtf8Bytes(parameters, PerataJson.Default.CustomersUpdateParams), PerataJson.Default.CustomerEnvelope, options?.IdempotencyKey, options, cancellationToken);
+    }
+
+    /// <summary>Atualizar um cliente pelo ID dele no sistema do lojista (external_id).</summary>
+    /// <param name="externalId">The external_id.</param>
+    /// <param name="parameters">The request.</param>
+    /// <param name="options">An idempotency key, or another organization's key for this call.</param>
+    /// <param name="cancellationToken">Cancels the call.</param>
+    /// <returns>The customer.</returns>
+    /// <exception cref="PerataException">The API refused the call.</exception>
+    public Task<Customer> UpdateExternalAsync(string externalId, CustomersUpdateExternalParams parameters, RequestOptions? options = null, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(parameters);
+        return client.RequestAsync(HttpMethod.Patch, "/api/v1/external-customers/" + PerataClient.Segment(externalId), null, JsonSerializer.SerializeToUtf8Bytes(parameters, PerataJson.Default.CustomersUpdateExternalParams), PerataJson.Default.CustomerEnvelope, options?.IdempotencyKey, options, cancellationToken);
     }
 }
 
@@ -103,5 +150,37 @@ public sealed record CustomersListParams
         new("page", Page?.ToString(CultureInfo.InvariantCulture)),
         new("limit", Limit?.ToString(CultureInfo.InvariantCulture)),
     ];
+}
+
+/// <summary>The body of customers:update.</summary>
+public sealed record CustomersUpdateParams
+{
+    /// <summary>The <c>email</c> to send. Left out of the request when null.</summary>
+    [JsonPropertyName("email")]
+    public string? Email { get; init; }
+
+    /// <summary>Só pode ser definido uma vez. Left out of the request when null.</summary>
+    [JsonPropertyName("external_id")]
+    public string? ExternalId { get; init; }
+
+    /// <summary>The <c>name</c> to send. Left out of the request when null.</summary>
+    [JsonPropertyName("name")]
+    public string? Name { get; init; }
+}
+
+/// <summary>The body of customers:update_external.</summary>
+public sealed record CustomersUpdateExternalParams
+{
+    /// <summary>The <c>email</c> to send. Left out of the request when null.</summary>
+    [JsonPropertyName("email")]
+    public string? Email { get; init; }
+
+    /// <summary>Só pode ser definido uma vez. Left out of the request when null.</summary>
+    [JsonPropertyName("external_id")]
+    public string? ExternalId { get; init; }
+
+    /// <summary>The <c>name</c> to send. Left out of the request when null.</summary>
+    [JsonPropertyName("name")]
+    public string? Name { get; init; }
 }
 

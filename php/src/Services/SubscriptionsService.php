@@ -59,5 +59,16 @@ final class SubscriptionsService
     {
         return Page::iterate(fn (int $page): Page => $this->list(['page' => $page] + $params, $apiKey), $params['page'] ?? 1);
     }
+
+    /**
+     * Trocar o plano de uma assinatura: outro preço e, se quiser, outra quantidade, com a forma de ratear a diferença (proration_behavior).
+     *
+     * @param array{price_id: string, proration_behavior?: 'prorate'|'invoice'|'next_period'|'reset', quantity?: int} $params
+     */
+    public function update(string $subscription, array $params, ?string $idempotencyKey = null, ?string $apiKey = null): Models\Subscription
+    {
+        $data = $this->client->request('PATCH', '/api/v1/subscriptions/' . rawurlencode($subscription), body: $params, idempotencyKey: $idempotencyKey, apiKey: $apiKey);
+        return Models\Subscription::fromArray($data);
+    }
 }
 

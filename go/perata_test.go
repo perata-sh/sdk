@@ -72,6 +72,58 @@ func TestABaseURLMustBeHTTPSUnlessItIsLoopback(t *testing.T) {
 	}
 }
 
+func TestADiscountGoesThroughCreateGetListAndDelete(t *testing.T) {
+	discount := func(id string) string {
+		return fmt.Sprintf(`{"id":"%s","name":"Black","code":null,"type":"percentage","basis_points":1000,"amount_cents":0,"currency":"BRL","duration":"once","duration_in_months":0,"max_redemptions":null,"max_redemptions_per_customer":null,"redemptions_count":0,"starts_at":"2026-10-17T00:00:00Z","ends_at":null,"status":"active","product_ids":["prod_1"],"created_at":"2026-10-17T00:00:00Z","modified_at":"2026-10-17T00:00:00Z"}`, id)
+	}
+	var seen []string
+	client := server(t, func(w http.ResponseWriter, r *http.Request) {
+		seen = append(seen, r.Method+" "+r.URL.Path)
+		switch {
+		case r.Method == http.MethodPost:
+			var body map[string]any
+			_ = json.NewDecoder(r.Body).Decode(&body)
+			if body["name"] != "Black" || body["type"] != "percentage" || body["basis_points"] != float64(1000) {
+				t.Errorf("body %v", body)
+			}
+			w.WriteHeader(http.StatusCreated)
+			fmt.Fprintf(w, `{"data":%s}`, discount("disc_1"))
+		case r.Method == http.MethodDelete:
+			w.WriteHeader(http.StatusNoContent)
+		case r.URL.Path == "/api/v1/discounts":
+			page, _ := strconv.Atoi(r.URL.Query().Get("page"))
+			fmt.Fprintf(w, `{"data":{"items":[%s],"pagination":{"total_count":2,"max_page":2}}}`, discount(fmt.Sprintf("disc_%d", page)))
+		default:
+			fmt.Fprintf(w, `{"data":%s}`, discount("disc_1"))
+		}
+	})
+	ctx := context.Background()
+	basisPoints := int64(1000)
+	created, err := client.Discounts.Create(ctx, DiscountsCreateParams{Name: "Black", Type: "percentage", Duration: "once", BasisPoints: &basisPoints})
+	if err != nil || created.ID != "disc_1" || created.Code != nil || created.ProductIds[0] != "prod_1" {
+		t.Fatalf("created %+v, %v", created, err)
+	}
+	if got, err := client.Discounts.Get(ctx, "disc_1"); err != nil || got.Name != "Black" {
+		t.Fatalf("got %+v, %v", got, err)
+	}
+	var ids []string
+	for each, err := range client.Discounts.ListIter(ctx, &DiscountsListParams{Limit: 1}) {
+		if err != nil {
+			t.Fatal(err)
+		}
+		ids = append(ids, each.ID)
+	}
+	if fmt.Sprint(ids) != "[disc_1 disc_2]" {
+		t.Fatalf("walked %v", ids)
+	}
+	if err := client.Discounts.Delete(ctx, "disc_1"); err != nil {
+		t.Fatal(err)
+	}
+	if got := fmt.Sprint(seen); got != "[POST /api/v1/discounts GET /api/v1/discounts/disc_1 GET /api/v1/discounts GET /api/v1/discounts DELETE /api/v1/discounts/disc_1]" {
+		t.Fatalf("requests %v", got)
+	}
+}
+
 func TestAFreeFormValueDecodesNested(t *testing.T) {
 	client := server(t, func(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprint(w, `{"data":{"id": "cus_1", "name": "Ana", "email": "ana@example.com", "external_id": "", "status": "active", "created_at": "2026-10-17T00:00:00Z", "active_subscriptions": [], "granted_benefits": [{"id": "gr_1", "granted_at": "2026-10-17T00:00:00Z", "benefit_id": "ben_1", "benefit_type": "feature_flag", "benefit_metadata": {"flags": {"beta": true, "limits": {"seats": 5, "tiers": ["a", 2, null, 1.5]}}}, "properties": {"links": [{"url": "https://example.com", "expires": null}]}}]}}`)

@@ -5,9 +5,10 @@ use std::thread;
 use std::time::{Duration, UNIX_EPOCH};
 
 use perata::{
-    verify_webhook_at, verify_webhook_signature_at, BoxError, Client, CustomersCreateParams, Error,
-    HttpRequest, HttpResponse, ProductStatus, ProductsCreateParams, ProductsListParams,
-    WebhookError, WebhookEvent,
+    verify_webhook_at, verify_webhook_signature_at, BoxError, Client, CustomersCreateParams,
+    DiscountsCreateParams, DiscountsCreateParamsDuration, DiscountsCreateParamsType,
+    DiscountsListParams, Error, HttpRequest, HttpResponse, ProductStatus, ProductsCreateParams,
+    ProductsListParams, WebhookError, WebhookEvent,
 };
 
 type Seen = Arc<Mutex<Vec<HttpRequest>>>;
@@ -113,6 +114,79 @@ fn a_base_url_must_be_https_unless_it_is_loopback() {
     }
     // Only the accepted ones sent anything.
     assert_eq!(calls.load(std::sync::atomic::Ordering::SeqCst), 6);
+}
+
+#[test]
+fn a_discount_goes_through_create_get_list_and_delete() {
+    let discount = |id: &str| -> serde_json::Value {
+        serde_json::from_str(&r#"{"id":"__ID__","name":"Black","code":null,"type":"percentage","basis_points":1000,"amount_cents":0,"currency":"BRL","duration":"once","duration_in_months":0,"max_redemptions":null,"max_redemptions_per_customer":null,"redemptions_count":0,"starts_at":"2026-10-17T00:00:00Z","ends_at":null,"status":"active","product_ids":["prod_1"],"created_at":"2026-10-17T00:00:00Z","modified_at":"2026-10-17T00:00:00Z"}"#.replace("__ID__", id)).unwrap()
+    };
+    let (client, seen) = client(move |request| {
+        if request.method == "POST" {
+            return json(201, serde_json::json!({ "data": discount("disc_1") }));
+        }
+        if request.method == "DELETE" {
+            return HttpResponse::new(204, "");
+        }
+        if request.url.contains("/api/v1/discounts?") {
+            let page = query(&request.url, "page").unwrap();
+            return json(
+                200,
+                serde_json::json!({"data": {"items": [discount(&format!("disc_{page}"))], "pagination": {"total_count": 2, "max_page": 2}}}),
+            );
+        }
+        json(200, serde_json::json!({ "data": discount("disc_1") }))
+    });
+    let created = client
+        .discounts()
+        .create(
+            &DiscountsCreateParams::new(
+                DiscountsCreateParamsDuration::Once,
+                "Black",
+                DiscountsCreateParamsType::Percentage,
+            )
+            .basis_points(1000),
+        )
+        .unwrap();
+    assert_eq!(created.id, "disc_1");
+    assert_eq!(created.code, None);
+    assert_eq!(created.product_ids, ["prod_1"]);
+    assert_eq!(client.discounts().get("disc_1").unwrap().name, "Black");
+    let ids: Vec<String> = client
+        .discounts()
+        .list_iter(DiscountsListParams::new().limit(1))
+        .map(|each| each.unwrap().id)
+        .collect();
+    assert_eq!(ids, ["disc_1", "disc_2"]);
+    // A 204 has no body, and the method answers nothing.
+    client.discounts().delete("disc_1").unwrap();
+    let seen = seen.lock().unwrap();
+    let requests: Vec<String> = seen
+        .iter()
+        .map(|request| {
+            let path = request.url.split('?').next().unwrap_or_default();
+            format!(
+                "{} {}",
+                request.method,
+                path.trim_start_matches("https://perata.test")
+            )
+        })
+        .collect();
+    assert_eq!(
+        requests,
+        [
+            "POST /api/v1/discounts",
+            "GET /api/v1/discounts/disc_1",
+            "GET /api/v1/discounts",
+            "GET /api/v1/discounts",
+            "DELETE /api/v1/discounts/disc_1"
+        ]
+    );
+    let body: serde_json::Value = serde_json::from_slice(seen[0].body.as_deref().unwrap()).unwrap();
+    assert_eq!(
+        body,
+        serde_json::json!({"name": "Black", "type": "percentage", "duration": "once", "basis_points": 1000})
+    );
 }
 
 #[test]

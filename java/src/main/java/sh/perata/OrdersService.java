@@ -16,6 +16,72 @@ public final class OrdersService {
     }
 
     /**
+     * Ler um pedido: um checkout pago.
+     * @param order the order
+     * @param options another organization's key for this call, or null
+     * @return the order
+     * @throws PerataException when the API refuses the call
+     */
+    public Order get(String order, RequestOptions options) {
+        Object data = client.request("GET", "/api/v1/orders/" + Perata.segment(order), null, null, null, options);
+        return Order.fromJson(Json.asObject(data));
+    }
+
+    /**
+     * Ler um pedido: um checkout pago.
+     * @param order the order
+     * @return the order
+     * @throws PerataException when the API refuses the call
+     */
+    public Order get(String order) {
+        return get(order, null);
+    }
+
+    /**
+     * Ler a fatura de um pedido, o documento comercial que o lojista gerou; sem ela, 404.
+     * @param order the order
+     * @param options another organization's key for this call, or null
+     * @return the orderinvoice
+     * @throws PerataException when the API refuses the call
+     */
+    public OrderInvoice getInvoice(String order, RequestOptions options) {
+        Object data = client.request("GET", "/api/v1/orders/" + Perata.segment(order) + "/invoice", null, null, null, options);
+        return OrderInvoice.fromJson(Json.asObject(data));
+    }
+
+    /**
+     * Ler a fatura de um pedido, o documento comercial que o lojista gerou; sem ela, 404.
+     * @param order the order
+     * @return the orderinvoice
+     * @throws PerataException when the API refuses the call
+     */
+    public OrderInvoice getInvoice(String order) {
+        return getInvoice(order, null);
+    }
+
+    /**
+     * Ler o recibo de um pedido: o que foi pago, quando e como.
+     * @param order the order
+     * @param options another organization's key for this call, or null
+     * @return the orderreceipt
+     * @throws PerataException when the API refuses the call
+     */
+    public OrderReceipt getReceipt(String order, RequestOptions options) {
+        Object data = client.request("GET", "/api/v1/orders/" + Perata.segment(order) + "/receipt", null, null, null, options);
+        return OrderReceipt.fromJson(Json.asObject(data));
+    }
+
+    /**
+     * Ler o recibo de um pedido: o que foi pago, quando e como.
+     * @param order the order
+     * @return the orderreceipt
+     * @throws PerataException when the API refuses the call
+     */
+    public OrderReceipt getReceipt(String order) {
+        return getReceipt(order, null);
+    }
+
+    /**
      * Listar pedidos: checkouts pagos. One page; {@link #listIter} walks every page.
      * @param params the page, its size and the filters, or null
      * @param options options for this call, or null

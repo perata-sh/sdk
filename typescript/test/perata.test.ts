@@ -54,6 +54,40 @@ test("a base URL must be https unless it is loopback", () => {
   }
 });
 
+const discount = (id: string) => JSON.parse("{\"id\":\"__ID__\",\"name\":\"Black\",\"code\":null,\"type\":\"percentage\",\"basis_points\":1000,\"amount_cents\":0,\"currency\":\"BRL\",\"duration\":\"once\",\"duration_in_months\":0,\"max_redemptions\":null,\"max_redemptions_per_customer\":null,\"redemptions_count\":0,\"starts_at\":\"2026-10-17T00:00:00Z\",\"ends_at\":null,\"status\":\"active\",\"product_ids\":[\"prod_1\"],\"created_at\":\"2026-10-17T00:00:00Z\",\"modified_at\":\"2026-10-17T00:00:00Z\"}".replace("__ID__", id));
+
+test("a discount goes through create, get, list and delete", async () => {
+  const { perata, seen } = client(({ method, url }) => {
+    if (method === "POST") {
+      return json(201, { data: discount("disc_1") });
+    }
+    if (method === "DELETE") {
+      return new Response(null, { status: 204 });
+    }
+    if (url.pathname === "/api/v1/discounts") {
+      const page = url.searchParams.get("page");
+      return json(200, { data: { items: [discount(`disc_${page}`)], pagination: { total_count: 2, max_page: 2 } } });
+    }
+    return json(200, { data: discount("disc_1") });
+  });
+  const created = await perata.discounts.create({ name: "Black", type: "percentage", duration: "once", basis_points: 1000 });
+  assert.equal(created.id, "disc_1");
+  assert.equal(created.code, null);
+  assert.deepEqual(created.product_ids, ["prod_1"]);
+  assert.equal((await perata.discounts.get("disc_1")).name, "Black");
+  const ids: string[] = [];
+  for await (const each of perata.discounts.listIter({ limit: 1 })) {
+    ids.push(each.id);
+  }
+  assert.deepEqual(ids, ["disc_1", "disc_2"]);
+  assert.equal(await perata.discounts.delete("disc_1"), undefined);
+  assert.deepEqual(
+    seen.map((each) => `${each.method} ${each.url.pathname}`),
+    ["POST /api/v1/discounts", "GET /api/v1/discounts/disc_1", "GET /api/v1/discounts", "GET /api/v1/discounts", "DELETE /api/v1/discounts/disc_1"],
+  );
+  assert.deepEqual(JSON.parse(seen[0]?.body ?? ""), { name: "Black", type: "percentage", duration: "once", basis_points: 1000 });
+});
+
 test("a free-form value decodes nested", async () => {
   const state = {"id": "cus_1", "name": "Ana", "email": "ana@example.com", "external_id": "", "status": "active", "created_at": "2026-10-17T00:00:00Z", "active_subscriptions": [], "granted_benefits": [{"id": "gr_1", "granted_at": "2026-10-17T00:00:00Z", "benefit_id": "ben_1", "benefit_type": "feature_flag", "benefit_metadata": {"flags": {"beta": true, "limits": {"seats": 5, "tiers": ["a", 2, null, 1.5]}}}, "properties": {"links": [{"url": "https://example.com", "expires": null}]}}]};
   const { perata } = client(() => json(200, { data: state }));

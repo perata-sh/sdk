@@ -22,16 +22,23 @@ for product in perata.products.list_iter():
 
 | Serviço | Métodos |
 |---|---|
-| `perata.checkouts` | `create` |
+| `perata.benefits` | `create`, `delete`, `get`, `list`, `list_iter`, `list_grants`, `list_grants_iter`, `update` |
+| `perata.checkout_links` | `create`, `delete`, `get`, `list`, `list_iter`, `update` |
+| `perata.checkouts` | `create`, `get`, `update` |
 | `perata.customer_sessions` | `create` |
-| `perata.customers` | `create`, `get`, `get_state`, `list`, `list_iter` |
-| `perata.orders` | `list`, `list_iter` |
+| `perata.customers` | `create`, `delete`, `get`, `get_external`, `get_state`, `list`, `list_iter`, `update`, `update_external` |
+| `perata.discounts` | `create`, `delete`, `get`, `list`, `list_iter`, `update` |
+| `perata.disputes` | `get`, `list`, `list_iter` |
+| `perata.events` | `list`, `list_iter` |
+| `perata.meters` | `get`, `list`, `list_iter` |
+| `perata.orders` | `get`, `get_invoice`, `get_receipt`, `list`, `list_iter` |
 | `perata.payment_methods` | `detach`, `list`, `list_iter` |
 | `perata.payments` | `get`, `list`, `list_iter` |
 | `perata.prices` | `create`, `list`, `list_iter` |
-| `perata.products` | `create`, `get`, `list`, `list_iter` |
-| `perata.refunds` | `create` |
-| `perata.subscriptions` | `cancel`, `get`, `list`, `list_iter` |
+| `perata.products` | `archive`, `create`, `get`, `list`, `list_iter`, `update` |
+| `perata.refunds` | `create`, `list`, `list_iter` |
+| `perata.subscriptions` | `cancel`, `get`, `list`, `list_iter`, `update` |
+| `perata.webhooks` | `create_endpoint`, `delete_endpoint`, `get_endpoint`, `list_deliveries`, `list_deliveries_iter`, `list_endpoints`, `list_endpoints_iter`, `update_endpoint` |
 
 As escritas aceitam `idempotency_key=`, e todas aceitam `api_key=` para usar a chave de outra organização numa chamada. Um POST sem chave de idempotência é enviado com uma `Idempotency-Key` própria (UUID v4 aleatório, uma por chamada); passe a sua para poder repetir a mesma operação com segurança.
 

@@ -27,5 +27,25 @@ final class CheckoutsService
         $data = $this->client->request('POST', '/api/v1/checkouts', body: $params, idempotencyKey: $idempotencyKey, apiKey: $apiKey);
         return Models\Checkout::fromArray($data);
     }
+
+    /**
+     * Ler um checkout: o endereço, o estado e as páginas de retorno.
+     */
+    public function get(string $checkout, ?string $apiKey = null): Models\Checkout
+    {
+        $data = $this->client->request('GET', '/api/v1/checkouts/' . rawurlencode($checkout), apiKey: $apiKey);
+        return Models\Checkout::fromArray($data);
+    }
+
+    /**
+     * Atualizar o rótulo e as páginas de retorno de um checkout ativo.
+     *
+     * @param array{cancel_url?: string, label?: string, success_url?: string} $params
+     */
+    public function update(string $checkout, array $params, ?string $idempotencyKey = null, ?string $apiKey = null): Models\Checkout
+    {
+        $data = $this->client->request('PATCH', '/api/v1/checkouts/' . rawurlencode($checkout), body: $params, idempotencyKey: $idempotencyKey, apiKey: $apiKey);
+        return Models\Checkout::fromArray($data);
+    }
 }
 

@@ -95,6 +95,37 @@ final class PerataTests: XCTestCase {
         }
     }
 
+    func testADiscountGoesThroughCreateGetListAndDelete() async throws {
+        @Sendable func discount(_ id: String) -> Any {
+            try! JSONSerialization.jsonObject(with: Data(#"{"id":"__ID__","name":"Black","code":null,"type":"percentage","basis_points":1000,"amount_cents":0,"currency":"BRL","duration":"once","duration_in_months":0,"max_redemptions":null,"max_redemptions_per_customer":null,"redemptions_count":0,"starts_at":"2026-10-17T00:00:00Z","ends_at":null,"status":"active","product_ids":["prod_1"],"created_at":"2026-10-17T00:00:00Z","modified_at":"2026-10-17T00:00:00Z"}"#.replacingOccurrences(of: "__ID__", with: id).utf8))
+        }
+        let (perata, recorder) = client { request in
+            if request.httpMethod == "POST" { return (201, [:], ["data": discount("disc_1")]) }
+            if request.httpMethod == "DELETE" { return (204, [:], nil) }
+            if request.url?.path == "/api/v1/discounts" {
+                let page = queryItem(request, "page") ?? ""
+                return (200, [:], ["data": ["items": [discount("disc_\(page)")], "pagination": ["total_count": 2, "max_page": 2]]])
+            }
+            return (200, [:], ["data": discount("disc_1")])
+        }
+        let created = try await perata.discounts.create(DiscountsCreateParams(duration: "once", name: "Black", type: "percentage", basisPoints: 1000))
+        XCTAssertEqual(created.id, "disc_1")
+        XCTAssertNil(created.code)
+        XCTAssertEqual(created.productIds, ["prod_1"])
+        let got = try await perata.discounts.get("disc_1")
+        XCTAssertEqual(got.name, "Black")
+        var ids: [String] = []
+        for try await each in perata.discounts.listIter(limit: 1) { ids.append(each.id) }
+        XCTAssertEqual(ids, ["disc_1", "disc_2"])
+        try await perata.discounts.delete("disc_1")
+        XCTAssertEqual(
+            recorder.seen.map { "\($0.httpMethod ?? "") \($0.url?.path ?? "")" },
+            ["POST /api/v1/discounts", "GET /api/v1/discounts/disc_1", "GET /api/v1/discounts", "GET /api/v1/discounts", "DELETE /api/v1/discounts/disc_1"])
+        let body = try XCTUnwrap(JSONSerialization.jsonObject(with: XCTUnwrap(recorder.seen[0].httpBody)) as? [String: Any])
+        XCTAssertEqual(body["basis_points"] as? Int, 1000)
+        XCTAssertEqual(body["name"] as? String, "Black")
+    }
+
     func testAFreeFormValueDecodesNested() async throws {
         let (perata, _) = client { _ in
             let state = try! JSONSerialization.jsonObject(with: Data(#"{"id":"cus_1","name":"Ana","email":"ana@example.com","external_id":"","status":"active","created_at":"2026-10-17T00:00:00Z","active_subscriptions":[],"granted_benefits":[{"id":"gr_1","granted_at":"2026-10-17T00:00:00Z","benefit_id":"ben_1","benefit_type":"feature_flag","benefit_metadata":{"flags":{"beta":true,"limits":{"seats":5,"tiers":["a",2,null,1.5]}}},"properties":{"links":[{"url":"https://example.com","expires":null}]}}]}"#.utf8))

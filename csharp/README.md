@@ -27,16 +27,23 @@ await foreach (var each in perata.Products.ListIterAsync())
 
 | Serviço | Métodos |
 |---|---|
-| `perata.Checkouts` | `CreateAsync` |
+| `perata.Benefits` | `CreateAsync`, `DeleteAsync`, `GetAsync`, `ListAsync`, `ListIterAsync`, `ListGrantsAsync`, `ListGrantsIterAsync`, `UpdateAsync` |
+| `perata.CheckoutLinks` | `CreateAsync`, `DeleteAsync`, `GetAsync`, `ListAsync`, `ListIterAsync`, `UpdateAsync` |
+| `perata.Checkouts` | `CreateAsync`, `GetAsync`, `UpdateAsync` |
 | `perata.CustomerSessions` | `CreateAsync` |
-| `perata.Customers` | `CreateAsync`, `GetAsync`, `GetStateAsync`, `ListAsync`, `ListIterAsync` |
-| `perata.Orders` | `ListAsync`, `ListIterAsync` |
+| `perata.Customers` | `CreateAsync`, `DeleteAsync`, `GetAsync`, `GetExternalAsync`, `GetStateAsync`, `ListAsync`, `ListIterAsync`, `UpdateAsync`, `UpdateExternalAsync` |
+| `perata.Discounts` | `CreateAsync`, `DeleteAsync`, `GetAsync`, `ListAsync`, `ListIterAsync`, `UpdateAsync` |
+| `perata.Disputes` | `GetAsync`, `ListAsync`, `ListIterAsync` |
+| `perata.Events` | `ListAsync`, `ListIterAsync` |
+| `perata.Meters` | `GetAsync`, `ListAsync`, `ListIterAsync` |
+| `perata.Orders` | `GetAsync`, `GetInvoiceAsync`, `GetReceiptAsync`, `ListAsync`, `ListIterAsync` |
 | `perata.PaymentMethods` | `DetachAsync`, `ListAsync`, `ListIterAsync` |
 | `perata.Payments` | `GetAsync`, `ListAsync`, `ListIterAsync` |
 | `perata.Prices` | `CreateAsync`, `ListAsync`, `ListIterAsync` |
-| `perata.Products` | `CreateAsync`, `GetAsync`, `ListAsync`, `ListIterAsync` |
-| `perata.Refunds` | `CreateAsync` |
-| `perata.Subscriptions` | `CancelAsync`, `GetAsync`, `ListAsync`, `ListIterAsync` |
+| `perata.Products` | `ArchiveAsync`, `CreateAsync`, `GetAsync`, `ListAsync`, `ListIterAsync`, `UpdateAsync` |
+| `perata.Refunds` | `CreateAsync`, `ListAsync`, `ListIterAsync` |
+| `perata.Subscriptions` | `CancelAsync`, `GetAsync`, `ListAsync`, `ListIterAsync`, `UpdateAsync` |
+| `perata.Webhooks` | `CreateEndpointAsync`, `DeleteEndpointAsync`, `GetEndpointAsync`, `ListDeliveriesAsync`, `ListDeliveriesIterAsync`, `ListEndpointsAsync`, `ListEndpointsIterAsync`, `UpdateEndpointAsync` |
 
 Os modelos são `record`s imutáveis em PascalCase (`payment.AmountCents`), com os valores enumerados como constantes (`Product.StatusActive`). O corpo de cada escrita é um `record` com membros `required` (`ProductsCreateParams`); um campo opcional nulo fica fora da requisição. As listas aceitam `…ListParams` (`Page`, `Limit` e os filtros) e o `…IterAsync` devolve um `IAsyncEnumerable` que percorre todas as páginas. Todo método aceita, por último, `RequestOptions` (`IdempotencyKey` nas escritas, `ApiKey` para usar a chave de outra organização numa chamada) e um `CancellationToken`. Um POST sem chave de idempotência é enviado com uma `Idempotency-Key` própria (UUID v4 aleatório, uma por chamada); passe a sua para poder repetir a mesma operação com segurança.
 

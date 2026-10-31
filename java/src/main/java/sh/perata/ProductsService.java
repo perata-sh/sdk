@@ -16,6 +16,28 @@ public final class ProductsService {
     }
 
     /**
+     * Arquivar um produto: sai das vendas novas e o que já foi vendido continua apontando para ele.
+     * @param product the product
+     * @param options an idempotency key or another organization's key for this call, or null
+     * @return the product
+     * @throws PerataException when the API refuses the call
+     */
+    public Product archive(String product, RequestOptions options) {
+        Object data = client.request("POST", "/api/v1/products/" + Perata.segment(product) + "/archive", null, null, options == null ? null : options.getIdempotencyKey(), options);
+        return Product.fromJson(Json.asObject(data));
+    }
+
+    /**
+     * Arquivar um produto: sai das vendas novas e o que já foi vendido continua apontando para ele.
+     * @param product the product
+     * @return the product
+     * @throws PerataException when the API refuses the call
+     */
+    public Product archive(String product) {
+        return archive(product, null);
+    }
+
+    /**
      * Criar um produto.
      * @param params the request
      * @param options an idempotency key or another organization's key for this call, or null
@@ -259,6 +281,103 @@ public final class ProductsService {
             /** @return the page and filters */
             public ListParams build() {
                 return new ListParams(this);
+            }
+        }
+    }
+
+    /**
+     * Atualizar o nome ou a descrição de um produto ativo.
+     * @param product the product
+     * @param params the request
+     * @param options an idempotency key or another organization's key for this call, or null
+     * @return the product
+     * @throws PerataException when the API refuses the call
+     */
+    public Product update(String product, UpdateParams params, RequestOptions options) {
+        Object data = client.request("PATCH", "/api/v1/products/" + Perata.segment(product), null, Objects.requireNonNull(params, "params").toJson(), options == null ? null : options.getIdempotencyKey(), options);
+        return Product.fromJson(Json.asObject(data));
+    }
+
+    /**
+     * Atualizar o nome ou a descrição de um produto ativo.
+     * @param product the product
+     * @param params the request
+     * @return the product
+     * @throws PerataException when the API refuses the call
+     */
+    public Product update(String product, UpdateParams params) {
+        return update(product, params, null);
+    }
+
+    /** The body of products:update. */
+    public static final class UpdateParams {
+
+        private final String description;
+        private final String name;
+
+        private UpdateParams(Builder builder) {
+            this.description = builder.description;
+            this.name = builder.name;
+        }
+
+        /** @return a builder of the request */
+        public static Builder builder() {
+            return new Builder();
+        }
+
+        /** @return the {@code description} sent (null when left out) */
+        public String getDescription() {
+            return description;
+        }
+
+        /** @return the {@code name} sent (null when left out) */
+        public String getName() {
+            return name;
+        }
+
+        Map<String, Object> toJson() {
+            Map<String, Object> body = new LinkedHashMap<>();
+            if (description != null) {
+                body.put("description", description);
+            }
+            if (name != null) {
+                body.put("name", name);
+            }
+            return body;
+        }
+
+        /** Builds {@link UpdateParams}; the fields left unset are left out of the request. */
+        public static final class Builder {
+            private String description;
+            private String name;
+
+            private Builder() {
+            }
+
+            /**
+             * @param description the {@code description} to send
+             * @return this builder
+             */
+            public Builder description(String description) {
+                this.description = description;
+                return this;
+            }
+
+            /**
+             * @param name the {@code name} to send
+             * @return this builder
+             */
+            public Builder name(String name) {
+                this.name = name;
+                return this;
+            }
+
+            /**
+             * @return the request
+             * @throws IllegalStateException when a required field is unset
+             */
+            public UpdateParams build() {
+                return new UpdateParams(this);
             }
         }
     }
