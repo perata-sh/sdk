@@ -58,3 +58,82 @@ func TestAFreeFormValueIsAnyJSON(t *testing.T) {
 		t.Errorf("checked %d languages of %d", len(want), len(Languages))
 	}
 }
+
+// A nullable enum lists null among its values (it is the nullability, not a
+// value); an object that names no property is a map of free-form values; and
+// a 204 is a method that returns nothing.
+func TestNullInAnEnumAnEmptyObjectAndANoContentAnswer(t *testing.T) {
+	ir, err := load(t, func(doc map[string]any) {
+		properties := dig(doc, "components", "schemas", "Product", "properties")
+		properties["period"] = map[string]any{"type": []any{"string", "null"}, "enum": []any{"day", "month", nil}}
+		properties["pairs"] = map[string]any{"type": "object"}
+		properties["closed"] = map[string]any{"type": "object", "properties": map[string]any{}, "additionalProperties": false}
+		item := dig(doc, "paths", "/api/v1/products/{product}")
+		item["delete"] = map[string]any{
+			"operationId": "products:delete",
+			"summary":     "Delete a product",
+			"security":    []any{map[string]any{"apiKey": []any{}}},
+			"parameters":  []any{map[string]any{"name": "product", "in": "path", "required": true, "schema": map[string]any{"type": "string"}}},
+			"responses":   map[string]any{"204": map[string]any{"description": "Nothing."}},
+		}
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	var product *Model
+	for _, model := range ir.Models {
+		if model.Name == "Product" {
+			product = model
+		}
+	}
+	for _, field := range product.Fields {
+		switch field.Wire {
+		case "period":
+			if !field.Nullable || strings.Join(field.Type.Enum, ",") != "day,month" {
+				t.Errorf("period %+v nullable %v", field.Type, field.Nullable)
+			}
+		case "pairs", "closed":
+			if field.Type.Kind != "map" || field.Type.Items.Kind != "any" {
+				t.Errorf("%s is %+v", field.Wire, field.Type)
+			}
+		}
+	}
+	var deleted *Method
+	for _, service := range ir.Services {
+		for _, method := range service.Methods {
+			if method.OperationID == "products:delete" {
+				deleted = method
+			}
+		}
+	}
+	if deleted == nil || !deleted.NoContent || deleted.Response != "" || deleted.HTTPMethod != "DELETE" {
+		t.Fatalf("delete %+v", deleted)
+	}
+	// Every language writes it, and returns nothing.
+	want := map[string]struct{ file, text string }{
+		"go":         {"services.go", "opts ...RequestOption) error {"},
+		"typescript": {"src/services.ts", "Promise<void>"},
+		"python":     {"src/perata/_services.py", "-> None:"},
+		"php":        {"src/Services/ProductsService.php", "?string $apiKey = null): void"},
+		"ruby":       {"lib/perata/services.rb", "# @return [nil]"},
+		"java":       {"src/main/java/sh/perata/ProductsService.java", "public void delete("},
+		"csharp":     {"src/Perata/Services/ProductsService.cs", "public Task DeleteAsync("},
+		"elixir":     {"lib/perata/services.ex", ":ok | {:error, Perata.Error.t()}"},
+		"dart":       {"lib/src/services.dart", "Future<void> delete"},
+		"rust":       {"src/services.rs", "-> Result<(), Error>"},
+		"swift":      {"Sources/Perata/Services.swift", "async throws {"},
+	}
+	for language, expected := range want {
+		out := t.TempDir()
+		if err := Generate(ir, language, out); err != nil {
+			t.Fatalf("%s: %v", language, err)
+		}
+		raw, err := os.ReadFile(filepath.Join(out, expected.file))
+		if err != nil || !strings.Contains(string(raw), expected.text) {
+			t.Errorf("%s: %s has no %q (%v)", language, expected.file, expected.text, err)
+		}
+	}
+	if len(want) != len(Languages) {
+		t.Errorf("checked %d languages of %d", len(want), len(Languages))
+	}
+}

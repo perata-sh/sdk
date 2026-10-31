@@ -46,6 +46,25 @@ public sealed class {{pascal .Service.Name}}Service
         var walk = parameters ?? new {{$service}}{{pascal .Name}}Params();
         return Pages.IterateAsync((page, token) => {{pascal .Name}}Async({{template "args" .}}walk with { Page = page }, options, token), walk.Page, cancellationToken);
     }
+{{- else if .NoContent}}
+
+    /// <summary>{{csText .Summary}}. The API answers 204, so there is nothing to return.</summary>
+{{- range .PathParams}}
+    /// <param name="{{csParam .}}">The {{.}}.</param>
+{{- end}}
+{{- if .Body}}
+    /// <param name="parameters">The request.</param>
+{{- end}}
+    /// <param name="options">{{if .Write}}An idempotency key, or another{{else}}Another{{end}} organization's key for this call.</param>
+    /// <param name="cancellationToken">Cancels the call.</param>
+    /// <exception cref="PerataException">The API refused the call.</exception>
+    public Task {{pascal .Name}}Async({{template "sig" .}}{{if .Body}}{{.Body.Name}} parameters, {{end}}RequestOptions? options = null, CancellationToken cancellationToken = default)
+    {
+{{- if .Body}}
+        ArgumentNullException.ThrowIfNull(parameters);
+{{- end}}
+        return client.RequestNoContentAsync(HttpMethod.{{pascal (lower .HTTPMethod)}}, {{template "path" .}}, null, {{if .Body}}JsonSerializer.SerializeToUtf8Bytes(parameters, PerataJson.Default.{{.Body.Name}}){{else}}null{{end}}, {{if .Write}}options?.IdempotencyKey{{else}}null{{end}}, options, cancellationToken);
+    }
 {{- else}}
 
     /// <summary>{{csText .Summary}}.</summary>

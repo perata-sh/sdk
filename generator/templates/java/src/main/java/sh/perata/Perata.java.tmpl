@@ -130,6 +130,9 @@ public final class Perata {
         if (response.getStatus() >= 300) {
             throw PerataException.of(response);
         }
+        if (response.getStatus() == 204) {
+            return null;
+        }
         return Json.required(Json.asObject(Json.parse(new String(response.getBody(), StandardCharsets.UTF_8))), "data", Json::any);
     }
 

@@ -167,7 +167,7 @@ func csEnvelopes(services []*Service) []Envelope {
 		for _, method := range service.Methods {
 			if method.Paginated {
 				seen[method.Item+"Page"] = Envelope{Type: "Page<" + method.Item + ">", Name: method.Item + "PageEnvelope"}
-			} else {
+			} else if !method.NoContent {
 				seen[method.Response] = Envelope{Type: method.Response, Name: method.Response + "Envelope"}
 			}
 		}

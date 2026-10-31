@@ -31,6 +31,7 @@ func init() {
 		"dartWrite":  dartWrite,
 		"dartPath":   dartPath,
 		"dartParams": dartParams,
+		"dartText":   dartText,
 		// dartReadEntry and dartWriteEntry are a model's fromJson argument
 		// and toJson entry, wrapped as dart format wraps them.
 		"dartReadEntry":  func(f *Field) string { return dartEntry(6, dartName(f.Wire), dartRead(f)) },
@@ -89,7 +90,7 @@ func dartParam(name string) string {
 // dartDoc writes a description as a Dart doc comment wrapped at 80
 // columns, or nothing.
 func dartDoc(indent, text string) string {
-	text = strings.TrimSpace(text)
+	text = dartText(text)
 	if text == "" {
 		return ""
 	}
@@ -370,4 +371,10 @@ func dartEntry(indent int, key, value string) string {
 		}
 	}
 	return line
+}
+
+// dartText escapes the angle brackets of a description, which dartdoc would
+// read as HTML.
+func dartText(text string) string {
+	return strings.NewReplacer("<", "&lt;", ">", "&gt;").Replace(strings.TrimSpace(text))
 }

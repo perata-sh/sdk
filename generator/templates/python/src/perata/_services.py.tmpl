@@ -25,6 +25,11 @@ class {{pascal .Name}}Service:
     def {{snake .Name}}_iter(self{{range .PathParams}}, {{pyName .}}: str{{end}}, *, page: int | None = None, limit: int | None = None{{range .Query}}, {{pyName .Name}}: str | None = None{{end}}, api_key: str | None = None) -> Iterator[models.{{.Item}}]:
         """Walks every page of {{.OperationID}}, item by item."""
         return iterate(lambda at: self.{{snake .Name}}({{range .PathParams}}{{pyName .}}, {{end}}page=at, limit=limit{{range .Query}}, {{pyName .Name}}={{pyName .Name}}{{end}}, api_key=api_key), page)
+{{- else if .NoContent}}
+
+    def {{snake .Name}}(self{{range .PathParams}}, {{pyName .}}: str{{end}}{{if .Body}}, params: models.{{.Body.Name}}{{end}}, *{{if .Write}}, idempotency_key: str | None = None{{end}}, api_key: str | None = None) -> None:
+        """{{pyText .Summary}}. The API answers 204, so there is nothing to return."""
+        self._client.request({{quote .HTTPMethod}}, {{template "path" .}}{{if .Body}}, body=params{{end}}{{if .Write}}, idempotency_key=idempotency_key{{end}}, api_key=api_key)
 {{- else}}
 
     def {{snake .Name}}(self{{range .PathParams}}, {{pyName .}}: str{{end}}{{if .Body}}, params: models.{{.Body.Name}}{{end}}, *{{if .Write}}, idempotency_key: str | None = None{{end}}, api_key: str | None = None) -> models.{{.Response}}:

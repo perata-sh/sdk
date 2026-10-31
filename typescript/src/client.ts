@@ -105,6 +105,9 @@ export class Perata implements Requester {
     if (!response.ok) {
       throw await PerataError.from(response);
     }
+    if (response.status === 204) {
+      return undefined as T;
+    }
     const envelope = (await response.json()) as { data: T };
     return envelope.data;
   }

@@ -329,6 +329,10 @@ impl Client {
         if response.status >= 300 {
             return Err(Error::Api(ApiError::from_response(&response)));
         }
+        if response.status == 204 {
+            // No body: only a request for `()` can read it.
+            return serde_json::from_slice(b"null").map_err(Error::Json);
+        }
         let envelope: Envelope<T> = serde_json::from_slice(&response.body).map_err(Error::Json)?;
         Ok(envelope.data)
     }

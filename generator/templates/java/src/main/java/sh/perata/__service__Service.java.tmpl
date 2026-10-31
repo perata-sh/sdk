@@ -208,12 +208,18 @@ public final class {{pascal .Service.Name}}Service {
      * @param params the request
 {{- end}}
      * @param options {{if .Write}}an idempotency key or {{end}}another organization's key for this call, or null
+{{- if not .NoContent}}
      * @return the {{lower .Response}}
+{{- end}}
      * @throws PerataException when the API refuses the call
      */
-    public {{.Response}} {{camel .Name}}({{template "sig" .}}{{if .Body}}{{pascal .Name}}Params params, {{end}}RequestOptions options) {
+    public {{if .NoContent}}void{{else}}{{.Response}}{{end}} {{camel .Name}}({{template "sig" .}}{{if .Body}}{{pascal .Name}}Params params, {{end}}RequestOptions options) {
+{{- if .NoContent}}
+        client.request({{quote .HTTPMethod}}, {{template "path" .}}, null, {{if .Body}}Objects.requireNonNull(params, "params").toJson(){{else}}null{{end}}, {{if .Write}}options == null ? null : options.getIdempotencyKey(){{else}}null{{end}}, options);
+{{- else}}
         Object data = client.request({{quote .HTTPMethod}}, {{template "path" .}}, null, {{if .Body}}Objects.requireNonNull(params, "params").toJson(){{else}}null{{end}}, {{if .Write}}options == null ? null : options.getIdempotencyKey(){{else}}null{{end}}, options);
         return {{.Response}}.fromJson(Json.asObject(data));
+{{- end}}
     }
 
     /**
@@ -224,11 +230,13 @@ public final class {{pascal .Service.Name}}Service {
 {{- if .Body}}
      * @param params the request
 {{- end}}
+{{- if not .NoContent}}
      * @return the {{lower .Response}}
+{{- end}}
      * @throws PerataException when the API refuses the call
      */
-    public {{.Response}} {{camel .Name}}({{if .Body}}{{template "sig" .}}{{pascal .Name}}Params params{{else}}{{template "only" .}}{{end}}) {
-        return {{camel .Name}}({{template "args" .}}{{if .Body}}params, {{end}}null);
+    public {{if .NoContent}}void{{else}}{{.Response}}{{end}} {{camel .Name}}({{if .Body}}{{template "sig" .}}{{pascal .Name}}Params params{{else}}{{template "only" .}}{{end}}) {
+        {{if not .NoContent}}return {{end}}{{camel .Name}}({{template "args" .}}{{if .Body}}params, {{end}}null);
     }
 {{- if .Body}}
 {{- $params := printf "%sParams" (pascal .Name)}}

@@ -96,6 +96,9 @@ final class Perata implements Requester
         if ($status >= 300) {
             throw PerataException::fromResponse($status, $responseHeaders, $raw);
         }
+        if ($status === 204) {
+            return [];
+        }
         $decoded = json_decode($raw, true, 512, JSON_THROW_ON_ERROR);
         return $decoded['data'];
     }

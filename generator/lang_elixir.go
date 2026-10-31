@@ -131,6 +131,9 @@ func exSpec(m *Method, kind string) string {
 			args = append(args, "Perata."+m.Body.Name+".t() | keyword() | map()")
 		}
 		answer = "{:ok, Perata." + m.Response + ".t()} | {:error, Perata.Error.t()}"
+		if m.NoContent {
+			answer = ":ok | {:error, Perata.Error.t()}"
+		}
 	}
 	args = append(args, "keyword()")
 	head := "@spec " + name + "(" + strings.Join(args, ", ") + ")"

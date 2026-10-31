@@ -136,6 +136,9 @@ class Perata implements Requester {
         response.bodyBytes,
       );
     }
+    if (response.statusCode == 204) {
+      return const {};
+    }
     final envelope = jsonDecode(utf8.decode(response.bodyBytes));
     if (envelope case {'data': final Map<String, Object?> data}) {
       return data;

@@ -83,6 +83,35 @@ public sealed class PerataClient
         RequestOptions? options,
         CancellationToken cancellationToken)
     {
+        var raw = await SendAsync(method, path, query, body, idempotencyKey, options, cancellationToken).ConfigureAwait(false);
+        var envelope = JsonSerializer.Deserialize(raw, answer);
+        if (envelope is null || envelope.Data is null)
+        {
+            throw new JsonException("perata: the API answered no data");
+        }
+        return envelope.Data;
+    }
+
+    /// <summary>Calls the API for an answer that is a 204 with no body; a refusal throws <see cref="PerataException"/>.</summary>
+    internal async Task RequestNoContentAsync(
+        HttpMethod method,
+        string path,
+        IEnumerable<KeyValuePair<string, string?>>? query,
+        byte[]? body,
+        string? idempotencyKey,
+        RequestOptions? options,
+        CancellationToken cancellationToken) =>
+        await SendAsync(method, path, query, body, idempotencyKey, options, cancellationToken).ConfigureAwait(false);
+
+    private async Task<byte[]> SendAsync(
+        HttpMethod method,
+        string path,
+        IEnumerable<KeyValuePair<string, string?>>? query,
+        byte[]? body,
+        string? idempotencyKey,
+        RequestOptions? options,
+        CancellationToken cancellationToken)
+    {
         var url = new StringBuilder(baseUrl).Append(path);
         if (query is not null)
         {
@@ -131,12 +160,7 @@ public sealed class PerataClient
             {
                 throw PerataException.FromResponse((int)response.StatusCode, RetryAfter(response), raw);
             }
-            var envelope = JsonSerializer.Deserialize(raw, answer);
-            if (envelope is null || envelope.Data is null)
-            {
-                throw new JsonException("perata: the API answered no data");
-            }
-            return envelope.Data;
+            return raw;
         }
         catch (OperationCanceledException e) when (!cancellationToken.IsCancellationRequested && deadline.IsCancellationRequested)
         {

@@ -125,6 +125,11 @@ impl<'a> {{pascal .Name}}Service<'a> {
             client.request({{quote .HTTPMethod}}, &path, &query, None::<&()>, &options)
         })
     }
+{{- else if .NoContent}}
+    /// {{.Summary}}. The API answers 204, so there is nothing to return.
+    pub fn {{rsName .Name}}(&self{{range .PathParams}}, {{rsName .}}: &str{{end}}{{if .Body}}, params: &{{.Body.Name}}{{end}}) -> Result<(), Error> {
+        self.client.request({{quote .HTTPMethod}}, {{rsPath .}}, &[], {{if .Body}}Some(params){{else}}None::<&()>{{end}}, &self.options)
+    }
 {{- else}}
     /// {{.Summary}}.
     pub fn {{rsName .Name}}(&self{{range .PathParams}}, {{rsName .}}: &str{{end}}{{if .Body}}, params: &{{.Body.Name}}{{end}}) -> Result<{{.Response}}, Error> {

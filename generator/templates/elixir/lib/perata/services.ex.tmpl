@@ -30,6 +30,21 @@ defmodule Perata.{{pascal .Name}} do
   def {{snake .Name}}_stream(%Client{} = client{{range .PathParams}}, {{exName .}}{{end}}, opts \\ []) do
     Perata.Page.stream(opts[:page], &{{snake .Name}}(client{{range .PathParams}}, {{exName .}}{{end}}, Keyword.put(opts, :page, &1)))
   end
+{{- else if .NoContent}}
+
+  @doc """
+  {{exDoc .Summary}}. The API answers 204, so there is nothing to return: `:ok`.
+
+  Options: {{if .Write}}`:idempotency_key` and {{end}}`:api_key`.
+  """
+{{exSpec . "call"}}
+  def {{snake .Name}}(%Client{} = client{{range .PathParams}}, {{exName .}}{{end}}{{if .Body}}, params{{end}}, opts \\ []) do
+    path = {{template "path" .}}{{exRequest .}}
+
+    with {:ok, _nothing} <- Client.request(client, {{quote .HTTPMethod}}, path, request) do
+      :ok
+    end
+  end
 {{- else}}
 
   @doc """

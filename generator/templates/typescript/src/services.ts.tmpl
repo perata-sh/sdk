@@ -34,6 +34,11 @@ export class {{pascal .Name}}Service {
   {{camel .Name}}Iter({{range .PathParams}}{{camel .}}: string, {{end}}params: {{pascal $service.Name}}{{pascal .Name}}Params = {}, options?: RequestOptions): AsyncGenerator<models.{{.Item}}, void, undefined> {
     return iterate((page) => this.{{camel .Name}}({{range .PathParams}}{{camel .}}, {{end}}{ ...params, page }, options), params.page);
   }
+{{- else if .NoContent}}
+  /** {{.Summary}}. The API answers 204, so there is nothing to return. */
+  async {{camel .Name}}({{range .PathParams}}{{camel .}}: string, {{end}}{{if .Body}}params: models.{{.Body.Name}}, {{end}}options?: RequestOptions): Promise<void> {
+    await this.#client.request<undefined>({{quote .HTTPMethod}}, {{template "path" .}}, { {{if .Body}}body: params, {{end}}options });
+  }
 {{- else}}
   /** {{.Summary}}. */
   {{camel .Name}}({{range .PathParams}}{{camel .}}: string, {{end}}{{if .Body}}params: models.{{.Body.Name}}, {{end}}options?: RequestOptions): Promise<models.{{.Response}}> {

@@ -12,7 +12,7 @@ class {{pascal .Name}}Service {
 {{- range .Methods}}
 {{- if .Paginated}}
 
-  /// {{.Summary}}.
+  /// {{dartText .Summary}}.
   ///
   /// One page, from 1, of [limit] items (1 to 100, 10 by default);
   /// [{{dartName .Name}}Iter] walks every page.
@@ -49,9 +49,25 @@ class {{pascal .Name}}Service {
       page,
     );
   }
+{{- else if .NoContent}}
+
+  /// {{dartText .Summary}}. The API answers 204, so there is nothing to return.
+  Future<void> {{dartName .Name}}{{dartParams . "call"}} async {
+    await _client.request(
+      {{quote .HTTPMethod}},
+      {{dartPath .}},
+{{- if .Body}}
+      body: params.toJson(),
+{{- end}}
+{{- if .Write}}
+      idempotencyKey: idempotencyKey,
+{{- end}}
+      apiKey: apiKey,
+    );
+  }
 {{- else}}
 
-  /// {{.Summary}}.
+  /// {{dartText .Summary}}.
   Future<{{.Response}}> {{dartName .Name}}{{dartParams . "call"}} async {
     final data = await _client.request(
       {{quote .HTTPMethod}},

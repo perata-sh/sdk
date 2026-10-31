@@ -78,6 +78,9 @@ defmodule Perata.Client do
     url = client.base_url <> path <> query(opts[:query])
 
     case client.transport.(method, url, headers, body, client.timeout) do
+      {:ok, {204, _response_headers, _raw}} ->
+        {:ok, nil}
+
       {:ok, {status, response_headers, raw}} when status >= 300 ->
         {:error, Perata.Error.from_response(status, response_headers, raw)}
 

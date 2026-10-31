@@ -115,4 +115,6 @@ class Perata:
         status, response_headers, raw = self._transport(method, url, headers, data, self._timeout)
         if status >= 300:
             raise PerataError.from_response(status, response_headers, raw)
+        if status == 204:
+            return None
         return json.loads(raw)["data"]

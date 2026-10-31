@@ -25,6 +25,13 @@ public struct {{pascal .Name}}Service: Sendable {
             try await self.{{swName .Name}}({{range .PathParams}}{{swName .}}, {{end}}page: page, limit: limit{{range .Query}}, {{swName .Name}}: {{swName .Name}}{{end}}, apiKey: apiKey)
         }
     }
+{{- else if .NoContent}}
+    /// {{.Summary}}. The API answers 204, so there is nothing to return.
+    public func {{swName .Name}}({{range .PathParams}}_ {{swName .}}: String, {{end}}{{if .Body}}_ params: {{.Body.Name}}, {{end}}{{if .Write}}idempotencyKey: String? = nil, {{end}}apiKey: String? = nil) async throws {
+        try await requester.requestNoContent(
+            {{quote .HTTPMethod}}, {{swPath .}}{{if .Body}}, body: params{{end}}{{if .Write}}, idempotencyKey: idempotencyKey{{end}}, apiKey: apiKey
+        )
+    }
 {{- else}}
     /// {{.Summary}}.
     public func {{swName .Name}}({{range .PathParams}}_ {{swName .}}: String, {{end}}{{if .Body}}_ params: {{.Body.Name}}, {{end}}{{if .Write}}idempotencyKey: String? = nil, {{end}}apiKey: String? = nil) async throws -> {{.Response}} {

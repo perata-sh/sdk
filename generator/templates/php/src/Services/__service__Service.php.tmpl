@@ -41,6 +41,19 @@ final class {{pascal .Service.Name}}Service
     {
         return Page::iterate(fn (int $page): Page => $this->{{camel .Name}}({{range .PathParams}}${{phpName .}}, {{end}}['page' => $page] + $params, $apiKey), $params['page'] ?? 1);
     }
+{{- else if .NoContent}}
+
+    /**
+     * {{.Summary}}. The API answers 204, so there is nothing to return.
+{{- if .Body}}
+     *
+     * @param {{phpShape .Body}} $params
+{{- end}}
+     */
+    public function {{camel .Name}}({{range .PathParams}}string ${{phpName .}}, {{end}}{{if .Body}}array $params, {{end}}{{if .Write}}?string $idempotencyKey = null, {{end}}?string $apiKey = null): void
+    {
+        $this->client->request({{quote .HTTPMethod}}, {{template "path" .}}{{if .Body}}, body: $params{{end}}{{if .Write}}, idempotencyKey: $idempotencyKey{{end}}, apiKey: $apiKey);
+    }
 {{- else}}
 
     /**

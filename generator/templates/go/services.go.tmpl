@@ -75,6 +75,11 @@ func (s *{{pascal $service.Name}}Service) {{pascal .Name}}Iter(ctx context.Conte
 		return s.{{pascal .Name}}(ctx{{range .PathParams}}, {{goParam .}}{{end}}, &walk, opts...)
 	}, walk.Page)
 }
+{{- else if .NoContent}}
+// {{pascal .Name}}: {{.Summary}}. The API answers 204, so there is nothing to return.
+func (s *{{pascal $service.Name}}Service) {{pascal .Name}}(ctx context.Context{{range .PathParams}}, {{goParam .}} string{{end}}{{if .Body}}, params {{.Body.Name}}{{end}}, opts ...RequestOption) error {
+	return s.client.do(ctx, http.Method{{pascal (lower .HTTPMethod)}}, {{template "path" .}}, nil, {{if .Body}}params{{else}}nil{{end}}, nil, opts)
+}
 {{- else}}
 // {{pascal .Name}}: {{.Summary}}.
 func (s *{{pascal $service.Name}}Service) {{pascal .Name}}(ctx context.Context{{range .PathParams}}, {{goParam .}} string{{end}}{{if .Body}}, params {{.Body.Name}}{{end}}, opts ...RequestOption) (*{{.Response}}, error) {

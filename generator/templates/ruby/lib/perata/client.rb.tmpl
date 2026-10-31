@@ -72,6 +72,8 @@ module Perata
       status, response_headers, raw = @transport.call(method, url, headers, data, @timeout)
       raise Error.from_response(status, response_headers, raw) if status >= 300
 
+      return nil if status == 204
+
       JSON.parse(raw).fetch("data")
     end
 

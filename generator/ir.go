@@ -100,6 +100,9 @@ type Method struct {
 	Item      string
 	// Write says it takes an Idempotency-Key.
 	Write bool
+	// NoContent says the answer is a 204 with no body, so the method returns
+	// nothing.
+	NoContent bool
 }
 
 // Param is a query filter.
@@ -145,14 +148,15 @@ type operation struct {
 }
 
 type schema struct {
-	Ref         string             `json:"$ref"`
-	Type        any                `json:"type"`
-	Format      string             `json:"format"`
-	Description string             `json:"description"`
-	Enum        []string           `json:"enum"`
-	Required    []string           `json:"required"`
-	Properties  map[string]*schema `json:"properties"`
-	Items       *schema            `json:"items"`
+	Ref         string `json:"$ref"`
+	Type        any    `json:"type"`
+	Format      string `json:"format"`
+	Description string `json:"description"`
+	// Enum has nil for the null a nullable schema lists among its values.
+	Enum       []*string          `json:"enum"`
+	Required   []string           `json:"required"`
+	Properties map[string]*schema `json:"properties"`
+	Items      *schema            `json:"items"`
 	// AdditionalProperties is a schema, or false for a closed object.
 	AdditionalProperties json.RawMessage `json:"additionalProperties"`
 }
@@ -326,8 +330,8 @@ func (l *loader) webhooks(doc *spec) ([]*WebhookGroup, error) {
 		if body == nil || body.Properties["type"] == nil || body.Properties["data"] == nil {
 			return nil, fmt.Errorf("generator: webhook %s has no type and data", name)
 		}
-		if enum := body.Properties["type"].Enum; len(enum) != 1 || enum[0] != name {
-			return nil, fmt.Errorf("generator: webhook %s declares the type %v", name, enum)
+		if enum := body.Properties["type"].Enum; len(enum) != 1 || enum[0] == nil || *enum[0] != name {
+			return nil, fmt.Errorf("generator: webhook %s declares a type other than it", name)
 		}
 		data, _, err := l.typeOf(body.Properties["data"])
 		if err != nil {
@@ -395,7 +399,15 @@ func (l *loader) methodOf(op *operation, httpMethod, path, serviceName, methodNa
 		if !strings.HasPrefix(status, "2") {
 			continue
 		}
-		ref := strings.TrimPrefix(response.Content["application/json"].Schema.Ref, "#/components/schemas/")
+		if status == "204" {
+			method.NoContent = true
+			continue
+		}
+		answer := response.Content["application/json"].Schema
+		if answer == nil {
+			return nil, fmt.Errorf("generator: %s answers %s with no JSON body", op.OperationID, status)
+		}
+		ref := strings.TrimPrefix(answer.Ref, "#/components/schemas/")
 		switch {
 		case strings.HasSuffix(ref, "ListEnvelope"):
 			method.Paginated, method.Item = true, strings.TrimSuffix(ref, "ListEnvelope")
@@ -404,11 +416,17 @@ func (l *loader) methodOf(op *operation, httpMethod, path, serviceName, methodNa
 			method.Response = strings.TrimSuffix(ref, "Envelope")
 		}
 	}
-	if method.Response == "" {
-		return nil, fmt.Errorf("generator: %s answers no model", op.OperationID)
-	}
-	if err := checkIdentifier("response model of "+op.OperationID, method.Response); err != nil {
-		return nil, err
+	if method.NoContent {
+		if method.Response != "" {
+			return nil, fmt.Errorf("generator: %s answers both a 204 and a model", op.OperationID)
+		}
+	} else {
+		if method.Response == "" {
+			return nil, fmt.Errorf("generator: %s answers no model", op.OperationID)
+		}
+		if err := checkIdentifier("response model of "+op.OperationID, method.Response); err != nil {
+			return nil, err
+		}
 	}
 	if method.Paginated && op.Pagination["item_schema"] != method.Item {
 		return nil, fmt.Errorf("generator: %s pages %q but declares %q", op.OperationID, method.Item, op.Pagination["item_schema"])
@@ -484,12 +502,19 @@ func (l *loader) typeOf(s *schema) (*TypeRef, bool, error) {
 	}
 	switch kind {
 	case "string", "integer", "number", "boolean":
+		var enum []string
 		for _, value := range s.Enum {
-			if err := checkMatch("allowed value", value, enumValue); err != nil {
+			if value == nil {
+				// null among the values is the nullability, not a value.
+				nullable = true
+				continue
+			}
+			if err := checkMatch("allowed value", *value, enumValue); err != nil {
 				return nil, false, err
 			}
+			enum = append(enum, *value)
 		}
-		return &TypeRef{Kind: kind, Enum: s.Enum, Format: s.Format}, nullable, nil
+		return &TypeRef{Kind: kind, Enum: enum, Format: s.Format}, nullable, nil
 	case "array":
 		items, _, err := l.typeOf(s.Items)
 		return &TypeRef{Kind: "array", Items: items}, nullable, err
@@ -497,6 +522,11 @@ func (l *loader) typeOf(s *schema) (*TypeRef, bool, error) {
 		if values := s.additional(); values != nil {
 			items, _, err := l.typeOf(values)
 			return &TypeRef{Kind: "map", Items: items}, nullable, err
+		}
+		if len(s.Properties) == 0 {
+			// An object that names no property, closed or not, is the pairs
+			// the caller chooses: a map of free-form values.
+			return &TypeRef{Kind: "map", Items: &TypeRef{Kind: "any"}}, nullable, nil
 		}
 	}
 	return nil, false, fmt.Errorf("unsupported schema type %v", s.Type)

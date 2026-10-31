@@ -32,6 +32,18 @@ module Perata
       end
       block ? items.each(&block) : items
     end
+{{- else if .NoContent}}
+
+    # {{.Summary}}. The API answers 204, so there is nothing to return.
+    #
+{{- if .Body}}
+    # @param params [{{.Body.Name}}, Hash]
+{{- end}}
+    # @return [nil]
+    def {{snake .Name}}({{range .PathParams}}{{rbName .}}, {{end}}{{if .Body}}params, {{end}}{{if .Write}}idempotency_key: nil, {{end}}api_key: nil)
+      @client.request({{quote .HTTPMethod}}, {{template "path" .}}{{if .Body}}, body: {{.Body.Name}}.coerce(params).to_wire{{end}}{{if .Write}}, idempotency_key: idempotency_key{{end}}, api_key: api_key)
+      nil
+    end
 {{- else}}
 
     # {{.Summary}}.

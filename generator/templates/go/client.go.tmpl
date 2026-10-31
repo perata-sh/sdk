@@ -166,6 +166,10 @@ func (c *Client) do(ctx context.Context, method, path string, query url.Values, 
 	if resp.StatusCode >= 300 {
 		return errorOf(resp, raw)
 	}
+	if out == nil {
+		// A 204, or any answer the caller does not read.
+		return nil
+	}
 	envelope := struct {
 		Data any `json:"data"`
 	}{Data: out}

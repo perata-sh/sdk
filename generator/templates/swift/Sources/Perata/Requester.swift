@@ -28,6 +28,30 @@ struct Requester: Sendable {
         idempotencyKey: String? = nil,
         apiKey: String? = nil
     ) async throws -> T {
+        let data = try await send(method, path, query: query, body: body, idempotencyKey: idempotencyKey, apiKey: apiKey)
+        return try JSONDecoder().decode(Envelope<T>.self, from: data).data
+    }
+
+    /// Calls the API for an answer that is a 204 with no body; a refusal
+    /// throws `PerataError`.
+    func requestNoContent(
+        _ method: String,
+        _ path: String,
+        body: (any Encodable & Sendable)? = nil,
+        idempotencyKey: String? = nil,
+        apiKey: String? = nil
+    ) async throws {
+        _ = try await send(method, path, query: [], body: body, idempotencyKey: idempotencyKey, apiKey: apiKey)
+    }
+
+    private func send(
+        _ method: String,
+        _ path: String,
+        query: [(String, String?)],
+        body: (any Encodable & Sendable)?,
+        idempotencyKey: String?,
+        apiKey: String?
+    ) async throws -> Data {
         if let baseURLError {
             throw baseURLError
         }
@@ -64,7 +88,7 @@ struct Requester: Sendable {
         if response.statusCode >= 300 {
             throw PerataError(response: response, body: data)
         }
-        return try JSONDecoder().decode(Envelope<T>.self, from: data).data
+        return data
     }
 
     /// A session that refuses redirects: the API never redirects, and a
