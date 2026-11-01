@@ -34,7 +34,7 @@ import java.util.UUID;
  */
 public final class Perata {
     /** This SDK's version. */
-    public static final String VERSION = "0.2.0";
+    public static final String VERSION = "0.3.0";
 
     /** The contract this SDK was generated from. */
     public static final String API_VERSION = "0.1.0";
