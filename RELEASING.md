@@ -41,13 +41,13 @@ upstream release cannot reach a publish credential:
 
 - npm: `typescript/package-lock.json` is committed and installed with
   `npm ci --ignore-scripts`; npm itself is installed at an exact version
-  (11.20.0, trusted publishing needs 11.5.1 or later). Raise it on purpose.
+  (12.2.1; trusted publishing needs 11.5.1 or later, and npm 12 needs Node 22.22.2, 24.15 or later, which `node-version: '24'` gives). Raise it on purpose.
   After a change to `typescript/package.json` run
   `npm install --package-lock-only --ignore-scripts` there and commit the lock.
 - PyPI: the build tools are in `.github/release/python-build.txt`, hash-locked
   (`pip-compile --generate-hashes --allow-unsafe --strip-extras
   python-build.in`, from `.github/release/`).
-- Hex: `mix local.hex 2.5.3`.
+- Hex: `mix local.hex 2.6.0`.
 - Every action is pinned to a commit SHA, kept current by Dependabot.
 
 ## One-time setup, per registry
