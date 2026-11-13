@@ -132,6 +132,41 @@ class PerataTest(unittest.TestCase):
         self.assertEqual([item.id for item in perata.products.list_iter(limit=1)], ["prod_1", "prod_2", "prod_3"])
         self.assertEqual(parse_qs(recorder.seen[0]["url"].query)["limit"], ["1"])
 
+    def test_usage_ingestion_carries_the_source_credential_and_its_events(self):
+        recorder = Recorder(lambda request: (200, {"data": {"created": 1, "replayed": 0}}, {}))
+        usage = Perata("pus_live_source", base_url="https://perata.test/", transport=recorder)
+        receipt = usage.usage.ingest({"events": [{
+            "customer_id": "cus_1", "external_event_id": "req-1", "input_tokens": "1200", "output_tokens": "300", "cached_tokens": "0",
+            "occurred_at": "2026-11-13T12:00:00Z", "_cost": {"amount": "1.250000", "currency": "brl"},
+        }]})
+        self.assertEqual((receipt.created, receipt.replayed), (1, 0))
+        seen = recorder.seen[0]
+        self.assertEqual(seen["method"], "POST")
+        self.assertEqual(seen["url"].path, "/api/v1/usage/token-events")
+        self.assertEqual(seen["headers"]["Authorization"], "Bearer pus_live_source")
+        sent = json.loads(seen["body"])
+        self.assertEqual(len(sent["events"]), 1)
+        self.assertEqual(sent["events"][0]["_cost"], {"amount": "1.250000", "currency": "brl"})
+        self.assertNotIn("_llm", sent["events"][0])
+        self.assertNotIn("parent_id", sent["events"][0])
+
+    def test_usage_ingestion_errors_are_wrapped_in_data(self):
+        event = {"customer_id": "cus_1", "external_event_id": "req-1", "input_tokens": "1", "output_tokens": "0", "cached_tokens": "0", "occurred_at": "2026-11-13T12:00:00Z"}
+        cases = [
+            (401, {"data": {"error": "invalid_credential"}}, "invalid_credential", 0, ""),
+            (409, {"data": {"error": "event_conflict", "record": 2, "message": "conflict"}}, "event_conflict", 2, "conflict"),
+            (422, {"data": {"error": "invalid_events", "record": 3, "message": "validation failed: customer_id", "fields": {"customer_id": ["unknown"]}}}, "invalid_events", 3, "validation failed: customer_id"),
+            (400, {"data": {"error": "invalid_json"}}, "invalid_json", 0, ""),
+        ]
+        for status, body, code, record, message in cases:
+            perata, _ = client(lambda request, status=status, body=body: (status, body, {}))
+            with self.assertRaises(PerataError) as refused:
+                perata.usage.ingest({"events": [event]})
+            error = refused.exception
+            self.assertEqual((error.status, error.code, error.record, error.message), (status, code, record, message))
+            if status == 422:
+                self.assertEqual(error.fields, {"customer_id": ["unknown"]})
+
     def test_a_refusal_is_a_typed_error(self):
         def answer(request):
             if request["url"].path == "/api/v1/customers":

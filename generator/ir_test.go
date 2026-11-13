@@ -3,7 +3,8 @@ package generator
 import "testing"
 
 // The contract the API serves reads into services and models, every list
-// paginated over the model it lists, and the usage ingestion left out.
+// paginated over the model it lists, and the usage ingestion, which takes a
+// source's credential and no Idempotency-Key, read with its nested events.
 func TestTheContractReadsIntoTheIR(t *testing.T) {
 	ir, err := Load("../openapi.json", "0.1.0")
 	if err != nil {
@@ -16,8 +17,37 @@ func TestTheContractReadsIntoTheIR(t *testing.T) {
 			services[service.Name][method.Name] = method
 		}
 	}
-	if _, ok := services["usage"]; ok {
-		t.Fatal("the usage ingestion, which takes no API key, is in the SDK")
+	ingest := services["usage"]["ingest"]
+	if ingest == nil || !ingest.UsageSource || ingest.Write || ingest.HTTPMethod != "POST" || ingest.Path != "/api/v1/usage/token-events" ||
+		ingest.Response != "UsageIngestReceipt" || ingest.Body == nil || ingest.Body.Name != "UsageIngestParams" || len(ingest.Nested) != 3 {
+		t.Fatalf("usage.ingest = %+v", ingest)
+	}
+	for name, method := range services["products"] {
+		if method.UsageSource {
+			t.Fatalf("products.%s takes a usage source's credential", name)
+		}
+	}
+	nested := map[string]*Model{}
+	for _, model := range ir.Models {
+		nested[model.Name] = model
+	}
+	event, cost, receipt := nested["UsageIngestEvent"], nested["UsageIngestEventCost"], nested["UsageIngestReceipt"]
+	if event == nil || cost == nil || receipt == nil || !event.Input || !cost.Input || receipt.Input {
+		t.Fatalf("the ingestion's models: event %+v, cost %+v, receipt %+v", event, cost, receipt)
+	}
+	fields := map[string]*Field{}
+	for _, field := range event.Fields {
+		fields[field.Wire] = field
+	}
+	if fields["_cost"] == nil || fields["_cost"].Required || fields["_cost"].Type.Kind != "model" || fields["_cost"].Type.Nested != cost ||
+		fields["customer_id"] == nil || !fields["customer_id"].Required || fields["parent_id"] == nil || fields["parent_id"].Required {
+		t.Fatalf("the event's fields = %+v", fields)
+	}
+	if events := ingest.Body.Fields[0]; events.Wire != "events" || events.Type.Kind != "array" || events.Type.Items.Nested != event {
+		t.Fatalf("the body's events = %+v", events)
+	}
+	if len(receipt.Fields) != 2 || !receipt.Fields[0].Required || !receipt.Fields[1].Required || receipt.Fields[0].Type.Kind != "integer" {
+		t.Fatalf("the receipt's fields = %+v", receipt.Fields)
 	}
 	list := services["products"]["list"]
 	if list == nil || !list.Paginated || list.Item != "Product" || list.HTTPMethod != "GET" || list.Path != "/api/v1/products" {

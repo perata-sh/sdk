@@ -208,6 +208,62 @@ public class PerataTests
     }
 
     [Fact]
+    public async Task UsageIngestionCarriesTheSourceCredentialAndItsEvents()
+    {
+        var recorder = new Recorder(_ => new Answer(HttpStatusCode.OK, """{"data":{"created":1,"replayed":0}}"""));
+        var usage = new PerataClient("pus_live_source", new PerataClientOptions { BaseUrl = "https://perata.test/", Handler = recorder });
+        var receipt = await usage.Usage.IngestAsync(new UsageIngestParams
+        {
+            Events =
+            [
+                new UsageIngestEvent
+                {
+                    CustomerId = "cus_1", ExternalEventId = "req-1", InputTokens = "1200", OutputTokens = "300", CachedTokens = "0",
+                    OccurredAt = "2026-11-13T12:00:00Z", Cost = new UsageIngestEventCost { Amount = "1.250000", Currency = "brl" },
+                },
+            ],
+        });
+        Assert.Equal(1, receipt.Created);
+        Assert.Equal(0, receipt.Replayed);
+        var seen = Assert.Single(recorder.Requests);
+        Assert.Equal(HttpMethod.Post, seen.Method);
+        Assert.Equal("/api/v1/usage/token-events", seen.Url.AbsolutePath);
+        Assert.Equal("Bearer pus_live_source", seen.Headers["Authorization"]);
+        using var sent = JsonDocument.Parse(seen.Body!);
+        var events = sent.RootElement.GetProperty("events");
+        Assert.Equal(1, events.GetArrayLength());
+        var first = events[0];
+        Assert.Equal("cus_1", first.GetProperty("customer_id").GetString());
+        Assert.Equal("1.250000", first.GetProperty("_cost").GetProperty("amount").GetString());
+        Assert.Equal("brl", first.GetProperty("_cost").GetProperty("currency").GetString());
+        Assert.False(first.TryGetProperty("_llm", out _));
+        Assert.False(first.TryGetProperty("parent_id", out _));
+    }
+
+    [Theory]
+    [InlineData(401, """{"data":{"error":"invalid_credential"}}""", "invalid_credential", 0, "")]
+    [InlineData(409, """{"data":{"error":"event_conflict","record":2,"message":"conflict"}}""", "event_conflict", 2, "conflict")]
+    [InlineData(422, """{"data":{"error":"invalid_events","record":3,"message":"validation failed: customer_id","fields":{"customer_id":["unknown"]}}}""", "invalid_events", 3, "validation failed: customer_id")]
+    [InlineData(400, """{"data":{"error":"invalid_json"}}""", "invalid_json", 0, "")]
+    public async Task UsageIngestionErrorsAreWrappedInData(int status, string body, string code, int record, string message)
+    {
+        var recorder = new Recorder(_ => new Answer((HttpStatusCode)status, body));
+        var usage = new PerataClient("pus_test_source", new PerataClientOptions { BaseUrl = "https://perata.test/", Handler = recorder });
+        var refused = await Assert.ThrowsAsync<PerataException>(() => usage.Usage.IngestAsync(new UsageIngestParams
+        {
+            Events = [new UsageIngestEvent { CustomerId = "cus_1", ExternalEventId = "req-1", InputTokens = "1", OutputTokens = "0", CachedTokens = "0", OccurredAt = "2026-11-13T12:00:00Z" }],
+        }));
+        Assert.Equal(status, refused.Status);
+        Assert.Equal(code, refused.Code);
+        Assert.Equal(record, refused.Record);
+        Assert.Equal(message, refused.ApiMessage);
+        if (status == 422)
+        {
+            Assert.Equal(["unknown"], refused.Fields["customer_id"]);
+        }
+    }
+
+    [Fact]
     public async Task ARefusalIsATypedError()
     {
         var recorder = new Recorder(seen => seen.Url.AbsolutePath == "/api/v1/customers"

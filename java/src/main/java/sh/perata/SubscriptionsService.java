@@ -112,6 +112,7 @@ public final class SubscriptionsService {
         }
     }
 
+
     /**
      * Ler uma assinatura.
      * @param subscription the subscription
@@ -408,5 +409,7 @@ public final class SubscriptionsService {
             }
         }
     }
+
 }
+
 

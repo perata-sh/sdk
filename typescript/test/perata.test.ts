@@ -45,6 +45,53 @@ test("a write sends its body and idempotency key", async () => {
   assert.deepEqual(JSON.parse(seen[0]?.body ?? ""), { name: "Curso" });
 });
 
+test("usage ingestion carries the source credential and its events", async () => {
+  const seen: Seen[] = [];
+  const fake: typeof fetch = async (input, init) => {
+    seen.push({ method: init?.method ?? "GET", url: new URL(String(input)), headers: new Headers(init?.headers), body: init?.body as string | undefined });
+    return json(200, { data: { created: 1, replayed: 0 } });
+  };
+  const usage = new Perata({ apiKey: "pus_live_source", baseUrl: "https://perata.test/", fetch: fake });
+  const receipt = await usage.usage.ingest({
+    events: [{
+      customer_id: "cus_1", external_event_id: "req-1", input_tokens: "1200", output_tokens: "300", cached_tokens: "0",
+      occurred_at: "2026-11-13T12:00:00Z", _cost: { amount: "1.250000", currency: "brl" },
+    }],
+  });
+  assert.equal(receipt.created, 1);
+  assert.equal(receipt.replayed, 0);
+  assert.equal(seen[0]?.method, "POST");
+  assert.equal(seen[0]?.url.pathname, "/api/v1/usage/token-events");
+  assert.equal(seen[0]?.headers.get("authorization"), "Bearer pus_live_source");
+  const sent = JSON.parse(seen[0]?.body ?? "") as { events: Record<string, unknown>[] };
+  assert.equal(sent.events.length, 1);
+  assert.deepEqual(sent.events[0]?._cost, { amount: "1.250000", currency: "brl" });
+  assert.equal("_llm" in (sent.events[0] ?? {}), false);
+  assert.equal("parent_id" in (sent.events[0] ?? {}), false);
+});
+
+test("usage ingestion errors are wrapped in data", async () => {
+  const event = { customer_id: "cus_1", external_event_id: "req-1", input_tokens: "1", output_tokens: "0", cached_tokens: "0", occurred_at: "2026-11-13T12:00:00Z" };
+  const cases: [number, unknown, string, number, string][] = [
+    [401, { data: { error: "invalid_credential" } }, "invalid_credential", 0, ""],
+    [409, { data: { error: "event_conflict", record: 2, message: "conflict" } }, "event_conflict", 2, "conflict"],
+    [422, { data: { error: "invalid_events", record: 3, message: "validation failed: customer_id", fields: { customer_id: ["unknown"] } } }, "invalid_events", 3, "validation failed: customer_id"],
+    [400, { data: { error: "invalid_json" } }, "invalid_json", 0, ""],
+  ];
+  for (const [status, body, code, record, message] of cases) {
+    const { perata } = client(() => json(status, body));
+    await assert.rejects(perata.usage.ingest({ events: [event] }), (error: unknown) => {
+      assert.ok(error instanceof PerataError);
+      assert.equal(error.status, status);
+      assert.equal(error.code, code);
+      assert.equal(error.record, record);
+      assert.equal(error.message, message ? `perata: ${status} ${code}: ${message}` : `perata: ${status} ${code}`);
+      if (status === 422) assert.deepEqual(error.fields, { customer_id: ["unknown"] });
+      return true;
+    });
+  }
+});
+
 test("a base URL must be https unless it is loopback", () => {
   for (const baseUrl of ["https://perata.sh", "http://localhost:8080", "http://LOCALHOST", "http://127.0.0.1:1", "http://127.255.0.3", "http://[::1]:8080"]) {
     assert.doesNotThrow(() => new Perata({ apiKey: "k", baseUrl }), baseUrl);

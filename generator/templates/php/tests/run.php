@@ -140,6 +140,46 @@ $tests['iterating walks every page'] = static function (): void {
     check(str_contains($seen[0]['url'], 'limit=1'), 'limit');
 };
 
+$tests['usage ingestion carries the source credential and its events'] = static function (): void {
+    $seen = new \ArrayObject();
+    $transport = static function (string $method, string $url, array $headers, ?string $body, float $timeout) use ($seen): array {
+        $seen[] = ['method' => $method, 'url' => $url, 'headers' => $headers, 'body' => $body];
+        return [200, [], json_encode(['data' => ['created' => 1, 'replayed' => 0]])];
+    };
+    $usage = new Perata('pus_live_source', 'https://perata.test/', transport: $transport);
+    $receipt = $usage->usage->ingest(['events' => [[
+        'customer_id' => 'cus_1', 'external_event_id' => 'req-1', 'input_tokens' => '1200', 'output_tokens' => '300', 'cached_tokens' => '0',
+        'occurred_at' => '2026-11-13T12:00:00Z', '_cost' => ['amount' => '1.250000', 'currency' => 'brl'],
+    ]]]);
+    check($receipt->created === 1 && $receipt->replayed === 0, 'receipt');
+    check($seen[0]['method'] === 'POST' && $seen[0]['url'] === 'https://perata.test/api/v1/usage/token-events', 'request ' . $seen[0]['url']);
+    check($seen[0]['headers']['Authorization'] === 'Bearer pus_live_source', 'credential');
+    $sent = json_decode((string) $seen[0]['body'], true);
+    check(is_array($sent) && count($sent['events']) === 1 && $sent['events'][0]['_cost'] === ['amount' => '1.250000', 'currency' => 'brl'], 'body ' . $seen[0]['body']);
+    check(!array_key_exists('_llm', $sent['events'][0]) && !array_key_exists('parent_id', $sent['events'][0]), 'an optional field left out was sent');
+};
+
+$tests['usage ingestion errors are wrapped in data'] = static function (): void {
+    $event = ['customer_id' => 'cus_1', 'external_event_id' => 'req-1', 'input_tokens' => '1', 'output_tokens' => '0', 'cached_tokens' => '0', 'occurred_at' => '2026-11-13T12:00:00Z'];
+    $cases = [
+        [401, ['data' => ['error' => 'invalid_credential']], 'invalid_credential', 0, ''],
+        [409, ['data' => ['error' => 'event_conflict', 'record' => 2, 'message' => 'conflict']], 'event_conflict', 2, 'conflict'],
+        [422, ['data' => ['error' => 'invalid_events', 'record' => 3, 'message' => 'validation failed: customer_id', 'fields' => ['customer_id' => ['unknown']]]], 'invalid_events', 3, 'validation failed: customer_id'],
+        [400, ['data' => ['error' => 'invalid_json']], 'invalid_json', 0, ''],
+    ];
+    foreach ($cases as [$status, $body, $code, $record, $message]) {
+        [$perata] = client(static fn (): array => [$status, [], $body]);
+        try {
+            $perata->usage->ingest(['events' => [$event]]);
+            check(false, "a {$status} did not throw");
+        } catch (PerataException $refused) {
+            check($refused->status === $status && $refused->errorCode === $code && $refused->record === $record, "refusal {$status}");
+            check($message === '' || str_contains($refused->getMessage(), $message), 'message');
+            check($status !== 422 || $refused->fields === ['customer_id' => ['unknown']], 'fields');
+        }
+    }
+};
+
 $tests['a refusal is a typed error'] = static function (): void {
     [$perata] = client(static fn (array $request): array => str_ends_with($request['url'], '/api/v1/customers')
         ? [422, [], ['error' => 'invalid_request', 'fields' => ['email' => ['send an e-mail']]]]

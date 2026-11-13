@@ -1119,6 +1119,21 @@ class WebhookEndpointCreated:
         )
 
 
+@dataclass(frozen=True)
+class UsageIngestReceipt:
+    """What usage.ingest answers."""
+
+    created: int
+    replayed: int
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> UsageIngestReceipt:
+        return cls(
+            created=data["created"],
+            replayed=data["replayed"],
+        )
+
+
 class BenefitsCreateParams(TypedDict):
     """The body of benefits:create."""
 
@@ -1331,6 +1346,47 @@ class SubscriptionsCancelParams(TypedDict):
 
     at_period_end: NotRequired[bool]
     reason: NotRequired[str]
+
+
+class UsageIngestParams(TypedDict):
+    """The body of usage.ingest."""
+
+    events: list[UsageIngestEvent]
+
+
+class UsageIngestEventCost(TypedDict):
+    """Opcional. O custo de atender o evento para o vendedor, em metadata._cost; alimenta Análises › Custos e as margens."""
+
+    amount: str
+    """Custo em centavos, como string decimal com até seis casas."""
+    currency: Literal["brl"]
+    """Moeda do custo. Apenas brl."""
+
+
+class UsageIngestEventLlm(TypedDict):
+    """Opcional. O modelo e o fornecedor que atenderam o evento, em metadata._llm; os contadores continuam nos campos de tokens."""
+
+    model: str
+    """Modelo que atendeu o evento."""
+    vendor: str
+    """Fornecedor do modelo."""
+
+
+class UsageIngestEvent(TypedDict):
+    """One item of events in UsageIngestParams."""
+
+    _cost: NotRequired[UsageIngestEventCost]
+    """Opcional. O custo de atender o evento para o vendedor, em metadata._cost; alimenta Análises › Custos e as margens."""
+    _llm: NotRequired[UsageIngestEventLlm]
+    """Opcional. O modelo e o fornecedor que atenderam o evento, em metadata._llm; os contadores continuam nos campos de tokens."""
+    cached_tokens: str
+    customer_id: str
+    external_event_id: str
+    input_tokens: str
+    occurred_at: str
+    output_tokens: str
+    parent_id: NotRequired[str]
+    """Opcional. O evento pai, pelo id da Peráta ou pelo external_event_id que a mesma fonte enviou; o pai precisa chegar antes, inclusive antes no mesmo lote."""
 
 
 class WebhooksCreateEndpointParams(TypedDict):

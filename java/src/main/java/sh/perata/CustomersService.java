@@ -132,6 +132,7 @@ public final class CustomersService {
         }
     }
 
+
     /**
      * Excluir um cliente: as assinaturas terminam na hora, os benefícios são revogados e o ID externo é liberado; pedidos e pagamentos continuam.
      * @param customer the customer
@@ -464,6 +465,7 @@ public final class CustomersService {
         }
     }
 
+
     /**
      * Atualizar um cliente pelo ID dele no sistema do lojista (external_id).
      * @param externalId the external_id
@@ -580,5 +582,7 @@ public final class CustomersService {
             }
         }
     }
+
 }
+
 

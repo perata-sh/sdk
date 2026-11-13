@@ -402,6 +402,7 @@ public final class CheckoutLinksService {
         }
     }
 
+
     /**
      * Excluir um link de checkout: ele deixa de abrir checkouts; os que já abriu continuam.
      * @param checkoutLink the checkout_link
@@ -749,5 +750,7 @@ public final class CheckoutLinksService {
             }
         }
     }
+
 }
+
 

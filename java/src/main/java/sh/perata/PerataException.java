@@ -10,9 +10,12 @@ import java.util.Map;
 /**
  * A request the API refused. {@link #getCode()} is the API's:
  * invalid_credential, forbidden, not_found, invalid_request, conflict,
- * idempotency_conflict, body_too_large or unavailable. {@link #getFields()}
- * says, for invalid_request, what is wrong with each field.
- * {@link #getRetryAfter()} is how many seconds to wait on a 429.
+ * idempotency_conflict, body_too_large or unavailable; the usage ingestion
+ * adds invalid_events and event_conflict. {@link #getFields()} says, for
+ * invalid_request, what is wrong with each field. {@link #getRecord()} is, for
+ * the usage ingestion, the position (from 1) in the batch of the event the API
+ * refused, and 0 for any other error. {@link #getRetryAfter()} is how many
+ * seconds to wait on a 429.
  */
 public class PerataException extends RuntimeException {
     private static final long serialVersionUID = 1L;
@@ -27,6 +30,8 @@ public class PerataException extends RuntimeException {
     private final Map<String, List<String>> fields;
     /** Seconds to wait before trying again, or null. */
     private final Integer retryAfter;
+    /** The event of a batch the API refused, from 1, or 0. */
+    private final int record;
 
     /**
      * A refusal.
@@ -36,14 +41,16 @@ public class PerataException extends RuntimeException {
      * @param apiMessage the API's message, empty when it sent none
      * @param fields what is wrong with each field
      * @param retryAfter seconds to wait before trying again, or null
+     * @param record the event of a batch the API refused, from 1, or 0
      */
-    public PerataException(int status, String code, String apiMessage, Map<String, List<String>> fields, Integer retryAfter) {
+    public PerataException(int status, String code, String apiMessage, Map<String, List<String>> fields, Integer retryAfter, int record) {
         super(apiMessage.isEmpty() ? "perata: " + status + " " + code : "perata: " + status + " " + code + ": " + apiMessage);
         this.status = status;
         this.code = code;
         this.apiMessage = apiMessage;
         this.fields = Collections.unmodifiableMap(new LinkedHashMap<>(fields));
         this.retryAfter = retryAfter;
+        this.record = record;
     }
 
     /** @return the HTTP status */
@@ -71,6 +78,11 @@ public class PerataException extends RuntimeException {
         return retryAfter;
     }
 
+    /** @return for the usage ingestion, the position (from 1) of the event the API refused; 0 otherwise */
+    public int getRecord() {
+        return record;
+    }
+
     /** The refusal a response carries; a body that is not the API's JSON is still a refusal. */
     static PerataException of(Transport.Response response) {
         Map<String, Object> data = Collections.emptyMap();
@@ -78,6 +90,11 @@ public class PerataException extends RuntimeException {
             Object parsed = Json.parse(new String(response.getBody(), StandardCharsets.UTF_8));
             if (parsed instanceof Map) {
                 data = Json.asObject(parsed);
+                // The API's errors are the problem itself; the usage
+                // ingestion's are wrapped in data, as its answers are.
+                if (!data.containsKey("error") && data.get("data") instanceof Map) {
+                    data = Json.asObject(data.get("data"));
+                }
             }
         } catch (IllegalStateException e) {
             // A refusal without a JSON body is still a refusal.
@@ -101,7 +118,8 @@ public class PerataException extends RuntimeException {
         if (!retryAfter.isEmpty() && retryAfter.length() < 10 && retryAfter.chars().allMatch(Character::isDigit)) {
             seconds = Integer.parseInt(retryAfter);
         }
-        return new PerataException(response.getStatus(), text(data.get("error")), text(data.get("message")), fields, seconds);
+        int record = data.get("record") instanceof Long && (Long) data.get("record") > 0 && (Long) data.get("record") < Integer.MAX_VALUE ? ((Long) data.get("record")).intValue() : 0;
+        return new PerataException(response.getStatus(), text(data.get("error")), text(data.get("message")), fields, seconds, record);
     }
 
     private static String text(Object value) {

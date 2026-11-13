@@ -323,6 +323,7 @@ public final class DiscountsService {
         }
     }
 
+
     /**
      * Excluir um desconto: sai das listas e dos checkouts e o código fica livre; o que ele já descontou continua nos registros.
      * @param discount the discount
@@ -750,5 +751,7 @@ public final class DiscountsService {
             }
         }
     }
+
 }
+
 

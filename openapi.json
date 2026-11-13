@@ -6176,8 +6176,8 @@
     },
     "/api/v1/usage/token-events": {
       "post": {
-        "summary": "Ingerir lote atômico de eventos de uso de teste",
-        "description": "Autorização: Bearer é o único formato de credencial suportado. As credenciais utilizam assinaturas nativas do Arandu, expiram em 30 dias e são verificadas em relação ao estado da fonte, associação atual do emissor e permissões nativas. Organização, merchant e ambiente de teste são derivados da fonte autenticada; o payload JSON não pode sobrescrevê-los. 1 a 100 eventos, no máximo 65536 bytes. Contagens são strings decimais de inteiros, de 0 a 1000000000000, com pelo menos um token por evento; a entrada exclui cache. Ocorrência RFC3339 em segundos inteiros, com no máximo 90 dias atrás e até cinco minutos à frente. Escopo/fonte/external_event_id identificam um registro; repetições exatas contam como replay e conteúdo conflitante retorna 409. Todos os novos eventos e emissões da outbox são confirmados ou revertidos juntos. Rotação mantém a identidade da fonte e replay; credenciais revogadas ou expiradas não podem ser reutilizadas. Respostas utilizam o wrapper de dados nativo, incluindo campos de erro e registro. Sem cobrança ou faturamento automático.",
+        "summary": "Ingerir lote atômico de eventos de uso",
+        "description": "Autorização: Bearer é o único formato de credencial suportado. As credenciais utilizam assinaturas nativas do Arandu, expiram em 30 dias e são verificadas em relação ao estado da fonte, associação atual do emissor e permissões nativas. Organização, merchant e ambiente (teste, pus_test_…, ou produção, pus_live_…) são derivados da fonte autenticada; o payload JSON não pode sobrescrevê-los, e uma credencial de um ambiente nunca escreve no outro. Em produção, a fonte só existe para uma organização que a equipe da Peráta liberou. 1 a 100 eventos, no máximo 65536 bytes. Contagens são strings decimais de inteiros, de 0 a 1000000000000, com pelo menos um token por evento; a entrada exclui cache. Ocorrência RFC3339 em segundos inteiros, com no máximo 90 dias atrás e até cinco minutos à frente. Escopo/fonte/external_event_id identificam um registro; repetições exatas contam como replay e conteúdo conflitante retorna 409. Todos os novos eventos e emissões da outbox são confirmados ou revertidos juntos. Rotação mantém a identidade da fonte e replay; credenciais revogadas ou expiradas não podem ser reutilizadas. Respostas utilizam o wrapper de dados nativo, incluindo campos de erro e registro. Sem cobrança ou faturamento automático.",
         "operationId": "usage.ingest",
         "requestBody": {
           "content": {
@@ -6297,9 +6297,16 @@
                           "type": "integer"
                         }
                       },
+                      "required": [
+                        "created",
+                        "replayed"
+                      ],
                       "additionalProperties": false
                     }
                   },
+                  "required": [
+                    "data"
+                  ],
                   "additionalProperties": false
                 }
               }
@@ -12095,7 +12102,7 @@
         "properties": {
           "error": {
             "type": "string",
-            "description": "Código do erro: invalid_credential, forbidden, not_found, invalid_request, conflict, idempotency_conflict, body_too_large, unavailable."
+            "description": "Código do erro: invalid_credential, forbidden, not_found, invalid_request, conflict, idempotency_conflict, idempotency_in_progress, invalid_idempotency_key, method_not_allowed, body_too_large, rate_limited, unavailable."
           },
           "message": {
             "type": "string"
@@ -13820,7 +13827,7 @@
       "usageSource": {
         "type": "http",
         "scheme": "bearer",
-        "bearerFormat": "Credencial de teste de origem da Peráta (formato: pus_test_...)"
+        "bearerFormat": "Credencial de fonte de ingestão da Peráta (formato: pus_test_... ou pus_live_...)"
       }
     }
   }

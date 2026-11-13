@@ -134,6 +134,7 @@ public sealed record WebhooksCreateEndpointParams
     public required string Url { get; init; }
 }
 
+
 /// <summary>The page and filters of webhooks:list_deliveries.</summary>
 public sealed record WebhooksListDeliveriesParams
 {
@@ -206,4 +207,6 @@ public sealed record WebhooksUpdateEndpointParams
     [JsonPropertyName("url")]
     public string? Url { get; init; }
 }
+
+
 

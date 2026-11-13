@@ -26,8 +26,11 @@ pub enum Error {
 ///
 /// `code` is the API's: invalid_credential, forbidden, not_found,
 /// invalid_request, conflict, idempotency_conflict, body_too_large or
-/// unavailable. `fields` says, for invalid_request, what is wrong with each
-/// field. `retry_after` is how long to wait on a 429.
+/// unavailable; the usage ingestion adds invalid_events and event_conflict.
+/// `fields` says, for invalid_request, what is wrong with each field. `record`
+/// is, for the usage ingestion, the position (from 1) in the batch of the event
+/// the API refused, and 0 for any other error. `retry_after` is how long to
+/// wait on a 429.
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[non_exhaustive]
 pub struct ApiError {
@@ -39,15 +42,27 @@ pub struct ApiError {
     pub message: String,
     /// The problems of each field of the request.
     pub fields: HashMap<String, Vec<String>>,
+    /// The event of a batch the API refused, from 1, or 0.
+    pub record: u32,
     /// How long to wait before trying again.
     pub retry_after: Option<Duration>,
 }
 
 #[derive(Deserialize, Default)]
-struct ErrorBody {
+struct Problem {
     error: Option<String>,
     message: Option<String>,
     fields: Option<HashMap<String, Vec<String>>>,
+    record: Option<u32>,
+}
+
+/// The API's errors are the problem itself; the usage ingestion's are wrapped
+/// in data, as its answers are.
+#[derive(Deserialize, Default)]
+struct ErrorBody {
+    #[serde(flatten)]
+    problem: Problem,
+    data: Option<Problem>,
 }
 
 impl ApiError {
@@ -55,11 +70,16 @@ impl ApiError {
     /// still a refusal.
     pub(crate) fn from_response(response: &HttpResponse) -> Self {
         let body: ErrorBody = serde_json::from_slice(&response.body).unwrap_or_default();
+        let problem = match (body.problem.error.is_some(), body.data) {
+            (false, Some(wrapped)) => wrapped,
+            _ => body.problem,
+        };
         Self {
             status: response.status,
-            code: body.error.unwrap_or_default(),
-            message: body.message.unwrap_or_default(),
-            fields: body.fields.unwrap_or_default(),
+            code: problem.error.unwrap_or_default(),
+            message: problem.message.unwrap_or_default(),
+            fields: problem.fields.unwrap_or_default(),
+            record: problem.record.unwrap_or_default(),
             retry_after: response
                 .header("retry-after")
                 .and_then(|value| value.trim().parse::<u64>().ok())

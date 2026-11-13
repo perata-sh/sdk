@@ -38,13 +38,36 @@ for await (const product of perata.products.listIter()) {
 | `perata.products` | `archive`, `create`, `get`, `list`, `listIter`, `update` |
 | `perata.refunds` | `create`, `list`, `listIter` |
 | `perata.subscriptions` | `cancel`, `get`, `list`, `listIter`, `update` |
+| `perata.usage` | `ingest` |
 | `perata.webhooks` | `createEndpoint`, `deleteEndpoint`, `getEndpoint`, `listDeliveries`, `listDeliveriesIter`, `listEndpoints`, `listEndpointsIter`, `updateEndpoint` |
 
 Cada método aceita, por último, `{ idempotencyKey, apiKey, signal }`. Um POST sem chave de idempotência é enviado com uma `Idempotency-Key` própria (UUID v4 aleatório, uma por chamada); passe a sua para poder repetir a mesma operação com segurança.
 
+## Consumo (ingestão de eventos)
+
+A ingestão de consumo usa outra credencial: a de uma fonte de ingestão (**Configurações › Fontes de ingestão**), `pus_test_…` em teste e `pus_live_…` em produção. Monte um cliente com ela; a chave de API da organização (`prk_…`) é recusada aqui com 401, e uma credencial de um ambiente nunca escreve no outro.
+
+```ts
+const usage = new Perata({ apiKey: process.env.PERATA_USAGE_KEY! }); // pus_test_… ou pus_live_…
+
+const receipt = await usage.usage.ingest({
+  events: [{
+    customer_id: customerId,
+    external_event_id: "requisicao-001", // a mesma fonte repetindo o id com o mesmo conteúdo é replay
+    input_tokens: "1200",
+    output_tokens: "300",
+    cached_tokens: "0",
+    occurred_at: new Date().toISOString().replace(/\.\d{3}Z$/, "Z"), // segundos inteiros, até 90 dias atrás
+  }],
+});
+// receipt.created, receipt.replayed
+```
+
+De 1 a 100 eventos por chamada, até 64 KiB, todos gravados ou nenhum. Não há `Idempotency-Key` aqui: a identidade de um evento é o `external_event_id` da fonte, e repetir uma chamada é seguro (`replayed`); o mesmo id com outro conteúdo responde 409 (`event_conflict`), e um evento inválido, 422 (`invalid_events`) com `record` dizendo qual, a partir de 1.
+
 ## Erros
 
-Uma recusa da API lança `PerataError`, com `status`, `code` (`invalid_request`, `not_found`…), `fields` (o problema de cada campo) e, num 429, `retryAfter` em segundos.
+Uma recusa da API lança `PerataError`, com `status`, `code` (`invalid_request`, `not_found`…), `fields` (o problema de cada campo), `record` (na ingestão, o evento recusado) e, num 429, `retryAfter` em segundos.
 
 ## Webhooks
 

@@ -65,6 +65,9 @@ func phpDoc(t *TypeRef) string {
 	case "boolean":
 		return "bool"
 	case "model":
+		if t.Nested != nil {
+			return phpShape(t.Nested)
+		}
 		return t.Model
 	case "array":
 		return "list<" + phpDoc(t.Items) + ">"

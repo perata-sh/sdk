@@ -252,6 +252,105 @@ void main() {
     expect(seen.first.url.queryParameters['limit'], '1');
   });
 
+  test(
+    'usage ingestion carries the source credential and its events',
+    () async {
+      final seen = <http.Request>[];
+      final usage = Perata(
+        'pus_live_source',
+        baseUrl: 'https://perata.test/',
+        httpClient: MockClient((request) async {
+          seen.add(request);
+          return json(200, {
+            'data': {'created': 1, 'replayed': 0},
+          });
+        }),
+      );
+      final receipt = await usage.usage.ingest(
+        const UsageIngestParams(
+          events: [
+            UsageIngestEvent(
+              customerId: 'cus_1',
+              externalEventId: 'req-1',
+              inputTokens: '1200',
+              outputTokens: '300',
+              cachedTokens: '0',
+              occurredAt: '2026-11-13T12:00:00Z',
+              cost: UsageIngestEventCost(amount: '1.250000', currency: 'brl'),
+            ),
+          ],
+        ),
+      );
+      expect(receipt.created, 1);
+      expect(receipt.replayed, 0);
+      expect(seen.single.method, 'POST');
+      expect(seen.single.url.path, '/api/v1/usage/token-events');
+      expect(seen.single.headers['authorization'], 'Bearer pus_live_source');
+      final sent = jsonDecode(seen.single.body) as Map<String, Object?>;
+      final events = sent['events'] as List<Object?>;
+      expect(events, hasLength(1));
+      final event = events.single as Map<String, Object?>;
+      expect(event['customer_id'], 'cus_1');
+      expect(event['_cost'], {'amount': '1.250000', 'currency': 'brl'});
+      expect(event.containsKey('_llm'), isFalse);
+      expect(event.containsKey('parent_id'), isFalse);
+    },
+  );
+
+  test('usage ingestion errors are wrapped in data', () async {
+    const event = UsageIngestEvent(
+      customerId: 'cus_1',
+      externalEventId: 'req-1',
+      inputTokens: '1',
+      outputTokens: '0',
+      cachedTokens: '0',
+      occurredAt: '2026-11-13T12:00:00Z',
+    );
+    final cases = <(int, Map<String, Object?>, String, int, String)>[
+      (401, {'error': 'invalid_credential'}, 'invalid_credential', 0, ''),
+      (
+        409,
+        {'error': 'event_conflict', 'record': 2, 'message': 'conflict'},
+        'event_conflict',
+        2,
+        'conflict',
+      ),
+      (
+        422,
+        {
+          'error': 'invalid_events',
+          'record': 3,
+          'message': 'validation failed: customer_id',
+          'fields': {
+            'customer_id': ['unknown'],
+          },
+        },
+        'invalid_events',
+        3,
+        'validation failed: customer_id',
+      ),
+      (400, {'error': 'invalid_json'}, 'invalid_json', 0, ''),
+    ];
+    for (final (status, problem, code, record, message) in cases) {
+      final (usage, _) = client((request) => json(status, {'data': problem}));
+      await expectLater(
+        usage.usage.ingest(const UsageIngestParams(events: [event])),
+        throwsA(
+          isA<PerataException>()
+              .having((error) => error.status, 'status', status)
+              .having((error) => error.code, 'code', code)
+              .having((error) => error.record, 'record', record)
+              .having((error) => error.message, 'message', message)
+              .having(
+                (error) => error.fields['customer_id'],
+                'fields',
+                status == 422 ? ['unknown'] : isNull,
+              ),
+        ),
+      );
+    }
+  });
+
   test('a refusal is a typed error', () async {
     final (perata, _) = client(
       (request) => request.url.path == '/api/v1/customers'

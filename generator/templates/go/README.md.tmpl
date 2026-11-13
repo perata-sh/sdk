@@ -30,9 +30,30 @@ Um POST sem chave de idempotência é enviado com uma `Idempotency-Key` própria
 | `client.{{pascal .Name}}` | {{range $i, $m := .Methods}}{{if $i}}, {{end}}`{{pascal $m.Name}}`{{if $m.Paginated}}, `{{pascal $m.Name}}Iter`{{end}}{{end}} |
 {{- end}}
 
+## Consumo (ingestão de eventos)
+
+A ingestão de consumo usa outra credencial: a de uma fonte de ingestão (**Configurações › Fontes de ingestão**), `pus_test_…` em teste e `pus_live_…` em produção. Monte um cliente com ela; a chave de API da organização (`prk_…`) é recusada aqui com 401, e uma credencial de um ambiente nunca escreve no outro.
+
+```go
+usage := perata.New(os.Getenv("PERATA_USAGE_KEY")) // pus_test_… ou pus_live_…
+
+event := perata.UsageIngestEvent{
+	CustomerID:      customerID,
+	ExternalEventID: "requisicao-001", // a mesma fonte repetindo o id com o mesmo conteúdo é replay
+	InputTokens:     "1200",
+	OutputTokens:    "300",
+	CachedTokens:    "0",
+	OccurredAt:      time.Now().UTC().Format(time.RFC3339), // segundos inteiros, até 90 dias atrás
+}
+receipt, err := usage.Usage.Ingest(ctx, perata.UsageIngestParams{Events: []perata.UsageIngestEvent{event}})
+// receipt.Created, receipt.Replayed
+```
+
+De 1 a 100 eventos por chamada, até 64 KiB, todos gravados ou nenhum. Não há `Idempotency-Key` aqui: a identidade de um evento é o `ExternalEventID` da fonte, e repetir uma chamada é seguro (`Replayed`); o mesmo id com outro conteúdo responde 409 (`event_conflict`), e um evento inválido, 422 (`invalid_events`) com `Record` dizendo qual, a partir de 1.
+
 ## Erros
 
-Uma recusa da API é um `*perata.Error` com `StatusCode`, `Code` (`invalid_request`, `not_found`…), `Message`, `Fields` (o problema de cada campo) e, num 429, `RetryAfter`.
+Uma recusa da API é um `*perata.Error` com `StatusCode`, `Code` (`invalid_request`, `not_found`…), `Message`, `Fields` (o problema de cada campo), `Record` (na ingestão, o evento recusado) e, num 429, `RetryAfter`.
 
 ## Webhooks
 

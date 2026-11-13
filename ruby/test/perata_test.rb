@@ -125,6 +125,44 @@ class PerataTest < Minitest::Test
     assert_equal "1", query(recorder.seen.first)["limit"]
   end
 
+  def test_usage_ingestion_carries_the_source_credential_and_its_events
+    recorder = Recorder.new { [200, { "data" => { "created" => 1, "replayed" => 0 } }, {}] }
+    usage = Perata::Client.new("pus_live_source", base_url: "https://perata.test/", transport: recorder)
+    receipt = usage.usage.ingest({ events: [{
+      customer_id: "cus_1", external_event_id: "req-1", input_tokens: "1200", output_tokens: "300", cached_tokens: "0",
+      occurred_at: "2026-11-13T12:00:00Z", _cost: { amount: "1.250000", currency: "brl" }
+    }] })
+    assert_equal [1, 0], [receipt.created, receipt.replayed]
+    seen = recorder.seen.first
+    assert_equal "POST", seen[:method]
+    assert_equal "/api/v1/usage/token-events", seen[:url].path
+    assert_equal "Bearer pus_live_source", seen[:headers]["Authorization"]
+    sent = JSON.parse(seen[:body])
+    assert_equal 1, sent["events"].length
+    assert_equal({ "amount" => "1.250000", "currency" => "brl" }, sent["events"][0]["_cost"])
+    refute sent["events"][0].key?("_llm")
+    refute sent["events"][0].key?("parent_id")
+    typed = Perata::UsageIngestEvent.new(customer_id: "cus_1", external_event_id: "req-2", input_tokens: "1", output_tokens: "0", cached_tokens: "0",
+                                         occurred_at: "2026-11-13T12:00:00Z", _llm: Perata::UsageIngestEventLlm.new(vendor: "openai", model: "gpt"))
+    usage.usage.ingest(Perata::UsageIngestParams.new(events: [typed]))
+    assert_equal({ "vendor" => "openai", "model" => "gpt" }, JSON.parse(recorder.seen.last[:body])["events"][0]["_llm"])
+  end
+
+  def test_usage_ingestion_errors_are_wrapped_in_data
+    event = { customer_id: "cus_1", external_event_id: "req-1", input_tokens: "1", output_tokens: "0", cached_tokens: "0", occurred_at: "2026-11-13T12:00:00Z" }
+    [
+      [401, { "data" => { "error" => "invalid_credential" } }, "invalid_credential", 0, ""],
+      [409, { "data" => { "error" => "event_conflict", "record" => 2, "message" => "conflict" } }, "event_conflict", 2, "conflict"],
+      [422, { "data" => { "error" => "invalid_events", "record" => 3, "message" => "validation failed: customer_id", "fields" => { "customer_id" => ["unknown"] } } }, "invalid_events", 3, "validation failed: customer_id"],
+      [400, { "data" => { "error" => "invalid_json" } }, "invalid_json", 0, ""]
+    ].each do |status, body, code, record, message|
+      perata, = client { [status, body, {}] }
+      refused = assert_raises(Perata::Error) { perata.usage.ingest({ events: [event] }) }
+      assert_equal [status, code, record, message], [refused.status, refused.code, refused.record, refused.message]
+      assert_equal({ "customer_id" => ["unknown"] }, refused.fields) if status == 422
+    end
+  end
+
   def test_a_refusal_is_a_typed_error
     perata, = client do |request|
       if request[:url].path == "/api/v1/customers"

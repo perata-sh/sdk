@@ -30,7 +30,9 @@ var ErrInsecureBaseURL = errors.New("perata: the base URL must be https (http is
 
 // Client talks to Peráta's API with one organization's API key. The key says
 // the organization and the environment: prk_test_… is the test environment,
-// prk_live_… the live one.
+// prk_live_… the live one. The usage ingestion takes another credential, a
+// usage source's (pus_test_…, pus_live_…), which a client built with it sends
+// the same way.
 type Client struct {
 	apiKey  string
 	baseURL string
@@ -189,13 +191,24 @@ func newIdempotencyKey() (string, error) {
 
 func errorOf(resp *http.Response, raw []byte) *Error {
 	e := &Error{StatusCode: resp.StatusCode}
-	var body struct {
+	type problem struct {
 		Error   string              `json:"error"`
 		Message string              `json:"message"`
 		Fields  map[string][]string `json:"fields"`
+		Record  int                 `json:"record"`
+	}
+	// The API's errors are the problem itself; the usage ingestion's are
+	// wrapped in data, as its answers are.
+	var body struct {
+		problem
+		Data *problem `json:"data"`
 	}
 	if json.Unmarshal(raw, &body) == nil {
-		e.Code, e.Message, e.Fields = body.Error, body.Message, body.Fields
+		found := body.problem
+		if found.Error == "" && body.Data != nil {
+			found = *body.Data
+		}
+		e.Code, e.Message, e.Fields, e.Record = found.Error, found.Message, found.Fields, found.Record
 	}
 	if seconds, err := strconv.Atoi(resp.Header.Get("Retry-After")); err == nil {
 		e.RetryAfter = time.Duration(seconds) * time.Second

@@ -7,18 +7,21 @@ module Perata
   #
   # +code+ is the API's: invalid_credential, forbidden, not_found,
   # invalid_request, conflict, idempotency_conflict, body_too_large or
-  # unavailable. +message+ is the API's explanation, +fields+ says, for
-  # invalid_request, what is wrong with each field, and +retry_after+ is how
-  # many seconds to wait on a 429.
+  # unavailable; the usage ingestion adds invalid_events and event_conflict.
+  # +message+ is the API's explanation, +fields+ says, for invalid_request,
+  # what is wrong with each field, +record+ is, for the usage ingestion, the
+  # position (from 1) in the batch of the event the API refused (0 for any other
+  # error), and +retry_after+ is how many seconds to wait on a 429.
   class Error < StandardError
-    attr_reader :status, :code, :message, :fields, :retry_after
+    attr_reader :status, :code, :message, :fields, :retry_after, :record
 
-    def initialize(status, code, message = "", fields = {}, retry_after = nil)
+    def initialize(status, code, message = "", fields = {}, retry_after = nil, record = 0)
       @status = status
       @code = code
       @message = message
       @fields = fields
       @retry_after = retry_after
+      @record = record
       super(message.empty? ? "perata: #{status} #{code}" : "perata: #{status} #{code}: #{message}")
     end
 
@@ -35,9 +38,12 @@ module Perata
       rescue JSON::ParserError
         {} # A refusal without a JSON body is still a refusal.
       end
+      # The API's errors are the problem itself; the usage ingestion's are
+      # wrapped in data, as its answers are.
+      data = data["data"] if !data.key?("error") && data["data"].is_a?(Hash)
       retry_after = headers["retry-after"].to_s
       new(status, data["error"].to_s, data["message"].to_s, data["fields"] || {},
-          retry_after.match?(/\A\d+\z/) ? retry_after.to_i : nil)
+          retry_after.match?(/\A\d+\z/) ? retry_after.to_i : nil, data["record"].is_a?(Integer) ? data["record"] : 0)
     end
   end
 end

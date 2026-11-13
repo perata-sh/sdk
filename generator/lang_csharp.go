@@ -126,10 +126,10 @@ func csRef(t *TypeRef) string {
 }
 
 // csWrite checks a request field can be written: the request bodies are
-// scalars, lists and maps of them, and the source-generated JSON context
-// lists none of the models as a body.
+// scalars, lists and maps of them, and the models written inline in them, which
+// the source-generated JSON context lists beside the bodies.
 func csWrite(f *Field) (string, error) {
-	if inputHoldsModel(f.Type) {
+	if inputHoldsModel(f.Type) && !inputHoldsOnlyNested(f.Type) {
 		return "", fmt.Errorf("generator: csharp: a request body holding the model %s is not supported", f.Type.Model)
 	}
 	return "", nil

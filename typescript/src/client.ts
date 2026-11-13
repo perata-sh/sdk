@@ -2,7 +2,7 @@
 
 import type { Requester, RequestSpec } from "./core.ts";
 import { PerataError } from "./errors.ts";
-import { BenefitsService, CheckoutLinksService, CheckoutsService, CustomerSessionsService, CustomersService, DiscountsService, DisputesService, EventsService, MetersService, OrdersService, PaymentMethodsService, PaymentsService, PricesService, ProductsService, RefundsService, SubscriptionsService, WebhooksService } from "./services.ts";
+import { BenefitsService, CheckoutLinksService, CheckoutsService, CustomerSessionsService, CustomersService, DiscountsService, DisputesService, EventsService, MetersService, OrdersService, PaymentMethodsService, PaymentsService, PricesService, ProductsService, RefundsService, SubscriptionsService, UsageService, WebhooksService } from "./services.ts";
 import { DEFAULT_BASE_URL, VERSION } from "./version.ts";
 
 /** Throws unless baseUrl is https, or http to localhost, 127.0.0.0/8 or ::1. */
@@ -21,7 +21,7 @@ function checkBaseUrl(baseUrl: string): void {
 }
 
 export interface ClientOptions {
-  /** The organization's API key. prk_test_… is the test environment, prk_live_… the live one. */
+  /** The organization's API key. prk_test_… is the test environment, prk_live_… the live one. The usage ingestion takes a usage source's credential instead (pus_test_…, pus_live_…), sent the same way. */
   apiKey: string;
   /** Another address, such as a local server. It must be https; http is accepted only for localhost, 127.0.0.0/8 and ::1. */
   baseUrl?: string;
@@ -55,6 +55,7 @@ export class Perata implements Requester {
   readonly products: ProductsService;
   readonly refunds: RefundsService;
   readonly subscriptions: SubscriptionsService;
+  readonly usage: UsageService;
   readonly webhooks: WebhooksService;
 
   readonly #apiKey: string;
@@ -85,6 +86,7 @@ export class Perata implements Requester {
     this.products = new ProductsService(this);
     this.refunds = new RefundsService(this);
     this.subscriptions = new SubscriptionsService(this);
+    this.usage = new UsageService(this);
     this.webhooks = new WebhooksService(this);
   }
 

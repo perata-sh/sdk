@@ -86,6 +86,11 @@ impl Client {
         SubscriptionsService::new(self)
     }
 
+    /// The API's usage.
+    pub fn usage(&self) -> UsageService<'_> {
+        UsageService::new(self)
+    }
+
     /// The API's webhooks.
     pub fn webhooks(&self) -> WebhooksService<'_> {
         WebhooksService::new(self)
@@ -1821,6 +1826,46 @@ impl<'a> SubscriptionsService<'a> {
     /// Trocar o plano de uma assinatura: outro preço e, se quiser, outra quantidade, com a forma de ratear a diferença (proration_behavior).
     pub fn update(&self, subscription: &str, params: &SubscriptionsUpdateParams) -> Result<Subscription, Error> {
         self.client.request("PATCH", &format!("/api/v1/subscriptions/{}", crate::client::escape(subscription)), &[], Some(params), &self.options)
+    }
+}
+
+/// The API's usage: `client.usage()`.
+///
+/// [`idempotency_key`](Self::idempotency_key) and [`api_key`](Self::api_key)
+/// set the options of the call made through it.
+#[derive(Debug, Clone)]
+pub struct UsageService<'a> {
+    client: &'a Client,
+    options: RequestOptions,
+}
+
+impl<'a> UsageService<'a> {
+    pub(crate) fn new(client: &'a Client) -> Self {
+        Self { client, options: RequestOptions::default() }
+    }
+
+    /// Makes the write safe to repeat: the same key with the same body
+    /// answers the first response again; with another body, a 409.
+    pub fn idempotency_key(mut self, key: impl Into<String>) -> Self {
+        self.options.idempotency_key = Some(key.into());
+        self
+    }
+
+    /// Calls with another organization's key.
+    pub fn api_key(mut self, key: impl Into<String>) -> Self {
+        self.options.api_key = Some(key.into());
+        self
+    }
+
+    /// Calls with these options.
+    pub fn options(mut self, options: RequestOptions) -> Self {
+        self.options = options;
+        self
+    }
+
+    /// Ingerir lote atômico de eventos de uso. Autentica com a credencial de uma fonte de ingestão (pus_test_… ou pus_live_…), não com a chave de API da organização.
+    pub fn ingest(&self, params: &UsageIngestParams) -> Result<UsageIngestReceipt, Error> {
+        self.client.request("POST", "/api/v1/usage/token-events", &[], Some(params), &self.options)
     }
 }
 

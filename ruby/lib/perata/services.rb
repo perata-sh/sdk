@@ -730,6 +730,22 @@ module Perata
     end
   end
 
+  # The API's usage.
+  class UsageService
+    def initialize(client)
+      @client = client
+    end
+
+    # Ingerir lote atômico de eventos de uso. Autentica com a credencial de uma fonte de ingestão (pus_test_… ou pus_live_…), não com a chave de API da organização.
+    #
+    # @param params [UsageIngestParams, Hash]
+    # @return [UsageIngestReceipt]
+    def ingest(params, api_key: nil)
+      data = @client.request("POST", "/api/v1/usage/token-events", body: UsageIngestParams.coerce(params).to_wire, api_key: api_key)
+      UsageIngestReceipt.from_hash(data)
+    end
+  end
+
   # The API's webhooks.
   class WebhooksService
     def initialize(client)

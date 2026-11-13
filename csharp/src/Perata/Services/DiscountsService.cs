@@ -152,6 +152,7 @@ public sealed record DiscountsCreateParams
     public required string Type { get; init; }
 }
 
+
 /// <summary>The page and filters of discounts:list.</summary>
 public sealed record DiscountsListParams
 {
@@ -211,4 +212,6 @@ public sealed record DiscountsUpdateParams
     [JsonPropertyName("starts_at")]
     public string? StartsAt { get; init; }
 }
+
+
 

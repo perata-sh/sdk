@@ -62,6 +62,7 @@ public final class Perata {
     private final ProductsService products;
     private final RefundsService refunds;
     private final SubscriptionsService subscriptions;
+    private final UsageService usage;
     private final WebhooksService webhooks;
 
     /**
@@ -95,6 +96,7 @@ public final class Perata {
         this.products = new ProductsService(this);
         this.refunds = new RefundsService(this);
         this.subscriptions = new SubscriptionsService(this);
+        this.usage = new UsageService(this);
         this.webhooks = new WebhooksService(this);
     }
 
@@ -186,6 +188,11 @@ public final class Perata {
     /** @return the API's subscriptions */
     public SubscriptionsService subscriptions() {
         return subscriptions;
+    }
+
+    /** @return the API's usage */
+    public UsageService usage() {
+        return usage;
     }
 
     /** @return the API's webhooks */

@@ -100,6 +100,9 @@ class Perata implements Requester {
   /// The API's subscriptions.
   late final subscriptions = SubscriptionsService(this);
 
+  /// The API's usage.
+  late final usage = UsageService(this);
+
   /// The API's webhooks.
   late final webhooks = WebhooksService(this);
 

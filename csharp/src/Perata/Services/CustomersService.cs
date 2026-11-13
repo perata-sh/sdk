@@ -136,6 +136,7 @@ public sealed record CustomersCreateParams
     public required string Name { get; init; }
 }
 
+
 /// <summary>The page and filters of customers:list.</summary>
 public sealed record CustomersListParams
 {
@@ -168,6 +169,7 @@ public sealed record CustomersUpdateParams
     public string? Name { get; init; }
 }
 
+
 /// <summary>The body of customers:update_external.</summary>
 public sealed record CustomersUpdateExternalParams
 {
@@ -183,4 +185,6 @@ public sealed record CustomersUpdateExternalParams
     [JsonPropertyName("name")]
     public string? Name { get; init; }
 }
+
+
 

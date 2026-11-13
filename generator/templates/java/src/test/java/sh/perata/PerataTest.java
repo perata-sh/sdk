@@ -200,6 +200,55 @@ class PerataTest {
     }
 
     @Test
+    @SuppressWarnings("unchecked")
+    void usageIngestionCarriesTheSourceCredentialAndItsEvents() {
+        Recorder recorder = new Recorder(request -> json(200, Map.of(), data(Map.of("created", 1L, "replayed", 0L))));
+        Perata usage = Perata.builder("pus_live_source").baseUrl("https://perata.test/").transport(recorder).build();
+        UsageIngestReceipt receipt = usage.usage().ingest(UsageService.IngestParams.builder().events(List.of(UsageService.UsageIngestEvent.builder()
+                .customerId("cus_1").externalEventId("req-1").inputTokens("1200").outputTokens("300").cachedTokens("0")
+                .occurredAt("2026-11-13T12:00:00Z")
+                .cost(UsageService.UsageIngestEventCost.builder().amount("1.250000").currency("brl").build())
+                .build())).build());
+        assertEquals(1L, receipt.getCreated());
+        assertEquals(0L, receipt.getReplayed());
+        Transport.Request seen = recorder.seen.get(0);
+        assertEquals("POST", seen.getMethod());
+        assertEquals("/api/v1/usage/token-events", URI.create(seen.getUrl()).getPath());
+        assertEquals("Bearer pus_live_source", seen.getHeaders().get("Authorization"));
+        Map<String, Object> sent = Json.asObject(Json.parse(new String(seen.getBody(), StandardCharsets.UTF_8)));
+        List<Object> events = (List<Object>) sent.get("events");
+        assertEquals(1, events.size());
+        Map<String, Object> event = Json.asObject(events.get(0));
+        assertEquals("cus_1", event.get("customer_id"));
+        assertEquals(Map.of("amount", "1.250000", "currency", "brl"), event.get("_cost"));
+        assertEquals(false, event.containsKey("_llm"));
+        assertEquals(false, event.containsKey("parent_id"));
+    }
+
+    @Test
+    void usageIngestionErrorsAreWrappedInData() {
+        UsageService.IngestParams params = UsageService.IngestParams.builder().events(List.of(UsageService.UsageIngestEvent.builder()
+                .customerId("cus_1").externalEventId("req-1").inputTokens("1").outputTokens("0").cachedTokens("0").occurredAt("2026-11-13T12:00:00Z").build())).build();
+        Object[][] cases = {
+            {401, Map.of("error", "invalid_credential"), "invalid_credential", 0, ""},
+            {409, Map.of("error", "event_conflict", "record", 2L, "message", "conflict"), "event_conflict", 2, "conflict"},
+            {422, Map.of("error", "invalid_events", "record", 3L, "message", "validation failed: customer_id", "fields", Map.of("customer_id", List.of("unknown"))), "invalid_events", 3, "validation failed: customer_id"},
+            {400, Map.of("error", "invalid_json"), "invalid_json", 0, ""},
+        };
+        for (Object[] each : cases) {
+            Recorder recorder = new Recorder(request -> json((Integer) each[0], Map.of(), data(each[1])));
+            PerataException refused = assertThrows(PerataException.class, () -> client(recorder).usage().ingest(params));
+            assertEquals(each[0], refused.getStatus());
+            assertEquals(each[2], refused.getCode());
+            assertEquals(each[3], refused.getRecord());
+            assertEquals(each[4], refused.getApiMessage());
+            if ((Integer) each[0] == 422) {
+                assertEquals(List.of("unknown"), refused.getFields().get("customer_id"));
+            }
+        }
+    }
+
+    @Test
     void aRefusalIsATypedError() {
         Recorder recorder = new Recorder(request -> URI.create(request.getUrl()).getPath().equals("/api/v1/customers")
                 ? json(422, Map.of(), Map.of("error", "invalid_request", "fields", Map.of("email", List.of("send an e-mail"))))

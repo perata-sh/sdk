@@ -37,15 +37,42 @@ client
 | `Perata.Products` | `archive`, `create`, `get`, `list`, `list_stream`, `update` |
 | `Perata.Refunds` | `create`, `list`, `list_stream` |
 | `Perata.Subscriptions` | `cancel`, `get`, `list`, `list_stream`, `update` |
+| `Perata.Usage` | `ingest` |
 | `Perata.Webhooks` | `create_endpoint`, `delete_endpoint`, `get_endpoint`, `list_deliveries`, `list_deliveries_stream`, `list_endpoints`, `list_endpoints_stream`, `update_endpoint` |
 
 Cada função recebe o cliente primeiro e devolve `{:ok, valor}` ou `{:error, %Perata.Error{}}`. Os modelos são structs com os nomes da API (`payment.amount_cents`). O corpo de uma escrita é a struct de parâmetros do método (`%Perata.ProductsCreateParams{name: "Curso"}`), uma keyword list ou um mapa com chaves atom; um campo opcional não informado fica fora do JSON. As funções `_stream` devolvem um `Stream` preguiçoso que percorre todas as páginas a partir de `page:` e levantam `Perata.Error` numa recusa.
 
 As escritas aceitam `idempotency_key:`, e todas aceitam `api_key:` para usar a chave de outra organização numa chamada. `Perata.new/2` aceita `base_url:`, `timeout:` (30 segundos, em milissegundos) e `transport:`. Um POST sem chave de idempotência é enviado com uma `Idempotency-Key` própria (UUID v4 aleatório, uma por chamada); passe a sua para poder repetir a mesma operação com segurança.
 
+## Consumo (ingestão de eventos)
+
+A ingestão de consumo usa outra credencial: a de uma fonte de ingestão (**Configurações › Fontes de ingestão**), `pus_test_…` em teste e `pus_live_…` em produção. Monte um cliente com ela; a chave de API da organização (`prk_…`) é recusada aqui com 401, e uma credencial de um ambiente nunca escreve no outro.
+
+```elixir
+usage = Perata.new(System.fetch_env!("PERATA_USAGE_KEY")) # pus_test_… ou pus_live_…
+
+{:ok, receipt} =
+  Perata.Usage.ingest(usage, %{
+    events: [
+      %Perata.UsageIngestEvent{
+        customer_id: customer_id,
+        external_event_id: "requisicao-001", # a mesma fonte repetindo o id com o mesmo conteúdo é replay
+        input_tokens: "1200",
+        output_tokens: "300",
+        cached_tokens: "0",
+        occurred_at: DateTime.utc_now() |> DateTime.truncate(:second) |> DateTime.to_iso8601() # segundos inteiros, até 90 dias atrás
+      }
+    ]
+  })
+
+# receipt.created, receipt.replayed
+```
+
+De 1 a 100 eventos por chamada, até 64 KiB, todos gravados ou nenhum. Não há `Idempotency-Key` aqui: a identidade de um evento é o `external_event_id` da fonte, e repetir uma chamada é seguro (`replayed`); o mesmo id com outro conteúdo responde 409 (`event_conflict`), e um evento inválido, 422 (`invalid_events`) com `record` dizendo qual, a partir de 1.
+
 ## Erros
 
-Uma recusa da API é um `{:error, %Perata.Error{}}`, com `status`, `code` (`invalid_request`, `not_found`…), `message`, `fields` (o problema de cada campo) e, num 429, `retry_after` em segundos.
+Uma recusa da API é um `{:error, %Perata.Error{}}`, com `status`, `code` (`invalid_request`, `not_found`…), `message`, `fields` (o problema de cada campo), `record` (na ingestão, o evento recusado) e, num 429, `retry_after` em segundos.
 
 ## Webhooks
 

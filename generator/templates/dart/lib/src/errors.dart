@@ -4,8 +4,11 @@ import 'dart:convert';
 ///
 /// [code] is the API's: `invalid_credential`, `forbidden`, `not_found`,
 /// `invalid_request`, `conflict`, `idempotency_conflict`, `body_too_large` or
-/// `unavailable`. [fields] says, for `invalid_request`, what is wrong with
-/// each field. [retryAfter] is how many seconds to wait on a 429.
+/// `unavailable`; the usage ingestion adds `invalid_events` and
+/// `event_conflict`. [fields] says, for `invalid_request`, what is wrong with
+/// each field. [record] is, for the usage ingestion, the position (from 1) in
+/// the batch of the event the API refused, and 0 for any other error.
+/// [retryAfter] is how many seconds to wait on a 429.
 class PerataException implements Exception {
   const PerataException(
     this.status,
@@ -13,6 +16,7 @@ class PerataException implements Exception {
     this.message, {
     this.fields = const {},
     this.retryAfter,
+    this.record = 0,
   });
 
   /// The error a refused response carries: its status, headers and body.
@@ -30,6 +34,13 @@ class PerataException implements Exception {
     } on FormatException {
       // A refusal without a JSON body is still a refusal.
     }
+    // The API's errors are the problem itself; the usage ingestion's are
+    // wrapped in data, as its answers are.
+    if (!json.containsKey('error')) {
+      if (json['data'] case final Map<String, Object?> wrapped) {
+        json = wrapped;
+      }
+    }
     final fields = <String, List<String>>{};
     if (json['fields'] case final Map<String, Object?> problems) {
       for (final MapEntry(:key, :value) in problems.entries) {
@@ -44,6 +55,9 @@ class PerataException implements Exception {
       json['message'] is String ? json['message'] as String : '',
       fields: Map.unmodifiable(fields),
       retryAfter: int.tryParse(_header(headers, 'retry-after')),
+      record: json['record'] is int && (json['record'] as int) > 0
+          ? json['record'] as int
+          : 0,
     );
   }
 
@@ -61,6 +75,10 @@ class PerataException implements Exception {
 
   /// Seconds to wait before trying again, on a 429.
   final int? retryAfter;
+
+  /// For the usage ingestion, the position (from 1) of the event the API
+  /// refused; 0 otherwise.
+  final int record;
 
   @override
   String toString() => message.isEmpty

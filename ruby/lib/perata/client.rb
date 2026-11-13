@@ -64,6 +64,8 @@ module Perata
     attr_reader :refunds
     # @return [SubscriptionsService]
     attr_reader :subscriptions
+    # @return [UsageService]
+    attr_reader :usage
     # @return [WebhooksService]
     attr_reader :webhooks
 
@@ -91,6 +93,7 @@ module Perata
       @products = ProductsService.new(self)
       @refunds = RefundsService.new(self)
       @subscriptions = SubscriptionsService.new(self)
+      @usage = UsageService.new(self)
       @webhooks = WebhooksService.new(self)
     end
 

@@ -447,6 +447,18 @@ class SubscriptionsService:
         return models.Subscription.from_dict(data)
 
 
+class UsageService:
+    """The API's usage."""
+
+    def __init__(self, client: Requester) -> None:
+        self._client = client
+
+    def ingest(self, params: models.UsageIngestParams, *, api_key: str | None = None) -> models.UsageIngestReceipt:
+        """Ingerir lote atômico de eventos de uso. Autentica com a credencial de uma fonte de ingestão (pus_test_… ou pus_live_…), não com a chave de API da organização."""
+        data = self._client.request("POST", "/api/v1/usage/token-events", body=params, api_key=api_key)
+        return models.UsageIngestReceipt.from_dict(data)
+
+
 class WebhooksService:
     """The API's webhooks."""
 

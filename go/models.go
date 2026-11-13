@@ -747,6 +747,49 @@ type SubscriptionsCancelParams struct {
 	Reason      *string `json:"reason,omitempty"`
 }
 
+// The body of usage.ingest.
+type UsageIngestParams struct {
+	Events []UsageIngestEvent `json:"events"`
+}
+
+// What usage.ingest answers.
+type UsageIngestReceipt struct {
+	Created  int64 `json:"created"`
+	Replayed int64 `json:"replayed"`
+}
+
+// Opcional. O custo de atender o evento para o vendedor, em metadata._cost; alimenta Análises › Custos e as margens.
+type UsageIngestEventCost struct {
+	// Custo em centavos, como string decimal com até seis casas.
+	Amount string `json:"amount"`
+	// Moeda do custo. Apenas brl.
+	Currency string `json:"currency"`
+}
+
+// Opcional. O modelo e o fornecedor que atenderam o evento, em metadata._llm; os contadores continuam nos campos de tokens.
+type UsageIngestEventLlm struct {
+	// Modelo que atendeu o evento.
+	Model string `json:"model"`
+	// Fornecedor do modelo.
+	Vendor string `json:"vendor"`
+}
+
+// One item of events in UsageIngestParams.
+type UsageIngestEvent struct {
+	// Opcional. O custo de atender o evento para o vendedor, em metadata._cost; alimenta Análises › Custos e as margens.
+	Cost *UsageIngestEventCost `json:"_cost,omitempty"`
+	// Opcional. O modelo e o fornecedor que atenderam o evento, em metadata._llm; os contadores continuam nos campos de tokens.
+	Llm             *UsageIngestEventLlm `json:"_llm,omitempty"`
+	CachedTokens    string               `json:"cached_tokens"`
+	CustomerID      string               `json:"customer_id"`
+	ExternalEventID string               `json:"external_event_id"`
+	InputTokens     string               `json:"input_tokens"`
+	OccurredAt      string               `json:"occurred_at"`
+	OutputTokens    string               `json:"output_tokens"`
+	// Opcional. O evento pai, pelo id da Peráta ou pelo external_event_id que a mesma fonte enviou; o pai precisa chegar antes, inclusive antes no mesmo lote.
+	ParentID *string `json:"parent_id,omitempty"`
+}
+
 // The body of webhooks:create_endpoint.
 type WebhooksCreateEndpointParams struct {
 	// Sem ele, o domínio do endereço. Único por organização e ambiente.

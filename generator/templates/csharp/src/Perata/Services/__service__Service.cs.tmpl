@@ -116,16 +116,24 @@ public sealed record {{$service}}{{pascal .Name}}Params
 }
 {{- end}}
 {{- if .Body}}
-{{- $body := .Body.Name}}
-
-{{if .Body.Description}}{{csDoc "" .Body.Description}}{{else}}/// <summary>The body of {{.OperationID}}.</summary>
+{{template "inputrecord" .Body}}
+{{- range .Nested}}
+{{template "inputrecord" .}}
+{{- end}}
+{{- end}}
+{{- end}}
+{{define "path"}}{{range $i, $part := pathParts .Path}}{{if $i}} + {{end}}{{if $part.Param}}PerataClient.Segment({{csParam $part.Param}}){{else}}{{quote $part.Literal}}{{end}}{{end}}{{end}}
+{{- define "sig"}}{{range .PathParams}}string {{csParam .}}, {{end}}{{end}}
+{{- define "args"}}{{range .PathParams}}{{csParam .}}, {{end}}{{end}}
+{{define "inputrecord"}}{{$body := .Name}}
+{{if .Description}}{{csDoc "" .Description}}{{else}}/// <summary>A request body of the API.</summary>
 {{end}}public sealed record {{$body}}
 {
-{{- range $field := .Body.Fields}}{{range .Type.Enum}}
+{{- range $field := .Fields}}{{range .Type.Enum}}
     /// <summary>A value of <see cref="{{csProp $body $field.Wire}}"/>.</summary>
     public const string {{csConst $field.Wire .}} = {{quote .}};
 {{end}}{{end}}
-{{- range $i, $f := .Body.Fields}}{{csWrite .}}
+{{- range $i, $f := .Fields}}{{csWrite .}}
 {{- if $i}}
 {{end}}
     /// <summary>{{if .Description}}{{csText .Description}}{{else}}The <c>{{.Wire}}</c> to send.{{end}}{{if not .Required}} Left out of the request when null.{{end}}</summary>
@@ -133,8 +141,4 @@ public sealed record {{$service}}{{pascal .Name}}Params
     public {{if csRequired . true}}required {{end}}{{csType . true}} {{csProp $body .Wire}} { get; init; }
 {{- end}}
 }
-{{- end}}
-{{- end}}
-{{define "path"}}{{range $i, $part := pathParts .Path}}{{if $i}} + {{end}}{{if $part.Param}}PerataClient.Segment({{csParam $part.Param}}){{else}}{{quote $part.Literal}}{{end}}{{end}}{{end}}
-{{- define "sig"}}{{range .PathParams}}string {{csParam .}}, {{end}}{{end}}
-{{- define "args"}}{{range .PathParams}}{{csParam .}}, {{end}}{{end}}
+{{end}}

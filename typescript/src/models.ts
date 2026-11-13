@@ -745,6 +745,49 @@ export interface SubscriptionsCancelParams {
   reason?: string;
 }
 
+/** The body of usage.ingest. */
+export interface UsageIngestParams {
+  events: UsageIngestEvent[];
+}
+
+/** What usage.ingest answers. */
+export interface UsageIngestReceipt {
+  created: number;
+  replayed: number;
+}
+
+/** Opcional. O custo de atender o evento para o vendedor, em metadata._cost; alimenta Análises › Custos e as margens. */
+export interface UsageIngestEventCost {
+  /** Custo em centavos, como string decimal com até seis casas. */
+  amount: string;
+  /** Moeda do custo. Apenas brl. */
+  currency: "brl";
+}
+
+/** Opcional. O modelo e o fornecedor que atenderam o evento, em metadata._llm; os contadores continuam nos campos de tokens. */
+export interface UsageIngestEventLlm {
+  /** Modelo que atendeu o evento. */
+  model: string;
+  /** Fornecedor do modelo. */
+  vendor: string;
+}
+
+/** One item of events in UsageIngestParams. */
+export interface UsageIngestEvent {
+  /** Opcional. O custo de atender o evento para o vendedor, em metadata._cost; alimenta Análises › Custos e as margens. */
+  _cost?: UsageIngestEventCost;
+  /** Opcional. O modelo e o fornecedor que atenderam o evento, em metadata._llm; os contadores continuam nos campos de tokens. */
+  _llm?: UsageIngestEventLlm;
+  cached_tokens: string;
+  customer_id: string;
+  external_event_id: string;
+  input_tokens: string;
+  occurred_at: string;
+  output_tokens: string;
+  /** Opcional. O evento pai, pelo id da Peráta ou pelo external_event_id que a mesma fonte enviou; o pai precisa chegar antes, inclusive antes no mesmo lote. */
+  parent_id?: string;
+}
+
 /** The body of webhooks:create_endpoint. */
 export interface WebhooksCreateEndpointParams {
   /** Sem ele, o domínio do endereço. Único por organização e ambiente. */

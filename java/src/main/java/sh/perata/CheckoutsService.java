@@ -192,6 +192,7 @@ public final class CheckoutsService {
         }
     }
 
+
     /**
      * Ler um checkout: o endereço, o estado e as páginas de retorno.
      * @param checkout the checkout
@@ -330,5 +331,7 @@ public final class CheckoutsService {
             }
         }
     }
+
 }
+
 

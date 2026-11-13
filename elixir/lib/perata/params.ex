@@ -824,6 +824,172 @@ defmodule Perata.SubscriptionsCancelParams do
   end
 end
 
+defmodule Perata.UsageIngestParams do
+  @moduledoc """
+  The body of usage.ingest.
+
+  Build it with `new/1` from a keyword list or a map; an optional field left
+  out is left out of the JSON.
+  """
+
+  @enforce_keys [:events]
+  defstruct [:events]
+
+  @type t :: %__MODULE__{
+          events: [Perata.UsageIngestEvent.t()]
+        }
+
+  @doc "The params as they are, or built from a keyword list or a map with atom keys."
+  @spec new(t() | keyword() | map()) :: t()
+  def new(%__MODULE__{} = params), do: params
+  def new(fields), do: struct!(__MODULE__, fields)
+
+  @doc "The body as the API reads it, from the params or what `new/1` builds them from."
+  @spec to_map(t() | keyword() | map()) :: %{optional(String.t()) => term()}
+  def to_map(params) do
+    params = new(params)
+
+    %{"events" => Perata.Encode.value(params.events)}
+  end
+end
+
+defmodule Perata.UsageIngestEventCost do
+  @moduledoc """
+  Opcional. O custo de atender o evento para o vendedor, em metadata._cost; alimenta Análises › Custos e as margens.
+
+  Build it with `new/1` from a keyword list or a map; an optional field left
+  out is left out of the JSON.
+  """
+
+  @enforce_keys [:amount, :currency]
+  defstruct [:amount, :currency]
+
+  @typedoc """
+  * `amount`: Custo em centavos, como string decimal com até seis casas.
+  * `currency` (one of `"brl"`): Moeda do custo. Apenas brl.
+  """
+  @type t :: %__MODULE__{
+          amount: String.t(),
+          currency: String.t()
+        }
+
+  @doc "The params as they are, or built from a keyword list or a map with atom keys."
+  @spec new(t() | keyword() | map()) :: t()
+  def new(%__MODULE__{} = params), do: params
+  def new(fields), do: struct!(__MODULE__, fields)
+
+  @doc "The body as the API reads it, from the params or what `new/1` builds them from."
+  @spec to_map(t() | keyword() | map()) :: %{optional(String.t()) => term()}
+  def to_map(params) do
+    params = new(params)
+
+    %{"amount" => params.amount, "currency" => params.currency}
+  end
+end
+
+defmodule Perata.UsageIngestEventLlm do
+  @moduledoc """
+  Opcional. O modelo e o fornecedor que atenderam o evento, em metadata._llm; os contadores continuam nos campos de tokens.
+
+  Build it with `new/1` from a keyword list or a map; an optional field left
+  out is left out of the JSON.
+  """
+
+  @enforce_keys [:model, :vendor]
+  defstruct [:model, :vendor]
+
+  @typedoc """
+  * `model`: Modelo que atendeu o evento.
+  * `vendor`: Fornecedor do modelo.
+  """
+  @type t :: %__MODULE__{
+          model: String.t(),
+          vendor: String.t()
+        }
+
+  @doc "The params as they are, or built from a keyword list or a map with atom keys."
+  @spec new(t() | keyword() | map()) :: t()
+  def new(%__MODULE__{} = params), do: params
+  def new(fields), do: struct!(__MODULE__, fields)
+
+  @doc "The body as the API reads it, from the params or what `new/1` builds them from."
+  @spec to_map(t() | keyword() | map()) :: %{optional(String.t()) => term()}
+  def to_map(params) do
+    params = new(params)
+
+    %{"model" => params.model, "vendor" => params.vendor}
+  end
+end
+
+defmodule Perata.UsageIngestEvent do
+  @moduledoc """
+  One item of events in UsageIngestParams.
+
+  Build it with `new/1` from a keyword list or a map; an optional field left
+  out is left out of the JSON.
+  """
+
+  @enforce_keys [
+    :cached_tokens,
+    :customer_id,
+    :external_event_id,
+    :input_tokens,
+    :occurred_at,
+    :output_tokens
+  ]
+  defstruct [
+    :_cost,
+    :_llm,
+    :cached_tokens,
+    :customer_id,
+    :external_event_id,
+    :input_tokens,
+    :occurred_at,
+    :output_tokens,
+    :parent_id
+  ]
+
+  @typedoc """
+  * `_cost` (optional): Opcional. O custo de atender o evento para o vendedor, em metadata._cost; alimenta Análises › Custos e as margens.
+  * `_llm` (optional): Opcional. O modelo e o fornecedor que atenderam o evento, em metadata._llm; os contadores continuam nos campos de tokens.
+  * `parent_id` (optional): Opcional. O evento pai, pelo id da Peráta ou pelo external_event_id que a mesma fonte enviou; o pai precisa chegar antes, inclusive antes no mesmo lote.
+  """
+  @type t :: %__MODULE__{
+          _cost: Perata.UsageIngestEventCost.t() | nil,
+          _llm: Perata.UsageIngestEventLlm.t() | nil,
+          cached_tokens: String.t(),
+          customer_id: String.t(),
+          external_event_id: String.t(),
+          input_tokens: String.t(),
+          occurred_at: String.t(),
+          output_tokens: String.t(),
+          parent_id: String.t() | nil
+        }
+
+  @doc "The params as they are, or built from a keyword list or a map with atom keys."
+  @spec new(t() | keyword() | map()) :: t()
+  def new(%__MODULE__{} = params), do: params
+  def new(fields), do: struct!(__MODULE__, fields)
+
+  @doc "The body as the API reads it, from the params or what `new/1` builds them from."
+  @spec to_map(t() | keyword() | map()) :: %{optional(String.t()) => term()}
+  def to_map(params) do
+    params = new(params)
+
+    %{
+      "cached_tokens" => params.cached_tokens,
+      "customer_id" => params.customer_id,
+      "external_event_id" => params.external_event_id,
+      "input_tokens" => params.input_tokens,
+      "occurred_at" => params.occurred_at,
+      "output_tokens" => params.output_tokens
+    }
+    |> Perata.Encode.put_optional("_cost", Perata.Encode.value(params._cost))
+    |> Perata.Encode.put_optional("_llm", Perata.Encode.value(params._llm))
+    |> Perata.Encode.put_optional("parent_id", params.parent_id)
+  end
+end
+
 defmodule Perata.WebhooksCreateEndpointParams do
   @moduledoc """
   The body of webhooks:create_endpoint.

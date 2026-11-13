@@ -635,6 +635,14 @@ pub struct WebhookEndpointCreated {
     pub url: String,
 }
 
+/// What usage.ingest answers.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct UsageIngestReceipt {
+    pub created: i64,
+    pub replayed: i64,
+}
+
 /// The body of benefits:create.
 ///
 /// [`BenefitsCreateParams::new`] takes the required fields; each optional one is set by
@@ -1666,6 +1674,130 @@ impl SubscriptionsCancelParams {
     /// Sets `reason`.
     pub fn reason(mut self, reason: impl Into<String>) -> Self {
         self.reason = Some(reason.into());
+        self
+    }
+}
+
+/// The body of usage.ingest.
+///
+/// [`UsageIngestParams::new`] takes the required fields; each optional one is set by
+/// the method of its name.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct UsageIngestParams {
+    pub events: Vec<UsageIngestEvent>,
+}
+
+impl UsageIngestParams {
+    /// A body with its required fields.
+    pub fn new(events: Vec<UsageIngestEvent>) -> Self {
+        Self {
+            events,
+        }
+    }
+}
+
+/// Opcional. O custo de atender o evento para o vendedor, em metadata._cost; alimenta Análises › Custos e as margens.
+///
+/// [`UsageIngestEventCost::new`] takes the required fields; each optional one is set by
+/// the method of its name.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct UsageIngestEventCost {
+    /// Custo em centavos, como string decimal com até seis casas.
+    pub amount: String,
+    /// Moeda do custo. Apenas brl.
+    pub currency: UsageIngestEventCostCurrency,
+}
+
+impl UsageIngestEventCost {
+    /// A body with its required fields.
+    pub fn new(amount: impl Into<String>, currency: impl Into<UsageIngestEventCostCurrency>) -> Self {
+        Self {
+            amount: amount.into(),
+            currency: currency.into(),
+        }
+    }
+}
+
+/// Opcional. O modelo e o fornecedor que atenderam o evento, em metadata._llm; os contadores continuam nos campos de tokens.
+///
+/// [`UsageIngestEventLlm::new`] takes the required fields; each optional one is set by
+/// the method of its name.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct UsageIngestEventLlm {
+    /// Modelo que atendeu o evento.
+    pub model: String,
+    /// Fornecedor do modelo.
+    pub vendor: String,
+}
+
+impl UsageIngestEventLlm {
+    /// A body with its required fields.
+    pub fn new(model: impl Into<String>, vendor: impl Into<String>) -> Self {
+        Self {
+            model: model.into(),
+            vendor: vendor.into(),
+        }
+    }
+}
+
+/// One item of events in UsageIngestParams.
+///
+/// [`UsageIngestEvent::new`] takes the required fields; each optional one is set by
+/// the method of its name.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct UsageIngestEvent {
+    /// Opcional. O custo de atender o evento para o vendedor, em metadata._cost; alimenta Análises › Custos e as margens.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub _cost: Option<UsageIngestEventCost>,
+    /// Opcional. O modelo e o fornecedor que atenderam o evento, em metadata._llm; os contadores continuam nos campos de tokens.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub _llm: Option<UsageIngestEventLlm>,
+    pub cached_tokens: String,
+    pub customer_id: String,
+    pub external_event_id: String,
+    pub input_tokens: String,
+    pub occurred_at: String,
+    pub output_tokens: String,
+    /// Opcional. O evento pai, pelo id da Peráta ou pelo external_event_id que a mesma fonte enviou; o pai precisa chegar antes, inclusive antes no mesmo lote.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub parent_id: Option<String>,
+}
+
+impl UsageIngestEvent {
+    /// A body with its required fields.
+    pub fn new(cached_tokens: impl Into<String>, customer_id: impl Into<String>, external_event_id: impl Into<String>, input_tokens: impl Into<String>, occurred_at: impl Into<String>, output_tokens: impl Into<String>) -> Self {
+        Self {
+            _cost: None,
+            _llm: None,
+            cached_tokens: cached_tokens.into(),
+            customer_id: customer_id.into(),
+            external_event_id: external_event_id.into(),
+            input_tokens: input_tokens.into(),
+            occurred_at: occurred_at.into(),
+            output_tokens: output_tokens.into(),
+            parent_id: None,
+        }
+    }
+
+    /// Opcional. O custo de atender o evento para o vendedor, em metadata._cost; alimenta Análises › Custos e as margens.
+    pub fn _cost(mut self, _cost: UsageIngestEventCost) -> Self {
+        self._cost = Some(_cost);
+        self
+    }
+
+    /// Opcional. O modelo e o fornecedor que atenderam o evento, em metadata._llm; os contadores continuam nos campos de tokens.
+    pub fn _llm(mut self, _llm: UsageIngestEventLlm) -> Self {
+        self._llm = Some(_llm);
+        self
+    }
+
+    /// Opcional. O evento pai, pelo id da Peráta ou pelo external_event_id que a mesma fonte enviou; o pai precisa chegar antes, inclusive antes no mesmo lote.
+    pub fn parent_id(mut self, parent_id: impl Into<String>) -> Self {
+        self.parent_id = Some(parent_id.into());
         self
     }
 }
@@ -5859,6 +5991,62 @@ impl Serialize for SubscriptionsUpdateParamsProrationBehavior {
 }
 
 impl<'de> Deserialize<'de> for SubscriptionsUpdateParamsProrationBehavior {
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        String::deserialize(deserializer).map(Self::from)
+    }
+}
+
+/// The values of `UsageIngestEventCost.currency`. Moeda do custo. Apenas brl.
+///
+/// A value this SDK does not know yet is kept, as it came, in
+/// [`UsageIngestEventCostCurrency::Unrecognized`].
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[non_exhaustive]
+pub enum UsageIngestEventCostCurrency {
+    /// `brl`
+    Brl,
+    /// A value this SDK does not know yet.
+    Unrecognized(String),
+}
+
+impl UsageIngestEventCostCurrency {
+    /// The value as the API writes it.
+    pub fn as_str(&self) -> &str {
+        match self {
+            UsageIngestEventCostCurrency::Brl => "brl",
+            UsageIngestEventCostCurrency::Unrecognized(value) => value,
+        }
+    }
+}
+
+impl From<&str> for UsageIngestEventCostCurrency {
+    fn from(value: &str) -> Self {
+        match value {
+            "brl" => UsageIngestEventCostCurrency::Brl,
+            other => UsageIngestEventCostCurrency::Unrecognized(other.to_owned()),
+        }
+    }
+}
+
+impl From<String> for UsageIngestEventCostCurrency {
+    fn from(value: String) -> Self {
+        Self::from(value.as_str())
+    }
+}
+
+impl fmt::Display for UsageIngestEventCostCurrency {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
+impl Serialize for UsageIngestEventCostCurrency {
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        serializer.serialize_str(self.as_str())
+    }
+}
+
+impl<'de> Deserialize<'de> for UsageIngestEventCostCurrency {
     fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
         String::deserialize(deserializer).map(Self::from)
     }

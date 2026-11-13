@@ -52,6 +52,73 @@ func TestAWriteSendsItsBodyAndIdempotencyKey(t *testing.T) {
 	}
 }
 
+func TestUsageIngestionCarriesTheSourceCredentialAndItsEvents(t *testing.T) {
+	var seen *http.Request
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		seen = r
+		var body struct {
+			Events []map[string]any `json:"events"`
+		}
+		_ = json.NewDecoder(r.Body).Decode(&body)
+		event := body.Events[0]
+		cost, _ := event["_cost"].(map[string]any)
+		if len(body.Events) != 1 || event["customer_id"] != "cus_1" || event["external_event_id"] != "req-1" || event["input_tokens"] != "1200" ||
+			cost["amount"] != "1.250000" || cost["currency"] != "brl" || event["parent_id"] != nil {
+			t.Errorf("body %v", body)
+		}
+		if _, sent := event["_llm"]; sent {
+			t.Error("an optional object left out was sent")
+		}
+		fmt.Fprint(w, `{"data":{"created":1,"replayed":0}}`)
+	}))
+	t.Cleanup(srv.Close)
+	usage := New("pus_live_source", WithBaseURL(srv.URL))
+	event := UsageIngestEvent{
+		CustomerID: "cus_1", ExternalEventID: "req-1", InputTokens: "1200", OutputTokens: "300", CachedTokens: "0",
+		OccurredAt: "2026-11-13T12:00:00Z", Cost: &UsageIngestEventCost{Amount: "1.250000", Currency: "brl"},
+	}
+	receipt, err := usage.Usage.Ingest(context.Background(), UsageIngestParams{Events: []UsageIngestEvent{event}})
+	if err != nil || receipt.Created != 1 || receipt.Replayed != 0 {
+		t.Fatalf("receipt %+v, %v", receipt, err)
+	}
+	if seen.Method != http.MethodPost || seen.URL.Path != "/api/v1/usage/token-events" || seen.Header.Get("Authorization") != "Bearer pus_live_source" {
+		t.Errorf("request %s %s %q", seen.Method, seen.URL.Path, seen.Header.Get("Authorization"))
+	}
+}
+
+func TestUsageIngestionErrorsAreWrappedInData(t *testing.T) {
+	for _, tc := range []struct {
+		status          int
+		body, code      string
+		record          int
+		message         string
+		fields          string
+		retryAfterAsked bool
+	}{
+		{status: 401, body: `{"data":{"error":"invalid_credential"}}`, code: "invalid_credential"},
+		{status: 409, body: `{"data":{"error":"event_conflict","record":2,"message":"conflict"}}`, code: "event_conflict", record: 2, message: "conflict"},
+		{status: 422, body: `{"data":{"error":"invalid_events","record":3,"message":"validation failed: customer_id","fields":{"customer_id":["unknown"]}}}`, code: "invalid_events", record: 3, message: "validation failed: customer_id", fields: "[unknown]"},
+		{status: 400, body: `{"data":{"error":"invalid_json"}}`, code: "invalid_json"},
+	} {
+		srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(tc.status)
+			fmt.Fprint(w, tc.body)
+		}))
+		usage := New("pus_test_source", WithBaseURL(srv.URL))
+		event := UsageIngestEvent{CustomerID: "cus_1", ExternalEventID: "req-1", InputTokens: "1", OutputTokens: "0", CachedTokens: "0", OccurredAt: "2026-11-13T12:00:00Z"}
+		_, err := usage.Usage.Ingest(context.Background(), UsageIngestParams{Events: []UsageIngestEvent{event}})
+		srv.Close()
+		var apiErr *Error
+		if !errors.As(err, &apiErr) || apiErr.StatusCode != tc.status || apiErr.Code != tc.code || apiErr.Record != tc.record || apiErr.Message != tc.message {
+			t.Fatalf("%d: error %#v", tc.status, err)
+		}
+		if tc.fields != "" && fmt.Sprint(apiErr.Fields["customer_id"]) != tc.fields {
+			t.Fatalf("%d: fields %v", tc.status, apiErr.Fields)
+		}
+	}
+}
+
 func TestABaseURLMustBeHTTPSUnlessItIsLoopback(t *testing.T) {
 	for base, ok := range map[string]bool{
 		"https://perata.sh": true, "http://localhost:8080": true, "http://LOCALHOST": true, "http://127.0.0.1:1": true,

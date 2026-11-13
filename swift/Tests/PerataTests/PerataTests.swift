@@ -166,6 +166,63 @@ final class PerataTests: XCTestCase {
         XCTAssertEqual(queryItem(recorder.seen[0], "limit"), "1")
     }
 
+    func testUsageIngestionCarriesTheSourceCredentialAndItsEvents() async throws {
+        let recorder = Recorder()
+        let transport: PerataTransport = { request in
+            recorder.append(request)
+            let data = try JSONSerialization.data(withJSONObject: ["data": ["created": 1, "replayed": 0]])
+            let response = HTTPURLResponse(url: request.url!, statusCode: 200, httpVersion: "HTTP/1.1", headerFields: [:])!
+            return (data, response)
+        }
+        let usage = PerataClient(apiKey: "pus_live_source", baseURL: URL(string: "https://perata.test/")!, transport: transport)
+        let receipt = try await usage.usage.ingest(UsageIngestParams(events: [
+            UsageIngestEvent(
+                cachedTokens: "0", customerID: "cus_1", externalEventID: "req-1", inputTokens: "1200",
+                occurredAt: "2026-11-13T12:00:00Z", outputTokens: "300",
+                cost: UsageIngestEventCost(amount: "1.250000", currency: .brl)
+            ),
+        ]))
+        XCTAssertEqual(receipt.created, 1)
+        XCTAssertEqual(receipt.replayed, 0)
+        let seen = recorder.seen[0]
+        XCTAssertEqual(seen.httpMethod, "POST")
+        XCTAssertEqual(seen.url?.path, "/api/v1/usage/token-events")
+        XCTAssertEqual(seen.value(forHTTPHeaderField: "Authorization"), "Bearer pus_live_source")
+        let sent = try XCTUnwrap(JSONSerialization.jsonObject(with: XCTUnwrap(seen.httpBody)) as? [String: Any])
+        let events = try XCTUnwrap(sent["events"] as? [[String: Any]])
+        XCTAssertEqual(events.count, 1)
+        XCTAssertEqual(events[0]["customer_id"] as? String, "cus_1")
+        XCTAssertEqual(events[0]["_cost"] as? [String: String], ["amount": "1.250000", "currency": "brl"])
+        XCTAssertNil(events[0]["_llm"])
+        XCTAssertNil(events[0]["parent_id"])
+    }
+
+    func testUsageIngestionErrorsAreWrappedInData() async throws {
+        let cases: [(Int, [String: Any], String, Int, String)] = [
+            (401, ["error": "invalid_credential"], "invalid_credential", 0, ""),
+            (409, ["error": "event_conflict", "record": 2, "message": "conflict"], "event_conflict", 2, "conflict"),
+            (422, ["error": "invalid_events", "record": 3, "message": "validation failed: customer_id", "fields": ["customer_id": ["unknown"]]], "invalid_events", 3, "validation failed: customer_id"),
+            (400, ["error": "invalid_json"], "invalid_json", 0, ""),
+        ]
+        for (status, problem, code, record, message) in cases {
+            nonisolated(unsafe) let answer: [String: Any] = ["data": problem]
+            let (usage, _) = client { _ in (status, [:], answer) }
+            let event = UsageIngestEvent(cachedTokens: "0", customerID: "cus_1", externalEventID: "req-1", inputTokens: "1", occurredAt: "2026-11-13T12:00:00Z", outputTokens: "0")
+            do {
+                _ = try await usage.usage.ingest(UsageIngestParams(events: [event]))
+                XCTFail("a \(status) was not refused")
+            } catch let refused as PerataError {
+                XCTAssertEqual(refused.status, status)
+                XCTAssertEqual(refused.code, code)
+                XCTAssertEqual(refused.record, record)
+                XCTAssertEqual(refused.message, message)
+                if status == 422 {
+                    XCTAssertEqual(refused.fields["customer_id"], ["unknown"])
+                }
+            }
+        }
+    }
+
     func testARefusalIsATypedError() async throws {
         let (perata, _) = client { request in
             if request.url?.path == "/api/v1/customers" {

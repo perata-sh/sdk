@@ -72,6 +72,10 @@ type TypeRef struct {
 	// Enum are a string's allowed values.
 	Enum   []string
 	Format string
+	// Nested is the model itself when it is written inline in a request body
+	// and exists nowhere else: a language that has no type of its own for it
+	// describes it where it is used.
+	Nested *Model
 }
 
 // Service groups the methods of one resource: products, payments.
@@ -93,6 +97,9 @@ type Method struct {
 	Query []*Param
 	// Body is the request model, or nil.
 	Body *Model
+	// Nested are the models Body holds that are written inline, innermost
+	// first, for the languages that write a request body where it is used.
+	Nested []*Model
 	// Response is the model answered in the data envelope.
 	Response string
 	// Paginated says the answer is a page of Item.
@@ -100,6 +107,12 @@ type Method struct {
 	Item      string
 	// Write says it takes an Idempotency-Key.
 	Write bool
+	// UsageSource says the call is authenticated by a usage source's
+	// credential (pus_test_… or pus_live_…) and not by an organization's API
+	// key: the client is built with that credential, or the call is given it.
+	// Such a call is idempotent by what its body names (an event's
+	// external_event_id), and takes no Idempotency-Key.
+	UsageSource bool
 	// NoContent says the answer is a 204 with no body, so the method returns
 	// nothing.
 	NoContent bool
@@ -205,10 +218,15 @@ func wrapper(name string) bool {
 // type is that map wherever it is referenced.
 type loader struct {
 	aliases map[string]*schema
+	// extra are the models a schema writes inline -- an answer's data, an
+	// object nested in a request body -- named after where they sit.
+	extra []*Model
+	// inline are those models by name.
+	inline map[string]*Model
 }
 
 func newLoader(doc *spec) *loader {
-	l := &loader{aliases: map[string]*schema{}}
+	l := &loader{aliases: map[string]*schema{}, inline: map[string]*Model{}}
 	for name, s := range doc.Components.Schemas {
 		if len(s.Properties) == 0 && s.additional() != nil {
 			l.aliases[name] = s
@@ -259,10 +277,15 @@ func build(doc *spec, version string) (*IR, error) {
 		sort.Strings(methods)
 		for _, httpMethod := range methods {
 			op := doc.Paths[path][httpMethod]
-			if !apiKeyOperation(op) {
+			usage := usageSourceOperation(op)
+			if !apiKeyOperation(op) && !usage {
 				continue
 			}
 			serviceName, methodName, ok := strings.Cut(op.OperationID, ":")
+			if !ok && usage {
+				// The ingestion's id is usage.ingest, as the router names it.
+				serviceName, methodName, ok = strings.Cut(op.OperationID, ".")
+			}
 			if !ok {
 				return nil, fmt.Errorf("generator: %s %s has no service:method operationId", httpMethod, path)
 			}
@@ -282,6 +305,10 @@ func build(doc *spec, version string) (*IR, error) {
 			if err != nil {
 				return nil, err
 			}
+			if usage {
+				method.UsageSource, method.Write = true, false
+				method.Summary += ". Autentica com a credencial de uma fonte de ingestão (pus_test_… ou pus_live_…), não com a chave de API da organização"
+			}
 			service := services[serviceName]
 			if service == nil {
 				service = &Service{Name: serviceName}
@@ -291,6 +318,8 @@ func build(doc *spec, version string) (*IR, error) {
 			if method.Body != nil {
 				ir.Models = append(ir.Models, method.Body)
 			}
+			ir.Models = append(ir.Models, l.extra...)
+			l.extra = nil
 		}
 	}
 	serviceNames := make([]string, 0, len(services))
@@ -366,9 +395,18 @@ func (l *loader) webhooks(doc *spec) ([]*WebhookGroup, error) {
 	return out, nil
 }
 
-// apiKeyOperation says the operation is the SDK's: authenticated by the
-// organization's API key. The usage ingestion takes a source's credential
-// and is not.
+// usageSourceOperation says the operation is the usage ingestion:
+// authenticated by a source's credential, which is a bearer like the API key.
+func usageSourceOperation(op *operation) bool {
+	for _, requirement := range op.Security {
+		if _, ok := requirement["usageSource"]; ok {
+			return true
+		}
+	}
+	return false
+}
+
+// apiKeyOperation says the operation takes the organization's API key.
 func apiKeyOperation(op *operation) bool {
 	for _, requirement := range op.Security {
 		if _, ok := requirement["apiKey"]; ok {
@@ -407,6 +445,18 @@ func (l *loader) methodOf(op *operation, httpMethod, path, serviceName, methodNa
 		if answer == nil {
 			return nil, fmt.Errorf("generator: %s answers %s with no JSON body", op.OperationID, status)
 		}
+		if answer.Ref == "" && answer.Properties["data"] != nil && len(answer.Properties["data"].Properties) > 0 {
+			// An answer the contract writes inline: its data is the model.
+			name := Pascal(serviceName) + Pascal(methodName) + "Receipt"
+			model, err := l.modelOf(name, answer.Properties["data"], false)
+			if err != nil {
+				return nil, err
+			}
+			model.Description = "What " + op.OperationID + " answers."
+			l.extra = append(l.extra, model)
+			method.Response = name
+			continue
+		}
 		ref := strings.TrimPrefix(answer.Ref, "#/components/schemas/")
 		switch {
 		case strings.HasSuffix(ref, "ListEnvelope"):
@@ -434,10 +484,12 @@ func (l *loader) methodOf(op *operation, httpMethod, path, serviceName, methodNa
 	if op.RequestBody != nil {
 		body := op.RequestBody.Content["application/json"].Schema
 		if body != nil && len(body.Properties) > 0 {
+			before := len(l.extra)
 			model, err := l.modelOf(Pascal(serviceName)+Pascal(methodName)+"Params", body, true)
 			if err != nil {
 				return nil, err
 			}
+			method.Nested = append([]*Model(nil), l.extra[before:]...)
 			model.Description = "The body of " + op.OperationID + "."
 			method.Body = model
 		}
@@ -464,6 +516,10 @@ func (l *loader) modelOf(name string, s *schema, input bool) (*Model, error) {
 		if err := checkIdentifier("field of "+name, wire); err != nil {
 			return nil, err
 		}
+		property, err := l.nest(name, wire, property, input)
+		if err != nil {
+			return nil, err
+		}
 		typ, nullable, err := l.typeOf(property)
 		if err != nil {
 			return nil, fmt.Errorf("generator: %s.%s: %w", name, wire, err)
@@ -471,6 +527,39 @@ func (l *loader) modelOf(name string, s *schema, input bool) (*Model, error) {
 		model.Fields = append(model.Fields, &Field{Wire: wire, Description: cleanText(property.Description), Type: typ, Required: required[wire], Nullable: nullable})
 	}
 	return model, nil
+}
+
+// nest turns an object a schema writes inline -- a property that is an object
+// with properties of its own, or an array of such objects -- into a model of
+// its own, named after the model it sits in and the property: the events of
+// UsageIngestParams are UsageIngestEvent, and the _cost of an event its
+// UsageIngestEventCost. The property is read as a reference to that model.
+func (l *loader) nest(parent, wire string, property *schema, input bool) (*schema, error) {
+	base := strings.TrimSuffix(parent, "Params")
+	switch {
+	case property.Ref == "" && property.Type == "object" && len(property.Properties) > 0:
+		return l.nested(base+Pascal(wire), property, input, "The "+wire+" of "+parent+".")
+	case property.Ref == "" && property.Type == "array" && property.Items != nil && property.Items.Ref == "" && property.Items.Type == "object" && len(property.Items.Properties) > 0:
+		item, err := l.nested(base+Pascal(strings.TrimSuffix(wire, "s")), property.Items, input, "One item of "+wire+" in "+parent+".")
+		if err != nil {
+			return nil, err
+		}
+		return &schema{Type: "array", Description: property.Description, Items: item}, nil
+	}
+	return property, nil
+}
+
+func (l *loader) nested(name string, s *schema, input bool, fallback string) (*schema, error) {
+	model, err := l.modelOf(name, s, input)
+	if err != nil {
+		return nil, err
+	}
+	if model.Description == "" {
+		model.Description = fallback
+	}
+	l.extra = append(l.extra, model)
+	l.inline[name] = model
+	return &schema{Ref: "#/components/schemas/" + name, Description: s.Description}, nil
 }
 
 func (l *loader) typeOf(s *schema) (*TypeRef, bool, error) {
@@ -482,7 +571,7 @@ func (l *loader) typeOf(s *schema) (*TypeRef, bool, error) {
 		if err := checkIdentifier("referenced model", name); err != nil {
 			return nil, false, err
 		}
-		return &TypeRef{Kind: "model", Model: name}, false, nil
+		return &TypeRef{Kind: "model", Model: name, Nested: l.inline[name]}, false, nil
 	}
 	kind, nullable := "", false
 	switch t := s.Type.(type) {

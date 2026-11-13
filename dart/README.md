@@ -47,13 +47,40 @@ A chave da API é da organização e dá acesso a ela inteira: use o SDK no serv
 | `perata.products` | `archive`, `create`, `get`, `list`, `listIter`, `update` |
 | `perata.refunds` | `create`, `list`, `listIter` |
 | `perata.subscriptions` | `cancel`, `get`, `list`, `listIter`, `update` |
+| `perata.usage` | `ingest` |
 | `perata.webhooks` | `createEndpoint`, `deleteEndpoint`, `getEndpoint`, `listDeliveries`, `listDeliveriesIter`, `listEndpoints`, `listEndpointsIter`, `updateEndpoint` |
 
 Os modelos são classes imutáveis com campos em camelCase (`payment.amountCents`) e `fromJson`/`toJson` com os nomes da API; os corpos das escritas são classes `…Params`, e um campo opcional deixado nulo não é enviado. As listas devolvem uma `Page` (`items`, `pagination.totalCount`, `pagination.maxPage`), e o `…Iter` devolve um `Stream` que percorre todas as páginas. As escritas aceitam `idempotencyKey:`, e todas aceitam `apiKey:` para usar a chave de outra organização numa chamada. `Perata(…, baseUrl:, httpClient:, timeout:)` troca o endereço, o `http.Client` (por exemplo, um `MockClient` nos testes) e o limite de 30 segundos. Um POST sem chave de idempotência é enviado com uma `Idempotency-Key` própria (UUID v4 aleatório, uma por chamada); passe a sua para poder repetir a mesma operação com segurança.
 
+## Consumo (ingestão de eventos)
+
+A ingestão de consumo usa outra credencial: a de uma fonte de ingestão (**Configurações › Fontes de ingestão**), `pus_test_…` em teste e `pus_live_…` em produção. Monte um cliente com ela; a chave de API da organização (`prk_…`) é recusada aqui com 401, e uma credencial de um ambiente nunca escreve no outro.
+
+```dart
+final usage = Perata(Platform.environment['PERATA_USAGE_KEY']!); // pus_test_… ou pus_live_…
+
+final receipt = await usage.usage.ingest(
+  UsageIngestParams(
+    events: [
+      UsageIngestEvent(
+        customerId: customerId,
+        externalEventId: 'requisicao-001', // a mesma fonte repetindo o id com o mesmo conteúdo é replay
+        inputTokens: '1200',
+        outputTokens: '300',
+        cachedTokens: '0',
+        occurredAt: DateTime.now().toUtc().toIso8601String(), // até 90 dias atrás
+      ),
+    ],
+  ),
+);
+// receipt.created, receipt.replayed
+```
+
+De 1 a 100 eventos por chamada, até 64 KiB, todos gravados ou nenhum. Não há `Idempotency-Key` aqui: a identidade de um evento é o `externalEventId` da fonte, e repetir uma chamada é seguro (`replayed`); o mesmo id com outro conteúdo responde 409 (`event_conflict`), e um evento inválido, 422 (`invalid_events`) com `record` dizendo qual, a partir de 1. O horário (`occurredAt`) vai em segundos inteiros: corte as frações antes de enviar.
+
 ## Erros
 
-Uma recusa da API lança `PerataException`, com `status`, `code` (`invalid_request`, `not_found`…), `message`, `fields` (o problema de cada campo) e, num 429, `retryAfter` em segundos.
+Uma recusa da API lança `PerataException`, com `status`, `code` (`invalid_request`, `not_found`…), `message`, `fields` (o problema de cada campo), `record` (na ingestão, o evento recusado) e, num 429, `retryAfter` em segundos.
 
 ## Webhooks
 

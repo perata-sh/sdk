@@ -35,6 +35,15 @@ final class Json {
         return value;
     }
 
+    /** The JSON of each model of a list, as the list a body holds. */
+    static <T> List<Object> toJsonList(List<T> items, Function<T, Map<String, Object>> each) {
+        List<Object> out = new ArrayList<>(items.size());
+        for (T item : items) {
+            out.add(each.apply(item));
+        }
+        return out;
+    }
+
     // ---- reading
 
     private Object value(int depth) {

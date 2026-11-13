@@ -189,6 +189,74 @@ defmodule PerataTest do
     assert query(first)["limit"] == "1"
   end
 
+  test "usage ingestion carries the source credential and its events" do
+    test = self()
+
+    transport = fn method, url, headers, body, _timeout ->
+      send(test, {:request, %{method: method, url: URI.parse(url), headers: Map.new(headers), body: body}})
+      {:ok, {200, [], JSON.encode!(%{"data" => %{"created" => 1, "replayed" => 0}})}}
+    end
+
+    usage = Perata.new("pus_live_source", base_url: "https://perata.test/", transport: transport)
+
+    event = %Perata.UsageIngestEvent{
+      customer_id: "cus_1",
+      external_event_id: "req-1",
+      input_tokens: "1200",
+      output_tokens: "300",
+      cached_tokens: "0",
+      occurred_at: "2026-11-13T12:00:00Z",
+      _cost: %Perata.UsageIngestEventCost{amount: "1.250000", currency: "brl"}
+    }
+
+    assert {:ok, %Perata.UsageIngestReceipt{created: 1, replayed: 0}} =
+             Perata.Usage.ingest(usage, %{events: [event]})
+
+    assert_received {:request, seen}
+    assert seen.method == "POST"
+    assert seen.url.path == "/api/v1/usage/token-events"
+    assert seen.headers["Authorization"] == "Bearer pus_live_source"
+    assert %{"events" => [sent]} = JSON.decode!(seen.body)
+    assert sent["customer_id"] == "cus_1"
+    assert sent["_cost"] == %{"amount" => "1.250000", "currency" => "brl"}
+    refute Map.has_key?(sent, "_llm")
+    refute Map.has_key?(sent, "parent_id")
+  end
+
+  test "usage ingestion errors are wrapped in data" do
+    event = %Perata.UsageIngestEvent{
+      customer_id: "cus_1",
+      external_event_id: "req-1",
+      input_tokens: "1",
+      output_tokens: "0",
+      cached_tokens: "0",
+      occurred_at: "2026-11-13T12:00:00Z"
+    }
+
+    cases = [
+      {401, %{"error" => "invalid_credential"}, "invalid_credential", 0, ""},
+      {409, %{"error" => "event_conflict", "record" => 2, "message" => "conflict"},
+       "event_conflict", 2, "conflict"},
+      {422,
+       %{
+         "error" => "invalid_events",
+         "record" => 3,
+         "message" => "validation failed: customer_id",
+         "fields" => %{"customer_id" => ["unknown"]}
+       }, "invalid_events", 3, "validation failed: customer_id"},
+      {400, %{"error" => "invalid_json"}, "invalid_json", 0, ""}
+    ]
+
+    for {status, problem, code, record, message} <- cases do
+      usage = client(fn _request -> {status, %{"data" => problem}, []} end)
+
+      assert {:error, %Perata.Error{status: ^status, code: ^code, record: ^record, message: ^message} = error} =
+               Perata.Usage.ingest(usage, %{events: [event]})
+
+      if status == 422, do: assert(error.fields == %{"customer_id" => ["unknown"]})
+    end
+  end
+
   test "a refusal is a typed error" do
     perata =
       client(fn

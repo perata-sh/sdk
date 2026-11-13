@@ -1299,6 +1299,27 @@ class SubscriptionsService {
   }
 }
 
+/// The API's usage.
+class UsageService {
+  const UsageService(this._client);
+
+  final Requester _client;
+
+  /// Ingerir lote atômico de eventos de uso. Autentica com a credencial de uma fonte de ingestão (pus_test_… ou pus_live_…), não com a chave de API da organização.
+  Future<UsageIngestReceipt> ingest(
+    UsageIngestParams params, {
+    String? apiKey,
+  }) async {
+    final data = await _client.request(
+      'POST',
+      '/api/v1/usage/token-events',
+      body: params.toJson(),
+      apiKey: apiKey,
+    );
+    return UsageIngestReceipt.fromJson(data);
+  }
+}
+
 /// The API's webhooks.
 class WebhooksService {
   const WebhooksService(this._client);

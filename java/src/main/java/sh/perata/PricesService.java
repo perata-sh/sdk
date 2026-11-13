@@ -161,6 +161,7 @@ public final class PricesService {
         }
     }
 
+
     /**
      * Listar preços, opcionalmente de um produto (product_id). One page; {@link #listIter} walks every page.
      * @param params the page, its size and the filters, or null
@@ -310,4 +311,5 @@ public final class PricesService {
         }
     }
 }
+
 

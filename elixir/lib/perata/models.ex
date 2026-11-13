@@ -1658,3 +1658,23 @@ defmodule Perata.WebhookEndpointCreated do
     }
   end
 end
+
+defmodule Perata.UsageIngestReceipt do
+  @moduledoc "What usage.ingest answers."
+
+  defstruct [:created, :replayed]
+
+  @type t :: %__MODULE__{
+          created: integer(),
+          replayed: integer()
+        }
+
+  @doc "Builds a UsageIngestReceipt from the API's JSON."
+  @spec from_map(map()) :: t()
+  def from_map(%{} = data) do
+    %__MODULE__{
+      created: Map.fetch!(data, "created"),
+      replayed: Map.fetch!(data, "replayed")
+    }
+  end
+end

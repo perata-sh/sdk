@@ -171,6 +171,7 @@ public sealed record CheckoutLinksCreateParams
     public long? TrialIntervalCount { get; init; }
 }
 
+
 /// <summary>The page and filters of checkout-links:list.</summary>
 public sealed record CheckoutLinksListParams
 {
@@ -214,4 +215,6 @@ public sealed record CheckoutLinksUpdateParams
     [JsonPropertyName("success_url")]
     public string? SuccessUrl { get; init; }
 }
+
+
 

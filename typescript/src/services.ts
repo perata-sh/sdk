@@ -635,6 +635,20 @@ export class SubscriptionsService {
   }
 }
 
+/** The API's usage. */
+export class UsageService {
+  readonly #client: Requester;
+
+  constructor(client: Requester) {
+    this.#client = client;
+  }
+
+  /** Ingerir lote atômico de eventos de uso. Autentica com a credencial de uma fonte de ingestão (pus_test_… ou pus_live_…), não com a chave de API da organização. */
+  ingest(params: models.UsageIngestParams, options?: RequestOptions): Promise<models.UsageIngestReceipt> {
+    return this.#client.request("POST", `/api/v1/usage/token-events`, { body: params, options });
+  }
+}
+
 /** The page and filters of webhooks:list_deliveries. */
 export interface WebhooksListDeliveriesParams {
   /** The page, from 1. */

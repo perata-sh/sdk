@@ -8,7 +8,8 @@ use perata::{
     verify_webhook_at, verify_webhook_signature_at, BoxError, Client, CustomersCreateParams,
     DiscountsCreateParams, DiscountsCreateParamsDuration, DiscountsCreateParamsType,
     DiscountsListParams, Error, HttpRequest, HttpResponse, ProductStatus, ProductsCreateParams,
-    ProductsListParams, WebhookError, WebhookEvent,
+    ProductsListParams, UsageIngestEvent, UsageIngestEventCost, UsageIngestEventCostCurrency,
+    UsageIngestParams, WebhookError, WebhookEvent,
 };
 
 type Seen = Arc<Mutex<Vec<HttpRequest>>>;
@@ -261,6 +262,101 @@ fn iterating_walks_every_page() {
         query(&seen.lock().unwrap()[0].url, "limit").as_deref(),
         Some("1")
     );
+}
+
+#[test]
+fn usage_ingestion_carries_the_source_credential_and_its_events() {
+    let seen: Seen = Arc::default();
+    let record = Arc::clone(&seen);
+    let transport = move |request: HttpRequest| -> Result<HttpResponse, BoxError> {
+        record.lock().unwrap().push(request);
+        Ok(json(
+            200,
+            serde_json::json!({"data": {"created": 1, "replayed": 0}}),
+        ))
+    };
+    let usage = Client::builder("pus_live_source")
+        .base_url("https://perata.test/")
+        .transport(transport)
+        .build();
+    let mut event =
+        UsageIngestEvent::new("0", "cus_1", "req-1", "1200", "2026-11-13T12:00:00Z", "300");
+    event._cost = Some(UsageIngestEventCost::new(
+        "1.250000",
+        UsageIngestEventCostCurrency::Brl,
+    ));
+    let receipt = usage
+        .usage()
+        .ingest(&UsageIngestParams::new(vec![event]))
+        .unwrap();
+    assert_eq!((receipt.created, receipt.replayed), (1, 0));
+    let seen = seen.lock().unwrap();
+    assert_eq!(seen[0].method, "POST");
+    assert_eq!(seen[0].url, "https://perata.test/api/v1/usage/token-events");
+    assert_eq!(
+        seen[0].header("authorization"),
+        Some("Bearer pus_live_source")
+    );
+    let sent: serde_json::Value = serde_json::from_slice(seen[0].body.as_ref().unwrap()).unwrap();
+    let events = sent["events"].as_array().unwrap();
+    assert_eq!(events.len(), 1);
+    assert_eq!(events[0]["customer_id"], "cus_1");
+    assert_eq!(
+        events[0]["_cost"],
+        serde_json::json!({"amount": "1.250000", "currency": "brl"})
+    );
+    assert!(events[0].get("_llm").is_none());
+    assert!(events[0].get("parent_id").is_none());
+}
+
+#[test]
+fn usage_ingestion_errors_are_wrapped_in_data() {
+    let cases = [
+        (
+            401,
+            serde_json::json!({"error": "invalid_credential"}),
+            "invalid_credential",
+            0,
+            "",
+        ),
+        (
+            409,
+            serde_json::json!({"error": "event_conflict", "record": 2, "message": "conflict"}),
+            "event_conflict",
+            2,
+            "conflict",
+        ),
+        (
+            422,
+            serde_json::json!({"error": "invalid_events", "record": 3, "message": "validation failed: customer_id", "fields": {"customer_id": ["unknown"]}}),
+            "invalid_events",
+            3,
+            "validation failed: customer_id",
+        ),
+        (
+            400,
+            serde_json::json!({"error": "invalid_json"}),
+            "invalid_json",
+            0,
+            "",
+        ),
+    ];
+    for (status, problem, code, record, message) in cases {
+        let (usage, _) =
+            client(move |_| json(status, serde_json::json!({"data": problem.clone()})));
+        let event = UsageIngestEvent::new("0", "cus_1", "req-1", "1", "2026-11-13T12:00:00Z", "0");
+        let Err(Error::Api(refused)) = usage.usage().ingest(&UsageIngestParams::new(vec![event]))
+        else {
+            panic!("a {status} was not refused");
+        };
+        assert_eq!(refused.status, status);
+        assert_eq!(refused.code, code);
+        assert_eq!(refused.record, record);
+        assert_eq!(refused.message, message);
+        if status == 422 {
+            assert_eq!(refused.fields["customer_id"], ["unknown"]);
+        }
+    }
 }
 
 #[test]

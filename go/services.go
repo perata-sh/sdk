@@ -33,6 +33,7 @@ func (c *Client) initServices() {
 	c.Products = &ProductsService{client: c}
 	c.Refunds = &RefundsService{client: c}
 	c.Subscriptions = &SubscriptionsService{client: c}
+	c.Usage = &UsageService{client: c}
 	c.Webhooks = &WebhooksService{client: c}
 }
 
@@ -1133,6 +1134,19 @@ func (s *SubscriptionsService) ListIter(ctx context.Context, params *Subscriptio
 func (s *SubscriptionsService) Update(ctx context.Context, subscription string, params SubscriptionsUpdateParams, opts ...RequestOption) (*Subscription, error) {
 	var out Subscription
 	err := s.client.do(ctx, http.MethodPatch, "/api/v1/subscriptions/"+url.PathEscape(subscription), nil, params, &out, opts)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+// UsageService is the API's usage.
+type UsageService struct{ client *Client }
+
+// Ingest: Ingerir lote atômico de eventos de uso. Autentica com a credencial de uma fonte de ingestão (pus_test_… ou pus_live_…), não com a chave de API da organização.
+func (s *UsageService) Ingest(ctx context.Context, params UsageIngestParams, opts ...RequestOption) (*UsageIngestReceipt, error) {
+	var out UsageIngestReceipt
+	err := s.client.do(ctx, http.MethodPost, "/api/v1/usage/token-events", nil, params, &out, opts)
 	if err != nil {
 		return nil, err
 	}

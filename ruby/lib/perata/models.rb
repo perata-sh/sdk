@@ -2208,4 +2208,29 @@ module Perata
       )
     end
   end
+
+  # What usage.ingest answers.
+  class UsageIngestReceipt < Model
+    MEMBERS = %i[created replayed].freeze
+
+    # @return [Integer]
+    attr_reader :created
+
+    # @return [Integer]
+    attr_reader :replayed
+
+    def initialize(created:, replayed:)
+      @created = created
+      @replayed = replayed
+      freeze
+    end
+
+    # Builds a UsageIngestReceipt from the API's JSON.
+    def self.from_hash(data)
+      new(
+        created: data.fetch("created"),
+        replayed: data.fetch("replayed")
+      )
+    end
+  end
 end

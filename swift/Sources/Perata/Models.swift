@@ -1397,6 +1397,22 @@ public struct WebhookEndpointCreated: Codable, Sendable, Hashable {
     }
 }
 
+/// What usage.ingest answers.
+public struct UsageIngestReceipt: Codable, Sendable, Hashable {
+    public let created: Int
+    public let replayed: Int
+
+    public init(created: Int, replayed: Int) {
+        self.created = created
+        self.replayed = replayed
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case created
+        case replayed
+    }
+}
+
 /// The body of benefits:create.
 ///
 /// The initializer takes the required fields first; an optional field left
@@ -2097,6 +2113,137 @@ public struct SubscriptionsCancelParams: Encodable, Sendable, Hashable {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encodeIfPresent(atPeriodEnd, forKey: .atPeriodEnd)
         try container.encodeIfPresent(reason, forKey: .reason)
+    }
+}
+
+/// The body of usage.ingest.
+///
+/// The initializer takes the required fields first; an optional field left
+/// nil is not sent.
+public struct UsageIngestParams: Encodable, Sendable, Hashable {
+    public var events: [UsageIngestEvent]
+
+    public init(events: [UsageIngestEvent]) {
+        self.events = events
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case events
+    }
+
+    public func encode(to encoder: any Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(events, forKey: .events)
+    }
+}
+
+/// Opcional. O custo de atender o evento para o vendedor, em metadata._cost; alimenta Análises › Custos e as margens.
+///
+/// The initializer takes the required fields first; an optional field left
+/// nil is not sent.
+public struct UsageIngestEventCost: Encodable, Sendable, Hashable {
+    /// Custo em centavos, como string decimal com até seis casas.
+    public var amount: String
+    /// Moeda do custo. Apenas brl.
+    public var currency: UsageIngestEventCostCurrency
+
+    public init(amount: String, currency: UsageIngestEventCostCurrency) {
+        self.amount = amount
+        self.currency = currency
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case amount
+        case currency
+    }
+
+    public func encode(to encoder: any Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(amount, forKey: .amount)
+        try container.encode(currency, forKey: .currency)
+    }
+}
+
+/// Opcional. O modelo e o fornecedor que atenderam o evento, em metadata._llm; os contadores continuam nos campos de tokens.
+///
+/// The initializer takes the required fields first; an optional field left
+/// nil is not sent.
+public struct UsageIngestEventLlm: Encodable, Sendable, Hashable {
+    /// Modelo que atendeu o evento.
+    public var model: String
+    /// Fornecedor do modelo.
+    public var vendor: String
+
+    public init(model: String, vendor: String) {
+        self.model = model
+        self.vendor = vendor
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case model
+        case vendor
+    }
+
+    public func encode(to encoder: any Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(model, forKey: .model)
+        try container.encode(vendor, forKey: .vendor)
+    }
+}
+
+/// One item of events in UsageIngestParams.
+///
+/// The initializer takes the required fields first; an optional field left
+/// nil is not sent.
+public struct UsageIngestEvent: Encodable, Sendable, Hashable {
+    /// Opcional. O custo de atender o evento para o vendedor, em metadata._cost; alimenta Análises › Custos e as margens.
+    public var cost: UsageIngestEventCost?
+    /// Opcional. O modelo e o fornecedor que atenderam o evento, em metadata._llm; os contadores continuam nos campos de tokens.
+    public var llm: UsageIngestEventLlm?
+    public var cachedTokens: String
+    public var customerID: String
+    public var externalEventID: String
+    public var inputTokens: String
+    public var occurredAt: String
+    public var outputTokens: String
+    /// Opcional. O evento pai, pelo id da Peráta ou pelo external_event_id que a mesma fonte enviou; o pai precisa chegar antes, inclusive antes no mesmo lote.
+    public var parentID: String?
+
+    public init(cachedTokens: String, customerID: String, externalEventID: String, inputTokens: String, occurredAt: String, outputTokens: String, cost: UsageIngestEventCost? = nil, llm: UsageIngestEventLlm? = nil, parentID: String? = nil) {
+        self.cost = cost
+        self.llm = llm
+        self.cachedTokens = cachedTokens
+        self.customerID = customerID
+        self.externalEventID = externalEventID
+        self.inputTokens = inputTokens
+        self.occurredAt = occurredAt
+        self.outputTokens = outputTokens
+        self.parentID = parentID
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case cost = "_cost"
+        case llm = "_llm"
+        case cachedTokens = "cached_tokens"
+        case customerID = "customer_id"
+        case externalEventID = "external_event_id"
+        case inputTokens = "input_tokens"
+        case occurredAt = "occurred_at"
+        case outputTokens = "output_tokens"
+        case parentID = "parent_id"
+    }
+
+    public func encode(to encoder: any Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encodeIfPresent(cost, forKey: .cost)
+        try container.encodeIfPresent(llm, forKey: .llm)
+        try container.encode(cachedTokens, forKey: .cachedTokens)
+        try container.encode(customerID, forKey: .customerID)
+        try container.encode(externalEventID, forKey: .externalEventID)
+        try container.encode(inputTokens, forKey: .inputTokens)
+        try container.encode(occurredAt, forKey: .occurredAt)
+        try container.encode(outputTokens, forKey: .outputTokens)
+        try container.encodeIfPresent(parentID, forKey: .parentID)
     }
 }
 
@@ -3574,6 +3721,24 @@ public struct SubscriptionsUpdateParamsProrationBehavior: RawRepresentable, Coda
     public static let nextPeriod = SubscriptionsUpdateParamsProrationBehavior(rawValue: "next_period")
     /// `reset`
     public static let reset = SubscriptionsUpdateParamsProrationBehavior(rawValue: "reset")
+}
+
+/// The values of `UsageIngestEventCost.currency`. Moeda do custo. Apenas brl.
+///
+/// A value this SDK does not know yet is kept as it came, in `rawValue`.
+public struct UsageIngestEventCostCurrency: RawRepresentable, Codable, Sendable, Hashable, ExpressibleByStringLiteral {
+    public let rawValue: String
+
+    public init(rawValue: String) {
+        self.rawValue = rawValue
+    }
+
+    public init(stringLiteral value: String) {
+        self.rawValue = value
+    }
+
+    /// `brl`
+    public static let brl = UsageIngestEventCostCurrency(rawValue: "brl")
 }
 
 /// The values of `WebhooksCreateEndpointParams.format`. Sem ele, o que o endereço indica.

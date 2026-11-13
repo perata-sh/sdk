@@ -98,6 +98,7 @@ public sealed record ProductsCreateParams
     public required string Name { get; init; }
 }
 
+
 /// <summary>The page and filters of products:list.</summary>
 public sealed record ProductsListParams
 {
@@ -125,4 +126,6 @@ public sealed record ProductsUpdateParams
     [JsonPropertyName("name")]
     public string? Name { get; init; }
 }
+
+
 

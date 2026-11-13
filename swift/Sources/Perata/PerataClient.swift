@@ -46,6 +46,8 @@ public final class PerataClient: Sendable {
     public let refunds: RefundsService
     /// The API's subscriptions.
     public let subscriptions: SubscriptionsService
+    /// The API's usage.
+    public let usage: UsageService
     /// The API's webhooks.
     public let webhooks: WebhooksService
 
@@ -85,6 +87,7 @@ public final class PerataClient: Sendable {
         products = ProductsService(requester: requester)
         refunds = RefundsService(requester: requester)
         subscriptions = SubscriptionsService(requester: requester)
+        usage = UsageService(requester: requester)
         webhooks = WebhooksService(requester: requester)
     }
 }

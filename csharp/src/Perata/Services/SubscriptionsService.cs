@@ -88,6 +88,7 @@ public sealed record SubscriptionsCancelParams
     public string? Reason { get; init; }
 }
 
+
 /// <summary>The page and filters of subscriptions:list.</summary>
 public sealed record SubscriptionsListParams
 {
@@ -135,4 +136,6 @@ public sealed record SubscriptionsUpdateParams
     [JsonPropertyName("quantity")]
     public long? Quantity { get; init; }
 }
+
+
 

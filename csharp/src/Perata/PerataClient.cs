@@ -77,6 +77,7 @@ public sealed class PerataClient
         Products = new ProductsService(this);
         Refunds = new RefundsService(this);
         Subscriptions = new SubscriptionsService(this);
+        Usage = new UsageService(this);
         Webhooks = new WebhooksService(this);
     }
 
@@ -127,6 +128,9 @@ public sealed class PerataClient
 
     /// <summary>The API's subscriptions.</summary>
     public SubscriptionsService Subscriptions { get; }
+
+    /// <summary>The API's usage.</summary>
+    public UsageService Usage { get; }
 
     /// <summary>The API's webhooks.</summary>
     public WebhooksService Webhooks { get; }

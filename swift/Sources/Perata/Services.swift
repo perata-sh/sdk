@@ -668,6 +668,18 @@ public struct SubscriptionsService: Sendable {
     }
 }
 
+/// The API's usage: `perata.usage`.
+public struct UsageService: Sendable {
+    let requester: Requester
+
+    /// Ingerir lote atômico de eventos de uso. Autentica com a credencial de uma fonte de ingestão (pus_test_… ou pus_live_…), não com a chave de API da organização.
+    public func ingest(_ params: UsageIngestParams, apiKey: String? = nil) async throws -> UsageIngestReceipt {
+        try await requester.request(
+            "POST", "/api/v1/usage/token-events", body: params, apiKey: apiKey
+        )
+    }
+}
+
 /// The API's webhooks: `perata.webhooks`.
 public struct WebhooksService: Sendable {
     let requester: Requester

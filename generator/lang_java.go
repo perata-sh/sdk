@@ -35,6 +35,7 @@ func init() {
 		"javaBoxed":  func(t *TypeRef) string { return javaRef(t, true) },
 		"javaRead":   javaRead,
 		"javaWrite":  javaWrite,
+		"javaClass":  func(m *Model, name string) javaClassOf { return javaClassOf{Model: m, Name: name} },
 		"javaConst":  func(field, value string) string { return constName(field) + "_" + constName(value) },
 		"javaDoc":    javaDoc,
 		"javaText":   javaText,
@@ -160,12 +161,17 @@ func javaRead(f *Field) string {
 	return `Json.optional(data, "` + f.Wire + `", ` + javaConvert(f.Type) + ")"
 }
 
-// javaWrite is the JSON value of a request field held in expr. The request
-// bodies are scalars, lists and maps of them; a nested model in one stops the
-// generator rather than writing a body Java cannot encode.
+// javaWrite is the JSON value of a request field held in expr. A body is
+// scalars, lists and maps of them, and the models written inline in it: a
+// model writes itself (toJson), and a list of them is walked.
 func javaWrite(t *TypeRef, expr string) (string, error) {
-	if inputHoldsModel(t) {
-		return "", fmt.Errorf("generator: java: a request body holding the model %s is not supported", t.Model)
+	switch {
+	case t.Kind == "model" && t.Nested != nil:
+		return expr + ".toJson()", nil
+	case t.Kind == "array" && t.Items.Kind == "model" && t.Items.Nested != nil:
+		return "Json.toJsonList(" + expr + ", " + t.Items.Model + "::toJson)", nil
+	case inputHoldsModel(t):
+		return "", fmt.Errorf("generator: java: a request body holding the model %s, which is no inline part of it, is not supported", t.Model)
 	}
 	return expr, nil
 }
@@ -175,6 +181,22 @@ func inputHoldsModel(t *TypeRef) bool {
 		return true
 	}
 	return t.Items != nil && inputHoldsModel(t.Items)
+}
+
+// inputHoldsOnlyNested says every model a type holds is one written inline in
+// the request body.
+func inputHoldsOnlyNested(t *TypeRef) bool {
+	if t.Kind == "model" {
+		return t.Nested != nil
+	}
+	return t.Items == nil || inputHoldsOnlyNested(t.Items)
+}
+
+// javaClassOf is a request body, or a part of one, as the template that writes
+// its class takes it: the model and the name of the class.
+type javaClassOf struct {
+	Model *Model
+	Name  string
 }
 
 // javaDoc writes a description as a Javadoc comment, or nothing. HTML is

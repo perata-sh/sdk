@@ -239,20 +239,31 @@ public final class {{pascal .Service.Name}}Service {
         {{if not .NoContent}}return {{end}}{{camel .Name}}({{template "args" .}}{{if .Body}}params, {{end}}null);
     }
 {{- if .Body}}
-{{- $params := printf "%sParams" (pascal .Name)}}
-
-    /** {{if .Body.Description}}{{javaText .Body.Description}}{{else}}The body of {{.OperationID}}.{{end}} */
-    public static final class {{$params}} {
-{{- range $field := .Body.Fields}}{{range .Type.Enum}}
+{{template "inputclass" (javaClass .Body (printf "%sParams" (pascal .Name)))}}
+{{- range .Nested}}
+{{template "inputclass" (javaClass . .Name)}}
+{{- end}}
+{{- end}}
+{{- end}}
+{{- end}}
+}
+{{define "path"}}{{range $i, $part := pathParts .Path}}{{if $i}} + {{end}}{{if $part.Param}}Perata.segment({{javaName $part.Param}}){{else}}{{quote $part.Literal}}{{end}}{{end}}{{end}}
+{{- define "sig"}}{{range .PathParams}}String {{javaName .}}, {{end}}{{end}}
+{{- define "args"}}{{range .PathParams}}{{javaName .}}, {{end}}{{end}}
+{{- define "only"}}{{range $i, $p := .PathParams}}{{if $i}}, {{end}}String {{javaName $p}}{{end}}{{end}}
+{{define "inputclass"}}{{$class := .Name}}
+    /** {{if .Model.Description}}{{javaText .Model.Description}}{{else}}A request body of the API.{{end}} */
+    public static final class {{$class}} {
+{{- range $field := .Model.Fields}}{{range .Type.Enum}}
         /** A value of {@link #{{javaGetter $field.Wire}}()}. */
         public static final String {{javaConst $field.Wire .}} = {{quote .}};
 {{- end}}{{end}}
-{{range .Body.Fields}}
+{{range .Model.Fields}}
         private final {{javaType . true}} {{javaName .Wire}};
 {{- end}}
 
-        private {{$params}}(Builder builder) {
-{{- range .Body.Fields}}
+        private {{$class}}(Builder builder) {
+{{- range .Model.Fields}}
             this.{{javaName .Wire}} = builder.{{javaName .Wire}};
 {{- end}}
         }
@@ -261,7 +272,7 @@ public final class {{pascal .Service.Name}}Service {
         public static Builder builder() {
             return new Builder();
         }
-{{range .Body.Fields}}
+{{range .Model.Fields}}
         /** @return {{if .Description}}{{javaText .Description}}{{else}}the {@code {{.Wire}}} sent{{end}}{{if not .Required}} (null when left out){{end}} */
         public {{javaType . true}} {{javaGetter .Wire}}() {
             return {{javaName .Wire}};
@@ -269,7 +280,7 @@ public final class {{pascal .Service.Name}}Service {
 {{end}}
         Map<String, Object> toJson() {
             Map<String, Object> body = new LinkedHashMap<>();
-{{- range .Body.Fields}}
+{{- range .Model.Fields}}
 {{- if .Required}}
             body.put({{quote .Wire}}, {{javaWrite .Type (javaName .Wire)}});
 {{- else}}
@@ -281,15 +292,15 @@ public final class {{pascal .Service.Name}}Service {
             return body;
         }
 
-        /** Builds {@link {{$params}}}; the fields left unset are left out of the request. */
+        /** Builds {@link {{$class}}}; the fields left unset are left out of the request. */
         public static final class Builder {
-{{- range .Body.Fields}}
+{{- range .Model.Fields}}
             private {{javaBoxed .Type}} {{javaName .Wire}};
 {{- end}}
 
             private Builder() {
             }
-{{- range .Body.Fields}}
+{{- range .Model.Fields}}
 
             /**
              * @param {{javaName .Wire}} {{if .Description}}{{javaText .Description}}{{else}}the {@code {{.Wire}}} to send{{end}}{{if .Required}} (required){{end}}
@@ -305,21 +316,14 @@ public final class {{pascal .Service.Name}}Service {
              * @return the request
              * @throws IllegalStateException when a required field is unset
              */
-            public {{$params}} build() {
-{{- range .Body.Fields}}{{if .Required}}
+            public {{$class}} build() {
+{{- range .Model.Fields}}{{if .Required}}
                 if ({{javaName .Wire}} == null) {
-                    throw new IllegalStateException("perata: {{$params}} needs {{javaName .Wire}}");
+                    throw new IllegalStateException("perata: {{$class}} needs {{javaName .Wire}}");
                 }
 {{- end}}{{end}}
-                return new {{$params}}(this);
+                return new {{$class}}(this);
             }
         }
     }
-{{- end}}
-{{- end}}
-{{- end}}
-}
-{{define "path"}}{{range $i, $part := pathParts .Path}}{{if $i}} + {{end}}{{if $part.Param}}Perata.segment({{javaName $part.Param}}){{else}}{{quote $part.Literal}}{{end}}{{end}}{{end}}
-{{- define "sig"}}{{range .PathParams}}String {{javaName .}}, {{end}}{{end}}
-{{- define "args"}}{{range .PathParams}}{{javaName .}}, {{end}}{{end}}
-{{- define "only"}}{{range $i, $p := .PathParams}}{{if $i}}, {{end}}String {{javaName $p}}{{end}}{{end}}
+{{end}}

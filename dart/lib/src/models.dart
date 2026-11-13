@@ -2929,6 +2929,143 @@ final class SubscriptionsCancelParams {
   };
 }
 
+/// The body of usage.ingest.
+final class UsageIngestParams {
+  const UsageIngestParams({
+    required this.events,
+  });
+
+  final List<UsageIngestEvent> events;
+
+  /// The JSON the API takes; a field left null is left out.
+  Map<String, Object?> toJson() => {
+    'events': events.map((item) => item.toJson()).toList(),
+  };
+}
+
+/// What usage.ingest answers.
+final class UsageIngestReceipt {
+  const UsageIngestReceipt({
+    required this.created,
+    required this.replayed,
+  });
+
+  /// A UsageIngestReceipt out of the API's JSON.
+  factory UsageIngestReceipt.fromJson(Map<String, Object?> json) {
+    return UsageIngestReceipt(
+      created: json['created'] as int,
+      replayed: json['replayed'] as int,
+    );
+  }
+
+  final int created;
+
+  final int replayed;
+
+  /// The JSON the API answers.
+  Map<String, Object?> toJson() => {
+    'created': created,
+    'replayed': replayed,
+  };
+}
+
+/// Opcional. O custo de atender o evento para o vendedor, em metadata._cost;
+/// alimenta Análises › Custos e as margens.
+final class UsageIngestEventCost {
+  const UsageIngestEventCost({
+    required this.amount,
+    required this.currency,
+  });
+
+  /// Custo em centavos, como string decimal com até seis casas.
+  final String amount;
+
+  /// Moeda do custo. Apenas brl.
+  ///
+  /// One of `brl`.
+  final String currency;
+
+  /// The JSON the API takes; a field left null is left out.
+  Map<String, Object?> toJson() => {
+    'amount': amount,
+    'currency': currency,
+  };
+}
+
+/// Opcional. O modelo e o fornecedor que atenderam o evento, em metadata._llm;
+/// os contadores continuam nos campos de tokens.
+final class UsageIngestEventLlm {
+  const UsageIngestEventLlm({
+    required this.model,
+    required this.vendor,
+  });
+
+  /// Modelo que atendeu o evento.
+  final String model;
+
+  /// Fornecedor do modelo.
+  final String vendor;
+
+  /// The JSON the API takes; a field left null is left out.
+  Map<String, Object?> toJson() => {
+    'model': model,
+    'vendor': vendor,
+  };
+}
+
+/// One item of events in UsageIngestParams.
+final class UsageIngestEvent {
+  const UsageIngestEvent({
+    this.cost,
+    this.llm,
+    required this.cachedTokens,
+    required this.customerId,
+    required this.externalEventId,
+    required this.inputTokens,
+    required this.occurredAt,
+    required this.outputTokens,
+    this.parentId,
+  });
+
+  /// Opcional. O custo de atender o evento para o vendedor, em metadata._cost;
+  /// alimenta Análises › Custos e as margens.
+  final UsageIngestEventCost? cost;
+
+  /// Opcional. O modelo e o fornecedor que atenderam o evento, em
+  /// metadata._llm; os contadores continuam nos campos de tokens.
+  final UsageIngestEventLlm? llm;
+
+  final String cachedTokens;
+
+  final String customerId;
+
+  final String externalEventId;
+
+  final String inputTokens;
+
+  final String occurredAt;
+
+  final String outputTokens;
+
+  /// Opcional. O evento pai, pelo id da Peráta ou pelo external_event_id que a
+  /// mesma fonte enviou; o pai precisa chegar antes, inclusive antes no mesmo
+  /// lote.
+  final String? parentId;
+
+  /// The JSON the API takes; a field left null is left out.
+  Map<String, Object?> toJson() => {
+    '_cost': ?cost?.toJson(),
+    '_llm': ?llm?.toJson(),
+    'cached_tokens': cachedTokens,
+    'customer_id': customerId,
+    'external_event_id': externalEventId,
+    'input_tokens': inputTokens,
+    'occurred_at': occurredAt,
+    'output_tokens': outputTokens,
+    'parent_id': ?parentId,
+  };
+}
+
 /// The body of webhooks:create_endpoint.
 final class WebhooksCreateEndpointParams {
   const WebhooksCreateEndpointParams({

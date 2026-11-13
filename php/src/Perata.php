@@ -33,6 +33,7 @@ final class Perata implements Requester
     public readonly Services\ProductsService $products;
     public readonly Services\RefundsService $refunds;
     public readonly Services\SubscriptionsService $subscriptions;
+    public readonly Services\UsageService $usage;
     public readonly Services\WebhooksService $webhooks;
 
     private readonly string $baseUrl;
@@ -72,6 +73,7 @@ final class Perata implements Requester
         $this->products = new Services\ProductsService($this);
         $this->refunds = new Services\RefundsService($this);
         $this->subscriptions = new Services\SubscriptionsService($this);
+        $this->usage = new Services\UsageService($this);
         $this->webhooks = new Services\WebhooksService($this);
     }
 

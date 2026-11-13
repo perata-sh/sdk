@@ -153,6 +153,7 @@ public sealed record BenefitsCreateParams
     public string? Visibility { get; init; }
 }
 
+
 /// <summary>The page and filters of benefits:list.</summary>
 public sealed record BenefitsListParams
 {
@@ -222,4 +223,6 @@ public sealed record BenefitsUpdateParams
     [JsonPropertyName("visibility")]
     public string? Visibility { get; init; }
 }
+
+
 

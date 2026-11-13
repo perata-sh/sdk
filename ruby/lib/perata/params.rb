@@ -761,6 +761,143 @@ module Perata
     end
   end
 
+  # The body of usage.ingest.
+  class UsageIngestParams < Params
+    MEMBERS = %i[events].freeze
+
+    # @return [Array<UsageIngestEvent>]
+    attr_reader :events
+
+    def initialize(events:)
+      @events = events
+      freeze
+    end
+
+    # The body as the API reads it.
+    def to_wire
+      wire = {}
+      wire["events"] = Perata.wire(@events)
+      wire
+    end
+  end
+
+  # Opcional. O custo de atender o evento para o vendedor, em metadata._cost; alimenta Análises › Custos e as margens.
+  class UsageIngestEventCost < Params
+    MEMBERS = %i[amount currency].freeze
+
+    # Custo em centavos, como string decimal com até seis casas.
+    # @return [String]
+    attr_reader :amount
+
+    # Moeda do custo. Apenas brl.
+    # @return [String ("brl")]
+    attr_reader :currency
+
+    def initialize(amount:, currency:)
+      @amount = amount
+      @currency = currency
+      freeze
+    end
+
+    # The body as the API reads it.
+    def to_wire
+      wire = {}
+      wire["amount"] = @amount
+      wire["currency"] = @currency
+      wire
+    end
+  end
+
+  # Opcional. O modelo e o fornecedor que atenderam o evento, em metadata._llm; os contadores continuam nos campos de tokens.
+  class UsageIngestEventLlm < Params
+    MEMBERS = %i[model vendor].freeze
+
+    # Modelo que atendeu o evento.
+    # @return [String]
+    attr_reader :model
+
+    # Fornecedor do modelo.
+    # @return [String]
+    attr_reader :vendor
+
+    def initialize(model:, vendor:)
+      @model = model
+      @vendor = vendor
+      freeze
+    end
+
+    # The body as the API reads it.
+    def to_wire
+      wire = {}
+      wire["model"] = @model
+      wire["vendor"] = @vendor
+      wire
+    end
+  end
+
+  # One item of events in UsageIngestParams.
+  class UsageIngestEvent < Params
+    MEMBERS = %i[_cost _llm cached_tokens customer_id external_event_id input_tokens occurred_at output_tokens parent_id].freeze
+
+    # Opcional. O custo de atender o evento para o vendedor, em metadata._cost; alimenta Análises › Custos e as margens.
+    # @return [UsageIngestEventCost, nil]
+    attr_reader :_cost
+
+    # Opcional. O modelo e o fornecedor que atenderam o evento, em metadata._llm; os contadores continuam nos campos de tokens.
+    # @return [UsageIngestEventLlm, nil]
+    attr_reader :_llm
+
+    # @return [String]
+    attr_reader :cached_tokens
+
+    # @return [String]
+    attr_reader :customer_id
+
+    # @return [String]
+    attr_reader :external_event_id
+
+    # @return [String]
+    attr_reader :input_tokens
+
+    # @return [String]
+    attr_reader :occurred_at
+
+    # @return [String]
+    attr_reader :output_tokens
+
+    # Opcional. O evento pai, pelo id da Peráta ou pelo external_event_id que a mesma fonte enviou; o pai precisa chegar antes, inclusive antes no mesmo lote.
+    # @return [String, nil]
+    attr_reader :parent_id
+
+    def initialize(_cost: nil, _llm: nil, cached_tokens:, customer_id:, external_event_id:, input_tokens:, occurred_at:, output_tokens:, parent_id: nil)
+      @_cost = _cost
+      @_llm = _llm
+      @cached_tokens = cached_tokens
+      @customer_id = customer_id
+      @external_event_id = external_event_id
+      @input_tokens = input_tokens
+      @occurred_at = occurred_at
+      @output_tokens = output_tokens
+      @parent_id = parent_id
+      freeze
+    end
+
+    # The body as the API reads it.
+    def to_wire
+      wire = {}
+      wire["_cost"] = Perata.wire(@_cost) unless @_cost.nil?
+      wire["_llm"] = Perata.wire(@_llm) unless @_llm.nil?
+      wire["cached_tokens"] = @cached_tokens
+      wire["customer_id"] = @customer_id
+      wire["external_event_id"] = @external_event_id
+      wire["input_tokens"] = @input_tokens
+      wire["occurred_at"] = @occurred_at
+      wire["output_tokens"] = @output_tokens
+      wire["parent_id"] = @parent_id unless @parent_id.nil?
+      wire
+    end
+  end
+
   # The body of webhooks:create_endpoint.
   class WebhooksCreateEndpointParams < Params
     MEMBERS = %i[description events format url].freeze

@@ -1263,6 +1263,28 @@ defmodule Perata.Subscriptions do
   end
 end
 
+defmodule Perata.Usage do
+  @moduledoc "The API's usage."
+
+  alias Perata.Client
+
+  @doc """
+  Ingerir lote atômico de eventos de uso. Autentica com a credencial de uma fonte de ingestão (pus_test_… ou pus_live_…), não com a chave de API da organização.
+
+  Options: `:api_key`.
+  """
+  @spec ingest(Client.t(), Perata.UsageIngestParams.t() | keyword() | map(), keyword()) ::
+          {:ok, Perata.UsageIngestReceipt.t()} | {:error, Perata.Error.t()}
+  def ingest(%Client{} = client, params, opts \\ []) do
+    path = "/api/v1/usage/token-events"
+    request = [body: Perata.UsageIngestParams.to_map(params), api_key: opts[:api_key]]
+
+    with {:ok, data} <- Client.request(client, "POST", path, request) do
+      {:ok, Perata.UsageIngestReceipt.from_map(data)}
+    end
+  end
+end
+
 defmodule Perata.Webhooks do
   @moduledoc "The API's webhooks."
 

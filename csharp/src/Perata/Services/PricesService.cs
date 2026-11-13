@@ -83,6 +83,7 @@ public sealed record PricesCreateParams
     public required string Type { get; init; }
 }
 
+
 /// <summary>The page and filters of prices:list.</summary>
 public sealed record PricesListParams
 {
@@ -102,4 +103,5 @@ public sealed record PricesListParams
         new("product_id", ProductId),
     ];
 }
+
 

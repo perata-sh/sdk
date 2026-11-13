@@ -83,6 +83,7 @@ public sealed record CheckoutsCreateParams
     public string? SuccessUrl { get; init; }
 }
 
+
 /// <summary>The body of checkouts:update.</summary>
 public sealed record CheckoutsUpdateParams
 {
@@ -98,4 +99,6 @@ public sealed record CheckoutsUpdateParams
     [JsonPropertyName("success_url")]
     public string? SuccessUrl { get; init; }
 }
+
+
 

@@ -89,6 +89,7 @@ public sealed record RefundsCreateParams
     public required string Reason { get; init; }
 }
 
+
 /// <summary>The page and filters of refunds:list.</summary>
 public sealed record RefundsListParams
 {
@@ -108,4 +109,5 @@ public sealed record RefundsListParams
         new("payment_id", PaymentId),
     ];
 }
+
 
