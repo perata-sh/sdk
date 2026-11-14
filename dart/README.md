@@ -76,7 +76,7 @@ final receipt = await usage.usage.ingest(
 // receipt.created, receipt.replayed
 ```
 
-De 1 a 100 eventos por chamada, até 64 KiB, todos gravados ou nenhum. Não há `Idempotency-Key` aqui: a identidade de um evento é o `externalEventId` da fonte, e repetir uma chamada é seguro (`replayed`); o mesmo id com outro conteúdo responde 409 (`event_conflict`), e um evento inválido, 422 (`invalid_events`) com `record` dizendo qual, a partir de 1. O horário (`occurredAt`) vai em segundos inteiros: corte as frações antes de enviar.
+De 1 a 100 eventos por chamada, até 64 KiB, todos gravados ou nenhum. Não há `Idempotency-Key` aqui: a identidade de um evento é o `externalEventId` da fonte, e repetir uma chamada é seguro (`replayed`); o mesmo id com outro conteúdo responde 409 (`conflict`), e um evento inválido, 422 (`invalid_request`) com `record` dizendo qual, a partir de 1. O horário (`occurredAt`) vai em segundos inteiros: corte as frações antes de enviar.
 
 ## Erros
 
@@ -106,4 +106,4 @@ A assinatura é a do Standard Webhooks (`webhook-id`, `webhook-timestamp`, `webh
 
 O evento é tipado: um tipo para cada dado que o webhook carrega (`OrderWebhookEvent` traz um `Order`, `DisputeWebhookEvent` a disputa, `IdentifiersWebhookEvent` os identificadores…), e o `type` diz o que aconteceu; um tipo que esta versão do SDK ainda não conhece chega como `UnknownWebhookEvent`, com os dados como vieram. Durante a rotação do segredo o cabeçalho traz mais de uma assinatura, e basta uma conferir. `verifyWebhookSignature` só confere a assinatura.
 
-Versão do SDK: 0.3.0 · contrato da API: 0.1.0
+Versão do SDK: 0.4.0 · contrato da API: 0.1.0

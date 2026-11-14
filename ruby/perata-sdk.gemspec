@@ -4,7 +4,7 @@
 
 Gem::Specification.new do |spec|
   spec.name = "perata-sdk"
-  spec.version = "0.3.0"
+  spec.version = "0.4.0"
   spec.authors = ["Peráta"]
   spec.summary = "Peráta's SDK for Ruby: products, customers, checkouts, payments, subscriptions and webhooks."
   spec.homepage = "https://perata.sh"

@@ -1269,6 +1269,36 @@ defmodule Perata.Subscription do
   end
 end
 
+defmodule Perata.UsageError do
+  @moduledoc "UsageError is a resource of Peráta's API."
+
+  defstruct [:error, :fields, :message, :record]
+
+  @typedoc """
+  * `error`: Código do erro: invalid_credential, invalid_request, conflict, unsupported_media_type, body_too_large, rate_limited ou unavailable.
+  * `fields`: Em invalid_request, o que há de errado em cada campo do evento.
+  * `message`: O que explica a recusa, em inglês.
+  * `record`: Posição, a partir de 1, do evento do lote que causou a recusa (invalid_request e conflict); o lote inteiro foi revertido.
+  """
+  @type t :: %__MODULE__{
+          error: String.t(),
+          fields: %{optional(String.t()) => [String.t()]} | nil,
+          message: String.t() | nil,
+          record: integer() | nil
+        }
+
+  @doc "Builds a UsageError from the API's JSON."
+  @spec from_map(map()) :: t()
+  def from_map(%{} = data) do
+    %__MODULE__{
+      error: Map.fetch!(data, "error"),
+      fields: data["fields"],
+      message: data["message"],
+      record: data["record"]
+    }
+  end
+end
+
 defmodule Perata.WebhookBenefit do
   @moduledoc "WebhookBenefit is a resource of Peráta's API."
 

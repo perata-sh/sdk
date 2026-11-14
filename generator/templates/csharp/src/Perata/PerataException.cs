@@ -8,8 +8,7 @@ namespace Perata;
 /// <summary>
 /// A request the API refused. <see cref="Code"/> is the API's:
 /// invalid_credential, forbidden, not_found, invalid_request, conflict,
-/// idempotency_conflict, body_too_large or unavailable; the usage ingestion
-/// adds invalid_events and event_conflict. <see cref="Fields"/> says, for
+/// idempotency_conflict, unsupported_media_type, body_too_large, rate_limited or unavailable. <see cref="Fields"/> says, for
 /// invalid_request, what is wrong with each field. <see cref="Record"/> is, for
 /// the usage ingestion, the position (from 1) in the batch of the event the API
 /// refused, and 0 for any other error. <see cref="RetryAfter"/> is how many
@@ -65,8 +64,8 @@ public sealed class PerataException : Exception
         {
             using var document = JsonDocument.Parse(body);
             var root = document.RootElement;
-            // The API's errors are the problem itself; the usage ingestion's are
-            // wrapped in data, as its answers are.
+            // Every error is the problem itself (error, message, fields). Servers from before
+            // that document wrapped the usage ingestion's errors in data: still read.
             if (root.ValueKind == JsonValueKind.Object && !root.TryGetProperty("error", out _) && root.TryGetProperty("data", out var wrapped) && wrapped.ValueKind == JsonValueKind.Object)
             {
                 root = wrapped;

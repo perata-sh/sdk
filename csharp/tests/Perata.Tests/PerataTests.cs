@@ -241,11 +241,14 @@ public class PerataTests
     }
 
     [Theory]
-    [InlineData(401, """{"data":{"error":"invalid_credential"}}""", "invalid_credential", 0, "")]
+    [InlineData(401, """{"error":"invalid_credential"}""", "invalid_credential", 0, "")]
+    [InlineData(409, """{"error":"conflict","record":2,"message":"conflict"}""", "conflict", 2, "conflict")]
+    [InlineData(422, """{"error":"invalid_request","record":3,"message":"validation failed: customer_id","fields":{"customer_id":["unknown"]}}""", "invalid_request", 3, "validation failed: customer_id")]
+    [InlineData(400, """{"error":"invalid_request","message":"malformed JSON"}""", "invalid_request", 0, "malformed JSON")]
+    [InlineData(415, """{"error":"unsupported_media_type"}""", "unsupported_media_type", 0, "")]
+    [InlineData(500, """{"error":"unavailable"}""", "unavailable", 0, "")]
     [InlineData(409, """{"data":{"error":"event_conflict","record":2,"message":"conflict"}}""", "event_conflict", 2, "conflict")]
-    [InlineData(422, """{"data":{"error":"invalid_events","record":3,"message":"validation failed: customer_id","fields":{"customer_id":["unknown"]}}}""", "invalid_events", 3, "validation failed: customer_id")]
-    [InlineData(400, """{"data":{"error":"invalid_json"}}""", "invalid_json", 0, "")]
-    public async Task UsageIngestionErrorsAreWrappedInData(int status, string body, string code, int record, string message)
+    public async Task UsageIngestionErrorsAreTheFlatErrorDocument(int status, string body, string code, int record, string message)
     {
         var recorder = new Recorder(_ => new Answer((HttpStatusCode)status, body));
         var usage = new PerataClient("pus_test_source", new PerataClientOptions { BaseUrl = "https://perata.test/", Handler = recorder });

@@ -70,13 +70,15 @@ test("usage ingestion carries the source credential and its events", async () =>
   assert.equal("parent_id" in (sent.events[0] ?? {}), false);
 });
 
-test("usage ingestion errors are wrapped in data", async () => {
+test("usage ingestion errors are the flat error document", async () => {
   const event = { customer_id: "cus_1", external_event_id: "req-1", input_tokens: "1", output_tokens: "0", cached_tokens: "0", occurred_at: "2026-11-13T12:00:00Z" };
   const cases: [number, unknown, string, number, string][] = [
-    [401, { data: { error: "invalid_credential" } }, "invalid_credential", 0, ""],
-    [409, { data: { error: "event_conflict", record: 2, message: "conflict" } }, "event_conflict", 2, "conflict"],
-    [422, { data: { error: "invalid_events", record: 3, message: "validation failed: customer_id", fields: { customer_id: ["unknown"] } } }, "invalid_events", 3, "validation failed: customer_id"],
-    [400, { data: { error: "invalid_json" } }, "invalid_json", 0, ""],
+    [401, { error: "invalid_credential" }, "invalid_credential", 0, ""],
+    [409, { error: "conflict", record: 2, message: "conflict" }, "conflict", 2, "conflict"],
+    [422, { error: "invalid_request", record: 3, message: "validation failed: customer_id", fields: { customer_id: ["unknown"] } }, "invalid_request", 3, "validation failed: customer_id"],
+    [400, { error: "invalid_request", message: "malformed JSON" }, "invalid_request", 0, "malformed JSON"],
+    [415, { error: "unsupported_media_type" }, "unsupported_media_type", 0, ""],
+    [500, { error: "unavailable" }, "unavailable", 0, ""],
   ];
   for (const [status, body, code, record, message] of cases) {
     const { perata } = client(() => json(status, body));
@@ -90,6 +92,17 @@ test("usage ingestion errors are wrapped in data", async () => {
       return true;
     });
   }
+});
+
+test("an error wrapped in data by an older server is still read", async () => {
+  const event = { customer_id: "cus_1", external_event_id: "req-1", input_tokens: "1", output_tokens: "0", cached_tokens: "0", occurred_at: "2026-11-13T12:00:00Z" };
+  const { perata } = client(() => json(409, { data: { error: "event_conflict", record: 2, message: "conflict" } }));
+  await assert.rejects(perata.usage.ingest({ events: [event] }), (error: unknown) => {
+    assert.ok(error instanceof PerataError);
+    assert.equal(error.code, "event_conflict");
+    assert.equal(error.record, 2);
+    return true;
+  });
 });
 
 test("a base URL must be https unless it is loopback", () => {

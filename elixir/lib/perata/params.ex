@@ -356,7 +356,7 @@ defmodule Perata.CustomersCreateParams do
   defstruct [:email, :external_id, :name]
 
   @typedoc """
-  * `external_id` (optional)
+  * `external_id` (optional): Até 120 caracteres, sem barra (/) nem caracteres de controle.
   """
   @type t :: %__MODULE__{
           email: String.t(),
@@ -391,7 +391,7 @@ defmodule Perata.CustomersUpdateParams do
 
   @typedoc """
   * `email` (optional)
-  * `external_id` (optional): Só pode ser definido uma vez.
+  * `external_id` (optional): Só pode ser definido uma vez. Até 120 caracteres, sem barra (/) nem caracteres de controle.
   * `name` (optional)
   """
   @type t :: %__MODULE__{
@@ -574,7 +574,7 @@ defmodule Perata.CustomersUpdateExternalParams do
 
   @typedoc """
   * `email` (optional)
-  * `external_id` (optional): Só pode ser definido uma vez.
+  * `external_id` (optional): Só pode ser definido uma vez. Até 120 caracteres, sem barra (/) nem caracteres de controle.
   * `name` (optional)
   """
   @type t :: %__MODULE__{
@@ -612,7 +612,7 @@ defmodule Perata.PricesCreateParams do
   defstruct [:amount_cents, :interval, :product_id, :type]
 
   @typedoc """
-  * `interval` (optional; one of `"month"`, `"year"`)
+  * `interval` (optional; one of `"month"`, `"year"`): Obrigatório no preço recorrente; o preço one_time não tem intervalo.
   * `type` (one of `"one_time"`, `"recurring"`)
   """
   @type t :: %__MODULE__{

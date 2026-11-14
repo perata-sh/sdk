@@ -10,8 +10,7 @@ import java.util.Map;
 /**
  * A request the API refused. {@link #getCode()} is the API's:
  * invalid_credential, forbidden, not_found, invalid_request, conflict,
- * idempotency_conflict, body_too_large or unavailable; the usage ingestion
- * adds invalid_events and event_conflict. {@link #getFields()} says, for
+ * idempotency_conflict, unsupported_media_type, body_too_large, rate_limited or unavailable. {@link #getFields()} says, for
  * invalid_request, what is wrong with each field. {@link #getRecord()} is, for
  * the usage ingestion, the position (from 1) in the batch of the event the API
  * refused, and 0 for any other error. {@link #getRetryAfter()} is how many
@@ -90,8 +89,8 @@ public class PerataException extends RuntimeException {
             Object parsed = Json.parse(new String(response.getBody(), StandardCharsets.UTF_8));
             if (parsed instanceof Map) {
                 data = Json.asObject(parsed);
-                // The API's errors are the problem itself; the usage
-                // ingestion's are wrapped in data, as its answers are.
+                // Every error is the problem itself (error, message, fields). Servers from
+                // before that document wrapped the usage ingestion's errors in data: still read.
                 if (!data.containsKey("error") && data.get("data") instanceof Map) {
                     data = Json.asObject(data.get("data"));
                 }

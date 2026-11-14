@@ -226,17 +226,19 @@ class PerataTest {
     }
 
     @Test
-    void usageIngestionErrorsAreWrappedInData() {
+    void usageIngestionErrorsAreTheFlatErrorDocument() {
         UsageService.IngestParams params = UsageService.IngestParams.builder().events(List.of(UsageService.UsageIngestEvent.builder()
                 .customerId("cus_1").externalEventId("req-1").inputTokens("1").outputTokens("0").cachedTokens("0").occurredAt("2026-11-13T12:00:00Z").build())).build();
         Object[][] cases = {
             {401, Map.of("error", "invalid_credential"), "invalid_credential", 0, ""},
-            {409, Map.of("error", "event_conflict", "record", 2L, "message", "conflict"), "event_conflict", 2, "conflict"},
-            {422, Map.of("error", "invalid_events", "record", 3L, "message", "validation failed: customer_id", "fields", Map.of("customer_id", List.of("unknown"))), "invalid_events", 3, "validation failed: customer_id"},
-            {400, Map.of("error", "invalid_json"), "invalid_json", 0, ""},
+            {409, Map.of("error", "conflict", "record", 2L, "message", "conflict"), "conflict", 2, "conflict"},
+            {422, Map.of("error", "invalid_request", "record", 3L, "message", "validation failed: customer_id", "fields", Map.of("customer_id", List.of("unknown"))), "invalid_request", 3, "validation failed: customer_id"},
+            {400, Map.of("error", "invalid_request", "message", "malformed JSON"), "invalid_request", 0, "malformed JSON"},
+            {415, Map.of("error", "unsupported_media_type"), "unsupported_media_type", 0, ""},
+            {500, Map.of("error", "unavailable"), "unavailable", 0, ""},
         };
         for (Object[] each : cases) {
-            Recorder recorder = new Recorder(request -> json((Integer) each[0], Map.of(), data(each[1])));
+            Recorder recorder = new Recorder(request -> json((Integer) each[0], Map.of(), each[1]));
             PerataException refused = assertThrows(PerataException.class, () -> client(recorder).usage().ingest(params));
             assertEquals(each[0], refused.getStatus());
             assertEquals(each[2], refused.getCode());
@@ -246,6 +248,17 @@ class PerataTest {
                 assertEquals(List.of("unknown"), refused.getFields().get("customer_id"));
             }
         }
+    }
+
+    @Test
+    void anErrorWrappedInDataByAnOlderServerIsStillRead() {
+        UsageService.IngestParams params = UsageService.IngestParams.builder().events(List.of(UsageService.UsageIngestEvent.builder()
+                .customerId("cus_1").externalEventId("req-1").inputTokens("1").outputTokens("0").cachedTokens("0").occurredAt("2026-11-13T12:00:00Z").build())).build();
+        Recorder recorder = new Recorder(request -> json(409, Map.of(), data(Map.of("error", "event_conflict", "record", 2L, "message", "conflict"))));
+        PerataException refused = assertThrows(PerataException.class, () -> client(recorder).usage().ingest(params));
+        assertEquals(409, refused.getStatus());
+        assertEquals("event_conflict", refused.getCode());
+        assertEquals(2, refused.getRecord());
     }
 
     @Test

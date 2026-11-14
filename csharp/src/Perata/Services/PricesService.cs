@@ -70,7 +70,7 @@ public sealed record PricesCreateParams
     [JsonPropertyName("amount_cents")]
     public required long AmountCents { get; init; }
 
-    /// <summary>The <c>interval</c> to send. Left out of the request when null.</summary>
+    /// <summary>Obrigatório no preço recorrente; o preço one_time não tem intervalo. Left out of the request when null.</summary>
     [JsonPropertyName("interval")]
     public string? Interval { get; init; }
 

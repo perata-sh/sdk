@@ -1074,6 +1074,32 @@ public struct Subscription: Codable, Sendable, Hashable {
     }
 }
 
+/// UsageError is a resource of Peráta's API.
+public struct UsageError: Codable, Sendable, Hashable {
+    /// Código do erro: invalid_credential, invalid_request, conflict, unsupported_media_type, body_too_large, rate_limited ou unavailable.
+    public let error: String
+    /// Em invalid_request, o que há de errado em cada campo do evento.
+    public let fields: [String: [String]]?
+    /// O que explica a recusa, em inglês.
+    public let message: String?
+    /// Posição, a partir de 1, do evento do lote que causou a recusa (invalid_request e conflict); o lote inteiro foi revertido.
+    public let record: Int?
+
+    public init(error: String, fields: [String: [String]]? = nil, message: String? = nil, record: Int? = nil) {
+        self.error = error
+        self.fields = fields
+        self.message = message
+        self.record = record
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case error
+        case fields
+        case message
+        case record
+    }
+}
+
 /// WebhookBenefit is a resource of Peráta's API.
 public struct WebhookBenefit: Codable, Sendable, Hashable {
     public let createdAt: String
@@ -1726,6 +1752,7 @@ public struct CustomerSessionsCreateParams: Encodable, Sendable, Hashable {
 /// nil is not sent.
 public struct CustomersCreateParams: Encodable, Sendable, Hashable {
     public var email: String
+    /// Até 120 caracteres, sem barra (/) nem caracteres de controle.
     public var externalID: String?
     public var name: String
 
@@ -1755,7 +1782,7 @@ public struct CustomersCreateParams: Encodable, Sendable, Hashable {
 /// nil is not sent.
 public struct CustomersUpdateParams: Encodable, Sendable, Hashable {
     public var email: String?
-    /// Só pode ser definido uma vez.
+    /// Só pode ser definido uma vez. Até 120 caracteres, sem barra (/) nem caracteres de controle.
     public var externalID: String?
     public var name: String?
 
@@ -1919,7 +1946,7 @@ public struct DiscountsUpdateParams: Encodable, Sendable, Hashable {
 /// nil is not sent.
 public struct CustomersUpdateExternalParams: Encodable, Sendable, Hashable {
     public var email: String?
-    /// Só pode ser definido uma vez.
+    /// Só pode ser definido uma vez. Até 120 caracteres, sem barra (/) nem caracteres de controle.
     public var externalID: String?
     public var name: String?
 
@@ -1949,6 +1976,7 @@ public struct CustomersUpdateExternalParams: Encodable, Sendable, Hashable {
 /// nil is not sent.
 public struct PricesCreateParams: Encodable, Sendable, Hashable {
     public var amountCents: Int
+    /// Obrigatório no preço recorrente; o preço one_time não tem intervalo.
     public var interval: PricesCreateParamsInterval?
     public var productID: String
     public var type: PricesCreateParamsType
@@ -3631,7 +3659,7 @@ public struct DiscountsCreateParamsType: RawRepresentable, Codable, Sendable, Ha
     public static let fixed = DiscountsCreateParamsType(rawValue: "fixed")
 }
 
-/// The values of `PricesCreateParams.interval`.
+/// The values of `PricesCreateParams.interval`. Obrigatório no preço recorrente; o preço one_time não tem intervalo.
 ///
 /// A value this SDK does not know yet is kept as it came, in `rawValue`.
 public struct PricesCreateParamsInterval: RawRepresentable, Codable, Sendable, Hashable, ExpressibleByStringLiteral {

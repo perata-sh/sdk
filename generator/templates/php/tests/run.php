@@ -159,13 +159,15 @@ $tests['usage ingestion carries the source credential and its events'] = static 
     check(!array_key_exists('_llm', $sent['events'][0]) && !array_key_exists('parent_id', $sent['events'][0]), 'an optional field left out was sent');
 };
 
-$tests['usage ingestion errors are wrapped in data'] = static function (): void {
+$tests['usage ingestion errors are the flat error document'] = static function (): void {
     $event = ['customer_id' => 'cus_1', 'external_event_id' => 'req-1', 'input_tokens' => '1', 'output_tokens' => '0', 'cached_tokens' => '0', 'occurred_at' => '2026-11-13T12:00:00Z'];
     $cases = [
-        [401, ['data' => ['error' => 'invalid_credential']], 'invalid_credential', 0, ''],
-        [409, ['data' => ['error' => 'event_conflict', 'record' => 2, 'message' => 'conflict']], 'event_conflict', 2, 'conflict'],
-        [422, ['data' => ['error' => 'invalid_events', 'record' => 3, 'message' => 'validation failed: customer_id', 'fields' => ['customer_id' => ['unknown']]]], 'invalid_events', 3, 'validation failed: customer_id'],
-        [400, ['data' => ['error' => 'invalid_json']], 'invalid_json', 0, ''],
+        [401, ['error' => 'invalid_credential'], 'invalid_credential', 0, ''],
+        [409, ['error' => 'conflict', 'record' => 2, 'message' => 'conflict'], 'conflict', 2, 'conflict'],
+        [422, ['error' => 'invalid_request', 'record' => 3, 'message' => 'validation failed: customer_id', 'fields' => ['customer_id' => ['unknown']]], 'invalid_request', 3, 'validation failed: customer_id'],
+        [400, ['error' => 'invalid_request', 'message' => 'malformed JSON'], 'invalid_request', 0, 'malformed JSON'],
+        [415, ['error' => 'unsupported_media_type'], 'unsupported_media_type', 0, ''],
+        [500, ['error' => 'unavailable'], 'unavailable', 0, ''],
     ];
     foreach ($cases as [$status, $body, $code, $record, $message]) {
         [$perata] = client(static fn (): array => [$status, [], $body]);
@@ -177,6 +179,17 @@ $tests['usage ingestion errors are wrapped in data'] = static function (): void 
             check($message === '' || str_contains($refused->getMessage(), $message), 'message');
             check($status !== 422 || $refused->fields === ['customer_id' => ['unknown']], 'fields');
         }
+    }
+};
+
+$tests['an error wrapped in data by an older server is still read'] = static function (): void {
+    $event = ['customer_id' => 'cus_1', 'external_event_id' => 'req-1', 'input_tokens' => '1', 'output_tokens' => '0', 'cached_tokens' => '0', 'occurred_at' => '2026-11-13T12:00:00Z'];
+    [$perata] = client(static fn (): array => [409, [], ['data' => ['error' => 'event_conflict', 'record' => 2, 'message' => 'conflict']]]);
+    try {
+        $perata->usage->ingest(['events' => [$event]]);
+        check(false, 'a 409 did not throw');
+    } catch (PerataException $refused) {
+        check($refused->status === 409 && $refused->errorCode === 'event_conflict' && $refused->record === 2, 'legacy refusal');
     }
 };
 

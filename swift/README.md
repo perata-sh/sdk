@@ -4,7 +4,7 @@ SDK oficial da API da Peráta para Swift 6 (macOS 12+, iOS 15+, tvOS 15+, watchO
 
 ```swift
 // Package.swift
-.package(url: "https://github.com/perata-sh/sdk", from: "0.3.0"),
+.package(url: "https://github.com/perata-sh/sdk", from: "0.4.0"),
 // e, no target:
 .product(name: "Perata", package: "sdk"),
 ```
@@ -66,7 +66,7 @@ let receipt = try await usage.usage.ingest(UsageIngestParams(events: [
 // receipt.created, receipt.replayed
 ```
 
-De 1 a 100 eventos por chamada, até 64 KiB, todos gravados ou nenhum. Não há `Idempotency-Key` aqui: a identidade de um evento é o `externalEventID` da fonte, e repetir uma chamada é seguro (`replayed`); o mesmo id com outro conteúdo responde 409 (`event_conflict`), e um evento inválido, 422 (`invalid_events`) com `record` dizendo qual, a partir de 1.
+De 1 a 100 eventos por chamada, até 64 KiB, todos gravados ou nenhum. Não há `Idempotency-Key` aqui: a identidade de um evento é o `externalEventID` da fonte, e repetir uma chamada é seguro (`replayed`); o mesmo id com outro conteúdo responde 409 (`conflict`), e um evento inválido, 422 (`invalid_request`) com `record` dizendo qual, a partir de 1.
 
 ## Erros
 
@@ -90,4 +90,4 @@ A assinatura é a do Standard Webhooks (`webhook-id`, `webhook-timestamp`, `webh
 
 O evento é tipado: um caso para cada dado que o webhook carrega (`.order` traz um `Order`, `.dispute` a disputa, `.identifiers` os identificadores…), e o `type` diz o que aconteceu; um tipo que esta versão do SDK ainda não conhece chega como `.unknown`, com o corpo como veio. Durante a rotação do segredo o cabeçalho traz mais de uma assinatura, e basta uma conferir. `verifyWebhookSignature` só confere a assinatura.
 
-Versão do SDK: 0.3.0 · contrato da API: 0.1.0
+Versão do SDK: 0.4.0 · contrato da API: 0.1.0

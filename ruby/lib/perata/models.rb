@@ -1693,6 +1693,45 @@ module Perata
     end
   end
 
+  # UsageError is a resource of Peráta's API.
+  class UsageError < Model
+    MEMBERS = %i[error fields message record].freeze
+
+    # Código do erro: invalid_credential, invalid_request, conflict, unsupported_media_type, body_too_large, rate_limited ou unavailable.
+    # @return [String]
+    attr_reader :error
+
+    # Em invalid_request, o que há de errado em cada campo do evento.
+    # @return [Hash{String => Array<String>}, nil]
+    attr_reader :fields
+
+    # O que explica a recusa, em inglês.
+    # @return [String, nil]
+    attr_reader :message
+
+    # Posição, a partir de 1, do evento do lote que causou a recusa (invalid_request e conflict); o lote inteiro foi revertido.
+    # @return [Integer, nil]
+    attr_reader :record
+
+    def initialize(error:, fields: nil, message: nil, record: nil)
+      @error = error
+      @fields = fields
+      @message = message
+      @record = record
+      freeze
+    end
+
+    # Builds a UsageError from the API's JSON.
+    def self.from_hash(data)
+      new(
+        error: data.fetch("error"),
+        fields: data["fields"],
+        message: data["message"],
+        record: data["record"]
+      )
+    end
+  end
+
   # WebhookBenefit is a resource of Peráta's API.
   class WebhookBenefit < Model
     MEMBERS = %i[created_at description id modified_at name status type visibility].freeze

@@ -212,8 +212,8 @@ func errorOf(resp *http.Response, raw []byte) *Error {
 		Fields  map[string][]string `json:"fields"`
 		Record  int                 `json:"record"`
 	}
-	// The API's errors are the problem itself; the usage ingestion's are
-	// wrapped in data, as its answers are.
+	// Every error is the problem itself (error, message, fields). Servers from before
+	// that document wrapped the usage ingestion's errors in data: still read.
 	var body struct {
 		problem
 		Data *problem `json:"data"`

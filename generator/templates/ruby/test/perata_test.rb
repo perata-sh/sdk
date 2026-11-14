@@ -148,19 +148,28 @@ class PerataTest < Minitest::Test
     assert_equal({ "vendor" => "openai", "model" => "gpt" }, JSON.parse(recorder.seen.last[:body])["events"][0]["_llm"])
   end
 
-  def test_usage_ingestion_errors_are_wrapped_in_data
+  def test_usage_ingestion_errors_are_the_flat_error_document
     event = { customer_id: "cus_1", external_event_id: "req-1", input_tokens: "1", output_tokens: "0", cached_tokens: "0", occurred_at: "2026-11-13T12:00:00Z" }
     [
-      [401, { "data" => { "error" => "invalid_credential" } }, "invalid_credential", 0, ""],
-      [409, { "data" => { "error" => "event_conflict", "record" => 2, "message" => "conflict" } }, "event_conflict", 2, "conflict"],
-      [422, { "data" => { "error" => "invalid_events", "record" => 3, "message" => "validation failed: customer_id", "fields" => { "customer_id" => ["unknown"] } } }, "invalid_events", 3, "validation failed: customer_id"],
-      [400, { "data" => { "error" => "invalid_json" } }, "invalid_json", 0, ""]
+      [401, { "error" => "invalid_credential" }, "invalid_credential", 0, ""],
+      [409, { "error" => "conflict", "record" => 2, "message" => "conflict" }, "conflict", 2, "conflict"],
+      [422, { "error" => "invalid_request", "record" => 3, "message" => "validation failed: customer_id", "fields" => { "customer_id" => ["unknown"] } }, "invalid_request", 3, "validation failed: customer_id"],
+      [400, { "error" => "invalid_request", "message" => "malformed JSON" }, "invalid_request", 0, "malformed JSON"],
+      [415, { "error" => "unsupported_media_type" }, "unsupported_media_type", 0, ""],
+      [500, { "error" => "unavailable" }, "unavailable", 0, ""]
     ].each do |status, body, code, record, message|
       perata, = client { [status, body, {}] }
       refused = assert_raises(Perata::Error) { perata.usage.ingest({ events: [event] }) }
       assert_equal [status, code, record, message], [refused.status, refused.code, refused.record, refused.message]
       assert_equal({ "customer_id" => ["unknown"] }, refused.fields) if status == 422
     end
+  end
+
+  def test_an_error_wrapped_in_data_by_an_older_server_is_still_read
+    event = { customer_id: "cus_1", external_event_id: "req-1", input_tokens: "1", output_tokens: "0", cached_tokens: "0", occurred_at: "2026-11-13T12:00:00Z" }
+    perata, = client { [409, { "data" => { "error" => "event_conflict", "record" => 2, "message" => "conflict" } }, {}] }
+    refused = assert_raises(Perata::Error) { perata.usage.ingest({ events: [event] }) }
+    assert_equal [409, "event_conflict", 2, "conflict"], [refused.status, refused.code, refused.record, refused.message]
   end
 
   def test_a_refusal_is_a_typed_error

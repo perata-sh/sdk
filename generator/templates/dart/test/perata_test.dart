@@ -297,7 +297,7 @@ void main() {
     },
   );
 
-  test('usage ingestion errors are wrapped in data', () async {
+  test('usage ingestion errors are the flat error document', () async {
     const event = UsageIngestEvent(
       customerId: 'cus_1',
       externalEventId: 'req-1',
@@ -310,29 +310,43 @@ void main() {
       (401, {'error': 'invalid_credential'}, 'invalid_credential', 0, ''),
       (
         409,
-        {'error': 'event_conflict', 'record': 2, 'message': 'conflict'},
-        'event_conflict',
+        {'error': 'conflict', 'record': 2, 'message': 'conflict'},
+        'conflict',
         2,
         'conflict',
       ),
       (
         422,
         {
-          'error': 'invalid_events',
+          'error': 'invalid_request',
           'record': 3,
           'message': 'validation failed: customer_id',
           'fields': {
             'customer_id': ['unknown'],
           },
         },
-        'invalid_events',
+        'invalid_request',
         3,
         'validation failed: customer_id',
       ),
-      (400, {'error': 'invalid_json'}, 'invalid_json', 0, ''),
+      (
+        400,
+        {'error': 'invalid_request', 'message': 'malformed JSON'},
+        'invalid_request',
+        0,
+        'malformed JSON',
+      ),
+      (
+        415,
+        {'error': 'unsupported_media_type'},
+        'unsupported_media_type',
+        0,
+        '',
+      ),
+      (500, {'error': 'unavailable'}, 'unavailable', 0, ''),
     ];
     for (final (status, problem, code, record, message) in cases) {
-      final (usage, _) = client((request) => json(status, {'data': problem}));
+      final (usage, _) = client((request) => json(status, problem));
       await expectLater(
         usage.usage.ingest(const UsageIngestParams(events: [event])),
         throwsA(
@@ -349,6 +363,30 @@ void main() {
         ),
       );
     }
+  });
+
+  test('an error wrapped in data by an older server is still read', () async {
+    const event = UsageIngestEvent(
+      customerId: 'cus_1',
+      externalEventId: 'req-1',
+      inputTokens: '1',
+      outputTokens: '0',
+      cachedTokens: '0',
+      occurredAt: '2026-11-13T12:00:00Z',
+    );
+    final (usage, _) = client(
+      (request) => json(409, {
+        'data': {'error': 'event_conflict', 'record': 2, 'message': 'conflict'},
+      }),
+    );
+    await expectLater(
+      usage.usage.ingest(const UsageIngestParams(events: [event])),
+      throwsA(
+        isA<PerataException>()
+            .having((error) => error.code, 'code', 'event_conflict')
+            .having((error) => error.record, 'record', 2),
+      ),
+    );
   });
 
   test('a refusal is a typed error', () async {

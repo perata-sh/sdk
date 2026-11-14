@@ -496,6 +496,23 @@ pub struct Subscription {
     pub trial_start: Option<String>,
 }
 
+/// UsageError is a resource of Peráta's API.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct UsageError {
+    /// Código do erro: invalid_credential, invalid_request, conflict, unsupported_media_type, body_too_large, rate_limited ou unavailable.
+    pub error: String,
+    /// Em invalid_request, o que há de errado em cada campo do evento.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub fields: Option<std::collections::HashMap<String, Vec<String>>>,
+    /// O que explica a recusa, em inglês.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub message: Option<String>,
+    /// Posição, a partir de 1, do evento do lote que causou a recusa (invalid_request e conflict); o lote inteiro foi revertido.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub record: Option<i64>,
+}
+
 /// WebhookBenefit is a resource of Peráta's API.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[non_exhaustive]
@@ -1139,6 +1156,7 @@ impl CustomerSessionsCreateParams {
 #[non_exhaustive]
 pub struct CustomersCreateParams {
     pub email: String,
+    /// Até 120 caracteres, sem barra (/) nem caracteres de controle.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub external_id: Option<String>,
     pub name: String,
@@ -1154,7 +1172,7 @@ impl CustomersCreateParams {
         }
     }
 
-    /// Sets `external_id`.
+    /// Até 120 caracteres, sem barra (/) nem caracteres de controle.
     pub fn external_id(mut self, external_id: impl Into<String>) -> Self {
         self.external_id = Some(external_id.into());
         self
@@ -1170,7 +1188,7 @@ impl CustomersCreateParams {
 pub struct CustomersUpdateParams {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub email: Option<String>,
-    /// Só pode ser definido uma vez.
+    /// Só pode ser definido uma vez. Até 120 caracteres, sem barra (/) nem caracteres de controle.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub external_id: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -1193,7 +1211,7 @@ impl CustomersUpdateParams {
         self
     }
 
-    /// Só pode ser definido uma vez.
+    /// Só pode ser definido uma vez. Até 120 caracteres, sem barra (/) nem caracteres de controle.
     pub fn external_id(mut self, external_id: impl Into<String>) -> Self {
         self.external_id = Some(external_id.into());
         self
@@ -1439,7 +1457,7 @@ impl DiscountsUpdateParams {
 pub struct CustomersUpdateExternalParams {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub email: Option<String>,
-    /// Só pode ser definido uma vez.
+    /// Só pode ser definido uma vez. Até 120 caracteres, sem barra (/) nem caracteres de controle.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub external_id: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -1462,7 +1480,7 @@ impl CustomersUpdateExternalParams {
         self
     }
 
-    /// Só pode ser definido uma vez.
+    /// Só pode ser definido uma vez. Até 120 caracteres, sem barra (/) nem caracteres de controle.
     pub fn external_id(mut self, external_id: impl Into<String>) -> Self {
         self.external_id = Some(external_id.into());
         self
@@ -1483,6 +1501,7 @@ impl CustomersUpdateExternalParams {
 #[non_exhaustive]
 pub struct PricesCreateParams {
     pub amount_cents: i64,
+    /// Obrigatório no preço recorrente; o preço one_time não tem intervalo.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub interval: Option<PricesCreateParamsInterval>,
     pub product_id: String,
@@ -1501,7 +1520,7 @@ impl PricesCreateParams {
         }
     }
 
-    /// Sets `interval`.
+    /// Obrigatório no preço recorrente; o preço one_time não tem intervalo.
     pub fn interval(mut self, interval: impl Into<PricesCreateParamsInterval>) -> Self {
         self.interval = Some(interval.into());
         self
@@ -5732,7 +5751,7 @@ impl<'de> Deserialize<'de> for DiscountsCreateParamsType {
     }
 }
 
-/// The values of `PricesCreateParams.interval`.
+/// The values of `PricesCreateParams.interval`. Obrigatório no preço recorrente; o preço one_time não tem intervalo.
 ///
 /// A value this SDK does not know yet is kept, as it came, in
 /// [`PricesCreateParamsInterval::Unrecognized`].

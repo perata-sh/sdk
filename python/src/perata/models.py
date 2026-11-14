@@ -869,6 +869,29 @@ class Subscription:
 
 
 @dataclass(frozen=True)
+class UsageError:
+    """UsageError is a resource of Peráta's API."""
+
+    error: str
+    """Código do erro: invalid_credential, invalid_request, conflict, unsupported_media_type, body_too_large, rate_limited ou unavailable."""
+    fields: dict[str, list[str]] | None
+    """Em invalid_request, o que há de errado em cada campo do evento."""
+    message: str | None
+    """O que explica a recusa, em inglês."""
+    record: int | None
+    """Posição, a partir de 1, do evento do lote que causou a recusa (invalid_request e conflict); o lote inteiro foi revertido."""
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> UsageError:
+        return cls(
+            error=data["error"],
+            fields=data.get("fields"),
+            message=data.get("message"),
+            record=data.get("record"),
+        )
+
+
+@dataclass(frozen=True)
 class WebhookBenefit:
     """WebhookBenefit is a resource of Peráta's API."""
 
@@ -1233,6 +1256,7 @@ class CustomersCreateParams(TypedDict):
 
     email: str
     external_id: NotRequired[str]
+    """Até 120 caracteres, sem barra (/) nem caracteres de controle."""
     name: str
 
 
@@ -1241,7 +1265,7 @@ class CustomersUpdateParams(TypedDict):
 
     email: NotRequired[str]
     external_id: NotRequired[str]
-    """Só pode ser definido uma vez."""
+    """Só pode ser definido uma vez. Até 120 caracteres, sem barra (/) nem caracteres de controle."""
     name: NotRequired[str]
 
 
@@ -1294,7 +1318,7 @@ class CustomersUpdateExternalParams(TypedDict):
 
     email: NotRequired[str]
     external_id: NotRequired[str]
-    """Só pode ser definido uma vez."""
+    """Só pode ser definido uma vez. Até 120 caracteres, sem barra (/) nem caracteres de controle."""
     name: NotRequired[str]
 
 
@@ -1303,6 +1327,7 @@ class PricesCreateParams(TypedDict):
 
     amount_cents: int
     interval: NotRequired[Literal["month", "year"]]
+    """Obrigatório no preço recorrente; o preço one_time não tem intervalo."""
     product_id: str
     type: Literal["one_time", "recurring"]
 

@@ -346,6 +346,7 @@ module Perata
     # @return [String]
     attr_reader :email
 
+    # Até 120 caracteres, sem barra (/) nem caracteres de controle.
     # @return [String, nil]
     attr_reader :external_id
 
@@ -376,7 +377,7 @@ module Perata
     # @return [String, nil]
     attr_reader :email
 
-    # Só pode ser definido uma vez.
+    # Só pode ser definido uma vez. Até 120 caracteres, sem barra (/) nem caracteres de controle.
     # @return [String, nil]
     attr_reader :external_id
 
@@ -559,7 +560,7 @@ module Perata
     # @return [String, nil]
     attr_reader :email
 
-    # Só pode ser definido uma vez.
+    # Só pode ser definido uma vez. Até 120 caracteres, sem barra (/) nem caracteres de controle.
     # @return [String, nil]
     attr_reader :external_id
 
@@ -590,6 +591,7 @@ module Perata
     # @return [Integer]
     attr_reader :amount_cents
 
+    # Obrigatório no preço recorrente; o preço one_time não tem intervalo.
     # @return [String ("month", "year"), nil]
     attr_reader :interval
 

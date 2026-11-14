@@ -7,8 +7,7 @@ import (
 
 // Error is a request the API refused. Code is the API's: invalid_credential,
 // forbidden, not_found, invalid_request, conflict, idempotency_conflict,
-// body_too_large or unavailable; the usage ingestion adds invalid_events and
-// event_conflict. Fields says, for invalid_request, what is wrong with each
+// unsupported_media_type, body_too_large, rate_limited or unavailable. Fields says, for invalid_request, what is wrong with each
 // field. Record is, for the usage ingestion, the position (from 1) in the
 // batch of the event the API refused, and 0 for any other error. RetryAfter is
 // how long to wait on a 429.

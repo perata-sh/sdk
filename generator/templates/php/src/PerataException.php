@@ -7,8 +7,7 @@ namespace Perata;
 /**
  * A request the API refused. $errorCode is the API's: invalid_credential,
  * forbidden, not_found, invalid_request, conflict, idempotency_conflict,
- * body_too_large or unavailable; the usage ingestion adds invalid_events and
- * event_conflict. $fields says, for invalid_request, what is wrong with each
+ * unsupported_media_type, body_too_large, rate_limited or unavailable. $fields says, for invalid_request, what is wrong with each
  * field. $record is, for the usage ingestion, the position (from 1) in the
  * batch of the event the API refused, and 0 for any other error. $retryAfter
  * is how many seconds to wait on a 429.
@@ -38,8 +37,8 @@ final class PerataException extends \RuntimeException
         if (!is_array($data)) {
             $data = []; // A refusal without a JSON body is still a refusal.
         }
-        // The API's errors are the problem itself; the usage ingestion's are
-        // wrapped in data, as its answers are.
+        // Every error is the problem itself (error, message, fields). Servers from before
+        // that document wrapped the usage ingestion's errors in data: still read.
         if (!array_key_exists('error', $data) && is_array($data['data'] ?? null)) {
             $data = $data['data'];
         }

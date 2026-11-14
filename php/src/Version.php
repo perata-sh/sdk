@@ -9,7 +9,7 @@ namespace Perata;
 final class Version
 {
     /** This SDK's version. */
-    public const SDK = '0.3.0';
+    public const SDK = '0.4.0';
 
     /** The contract this SDK was generated from. */
     public const API = '0.1.0';

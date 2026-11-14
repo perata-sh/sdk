@@ -6,8 +6,8 @@ module Perata
   # A request the API refused.
   #
   # +code+ is the API's: invalid_credential, forbidden, not_found,
-  # invalid_request, conflict, idempotency_conflict, body_too_large or
-  # unavailable; the usage ingestion adds invalid_events and event_conflict.
+  # invalid_request, conflict, idempotency_conflict, unsupported_media_type, body_too_large, rate_limited or
+  # unavailable.
   # +message+ is the API's explanation, +fields+ says, for invalid_request,
   # what is wrong with each field, +record+ is, for the usage ingestion, the
   # position (from 1) in the batch of the event the API refused (0 for any other
@@ -38,8 +38,8 @@ module Perata
       rescue JSON::ParserError
         {} # A refusal without a JSON body is still a refusal.
       end
-      # The API's errors are the problem itself; the usage ingestion's are
-      # wrapped in data, as its answers are.
+      # Every error is the problem itself (error, message, fields). Servers from before
+      # that document wrapped the usage ingestion's errors in data: still read.
       data = data["data"] if !data.key?("error") && data["data"].is_a?(Hash)
       retry_after = headers["retry-after"].to_s
       new(status, data["error"].to_s, data["message"].to_s, data["fields"] || {},

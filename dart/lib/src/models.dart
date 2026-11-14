@@ -1788,6 +1788,51 @@ final class Subscription {
   };
 }
 
+/// UsageError is a resource of Peráta's API.
+final class UsageError {
+  const UsageError({
+    required this.error,
+    this.fields,
+    this.message,
+    this.record,
+  });
+
+  /// A UsageError out of the API's JSON.
+  factory UsageError.fromJson(Map<String, Object?> json) {
+    return UsageError(
+      error: json['error'] as String,
+      fields: readOptional(
+        json['fields'],
+        (value) => readMap(value, (value) => readList(value, readString)),
+      ),
+      message: json['message'] as String?,
+      record: json['record'] as int?,
+    );
+  }
+
+  /// Código do erro: invalid_credential, invalid_request, conflict,
+  /// unsupported_media_type, body_too_large, rate_limited ou unavailable.
+  final String error;
+
+  /// Em invalid_request, o que há de errado em cada campo do evento.
+  final Map<String, List<String>>? fields;
+
+  /// O que explica a recusa, em inglês.
+  final String? message;
+
+  /// Posição, a partir de 1, do evento do lote que causou a recusa
+  /// (invalid_request e conflict); o lote inteiro foi revertido.
+  final int? record;
+
+  /// The JSON the API answers.
+  Map<String, Object?> toJson() => {
+    'error': error,
+    'fields': ?fields,
+    'message': ?message,
+    'record': ?record,
+  };
+}
+
 /// WebhookBenefit is a resource of Peráta's API.
 final class WebhookBenefit {
   const WebhookBenefit({
@@ -2609,6 +2654,7 @@ final class CustomersCreateParams {
 
   final String email;
 
+  /// Até 120 caracteres, sem barra (/) nem caracteres de controle.
   final String? externalId;
 
   final String name;
@@ -2631,7 +2677,8 @@ final class CustomersUpdateParams {
 
   final String? email;
 
-  /// Só pode ser definido uma vez.
+  /// Só pode ser definido uma vez. Até 120 caracteres, sem barra (/) nem
+  /// caracteres de controle.
   final String? externalId;
 
   final String? name;
@@ -2777,7 +2824,8 @@ final class CustomersUpdateExternalParams {
 
   final String? email;
 
-  /// Só pode ser definido uma vez.
+  /// Só pode ser definido uma vez. Até 120 caracteres, sem barra (/) nem
+  /// caracteres de controle.
   final String? externalId;
 
   final String? name;
@@ -2801,6 +2849,8 @@ final class PricesCreateParams {
 
   final int amountCents;
 
+  /// Obrigatório no preço recorrente; o preço one_time não tem intervalo.
+  ///
   /// One of `month`, `year`.
   final String? interval;
 

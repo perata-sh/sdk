@@ -70,7 +70,7 @@ public final class PricesService {
             return amountCents;
         }
 
-        /** @return the {@code interval} sent (null when left out) */
+        /** @return Obrigatório no preço recorrente; o preço one_time não tem intervalo. (null when left out) */
         public String getInterval() {
             return interval;
         }
@@ -116,7 +116,7 @@ public final class PricesService {
             }
 
             /**
-             * @param interval the {@code interval} to send
+             * @param interval Obrigatório no preço recorrente; o preço one_time não tem intervalo.
              * @return this builder
              */
             public Builder interval(String interval) {

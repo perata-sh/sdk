@@ -63,7 +63,7 @@ UsageIngestReceipt receipt = usage.usage().ingest(UsageService.IngestParams.buil
 // receipt.getCreated(), receipt.getReplayed()
 ```
 
-De 1 a 100 eventos por chamada, até 64 KiB, todos gravados ou nenhum. Não há `Idempotency-Key` aqui: a identidade de um evento é o `externalEventId` da fonte, e repetir uma chamada é seguro (`replayed`); o mesmo id com outro conteúdo responde 409 (`event_conflict`), e um evento inválido, 422 (`invalid_events`) com `getRecord()` dizendo qual, a partir de 1.
+De 1 a 100 eventos por chamada, até 64 KiB, todos gravados ou nenhum. Não há `Idempotency-Key` aqui: a identidade de um evento é o `externalEventId` da fonte, e repetir uma chamada é seguro (`replayed`); o mesmo id com outro conteúdo responde 409 (`conflict`), e um evento inválido, 422 (`invalid_request`) com `getRecord()` dizendo qual, a partir de 1.
 
 ## Erros
 

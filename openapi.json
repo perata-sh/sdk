@@ -117,7 +117,6 @@
             "apiKey": []
           }
         ],
-        "x-arandu-route-name": "api.benefits.index",
         "x-perata-pagination": {
           "item_schema": "Benefit",
           "type": "page_limit"
@@ -242,6 +241,16 @@
               }
             }
           },
+          "415": {
+            "description": "O corpo não veio como application/json (unsupported_media_type); sem Content-Type, com text/plain ou com um formulário, é recusado.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
           "422": {
             "description": "Campos inválidos; fields detalha cada um.",
             "content": {
@@ -270,8 +279,7 @@
           {
             "apiKey": []
           }
-        ],
-        "x-arandu-route-name": "api.benefits.create"
+        ]
       }
     },
     "/api/v1/benefits/{benefit}": {
@@ -362,8 +370,7 @@
           {
             "apiKey": []
           }
-        ],
-        "x-arandu-route-name": "api.benefits.show"
+        ]
       },
       "delete": {
         "tags": [
@@ -463,8 +470,7 @@
           {
             "apiKey": []
           }
-        ],
-        "x-arandu-route-name": "api.benefits.delete"
+        ]
       },
       "patch": {
         "tags": [
@@ -577,6 +583,16 @@
               }
             }
           },
+          "415": {
+            "description": "O corpo não veio como application/json (unsupported_media_type); sem Content-Type, com text/plain ou com um formulário, é recusado.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
           "422": {
             "description": "Campos inválidos; fields detalha cada um.",
             "content": {
@@ -605,8 +621,7 @@
           {
             "apiKey": []
           }
-        ],
-        "x-arandu-route-name": "api.benefits.update"
+        ]
       }
     },
     "/api/v1/benefits/{benefit}/grants": {
@@ -730,7 +745,6 @@
             "apiKey": []
           }
         ],
-        "x-arandu-route-name": "api.benefits.grants",
         "x-perata-pagination": {
           "item_schema": "BenefitGrant",
           "type": "page_limit"
@@ -833,7 +847,6 @@
             "apiKey": []
           }
         ],
-        "x-arandu-route-name": "api.checkout-links.index",
         "x-perata-pagination": {
           "item_schema": "CheckoutLink",
           "type": "page_limit"
@@ -884,7 +897,8 @@
                     "description": "Desconto fixado no link."
                   },
                   "quantity": {
-                    "type": "integer"
+                    "type": "integer",
+                    "minimum": 1
                   },
                   "allow_discount_codes": {
                     "type": "boolean"
@@ -988,6 +1002,16 @@
               }
             }
           },
+          "415": {
+            "description": "O corpo não veio como application/json (unsupported_media_type); sem Content-Type, com text/plain ou com um formulário, é recusado.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
           "422": {
             "description": "Campos inválidos; fields detalha cada um.",
             "content": {
@@ -1016,8 +1040,7 @@
           {
             "apiKey": []
           }
-        ],
-        "x-arandu-route-name": "api.checkout-links.create"
+        ]
       }
     },
     "/api/v1/checkout-links/{checkout_link}": {
@@ -1108,8 +1131,7 @@
           {
             "apiKey": []
           }
-        ],
-        "x-arandu-route-name": "api.checkout-links.show"
+        ]
       },
       "delete": {
         "tags": [
@@ -1209,8 +1231,7 @@
           {
             "apiKey": []
           }
-        ],
-        "x-arandu-route-name": "api.checkout-links.delete"
+        ]
       },
       "patch": {
         "tags": [
@@ -1326,6 +1347,16 @@
               }
             }
           },
+          "415": {
+            "description": "O corpo não veio como application/json (unsupported_media_type); sem Content-Type, com text/plain ou com um formulário, é recusado.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
           "422": {
             "description": "Campos inválidos; fields detalha cada um.",
             "content": {
@@ -1354,8 +1385,7 @@
           {
             "apiKey": []
           }
-        ],
-        "x-arandu-route-name": "api.checkout-links.update"
+        ]
       }
     },
     "/api/v1/checkouts": {
@@ -1389,7 +1419,8 @@
                     "type": "string"
                   },
                   "quantity": {
-                    "type": "integer"
+                    "type": "integer",
+                    "minimum": 1
                   },
                   "success_url": {
                     "type": "string"
@@ -1461,6 +1492,16 @@
               }
             }
           },
+          "415": {
+            "description": "O corpo não veio como application/json (unsupported_media_type); sem Content-Type, com text/plain ou com um formulário, é recusado.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
           "422": {
             "description": "Campos inválidos; fields detalha cada um.",
             "content": {
@@ -1489,8 +1530,7 @@
           {
             "apiKey": []
           }
-        ],
-        "x-arandu-route-name": "api.checkouts.create"
+        ]
       }
     },
     "/api/v1/checkouts/{checkout}": {
@@ -1581,8 +1621,7 @@
           {
             "apiKey": []
           }
-        ],
-        "x-arandu-route-name": "api.checkouts.show"
+        ]
       },
       "patch": {
         "tags": [
@@ -1684,6 +1723,16 @@
               }
             }
           },
+          "415": {
+            "description": "O corpo não veio como application/json (unsupported_media_type); sem Content-Type, com text/plain ou com um formulário, é recusado.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
           "422": {
             "description": "Campos inválidos; fields detalha cada um.",
             "content": {
@@ -1712,8 +1761,7 @@
           {
             "apiKey": []
           }
-        ],
-        "x-arandu-route-name": "api.checkouts.update"
+        ]
       }
     },
     "/api/v1/customer-sessions": {
@@ -1807,6 +1855,16 @@
               }
             }
           },
+          "415": {
+            "description": "O corpo não veio como application/json (unsupported_media_type); sem Content-Type, com text/plain ou com um formulário, é recusado.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
           "422": {
             "description": "Campos inválidos; fields detalha cada um.",
             "content": {
@@ -1835,8 +1893,7 @@
           {
             "apiKey": []
           }
-        ],
-        "x-arandu-route-name": "api.customer-sessions.create"
+        ]
       }
     },
     "/api/v1/customers": {
@@ -1935,7 +1992,6 @@
             "apiKey": []
           }
         ],
-        "x-arandu-route-name": "api.customers.index",
         "x-perata-pagination": {
           "item_schema": "Customer",
           "type": "page_limit"
@@ -1965,13 +2021,15 @@
                 "type": "object",
                 "properties": {
                   "name": {
-                    "type": "string"
+                    "type": "string",
+                    "minLength": 1
                   },
                   "email": {
                     "type": "string"
                   },
                   "external_id": {
-                    "type": "string"
+                    "type": "string",
+                    "description": "Até 120 caracteres, sem barra (/) nem caracteres de controle."
                   }
                 },
                 "required": [
@@ -2034,6 +2092,16 @@
               }
             }
           },
+          "415": {
+            "description": "O corpo não veio como application/json (unsupported_media_type); sem Content-Type, com text/plain ou com um formulário, é recusado.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
           "422": {
             "description": "Campos inválidos; fields detalha cada um.",
             "content": {
@@ -2062,8 +2130,7 @@
           {
             "apiKey": []
           }
-        ],
-        "x-arandu-route-name": "api.customers.create"
+        ]
       }
     },
     "/api/v1/customers/{customer}": {
@@ -2154,8 +2221,7 @@
           {
             "apiKey": []
           }
-        ],
-        "x-arandu-route-name": "api.customers.show"
+        ]
       },
       "delete": {
         "tags": [
@@ -2255,8 +2321,7 @@
           {
             "apiKey": []
           }
-        ],
-        "x-arandu-route-name": "api.customers.delete"
+        ]
       },
       "patch": {
         "tags": [
@@ -2291,14 +2356,15 @@
                 "type": "object",
                 "properties": {
                   "name": {
-                    "type": "string"
+                    "type": "string",
+                    "minLength": 1
                   },
                   "email": {
                     "type": "string"
                   },
                   "external_id": {
                     "type": "string",
-                    "description": "Só pode ser definido uma vez."
+                    "description": "Só pode ser definido uma vez. Até 120 caracteres, sem barra (/) nem caracteres de controle."
                   }
                 },
                 "additionalProperties": false
@@ -2357,6 +2423,16 @@
               }
             }
           },
+          "415": {
+            "description": "O corpo não veio como application/json (unsupported_media_type); sem Content-Type, com text/plain ou com um formulário, é recusado.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
           "422": {
             "description": "Campos inválidos; fields detalha cada um.",
             "content": {
@@ -2385,8 +2461,7 @@
           {
             "apiKey": []
           }
-        ],
-        "x-arandu-route-name": "api.customers.update"
+        ]
       }
     },
     "/api/v1/customers/{customer}/payment_methods": {
@@ -2494,7 +2569,6 @@
             "apiKey": []
           }
         ],
-        "x-arandu-route-name": "api.customers.payment_methods",
         "x-perata-pagination": {
           "item_schema": "PaymentMethod",
           "type": "page_limit"
@@ -2589,8 +2663,7 @@
           {
             "apiKey": []
           }
-        ],
-        "x-arandu-route-name": "api.customers.state"
+        ]
       }
     },
     "/api/v1/discounts": {
@@ -2689,7 +2762,6 @@
             "apiKey": []
           }
         ],
-        "x-arandu-route-name": "api.discounts.index",
         "x-perata-pagination": {
           "item_schema": "Discount",
           "type": "page_limit"
@@ -2835,6 +2907,16 @@
               }
             }
           },
+          "415": {
+            "description": "O corpo não veio como application/json (unsupported_media_type); sem Content-Type, com text/plain ou com um formulário, é recusado.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
           "422": {
             "description": "Campos inválidos; fields detalha cada um.",
             "content": {
@@ -2863,8 +2945,7 @@
           {
             "apiKey": []
           }
-        ],
-        "x-arandu-route-name": "api.discounts.create"
+        ]
       }
     },
     "/api/v1/discounts/{discount}": {
@@ -2955,8 +3036,7 @@
           {
             "apiKey": []
           }
-        ],
-        "x-arandu-route-name": "api.discounts.show"
+        ]
       },
       "delete": {
         "tags": [
@@ -3056,8 +3136,7 @@
           {
             "apiKey": []
           }
-        ],
-        "x-arandu-route-name": "api.discounts.delete"
+        ]
       },
       "patch": {
         "tags": [
@@ -3186,6 +3265,16 @@
               }
             }
           },
+          "415": {
+            "description": "O corpo não veio como application/json (unsupported_media_type); sem Content-Type, com text/plain ou com um formulário, é recusado.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
           "422": {
             "description": "Campos inválidos; fields detalha cada um.",
             "content": {
@@ -3214,8 +3303,7 @@
           {
             "apiKey": []
           }
-        ],
-        "x-arandu-route-name": "api.discounts.update"
+        ]
       }
     },
     "/api/v1/disputes": {
@@ -3322,7 +3410,6 @@
             "apiKey": []
           }
         ],
-        "x-arandu-route-name": "api.disputes.index",
         "x-perata-pagination": {
           "item_schema": "Dispute",
           "type": "page_limit"
@@ -3417,8 +3504,7 @@
           {
             "apiKey": []
           }
-        ],
-        "x-arandu-route-name": "api.disputes.show"
+        ]
       }
     },
     "/api/v1/events": {
@@ -3541,7 +3627,6 @@
             "apiKey": []
           }
         ],
-        "x-arandu-route-name": "api.events.index",
         "x-perata-pagination": {
           "item_schema": "Event",
           "type": "page_limit"
@@ -3636,8 +3721,7 @@
           {
             "apiKey": []
           }
-        ],
-        "x-arandu-route-name": "api.customers.show_external"
+        ]
       },
       "patch": {
         "tags": [
@@ -3672,14 +3756,15 @@
                 "type": "object",
                 "properties": {
                   "name": {
-                    "type": "string"
+                    "type": "string",
+                    "minLength": 1
                   },
                   "email": {
                     "type": "string"
                   },
                   "external_id": {
                     "type": "string",
-                    "description": "Só pode ser definido uma vez."
+                    "description": "Só pode ser definido uma vez. Até 120 caracteres, sem barra (/) nem caracteres de controle."
                   }
                 },
                 "additionalProperties": false
@@ -3738,6 +3823,16 @@
               }
             }
           },
+          "415": {
+            "description": "O corpo não veio como application/json (unsupported_media_type); sem Content-Type, com text/plain ou com um formulário, é recusado.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
           "422": {
             "description": "Campos inválidos; fields detalha cada um.",
             "content": {
@@ -3766,8 +3861,7 @@
           {
             "apiKey": []
           }
-        ],
-        "x-arandu-route-name": "api.customers.update_external"
+        ]
       }
     },
     "/api/v1/meters": {
@@ -3874,7 +3968,6 @@
             "apiKey": []
           }
         ],
-        "x-arandu-route-name": "api.meters.index",
         "x-perata-pagination": {
           "item_schema": "Meter",
           "type": "page_limit"
@@ -3969,8 +4062,7 @@
           {
             "apiKey": []
           }
-        ],
-        "x-arandu-route-name": "api.meters.show"
+        ]
       }
     },
     "/api/v1/orders": {
@@ -4069,7 +4161,6 @@
             "apiKey": []
           }
         ],
-        "x-arandu-route-name": "api.orders.index",
         "x-perata-pagination": {
           "item_schema": "Order",
           "type": "page_limit"
@@ -4164,8 +4255,7 @@
           {
             "apiKey": []
           }
-        ],
-        "x-arandu-route-name": "api.orders.show"
+        ]
       }
     },
     "/api/v1/orders/{order}/invoice": {
@@ -4256,8 +4346,7 @@
           {
             "apiKey": []
           }
-        ],
-        "x-arandu-route-name": "api.orders.invoice"
+        ]
       }
     },
     "/api/v1/orders/{order}/receipt": {
@@ -4348,8 +4437,7 @@
           {
             "apiKey": []
           }
-        ],
-        "x-arandu-route-name": "api.orders.receipt"
+        ]
       }
     },
     "/api/v1/payment_methods/{payment_method}/detach": {
@@ -4458,8 +4546,7 @@
           {
             "apiKey": []
           }
-        ],
-        "x-arandu-route-name": "api.payment_methods.detach"
+        ]
       }
     },
     "/api/v1/payments": {
@@ -4558,7 +4645,6 @@
             "apiKey": []
           }
         ],
-        "x-arandu-route-name": "api.payments.index",
         "x-perata-pagination": {
           "item_schema": "Payment",
           "type": "page_limit"
@@ -4653,8 +4739,7 @@
           {
             "apiKey": []
           }
-        ],
-        "x-arandu-route-name": "api.payments.show"
+        ]
       }
     },
     "/api/v1/prices": {
@@ -4761,7 +4846,6 @@
             "apiKey": []
           }
         ],
-        "x-arandu-route-name": "api.prices.index",
         "x-perata-pagination": {
           "item_schema": "Price",
           "type": "page_limit"
@@ -4805,6 +4889,7 @@
                   },
                   "interval": {
                     "type": "string",
+                    "description": "Obrigatório no preço recorrente; o preço one_time não tem intervalo.",
                     "enum": [
                       "month",
                       "year"
@@ -4872,6 +4957,16 @@
               }
             }
           },
+          "415": {
+            "description": "O corpo não veio como application/json (unsupported_media_type); sem Content-Type, com text/plain ou com um formulário, é recusado.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
           "422": {
             "description": "Campos inválidos; fields detalha cada um.",
             "content": {
@@ -4900,8 +4995,7 @@
           {
             "apiKey": []
           }
-        ],
-        "x-arandu-route-name": "api.prices.create"
+        ]
       }
     },
     "/api/v1/products": {
@@ -5000,7 +5094,6 @@
             "apiKey": []
           }
         ],
-        "x-arandu-route-name": "api.products.index",
         "x-perata-pagination": {
           "item_schema": "Product",
           "type": "page_limit"
@@ -5095,6 +5188,16 @@
               }
             }
           },
+          "415": {
+            "description": "O corpo não veio como application/json (unsupported_media_type); sem Content-Type, com text/plain ou com um formulário, é recusado.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
           "422": {
             "description": "Campos inválidos; fields detalha cada um.",
             "content": {
@@ -5123,8 +5226,7 @@
           {
             "apiKey": []
           }
-        ],
-        "x-arandu-route-name": "api.products.create"
+        ]
       }
     },
     "/api/v1/products/{product}": {
@@ -5215,8 +5317,7 @@
           {
             "apiKey": []
           }
-        ],
-        "x-arandu-route-name": "api.products.show"
+        ]
       },
       "patch": {
         "tags": [
@@ -5313,6 +5414,16 @@
               }
             }
           },
+          "415": {
+            "description": "O corpo não veio como application/json (unsupported_media_type); sem Content-Type, com text/plain ou com um formulário, é recusado.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
           "422": {
             "description": "Campos inválidos; fields detalha cada um.",
             "content": {
@@ -5341,8 +5452,7 @@
           {
             "apiKey": []
           }
-        ],
-        "x-arandu-route-name": "api.products.update"
+        ]
       }
     },
     "/api/v1/products/{product}/archive": {
@@ -5451,8 +5561,7 @@
           {
             "apiKey": []
           }
-        ],
-        "x-arandu-route-name": "api.products.archive"
+        ]
       }
     },
     "/api/v1/refunds": {
@@ -5559,7 +5668,6 @@
             "apiKey": []
           }
         ],
-        "x-arandu-route-name": "api.refunds.index",
         "x-perata-pagination": {
           "item_schema": "Refund",
           "type": "page_limit"
@@ -5576,7 +5684,8 @@
           {
             "name": "Idempotency-Key",
             "in": "header",
-            "description": "Opcional, até 255 caracteres. A mesma chave com o mesmo corpo repete a resposta original (Idempotent-Replayed: true); com outro corpo, 409.",
+            "description": "Obrigatória, até 255 caracteres: sem ela a requisição é recusada com 400 invalid_idempotency_key, porque esta escrita move dinheiro e uma repetição depois de um tempo esgotado seria outra operação. A mesma chave com o mesmo corpo repete a resposta original (Idempotent-Replayed: true); com outro corpo, 409.",
+            "required": true,
             "schema": {
               "type": "string"
             }
@@ -5630,6 +5739,16 @@
               }
             }
           },
+          "400": {
+            "description": "Idempotency-Key ausente ou com mais de 255 caracteres (invalid_idempotency_key).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
           "401": {
             "description": "Chave ausente, inválida ou revogada.",
             "content": {
@@ -5670,6 +5789,16 @@
               }
             }
           },
+          "415": {
+            "description": "O corpo não veio como application/json (unsupported_media_type); sem Content-Type, com text/plain ou com um formulário, é recusado.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
           "422": {
             "description": "Campos inválidos; fields detalha cada um.",
             "content": {
@@ -5698,8 +5827,7 @@
           {
             "apiKey": []
           }
-        ],
-        "x-arandu-route-name": "api.refunds.create"
+        ]
       }
     },
     "/api/v1/subscriptions": {
@@ -5806,7 +5934,6 @@
             "apiKey": []
           }
         ],
-        "x-arandu-route-name": "api.subscriptions.index",
         "x-perata-pagination": {
           "item_schema": "Subscription",
           "type": "page_limit"
@@ -5901,8 +6028,7 @@
           {
             "apiKey": []
           }
-        ],
-        "x-arandu-route-name": "api.subscriptions.show"
+        ]
       },
       "patch": {
         "tags": [
@@ -6014,6 +6140,16 @@
               }
             }
           },
+          "415": {
+            "description": "O corpo não veio como application/json (unsupported_media_type); sem Content-Type, com text/plain ou com um formulário, é recusado.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
           "422": {
             "description": "Campos inválidos; fields detalha cada um.",
             "content": {
@@ -6042,8 +6178,7 @@
           {
             "apiKey": []
           }
-        ],
-        "x-arandu-route-name": "api.subscriptions.update"
+        ]
       }
     },
     "/api/v1/subscriptions/{subscription}/cancel": {
@@ -6142,6 +6277,16 @@
               }
             }
           },
+          "415": {
+            "description": "O corpo não veio como application/json (unsupported_media_type); sem Content-Type, com text/plain ou com um formulário, é recusado.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
           "422": {
             "description": "Campos inválidos; fields detalha cada um.",
             "content": {
@@ -6170,14 +6315,13 @@
           {
             "apiKey": []
           }
-        ],
-        "x-arandu-route-name": "api.subscriptions.cancel"
+        ]
       }
     },
     "/api/v1/usage/token-events": {
       "post": {
         "summary": "Ingerir lote atômico de eventos de uso",
-        "description": "Autorização: Bearer é o único formato de credencial suportado. As credenciais utilizam assinaturas nativas do Arandu, expiram em 30 dias e são verificadas em relação ao estado da fonte, associação atual do emissor e permissões nativas. Organização, merchant e ambiente (teste, pus_test_…, ou produção, pus_live_…) são derivados da fonte autenticada; o payload JSON não pode sobrescrevê-los, e uma credencial de um ambiente nunca escreve no outro. Em produção, a fonte só existe para uma organização que a equipe da Peráta liberou. 1 a 100 eventos, no máximo 65536 bytes. Contagens são strings decimais de inteiros, de 0 a 1000000000000, com pelo menos um token por evento; a entrada exclui cache. Ocorrência RFC3339 em segundos inteiros, com no máximo 90 dias atrás e até cinco minutos à frente. Escopo/fonte/external_event_id identificam um registro; repetições exatas contam como replay e conteúdo conflitante retorna 409. Todos os novos eventos e emissões da outbox são confirmados ou revertidos juntos. Rotação mantém a identidade da fonte e replay; credenciais revogadas ou expiradas não podem ser reutilizadas. Respostas utilizam o wrapper de dados nativo, incluindo campos de erro e registro. Sem cobrança ou faturamento automático.",
+        "description": "Autorização: Bearer é o único formato de credencial suportado. As credenciais são assinadas pela Peráta, expiram em 30 dias e são verificadas em relação ao estado da fonte, associação atual do emissor e permissões nativas. Organização, merchant e ambiente (teste, pus_test_…, ou produção, pus_live_…) são derivados da fonte autenticada; o payload JSON não pode sobrescrevê-los, e uma credencial de um ambiente nunca escreve no outro. Em produção, a fonte só existe para uma organização que a equipe da Peráta liberou. 1 a 100 eventos, no máximo 65536 bytes. Contagens são strings decimais de inteiros, de 0 a 1000000000000, com pelo menos um token por evento; a entrada exclui cache. Ocorrência RFC3339 em segundos inteiros, com no máximo 90 dias atrás e até cinco minutos à frente. Escopo/fonte/external_event_id identificam um registro; repetições exatas contam como replay e conteúdo conflitante retorna 409. Todos os novos eventos e emissões da outbox são confirmados ou revertidos juntos. Rotação mantém a identidade da fonte e replay; credenciais revogadas ou expiradas não podem ser reutilizadas. O sucesso vem no envelope data; todo erro é o documento de erro da API, o mesmo das demais operações de /api/v1 (error, message e fields), com record, a posição do evento recusado, quando há. Sem cobrança ou faturamento automático.",
         "operationId": "usage.ingest",
         "requestBody": {
           "content": {
@@ -6313,36 +6457,91 @@
             }
           },
           "400": {
-            "description": "JSON malformado, campos desconhecidos, dados excedentes ou contagens não numéricas."
+            "description": "JSON malformado, campos desconhecidos, dados excedentes ou contagens não numéricas (invalid_request).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UsageError"
+                }
+              }
+            }
           },
           "401": {
-            "description": "Credencial ausente, inválida, expirada ou revogada; emissor não mais autorizado."
+            "description": "Credencial ausente, inválida, expirada ou revogada; emissor não mais autorizado (invalid_credential).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UsageError"
+                }
+              }
+            }
           },
           "409": {
-            "description": "Conteúdo de evento conflitante. O lote inteiro foi revertido; record identifica o índice com falha (base 1)."
+            "description": "Conteúdo de evento conflitante (conflict). O lote inteiro foi revertido; record identifica o índice com falha (base 1).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UsageError"
+                }
+              }
+            }
           },
           "413": {
-            "description": "Corpo JSON excede 65536 bytes."
+            "description": "Corpo JSON excede 65536 bytes (body_too_large).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UsageError"
+                }
+              }
+            }
           },
           "415": {
-            "description": "Content-Type deve ser application/json."
+            "description": "Content-Type deve ser application/json (unsupported_media_type).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UsageError"
+                }
+              }
+            }
           },
           "422": {
-            "description": "Quantidade de eventos, cliente, quantidade ou ocorrência inválida; record identifica o evento com falha quando aplicável."
+            "description": "Quantidade de eventos, cliente, quantidade ou ocorrência inválida (invalid_request); fields detalha o campo e record identifica o evento com falha quando aplicável.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UsageError"
+                }
+              }
+            }
           },
           "429": {
-            "description": "Orçamento compartilhado de requisições excedido; respeite o cabeçalho Retry-After."
+            "description": "Orçamento compartilhado de requisições excedido (rate_limited); respeite o cabeçalho Retry-After.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UsageError"
+                }
+              }
+            }
           },
           "500": {
-            "description": "Ingestão indisponível; tente novamente com as identidades e conteúdo originais do evento."
+            "description": "Ingestão indisponível (unavailable); tente novamente com as identidades e conteúdo originais do evento.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UsageError"
+                }
+              }
+            }
           }
         },
         "security": [
           {
             "usageSource": []
           }
-        ],
-        "x-arandu-route-name": "usage.ingest"
+        ]
       }
     },
     "/api/v1/webhooks/deliveries": {
@@ -6457,7 +6656,6 @@
             "apiKey": []
           }
         ],
-        "x-arandu-route-name": "api.webhooks.deliveries",
         "x-perata-pagination": {
           "item_schema": "WebhookDelivery",
           "type": "page_limit"
@@ -6560,7 +6758,6 @@
             "apiKey": []
           }
         ],
-        "x-arandu-route-name": "api.webhooks.endpoints.index",
         "x-perata-pagination": {
           "item_schema": "WebhookEndpoint",
           "type": "page_limit"
@@ -6673,6 +6870,16 @@
               }
             }
           },
+          "415": {
+            "description": "O corpo não veio como application/json (unsupported_media_type); sem Content-Type, com text/plain ou com um formulário, é recusado.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
           "422": {
             "description": "Campos inválidos; fields detalha cada um.",
             "content": {
@@ -6701,8 +6908,7 @@
           {
             "apiKey": []
           }
-        ],
-        "x-arandu-route-name": "api.webhooks.endpoints.create"
+        ]
       }
     },
     "/api/v1/webhooks/endpoints/{endpoint}": {
@@ -6793,8 +6999,7 @@
           {
             "apiKey": []
           }
-        ],
-        "x-arandu-route-name": "api.webhooks.endpoints.show"
+        ]
       },
       "delete": {
         "tags": [
@@ -6894,8 +7099,7 @@
           {
             "apiKey": []
           }
-        ],
-        "x-arandu-route-name": "api.webhooks.endpoints.delete"
+        ]
       },
       "patch": {
         "tags": [
@@ -7011,6 +7215,16 @@
               }
             }
           },
+          "415": {
+            "description": "O corpo não veio como application/json (unsupported_media_type); sem Content-Type, com text/plain ou com um formulário, é recusado.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
           "422": {
             "description": "Campos inválidos; fields detalha cada um.",
             "content": {
@@ -7039,8 +7253,7 @@
           {
             "apiKey": []
           }
-        ],
-        "x-arandu-route-name": "api.webhooks.endpoints.update"
+        ]
       }
     }
   },
@@ -13214,6 +13427,36 @@
         "properties": {
           "data": {
             "$ref": "#/components/schemas/SubscriptionList"
+          }
+        }
+      },
+      "UsageError": {
+        "type": "object",
+        "required": [
+          "error"
+        ],
+        "properties": {
+          "error": {
+            "type": "string",
+            "description": "Código do erro: invalid_credential, invalid_request, conflict, unsupported_media_type, body_too_large, rate_limited ou unavailable."
+          },
+          "message": {
+            "type": "string",
+            "description": "O que explica a recusa, em inglês."
+          },
+          "fields": {
+            "type": "object",
+            "description": "Em invalid_request, o que há de errado em cada campo do evento.",
+            "additionalProperties": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          "record": {
+            "type": "integer",
+            "description": "Posição, a partir de 1, do evento do lote que causou a recusa (invalid_request e conflict); o lote inteiro foi revertido."
           }
         }
       },

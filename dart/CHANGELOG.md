@@ -2,6 +2,14 @@
 
 Todos os SDKs da Peráta saem com a mesma versão; as mudanças de cada uma estão também nas [releases de perata-sh/sdk](https://github.com/perata-sh/sdk/releases).
 
+## 0.4.0 (14/11/2026)
+
+Gerado a partir do contrato da API 0.1.0.
+
+- Ingestão de consumo: `usage.ingest` (`POST /api/v1/usage/token-events`) em todas as linguagens, com os modelos `UsageIngestEvent` (e seus `_cost` e `_llm`), `UsageIngestParams` e `UsageIngestReceipt`. Ela usa a credencial de uma fonte de consumo (`pus_test_…` ou `pus_live_…`), e não a chave da API da organização, então o cliente é criado com ela; não leva `Idempotency-Key`, porque o evento se identifica pelo `externalEventId` da fonte e repetir uma chamada é seguro. O erro do SDK traz `record`, a posição, a partir de 1, do evento do lote que a API recusou (0 em qualquer outro erro).
+- Todo erro da API é agora o documento plano `{error, message, fields}` (com `record` na ingestão), o mesmo em toda a `/api/v1`, descrito pelo modelo novo `UsageError`. O cliente continua lendo o formato antigo, com o erro dentro de `data`, quando fala com um servidor mais velho. **Mudança incompatível: os códigos de erro da ingestão mudaram.** `invalid_events`, `invalid_json` e `invalid_body` agora são `invalid_request`; `event_conflict` é `conflict`; `json_required` é `unsupported_media_type`; `ingestion_unavailable` é `unavailable`. Quem comparava o código de um erro da ingestão com os nomes antigos precisa trocar.
+- Contrato: as escritas com corpo respondem 415 `unsupported_media_type` quando o corpo não é JSON, e um 401 traz `WWW-Authenticate: Bearer`. Os campos documentados ficaram mais estritos: o `name` de um cliente não pode ser vazio, a `quantity` de um checkout ou link de checkout é no mínimo 1, e `interval` (obrigatório no preço recorrente) e `external_id` (até 120 caracteres, sem barra) ganharam descrição.
+
 ## 0.3.0 (01/11/2026)
 
 Gerado a partir do contrato da API 0.1.0.

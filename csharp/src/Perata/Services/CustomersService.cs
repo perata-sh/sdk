@@ -127,7 +127,7 @@ public sealed record CustomersCreateParams
     [JsonPropertyName("email")]
     public required string Email { get; init; }
 
-    /// <summary>The <c>external_id</c> to send. Left out of the request when null.</summary>
+    /// <summary>Até 120 caracteres, sem barra (/) nem caracteres de controle. Left out of the request when null.</summary>
     [JsonPropertyName("external_id")]
     public string? ExternalId { get; init; }
 
@@ -160,7 +160,7 @@ public sealed record CustomersUpdateParams
     [JsonPropertyName("email")]
     public string? Email { get; init; }
 
-    /// <summary>Só pode ser definido uma vez. Left out of the request when null.</summary>
+    /// <summary>Só pode ser definido uma vez. Até 120 caracteres, sem barra (/) nem caracteres de controle. Left out of the request when null.</summary>
     [JsonPropertyName("external_id")]
     public string? ExternalId { get; init; }
 
@@ -177,7 +177,7 @@ public sealed record CustomersUpdateExternalParams
     [JsonPropertyName("email")]
     public string? Email { get; init; }
 
-    /// <summary>Só pode ser definido uma vez. Left out of the request when null.</summary>
+    /// <summary>Só pode ser definido uma vez. Até 120 caracteres, sem barra (/) nem caracteres de controle. Left out of the request when null.</summary>
     [JsonPropertyName("external_id")]
     public string? ExternalId { get; init; }
 

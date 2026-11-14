@@ -197,15 +197,17 @@ final class PerataTests: XCTestCase {
         XCTAssertNil(events[0]["parent_id"])
     }
 
-    func testUsageIngestionErrorsAreWrappedInData() async throws {
+    func testUsageIngestionErrorsAreTheFlatErrorDocument() async throws {
         let cases: [(Int, [String: Any], String, Int, String)] = [
             (401, ["error": "invalid_credential"], "invalid_credential", 0, ""),
-            (409, ["error": "event_conflict", "record": 2, "message": "conflict"], "event_conflict", 2, "conflict"),
-            (422, ["error": "invalid_events", "record": 3, "message": "validation failed: customer_id", "fields": ["customer_id": ["unknown"]]], "invalid_events", 3, "validation failed: customer_id"),
-            (400, ["error": "invalid_json"], "invalid_json", 0, ""),
+            (409, ["error": "conflict", "record": 2, "message": "conflict"], "conflict", 2, "conflict"),
+            (422, ["error": "invalid_request", "record": 3, "message": "validation failed: customer_id", "fields": ["customer_id": ["unknown"]]], "invalid_request", 3, "validation failed: customer_id"),
+            (400, ["error": "invalid_request", "message": "malformed JSON"], "invalid_request", 0, "malformed JSON"),
+            (415, ["error": "unsupported_media_type"], "unsupported_media_type", 0, ""),
+            (500, ["error": "unavailable"], "unavailable", 0, ""),
         ]
         for (status, problem, code, record, message) in cases {
-            nonisolated(unsafe) let answer: [String: Any] = ["data": problem]
+            nonisolated(unsafe) let answer: [String: Any] = problem
             let (usage, _) = client { _ in (status, [:], answer) }
             let event = UsageIngestEvent(cachedTokens: "0", customerID: "cus_1", externalEventID: "req-1", inputTokens: "1", occurredAt: "2026-11-13T12:00:00Z", outputTokens: "0")
             do {
@@ -220,6 +222,20 @@ final class PerataTests: XCTestCase {
                     XCTAssertEqual(refused.fields["customer_id"], ["unknown"])
                 }
             }
+        }
+    }
+
+    func testAnErrorWrappedInDataByAnOlderServerIsStillRead() async throws {
+        nonisolated(unsafe) let answer: [String: Any] = ["data": ["error": "event_conflict", "record": 2, "message": "conflict"]]
+        let (usage, _) = client { _ in (409, [:], answer) }
+        let event = UsageIngestEvent(cachedTokens: "0", customerID: "cus_1", externalEventID: "req-1", inputTokens: "1", occurredAt: "2026-11-13T12:00:00Z", outputTokens: "0")
+        do {
+            _ = try await usage.usage.ingest(UsageIngestParams(events: [event]))
+            XCTFail("a 409 was not refused")
+        } catch let refused as PerataError {
+            XCTAssertEqual(refused.status, 409)
+            XCTAssertEqual(refused.code, "event_conflict")
+            XCTAssertEqual(refused.record, 2)
         }
     }
 

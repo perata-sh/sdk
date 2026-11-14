@@ -223,7 +223,7 @@ defmodule PerataTest do
     refute Map.has_key?(sent, "parent_id")
   end
 
-  test "usage ingestion errors are wrapped in data" do
+  test "usage ingestion errors are the flat error document" do
     event = %Perata.UsageIngestEvent{
       customer_id: "cus_1",
       external_event_id: "req-1",
@@ -235,26 +235,48 @@ defmodule PerataTest do
 
     cases = [
       {401, %{"error" => "invalid_credential"}, "invalid_credential", 0, ""},
-      {409, %{"error" => "event_conflict", "record" => 2, "message" => "conflict"},
-       "event_conflict", 2, "conflict"},
+      {409, %{"error" => "conflict", "record" => 2, "message" => "conflict"}, "conflict", 2,
+       "conflict"},
       {422,
        %{
-         "error" => "invalid_events",
+         "error" => "invalid_request",
          "record" => 3,
          "message" => "validation failed: customer_id",
          "fields" => %{"customer_id" => ["unknown"]}
-       }, "invalid_events", 3, "validation failed: customer_id"},
-      {400, %{"error" => "invalid_json"}, "invalid_json", 0, ""}
+       }, "invalid_request", 3, "validation failed: customer_id"},
+      {400, %{"error" => "invalid_request", "message" => "malformed JSON"}, "invalid_request", 0,
+       "malformed JSON"},
+      {415, %{"error" => "unsupported_media_type"}, "unsupported_media_type", 0, ""},
+      {500, %{"error" => "unavailable"}, "unavailable", 0, ""}
     ]
 
     for {status, problem, code, record, message} <- cases do
-      usage = client(fn _request -> {status, %{"data" => problem}, []} end)
+      usage = client(fn _request -> {status, problem, []} end)
 
       assert {:error, %Perata.Error{status: ^status, code: ^code, record: ^record, message: ^message} = error} =
                Perata.Usage.ingest(usage, %{events: [event]})
 
       if status == 422, do: assert(error.fields == %{"customer_id" => ["unknown"]})
     end
+  end
+
+  test "an error wrapped in data by an older server is still read" do
+    event = %Perata.UsageIngestEvent{
+      customer_id: "cus_1",
+      external_event_id: "req-1",
+      input_tokens: "1",
+      output_tokens: "0",
+      cached_tokens: "0",
+      occurred_at: "2026-11-13T12:00:00Z"
+    }
+
+    usage =
+      client(fn _request ->
+        {409, %{"data" => %{"error" => "event_conflict", "record" => 2, "message" => "conflict"}}, []}
+      end)
+
+    assert {:error, %Perata.Error{status: 409, code: "event_conflict", record: 2}} =
+             Perata.Usage.ingest(usage, %{events: [event]})
   end
 
   test "a refusal is a typed error" do

@@ -60,7 +60,7 @@ public final class CustomersService {
             return email;
         }
 
-        /** @return the {@code external_id} sent (null when left out) */
+        /** @return Até 120 caracteres, sem barra (/) nem caracteres de controle. (null when left out) */
         public String getExternalId() {
             return externalId;
         }
@@ -99,7 +99,7 @@ public final class CustomersService {
             }
 
             /**
-             * @param externalId the {@code external_id} to send
+             * @param externalId Até 120 caracteres, sem barra (/) nem caracteres de controle.
              * @return this builder
              */
             public Builder externalId(String externalId) {
@@ -395,7 +395,7 @@ public final class CustomersService {
             return email;
         }
 
-        /** @return Só pode ser definido uma vez. (null when left out) */
+        /** @return Só pode ser definido uma vez. Até 120 caracteres, sem barra (/) nem caracteres de controle. (null when left out) */
         public String getExternalId() {
             return externalId;
         }
@@ -438,7 +438,7 @@ public final class CustomersService {
             }
 
             /**
-             * @param externalId Só pode ser definido uma vez.
+             * @param externalId Só pode ser definido uma vez. Até 120 caracteres, sem barra (/) nem caracteres de controle.
              * @return this builder
              */
             public Builder externalId(String externalId) {
@@ -513,7 +513,7 @@ public final class CustomersService {
             return email;
         }
 
-        /** @return Só pode ser definido uma vez. (null when left out) */
+        /** @return Só pode ser definido uma vez. Até 120 caracteres, sem barra (/) nem caracteres de controle. (null when left out) */
         public String getExternalId() {
             return externalId;
         }
@@ -556,7 +556,7 @@ public final class CustomersService {
             }
 
             /**
-             * @param externalId Só pode ser definido uma vez.
+             * @param externalId Só pode ser definido uma vez. Até 120 caracteres, sem barra (/) nem caracteres de controle.
              * @return this builder
              */
             public Builder externalId(String externalId) {

@@ -86,7 +86,7 @@ func TestUsageIngestionCarriesTheSourceCredentialAndItsEvents(t *testing.T) {
 	}
 }
 
-func TestUsageIngestionErrorsAreWrappedInData(t *testing.T) {
+func TestUsageIngestionErrorsAreTheFlatErrorDocument(t *testing.T) {
 	for _, tc := range []struct {
 		status          int
 		body, code      string
@@ -95,10 +95,12 @@ func TestUsageIngestionErrorsAreWrappedInData(t *testing.T) {
 		fields          string
 		retryAfterAsked bool
 	}{
-		{status: 401, body: `{"data":{"error":"invalid_credential"}}`, code: "invalid_credential"},
-		{status: 409, body: `{"data":{"error":"event_conflict","record":2,"message":"conflict"}}`, code: "event_conflict", record: 2, message: "conflict"},
-		{status: 422, body: `{"data":{"error":"invalid_events","record":3,"message":"validation failed: customer_id","fields":{"customer_id":["unknown"]}}}`, code: "invalid_events", record: 3, message: "validation failed: customer_id", fields: "[unknown]"},
-		{status: 400, body: `{"data":{"error":"invalid_json"}}`, code: "invalid_json"},
+		{status: 401, body: `{"error":"invalid_credential"}`, code: "invalid_credential"},
+		{status: 409, body: `{"error":"conflict","record":2,"message":"conflict"}`, code: "conflict", record: 2, message: "conflict"},
+		{status: 422, body: `{"error":"invalid_request","record":3,"message":"validation failed: customer_id","fields":{"customer_id":["unknown"]}}`, code: "invalid_request", record: 3, message: "validation failed: customer_id", fields: "[unknown]"},
+		{status: 400, body: `{"error":"invalid_request","message":"malformed JSON"}`, code: "invalid_request", message: "malformed JSON"},
+		{status: 415, body: `{"error":"unsupported_media_type"}`, code: "unsupported_media_type"},
+		{status: 500, body: `{"error":"unavailable"}`, code: "unavailable"},
 	} {
 		srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			w.Header().Set("Content-Type", "application/json")
@@ -116,6 +118,22 @@ func TestUsageIngestionErrorsAreWrappedInData(t *testing.T) {
 		if tc.fields != "" && fmt.Sprint(apiErr.Fields["customer_id"]) != tc.fields {
 			t.Fatalf("%d: fields %v", tc.status, apiErr.Fields)
 		}
+	}
+}
+
+func TestAnErrorWrappedInDataByAnOlderServerIsStillRead(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(409)
+		fmt.Fprint(w, `{"data":{"error":"event_conflict","record":2,"message":"conflict"}}`)
+	}))
+	defer srv.Close()
+	usage := New("pus_test_source", WithBaseURL(srv.URL))
+	event := UsageIngestEvent{CustomerID: "cus_1", ExternalEventID: "req-1", InputTokens: "1", OutputTokens: "0", CachedTokens: "0", OccurredAt: "2026-11-13T12:00:00Z"}
+	_, err := usage.Usage.Ingest(context.Background(), UsageIngestParams{Events: []UsageIngestEvent{event}})
+	var apiErr *Error
+	if !errors.As(err, &apiErr) || apiErr.StatusCode != 409 || apiErr.Code != "event_conflict" || apiErr.Record != 2 || apiErr.Message != "conflict" {
+		t.Fatalf("error %#v", err)
 	}
 }
 

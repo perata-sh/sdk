@@ -310,7 +310,7 @@ fn usage_ingestion_carries_the_source_credential_and_its_events() {
 }
 
 #[test]
-fn usage_ingestion_errors_are_wrapped_in_data() {
+fn usage_ingestion_errors_are_the_flat_error_document() {
     let cases = [
         (
             401,
@@ -321,29 +321,42 @@ fn usage_ingestion_errors_are_wrapped_in_data() {
         ),
         (
             409,
-            serde_json::json!({"error": "event_conflict", "record": 2, "message": "conflict"}),
-            "event_conflict",
+            serde_json::json!({"error": "conflict", "record": 2, "message": "conflict"}),
+            "conflict",
             2,
             "conflict",
         ),
         (
             422,
-            serde_json::json!({"error": "invalid_events", "record": 3, "message": "validation failed: customer_id", "fields": {"customer_id": ["unknown"]}}),
-            "invalid_events",
+            serde_json::json!({"error": "invalid_request", "record": 3, "message": "validation failed: customer_id", "fields": {"customer_id": ["unknown"]}}),
+            "invalid_request",
             3,
             "validation failed: customer_id",
         ),
         (
             400,
-            serde_json::json!({"error": "invalid_json"}),
-            "invalid_json",
+            serde_json::json!({"error": "invalid_request", "message": "malformed JSON"}),
+            "invalid_request",
+            0,
+            "malformed JSON",
+        ),
+        (
+            415,
+            serde_json::json!({"error": "unsupported_media_type"}),
+            "unsupported_media_type",
+            0,
+            "",
+        ),
+        (
+            500,
+            serde_json::json!({"error": "unavailable"}),
+            "unavailable",
             0,
             "",
         ),
     ];
     for (status, problem, code, record, message) in cases {
-        let (usage, _) =
-            client(move |_| json(status, serde_json::json!({"data": problem.clone()})));
+        let (usage, _) = client(move |_| json(status, problem.clone()));
         let event = UsageIngestEvent::new("0", "cus_1", "req-1", "1", "2026-11-13T12:00:00Z", "0");
         let Err(Error::Api(refused)) = usage.usage().ingest(&UsageIngestParams::new(vec![event]))
         else {
@@ -357,6 +370,24 @@ fn usage_ingestion_errors_are_wrapped_in_data() {
             assert_eq!(refused.fields["customer_id"], ["unknown"]);
         }
     }
+}
+
+#[test]
+fn an_error_wrapped_in_data_by_an_older_server_is_still_read() {
+    let (usage, _) = client(|_| {
+        json(
+            409,
+            serde_json::json!({"data": {"error": "event_conflict", "record": 2, "message": "conflict"}}),
+        )
+    });
+    let event = UsageIngestEvent::new("0", "cus_1", "req-1", "1", "2026-11-13T12:00:00Z", "0");
+    let Err(Error::Api(refused)) = usage.usage().ingest(&UsageIngestParams::new(vec![event]))
+    else {
+        panic!("a 409 was not refused");
+    };
+    assert_eq!(refused.status, 409);
+    assert_eq!(refused.code, "event_conflict");
+    assert_eq!(refused.record, 2);
 }
 
 #[test]

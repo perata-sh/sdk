@@ -426,6 +426,18 @@ export interface Subscription {
   trial_start: string | null;
 }
 
+/** UsageError is a resource of Peráta's API. */
+export interface UsageError {
+  /** Código do erro: invalid_credential, invalid_request, conflict, unsupported_media_type, body_too_large, rate_limited ou unavailable. */
+  error: string;
+  /** Em invalid_request, o que há de errado em cada campo do evento. */
+  fields?: Record<string, string[]>;
+  /** O que explica a recusa, em inglês. */
+  message?: string;
+  /** Posição, a partir de 1, do evento do lote que causou a recusa (invalid_request e conflict); o lote inteiro foi revertido. */
+  record?: number;
+}
+
 /** WebhookBenefit is a resource of Peráta's API. */
 export interface WebhookBenefit {
   created_at: string;
@@ -639,6 +651,7 @@ export interface CustomerSessionsCreateParams {
 /** The body of customers:create. */
 export interface CustomersCreateParams {
   email: string;
+  /** Até 120 caracteres, sem barra (/) nem caracteres de controle. */
   external_id?: string;
   name: string;
 }
@@ -646,7 +659,7 @@ export interface CustomersCreateParams {
 /** The body of customers:update. */
 export interface CustomersUpdateParams {
   email?: string;
-  /** Só pode ser definido uma vez. */
+  /** Só pode ser definido uma vez. Até 120 caracteres, sem barra (/) nem caracteres de controle. */
   external_id?: string;
   name?: string;
 }
@@ -696,7 +709,7 @@ export interface DiscountsUpdateParams {
 /** The body of customers:update_external. */
 export interface CustomersUpdateExternalParams {
   email?: string;
-  /** Só pode ser definido uma vez. */
+  /** Só pode ser definido uma vez. Até 120 caracteres, sem barra (/) nem caracteres de controle. */
   external_id?: string;
   name?: string;
 }
@@ -704,6 +717,7 @@ export interface CustomersUpdateExternalParams {
 /** The body of prices:create. */
 export interface PricesCreateParams {
   amount_cents: number;
+  /** Obrigatório no preço recorrente; o preço one_time não tem intervalo. */
   interval?: "month" | "year";
   product_id: string;
   type: "one_time" | "recurring";

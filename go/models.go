@@ -428,6 +428,18 @@ type Subscription struct {
 	TrialStart *string        `json:"trial_start"`
 }
 
+// UsageError is a resource of Peráta's API.
+type UsageError struct {
+	// Código do erro: invalid_credential, invalid_request, conflict, unsupported_media_type, body_too_large, rate_limited ou unavailable.
+	Error string `json:"error"`
+	// Em invalid_request, o que há de errado em cada campo do evento.
+	Fields map[string][]string `json:"fields,omitempty"`
+	// O que explica a recusa, em inglês.
+	Message string `json:"message,omitempty"`
+	// Posição, a partir de 1, do evento do lote que causou a recusa (invalid_request e conflict); o lote inteiro foi revertido.
+	Record int64 `json:"record,omitempty"`
+}
+
 // WebhookBenefit is a resource of Peráta's API.
 type WebhookBenefit struct {
 	CreatedAt   string `json:"created_at"`
@@ -640,7 +652,8 @@ type CustomerSessionsCreateParams struct {
 
 // The body of customers:create.
 type CustomersCreateParams struct {
-	Email      string  `json:"email"`
+	Email string `json:"email"`
+	// Até 120 caracteres, sem barra (/) nem caracteres de controle.
 	ExternalID *string `json:"external_id,omitempty"`
 	Name       string  `json:"name"`
 }
@@ -648,7 +661,7 @@ type CustomersCreateParams struct {
 // The body of customers:update.
 type CustomersUpdateParams struct {
 	Email *string `json:"email,omitempty"`
-	// Só pode ser definido uma vez.
+	// Só pode ser definido uma vez. Até 120 caracteres, sem barra (/) nem caracteres de controle.
 	ExternalID *string `json:"external_id,omitempty"`
 	Name       *string `json:"name,omitempty"`
 }
@@ -698,17 +711,18 @@ type DiscountsUpdateParams struct {
 // The body of customers:update_external.
 type CustomersUpdateExternalParams struct {
 	Email *string `json:"email,omitempty"`
-	// Só pode ser definido uma vez.
+	// Só pode ser definido uma vez. Até 120 caracteres, sem barra (/) nem caracteres de controle.
 	ExternalID *string `json:"external_id,omitempty"`
 	Name       *string `json:"name,omitempty"`
 }
 
 // The body of prices:create.
 type PricesCreateParams struct {
-	AmountCents int64   `json:"amount_cents"`
-	Interval    *string `json:"interval,omitempty"`
-	ProductID   string  `json:"product_id"`
-	Type        string  `json:"type"`
+	AmountCents int64 `json:"amount_cents"`
+	// Obrigatório no preço recorrente; o preço one_time não tem intervalo.
+	Interval  *string `json:"interval,omitempty"`
+	ProductID string  `json:"product_id"`
+	Type      string  `json:"type"`
 }
 
 // The body of products:create.
