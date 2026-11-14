@@ -10,7 +10,7 @@ export interface CardFieldProps {
   /** The session's `client_secret`, created on your server. A new one remounts the field. */
   clientSecret: string;
   appearance?: Appearance;
-  onReady?: () => void;
+  onReady?: (state: ChangeEvent) => void;
   onChange?: (event: ChangeEvent) => void;
   onError?: (error: PerataErrorInfo) => void;
   className?: string;
@@ -25,6 +25,10 @@ export interface CardFieldHandle {
   confirmPayment(params?: Omit<ConfirmPaymentParams, "clientSecret" | "card">): Promise<PaymentResult>;
   /** The ways this payment can be split. */
   getInstallments(): Promise<InstallmentOption[]>;
+  /** Puts the cursor in the card number. */
+  focus(): void;
+  /** What the buyer may see of the card so far; `null` until the field is drawn. */
+  getState(): ChangeEvent | null;
 }
 
 function CardFieldImpl(props: CardFieldProps, ref: Ref<CardFieldHandle>): ReactElement {
@@ -44,13 +48,13 @@ function CardFieldImpl(props: CardFieldProps, ref: Ref<CardFieldHandle>): ReactE
       ...(latest.current.appearance !== undefined && { appearance: latest.current.appearance }),
       onChange: (event) => latest.current.onChange?.(event),
     });
-    created.on("ready", () => latest.current.onReady?.());
+    created.on("ready", (state) => latest.current.onReady?.(state));
     created.on("error", (error) => latest.current.onError?.(error));
     created.mount(element);
     component.current = created;
     applied.current = JSON.stringify(latest.current.appearance ?? null);
     return () => {
-      created.unmount();
+      created.destroy();
       component.current = null;
     };
   }, [perata, clientSecret, latest]);
@@ -76,6 +80,12 @@ function CardFieldImpl(props: CardFieldProps, ref: Ref<CardFieldHandle>): ReactE
       getInstallments() {
         if (!perata) return Promise.reject(new Error("perata: Peráta.js is not loaded yet"));
         return perata.getInstallments({ clientSecret });
+      },
+      focus() {
+        component.current?.focus();
+      },
+      getState() {
+        return component.current ? component.current.getState() : null;
       },
     }),
     [perata, clientSecret],

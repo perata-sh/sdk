@@ -7,9 +7,9 @@ import type { PerataInstance } from "@perata-sh/js";
 import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { createElement as h, createRef, StrictMode } from "react";
 
-import { CardField, CheckoutButton, PaymentComponent, PerataProvider, useConfirmPayment, usePerata, usePerataStatus } from "../src/index.ts";
-import type { CardFieldHandle } from "../src/index.ts";
-import { OPTIONS, PAID, stub } from "./stub.ts";
+import { CardField, CheckoutButton, PaymentComponent, PerataProvider, useConfirmPayment, usePaymentStatus, usePerata, usePerataStatus } from "../src/index.ts";
+import type { CardFieldHandle, PaymentComponentHandle, PaymentStatusState } from "../src/index.ts";
+import { OPTIONS, PAID, STATE, stub } from "./stub.ts";
 
 afterEach(() => {
   cleanup();
@@ -75,7 +75,7 @@ test("PaymentComponent draws only once Peráta.js is ready, and takes its option
   const events: string[] = [];
   const appearance = { theme: "dark" as const };
   const view = render(
-    h(PerataProvider, { instance: Promise.resolve<PerataInstance | null>(state.perata) }, h(PaymentComponent, { clientSecret: "cs_1", appearance, locale: "en", className: "slot", onReady: () => events.push("ready"), onChange: (e) => events.push(`change:${e.complete}`), onSuccess: (r) => events.push(`success:${r.orderId}`), onError: (e) => events.push(`error:${e.code}`) })),
+    h(PerataProvider, { instance: Promise.resolve<PerataInstance | null>(state.perata) }, h(PaymentComponent, { clientSecret: "cs_1", appearance, locale: "en", className: "slot", onReady: (state) => events.push(`ready:${state.method}`), onChange: (e) => events.push(`change:${e.complete}`), onSuccess: (r) => events.push(`success:${r.orderId}`), onError: (e) => events.push(`error:${e.code}`) })),
   );
   assert.equal(state.payments.length, 0, "nothing before the script is there");
   await waitFor(() => assert.equal(state.payments.length, 1));
@@ -86,11 +86,11 @@ test("PaymentComponent draws only once Peráta.js is ready, and takes its option
   assert.equal(payment?.options.locale, "en");
   assert.equal(payment?.mounted, view.container.querySelector("div.slot"));
 
-  payment?.options.onReady?.();
-  payment?.options.onChange?.({ complete: true });
+  payment?.options.onReady?.(STATE);
+  payment?.options.onChange?.({ ...STATE, complete: true, empty: false, valid: true });
   payment?.options.onSuccess?.(PAID);
   payment?.options.onError?.({ code: "card_declined", message: "Recusado" });
-  assert.deepEqual(events, ["ready", "change:true", "success:ord_1", "error:card_declined"]);
+  assert.deepEqual(events, ["ready:card", "change:true", "success:ord_1", "error:card_declined"]);
 });
 
 test("PaymentComponent calls the latest callback without remounting", async () => {
@@ -131,6 +131,18 @@ test("PaymentComponent removes the component when it leaves the page", async () 
   await waitFor(() => assert.equal(state.payments.length, 1));
   view.unmount();
   assert.equal(state.payments[0]?.unmounts, 1);
+  assert.equal(state.payments[0]?.destroys, 1, "destroyed, so its listeners are forgotten too");
+});
+
+test("PaymentComponent's ref focuses it and reads its state", async () => {
+  const state = stub();
+  const handle = createRef<PaymentComponentHandle>();
+  render(h(PerataProvider, { instance: state.perata }, h(PaymentComponent, { ref: handle, clientSecret: "cs_1" })));
+  await waitFor(() => assert.equal(state.payments.length, 1));
+  handle.current?.focus();
+  assert.equal(state.payments[0]?.focuses, 1);
+  assert.equal(handle.current?.component, state.payments[0]);
+  assert.deepEqual(handle.current?.getState(), STATE);
 });
 
 test("in StrictMode the double effect leaves exactly one component mounted", async () => {
@@ -152,8 +164,8 @@ test("CardField confirms through its ref, with the card it drew", async () => {
   await waitFor(() => assert.equal(state.cards.length, 1));
   const [card] = state.cards;
 
-  card?.options.onChange?.({ complete: true, brand: "visa", last4: "4242" });
-  card?.emit("ready");
+  card?.options.onChange?.({ ...STATE, complete: true, brand: "visa", last4: "4242" });
+  card?.emit("ready", STATE);
   card?.emit("error", { code: "invalid_number", message: "x" });
   assert.deepEqual(changes, ["visa:4242"]);
   assert.deepEqual(events, ["ready", "invalid_number"]);
@@ -165,6 +177,10 @@ test("CardField confirms through its ref, with the card it drew", async () => {
 
   assert.deepEqual(await handle.current?.getInstallments(), OPTIONS);
   assert.deepEqual(state.installmentsAsked, ["cs_9"]);
+
+  handle.current?.focus();
+  assert.equal(card?.focuses, 1);
+  assert.deepEqual(handle.current?.getState(), STATE);
 });
 
 test("CardField's ref rejects before the field exists", async () => {
@@ -197,7 +213,7 @@ test("CheckoutButton in modal mode opens the checkout over the page", async () =
   const [modal] = state.modals;
   assert.equal(modal?.url, "https://perata.sh/pagamento/pcl_1");
   assert.equal(modal?.theme, "dark");
-  modal?.onSuccess?.({ successURL: "https://seller.test/ok" });
+  modal?.onSuccess?.({ successURL: "https://seller.test/ok", redirect: false });
   modal?.onClose?.();
   assert.deepEqual(seen, ["success", "close"]);
 });
@@ -207,6 +223,23 @@ test("CheckoutButton respects an onClick that prevents the default", async () =>
   render(h(PerataProvider, { instance: state.perata }, h(CheckoutButton, { url: "https://perata.sh/pagamento/pcl_1", onClick: (e) => e.preventDefault() }, "Comprar")));
   fireEvent.click(screen.getByRole("button", { name: "Comprar" }));
   assert.equal(state.redirects.length, 0);
+});
+
+test("CheckoutButton reports a checkout that cannot be opened to onError", async () => {
+  const state = stub();
+  const problems: string[] = [];
+  const refusal = Object.assign(new Error("Perata: o endereço não é um link de checkout da Peráta"), { code: "invalid_checkout_url" });
+  state.perata.openCheckout = () => Promise.reject(refusal);
+  state.perata.redirectToCheckout = () => {
+    throw refusal;
+  };
+  render(
+    h(PerataProvider, { instance: state.perata }, h(CheckoutButton, { url: "https://evil.test/", mode: "modal", onError: (error) => problems.push(`modal:${error.message}`) }, "Modal"), h(CheckoutButton, { url: "https://evil.test/", onError: (error) => problems.push(`redirect:${error.message}`) }, "Redirecionar")),
+  );
+  fireEvent.click(screen.getByRole("button", { name: "Modal" }));
+  fireEvent.click(screen.getByRole("button", { name: "Redirecionar" }));
+  await waitFor(() => assert.equal(problems.length, 2));
+  assert.deepEqual(problems.sort(), ["modal:Perata: o endereço não é um link de checkout da Peráta", "redirect:Perata: o endereço não é um link de checkout da Peráta"]);
 });
 
 test("useConfirmPayment confirms Pix without a card and rejects while loading", async () => {
@@ -220,8 +253,96 @@ test("useConfirmPayment confirms Pix without a card and rejects while loading", 
   assert.deepEqual(await api?.confirmPayment({ clientSecret: "cs_1", method: "pix" }), PAID);
   assert.deepEqual(state.confirmed, [{ clientSecret: "cs_1", method: "pix" }]);
   assert.deepEqual(await api?.getInstallments({ clientSecret: "cs_1" }), OPTIONS);
+  assert.deepEqual(await api?.getStatus({ statusKey: "sk_12345678" }), PAID);
+  assert.deepEqual(state.statusAsked, ["sk_12345678"]);
   cleanup();
 
   render(h(PerataProvider, { scriptUrl: "http://localhost:9003/v1/perata.js", timeoutMs: 20 }, h(Grab)));
   await assert.rejects(api!.confirmPayment({ clientSecret: "cs_1", method: "pix" }), /not loaded yet/);
+  await assert.rejects(api!.getStatus({ statusKey: "sk_12345678" }), /not loaded yet/);
+});
+
+// A Pix: confirmed while it waits, succeeded when it is paid.
+const WAITING = { status: "confirmed", orderId: "ord_1", paymentId: "pay_1", statusKey: "sk_12345678" } as const;
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+function Status(props: { statusKey: string | null; intervalMs?: number; enabled?: boolean; out: { current: PaymentStatusState | undefined }; onResult?: (status: string) => void }) {
+  const state = usePaymentStatus({ statusKey: props.statusKey, ...(props.intervalMs !== undefined && { intervalMs: props.intervalMs }), ...(props.enabled !== undefined && { enabled: props.enabled }), ...(props.onResult && { onResult: (r) => props.onResult?.(r.status) }) });
+  props.out.current = state;
+  return h("p", { "data-testid": "status" }, `${state.result?.status ?? "none"}:${state.done}:${state.error?.message ?? ""}`);
+}
+
+test("usePaymentStatus reads the status once without an interval", async () => {
+  const state = stub();
+  state.statuses = [WAITING];
+  const out: { current: PaymentStatusState | undefined } = { current: undefined };
+  render(h(PerataProvider, { instance: state.perata }, h(Status, { statusKey: "sk_12345678", out })));
+  await waitFor(() => assert.equal(screen.getByTestId("status").textContent, "confirmed:false:"));
+  await sleep(40);
+  assert.deepEqual(state.statusAsked, ["sk_12345678"], "asked once");
+});
+
+test("usePaymentStatus polls a Pix until it is paid, then stops", async () => {
+  const state = stub();
+  state.statuses = [WAITING, WAITING, PAID];
+  const seen: string[] = [];
+  const out: { current: PaymentStatusState | undefined } = { current: undefined };
+  render(h(PerataProvider, { instance: state.perata }, h(Status, { statusKey: "sk_12345678", intervalMs: 10, out, onResult: (status) => seen.push(status) })));
+  await waitFor(() => assert.equal(screen.getByTestId("status").textContent, "succeeded:true:"));
+  await sleep(60);
+  assert.equal(state.statusAsked.length, 3, "no ask after the final status");
+  assert.deepEqual(seen, ["confirmed", "confirmed", "succeeded"]);
+});
+
+test("usePaymentStatus stops on a failed or expired status too", async () => {
+  const state = stub();
+  state.statuses = [{ ...WAITING, status: "expired", error: { code: "checkout_expired", message: "expirou" } }];
+  const out: { current: PaymentStatusState | undefined } = { current: undefined };
+  render(h(PerataProvider, { instance: state.perata }, h(Status, { statusKey: "sk_12345678", intervalMs: 10, out })));
+  await waitFor(() => assert.equal(screen.getByTestId("status").textContent, "expired:true:"));
+  await sleep(40);
+  assert.equal(state.statusAsked.length, 1);
+});
+
+test("usePaymentStatus asks nothing without a key, while disabled or before the script is ready", async () => {
+  const state = stub();
+  const out: { current: PaymentStatusState | undefined } = { current: undefined };
+  render(h(PerataProvider, { instance: state.perata }, h(Status, { statusKey: null, intervalMs: 10, out })));
+  cleanup();
+  render(h(PerataProvider, { instance: state.perata }, h(Status, { statusKey: "sk_12345678", intervalMs: 10, enabled: false, out })));
+  cleanup();
+  render(h(PerataProvider, { scriptUrl: "http://localhost:9004/v1/perata.js", timeoutMs: 20 }, h(Status, { statusKey: "sk_12345678", intervalMs: 10, out })));
+  await sleep(60);
+  assert.deepEqual(state.statusAsked, []);
+});
+
+test("usePaymentStatus keeps polling through a network error but stops on a refusal of the key", async () => {
+  const state = stub();
+  state.statuses = [Object.assign(new Error("offline"), { code: "network" }), PAID];
+  const out: { current: PaymentStatusState | undefined } = { current: undefined };
+  render(h(PerataProvider, { instance: state.perata }, h(Status, { statusKey: "sk_12345678", intervalMs: 10, out })));
+  await waitFor(() => assert.equal(screen.getByTestId("status").textContent, "succeeded:true:"), { timeout: 2000 });
+  assert.equal(state.statusAsked.length, 2);
+  cleanup();
+
+  const refused = stub();
+  refused.statuses = [Object.assign(new Error("Não foi possível ler o pagamento."), { code: "http_404" })];
+  render(h(PerataProvider, { instance: refused.perata }, h(Status, { statusKey: "sk_12345678", intervalMs: 10, out })));
+  await waitFor(() => assert.equal(screen.getByTestId("status").textContent, "none:false:Não foi possível ler o pagamento."));
+  await sleep(50);
+  assert.equal(refused.statusAsked.length, 1, "a 404 is not asked again");
+});
+
+test("usePaymentStatus stops polling when the component leaves, and refresh asks at once", async () => {
+  const state = stub();
+  state.statuses = [WAITING];
+  const out: { current: PaymentStatusState | undefined } = { current: undefined };
+  const view = render(h(PerataProvider, { instance: state.perata }, h(Status, { statusKey: "sk_12345678", intervalMs: 10, out })));
+  await waitFor(() => assert.ok(state.statusAsked.length >= 2));
+  const refreshed = await out.current?.refresh();
+  assert.equal(refreshed?.status, "confirmed");
+  view.unmount();
+  const asked = state.statusAsked.length;
+  await sleep(60);
+  assert.equal(state.statusAsked.length, asked, "no ask after unmount");
 });

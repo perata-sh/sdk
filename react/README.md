@@ -51,7 +51,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
 | `timeoutMs` | Quanto esperar o script; 15 000 por padrão. |
 | `instance` | Uma instância (ou promessa de `loadPerata()`) que você já tem; nada é carregado. Útil em testes. |
 
-Hooks: `usePerata()` devolve a instância, ou `null` enquanto carrega e no servidor; `usePerataStatus()` devolve `{ status: "loading" | "ready" | "error", error }`; `useConfirmPayment()` devolve `confirmPayment` e `getInstallments` já ligados à instância, para um formulário seu (Pix e boleto não têm campo de cartão).
+Hooks: `usePerata()` devolve a instância, ou `null` enquanto carrega e no servidor; `usePerataStatus()` devolve `{ status: "loading" | "ready" | "error", error }` (o estado do *script*); `useConfirmPayment()` devolve `confirmPayment`, `getInstallments` e `getStatus` já ligados à instância, para um formulário seu; `usePaymentStatus()` acompanha um pagamento (veja "Pix e boleto").
 
 ## Os quatro modos
 
@@ -66,7 +66,7 @@ import { CheckoutButton } from "@perata-sh/react";
   onClose={() => console.log("fechou")}>Comprar</CheckoutButton>      {/* modal */}
 ```
 
-Aceita as propriedades de um `<button>` (`className`, `onClick`…); `mode` é `"redirect"` por padrão.
+Aceita as propriedades de um `<button>` (`className`, `onClick`…); `mode` é `"redirect"` por padrão. `onError` recebe o erro quando o `url` não é um link de checkout da Peráta (`invalid_checkout_url`) ou o modal não abre; sem `onError`, o erro sobe. No modal, `onSuccess` pode devolver `false` para você mesmo levar o comprador ao `success_url`.
 
 **3. Componentes prontos**: `PaymentComponent` desenha cartão, Pix e boleto e confirma sozinho.
 
@@ -82,7 +82,7 @@ import { PaymentComponent } from "@perata-sh/react";
 />
 ```
 
-Um `clientSecret` novo remonta o componente; mudar `appearance` só atualiza o visual, sem perder o que o comprador digitou. As funções `onReady`, `onChange`, `onSuccess` e `onError` podem mudar a cada renderização sem remontar nada.
+Um `clientSecret` novo remonta o componente; mudar `appearance` só atualiza o visual, sem perder o que o comprador digitou. As funções `onReady`, `onChange`, `onSuccess` e `onError` podem mudar a cada renderização sem remontar nada. `appearance` é `{ theme: "light" | "dark" | "auto", variables: { colorPrimary: "#rrggbb", borderRadius: "8", fontFamily: "display" | "system", fontSize: "sm" | "md" | "lg" } }`; `locale` por enquanto só aceita `"pt-BR"`. Um `ref` (`PaymentComponentHandle`) dá `focus()`, `getState()` e `component`.
 
 **4. Transparente**: `CardField` desenha só os campos do cartão, num quadro seguro da Peráta (os números não passam pela sua página). O resto do formulário é seu, e você confirma com um `ref`.
 
@@ -95,11 +95,12 @@ function Pagamento({ clientSecret }: { clientSecret: string }) {
   const [completo, setCompleto] = useState(false);
 
   async function pagar() {
-    const parcelas = await card.current!.getInstallments(); // [{ installments: 1, … }, …]
+    const parcelas = await card.current!.getInstallments(); // [{ installments, installmentAmountCents, totalCents, interestCents, label }, …]
     const result = await card.current!.confirmPayment({
       installments: parcelas.at(-1)?.installments ?? 1,
-      customer: { name: "Maria Souza", email: "maria@exemplo.com" },
+      customer: { name: "Maria Souza", email: "maria@exemplo.com", document: "529.982.247-25" },
     });
+    if (result.redirectUrl) return window.location.assign(result.redirectUrl); // desafio 3-D Secure
     if (result.error) return alert(result.error.message); // recusa não é exceção
   }
 
@@ -112,13 +113,44 @@ function Pagamento({ clientSecret }: { clientSecret: string }) {
 }
 ```
 
-O `ref` entrega `confirmPayment(params?)`, `getInstallments()` e `component` (o componente de cartão, para quem chama `perata.confirmPayment({ card })` direto). Para Pix e boleto, use `useConfirmPayment()`:
+O `ref` entrega `confirmPayment(params?)`, `getInstallments()`, `focus()`, `getState()` e `component` (o componente de cartão, para quem chama `perata.confirmPayment({ card })` direto). O `customer` aceita `name`, `email`, `document` (CPF ou CNPJ) e `address`; não há telefone.
+
+## Pix e boleto
+
+Não há campo de cartão: confirme com `useConfirmPayment()`. O resultado traz o `pix` (ou o `boleto`) e um `statusKey`; o `clientSecret` já está gasto, então é com o `statusKey` que se acompanha o pagamento. `usePaymentStatus` pergunta a cada `intervalMs` e para sozinho quando o estado é final (`succeeded`, `failed` ou `expired`) ou quando o componente sai da página.
 
 ```tsx
-const { confirmPayment } = useConfirmPayment();
-const result = await confirmPayment({ clientSecret, method: "pix" });
-// result.pix: { qrCode, qrCodeImage, copyPaste, expiresAt }
+import { useConfirmPayment, usePaymentStatus } from "@perata-sh/react";
+import type { PaymentResult } from "@perata-sh/js";
+import { useState } from "react";
+
+function PagarComPix({ clientSecret }: { clientSecret: string }) {
+  const { confirmPayment } = useConfirmPayment();
+  const [gerado, setGerado] = useState<PaymentResult | null>(null);
+  const { result } = usePaymentStatus({ statusKey: gerado?.statusKey, intervalMs: 3000 });
+
+  async function gerar() {
+    const pix = await confirmPayment({ clientSecret, method: "pix", customer: { name: "Maria Souza", email: "maria@exemplo.com", document: "529.982.247-25" } });
+    if (pix.error) return alert(pix.error.message);
+    setGerado(pix);
+  }
+
+  if (result?.status === "succeeded") return <p>Pago! Pedido {result.orderId}.</p>;
+  if (result?.status === "expired" || result?.status === "failed") return <p>{result.error?.message}</p>;
+  if (gerado?.pix) {
+    return (
+      <div>
+        <img src={gerado.pix.qrCodeImage} alt="QR code do Pix" />
+        <input readOnly value={gerado.pix.copyPaste} />
+        <p>Vale até {new Date(gerado.pix.expiresAt).toLocaleString("pt-BR")}. Aguardando o pagamento…</p>
+      </div>
+    );
+  }
+  return <button onClick={() => void gerar()}>Pagar com Pix</button>;
+}
 ```
+
+`usePaymentStatus({ statusKey, intervalMs?, enabled?, onResult? })` devolve `{ result, error, loading, done, refresh }`. Sem `intervalMs` ele pergunta uma vez (e de novo em `refresh()`); sem `statusKey` ou com `enabled: false` não pergunta nada. Um erro de rede não interrompe a espera; um `invalid_status_key` ou `http_4xx` (um 404, por exemplo) interrompe. Com boleto é igual, usando `gerado.boleto` (`digitableLine`, `barcode`, `pdfUrl`, `dueDate`).
 
 ## Next.js e SSR
 

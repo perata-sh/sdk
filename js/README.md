@@ -50,7 +50,7 @@ O `client_secret` identifica só aquela sessão e pode ir ao navegador. Ele é u
 ### No navegador
 
 ```ts
-import { loadPerata } from "@perata-sh/js";
+import { isFinalStatus, loadPerata } from "@perata-sh/js";
 
 const perata = await loadPerata(); // null no servidor
 if (!perata) throw new Error("só no navegador");
@@ -67,44 +67,51 @@ perata.redirectToCheckout({ url });
 **2. Modal**
 
 ```ts
-perata.openCheckout({
+const modal = await perata.openCheckout({ // resolve quando o checkout aparece
   url,
   theme: "dark", // "light" | "dark"
-  onSuccess: ({ successURL }) => console.log("pago", successURL),
+  onSuccess: ({ successURL, redirect }) => console.log("pago", successURL),
   onClose: () => console.log("o comprador fechou"),
 });
+// modal.close() tira o checkout da página
 ```
+
+Depois do pagamento a Peráta leva o comprador ao `success_url` do checkout. Para fazer isso você mesmo, devolva `false` em `onSuccess`. Um `url` que não seja um link de checkout da Peráta rejeita a promessa com `invalid_checkout_url` (e `redirectToCheckout` lança o mesmo erro).
 
 **3. Componentes prontos**
 
 ```ts
 const payment = perata.components.payment({
   clientSecret,
-  appearance: { theme: "light" },
-  locale: "pt-BR",
+  appearance: { theme: "light", variables: { colorPrimary: "#0a7d5a", borderRadius: "8" } },
+  locale: "pt-BR", // por enquanto só pt-BR
   onSuccess: (result) => {
-    // result.status, result.orderId, result.paymentId
+    // result.status, result.orderId, result.paymentId, result.statusKey
     // Pix e boleto: result.pix.copyPaste, result.boleto.digitableLine…
   },
   onError: (error) => console.error(error.code, error.message),
 });
 payment.mount("#pagamento"); // um seletor ou um elemento
 // payment.update({ appearance: { theme: "dark" } });
-// payment.unmount();
+// payment.focus();
+// payment.destroy(); // tira da página e esquece os ouvintes (unmount() só tira)
 ```
+
+`appearance` aceita `theme` (`"light"`, `"dark"` ou `"auto"`) e quatro variáveis: `colorPrimary` (`#rrggbb`), `borderRadius` (de 0 a 24, em texto: `"8"`), `fontFamily` (`"display"` ou `"system"`) e `fontSize` (`"sm"`, `"md"` ou `"lg"`). Também vale escrever `primaryColor`, `borderRadius`, `fontFamily` e `size` soltos, sem `variables`. Valor desconhecido é ignorado.
 
 **4. Transparente**: o número do cartão é digitado em um `iframe` da Peráta e nunca passa pela sua página; o resto do formulário é seu.
 
 ```ts
 const card = perata.components.card({
   clientSecret,
-  onChange: ({ complete, brand, last4, error }) => {
-    botao.disabled = !complete;
+  onChange: ({ complete, valid, empty, brand, last4, error, method }) => {
+    botao.disabled = !complete; // brand em minúsculas ("visa"); nunca o número inteiro
   },
 });
 card.mount("#cartao");
 
-const parcelas = await perata.getInstallments({ clientSecret }); // [{ installments: 1, … }, …]
+const parcelas = await perata.getInstallments({ clientSecret });
+// [{ installments: 1, installmentAmountCents: 10000, totalCents: 10000, interestCents: 0, label: "1x de R$ 100,00 (à vista)" }, …]
 
 botao.addEventListener("click", async () => {
   const result = await perata.confirmPayment({
@@ -112,15 +119,37 @@ botao.addEventListener("click", async () => {
     card,
     method: "card", // "card" | "pix" | "boleto"; "card" por padrão
     installments: 3,
-    customer: { name: "Maria Souza", email: "maria@exemplo.com" },
+    customer: { name: "Maria Souza", email: "maria@exemplo.com", document: "529.982.247-25" },
   });
+  if (result.redirectUrl) return window.location.assign(result.redirectUrl); // desafio 3-D Secure
   if (result.error) return mostrar(result.error.message); // recusa não é exceção
-  if (result.pix) mostrarQrCode(result.pix.qrCodeImage, result.pix.copyPaste, result.pix.expiresAt);
-  if (result.boleto) mostrarBoleto(result.boleto.digitableLine, result.boleto.pdfUrl, result.boleto.dueDate);
+  if (result.status === "succeeded") return agradecer(result.orderId);
 });
 ```
 
-Para Pix e boleto não há campo de cartão: `perata.confirmPayment({ clientSecret, method: "pix" })`.
+`customer` aceita `name`, `email`, `document` (CPF ou CNPJ, com ou sem pontuação) e `address` (`street`, `number`, `complement`, `district`, `city`, `state`, `postalCode`); não há telefone, a sessão não guarda um.
+
+**Pix e boleto, e acompanhar o pagamento.** Não há campo de cartão: confirme direto. Depois de gerado, o `clientSecret` está gasto; para saber quando o comprador pagou, guarde o `statusKey` do resultado e pergunte com `getStatus`.
+
+```ts
+const result = await perata.confirmPayment({ clientSecret, method: "pix", customer: { name: "Maria Souza", email: "maria@exemplo.com", document: "529.982.247-25" } });
+if (result.error) return mostrar(result.error.message);
+
+img.src = result.pix!.qrCodeImage;        // data URL SVG, direto num <img>
+copiar.value = result.pix!.copyPaste;     // o "copia e cola"
+prazo.textContent = result.pix!.expiresAt; // ISO 8601
+
+// confirmed = esperando o comprador; succeeded, failed e expired encerram.
+const espera = setInterval(async () => {
+  const atual = await perata.getStatus({ statusKey: result.statusKey! });
+  if (isFinalStatus(atual.status)) {
+    clearInterval(espera);
+    atual.status === "succeeded" ? agradecer(atual.orderId) : mostrar(atual.error?.message ?? "Pagamento não concluído");
+  }
+}, 3000);
+```
+
+`isFinalStatus` vem de `@perata-sh/js`. Um boleto é igual, com `perata.confirmPayment({ clientSecret, method: "boleto", customer })` e `result.boleto` (`digitableLine`, `barcode`, `pdfUrl`, `dueDate`); para acompanhá-lo, o mesmo `getStatus`. `getStatus` rejeita com `invalid_status_key` ou `http_<status>` (um 404, por exemplo).
 
 ## `loadPerata(opções?)`
 
@@ -138,8 +167,8 @@ Se o seu site usa Content-Security-Policy, libere a origem do `perata.js` em `sc
 
 ## Tipos
 
-Todo o contrato está tipado e exportado: `PerataInstance`, `PaymentResult`, `PixResult`, `BoletoResult`, `InstallmentOption`, `ConfirmPaymentParams`, `PaymentComponent`, `CardComponent`, `ChangeEvent`, `Appearance`, `CheckoutSuccessEvent` e os demais. `window.Perata` também ganha tipo.
+Todo o contrato está tipado e exportado, do jeito que o `perata.js` o fala: `PerataInstance`, `PaymentResult` (`status`, `orderId`, `paymentId`, `statusKey`, `pix`, `boleto`, `redirectUrl`, `error`), `PaymentStatus` (`open`, `confirmed`, `succeeded`, `failed`, `expired`), `PixResult`, `BoletoResult`, `InstallmentOption`, `ConfirmPaymentParams`, `CustomerInput`, `PaymentComponent`, `CardComponent`, `ChangeEvent`, `Appearance`, `OpenedCheckout`, `CheckoutSuccessEvent` e os demais. `window.Perata` também ganha tipo.
 
-Os componentes têm `mount(alvo)`, `unmount()`, `update({ appearance })` e `on(evento, função)`. Eventos: `ready`, `change` (`{ complete, brand, last4, error }`), `success` e `error`.
+Os componentes têm `mount(alvo)`, `unmount()`, `destroy()`, `update({ appearance })`, `focus()`, `getState()`, `on(evento, função)` e `off(evento, função)`; os que respondem algo respondem o próprio componente, então encadeiam. Eventos: `ready` (com o estado dos campos), `change` (`{ complete, brand, last4, error, empty, valid, method }`), `success` (só no componente de pagamento) e `error`.
 
 Licença MIT.

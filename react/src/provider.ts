@@ -1,6 +1,6 @@
 "use client";
 
-import { loadPerata, type ConfirmPaymentParams, type InstallmentOption, type LoadPerataOptions, type PaymentResult, type PerataInstance } from "@perata-sh/js";
+import { loadPerata, type ConfirmPaymentParams, type GetInstallmentsParams, type GetStatusParams, type InstallmentOption, type LoadPerataOptions, type PaymentResult, type PerataInstance } from "@perata-sh/js";
 import { createContext, createElement, useCallback, useContext, useEffect, useMemo, useState, type ReactElement, type ReactNode } from "react";
 
 /** `loading` until Peráta.js is on the page, `ready` after, `error` when it could not be loaded. */
@@ -88,13 +88,14 @@ export function usePerataStatus(): { status: PerataStatus; error: Error | null }
 }
 
 /**
- * `confirmPayment` and `getInstallments` bound to the provider's instance, for
+ * `confirmPayment`, `getInstallments` and `getStatus` bound to the provider's instance, for
  * a custom form (Pix and boleto need no card field). They reject until
  * Peráta.js is ready.
  */
 export function useConfirmPayment(): {
   confirmPayment: (params: ConfirmPaymentParams) => Promise<PaymentResult>;
-  getInstallments: (params: { clientSecret: string }) => Promise<InstallmentOption[]>;
+  getInstallments: (params: GetInstallmentsParams) => Promise<InstallmentOption[]>;
+  getStatus: (params: GetStatusParams) => Promise<PaymentResult>;
 } {
   const perata = usePerata();
   const confirmPayment = useCallback(
@@ -102,8 +103,12 @@ export function useConfirmPayment(): {
     [perata],
   );
   const getInstallments = useCallback(
-    (params: { clientSecret: string }) => (perata ? perata.getInstallments(params) : Promise.reject(new Error("perata: Peráta.js is not loaded yet"))),
+    (params: GetInstallmentsParams) => (perata ? perata.getInstallments(params) : Promise.reject(new Error("perata: Peráta.js is not loaded yet"))),
     [perata],
   );
-  return useMemo(() => ({ confirmPayment, getInstallments }), [confirmPayment, getInstallments]);
+  const getStatus = useCallback(
+    (params: GetStatusParams) => (perata ? perata.getStatus(params) : Promise.reject(new Error("perata: Peráta.js is not loaded yet"))),
+    [perata],
+  );
+  return useMemo(() => ({ confirmPayment, getInstallments, getStatus }), [confirmPayment, getInstallments, getStatus]);
 }

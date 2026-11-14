@@ -33,11 +33,11 @@ echo "== typescript"
 (cd typescript && npm ci --ignore-scripts --no-audit --no-fund --silent && npx tsc -p tsconfig.json --noEmit && node --test 'test/*.test.ts')
 
 echo "== js"
-(cd js && npm ci --ignore-scripts --no-audit --no-fund --silent && npx tsc -p tsconfig.json --noEmit && npm run build --silent && node --test 'test/*.test.ts')
+(cd js && npm ci --ignore-scripts --no-audit --no-fund --silent && npm run typecheck --silent && npm run build --silent && node --test 'test/*.test.ts')
 
 echo "== react"
 # Needs js/dist, which the step above builds: @perata-sh/js is linked from ../js.
-(cd react && npm ci --ignore-scripts --no-audit --no-fund --silent && npx tsc -p tsconfig.json --noEmit && npm run build --silent && node --test 'test/*.test.ts')
+(cd react && npm ci --ignore-scripts --no-audit --no-fund --silent && npm run typecheck --silent && npm run build --silent && node --test 'test/*.test.ts')
 
 echo "== python"
 (cd python && PYTHONPATH=src python3 -m unittest discover -s tests && "${MYPY:-mypy}" --strict --python-version 3.11 src/perata)

@@ -1,7 +1,7 @@
 "use client";
 
 import type { Appearance, ChangeEvent, Locale, PaymentComponent as PerataPaymentComponent, PaymentResult, PerataErrorInfo } from "@perata-sh/js";
-import { createElement, useEffect, useRef, type ReactElement } from "react";
+import { createElement, forwardRef, useEffect, useImperativeHandle, useRef, type ReactElement, type Ref } from "react";
 
 import { useLatest } from "./latest.ts";
 import { usePerataContext } from "./provider.ts";
@@ -11,20 +11,26 @@ export interface PaymentComponentProps {
   clientSecret: string;
   appearance?: Appearance;
   locale?: Locale;
-  onReady?: () => void;
+  onReady?: (state: ChangeEvent) => void;
   onChange?: (event: ChangeEvent) => void;
-  /** The payment was made (or, for Pix and boleto, the charge was created: look at `result.pix` and `result.boleto`). */
+  /** The payment was made (or, for Pix and boleto, the charge was created: look at `result.pix` and `result.boleto`, and follow `result.statusKey` with `usePaymentStatus`). */
   onSuccess?: (result: PaymentResult) => void;
   onError?: (error: PerataErrorInfo) => void;
   className?: string;
   id?: string;
 }
 
-/**
- * Peráta's ready-made payment form: methods, card, Pix and boleto, confirming
- * by itself. It draws nothing until Peráta.js has loaded.
- */
-export function PaymentComponent(props: PaymentComponentProps): ReactElement {
+/** What a `ref` on `<PaymentComponent>` gives you. */
+export interface PaymentComponentHandle {
+  /** The mounted component, to pass as `payment` to `perata.confirmPayment`; `null` until it is drawn. */
+  readonly component: PerataPaymentComponent | null;
+  /** Puts the cursor in the first field. */
+  focus(): void;
+  /** What the buyer may see of the fields now; `null` until the component is drawn. */
+  getState(): ChangeEvent | null;
+}
+
+function PaymentComponentImpl(props: PaymentComponentProps, ref: Ref<PaymentComponentHandle>): ReactElement {
   const { clientSecret, locale, appearance, className, id } = props;
   const { perata } = usePerataContext();
   const target = useRef<HTMLDivElement>(null);
@@ -40,7 +46,7 @@ export function PaymentComponent(props: PaymentComponentProps): ReactElement {
       clientSecret,
       ...(latest.current.appearance !== undefined && { appearance: latest.current.appearance }),
       ...(locale !== undefined && { locale }),
-      onReady: () => latest.current.onReady?.(),
+      onReady: (state) => latest.current.onReady?.(state),
       onChange: (event) => latest.current.onChange?.(event),
       onSuccess: (result) => latest.current.onSuccess?.(result),
       onError: (error) => latest.current.onError?.(error),
@@ -49,7 +55,7 @@ export function PaymentComponent(props: PaymentComponentProps): ReactElement {
     component.current = created;
     applied.current = JSON.stringify(latest.current.appearance ?? null);
     return () => {
-      created.unmount();
+      created.destroy();
       component.current = null;
     };
   }, [perata, clientSecret, locale, latest]);
@@ -60,5 +66,28 @@ export function PaymentComponent(props: PaymentComponentProps): ReactElement {
     component.current.update({ appearance: appearance ?? {} });
   }, [appearanceKey, appearance]);
 
+  useImperativeHandle(
+    ref,
+    () => ({
+      get component() {
+        return component.current;
+      },
+      focus() {
+        component.current?.focus();
+      },
+      getState() {
+        return component.current ? component.current.getState() : null;
+      },
+    }),
+    [],
+  );
+
   return createElement("div", { ref: target, className, id });
 }
+
+/**
+ * Peráta's ready-made payment form: methods, card, Pix and boleto, with its
+ * own button, confirming by itself. It draws nothing until Peráta.js has loaded.
+ */
+export const PaymentComponent = forwardRef<PaymentComponentHandle, PaymentComponentProps>(PaymentComponentImpl);
+PaymentComponent.displayName = "PaymentComponent";
