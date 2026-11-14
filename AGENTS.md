@@ -9,6 +9,13 @@ contract the way Polar generates its own. Read this before changing anything.
   `elixir/`, `dart/`, `rust/` and `swift/` are **output**. The generator
   empties each one and writes it again, so an edit there is lost on the next
   run. Change the template instead.
+- `js/` and `react/` are **written by hand**, not generated: the browser
+  packages (`@perata-sh/js`, the loader and types of Peráta.js; and
+  `@perata-sh/react`, its React bindings). They are not server SDKs, so the
+  "every language" rule does not apply to them. Their names are proposals until
+  Paulo confirms them, and both are `"private": true` until then. They follow the
+  contract of `https://perata.sh/v1/perata.js` (perata.sh's `public/`); change
+  that script and these types together.
 - `generator/templates/<language>/` is where every SDK's hand-written part
   lives: client, errors, pagination, webhooks, tests, README. A `.tmpl` file is
   rendered with the IR; any other file is copied. `_dot_` in a name becomes `.`;
@@ -25,6 +32,9 @@ contract the way Polar generates its own. Read this before changing anything.
 - generator: gofmt, vet, test, regenerate;
 - go: vet and test;
 - typescript: `tsc --noEmit` and `node --test`;
+- js and react: `tsc --noEmit`, the ESM and CommonJS build, and `node --test`
+  (react runs on jsdom, a development dependency; `react/` links `../js`, so
+  `js/` is built first);
 - python: unittest and `mypy --strict` on 3.11;
 - php: `tests/run.php` and PHPStan level 8;
 - ruby: minitest under `ruby -w`;

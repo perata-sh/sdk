@@ -3,7 +3,8 @@
 # exactly what the generator writes, and each language's own tests and type
 # checks. CHECK_DRIFT=1 (CI) also fails when a regenerated SDK differs from
 # what is committed. MYPY and PHPSTAN name those tools when they are not on
-# the PATH. Swift needs Apple's toolchain (CryptoKit, Network): it runs only on
+# the PATH. js/ and react/ are written by hand (the browser packages), not
+# generated. Swift needs Apple's toolchain (CryptoKit, Network): it runs only on
 # macOS, and SKIP_SWIFT=1 leaves it to the macOS CI job.
 set -eu
 cd "$(dirname "$0")"
@@ -30,6 +31,13 @@ echo "== go"
 
 echo "== typescript"
 (cd typescript && npm ci --ignore-scripts --no-audit --no-fund --silent && npx tsc -p tsconfig.json --noEmit && node --test 'test/*.test.ts')
+
+echo "== js"
+(cd js && npm ci --ignore-scripts --no-audit --no-fund --silent && npx tsc -p tsconfig.json --noEmit && npm run build --silent && node --test 'test/*.test.ts')
+
+echo "== react"
+# Needs js/dist, which the step above builds: @perata-sh/js is linked from ../js.
+(cd react && npm ci --ignore-scripts --no-audit --no-fund --silent && npx tsc -p tsconfig.json --noEmit && npm run build --silent && node --test 'test/*.test.ts')
 
 echo "== python"
 (cd python && PYTHONPATH=src python3 -m unittest discover -s tests && "${MYPY:-mypy}" --strict --python-version 3.11 src/perata)

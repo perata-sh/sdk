@@ -1,0 +1,42 @@
+{
+  "name": "@perata-sh/js",
+  "version": "0.4.0",
+  "private": true,
+  "description": "Peráta.js loader and types for the browser: the checkout in a redirect, a modal, ready-made components or your own form, with the card in a secure frame.",
+  "license": "MIT",
+  "homepage": "https://perata.sh",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/perata-sh/sdk.git",
+    "directory": "js"
+  },
+  "type": "module",
+  "main": "./dist/cjs/index.js",
+  "module": "./dist/esm/index.js",
+  "types": "./dist/esm/index.d.ts",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/esm/index.d.ts",
+        "default": "./dist/esm/index.js"
+      },
+      "require": {
+        "types": "./dist/cjs/index.d.ts",
+        "default": "./dist/cjs/index.js"
+      }
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist"
+  ],
+  "sideEffects": false,
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "node --test test/*.test.ts"
+  },
+  "devDependencies": {
+    "typescript": "^7.0.2"
+  }
+}

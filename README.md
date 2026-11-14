@@ -16,6 +16,8 @@ Os SDKs oficiais da API da Peráta, num monorepo no padrão do Polar: um contrat
 | Rust | [`rust/`](rust) | `perata-sdk` (crates.io) |
 | Swift (iOS, macOS) | [`swift/`](swift) | Swift Package Manager: `https://github.com/perata-sh/sdk` |
 
+Para o navegador há dois pacotes escritos à mão, que não são SDKs de servidor (nomes propostos, ainda não publicados): [`js/`](js) (`@perata-sh/js`, o carregador e os tipos do Peráta.js) e [`react/`](react) (`@perata-sh/react`, provedor, formulário pronto, campo de cartão e botão de checkout). Cobrem os quatro modos de checkout: redirecionamento, modal, componentes prontos e cartão transparente.
+
 Os nomes seguem o GitHub: organização `perata-sh`, pacote `sdk`; onde o registro não aceita barra, `perata-sdk` (ou `perata_sdk`). Em cada registro o pacote pertence à organização `perata-sh`.
 
 Todos fazem o mesmo, com a mesma versão (`VERSION`):
@@ -37,6 +39,7 @@ openapi.json      o contrato da API pública, exportado pelo perata.sh
 generator/        OpenAPI → IR neutra → um emissor por linguagem (templates)
 cmd/sdkgen        o comando que gera
 <linguagem>/      saída do gerador, uma pasta por linguagem: nunca editada à mão
+js/, react/       pacotes do navegador, escritos à mão (não gerados)
 Package.swift     o manifesto do Swift na raiz, que o SwiftPM exige
 composer.json     o manifesto do PHP na raiz, que o Packagist exige
 ```
