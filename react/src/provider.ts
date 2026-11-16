@@ -39,7 +39,9 @@ function initialState(instance: PerataProviderProps["instance"]): PerataContextV
  * renders in Next.js and other SSR with no `window`.
  */
 export function PerataProvider(props: PerataProviderProps): ReactElement {
-  const { instance, scriptUrl, nonce, timeoutMs, children } = props;
+  const { instance, scriptUrl, nonce, timeoutMs, pin, children } = props;
+  const pinHash = pin?.hash;
+  const pinIntegrity = pin?.integrity;
   const [state, setState] = useState<PerataContextValue>(() => initialState(instance));
 
   useEffect(() => {
@@ -50,6 +52,7 @@ export function PerataProvider(props: PerataProviderProps): ReactElement {
             ...(scriptUrl !== undefined && { scriptUrl }),
             ...(nonce !== undefined && { nonce }),
             ...(timeoutMs !== undefined && { timeoutMs }),
+            ...(pinHash !== undefined && pinIntegrity !== undefined && { pin: { hash: pinHash, integrity: pinIntegrity } }),
           })
         : Promise.resolve(instance);
     loading.then(
@@ -64,7 +67,7 @@ export function PerataProvider(props: PerataProviderProps): ReactElement {
     return () => {
       active = false;
     };
-  }, [instance, scriptUrl, nonce, timeoutMs]);
+  }, [instance, scriptUrl, nonce, timeoutMs, pinHash, pinIntegrity]);
 
   return createElement(PerataContext.Provider, { value: state }, children);
 }

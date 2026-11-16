@@ -29,7 +29,7 @@ export async function POST() {
 }
 ```
 
-O `client_secret` é um campo novo da resposta de `POST /api/v1/checkouts` e ainda não consta do `openapi.json` desta versão do SDK de servidor; o `url` já existe.
+O `client_secret` vem na resposta de `POST /api/v1/checkouts` (o tipo `CheckoutCreated`, no SDK de servidor desta versão), e só nela: na repetição de uma criação com a mesma `Idempotency-Key` ele vem vazio. Entregue-o ao navegador na primeira resposta.
 
 ## O provedor
 
@@ -49,6 +49,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
 | `scriptUrl` | Outro endereço do script, para sandbox ou servidor local (`https`; `http` só para localhost). |
 | `nonce` | O nonce da sua Content-Security-Policy. |
 | `timeoutMs` | Quanto esperar o script; 15 000 por padrão. |
+| `pin` | Fixa uma versão do script, com o hash e o valor de integridade (SRI) dela: `pin={{ hash: "0123456789abcdef", integrity: "sha384-…" }}`. Veja o README do `@perata-sh/js`. |
 | `instance` | Uma instância (ou promessa de `loadPerata()`) que você já tem; nada é carregado. Útil em testes. |
 
 Hooks: `usePerata()` devolve a instância, ou `null` enquanto carrega e no servidor; `usePerataStatus()` devolve `{ status: "loading" | "ready" | "error", error }` (o estado do *script*); `useConfirmPayment()` devolve `confirmPayment`, `getInstallments` e `getStatus` já ligados à instância, para um formulário seu; `usePaymentStatus()` acompanha um pagamento (veja "Pix e boleto").

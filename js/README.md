@@ -45,7 +45,7 @@ createServer(async (req, res) => {
 }).listen(3000);
 ```
 
-O `client_secret` identifica só aquela sessão e pode ir ao navegador. Ele é um campo novo da resposta de `POST /api/v1/checkouts` e ainda não consta do `openapi.json` desta versão do SDK, então o tipo `Checkout` do SDK de servidor só o terá depois da próxima sincronização do contrato.
+O `client_secret` identifica só aquela sessão e pode ir ao navegador (a chave de API, nunca). Ele vem na resposta de `POST /api/v1/checkouts` (o tipo `CheckoutCreated`, no SDK de servidor desta versão, com `session_id`, `client_secret_expires_at` e `status_key`) e só nela: na repetição de uma criação com a mesma `Idempotency-Key` ele vem vazio, então entregue-o ao navegador na primeira resposta. Por isso o exemplo acima gera uma chave nova a cada pedido; para repetir uma criação com segurança depois de uma falha de rede, guarde o `client_secret` que a primeira resposta trouxe. A sessão vale 30 minutos, ou os segundos de `expires_in`.
 
 ### No navegador
 
@@ -72,6 +72,7 @@ const modal = await perata.openCheckout({ // resolve quando o checkout aparece
   theme: "dark", // "light" | "dark"
   onSuccess: ({ successURL, redirect }) => console.log("pago", successURL),
   onClose: () => console.log("o comprador fechou"),
+  onError: (error) => console.error(error.code), // o checkout não abriu, e a promessa rejeita com o mesmo erro
 });
 // modal.close() tira o checkout da página
 ```
@@ -160,14 +161,29 @@ Devolve `Promise<PerataInstance | null>`. É chamada quantas vezes for preciso: 
 | `scriptUrl` | Outro endereço do script (sandbox, servidor local). Precisa ser `https`; `http` só para `localhost`, `127.0.0.0/8` e `::1`. O checkout abre na Peráta que serviu o script. Padrão: `https://perata.sh/v1/perata.js` (`PERATA_SCRIPT_URL`). |
 | `nonce` | O nonce da sua Content-Security-Policy para a tag do script. |
 | `timeoutMs` | Quanto esperar antes de desistir; 15 000 por padrão. |
+| `pin` | Fixa uma versão do script: `{ hash, integrity }` de uma versão do `perata.js`. Veja abaixo. |
 
-Falhas rejeitam com `PerataLoadError`, cujo `code` é `invalid_url`, `network`, `timeout` ou `missing_global`. Uma falha é esquecida: chamar de novo tenta outra vez.
+Falhas rejeitam com `PerataLoadError`, cujo `code` é `invalid_url`, `invalid_pin`, `network`, `timeout` ou `missing_global`. Uma falha é esquecida: chamar de novo tenta outra vez.
+
+### Fixar a versão do script
+
+O endereço padrão (`/v1/perata.js`) recebe as correções em minutos. Para carregar sempre os mesmos bytes, use o endereço que leva o hash do conteúdo (`/v1/perata.<hash>.js`, que nunca muda) com o valor de integridade (Subresource Integrity, `sha384-…`) da mesma versão; o navegador recusa um script que não seja exatamente o que você leu. O `hash` e o `integrity` de cada versão ficam em **Configurações › Como integrar**, no painel da Peráta.
+
+```ts
+const perata = await loadPerata({
+  pin: { hash: "0123456789abcdef", integrity: "sha384-…" },
+});
+```
+
+O pacote monta o endereço (`https://perata.sh/v1/perata.0123456789abcdef.js`, na origem de `scriptUrl` se você passar uma), põe `integrity` e `crossorigin="anonymous"` na tag e recusa, com `invalid_pin`, um hash que não tenha 16 dígitos hexadecimais ou um valor que não comece por `sha256-`, `sha384-` ou `sha512-`. Uma nova versão do script é um hash e um valor novos: atualize os dois para adotá-la. Com a tag à mão, é o mesmo: `<script src="https://perata.sh/v1/perata.<hash>.js" integrity="sha384-…" crossorigin="anonymous"></script>`.
 
 Se o seu site usa Content-Security-Policy, libere a origem do `perata.js` em `script-src` e em `frame-src`.
 
 ## Tipos
 
 Todo o contrato está tipado e exportado, do jeito que o `perata.js` o fala: `PerataInstance`, `PaymentResult` (`status`, `orderId`, `paymentId`, `statusKey`, `pix`, `boleto`, `redirectUrl`, `error`), `PaymentStatus` (`open`, `confirmed`, `succeeded`, `failed`, `expired`), `PixResult`, `BoletoResult`, `InstallmentOption`, `ConfirmPaymentParams`, `CustomerInput`, `PaymentComponent`, `CardComponent`, `ChangeEvent`, `Appearance`, `OpenedCheckout`, `CheckoutSuccessEvent` e os demais. `window.Perata` também ganha tipo.
+
+Os erros têm um `code` para o código decidir: `PerataErrorCode` lista `origin_not_allowed` (o site não está em **Configurações › Checkout incorporado › Sites permitidos**), `load_timeout`, `checkout_not_found` (o `clientSecret` ou o endereço não abre nada: errado, vencido ou já usado), `network_error`, `invalid_client_secret`, `invalid_checkout_url`, `invalid_status_key`, `payment_declined`, `checkout_expired`, `http_<status>` e os demais. Uma chamada que rejeita rejeita com um `PerataError` (um `Error` com `code`); o `onError` recebe um `PerataErrorInfo` (`code`, `message` e, quando a API disse, `fields`).
 
 Os componentes têm `mount(alvo)`, `unmount()`, `destroy()`, `update({ appearance })`, `focus()`, `getState()`, `on(evento, função)` e `off(evento, função)`; os que respondem algo respondem o próprio componente, então encadeiam. Eventos: `ready` (com o estado dos campos), `change` (`{ complete, brand, last4, error, empty, valid, method }`), `success` (só no componente de pagamento) e `error`.
 

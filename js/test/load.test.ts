@@ -10,6 +10,8 @@ class FakeScript {
   src = "";
   async = false;
   nonce = "";
+  integrity = "";
+  crossOrigin: string | null = null;
   removed = false;
   listeners = new Map<string, Set<() => void>>();
   addEventListener(type: string, listener: () => void): void {
@@ -123,6 +125,55 @@ test("scriptUrl and nonce reach the tag", async () => {
   fakeWindow.Perata = () => instance("local");
   scripts[0]?.fire("load");
   await pending;
+});
+
+// What perata.sh's Settings page gives for a release of the script: the hash in the address and the SHA-384 of its bytes.
+const pin = { hash: "0123456789abcdef", integrity: `sha384-${"A".repeat(64)}` };
+
+test("a pin loads the address the hash names, with its integrity value and CORS", async () => {
+  const { loadPerata } = await freshLoader();
+  const pending = loadPerata({ pin });
+  assert.equal(scripts[0]?.src, "https://perata.sh/v1/perata.0123456789abcdef.js");
+  assert.equal(scripts[0]?.integrity, pin.integrity);
+  assert.equal(scripts[0]?.crossOrigin, "anonymous");
+  fakeWindow.Perata = () => instance("pinned");
+  scripts[0]?.fire("load");
+  assert.deepEqual(await pending, { tag: "pinned" });
+});
+
+test("a pin takes only the origin of scriptUrl, and a script without one has no integrity", async () => {
+  const { loadPerata } = await freshLoader();
+  const pinned = loadPerata({ scriptUrl: "http://localhost:8080/v1/perata.js?x=1", pin });
+  assert.equal(scripts[0]?.src, "http://localhost:8080/v1/perata.0123456789abcdef.js");
+  fakeWindow.Perata = () => instance("local-pin");
+  scripts[0]?.fire("load");
+  await pinned;
+
+  scripts = [];
+  delete fakeWindow.Perata;
+  const { loadPerata: again } = await freshLoader();
+  const plain = again();
+  assert.equal(scripts[0]?.integrity, "");
+  assert.equal(scripts[0]?.crossOrigin, null);
+  fakeWindow.Perata = () => instance("plain");
+  scripts[0]?.fire("load");
+  await plain;
+});
+
+test("a pin with a malformed hash or integrity value is refused before any tag", async () => {
+  const { loadPerata, PerataLoadError } = await freshLoader();
+  const bad = [
+    { hash: "0123", integrity: pin.integrity },
+    { hash: "0123456789ABCDEF", integrity: pin.integrity },
+    { hash: "../../evil/file", integrity: pin.integrity },
+    { hash: pin.hash, integrity: "sha384-short" },
+    { hash: pin.hash, integrity: "md5-AAAA" },
+    { hash: pin.hash, integrity: "" },
+  ];
+  for (const each of bad) {
+    await assert.rejects(loadPerata({ pin: each }), (error: unknown) => error instanceof PerataLoadError && error.code === "invalid_pin", JSON.stringify(each));
+  }
+  assert.equal(scripts.length, 0);
 });
 
 test("an address that is not https, or http to the local machine, is refused before any tag", async () => {

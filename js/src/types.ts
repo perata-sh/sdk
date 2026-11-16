@@ -41,9 +41,61 @@ export interface AppearanceVariables {
 /** The language of the components. Only Brazilian Portuguese for now. */
 export type Locale = "pt-BR";
 
+/**
+ * The codes the script gives an error, to switch on. A payment's own refusal
+ * can carry a code of the API's too (`payment_failed` when it names none), so a
+ * code outside this list is possible: the union stays open.
+ *
+ * - the page: `origin_not_allowed` (this site is not listed under
+ *   Configurações › Checkout incorporado › Sites permitidos, so the browser will
+ *   not frame the checkout nor let the page read its routes), `load_timeout`
+ *   (the checkout did not come up in time and Peráta could not say why),
+ *   `checkout_not_found` (the `clientSecret` or the checkout address opens
+ *   nothing: wrong, expired or already used) and `network_error` (the request
+ *   did not reach Peráta);
+ * - the call: `invalid_client_secret`, `invalid_checkout_url`,
+ *   `invalid_status_key`, `invalid_method`, `invalid_element`,
+ *   `invalid_options`, `card_element_required` and `mount_target_not_found`;
+ * - the fields: `element_unavailable`, `element_not_mounted` and
+ *   `element_unmounted`;
+ * - the payment: `payment_declined`, `checkout_expired`, `payment_failed` and
+ *   `timeout` (check the status before trying again);
+ * - the session's route: `http_<status>`, such as `http_404`.
+ */
+export type PerataErrorCode =
+  | "origin_not_allowed"
+  | "load_timeout"
+  | "checkout_not_found"
+  | "network_error"
+  | "invalid_client_secret"
+  | "invalid_checkout_url"
+  | "invalid_status_key"
+  | "invalid_method"
+  | "invalid_element"
+  | "invalid_options"
+  | "card_element_required"
+  | "mount_target_not_found"
+  | "element_unavailable"
+  | "element_not_mounted"
+  | "element_unmounted"
+  | "payment_declined"
+  | "checkout_expired"
+  | "payment_failed"
+  | "timeout"
+  | `http_${number}`
+  | (string & {});
+
+/**
+ * What a call that rejects rejects with: an `Error` that carries the `code`
+ * (the `message` says what to do; the console says it too).
+ */
+export interface PerataError extends Error {
+  code: PerataErrorCode;
+}
+
 /** An error as the script reports it. `code` is stable and meant for code, `message` for the buyer. */
 export interface PerataErrorInfo {
-  code: string;
+  code: PerataErrorCode;
   message: string;
   /** What the API found wrong, field by field, when it said. */
   fields?: Record<string, unknown>;
@@ -272,6 +324,12 @@ export interface OpenCheckoutOptions {
   onSuccess?: (event: CheckoutSuccessEvent) => void | boolean;
   /** The buyer closed the modal. */
   onClose?: () => void;
+  /**
+   * The checkout did not come up (`origin_not_allowed`, `load_timeout`,
+   * `invalid_checkout_url`…): it is taken off the page and `onClose` is not
+   * called, since nobody closed anything. The promise rejects with the same error.
+   */
+  onError?: (error: PerataErrorInfo) => void;
 }
 
 /** The modal that `openCheckout` opened. */

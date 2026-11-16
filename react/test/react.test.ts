@@ -62,6 +62,22 @@ test("without an instance the provider loads the script, with the address and no
   await waitFor(() => assert.equal(screen.getByTestId("probe").textContent, "ready:instance:"));
 });
 
+test("a pin reaches the script tag: the address the hash names, with its integrity value", async () => {
+  const { perata } = stub();
+  const pin = { hash: "0123456789abcdef", integrity: `sha384-${"A".repeat(64)}` };
+  render(h(PerataProvider, { pin }, h(Probe)));
+  const script = document.querySelector("script");
+  assert.equal(script?.getAttribute("src"), "https://perata.sh/v1/perata.0123456789abcdef.js");
+  assert.equal(script?.integrity, pin.integrity);
+  assert.equal(script?.crossOrigin, "anonymous");
+
+  (window as { Perata?: unknown }).Perata = () => perata;
+  act(() => {
+    script?.dispatchEvent(new window.Event("load"));
+  });
+  await waitFor(() => assert.equal(screen.getByTestId("probe").textContent, "ready:instance:"));
+});
+
 test("a script that cannot be loaded ends in error, with the reason", async () => {
   render(h(PerataProvider, { scriptUrl: "http://localhost:9001/v1/perata.js" }, h(Probe)));
   act(() => {

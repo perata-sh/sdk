@@ -1,6 +1,6 @@
 {
   "name": "@perata-sh/js",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "private": true,
   "description": "Peráta.js loader and types for the browser: the checkout in a redirect, a modal, ready-made components or your own form, with the card in a secure frame.",
   "license": "MIT",

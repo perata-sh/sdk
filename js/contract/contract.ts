@@ -12,8 +12,11 @@ import type {
   PaymentComponent,
   PaymentResult,
   PaymentStatus,
+  PerataError,
+  PerataErrorCode,
   PerataInstance,
 } from "../src/index.ts";
+import { loadPerata } from "../src/index.ts";
 
 declare const perata: PerataInstance;
 declare const card: CardComponent;
@@ -62,7 +65,7 @@ const followed: Promise<PaymentResult> = perata.getStatus({ statusKey: "sk_12345
 void followed;
 
 // openCheckout answers a handle
-const opened: Promise<OpenedCheckout> = perata.openCheckout({ url: "https://perata.sh/pagamento/pcl_1", theme: "dark", onSuccess: () => false });
+const opened: Promise<OpenedCheckout> = perata.openCheckout({ url: "https://perata.sh/pagamento/pcl_1", theme: "dark", onSuccess: () => false, onError: (error) => error.code });
 void opened.then((checkout) => checkout.close());
 
 // components: focus, destroy, chaining
@@ -74,3 +77,17 @@ payment.destroy();
 const params: ConfirmPaymentParams = { clientSecret: "cs_12345678", card, method: "card", installments: 3, customer };
 void perata.confirmPayment(params);
 void perata.getInstallments({ clientSecret: "cs_12345678" });
+
+// errors: a code to switch on, and a rejection that carries it
+declare const rejected: PerataError;
+const code: PerataErrorCode = rejected.code;
+const known: PerataErrorCode[] = ["origin_not_allowed", "load_timeout", "checkout_not_found", "network_error", "http_404", "payment_failed"];
+void [code, known, rejected.message];
+declare const failure: PaymentResult["error"];
+const failureCode: string | undefined = failure?.code;
+void failureCode;
+
+// loadPerata: a fixed version takes both its hash and its integrity value
+void loadPerata({ pin: { hash: "0123456789abcdef", integrity: "sha384-AAAA" }, nonce: "n" });
+// @ts-expect-error a pin without its integrity value
+void loadPerata({ pin: { hash: "0123456789abcdef" } });
