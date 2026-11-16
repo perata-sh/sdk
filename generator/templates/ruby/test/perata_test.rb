@@ -60,6 +60,49 @@ class PerataTest < Minitest::Test
     assert_equal({ "name" => "Curso" }, JSON.parse(seen[:body]))
   end
 
+  def session(client_secret)
+    {
+      "id" => "pcl_1", "url" => "https://perata.sh/pagamento/pcl_1", "product_id" => "prod_1", "price_id" => "price_1",
+      "status" => "active", "label" => "", "quantity" => 1, "success_url" => "https://loja.example/obrigado", "cancel_url" => "",
+      "expires_at" => nil, "created_at" => "2026-11-16T12:00:00Z", "session_id" => "cs_1", "client_secret" => client_secret,
+      "client_secret_expires_at" => "2026-11-16T12:30:00Z", "status_key" => "sk_1"
+    }
+  end
+
+  def test_a_checkout_session_hands_back_the_client_secret_for_the_browser
+    calls = 0
+    perata, recorder = client do
+      calls += 1
+      calls == 1 ? [201, { "data" => session("cs_secret_1") }, {}] : [201, { "data" => session("") }, { "Idempotent-Replayed" => "true" }]
+    end
+    params = { product_id: "prod_1", price_id: "price_1", success_url: "https://loja.example/obrigado" }
+    checkout = perata.checkouts.create(params, idempotency_key: "pedido-1")
+    assert_equal "cs_secret_1", checkout.client_secret
+    assert_equal "cs_1", checkout.session_id
+    assert_equal "sk_1", checkout.status_key
+    assert_equal "2026-11-16T12:30:00Z", checkout.client_secret_expires_at
+    assert_equal "https://perata.sh/pagamento/pcl_1", checkout.url
+    assert_nil checkout.expires_at
+    seen = recorder.seen.first
+    assert_equal "POST", seen[:method]
+    assert_equal "/api/v1/checkouts", seen[:url].path
+    assert_equal "pedido-1", seen[:headers]["Idempotency-Key"]
+    assert_equal({ "product_id" => "prod_1", "price_id" => "price_1", "success_url" => "https://loja.example/obrigado" }, JSON.parse(seen[:body]))
+    again = perata.checkouts.create(params, idempotency_key: "pedido-1")
+    assert_equal "", again.client_secret
+    assert_equal "cs_1", again.session_id
+  end
+
+  def test_a_model_that_may_be_null_decodes_both_ways
+    pix = { "copia_e_cola" => "000201", "qr_code_svg" => "<svg/>", "expires_at" => nil }
+    payment = { "id" => "pay_1", "method" => "pix", "state" => "pending", "unresolved" => false, "card_brand" => "", "card_kind" => "",
+                "installments" => 1, "pix" => pix, "boleto" => nil }
+    got = Perata::CheckoutClientPayment.from_hash(payment)
+    assert_nil got.boleto
+    assert_equal "000201", got.pix.copia_e_cola
+    assert_nil got.pix.expires_at
+  end
+
   def test_a_base_url_must_be_https_unless_it_is_loopback
     ["https://perata.sh", "http://localhost:8080", "http://LOCALHOST", "http://127.0.0.1:1", "http://127.255.0.3", "http://[::1]:8080"].each do |base_url|
       Perata::Client.new("k", base_url: base_url)

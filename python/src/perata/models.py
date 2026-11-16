@@ -126,6 +126,52 @@ class Card:
 
 
 @dataclass(frozen=True)
+class CardAuthentication:
+    """CardAuthentication is a resource of Peráta's API."""
+
+    access_token: str
+    """O token com que o script de 3DS autentica; entregue só a uma página da própria origem da Peráta."""
+    environment: Literal["test", "live"]
+    expires_in: int
+    """Segundos de vida do token."""
+    provider: str
+    script_url: str
+    """O script de autenticação do adquirente."""
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> CardAuthentication:
+        return cls(
+            access_token=data["access_token"],
+            environment=data["environment"],
+            expires_in=data["expires_in"],
+            provider=data["provider"],
+            script_url=data["script_url"],
+        )
+
+
+@dataclass(frozen=True)
+class CardTokenization:
+    """CardTokenization is a resource of Peráta's API."""
+
+    access_token: str
+    """O token com que o script do adquirente envia o cartão; entregue só a uma página da própria origem da Peráta."""
+    environment: Literal["test", "live"]
+    expires_at: str
+    issued: str
+    provider: str
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> CardTokenization:
+        return cls(
+            access_token=data["access_token"],
+            environment=data["environment"],
+            expires_at=data["expires_at"],
+            issued=data["issued"],
+            provider=data["provider"],
+        )
+
+
+@dataclass(frozen=True)
 class Checkout:
     """Checkout is a resource of Peráta's API."""
 
@@ -161,6 +207,294 @@ class Checkout:
             status=data["status"],
             success_url=data["success_url"],
             url=data["url"],
+        )
+
+
+@dataclass(frozen=True)
+class CheckoutClient:
+    """CheckoutClient is a resource of Peráta's API."""
+
+    amount_cents: int
+    """Antes do desconto."""
+    cancel_url: str
+    """Para onde o comprador volta sem pagar."""
+    card_kinds: list[str]
+    """credit, e debit onde a autenticação do adquirente está ligada."""
+    currency: Literal["BRL"]
+    customer: CheckoutClientCustomer | None
+    discount: CheckoutClientDiscount | None
+    discount_cents: int
+    editable: bool
+    """A sessão está aberta e ainda aceita atualizações e um pagamento."""
+    environment: Literal["test", "live"]
+    expires_at: str
+    """Quando a sessão e o client_secret deixam de valer."""
+    id: str
+    """O ID da sessão de checkout."""
+    installments: list[CheckoutInstallment]
+    """Os planos de uma venda no cartão de crédito, à vista primeiro; vazio quando a sessão não se paga em parcelas no cartão."""
+    items: list[CheckoutClientItem]
+    missing: list[str]
+    """O que o pagamento ainda precisa do comprador, pelo campo da rota de atualização: customer_email, tax_id e billing_address."""
+    next_action: CheckoutNextAction
+    payment: CheckoutClientPayment | None
+    payment_methods: list[str]
+    """As formas em que a sessão pode ser paga, entre card, pix, boleto e free; free é uma sessão que não pede pagamento."""
+    requires_billing_address: bool
+    """O lojista pede o endereço de cobrança completo; o boleto o pede de qualquer jeito."""
+    requires_tax_id: bool
+    """O CPF ou CNPJ é obrigatório porque há um pagamento a fazer."""
+    status: Literal["open", "confirmed", "succeeded", "failed", "expired"]
+    """open: esperando o comprador; confirmed: o pagamento foi pedido e não está liquidado (um Pix ou boleto esperando pagamento); succeeded: pago; failed e expired: acabou sem pagamento."""
+    status_key: str
+    """A chave que lê o estado desta sessão depois que o client_secret é consumido: GET /checkouts/client/status/{status_key}."""
+    success_url: str
+    """Para onde o comprador vai depois de pagar: a página do próprio lojista, com o ID do checkout onde ele o pediu."""
+    total_cents: int
+    """O que o comprador paga, em centavos."""
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> CheckoutClient:
+        return cls(
+            amount_cents=data["amount_cents"],
+            cancel_url=data["cancel_url"],
+            card_kinds=data["card_kinds"],
+            currency=data["currency"],
+            customer=None if data.get("customer") is None else CheckoutClientCustomer.from_dict(data["customer"]),
+            discount=None if data.get("discount") is None else CheckoutClientDiscount.from_dict(data["discount"]),
+            discount_cents=data["discount_cents"],
+            editable=data["editable"],
+            environment=data["environment"],
+            expires_at=data["expires_at"],
+            id=data["id"],
+            installments=[CheckoutInstallment.from_dict(item) for item in data["installments"]],
+            items=[CheckoutClientItem.from_dict(item) for item in data["items"]],
+            missing=data["missing"],
+            next_action=CheckoutNextAction.from_dict(data["next_action"]),
+            payment=None if data.get("payment") is None else CheckoutClientPayment.from_dict(data["payment"]),
+            payment_methods=data["payment_methods"],
+            requires_billing_address=data["requires_billing_address"],
+            requires_tax_id=data["requires_tax_id"],
+            status=data["status"],
+            status_key=data["status_key"],
+            success_url=data["success_url"],
+            total_cents=data["total_cents"],
+        )
+
+
+@dataclass(frozen=True)
+class CheckoutClientBoleto:
+    """CheckoutClientBoleto is a resource of Peráta's API."""
+
+    digitable_line: str
+    """A linha digitável do boleto."""
+    due_date: str | None
+    """Quando o boleto deixa de poder ser pago: o fim do dia do vencimento, no horário de Brasília."""
+    pdf_url: str
+    """Onde o boleto é baixado; vazio quando o adquirente não deu nenhum."""
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> CheckoutClientBoleto:
+        return cls(
+            digitable_line=data["digitable_line"],
+            due_date=data.get("due_date"),
+            pdf_url=data["pdf_url"],
+        )
+
+
+@dataclass(frozen=True)
+class CheckoutClientCustomer:
+    """CheckoutClientCustomer is a resource of Peráta's API."""
+
+    address: BillingAddress
+    billing_name: str
+    email: str
+    name: str
+    tax_id: str
+    """O CPF ou CNPJ do comprador, só dígitos; vazio enquanto não for informado."""
+    tax_id_kind: str
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> CheckoutClientCustomer:
+        return cls(
+            address=BillingAddress.from_dict(data["address"]),
+            billing_name=data["billing_name"],
+            email=data["email"],
+            name=data["name"],
+            tax_id=data["tax_id"],
+            tax_id_kind=data["tax_id_kind"],
+        )
+
+
+@dataclass(frozen=True)
+class CheckoutClientDiscount:
+    """CheckoutClientDiscount is a resource of Peráta's API."""
+
+    code: str
+    """O código que o comprador aplicou; vazio num desconto que o link fixa sem código."""
+    discount_cents: int
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> CheckoutClientDiscount:
+        return cls(
+            code=data["code"],
+            discount_cents=data["discount_cents"],
+        )
+
+
+@dataclass(frozen=True)
+class CheckoutClientItem:
+    """CheckoutClientItem is a resource of Peráta's API."""
+
+    amount_cents: int
+    """Quanto custa a linha antes de qualquer desconto: a unidade vezes a quantidade."""
+    description: str
+    """A descrição do produto como o lojista a escreveu, em Markdown; vazia sem ela."""
+    interval: str
+    """month ou year numa assinatura; vazio numa compra avulsa."""
+    interval_count: int
+    """Quantos intervalos dura um ciclo."""
+    name: str
+    product_id: str
+    quantity: int
+    unit_cents: int
+    """Quanto custa uma unidade, antes de qualquer desconto."""
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> CheckoutClientItem:
+        return cls(
+            amount_cents=data["amount_cents"],
+            description=data["description"],
+            interval=data["interval"],
+            interval_count=data["interval_count"],
+            name=data["name"],
+            product_id=data["product_id"],
+            quantity=data["quantity"],
+            unit_cents=data["unit_cents"],
+        )
+
+
+@dataclass(frozen=True)
+class CheckoutClientPayment:
+    """CheckoutClientPayment is a resource of Peráta's API."""
+
+    boleto: CheckoutClientBoleto | None
+    card_brand: str
+    card_kind: str
+    id: str
+    installments: int
+    method: Literal["card", "pix", "boleto"]
+    pix: CheckoutClientPix | None
+    state: Literal["unknown", "pending", "authorized", "captured", "refused", "canceled", "refunded", "partially_refunded"]
+    unresolved: bool
+    """Verdadeiro enquanto a resposta do adquirente ainda é descoberta; o comprador espera."""
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> CheckoutClientPayment:
+        return cls(
+            boleto=None if data.get("boleto") is None else CheckoutClientBoleto.from_dict(data["boleto"]),
+            card_brand=data["card_brand"],
+            card_kind=data["card_kind"],
+            id=data["id"],
+            installments=data["installments"],
+            method=data["method"],
+            pix=None if data.get("pix") is None else CheckoutClientPix.from_dict(data["pix"]),
+            state=data["state"],
+            unresolved=data["unresolved"],
+        )
+
+
+@dataclass(frozen=True)
+class CheckoutClientPix:
+    """CheckoutClientPix is a resource of Peráta's API."""
+
+    copia_e_cola: str
+    """O código Pix copia e cola."""
+    expires_at: str | None
+    """Quando o Pix deixa de poder ser pago, como o adquirente o deu."""
+    qr_code_svg: str
+    """O QR do código, desenhado como um documento SVG."""
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> CheckoutClientPix:
+        return cls(
+            copia_e_cola=data["copia_e_cola"],
+            expires_at=data.get("expires_at"),
+            qr_code_svg=data["qr_code_svg"],
+        )
+
+
+@dataclass(frozen=True)
+class CheckoutCreated:
+    """CheckoutCreated is a resource of Peráta's API."""
+
+    cancel_url: str
+    """Endereço https para onde o comprador volta se desistir; vazio sem ele."""
+    client_secret: str
+    """O segredo que o navegador do comprador usa para ler, atualizar e pagar a sessão, sem chave de API. Só esta resposta o traz; entregue-o à página que monta os campos seguros. Vem vazio na repetição de uma criação idempotente."""
+    client_secret_expires_at: str
+    """Quando a sessão e o client_secret deixam de valer."""
+    created_at: str
+    expires_at: str | None
+    """Quando o link deixa de abrir sessões; nulo sem prazo."""
+    id: str
+    """O ID do link do checkout, o que GET e PATCH /checkouts/{id} recebem."""
+    label: str
+    """Como o lojista chama o checkout nas próprias telas; o comprador não vê."""
+    price_id: str
+    product_id: str
+    quantity: int
+    session_id: str
+    """O ID da sessão de checkout; as rotas de cliente dela são /checkouts/client/{client_secret}."""
+    status: Literal["active", "archived"]
+    """active abre sessões de compra; archived saiu de circulação."""
+    status_key: str
+    """Lê o estado da sessão depois que o client_secret é consumido: GET /checkouts/client/status/{status_key}. Só esta resposta o traz."""
+    success_url: str
+    """Endereço https para onde o comprador volta depois de pagar; vazio sem ele."""
+    url: str
+    """O endereço hospedado: redirecione o comprador para cá e ele paga na página da Peráta."""
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> CheckoutCreated:
+        return cls(
+            cancel_url=data["cancel_url"],
+            client_secret=data["client_secret"],
+            client_secret_expires_at=data["client_secret_expires_at"],
+            created_at=data["created_at"],
+            expires_at=data.get("expires_at"),
+            id=data["id"],
+            label=data["label"],
+            price_id=data["price_id"],
+            product_id=data["product_id"],
+            quantity=data["quantity"],
+            session_id=data["session_id"],
+            status=data["status"],
+            status_key=data["status_key"],
+            success_url=data["success_url"],
+            url=data["url"],
+        )
+
+
+@dataclass(frozen=True)
+class CheckoutInstallment:
+    """CheckoutInstallment is a resource of Peráta's API."""
+
+    count: int
+    """O número de parcelas; 1 é à vista."""
+    installment_cents: int
+    interest_cents: int
+    """Zero quando o lojista arca com os juros (sem juros)."""
+    total_cents: int
+    """Quanto o comprador paga no total: o total da sessão, mais os juros quando o plano os tem."""
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> CheckoutInstallment:
+        return cls(
+            count=data["count"],
+            installment_cents=data["installment_cents"],
+            interest_cents=data["interest_cents"],
+            total_cents=data["total_cents"],
         )
 
 
@@ -243,6 +577,113 @@ class CheckoutLinkProduct:
         return cls(
             price_id=data["price_id"],
             product_id=data["product_id"],
+        )
+
+
+@dataclass(frozen=True)
+class CheckoutNextAction:
+    """CheckoutNextAction is a resource of Peráta's API."""
+
+    type: Literal["none", "wait", "show_pix", "show_boleto", "redirect"]
+    """none: nada falta; wait: o resultado está sendo descoberto, leia o estado de novo; show_pix e show_boleto: mostre o Pix ou o boleto do pagamento e espere o pagamento; redirect: envie o comprador para url, onde o banco ou a autenticação 3DS termina o pagamento."""
+    url: str
+    """Para onde enviar o comprador, no redirect."""
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> CheckoutNextAction:
+        return cls(
+            type=data["type"],
+            url=data["url"],
+        )
+
+
+@dataclass(frozen=True)
+class CheckoutSavedCard:
+    """CheckoutSavedCard is a resource of Peráta's API."""
+
+    brand: str
+    expiry: str
+    """MM/AA."""
+    id: str
+    """O que o confirm recebe como saved_card."""
+    last4: str
+    link: bool
+    """O cartão está no Peráta Link do comprador, não com o lojista."""
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> CheckoutSavedCard:
+        return cls(
+            brand=data["brand"],
+            expiry=data["expiry"],
+            id=data["id"],
+            last4=data["last4"],
+            link=data["link"],
+        )
+
+
+@dataclass(frozen=True)
+class CheckoutSavedData:
+    """CheckoutSavedData is a resource of Peráta's API."""
+
+    cards: list[CheckoutSavedCard]
+    profile: CheckoutSavedProfile
+    proof: str
+    """O que o confirm recebe como saved_card_proof, para pagar com um cartão salvo ou atestar o e-mail."""
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> CheckoutSavedData:
+        return cls(
+            cards=[CheckoutSavedCard.from_dict(item) for item in data["cards"]],
+            profile=CheckoutSavedProfile.from_dict(data["profile"]),
+            proof=data["proof"],
+        )
+
+
+@dataclass(frozen=True)
+class CheckoutSavedDataSent:
+    """CheckoutSavedDataSent is a resource of Peráta's API."""
+
+    channel: str
+    fresh: bool
+    """Sempre falso, pelo mesmo motivo."""
+    sent: bool
+    """Sempre verdadeiro: a resposta não diz se há algo guardado para o e-mail."""
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> CheckoutSavedDataSent:
+        return cls(
+            channel=data["channel"],
+            fresh=data["fresh"],
+            sent=data["sent"],
+        )
+
+
+@dataclass(frozen=True)
+class CheckoutSavedProfile:
+    """CheckoutSavedProfile is a resource of Peráta's API."""
+
+    address_line1: str
+    address_line2: str
+    city: str
+    district: str
+    name: str
+    postal_code: str
+    state: str
+    tax_id: str
+    tax_id_kind: str
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> CheckoutSavedProfile:
+        return cls(
+            address_line1=data["address_line1"],
+            address_line2=data["address_line2"],
+            city=data["city"],
+            district=data["district"],
+            name=data["name"],
+            postal_code=data["postal_code"],
+            state=data["state"],
+            tax_id=data["tax_id"],
+            tax_id_kind=data["tax_id_kind"],
         )
 
 
@@ -1225,11 +1666,29 @@ class CheckoutLinksUpdateParams(TypedDict):
 class CheckoutsCreateParams(TypedDict):
     """The body of checkouts:create."""
 
+    allow_discount_codes: NotRequired[bool]
+    """Deixa o comprador digitar um código de desconto; desligado quando fica de fora."""
     cancel_url: NotRequired[str]
+    customer_email: NotRequired[str]
+    """O e-mail do comprador, quando você o conhece; senão o navegador do comprador o pede."""
+    customer_id: NotRequired[str]
+    """Um cliente seu: o checkout abre com o nome, o e-mail e os dados de cobrança dele. Não junto com external_customer_id, customer_email ou customer_name."""
+    customer_name: NotRequired[str]
+    """O nome do comprador, quando você o conhece."""
+    expires_in: NotRequired[int]
+    """Segundos em que a sessão e o client_secret continuam valendo; 1800 quando fica de fora."""
+    external_customer_id: NotRequired[str]
+    """O mesmo cliente, pelo ID que você deu a ele."""
     label: NotRequired[str]
+    metadata: NotRequired[dict[str, Any]]
+    """Até 50 pares guardados no link do checkout; valor em texto, número ou booleano."""
     price_id: str
     product_id: str
     quantity: NotRequired[int]
+    require_billing_address: NotRequired[bool]
+    """Pede o endereço de cobrança completo de todo comprador, não só no boleto; desligado quando fica de fora."""
+    return_url: NotRequired[str]
+    """Outro nome de cancel_url: a página https a que o comprador volta sem pagar. Enviada com um cancel_url diferente, é recusada."""
     success_url: NotRequired[str]
 
 

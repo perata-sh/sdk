@@ -137,3 +137,59 @@ func TestNullInAnEnumAnEmptyObjectAndANoContentAnswer(t *testing.T) {
 		t.Errorf("checked %d languages of %d", len(want), len(Languages))
 	}
 }
+
+// A model or null, which OpenAPI 3.1 writes as an anyOf of the model and
+// {"type": "null"}, is a nullable model in every language, not a free-form value.
+func TestAModelOrNullIsANullableModel(t *testing.T) {
+	ir, err := load(t, func(doc map[string]any) {
+		properties := dig(doc, "components", "schemas", "Product", "properties")
+		properties["featured_price"] = map[string]any{"anyOf": []any{
+			map[string]any{"$ref": "#/components/schemas/Price"},
+			map[string]any{"type": "null"},
+		}}
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	var product *Model
+	for _, model := range ir.Models {
+		if model.Name == "Product" {
+			product = model
+		}
+	}
+	var featured *Field
+	for _, field := range product.Fields {
+		if field.Wire == "featured_price" {
+			featured = field
+		}
+	}
+	if featured == nil || !featured.Nullable || featured.Type.Kind != "model" || featured.Type.Model != "Price" {
+		t.Fatalf("featured_price = %+v", featured)
+	}
+	want := map[string]struct{ file, text string }{
+		"go":         {"models.go", "FeaturedPrice"},
+		"typescript": {"src/models.ts", "featured_price?: Price | null"},
+		"python":     {"src/perata/models.py", "featured_price: Price | None"},
+		"php":        {"src/Models/Product.php", "?Price $featuredPrice"},
+		"ruby":       {"lib/perata/models.rb", "# @return [Price, nil]"},
+		"java":       {"src/main/java/sh/perata/Product.java", "private final Price featuredPrice;"},
+		"csharp":     {"src/Perata/Models/Product.cs", "Price? FeaturedPrice"},
+		"elixir":     {"lib/perata/models.ex", "featured_price: Perata.Price.t() | nil"},
+		"dart":       {"lib/src/models.dart", "final Price? featuredPrice;"},
+		"rust":       {"src/models.rs", "pub featured_price: Option<Price>"},
+		"swift":      {"Sources/Perata/Models.swift", "public let featuredPrice: Price?"},
+	}
+	for language, expected := range want {
+		out := t.TempDir()
+		if err := Generate(ir, language, out); err != nil {
+			t.Fatalf("%s: %v", language, err)
+		}
+		raw, err := os.ReadFile(filepath.Join(out, expected.file))
+		if err != nil || !strings.Contains(string(raw), expected.text) {
+			t.Errorf("%s: %s has no %q (%v)", language, expected.file, expected.text, err)
+		}
+	}
+	if len(want) != len(Languages) {
+		t.Errorf("checked %d languages of %d", len(want), len(Languages))
+	}
+}

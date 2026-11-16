@@ -24,7 +24,9 @@ contract the way Polar generates its own. Read this before changing anything.
   (`ir.go`) and renders it (`emit.go`, `lang_<language>.go`).
 - `openapi.json` is copied from perata.sh (`docs/contracts/api.openapi.json`,
   which perata.sh's CI keeps equal to the routes). Never edit it here: change
-  the API in perata.sh, export it, then `go run ./cmd/sdkgen -sync …`.
+  the API in perata.sh, export it, then run `./regen.sh` (it copies the contract
+  committed at the HEAD of perata.sh's develop, or another ref, or with
+  `--worktree` the checkout's file, and writes the eleven SDKs).
 
 ## The gates
 
@@ -85,7 +87,7 @@ confirmation.
 ## Release
 
 One version for every language.
-1. Bump `VERSION`, run `go run ./cmd/sdkgen` and `./check.sh`, and commit on
+1. Bump `VERSION`, run `./regen.sh` and `./check.sh`, and commit on
    develop; after CI, fast-forward main.
 2. Tag `vX.Y.Z` and `go/vX.Y.Z` on that commit and push both. The `v` tag runs
    `.github/workflows/release.yml`, which publishes npm, PyPI, RubyGems,

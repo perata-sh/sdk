@@ -18,16 +18,16 @@ public sealed class CheckoutsService
 
     internal CheckoutsService(PerataClient client) => this.client = client;
 
-    /// <summary>Criar o endereço de um checkout para um produto e um preço.</summary>
+    /// <summary>Criar um checkout: o endereço para onde o comprador é enviado e a sessão de compra aberta para ele, com o client_secret que o navegador do comprador usa nas rotas de cliente.</summary>
     /// <param name="parameters">The request.</param>
     /// <param name="options">An idempotency key, or another organization's key for this call.</param>
     /// <param name="cancellationToken">Cancels the call.</param>
-    /// <returns>The checkout.</returns>
+    /// <returns>The checkoutcreated.</returns>
     /// <exception cref="PerataException">The API refused the call.</exception>
-    public Task<Checkout> CreateAsync(CheckoutsCreateParams parameters, RequestOptions? options = null, CancellationToken cancellationToken = default)
+    public Task<CheckoutCreated> CreateAsync(CheckoutsCreateParams parameters, RequestOptions? options = null, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(parameters);
-        return client.RequestAsync(HttpMethod.Post, "/api/v1/checkouts", null, JsonSerializer.SerializeToUtf8Bytes(parameters, PerataJson.Default.CheckoutsCreateParams), PerataJson.Default.CheckoutEnvelope, options?.IdempotencyKey, options, cancellationToken);
+        return client.RequestAsync(HttpMethod.Post, "/api/v1/checkouts", null, JsonSerializer.SerializeToUtf8Bytes(parameters, PerataJson.Default.CheckoutsCreateParams), PerataJson.Default.CheckoutCreatedEnvelope, options?.IdempotencyKey, options, cancellationToken);
     }
 
     /// <summary>Ler um checkout: o endereço, o estado e as páginas de retorno.</summary>
@@ -58,13 +58,41 @@ public sealed class CheckoutsService
 /// <summary>The body of checkouts:create.</summary>
 public sealed record CheckoutsCreateParams
 {
+    /// <summary>Deixa o comprador digitar um código de desconto; desligado quando fica de fora. Left out of the request when null.</summary>
+    [JsonPropertyName("allow_discount_codes")]
+    public bool? AllowDiscountCodes { get; init; }
+
     /// <summary>The <c>cancel_url</c> to send. Left out of the request when null.</summary>
     [JsonPropertyName("cancel_url")]
     public string? CancelUrl { get; init; }
 
+    /// <summary>O e-mail do comprador, quando você o conhece; senão o navegador do comprador o pede. Left out of the request when null.</summary>
+    [JsonPropertyName("customer_email")]
+    public string? CustomerEmail { get; init; }
+
+    /// <summary>Um cliente seu: o checkout abre com o nome, o e-mail e os dados de cobrança dele. Não junto com external_customer_id, customer_email ou customer_name. Left out of the request when null.</summary>
+    [JsonPropertyName("customer_id")]
+    public string? CustomerId { get; init; }
+
+    /// <summary>O nome do comprador, quando você o conhece. Left out of the request when null.</summary>
+    [JsonPropertyName("customer_name")]
+    public string? CustomerName { get; init; }
+
+    /// <summary>Segundos em que a sessão e o client_secret continuam valendo; 1800 quando fica de fora. Left out of the request when null.</summary>
+    [JsonPropertyName("expires_in")]
+    public long? ExpiresIn { get; init; }
+
+    /// <summary>O mesmo cliente, pelo ID que você deu a ele. Left out of the request when null.</summary>
+    [JsonPropertyName("external_customer_id")]
+    public string? ExternalCustomerId { get; init; }
+
     /// <summary>The <c>label</c> to send. Left out of the request when null.</summary>
     [JsonPropertyName("label")]
     public string? Label { get; init; }
+
+    /// <summary>Até 50 pares guardados no link do checkout; valor em texto, número ou booleano. Left out of the request when null.</summary>
+    [JsonPropertyName("metadata")]
+    public IReadOnlyDictionary<string, JsonElement>? Metadata { get; init; }
 
     /// <summary>The <c>price_id</c> to send.</summary>
     [JsonPropertyName("price_id")]
@@ -77,6 +105,14 @@ public sealed record CheckoutsCreateParams
     /// <summary>The <c>quantity</c> to send. Left out of the request when null.</summary>
     [JsonPropertyName("quantity")]
     public long? Quantity { get; init; }
+
+    /// <summary>Pede o endereço de cobrança completo de todo comprador, não só no boleto; desligado quando fica de fora. Left out of the request when null.</summary>
+    [JsonPropertyName("require_billing_address")]
+    public bool? RequireBillingAddress { get; init; }
+
+    /// <summary>Outro nome de cancel_url: a página https a que o comprador volta sem pagar. Enviada com um cancel_url diferente, é recusada. Left out of the request when null.</summary>
+    [JsonPropertyName("return_url")]
+    public string? ReturnUrl { get; init; }
 
     /// <summary>The <c>success_url</c> to send. Left out of the request when null.</summary>
     [JsonPropertyName("success_url")]

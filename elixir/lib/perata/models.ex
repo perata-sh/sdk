@@ -173,6 +173,68 @@ defmodule Perata.Card do
   end
 end
 
+defmodule Perata.CardAuthentication do
+  @moduledoc "CardAuthentication is a resource of Peráta's API."
+
+  defstruct [:access_token, :environment, :expires_in, :provider, :script_url]
+
+  @typedoc """
+  * `access_token`: O token com que o script de 3DS autentica; entregue só a uma página da própria origem da Peráta.
+  * `environment` (one of `"test"`, `"live"`)
+  * `expires_in`: Segundos de vida do token.
+  * `script_url`: O script de autenticação do adquirente.
+  """
+  @type t :: %__MODULE__{
+          access_token: String.t(),
+          environment: String.t(),
+          expires_in: integer(),
+          provider: String.t(),
+          script_url: String.t()
+        }
+
+  @doc "Builds a CardAuthentication from the API's JSON."
+  @spec from_map(map()) :: t()
+  def from_map(%{} = data) do
+    %__MODULE__{
+      access_token: Map.fetch!(data, "access_token"),
+      environment: Map.fetch!(data, "environment"),
+      expires_in: Map.fetch!(data, "expires_in"),
+      provider: Map.fetch!(data, "provider"),
+      script_url: Map.fetch!(data, "script_url")
+    }
+  end
+end
+
+defmodule Perata.CardTokenization do
+  @moduledoc "CardTokenization is a resource of Peráta's API."
+
+  defstruct [:access_token, :environment, :expires_at, :issued, :provider]
+
+  @typedoc """
+  * `access_token`: O token com que o script do adquirente envia o cartão; entregue só a uma página da própria origem da Peráta.
+  * `environment` (one of `"test"`, `"live"`)
+  """
+  @type t :: %__MODULE__{
+          access_token: String.t(),
+          environment: String.t(),
+          expires_at: String.t(),
+          issued: String.t(),
+          provider: String.t()
+        }
+
+  @doc "Builds a CardTokenization from the API's JSON."
+  @spec from_map(map()) :: t()
+  def from_map(%{} = data) do
+    %__MODULE__{
+      access_token: Map.fetch!(data, "access_token"),
+      environment: Map.fetch!(data, "environment"),
+      expires_at: Map.fetch!(data, "expires_at"),
+      issued: Map.fetch!(data, "issued"),
+      provider: Map.fetch!(data, "provider")
+    }
+  end
+end
+
 defmodule Perata.Checkout do
   @moduledoc "Checkout is a resource of Peráta's API."
 
@@ -227,6 +289,420 @@ defmodule Perata.Checkout do
       status: Map.fetch!(data, "status"),
       success_url: Map.fetch!(data, "success_url"),
       url: Map.fetch!(data, "url")
+    }
+  end
+end
+
+defmodule Perata.CheckoutClient do
+  @moduledoc "CheckoutClient is a resource of Peráta's API."
+
+  defstruct [
+    :amount_cents,
+    :cancel_url,
+    :card_kinds,
+    :currency,
+    :customer,
+    :discount,
+    :discount_cents,
+    :editable,
+    :environment,
+    :expires_at,
+    :id,
+    :installments,
+    :items,
+    :missing,
+    :next_action,
+    :payment,
+    :payment_methods,
+    :requires_billing_address,
+    :requires_tax_id,
+    :status,
+    :status_key,
+    :success_url,
+    :total_cents
+  ]
+
+  @typedoc """
+  * `amount_cents`: Antes do desconto.
+  * `cancel_url`: Para onde o comprador volta sem pagar.
+  * `card_kinds`: credit, e debit onde a autenticação do adquirente está ligada.
+  * `currency` (one of `"BRL"`)
+  * `editable`: A sessão está aberta e ainda aceita atualizações e um pagamento.
+  * `environment` (one of `"test"`, `"live"`)
+  * `expires_at`: Quando a sessão e o client_secret deixam de valer.
+  * `id`: O ID da sessão de checkout.
+  * `installments`: Os planos de uma venda no cartão de crédito, à vista primeiro; vazio quando a sessão não se paga em parcelas no cartão.
+  * `missing`: O que o pagamento ainda precisa do comprador, pelo campo da rota de atualização: customer_email, tax_id e billing_address.
+  * `payment_methods`: As formas em que a sessão pode ser paga, entre card, pix, boleto e free; free é uma sessão que não pede pagamento.
+  * `requires_billing_address`: O lojista pede o endereço de cobrança completo; o boleto o pede de qualquer jeito.
+  * `requires_tax_id`: O CPF ou CNPJ é obrigatório porque há um pagamento a fazer.
+  * `status` (one of `"open"`, `"confirmed"`, `"succeeded"`, `"failed"`, `"expired"`): open: esperando o comprador; confirmed: o pagamento foi pedido e não está liquidado (um Pix ou boleto esperando pagamento); succeeded: pago; failed e expired: acabou sem pagamento.
+  * `status_key`: A chave que lê o estado desta sessão depois que o client_secret é consumido: GET /checkouts/client/status/{status_key}.
+  * `success_url`: Para onde o comprador vai depois de pagar: a página do próprio lojista, com o ID do checkout onde ele o pediu.
+  * `total_cents`: O que o comprador paga, em centavos.
+  """
+  @type t :: %__MODULE__{
+          amount_cents: integer(),
+          cancel_url: String.t(),
+          card_kinds: [String.t()],
+          currency: String.t(),
+          customer: Perata.CheckoutClientCustomer.t() | nil,
+          discount: Perata.CheckoutClientDiscount.t() | nil,
+          discount_cents: integer(),
+          editable: boolean(),
+          environment: String.t(),
+          expires_at: String.t(),
+          id: String.t(),
+          installments: [Perata.CheckoutInstallment.t()],
+          items: [Perata.CheckoutClientItem.t()],
+          missing: [String.t()],
+          next_action: Perata.CheckoutNextAction.t(),
+          payment: Perata.CheckoutClientPayment.t() | nil,
+          payment_methods: [String.t()],
+          requires_billing_address: boolean(),
+          requires_tax_id: boolean(),
+          status: String.t(),
+          status_key: String.t(),
+          success_url: String.t(),
+          total_cents: integer()
+        }
+
+  @doc "Builds a CheckoutClient from the API's JSON."
+  @spec from_map(map()) :: t()
+  def from_map(%{} = data) do
+    %__MODULE__{
+      amount_cents: Map.fetch!(data, "amount_cents"),
+      cancel_url: Map.fetch!(data, "cancel_url"),
+      card_kinds: Map.fetch!(data, "card_kinds"),
+      currency: Map.fetch!(data, "currency"),
+      customer: with(value when not is_nil(value) <- data["customer"], do: Perata.CheckoutClientCustomer.from_map(value)),
+      discount: with(value when not is_nil(value) <- data["discount"], do: Perata.CheckoutClientDiscount.from_map(value)),
+      discount_cents: Map.fetch!(data, "discount_cents"),
+      editable: Map.fetch!(data, "editable"),
+      environment: Map.fetch!(data, "environment"),
+      expires_at: Map.fetch!(data, "expires_at"),
+      id: Map.fetch!(data, "id"),
+      installments: Enum.map(Map.fetch!(data, "installments"), &Perata.CheckoutInstallment.from_map/1),
+      items: Enum.map(Map.fetch!(data, "items"), &Perata.CheckoutClientItem.from_map/1),
+      missing: Map.fetch!(data, "missing"),
+      next_action: Perata.CheckoutNextAction.from_map(Map.fetch!(data, "next_action")),
+      payment: with(value when not is_nil(value) <- data["payment"], do: Perata.CheckoutClientPayment.from_map(value)),
+      payment_methods: Map.fetch!(data, "payment_methods"),
+      requires_billing_address: Map.fetch!(data, "requires_billing_address"),
+      requires_tax_id: Map.fetch!(data, "requires_tax_id"),
+      status: Map.fetch!(data, "status"),
+      status_key: Map.fetch!(data, "status_key"),
+      success_url: Map.fetch!(data, "success_url"),
+      total_cents: Map.fetch!(data, "total_cents")
+    }
+  end
+end
+
+defmodule Perata.CheckoutClientBoleto do
+  @moduledoc "CheckoutClientBoleto is a resource of Peráta's API."
+
+  defstruct [:digitable_line, :due_date, :pdf_url]
+
+  @typedoc """
+  * `digitable_line`: A linha digitável do boleto.
+  * `due_date`: Quando o boleto deixa de poder ser pago: o fim do dia do vencimento, no horário de Brasília.
+  * `pdf_url`: Onde o boleto é baixado; vazio quando o adquirente não deu nenhum.
+  """
+  @type t :: %__MODULE__{
+          digitable_line: String.t(),
+          due_date: String.t() | nil,
+          pdf_url: String.t()
+        }
+
+  @doc "Builds a CheckoutClientBoleto from the API's JSON."
+  @spec from_map(map()) :: t()
+  def from_map(%{} = data) do
+    %__MODULE__{
+      digitable_line: Map.fetch!(data, "digitable_line"),
+      due_date: data["due_date"],
+      pdf_url: Map.fetch!(data, "pdf_url")
+    }
+  end
+end
+
+defmodule Perata.CheckoutClientCustomer do
+  @moduledoc "CheckoutClientCustomer is a resource of Peráta's API."
+
+  defstruct [:address, :billing_name, :email, :name, :tax_id, :tax_id_kind]
+
+  @typedoc """
+  * `tax_id`: O CPF ou CNPJ do comprador, só dígitos; vazio enquanto não for informado.
+  """
+  @type t :: %__MODULE__{
+          address: Perata.BillingAddress.t(),
+          billing_name: String.t(),
+          email: String.t(),
+          name: String.t(),
+          tax_id: String.t(),
+          tax_id_kind: String.t()
+        }
+
+  @doc "Builds a CheckoutClientCustomer from the API's JSON."
+  @spec from_map(map()) :: t()
+  def from_map(%{} = data) do
+    %__MODULE__{
+      address: Perata.BillingAddress.from_map(Map.fetch!(data, "address")),
+      billing_name: Map.fetch!(data, "billing_name"),
+      email: Map.fetch!(data, "email"),
+      name: Map.fetch!(data, "name"),
+      tax_id: Map.fetch!(data, "tax_id"),
+      tax_id_kind: Map.fetch!(data, "tax_id_kind")
+    }
+  end
+end
+
+defmodule Perata.CheckoutClientDiscount do
+  @moduledoc "CheckoutClientDiscount is a resource of Peráta's API."
+
+  defstruct [:code, :discount_cents]
+
+  @typedoc """
+  * `code`: O código que o comprador aplicou; vazio num desconto que o link fixa sem código.
+  """
+  @type t :: %__MODULE__{
+          code: String.t(),
+          discount_cents: integer()
+        }
+
+  @doc "Builds a CheckoutClientDiscount from the API's JSON."
+  @spec from_map(map()) :: t()
+  def from_map(%{} = data) do
+    %__MODULE__{
+      code: Map.fetch!(data, "code"),
+      discount_cents: Map.fetch!(data, "discount_cents")
+    }
+  end
+end
+
+defmodule Perata.CheckoutClientItem do
+  @moduledoc "CheckoutClientItem is a resource of Peráta's API."
+
+  defstruct [
+    :amount_cents,
+    :description,
+    :interval,
+    :interval_count,
+    :name,
+    :product_id,
+    :quantity,
+    :unit_cents
+  ]
+
+  @typedoc """
+  * `amount_cents`: Quanto custa a linha antes de qualquer desconto: a unidade vezes a quantidade.
+  * `description`: A descrição do produto como o lojista a escreveu, em Markdown; vazia sem ela.
+  * `interval`: month ou year numa assinatura; vazio numa compra avulsa.
+  * `interval_count`: Quantos intervalos dura um ciclo.
+  * `unit_cents`: Quanto custa uma unidade, antes de qualquer desconto.
+  """
+  @type t :: %__MODULE__{
+          amount_cents: integer(),
+          description: String.t(),
+          interval: String.t(),
+          interval_count: integer(),
+          name: String.t(),
+          product_id: String.t(),
+          quantity: integer(),
+          unit_cents: integer()
+        }
+
+  @doc "Builds a CheckoutClientItem from the API's JSON."
+  @spec from_map(map()) :: t()
+  def from_map(%{} = data) do
+    %__MODULE__{
+      amount_cents: Map.fetch!(data, "amount_cents"),
+      description: Map.fetch!(data, "description"),
+      interval: Map.fetch!(data, "interval"),
+      interval_count: Map.fetch!(data, "interval_count"),
+      name: Map.fetch!(data, "name"),
+      product_id: Map.fetch!(data, "product_id"),
+      quantity: Map.fetch!(data, "quantity"),
+      unit_cents: Map.fetch!(data, "unit_cents")
+    }
+  end
+end
+
+defmodule Perata.CheckoutClientPayment do
+  @moduledoc "CheckoutClientPayment is a resource of Peráta's API."
+
+  defstruct [
+    :boleto,
+    :card_brand,
+    :card_kind,
+    :id,
+    :installments,
+    :method,
+    :pix,
+    :state,
+    :unresolved
+  ]
+
+  @typedoc """
+  * `method` (one of `"card"`, `"pix"`, `"boleto"`)
+  * `state` (one of `"unknown"`, `"pending"`, `"authorized"`, `"captured"`, `"refused"`, `"canceled"`, `"refunded"`, `"partially_refunded"`)
+  * `unresolved`: Verdadeiro enquanto a resposta do adquirente ainda é descoberta; o comprador espera.
+  """
+  @type t :: %__MODULE__{
+          boleto: Perata.CheckoutClientBoleto.t() | nil,
+          card_brand: String.t(),
+          card_kind: String.t(),
+          id: String.t(),
+          installments: integer(),
+          method: String.t(),
+          pix: Perata.CheckoutClientPix.t() | nil,
+          state: String.t(),
+          unresolved: boolean()
+        }
+
+  @doc "Builds a CheckoutClientPayment from the API's JSON."
+  @spec from_map(map()) :: t()
+  def from_map(%{} = data) do
+    %__MODULE__{
+      boleto: with(value when not is_nil(value) <- data["boleto"], do: Perata.CheckoutClientBoleto.from_map(value)),
+      card_brand: Map.fetch!(data, "card_brand"),
+      card_kind: Map.fetch!(data, "card_kind"),
+      id: Map.fetch!(data, "id"),
+      installments: Map.fetch!(data, "installments"),
+      method: Map.fetch!(data, "method"),
+      pix: with(value when not is_nil(value) <- data["pix"], do: Perata.CheckoutClientPix.from_map(value)),
+      state: Map.fetch!(data, "state"),
+      unresolved: Map.fetch!(data, "unresolved")
+    }
+  end
+end
+
+defmodule Perata.CheckoutClientPix do
+  @moduledoc "CheckoutClientPix is a resource of Peráta's API."
+
+  defstruct [:copia_e_cola, :expires_at, :qr_code_svg]
+
+  @typedoc """
+  * `copia_e_cola`: O código Pix copia e cola.
+  * `expires_at`: Quando o Pix deixa de poder ser pago, como o adquirente o deu.
+  * `qr_code_svg`: O QR do código, desenhado como um documento SVG.
+  """
+  @type t :: %__MODULE__{
+          copia_e_cola: String.t(),
+          expires_at: String.t() | nil,
+          qr_code_svg: String.t()
+        }
+
+  @doc "Builds a CheckoutClientPix from the API's JSON."
+  @spec from_map(map()) :: t()
+  def from_map(%{} = data) do
+    %__MODULE__{
+      copia_e_cola: Map.fetch!(data, "copia_e_cola"),
+      expires_at: data["expires_at"],
+      qr_code_svg: Map.fetch!(data, "qr_code_svg")
+    }
+  end
+end
+
+defmodule Perata.CheckoutCreated do
+  @moduledoc "CheckoutCreated is a resource of Peráta's API."
+
+  defstruct [
+    :cancel_url,
+    :client_secret,
+    :client_secret_expires_at,
+    :created_at,
+    :expires_at,
+    :id,
+    :label,
+    :price_id,
+    :product_id,
+    :quantity,
+    :session_id,
+    :status,
+    :status_key,
+    :success_url,
+    :url
+  ]
+
+  @typedoc """
+  * `cancel_url`: Endereço https para onde o comprador volta se desistir; vazio sem ele.
+  * `client_secret`: O segredo que o navegador do comprador usa para ler, atualizar e pagar a sessão, sem chave de API. Só esta resposta o traz; entregue-o à página que monta os campos seguros. Vem vazio na repetição de uma criação idempotente.
+  * `client_secret_expires_at`: Quando a sessão e o client_secret deixam de valer.
+  * `expires_at`: Quando o link deixa de abrir sessões; nulo sem prazo.
+  * `id`: O ID do link do checkout, o que GET e PATCH /checkouts/{id} recebem.
+  * `label`: Como o lojista chama o checkout nas próprias telas; o comprador não vê.
+  * `session_id`: O ID da sessão de checkout; as rotas de cliente dela são /checkouts/client/{client_secret}.
+  * `status` (one of `"active"`, `"archived"`): active abre sessões de compra; archived saiu de circulação.
+  * `status_key`: Lê o estado da sessão depois que o client_secret é consumido: GET /checkouts/client/status/{status_key}. Só esta resposta o traz.
+  * `success_url`: Endereço https para onde o comprador volta depois de pagar; vazio sem ele.
+  * `url`: O endereço hospedado: redirecione o comprador para cá e ele paga na página da Peráta.
+  """
+  @type t :: %__MODULE__{
+          cancel_url: String.t(),
+          client_secret: String.t(),
+          client_secret_expires_at: String.t(),
+          created_at: String.t(),
+          expires_at: String.t() | nil,
+          id: String.t(),
+          label: String.t(),
+          price_id: String.t(),
+          product_id: String.t(),
+          quantity: integer(),
+          session_id: String.t(),
+          status: String.t(),
+          status_key: String.t(),
+          success_url: String.t(),
+          url: String.t()
+        }
+
+  @doc "Builds a CheckoutCreated from the API's JSON."
+  @spec from_map(map()) :: t()
+  def from_map(%{} = data) do
+    %__MODULE__{
+      cancel_url: Map.fetch!(data, "cancel_url"),
+      client_secret: Map.fetch!(data, "client_secret"),
+      client_secret_expires_at: Map.fetch!(data, "client_secret_expires_at"),
+      created_at: Map.fetch!(data, "created_at"),
+      expires_at: data["expires_at"],
+      id: Map.fetch!(data, "id"),
+      label: Map.fetch!(data, "label"),
+      price_id: Map.fetch!(data, "price_id"),
+      product_id: Map.fetch!(data, "product_id"),
+      quantity: Map.fetch!(data, "quantity"),
+      session_id: Map.fetch!(data, "session_id"),
+      status: Map.fetch!(data, "status"),
+      status_key: Map.fetch!(data, "status_key"),
+      success_url: Map.fetch!(data, "success_url"),
+      url: Map.fetch!(data, "url")
+    }
+  end
+end
+
+defmodule Perata.CheckoutInstallment do
+  @moduledoc "CheckoutInstallment is a resource of Peráta's API."
+
+  defstruct [:count, :installment_cents, :interest_cents, :total_cents]
+
+  @typedoc """
+  * `count`: O número de parcelas; 1 é à vista.
+  * `interest_cents`: Zero quando o lojista arca com os juros (sem juros).
+  * `total_cents`: Quanto o comprador paga no total: o total da sessão, mais os juros quando o plano os tem.
+  """
+  @type t :: %__MODULE__{
+          count: integer(),
+          installment_cents: integer(),
+          interest_cents: integer(),
+          total_cents: integer()
+        }
+
+  @doc "Builds a CheckoutInstallment from the API's JSON."
+  @spec from_map(map()) :: t()
+  def from_map(%{} = data) do
+    %__MODULE__{
+      count: Map.fetch!(data, "count"),
+      installment_cents: Map.fetch!(data, "installment_cents"),
+      interest_cents: Map.fetch!(data, "interest_cents"),
+      total_cents: Map.fetch!(data, "total_cents")
     }
   end
 end
@@ -344,6 +820,156 @@ defmodule Perata.CheckoutLinkProduct do
     %__MODULE__{
       price_id: Map.fetch!(data, "price_id"),
       product_id: Map.fetch!(data, "product_id")
+    }
+  end
+end
+
+defmodule Perata.CheckoutNextAction do
+  @moduledoc "CheckoutNextAction is a resource of Peráta's API."
+
+  defstruct [:type, :url]
+
+  @typedoc """
+  * `type` (one of `"none"`, `"wait"`, `"show_pix"`, `"show_boleto"`, `"redirect"`): none: nada falta; wait: o resultado está sendo descoberto, leia o estado de novo; show_pix e show_boleto: mostre o Pix ou o boleto do pagamento e espere o pagamento; redirect: envie o comprador para url, onde o banco ou a autenticação 3DS termina o pagamento.
+  * `url`: Para onde enviar o comprador, no redirect.
+  """
+  @type t :: %__MODULE__{
+          type: String.t(),
+          url: String.t()
+        }
+
+  @doc "Builds a CheckoutNextAction from the API's JSON."
+  @spec from_map(map()) :: t()
+  def from_map(%{} = data) do
+    %__MODULE__{
+      type: Map.fetch!(data, "type"),
+      url: Map.fetch!(data, "url")
+    }
+  end
+end
+
+defmodule Perata.CheckoutSavedCard do
+  @moduledoc "CheckoutSavedCard is a resource of Peráta's API."
+
+  defstruct [:brand, :expiry, :id, :last4, :link]
+
+  @typedoc """
+  * `expiry`: MM/AA.
+  * `id`: O que o confirm recebe como saved_card.
+  * `link`: O cartão está no Peráta Link do comprador, não com o lojista.
+  """
+  @type t :: %__MODULE__{
+          brand: String.t(),
+          expiry: String.t(),
+          id: String.t(),
+          last4: String.t(),
+          link: boolean()
+        }
+
+  @doc "Builds a CheckoutSavedCard from the API's JSON."
+  @spec from_map(map()) :: t()
+  def from_map(%{} = data) do
+    %__MODULE__{
+      brand: Map.fetch!(data, "brand"),
+      expiry: Map.fetch!(data, "expiry"),
+      id: Map.fetch!(data, "id"),
+      last4: Map.fetch!(data, "last4"),
+      link: Map.fetch!(data, "link")
+    }
+  end
+end
+
+defmodule Perata.CheckoutSavedData do
+  @moduledoc "CheckoutSavedData is a resource of Peráta's API."
+
+  defstruct [:cards, :profile, :proof]
+
+  @typedoc """
+  * `proof`: O que o confirm recebe como saved_card_proof, para pagar com um cartão salvo ou atestar o e-mail.
+  """
+  @type t :: %__MODULE__{
+          cards: [Perata.CheckoutSavedCard.t()],
+          profile: Perata.CheckoutSavedProfile.t(),
+          proof: String.t()
+        }
+
+  @doc "Builds a CheckoutSavedData from the API's JSON."
+  @spec from_map(map()) :: t()
+  def from_map(%{} = data) do
+    %__MODULE__{
+      cards: Enum.map(Map.fetch!(data, "cards"), &Perata.CheckoutSavedCard.from_map/1),
+      profile: Perata.CheckoutSavedProfile.from_map(Map.fetch!(data, "profile")),
+      proof: Map.fetch!(data, "proof")
+    }
+  end
+end
+
+defmodule Perata.CheckoutSavedDataSent do
+  @moduledoc "CheckoutSavedDataSent is a resource of Peráta's API."
+
+  defstruct [:channel, :fresh, :sent]
+
+  @typedoc """
+  * `fresh`: Sempre falso, pelo mesmo motivo.
+  * `sent`: Sempre verdadeiro: a resposta não diz se há algo guardado para o e-mail.
+  """
+  @type t :: %__MODULE__{
+          channel: String.t(),
+          fresh: boolean(),
+          sent: boolean()
+        }
+
+  @doc "Builds a CheckoutSavedDataSent from the API's JSON."
+  @spec from_map(map()) :: t()
+  def from_map(%{} = data) do
+    %__MODULE__{
+      channel: Map.fetch!(data, "channel"),
+      fresh: Map.fetch!(data, "fresh"),
+      sent: Map.fetch!(data, "sent")
+    }
+  end
+end
+
+defmodule Perata.CheckoutSavedProfile do
+  @moduledoc "CheckoutSavedProfile is a resource of Peráta's API."
+
+  defstruct [
+    :address_line1,
+    :address_line2,
+    :city,
+    :district,
+    :name,
+    :postal_code,
+    :state,
+    :tax_id,
+    :tax_id_kind
+  ]
+
+  @type t :: %__MODULE__{
+          address_line1: String.t(),
+          address_line2: String.t(),
+          city: String.t(),
+          district: String.t(),
+          name: String.t(),
+          postal_code: String.t(),
+          state: String.t(),
+          tax_id: String.t(),
+          tax_id_kind: String.t()
+        }
+
+  @doc "Builds a CheckoutSavedProfile from the API's JSON."
+  @spec from_map(map()) :: t()
+  def from_map(%{} = data) do
+    %__MODULE__{
+      address_line1: Map.fetch!(data, "address_line1"),
+      address_line2: Map.fetch!(data, "address_line2"),
+      city: Map.fetch!(data, "city"),
+      district: Map.fetch!(data, "district"),
+      name: Map.fetch!(data, "name"),
+      postal_code: Map.fetch!(data, "postal_code"),
+      state: Map.fetch!(data, "state"),
+      tax_id: Map.fetch!(data, "tax_id"),
+      tax_id_kind: Map.fetch!(data, "tax_id_kind")
     }
   end
 end

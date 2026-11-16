@@ -148,13 +148,13 @@ module Perata
       @client = client
     end
 
-    # Criar o endereço de um checkout para um produto e um preço.
+    # Criar um checkout: o endereço para onde o comprador é enviado e a sessão de compra aberta para ele, com o client_secret que o navegador do comprador usa nas rotas de cliente.
     #
     # @param params [CheckoutsCreateParams, Hash]
-    # @return [Checkout]
+    # @return [CheckoutCreated]
     def create(params, idempotency_key: nil, api_key: nil)
       data = @client.request("POST", "/api/v1/checkouts", body: CheckoutsCreateParams.coerce(params).to_wire, idempotency_key: idempotency_key, api_key: api_key)
-      Checkout.from_hash(data)
+      CheckoutCreated.from_hash(data)
     end
 
     # Ler um checkout: o endereço, o estado e as páginas de retorno.

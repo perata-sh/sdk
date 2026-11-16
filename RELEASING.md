@@ -21,7 +21,7 @@ registry failing does not stop the others, and a failed job can be re-run alone.
 
 ## Each release
 
-1. Bump `VERSION`, run `go run ./cmd/sdkgen` and `./check.sh`, commit on
+1. Bump `VERSION`, run `./regen.sh` and `./check.sh`, commit on
    `develop`, and after CI fast-forward `main`.
 2. On that commit, tag and push both tags:
 

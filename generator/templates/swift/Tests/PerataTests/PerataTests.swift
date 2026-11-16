@@ -73,6 +73,48 @@ final class PerataTests: XCTestCase {
         XCTAssertEqual(body, ["name": "Curso"])
     }
 
+    func testACheckoutSessionHandsBackTheClientSecretForTheBrowser() async throws {
+        @Sendable func session(_ clientSecret: String) -> [String: Any] {
+            [
+                "id": "pcl_1", "url": "https://perata.sh/pagamento/pcl_1", "product_id": "prod_1", "price_id": "price_1",
+                "status": "active", "label": "", "quantity": 1, "success_url": "https://loja.example/obrigado", "cancel_url": "",
+                "expires_at": NSNull(), "created_at": "2026-11-16T12:00:00Z", "session_id": "cs_1", "client_secret": clientSecret,
+                "client_secret_expires_at": "2026-11-16T12:30:00Z", "status_key": "sk_1",
+            ]
+        }
+        let (perata, recorder) = client { _ in (201, [:], ["data": session("cs_secret_1")]) }
+        let params = CheckoutsCreateParams(priceID: "price_1", productID: "prod_1", successURL: "https://loja.example/obrigado")
+        let checkout = try await perata.checkouts.create(params, idempotencyKey: "pedido-1")
+        XCTAssertEqual(checkout.clientSecret, "cs_secret_1")
+        XCTAssertEqual(checkout.sessionID, "cs_1")
+        XCTAssertEqual(checkout.statusKey, "sk_1")
+        XCTAssertEqual(checkout.clientSecretExpiresAt, "2026-11-16T12:30:00Z")
+        XCTAssertEqual(checkout.url, "https://perata.sh/pagamento/pcl_1")
+        XCTAssertNil(checkout.expiresAt)
+        let seen = recorder.seen[0]
+        XCTAssertEqual(seen.httpMethod, "POST")
+        XCTAssertEqual(seen.url?.path, "/api/v1/checkouts")
+        XCTAssertEqual(seen.value(forHTTPHeaderField: "Idempotency-Key"), "pedido-1")
+        let body = try XCTUnwrap(JSONSerialization.jsonObject(with: XCTUnwrap(seen.httpBody)) as? [String: String])
+        XCTAssertEqual(body, ["product_id": "prod_1", "price_id": "price_1", "success_url": "https://loja.example/obrigado"])
+        // The replay of the same Idempotency-Key carries the secret empty.
+        let (replaying, _) = client { _ in (201, ["Idempotent-Replayed": "true"], ["data": session("")]) }
+        let again = try await replaying.checkouts.create(params, idempotencyKey: "pedido-1")
+        XCTAssertEqual(again.clientSecret, "")
+        XCTAssertEqual(again.sessionID, "cs_1")
+    }
+
+    func testAModelThatMayBeNullDecodesBothWays() throws {
+        let json = """
+            {"id":"pay_1","method":"pix","state":"pending","unresolved":false,"card_brand":"","card_kind":"","installments":1,
+             "pix":{"copia_e_cola":"000201","qr_code_svg":"<svg/>","expires_at":null},"boleto":null}
+            """
+        let payment = try JSONDecoder().decode(CheckoutClientPayment.self, from: Data(json.utf8))
+        XCTAssertNil(payment.boleto)
+        XCTAssertEqual(payment.pix?.copiaECola, "000201")
+        XCTAssertNil(payment.pix?.expiresAt)
+    }
+
     func testABaseURLMustBeHTTPSUnlessItIsLoopback() async throws {
         let accepted = ["https://perata.sh", "http://localhost:8080", "http://LOCALHOST", "http://127.0.0.1:1", "http://127.255.0.3", "http://[::1]:8080"]
         let refused = ["http://perata.sh", "http://localhost.evil.test", "http://127.0.0.1.evil.test", "http://10.0.0.1", "ftp://localhost", "http://[::2]"]

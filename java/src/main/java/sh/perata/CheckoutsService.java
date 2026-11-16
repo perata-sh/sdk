@@ -16,43 +16,61 @@ public final class CheckoutsService {
     }
 
     /**
-     * Criar o endereço de um checkout para um produto e um preço.
+     * Criar um checkout: o endereço para onde o comprador é enviado e a sessão de compra aberta para ele, com o client_secret que o navegador do comprador usa nas rotas de cliente.
      * @param params the request
      * @param options an idempotency key or another organization's key for this call, or null
-     * @return the checkout
+     * @return the checkoutcreated
      * @throws PerataException when the API refuses the call
      */
-    public Checkout create(CreateParams params, RequestOptions options) {
+    public CheckoutCreated create(CreateParams params, RequestOptions options) {
         Object data = client.request("POST", "/api/v1/checkouts", null, Objects.requireNonNull(params, "params").toJson(), options == null ? null : options.getIdempotencyKey(), options);
-        return Checkout.fromJson(Json.asObject(data));
+        return CheckoutCreated.fromJson(Json.asObject(data));
     }
 
     /**
-     * Criar o endereço de um checkout para um produto e um preço.
+     * Criar um checkout: o endereço para onde o comprador é enviado e a sessão de compra aberta para ele, com o client_secret que o navegador do comprador usa nas rotas de cliente.
      * @param params the request
-     * @return the checkout
+     * @return the checkoutcreated
      * @throws PerataException when the API refuses the call
      */
-    public Checkout create(CreateParams params) {
+    public CheckoutCreated create(CreateParams params) {
         return create(params, null);
     }
 
     /** The body of checkouts:create. */
     public static final class CreateParams {
 
+        private final Boolean allowDiscountCodes;
         private final String cancelUrl;
+        private final String customerEmail;
+        private final String customerId;
+        private final String customerName;
+        private final Long expiresIn;
+        private final String externalCustomerId;
         private final String label;
+        private final Map<String, Object> metadata;
         private final String priceId;
         private final String productId;
         private final Long quantity;
+        private final Boolean requireBillingAddress;
+        private final String returnUrl;
         private final String successUrl;
 
         private CreateParams(Builder builder) {
+            this.allowDiscountCodes = builder.allowDiscountCodes;
             this.cancelUrl = builder.cancelUrl;
+            this.customerEmail = builder.customerEmail;
+            this.customerId = builder.customerId;
+            this.customerName = builder.customerName;
+            this.expiresIn = builder.expiresIn;
+            this.externalCustomerId = builder.externalCustomerId;
             this.label = builder.label;
+            this.metadata = builder.metadata;
             this.priceId = builder.priceId;
             this.productId = builder.productId;
             this.quantity = builder.quantity;
+            this.requireBillingAddress = builder.requireBillingAddress;
+            this.returnUrl = builder.returnUrl;
             this.successUrl = builder.successUrl;
         }
 
@@ -61,14 +79,49 @@ public final class CheckoutsService {
             return new Builder();
         }
 
+        /** @return Deixa o comprador digitar um código de desconto; desligado quando fica de fora. (null when left out) */
+        public Boolean getAllowDiscountCodes() {
+            return allowDiscountCodes;
+        }
+
         /** @return the {@code cancel_url} sent (null when left out) */
         public String getCancelUrl() {
             return cancelUrl;
         }
 
+        /** @return O e-mail do comprador, quando você o conhece; senão o navegador do comprador o pede. (null when left out) */
+        public String getCustomerEmail() {
+            return customerEmail;
+        }
+
+        /** @return Um cliente seu: o checkout abre com o nome, o e-mail e os dados de cobrança dele. Não junto com external_customer_id, customer_email ou customer_name. (null when left out) */
+        public String getCustomerId() {
+            return customerId;
+        }
+
+        /** @return O nome do comprador, quando você o conhece. (null when left out) */
+        public String getCustomerName() {
+            return customerName;
+        }
+
+        /** @return Segundos em que a sessão e o client_secret continuam valendo; 1800 quando fica de fora. (null when left out) */
+        public Long getExpiresIn() {
+            return expiresIn;
+        }
+
+        /** @return O mesmo cliente, pelo ID que você deu a ele. (null when left out) */
+        public String getExternalCustomerId() {
+            return externalCustomerId;
+        }
+
         /** @return the {@code label} sent (null when left out) */
         public String getLabel() {
             return label;
+        }
+
+        /** @return Até 50 pares guardados no link do checkout; valor em texto, número ou booleano. (null when left out) */
+        public Map<String, Object> getMetadata() {
+            return metadata;
         }
 
         /** @return the {@code price_id} sent */
@@ -86,6 +139,16 @@ public final class CheckoutsService {
             return quantity;
         }
 
+        /** @return Pede o endereço de cobrança completo de todo comprador, não só no boleto; desligado quando fica de fora. (null when left out) */
+        public Boolean getRequireBillingAddress() {
+            return requireBillingAddress;
+        }
+
+        /** @return Outro nome de cancel_url: a página https a que o comprador volta sem pagar. Enviada com um cancel_url diferente, é recusada. (null when left out) */
+        public String getReturnUrl() {
+            return returnUrl;
+        }
+
         /** @return the {@code success_url} sent (null when left out) */
         public String getSuccessUrl() {
             return successUrl;
@@ -93,16 +156,43 @@ public final class CheckoutsService {
 
         Map<String, Object> toJson() {
             Map<String, Object> body = new LinkedHashMap<>();
+            if (allowDiscountCodes != null) {
+                body.put("allow_discount_codes", allowDiscountCodes);
+            }
             if (cancelUrl != null) {
                 body.put("cancel_url", cancelUrl);
             }
+            if (customerEmail != null) {
+                body.put("customer_email", customerEmail);
+            }
+            if (customerId != null) {
+                body.put("customer_id", customerId);
+            }
+            if (customerName != null) {
+                body.put("customer_name", customerName);
+            }
+            if (expiresIn != null) {
+                body.put("expires_in", expiresIn);
+            }
+            if (externalCustomerId != null) {
+                body.put("external_customer_id", externalCustomerId);
+            }
             if (label != null) {
                 body.put("label", label);
+            }
+            if (metadata != null) {
+                body.put("metadata", metadata);
             }
             body.put("price_id", priceId);
             body.put("product_id", productId);
             if (quantity != null) {
                 body.put("quantity", quantity);
+            }
+            if (requireBillingAddress != null) {
+                body.put("require_billing_address", requireBillingAddress);
+            }
+            if (returnUrl != null) {
+                body.put("return_url", returnUrl);
             }
             if (successUrl != null) {
                 body.put("success_url", successUrl);
@@ -112,14 +202,32 @@ public final class CheckoutsService {
 
         /** Builds {@link CreateParams}; the fields left unset are left out of the request. */
         public static final class Builder {
+            private Boolean allowDiscountCodes;
             private String cancelUrl;
+            private String customerEmail;
+            private String customerId;
+            private String customerName;
+            private Long expiresIn;
+            private String externalCustomerId;
             private String label;
+            private Map<String, Object> metadata;
             private String priceId;
             private String productId;
             private Long quantity;
+            private Boolean requireBillingAddress;
+            private String returnUrl;
             private String successUrl;
 
             private Builder() {
+            }
+
+            /**
+             * @param allowDiscountCodes Deixa o comprador digitar um código de desconto; desligado quando fica de fora.
+             * @return this builder
+             */
+            public Builder allowDiscountCodes(Boolean allowDiscountCodes) {
+                this.allowDiscountCodes = allowDiscountCodes;
+                return this;
             }
 
             /**
@@ -132,11 +240,65 @@ public final class CheckoutsService {
             }
 
             /**
+             * @param customerEmail O e-mail do comprador, quando você o conhece; senão o navegador do comprador o pede.
+             * @return this builder
+             */
+            public Builder customerEmail(String customerEmail) {
+                this.customerEmail = customerEmail;
+                return this;
+            }
+
+            /**
+             * @param customerId Um cliente seu: o checkout abre com o nome, o e-mail e os dados de cobrança dele. Não junto com external_customer_id, customer_email ou customer_name.
+             * @return this builder
+             */
+            public Builder customerId(String customerId) {
+                this.customerId = customerId;
+                return this;
+            }
+
+            /**
+             * @param customerName O nome do comprador, quando você o conhece.
+             * @return this builder
+             */
+            public Builder customerName(String customerName) {
+                this.customerName = customerName;
+                return this;
+            }
+
+            /**
+             * @param expiresIn Segundos em que a sessão e o client_secret continuam valendo; 1800 quando fica de fora.
+             * @return this builder
+             */
+            public Builder expiresIn(Long expiresIn) {
+                this.expiresIn = expiresIn;
+                return this;
+            }
+
+            /**
+             * @param externalCustomerId O mesmo cliente, pelo ID que você deu a ele.
+             * @return this builder
+             */
+            public Builder externalCustomerId(String externalCustomerId) {
+                this.externalCustomerId = externalCustomerId;
+                return this;
+            }
+
+            /**
              * @param label the {@code label} to send
              * @return this builder
              */
             public Builder label(String label) {
                 this.label = label;
+                return this;
+            }
+
+            /**
+             * @param metadata Até 50 pares guardados no link do checkout; valor em texto, número ou booleano.
+             * @return this builder
+             */
+            public Builder metadata(Map<String, Object> metadata) {
+                this.metadata = metadata;
                 return this;
             }
 
@@ -164,6 +326,24 @@ public final class CheckoutsService {
              */
             public Builder quantity(Long quantity) {
                 this.quantity = quantity;
+                return this;
+            }
+
+            /**
+             * @param requireBillingAddress Pede o endereço de cobrança completo de todo comprador, não só no boleto; desligado quando fica de fora.
+             * @return this builder
+             */
+            public Builder requireBillingAddress(Boolean requireBillingAddress) {
+                this.requireBillingAddress = requireBillingAddress;
+                return this;
+            }
+
+            /**
+             * @param returnUrl Outro nome de cancel_url: a página https a que o comprador volta sem pagar. Enviada com um cancel_url diferente, é recusada.
+             * @return this builder
+             */
+            public Builder returnUrl(String returnUrl) {
+                this.returnUrl = returnUrl;
                 return this;
             }
 

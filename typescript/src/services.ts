@@ -130,8 +130,8 @@ export class CheckoutsService {
     this.#client = client;
   }
 
-  /** Criar o endereço de um checkout para um produto e um preço. */
-  create(params: models.CheckoutsCreateParams, options?: RequestOptions): Promise<models.Checkout> {
+  /** Criar um checkout: o endereço para onde o comprador é enviado e a sessão de compra aberta para ele, com o client_secret que o navegador do comprador usa nas rotas de cliente. */
+  create(params: models.CheckoutsCreateParams, options?: RequestOptions): Promise<models.CheckoutCreated> {
     return this.#client.request("POST", `/api/v1/checkouts`, { body: params, options });
   }
 

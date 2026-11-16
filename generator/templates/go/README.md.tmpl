@@ -30,6 +30,39 @@ Um POST sem chave de idempotência é enviado com uma `Idempotency-Key` própria
 | `client.{{pascal .Name}}` | {{range $i, $m := .Methods}}{{if $i}}, {{end}}`{{pascal $m.Name}}`{{if $m.Paginated}}, `{{pascal $m.Name}}Iter`{{end}}{{end}} |
 {{- end}}
 
+## Checkout transparente e embutido
+
+O checkout embutido tem duas metades. O **servidor** cria a sessão com a chave de API e entrega ao navegador só o `client_secret`; o **navegador** monta os campos de pagamento com ele, sem chave de API. O cartão é digitado num quadro da Peráta e nunca passa pelo seu site nem pelo seu servidor.
+
+```go
+// No seu servidor, num handler como POST /checkout/sessao
+checkout, err := client.Checkouts.Create(ctx, perata.CheckoutsCreateParams{
+	ProductID: productID,
+	PriceID:   priceID,
+})
+if err != nil {
+	return err
+}
+// Só o client_secret e o status_key vão ao navegador, nunca a chave de API.
+json.NewEncoder(w).Encode(map[string]string{
+	"clientSecret": checkout.ClientSecret,
+	"statusKey":    checkout.StatusKey,
+})
+```
+
+A resposta traz o `url` (o checkout hospedado, para redirecionar o comprador ou abrir em modal), o `session_id`, o `client_secret` com o `client_secret_expires_at` (a sessão vale 30 minutos, ou os segundos do `expires_in` que você pedir) e o `status_key`, com que o navegador acompanha um Pix ou um boleto depois que o `client_secret` é gasto. Os campos opcionais são `success_url`, `cancel_url`, `customer_email`, `customer_name`, `customer_id`, `metadata`, `allow_discount_codes`, `require_billing_address` e `expires_in`. O `client_secret` vem na criação, e só nela: na repetição de uma criação idempotente (a mesma `Idempotency-Key`) ele vem vazio, então entregue-o ao navegador na primeira resposta. Para a Peráta avisar o servidor de que o pedido foi pago, use o webhook `order.paid` (veja Webhooks).
+
+No navegador, com o `client_secret` que o seu servidor devolveu (o site precisa estar em **Configurações › Checkout incorporado › Sites permitidos**):
+
+```html
+<div id="pagamento"></div>
+<script src="https://perata.sh/v1/perata.js"></script>
+<script>
+  // clientSecret: o que o seu servidor devolveu acima
+  Perata().components.payment({ clientSecret, onSuccess: (result) => console.log(result.status) }).mount("#pagamento");
+</script>
+```
+
 ## Consumo (ingestão de eventos)
 
 A ingestão de consumo usa outra credencial: a de uma fonte de ingestão (**Configurações › Fontes de ingestão**), `pus_test_…` em teste e `pus_live_…` em produção. Monte um cliente com ela; a chave de API da organização (`prk_…`) é recusada aqui com 401, e uma credencial de um ambiente nunca escreve no outro.

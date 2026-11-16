@@ -1393,7 +1393,7 @@
         "tags": [
           "checkouts"
         ],
-        "summary": "Criar o endereço de um checkout para um produto e um preço",
+        "summary": "Criar um checkout: o endereço para onde o comprador é enviado e a sessão de compra aberta para ele, com o client_secret que o navegador do comprador usa nas rotas de cliente",
         "description": "Autenticação: chave de API da organização em Authorization: Bearer (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição. Respostas em JSON no envelope data; erros com error, message e fields.",
         "operationId": "checkouts:create",
         "parameters": [
@@ -1430,6 +1430,46 @@
                   },
                   "label": {
                     "type": "string"
+                  },
+                  "return_url": {
+                    "type": "string",
+                    "description": "Outro nome de cancel_url: a página https a que o comprador volta sem pagar. Enviada com um cancel_url diferente, é recusada."
+                  },
+                  "customer_id": {
+                    "type": "string",
+                    "description": "Um cliente seu: o checkout abre com o nome, o e-mail e os dados de cobrança dele. Não junto com external_customer_id, customer_email ou customer_name."
+                  },
+                  "external_customer_id": {
+                    "type": "string",
+                    "description": "O mesmo cliente, pelo ID que você deu a ele."
+                  },
+                  "customer_email": {
+                    "type": "string",
+                    "description": "O e-mail do comprador, quando você o conhece; senão o navegador do comprador o pede."
+                  },
+                  "customer_name": {
+                    "type": "string",
+                    "description": "O nome do comprador, quando você o conhece."
+                  },
+                  "metadata": {
+                    "type": "object",
+                    "description": "Até 50 pares guardados no link do checkout; valor em texto, número ou booleano.",
+                    "properties": {},
+                    "additionalProperties": false
+                  },
+                  "allow_discount_codes": {
+                    "type": "boolean",
+                    "description": "Deixa o comprador digitar um código de desconto; desligado quando fica de fora."
+                  },
+                  "require_billing_address": {
+                    "type": "boolean",
+                    "description": "Pede o endereço de cobrança completo de todo comprador, não só no boleto; desligado quando fica de fora."
+                  },
+                  "expires_in": {
+                    "type": "integer",
+                    "description": "Segundos em que a sessão e o client_secret continuam valendo; 1800 quando fica de fora.",
+                    "minimum": 60,
+                    "maximum": 86400
                   }
                 },
                 "required": [
@@ -1447,7 +1487,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/CheckoutEnvelope"
+                  "$ref": "#/components/schemas/CheckoutCreatedEnvelope"
                 }
               }
             }
@@ -1531,6 +1571,646 @@
             "apiKey": []
           }
         ]
+      }
+    },
+    "/api/v1/checkouts/client/status/{status_key}": {
+      "get": {
+        "tags": [
+          "checkouts"
+        ],
+        "summary": "Ler o estado de uma sessão de checkout pela status_key",
+        "description": "Onde a sessão está, lida pela chave que a criação e a confirmação devolveram, depois que o client_secret foi consumido: um Pix ou um boleto esperando pagamento, um pagamento descoberto por consulta. Não traz nenhum dado do comprador. Sem chave de API: o client_secret da sessão, no endereço, é a credencial; o POST /checkouts o devolve uma só vez ao servidor do lojista. Um navegador numa página das origens que a organização cadastra em Checkout incorporado pode chamá-la (CORS, sem credenciais nem cookies). Os erros são documentos de problema (application/problem+json), como o checkout hospedado os responde. O script que monta os campos de pagamento, perata.js, vem de /v1/perata.js, que recebe as correções em minutos; para fixar uma versão, carregue-o do endereço que leva o hash do conteúdo (/v1/perata.\u003chash\u003e.js) com o atributo integrity (Subresource Integrity, sha384) e crossorigin=\"anonymous\". O endereço e o valor de cada versão ficam em Configurações › Como integrar, no painel.",
+        "operationId": "checkouts:client_status",
+        "parameters": [
+          {
+            "name": "status_key",
+            "in": "path",
+            "description": "O client_secret da sessão, ou a sua status_key.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A resposta no envelope data.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CheckoutClientEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Nenhuma sessão aberta tem este client_secret, ou ele já foi consumido por uma confirmação."
+          },
+          "410": {
+            "description": "O tempo da sessão acabou."
+          },
+          "429": {
+            "description": "Tentativas demais deste endereço ou desta sessão; respeite Retry-After."
+          }
+        }
+      }
+    },
+    "/api/v1/checkouts/client/{client_secret}": {
+      "get": {
+        "tags": [
+          "checkouts"
+        ],
+        "summary": "Ler uma sessão de checkout pelo client_secret",
+        "description": "A sessão como o comprador a vê: os valores, o que ela vende, as formas de pagamento e as parcelas que oferece, se pede documento ou endereço e o que o comprador já informou. Sem chave de API: o client_secret da sessão, no endereço, é a credencial; o POST /checkouts o devolve uma só vez ao servidor do lojista. Um navegador numa página das origens que a organização cadastra em Checkout incorporado pode chamá-la (CORS, sem credenciais nem cookies). Os erros são documentos de problema (application/problem+json), como o checkout hospedado os responde. O script que monta os campos de pagamento, perata.js, vem de /v1/perata.js, que recebe as correções em minutos; para fixar uma versão, carregue-o do endereço que leva o hash do conteúdo (/v1/perata.\u003chash\u003e.js) com o atributo integrity (Subresource Integrity, sha384) e crossorigin=\"anonymous\". O endereço e o valor de cada versão ficam em Configurações › Como integrar, no painel.",
+        "operationId": "checkouts:client_get",
+        "parameters": [
+          {
+            "name": "client_secret",
+            "in": "path",
+            "description": "O client_secret da sessão, ou a sua status_key.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A resposta no envelope data.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CheckoutClientEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Nenhuma sessão aberta tem este client_secret, ou ele já foi consumido por uma confirmação."
+          },
+          "410": {
+            "description": "O tempo da sessão acabou."
+          },
+          "429": {
+            "description": "Tentativas demais deste endereço ou desta sessão; respeite Retry-After."
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "checkouts"
+        ],
+        "summary": "Atualizar uma sessão de checkout pelo client_secret",
+        "description": "Informa à sessão quem é o comprador e qual código de desconto vale; o campo que fica de fora não muda e uma string vazia o limpa. Responde a sessão como ficou, com os novos valores. Sem chave de API: o client_secret da sessão, no endereço, é a credencial; o POST /checkouts o devolve uma só vez ao servidor do lojista. Um navegador numa página das origens que a organização cadastra em Checkout incorporado pode chamá-la (CORS, sem credenciais nem cookies). Os erros são documentos de problema (application/problem+json), como o checkout hospedado os responde. O script que monta os campos de pagamento, perata.js, vem de /v1/perata.js, que recebe as correções em minutos; para fixar uma versão, carregue-o do endereço que leva o hash do conteúdo (/v1/perata.\u003chash\u003e.js) com o atributo integrity (Subresource Integrity, sha384) e crossorigin=\"anonymous\". O endereço e o valor de cada versão ficam em Configurações › Como integrar, no painel.",
+        "operationId": "checkouts:client_update",
+        "parameters": [
+          {
+            "name": "client_secret",
+            "in": "path",
+            "description": "O client_secret da sessão, ou a sua status_key.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "customer_email": {
+                    "type": "string",
+                    "description": "O e-mail do comprador. Mudá-lo tira o desconto aplicado: envie o discount_code de novo."
+                  },
+                  "customer_name": {
+                    "type": "string",
+                    "description": "O nome do comprador."
+                  },
+                  "tax_id": {
+                    "type": "string",
+                    "description": "CPF ou CNPJ, com ou sem pontuação; o tipo é lido dos dígitos quando tax_id_kind fica de fora."
+                  },
+                  "tax_id_kind": {
+                    "type": "string",
+                    "enum": [
+                      "cpf",
+                      "cnpj"
+                    ]
+                  },
+                  "billing_name": {
+                    "type": "string",
+                    "description": "O nome a quem o documento é emitido, quando não é o do comprador."
+                  },
+                  "address_line1": {
+                    "type": "string",
+                    "description": "Rua e número, como em 'Rua Um, 100'; o boleto precisa dos dois."
+                  },
+                  "address_line2": {
+                    "type": "string",
+                    "description": "Complemento."
+                  },
+                  "district": {
+                    "type": "string",
+                    "description": "Bairro."
+                  },
+                  "city": {
+                    "type": "string",
+                    "description": "Cidade."
+                  },
+                  "state": {
+                    "type": "string",
+                    "description": "UF, duas letras."
+                  },
+                  "postal_code": {
+                    "type": "string",
+                    "description": "CEP, oito dígitos."
+                  },
+                  "discount_code": {
+                    "type": "string",
+                    "description": "O código de desconto a aplicar, no lugar do que a sessão já tem; uma string vazia tira o desconto. O e-mail do comprador precisa estar na sessão antes."
+                  }
+                },
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "A resposta no envelope data.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CheckoutClientEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Nenhuma sessão aberta tem este client_secret, ou ele já foi consumido por uma confirmação."
+          },
+          "410": {
+            "description": "O tempo da sessão acabou."
+          },
+          "422": {
+            "description": "Campos recusados; o membro errors do documento de problema nomeia cada um."
+          },
+          "429": {
+            "description": "Tentativas demais deste endereço ou desta sessão; respeite Retry-After."
+          }
+        }
+      }
+    },
+    "/api/v1/checkouts/client/{client_secret}/card-authentication": {
+      "post": {
+        "tags": [
+          "checkouts"
+        ],
+        "summary": "Gerar o token de autenticação 3DS de uma sessão de checkout",
+        "description": "Gera o token com que o script de 3DS autentica um cartão de débito. É entregue só a pedidos do navegador vindos de uma página da própria origem da Peráta, com o desafio Turnstile resolvido (turnstile_token), sob a mesma regra de card-tokenization. Sem chave de API: o client_secret da sessão, no endereço, é a credencial; o POST /checkouts o devolve uma só vez ao servidor do lojista. Um navegador numa página das origens que a organização cadastra em Checkout incorporado pode chamá-la (CORS, sem credenciais nem cookies). Os erros são documentos de problema (application/problem+json), como o checkout hospedado os responde. O script que monta os campos de pagamento, perata.js, vem de /v1/perata.js, que recebe as correções em minutos; para fixar uma versão, carregue-o do endereço que leva o hash do conteúdo (/v1/perata.\u003chash\u003e.js) com o atributo integrity (Subresource Integrity, sha384) e crossorigin=\"anonymous\". O endereço e o valor de cada versão ficam em Configurações › Como integrar, no painel.",
+        "operationId": "checkouts:client_card_authentication",
+        "parameters": [
+          {
+            "name": "client_secret",
+            "in": "path",
+            "description": "O client_secret da sessão, ou a sua status_key.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "turnstile_token": {
+                    "type": "string",
+                    "description": "A resposta do desafio Cloudflare Turnstile que o quadro dos campos seguros desenhou para este passo (a ação é card-tokenization ou card-authentication). Sem ela, ou com uma que a Cloudflare não confirma para esta ação, esta rota responde 403.",
+                    "maxLength": 2048
+                  }
+                },
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "A resposta no envelope data.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CardAuthenticationEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "O pedido não vem de uma página da própria origem da Peráta (o quadro dos campos seguros): a página de um lojista, cadastrada ou não, é recusada."
+          },
+          "404": {
+            "description": "Nenhuma sessão aberta tem este client_secret, ou ele já foi consumido por uma confirmação."
+          },
+          "410": {
+            "description": "O tempo da sessão acabou."
+          },
+          "422": {
+            "description": "Campos recusados; o membro errors do documento de problema nomeia cada um."
+          },
+          "429": {
+            "description": "Tentativas demais deste endereço ou desta sessão; respeite Retry-After."
+          }
+        }
+      }
+    },
+    "/api/v1/checkouts/client/{client_secret}/card-tokenization": {
+      "post": {
+        "tags": [
+          "checkouts"
+        ],
+        "summary": "Gerar o token de tokenização do cartão de uma sessão de checkout",
+        "description": "Gera o token do Silent Order Post com que os campos seguros enviam o cartão à Cielo. O número do cartão nunca passa por esta API. É entregue só a pedidos que o navegador envia de uma página da própria origem da Peráta, o quadro dos campos seguros, que antes resolve um desafio Cloudflare Turnstile e o envia em turnstile_token; a página de um lojista, ou um pedido sem o desafio, recebe 403. Sem chave de API: o client_secret da sessão, no endereço, é a credencial; o POST /checkouts o devolve uma só vez ao servidor do lojista. Um navegador numa página das origens que a organização cadastra em Checkout incorporado pode chamá-la (CORS, sem credenciais nem cookies). Os erros são documentos de problema (application/problem+json), como o checkout hospedado os responde. O script que monta os campos de pagamento, perata.js, vem de /v1/perata.js, que recebe as correções em minutos; para fixar uma versão, carregue-o do endereço que leva o hash do conteúdo (/v1/perata.\u003chash\u003e.js) com o atributo integrity (Subresource Integrity, sha384) e crossorigin=\"anonymous\". O endereço e o valor de cada versão ficam em Configurações › Como integrar, no painel.",
+        "operationId": "checkouts:client_card_tokenization",
+        "parameters": [
+          {
+            "name": "client_secret",
+            "in": "path",
+            "description": "O client_secret da sessão, ou a sua status_key.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "turnstile_token": {
+                    "type": "string",
+                    "description": "A resposta do desafio Cloudflare Turnstile que o quadro dos campos seguros desenhou para este passo (a ação é card-tokenization ou card-authentication). Sem ela, ou com uma que a Cloudflare não confirma para esta ação, esta rota responde 403.",
+                    "maxLength": 2048
+                  }
+                },
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "A resposta no envelope data.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CardTokenizationEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "O pedido não vem de uma página da própria origem da Peráta (o quadro dos campos seguros): a página de um lojista, cadastrada ou não, é recusada."
+          },
+          "404": {
+            "description": "Nenhuma sessão aberta tem este client_secret, ou ele já foi consumido por uma confirmação."
+          },
+          "410": {
+            "description": "O tempo da sessão acabou."
+          },
+          "422": {
+            "description": "Campos recusados; o membro errors do documento de problema nomeia cada um."
+          },
+          "429": {
+            "description": "Tentativas demais deste endereço ou desta sessão; respeite Retry-After."
+          }
+        }
+      }
+    },
+    "/api/v1/checkouts/client/{client_secret}/confirm": {
+      "post": {
+        "tags": [
+          "checkouts"
+        ],
+        "summary": "Confirmar uma sessão de checkout",
+        "description": "Paga a sessão: com o token que os campos seguros devolveram para o cartão, com um cartão salvo, ou por Pix ou boleto, cujo QR code, código copia e cola, linha digitável e PDF voltam em payment. A confirmação consome o client_secret: leia o resultado com a status_key. Sem chave de API: o client_secret da sessão, no endereço, é a credencial; o POST /checkouts o devolve uma só vez ao servidor do lojista. Um navegador numa página das origens que a organização cadastra em Checkout incorporado pode chamá-la (CORS, sem credenciais nem cookies). Os erros são documentos de problema (application/problem+json), como o checkout hospedado os responde. O script que monta os campos de pagamento, perata.js, vem de /v1/perata.js, que recebe as correções em minutos; para fixar uma versão, carregue-o do endereço que leva o hash do conteúdo (/v1/perata.\u003chash\u003e.js) com o atributo integrity (Subresource Integrity, sha384) e crossorigin=\"anonymous\". O endereço e o valor de cada versão ficam em Configurações › Como integrar, no painel.",
+        "operationId": "checkouts:client_confirm",
+        "parameters": [
+          {
+            "name": "client_secret",
+            "in": "path",
+            "description": "O client_secret da sessão, ou a sua status_key.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "method": {
+                    "type": "string",
+                    "description": "A forma de pagamento. saved_card paga com um cartão que o lojista guardou, indicado em saved_card com a prova do código por e-mail; free confirma uma sessão que não pede pagamento.",
+                    "enum": [
+                      "card",
+                      "pix",
+                      "boleto",
+                      "saved_card",
+                      "free"
+                    ]
+                  },
+                  "payment_token": {
+                    "type": "string",
+                    "description": "O token de uso único que os campos seguros devolveram para o cartão digitado. Nunca o número do cartão: ele não passa por esta API."
+                  },
+                  "card_token": {
+                    "type": "string",
+                    "description": "O CardToken de um cartão que será guardado, para um teste grátis ou compras futuras, devolvido pelos campos seguros."
+                  },
+                  "card_kind": {
+                    "type": "string",
+                    "enum": [
+                      "credit",
+                      "debit"
+                    ]
+                  },
+                  "brand": {
+                    "type": "string",
+                    "description": "A bandeira como os campos seguros a leram; vale a resposta do adquirente."
+                  },
+                  "card_expiry": {
+                    "type": "string",
+                    "description": "MM/AA, enviado com um cartão guardado."
+                  },
+                  "save_card": {
+                    "type": "boolean",
+                    "description": "Guardar o cartão com o lojista para as próximas compras do comprador."
+                  },
+                  "save_link": {
+                    "type": "boolean",
+                    "description": "Guardá-lo também no Peráta Link do comprador."
+                  },
+                  "saved_card": {
+                    "type": "string",
+                    "description": "O id de um cartão que o lojista guardou, vindo da resposta de saved-data/verify; com o método saved_card."
+                  },
+                  "saved_card_proof": {
+                    "type": "string",
+                    "description": "A prova que saved-data/verify devolveu."
+                  },
+                  "verify_card_status": {
+                    "type": "string",
+                    "description": "Ignorado. O teste grátis não lê o que o navegador diz do cartão: a Peráta consulta o emissor pelo servidor (Zero Auth) antes de guardar o cartão."
+                  },
+                  "card_last4": {
+                    "type": "string",
+                    "description": "Os quatro últimos dígitos que os campos seguros informaram; lidos pelo teste grátis."
+                  },
+                  "installments": {
+                    "type": "integer",
+                    "description": "Em quantas parcelas no cartão de crédito, uma das que a sessão oferece; fora, é à vista.",
+                    "minimum": 1,
+                    "maximum": 12
+                  },
+                  "authentication_cavv": {
+                    "type": "string",
+                    "description": "Resultado do 3DS de uma venda no débito, vindo do script de autenticação."
+                  },
+                  "authentication_xid": {
+                    "type": "string",
+                    "description": "Resultado do 3DS de uma venda no débito."
+                  },
+                  "authentication_eci": {
+                    "type": "string",
+                    "description": "Resultado do 3DS de uma venda no débito."
+                  },
+                  "authentication_version": {
+                    "type": "string",
+                    "description": "Resultado do 3DS de uma venda no débito."
+                  },
+                  "authentication_reference_id": {
+                    "type": "string",
+                    "description": "Resultado do 3DS de uma venda no débito."
+                  },
+                  "wallet_type": {
+                    "type": "string",
+                    "description": "A resposta de uma carteira digital no lugar do cartão: a carteira usada."
+                  },
+                  "wallet_key": {
+                    "type": "string",
+                    "description": "O conteúdo da carteira."
+                  },
+                  "wallet_signature": {
+                    "type": "string",
+                    "description": "O conteúdo da carteira."
+                  },
+                  "wallet_ephemeral_public_key": {
+                    "type": "string",
+                    "description": "O conteúdo da carteira."
+                  }
+                },
+                "required": [
+                  "method"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "A resposta no envelope data.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CheckoutClientEnvelope"
+                }
+              }
+            }
+          },
+          "202": {
+            "description": "O pagamento foi enviado e a resposta do adquirente ainda não se sabe; ela é descoberta por consulta. Espere pela status_key.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CheckoutClientEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Nenhuma sessão aberta tem este client_secret, ou ele já foi consumido por uma confirmação."
+          },
+          "410": {
+            "description": "O tempo da sessão acabou."
+          },
+          "422": {
+            "description": "Campos recusados; o membro errors do documento de problema nomeia cada um."
+          },
+          "429": {
+            "description": "Tentativas demais deste endereço ou desta sessão; respeite Retry-After."
+          }
+        }
+      }
+    },
+    "/api/v1/checkouts/client/{client_secret}/saved-data/code": {
+      "post": {
+        "tags": [
+          "checkouts"
+        ],
+        "summary": "Enviar o código que libera o que está guardado para um e-mail",
+        "description": "Envia ao comprador um código por e-mail quando o lojista guarda algo para ele: cartões, nome, documento e endereço. A resposta é sempre a mesma, haja ou não algo guardado para o e-mail, para que ela não diga quais e-mails têm dados guardados. Sem chave de API: o client_secret da sessão, no endereço, é a credencial; o POST /checkouts o devolve uma só vez ao servidor do lojista. Um navegador numa página das origens que a organização cadastra em Checkout incorporado pode chamá-la (CORS, sem credenciais nem cookies). Os erros são documentos de problema (application/problem+json), como o checkout hospedado os responde. O script que monta os campos de pagamento, perata.js, vem de /v1/perata.js, que recebe as correções em minutos; para fixar uma versão, carregue-o do endereço que leva o hash do conteúdo (/v1/perata.\u003chash\u003e.js) com o atributo integrity (Subresource Integrity, sha384) e crossorigin=\"anonymous\". O endereço e o valor de cada versão ficam em Configurações › Como integrar, no painel.",
+        "operationId": "checkouts:client_saved_data_code",
+        "parameters": [
+          {
+            "name": "client_secret",
+            "in": "path",
+            "description": "O client_secret da sessão, ou a sua status_key.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "email": {
+                    "type": "string",
+                    "description": "O e-mail para onde o código vai e a que a prova fica presa."
+                  },
+                  "code": {
+                    "type": "string",
+                    "description": "O código que o comprador recebeu; só no verify."
+                  },
+                  "channel": {
+                    "type": "string",
+                    "description": "Como o código é enviado; e-mail quando fica de fora.",
+                    "enum": [
+                      "email"
+                    ]
+                  }
+                },
+                "required": [
+                  "email"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "A resposta no envelope data.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CheckoutSavedDataSentEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Nenhuma sessão aberta tem este client_secret, ou ele já foi consumido por uma confirmação."
+          },
+          "410": {
+            "description": "O tempo da sessão acabou."
+          },
+          "422": {
+            "description": "Campos recusados; o membro errors do documento de problema nomeia cada um."
+          },
+          "429": {
+            "description": "Tentativas demais deste endereço ou desta sessão; respeite Retry-After."
+          }
+        }
+      }
+    },
+    "/api/v1/checkouts/client/{client_secret}/saved-data/verify": {
+      "post": {
+        "tags": [
+          "checkouts"
+        ],
+        "summary": "Usar o código que libera o que está guardado para um e-mail",
+        "description": "Gasta o código e devolve a prova, os cartões guardados (bandeira, quatro últimos dígitos e validade) e o perfil para preencher. Sem chave de API: o client_secret da sessão, no endereço, é a credencial; o POST /checkouts o devolve uma só vez ao servidor do lojista. Um navegador numa página das origens que a organização cadastra em Checkout incorporado pode chamá-la (CORS, sem credenciais nem cookies). Os erros são documentos de problema (application/problem+json), como o checkout hospedado os responde. O script que monta os campos de pagamento, perata.js, vem de /v1/perata.js, que recebe as correções em minutos; para fixar uma versão, carregue-o do endereço que leva o hash do conteúdo (/v1/perata.\u003chash\u003e.js) com o atributo integrity (Subresource Integrity, sha384) e crossorigin=\"anonymous\". O endereço e o valor de cada versão ficam em Configurações › Como integrar, no painel.",
+        "operationId": "checkouts:client_saved_data_verify",
+        "parameters": [
+          {
+            "name": "client_secret",
+            "in": "path",
+            "description": "O client_secret da sessão, ou a sua status_key.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "email": {
+                    "type": "string",
+                    "description": "O e-mail para onde o código vai e a que a prova fica presa."
+                  },
+                  "code": {
+                    "type": "string",
+                    "description": "O código que o comprador recebeu; só no verify."
+                  },
+                  "channel": {
+                    "type": "string",
+                    "description": "Como o código é enviado; e-mail quando fica de fora.",
+                    "enum": [
+                      "email"
+                    ]
+                  }
+                },
+                "required": [
+                  "email"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "A resposta no envelope data.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CheckoutSavedDataEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Nenhuma sessão aberta tem este client_secret, ou ele já foi consumido por uma confirmação."
+          },
+          "410": {
+            "description": "O tempo da sessão acabou."
+          },
+          "422": {
+            "description": "Campos recusados; o membro errors do documento de problema nomeia cada um."
+          },
+          "429": {
+            "description": "Tentativas demais deste endereço ou desta sessão; respeite Retry-After."
+          }
+        }
       }
     },
     "/api/v1/checkouts/{checkout}": {
@@ -11501,6 +12181,95 @@
           }
         }
       },
+      "CardAuthentication": {
+        "type": "object",
+        "required": [
+          "provider",
+          "environment",
+          "access_token",
+          "expires_in",
+          "script_url"
+        ],
+        "properties": {
+          "provider": {
+            "type": "string"
+          },
+          "environment": {
+            "type": "string",
+            "enum": [
+              "test",
+              "live"
+            ]
+          },
+          "access_token": {
+            "type": "string",
+            "description": "O token com que o script de 3DS autentica; entregue só a uma página da própria origem da Peráta."
+          },
+          "expires_in": {
+            "type": "integer",
+            "description": "Segundos de vida do token."
+          },
+          "script_url": {
+            "type": "string",
+            "format": "uri",
+            "description": "O script de autenticação do adquirente."
+          }
+        }
+      },
+      "CardAuthenticationEnvelope": {
+        "type": "object",
+        "required": [
+          "data"
+        ],
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/CardAuthentication"
+          }
+        }
+      },
+      "CardTokenization": {
+        "type": "object",
+        "required": [
+          "provider",
+          "environment",
+          "access_token",
+          "issued",
+          "expires_at"
+        ],
+        "properties": {
+          "provider": {
+            "type": "string"
+          },
+          "environment": {
+            "type": "string",
+            "enum": [
+              "test",
+              "live"
+            ]
+          },
+          "access_token": {
+            "type": "string",
+            "description": "O token com que o script do adquirente envia o cartão; entregue só a uma página da própria origem da Peráta."
+          },
+          "issued": {
+            "type": "string"
+          },
+          "expires_at": {
+            "type": "string"
+          }
+        }
+      },
+      "CardTokenizationEnvelope": {
+        "type": "object",
+        "required": [
+          "data"
+        ],
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/CardTokenization"
+          }
+        }
+      },
       "Checkout": {
         "type": "object",
         "required": [
@@ -11568,6 +12337,499 @@
           }
         }
       },
+      "CheckoutClient": {
+        "type": "object",
+        "required": [
+          "id",
+          "status",
+          "environment",
+          "currency",
+          "amount_cents",
+          "discount_cents",
+          "total_cents",
+          "items",
+          "discount",
+          "customer",
+          "payment_methods",
+          "card_kinds",
+          "installments",
+          "requires_tax_id",
+          "requires_billing_address",
+          "missing",
+          "editable",
+          "success_url",
+          "cancel_url",
+          "expires_at",
+          "status_key",
+          "payment",
+          "next_action"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "O ID da sessão de checkout."
+          },
+          "status": {
+            "type": "string",
+            "description": "open: esperando o comprador; confirmed: o pagamento foi pedido e não está liquidado (um Pix ou boleto esperando pagamento); succeeded: pago; failed e expired: acabou sem pagamento.",
+            "enum": [
+              "open",
+              "confirmed",
+              "succeeded",
+              "failed",
+              "expired"
+            ]
+          },
+          "environment": {
+            "type": "string",
+            "enum": [
+              "test",
+              "live"
+            ]
+          },
+          "currency": {
+            "type": "string",
+            "enum": [
+              "BRL"
+            ]
+          },
+          "amount_cents": {
+            "type": "integer",
+            "description": "Antes do desconto."
+          },
+          "discount_cents": {
+            "type": "integer"
+          },
+          "total_cents": {
+            "type": "integer",
+            "description": "O que o comprador paga, em centavos."
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CheckoutClientItem"
+            }
+          },
+          "discount": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CheckoutClientDiscount"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "customer": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CheckoutClientCustomer"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "payment_methods": {
+            "type": "array",
+            "description": "As formas em que a sessão pode ser paga, entre card, pix, boleto e free; free é uma sessão que não pede pagamento.",
+            "items": {
+              "type": "string"
+            }
+          },
+          "card_kinds": {
+            "type": "array",
+            "description": "credit, e debit onde a autenticação do adquirente está ligada.",
+            "items": {
+              "type": "string"
+            }
+          },
+          "installments": {
+            "type": "array",
+            "description": "Os planos de uma venda no cartão de crédito, à vista primeiro; vazio quando a sessão não se paga em parcelas no cartão.",
+            "items": {
+              "$ref": "#/components/schemas/CheckoutInstallment"
+            }
+          },
+          "requires_tax_id": {
+            "type": "boolean",
+            "description": "O CPF ou CNPJ é obrigatório porque há um pagamento a fazer."
+          },
+          "requires_billing_address": {
+            "type": "boolean",
+            "description": "O lojista pede o endereço de cobrança completo; o boleto o pede de qualquer jeito."
+          },
+          "missing": {
+            "type": "array",
+            "description": "O que o pagamento ainda precisa do comprador, pelo campo da rota de atualização: customer_email, tax_id e billing_address.",
+            "items": {
+              "type": "string"
+            }
+          },
+          "editable": {
+            "type": "boolean",
+            "description": "A sessão está aberta e ainda aceita atualizações e um pagamento."
+          },
+          "success_url": {
+            "type": "string",
+            "description": "Para onde o comprador vai depois de pagar: a página do próprio lojista, com o ID do checkout onde ele o pediu."
+          },
+          "cancel_url": {
+            "type": "string",
+            "description": "Para onde o comprador volta sem pagar."
+          },
+          "expires_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Quando a sessão e o client_secret deixam de valer."
+          },
+          "status_key": {
+            "type": "string",
+            "description": "A chave que lê o estado desta sessão depois que o client_secret é consumido: GET /checkouts/client/status/{status_key}."
+          },
+          "payment": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CheckoutClientPayment"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "next_action": {
+            "$ref": "#/components/schemas/CheckoutNextAction"
+          }
+        }
+      },
+      "CheckoutClientBoleto": {
+        "type": "object",
+        "required": [
+          "digitable_line",
+          "pdf_url",
+          "due_date"
+        ],
+        "properties": {
+          "digitable_line": {
+            "type": "string",
+            "description": "A linha digitável do boleto."
+          },
+          "pdf_url": {
+            "type": "string",
+            "description": "Onde o boleto é baixado; vazio quando o adquirente não deu nenhum."
+          },
+          "due_date": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time",
+            "description": "Quando o boleto deixa de poder ser pago: o fim do dia do vencimento, no horário de Brasília."
+          }
+        }
+      },
+      "CheckoutClientCustomer": {
+        "type": "object",
+        "required": [
+          "email",
+          "name",
+          "tax_id",
+          "tax_id_kind",
+          "billing_name",
+          "address"
+        ],
+        "properties": {
+          "email": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "tax_id": {
+            "type": "string",
+            "description": "O CPF ou CNPJ do comprador, só dígitos; vazio enquanto não for informado."
+          },
+          "tax_id_kind": {
+            "type": "string"
+          },
+          "billing_name": {
+            "type": "string"
+          },
+          "address": {
+            "$ref": "#/components/schemas/BillingAddress"
+          }
+        }
+      },
+      "CheckoutClientDiscount": {
+        "type": "object",
+        "required": [
+          "code",
+          "discount_cents"
+        ],
+        "properties": {
+          "code": {
+            "type": "string",
+            "description": "O código que o comprador aplicou; vazio num desconto que o link fixa sem código."
+          },
+          "discount_cents": {
+            "type": "integer"
+          }
+        }
+      },
+      "CheckoutClientEnvelope": {
+        "type": "object",
+        "required": [
+          "data"
+        ],
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/CheckoutClient"
+          }
+        }
+      },
+      "CheckoutClientItem": {
+        "type": "object",
+        "required": [
+          "product_id",
+          "name",
+          "description",
+          "quantity",
+          "unit_cents",
+          "amount_cents",
+          "interval",
+          "interval_count"
+        ],
+        "properties": {
+          "product_id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string",
+            "description": "A descrição do produto como o lojista a escreveu, em Markdown; vazia sem ela."
+          },
+          "quantity": {
+            "type": "integer"
+          },
+          "unit_cents": {
+            "type": "integer",
+            "description": "Quanto custa uma unidade, antes de qualquer desconto."
+          },
+          "amount_cents": {
+            "type": "integer",
+            "description": "Quanto custa a linha antes de qualquer desconto: a unidade vezes a quantidade."
+          },
+          "interval": {
+            "type": "string",
+            "description": "month ou year numa assinatura; vazio numa compra avulsa."
+          },
+          "interval_count": {
+            "type": "integer",
+            "description": "Quantos intervalos dura um ciclo."
+          }
+        }
+      },
+      "CheckoutClientPayment": {
+        "type": "object",
+        "required": [
+          "id",
+          "method",
+          "state",
+          "unresolved",
+          "card_brand",
+          "card_kind",
+          "installments",
+          "pix",
+          "boleto"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "method": {
+            "type": "string",
+            "enum": [
+              "card",
+              "pix",
+              "boleto"
+            ]
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "unknown",
+              "pending",
+              "authorized",
+              "captured",
+              "refused",
+              "canceled",
+              "refunded",
+              "partially_refunded"
+            ]
+          },
+          "unresolved": {
+            "type": "boolean",
+            "description": "Verdadeiro enquanto a resposta do adquirente ainda é descoberta; o comprador espera."
+          },
+          "card_brand": {
+            "type": "string"
+          },
+          "card_kind": {
+            "type": "string"
+          },
+          "installments": {
+            "type": "integer"
+          },
+          "pix": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CheckoutClientPix"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "boleto": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CheckoutClientBoleto"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        }
+      },
+      "CheckoutClientPix": {
+        "type": "object",
+        "required": [
+          "copia_e_cola",
+          "qr_code_svg",
+          "expires_at"
+        ],
+        "properties": {
+          "copia_e_cola": {
+            "type": "string",
+            "description": "O código Pix copia e cola."
+          },
+          "qr_code_svg": {
+            "type": "string",
+            "description": "O QR do código, desenhado como um documento SVG."
+          },
+          "expires_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time",
+            "description": "Quando o Pix deixa de poder ser pago, como o adquirente o deu."
+          }
+        }
+      },
+      "CheckoutCreated": {
+        "type": "object",
+        "required": [
+          "id",
+          "url",
+          "product_id",
+          "price_id",
+          "status",
+          "label",
+          "quantity",
+          "success_url",
+          "cancel_url",
+          "expires_at",
+          "created_at",
+          "session_id",
+          "client_secret",
+          "client_secret_expires_at",
+          "status_key"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "O ID do link do checkout, o que GET e PATCH /checkouts/{id} recebem."
+          },
+          "url": {
+            "type": "string",
+            "format": "uri",
+            "description": "O endereço hospedado: redirecione o comprador para cá e ele paga na página da Peráta."
+          },
+          "product_id": {
+            "type": "string"
+          },
+          "price_id": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "description": "active abre sessões de compra; archived saiu de circulação.",
+            "enum": [
+              "active",
+              "archived"
+            ]
+          },
+          "label": {
+            "type": "string",
+            "description": "Como o lojista chama o checkout nas próprias telas; o comprador não vê."
+          },
+          "quantity": {
+            "type": "integer"
+          },
+          "success_url": {
+            "type": "string",
+            "description": "Endereço https para onde o comprador volta depois de pagar; vazio sem ele."
+          },
+          "cancel_url": {
+            "type": "string",
+            "description": "Endereço https para onde o comprador volta se desistir; vazio sem ele."
+          },
+          "expires_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time",
+            "description": "Quando o link deixa de abrir sessões; nulo sem prazo."
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "session_id": {
+            "type": "string",
+            "description": "O ID da sessão de checkout; as rotas de cliente dela são /checkouts/client/{client_secret}."
+          },
+          "client_secret": {
+            "type": "string",
+            "description": "O segredo que o navegador do comprador usa para ler, atualizar e pagar a sessão, sem chave de API. Só esta resposta o traz; entregue-o à página que monta os campos seguros. Vem vazio na repetição de uma criação idempotente."
+          },
+          "client_secret_expires_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Quando a sessão e o client_secret deixam de valer."
+          },
+          "status_key": {
+            "type": "string",
+            "description": "Lê o estado da sessão depois que o client_secret é consumido: GET /checkouts/client/status/{status_key}. Só esta resposta o traz."
+          }
+        }
+      },
+      "CheckoutCreatedEnvelope": {
+        "type": "object",
+        "required": [
+          "data"
+        ],
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/CheckoutCreated"
+          }
+        }
+      },
       "CheckoutEnvelope": {
         "type": "object",
         "required": [
@@ -11576,6 +12838,32 @@
         "properties": {
           "data": {
             "$ref": "#/components/schemas/Checkout"
+          }
+        }
+      },
+      "CheckoutInstallment": {
+        "type": "object",
+        "required": [
+          "count",
+          "installment_cents",
+          "total_cents",
+          "interest_cents"
+        ],
+        "properties": {
+          "count": {
+            "type": "integer",
+            "description": "O número de parcelas; 1 é à vista."
+          },
+          "installment_cents": {
+            "type": "integer"
+          },
+          "total_cents": {
+            "type": "integer",
+            "description": "Quanto o comprador paga no total: o total da sessão, mais os juros quando o plano os tem."
+          },
+          "interest_cents": {
+            "type": "integer",
+            "description": "Zero quando o lojista arca com os juros (sem juros)."
           }
         }
       },
@@ -11770,6 +13058,169 @@
             "type": "string"
           },
           "price_id": {
+            "type": "string"
+          }
+        }
+      },
+      "CheckoutNextAction": {
+        "type": "object",
+        "required": [
+          "type",
+          "url"
+        ],
+        "properties": {
+          "type": {
+            "type": "string",
+            "description": "none: nada falta; wait: o resultado está sendo descoberto, leia o estado de novo; show_pix e show_boleto: mostre o Pix ou o boleto do pagamento e espere o pagamento; redirect: envie o comprador para url, onde o banco ou a autenticação 3DS termina o pagamento.",
+            "enum": [
+              "none",
+              "wait",
+              "show_pix",
+              "show_boleto",
+              "redirect"
+            ]
+          },
+          "url": {
+            "type": "string",
+            "description": "Para onde enviar o comprador, no redirect."
+          }
+        }
+      },
+      "CheckoutSavedCard": {
+        "type": "object",
+        "required": [
+          "id",
+          "brand",
+          "last4",
+          "expiry",
+          "link"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "O que o confirm recebe como saved_card."
+          },
+          "brand": {
+            "type": "string"
+          },
+          "last4": {
+            "type": "string"
+          },
+          "expiry": {
+            "type": "string",
+            "description": "MM/AA."
+          },
+          "link": {
+            "type": "boolean",
+            "description": "O cartão está no Peráta Link do comprador, não com o lojista."
+          }
+        }
+      },
+      "CheckoutSavedData": {
+        "type": "object",
+        "required": [
+          "proof",
+          "cards",
+          "profile"
+        ],
+        "properties": {
+          "proof": {
+            "type": "string",
+            "description": "O que o confirm recebe como saved_card_proof, para pagar com um cartão salvo ou atestar o e-mail."
+          },
+          "cards": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CheckoutSavedCard"
+            }
+          },
+          "profile": {
+            "$ref": "#/components/schemas/CheckoutSavedProfile"
+          }
+        }
+      },
+      "CheckoutSavedDataEnvelope": {
+        "type": "object",
+        "required": [
+          "data"
+        ],
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/CheckoutSavedData"
+          }
+        }
+      },
+      "CheckoutSavedDataSent": {
+        "type": "object",
+        "required": [
+          "sent",
+          "fresh",
+          "channel"
+        ],
+        "properties": {
+          "sent": {
+            "type": "boolean",
+            "description": "Sempre verdadeiro: a resposta não diz se há algo guardado para o e-mail."
+          },
+          "fresh": {
+            "type": "boolean",
+            "description": "Sempre falso, pelo mesmo motivo."
+          },
+          "channel": {
+            "type": "string"
+          }
+        }
+      },
+      "CheckoutSavedDataSentEnvelope": {
+        "type": "object",
+        "required": [
+          "data"
+        ],
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/CheckoutSavedDataSent"
+          }
+        }
+      },
+      "CheckoutSavedProfile": {
+        "type": "object",
+        "required": [
+          "name",
+          "tax_id",
+          "tax_id_kind",
+          "address_line1",
+          "address_line2",
+          "district",
+          "city",
+          "state",
+          "postal_code"
+        ],
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "tax_id": {
+            "type": "string"
+          },
+          "tax_id_kind": {
+            "type": "string"
+          },
+          "address_line1": {
+            "type": "string"
+          },
+          "address_line2": {
+            "type": "string"
+          },
+          "district": {
+            "type": "string"
+          },
+          "city": {
+            "type": "string"
+          },
+          "state": {
+            "type": "string"
+          },
+          "postal_code": {
             "type": "string"
           }
         }

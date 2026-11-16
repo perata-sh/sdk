@@ -236,6 +236,90 @@ module Perata
     end
   end
 
+  # CardAuthentication is a resource of Peráta's API.
+  class CardAuthentication < Model
+    MEMBERS = %i[access_token environment expires_in provider script_url].freeze
+
+    # O token com que o script de 3DS autentica; entregue só a uma página da própria origem da Peráta.
+    # @return [String]
+    attr_reader :access_token
+
+    # @return [String ("test", "live")]
+    attr_reader :environment
+
+    # Segundos de vida do token.
+    # @return [Integer]
+    attr_reader :expires_in
+
+    # @return [String]
+    attr_reader :provider
+
+    # O script de autenticação do adquirente.
+    # @return [String]
+    attr_reader :script_url
+
+    def initialize(access_token:, environment:, expires_in:, provider:, script_url:)
+      @access_token = access_token
+      @environment = environment
+      @expires_in = expires_in
+      @provider = provider
+      @script_url = script_url
+      freeze
+    end
+
+    # Builds a CardAuthentication from the API's JSON.
+    def self.from_hash(data)
+      new(
+        access_token: data.fetch("access_token"),
+        environment: data.fetch("environment"),
+        expires_in: data.fetch("expires_in"),
+        provider: data.fetch("provider"),
+        script_url: data.fetch("script_url")
+      )
+    end
+  end
+
+  # CardTokenization is a resource of Peráta's API.
+  class CardTokenization < Model
+    MEMBERS = %i[access_token environment expires_at issued provider].freeze
+
+    # O token com que o script do adquirente envia o cartão; entregue só a uma página da própria origem da Peráta.
+    # @return [String]
+    attr_reader :access_token
+
+    # @return [String ("test", "live")]
+    attr_reader :environment
+
+    # @return [String]
+    attr_reader :expires_at
+
+    # @return [String]
+    attr_reader :issued
+
+    # @return [String]
+    attr_reader :provider
+
+    def initialize(access_token:, environment:, expires_at:, issued:, provider:)
+      @access_token = access_token
+      @environment = environment
+      @expires_at = expires_at
+      @issued = issued
+      @provider = provider
+      freeze
+    end
+
+    # Builds a CardTokenization from the API's JSON.
+    def self.from_hash(data)
+      new(
+        access_token: data.fetch("access_token"),
+        environment: data.fetch("environment"),
+        expires_at: data.fetch("expires_at"),
+        issued: data.fetch("issued"),
+        provider: data.fetch("provider")
+      )
+    end
+  end
+
   # Checkout is a resource of Peráta's API.
   class Checkout < Model
     MEMBERS = %i[cancel_url created_at expires_at id label price_id product_id quantity status success_url url].freeze
@@ -308,6 +392,549 @@ module Perata
         status: data.fetch("status"),
         success_url: data.fetch("success_url"),
         url: data.fetch("url")
+      )
+    end
+  end
+
+  # CheckoutClient is a resource of Peráta's API.
+  class CheckoutClient < Model
+    MEMBERS = %i[amount_cents cancel_url card_kinds currency customer discount discount_cents editable environment expires_at id installments items missing next_action payment payment_methods requires_billing_address requires_tax_id status status_key success_url total_cents].freeze
+
+    # Antes do desconto.
+    # @return [Integer]
+    attr_reader :amount_cents
+
+    # Para onde o comprador volta sem pagar.
+    # @return [String]
+    attr_reader :cancel_url
+
+    # credit, e debit onde a autenticação do adquirente está ligada.
+    # @return [Array<String>]
+    attr_reader :card_kinds
+
+    # @return [String ("BRL")]
+    attr_reader :currency
+
+    # @return [CheckoutClientCustomer, nil]
+    attr_reader :customer
+
+    # @return [CheckoutClientDiscount, nil]
+    attr_reader :discount
+
+    # @return [Integer]
+    attr_reader :discount_cents
+
+    # A sessão está aberta e ainda aceita atualizações e um pagamento.
+    # @return [Boolean]
+    attr_reader :editable
+
+    # @return [String ("test", "live")]
+    attr_reader :environment
+
+    # Quando a sessão e o client_secret deixam de valer.
+    # @return [String]
+    attr_reader :expires_at
+
+    # O ID da sessão de checkout.
+    # @return [String]
+    attr_reader :id
+
+    # Os planos de uma venda no cartão de crédito, à vista primeiro; vazio quando a sessão não se paga em parcelas no cartão.
+    # @return [Array<CheckoutInstallment>]
+    attr_reader :installments
+
+    # @return [Array<CheckoutClientItem>]
+    attr_reader :items
+
+    # O que o pagamento ainda precisa do comprador, pelo campo da rota de atualização: customer_email, tax_id e billing_address.
+    # @return [Array<String>]
+    attr_reader :missing
+
+    # @return [CheckoutNextAction]
+    attr_reader :next_action
+
+    # @return [CheckoutClientPayment, nil]
+    attr_reader :payment
+
+    # As formas em que a sessão pode ser paga, entre card, pix, boleto e free; free é uma sessão que não pede pagamento.
+    # @return [Array<String>]
+    attr_reader :payment_methods
+
+    # O lojista pede o endereço de cobrança completo; o boleto o pede de qualquer jeito.
+    # @return [Boolean]
+    attr_reader :requires_billing_address
+
+    # O CPF ou CNPJ é obrigatório porque há um pagamento a fazer.
+    # @return [Boolean]
+    attr_reader :requires_tax_id
+
+    # open: esperando o comprador; confirmed: o pagamento foi pedido e não está liquidado (um Pix ou boleto esperando pagamento); succeeded: pago; failed e expired: acabou sem pagamento.
+    # @return [String ("open", "confirmed", "succeeded", "failed", "expired")]
+    attr_reader :status
+
+    # A chave que lê o estado desta sessão depois que o client_secret é consumido: GET /checkouts/client/status/{status_key}.
+    # @return [String]
+    attr_reader :status_key
+
+    # Para onde o comprador vai depois de pagar: a página do próprio lojista, com o ID do checkout onde ele o pediu.
+    # @return [String]
+    attr_reader :success_url
+
+    # O que o comprador paga, em centavos.
+    # @return [Integer]
+    attr_reader :total_cents
+
+    def initialize(amount_cents:, cancel_url:, card_kinds:, currency:, customer:, discount:, discount_cents:, editable:, environment:, expires_at:, id:, installments:, items:, missing:, next_action:, payment:, payment_methods:, requires_billing_address:, requires_tax_id:, status:, status_key:, success_url:, total_cents:)
+      @amount_cents = amount_cents
+      @cancel_url = cancel_url
+      @card_kinds = card_kinds
+      @currency = currency
+      @customer = customer
+      @discount = discount
+      @discount_cents = discount_cents
+      @editable = editable
+      @environment = environment
+      @expires_at = expires_at
+      @id = id
+      @installments = installments
+      @items = items
+      @missing = missing
+      @next_action = next_action
+      @payment = payment
+      @payment_methods = payment_methods
+      @requires_billing_address = requires_billing_address
+      @requires_tax_id = requires_tax_id
+      @status = status
+      @status_key = status_key
+      @success_url = success_url
+      @total_cents = total_cents
+      freeze
+    end
+
+    # Builds a CheckoutClient from the API's JSON.
+    def self.from_hash(data)
+      new(
+        amount_cents: data.fetch("amount_cents"),
+        cancel_url: data.fetch("cancel_url"),
+        card_kinds: data.fetch("card_kinds"),
+        currency: data.fetch("currency"),
+        customer: data["customer"]&.then { |value| CheckoutClientCustomer.from_hash(value) },
+        discount: data["discount"]&.then { |value| CheckoutClientDiscount.from_hash(value) },
+        discount_cents: data.fetch("discount_cents"),
+        editable: data.fetch("editable"),
+        environment: data.fetch("environment"),
+        expires_at: data.fetch("expires_at"),
+        id: data.fetch("id"),
+        installments: data.fetch("installments").map { |item| CheckoutInstallment.from_hash(item) },
+        items: data.fetch("items").map { |item| CheckoutClientItem.from_hash(item) },
+        missing: data.fetch("missing"),
+        next_action: CheckoutNextAction.from_hash(data.fetch("next_action")),
+        payment: data["payment"]&.then { |value| CheckoutClientPayment.from_hash(value) },
+        payment_methods: data.fetch("payment_methods"),
+        requires_billing_address: data.fetch("requires_billing_address"),
+        requires_tax_id: data.fetch("requires_tax_id"),
+        status: data.fetch("status"),
+        status_key: data.fetch("status_key"),
+        success_url: data.fetch("success_url"),
+        total_cents: data.fetch("total_cents")
+      )
+    end
+  end
+
+  # CheckoutClientBoleto is a resource of Peráta's API.
+  class CheckoutClientBoleto < Model
+    MEMBERS = %i[digitable_line due_date pdf_url].freeze
+
+    # A linha digitável do boleto.
+    # @return [String]
+    attr_reader :digitable_line
+
+    # Quando o boleto deixa de poder ser pago: o fim do dia do vencimento, no horário de Brasília.
+    # @return [String, nil]
+    attr_reader :due_date
+
+    # Onde o boleto é baixado; vazio quando o adquirente não deu nenhum.
+    # @return [String]
+    attr_reader :pdf_url
+
+    def initialize(digitable_line:, due_date:, pdf_url:)
+      @digitable_line = digitable_line
+      @due_date = due_date
+      @pdf_url = pdf_url
+      freeze
+    end
+
+    # Builds a CheckoutClientBoleto from the API's JSON.
+    def self.from_hash(data)
+      new(
+        digitable_line: data.fetch("digitable_line"),
+        due_date: data["due_date"],
+        pdf_url: data.fetch("pdf_url")
+      )
+    end
+  end
+
+  # CheckoutClientCustomer is a resource of Peráta's API.
+  class CheckoutClientCustomer < Model
+    MEMBERS = %i[address billing_name email name tax_id tax_id_kind].freeze
+
+    # @return [BillingAddress]
+    attr_reader :address
+
+    # @return [String]
+    attr_reader :billing_name
+
+    # @return [String]
+    attr_reader :email
+
+    # @return [String]
+    attr_reader :name
+
+    # O CPF ou CNPJ do comprador, só dígitos; vazio enquanto não for informado.
+    # @return [String]
+    attr_reader :tax_id
+
+    # @return [String]
+    attr_reader :tax_id_kind
+
+    def initialize(address:, billing_name:, email:, name:, tax_id:, tax_id_kind:)
+      @address = address
+      @billing_name = billing_name
+      @email = email
+      @name = name
+      @tax_id = tax_id
+      @tax_id_kind = tax_id_kind
+      freeze
+    end
+
+    # Builds a CheckoutClientCustomer from the API's JSON.
+    def self.from_hash(data)
+      new(
+        address: BillingAddress.from_hash(data.fetch("address")),
+        billing_name: data.fetch("billing_name"),
+        email: data.fetch("email"),
+        name: data.fetch("name"),
+        tax_id: data.fetch("tax_id"),
+        tax_id_kind: data.fetch("tax_id_kind")
+      )
+    end
+  end
+
+  # CheckoutClientDiscount is a resource of Peráta's API.
+  class CheckoutClientDiscount < Model
+    MEMBERS = %i[code discount_cents].freeze
+
+    # O código que o comprador aplicou; vazio num desconto que o link fixa sem código.
+    # @return [String]
+    attr_reader :code
+
+    # @return [Integer]
+    attr_reader :discount_cents
+
+    def initialize(code:, discount_cents:)
+      @code = code
+      @discount_cents = discount_cents
+      freeze
+    end
+
+    # Builds a CheckoutClientDiscount from the API's JSON.
+    def self.from_hash(data)
+      new(
+        code: data.fetch("code"),
+        discount_cents: data.fetch("discount_cents")
+      )
+    end
+  end
+
+  # CheckoutClientItem is a resource of Peráta's API.
+  class CheckoutClientItem < Model
+    MEMBERS = %i[amount_cents description interval interval_count name product_id quantity unit_cents].freeze
+
+    # Quanto custa a linha antes de qualquer desconto: a unidade vezes a quantidade.
+    # @return [Integer]
+    attr_reader :amount_cents
+
+    # A descrição do produto como o lojista a escreveu, em Markdown; vazia sem ela.
+    # @return [String]
+    attr_reader :description
+
+    # month ou year numa assinatura; vazio numa compra avulsa.
+    # @return [String]
+    attr_reader :interval
+
+    # Quantos intervalos dura um ciclo.
+    # @return [Integer]
+    attr_reader :interval_count
+
+    # @return [String]
+    attr_reader :name
+
+    # @return [String]
+    attr_reader :product_id
+
+    # @return [Integer]
+    attr_reader :quantity
+
+    # Quanto custa uma unidade, antes de qualquer desconto.
+    # @return [Integer]
+    attr_reader :unit_cents
+
+    def initialize(amount_cents:, description:, interval:, interval_count:, name:, product_id:, quantity:, unit_cents:)
+      @amount_cents = amount_cents
+      @description = description
+      @interval = interval
+      @interval_count = interval_count
+      @name = name
+      @product_id = product_id
+      @quantity = quantity
+      @unit_cents = unit_cents
+      freeze
+    end
+
+    # Builds a CheckoutClientItem from the API's JSON.
+    def self.from_hash(data)
+      new(
+        amount_cents: data.fetch("amount_cents"),
+        description: data.fetch("description"),
+        interval: data.fetch("interval"),
+        interval_count: data.fetch("interval_count"),
+        name: data.fetch("name"),
+        product_id: data.fetch("product_id"),
+        quantity: data.fetch("quantity"),
+        unit_cents: data.fetch("unit_cents")
+      )
+    end
+  end
+
+  # CheckoutClientPayment is a resource of Peráta's API.
+  class CheckoutClientPayment < Model
+    MEMBERS = %i[boleto card_brand card_kind id installments method pix state unresolved].freeze
+
+    # @return [CheckoutClientBoleto, nil]
+    attr_reader :boleto
+
+    # @return [String]
+    attr_reader :card_brand
+
+    # @return [String]
+    attr_reader :card_kind
+
+    # @return [String]
+    attr_reader :id
+
+    # @return [Integer]
+    attr_reader :installments
+
+    # @return [String ("card", "pix", "boleto")]
+    attr_reader :method
+
+    # @return [CheckoutClientPix, nil]
+    attr_reader :pix
+
+    # @return [String ("unknown", "pending", "authorized", "captured", "refused", "canceled", "refunded", "partially_refunded")]
+    attr_reader :state
+
+    # Verdadeiro enquanto a resposta do adquirente ainda é descoberta; o comprador espera.
+    # @return [Boolean]
+    attr_reader :unresolved
+
+    def initialize(boleto:, card_brand:, card_kind:, id:, installments:, method:, pix:, state:, unresolved:)
+      @boleto = boleto
+      @card_brand = card_brand
+      @card_kind = card_kind
+      @id = id
+      @installments = installments
+      @method = method
+      @pix = pix
+      @state = state
+      @unresolved = unresolved
+      freeze
+    end
+
+    # Builds a CheckoutClientPayment from the API's JSON.
+    def self.from_hash(data)
+      new(
+        boleto: data["boleto"]&.then { |value| CheckoutClientBoleto.from_hash(value) },
+        card_brand: data.fetch("card_brand"),
+        card_kind: data.fetch("card_kind"),
+        id: data.fetch("id"),
+        installments: data.fetch("installments"),
+        method: data.fetch("method"),
+        pix: data["pix"]&.then { |value| CheckoutClientPix.from_hash(value) },
+        state: data.fetch("state"),
+        unresolved: data.fetch("unresolved")
+      )
+    end
+  end
+
+  # CheckoutClientPix is a resource of Peráta's API.
+  class CheckoutClientPix < Model
+    MEMBERS = %i[copia_e_cola expires_at qr_code_svg].freeze
+
+    # O código Pix copia e cola.
+    # @return [String]
+    attr_reader :copia_e_cola
+
+    # Quando o Pix deixa de poder ser pago, como o adquirente o deu.
+    # @return [String, nil]
+    attr_reader :expires_at
+
+    # O QR do código, desenhado como um documento SVG.
+    # @return [String]
+    attr_reader :qr_code_svg
+
+    def initialize(copia_e_cola:, expires_at:, qr_code_svg:)
+      @copia_e_cola = copia_e_cola
+      @expires_at = expires_at
+      @qr_code_svg = qr_code_svg
+      freeze
+    end
+
+    # Builds a CheckoutClientPix from the API's JSON.
+    def self.from_hash(data)
+      new(
+        copia_e_cola: data.fetch("copia_e_cola"),
+        expires_at: data["expires_at"],
+        qr_code_svg: data.fetch("qr_code_svg")
+      )
+    end
+  end
+
+  # CheckoutCreated is a resource of Peráta's API.
+  class CheckoutCreated < Model
+    MEMBERS = %i[cancel_url client_secret client_secret_expires_at created_at expires_at id label price_id product_id quantity session_id status status_key success_url url].freeze
+
+    # Endereço https para onde o comprador volta se desistir; vazio sem ele.
+    # @return [String]
+    attr_reader :cancel_url
+
+    # O segredo que o navegador do comprador usa para ler, atualizar e pagar a sessão, sem chave de API. Só esta resposta o traz; entregue-o à página que monta os campos seguros. Vem vazio na repetição de uma criação idempotente.
+    # @return [String]
+    attr_reader :client_secret
+
+    # Quando a sessão e o client_secret deixam de valer.
+    # @return [String]
+    attr_reader :client_secret_expires_at
+
+    # @return [String]
+    attr_reader :created_at
+
+    # Quando o link deixa de abrir sessões; nulo sem prazo.
+    # @return [String, nil]
+    attr_reader :expires_at
+
+    # O ID do link do checkout, o que GET e PATCH /checkouts/{id} recebem.
+    # @return [String]
+    attr_reader :id
+
+    # Como o lojista chama o checkout nas próprias telas; o comprador não vê.
+    # @return [String]
+    attr_reader :label
+
+    # @return [String]
+    attr_reader :price_id
+
+    # @return [String]
+    attr_reader :product_id
+
+    # @return [Integer]
+    attr_reader :quantity
+
+    # O ID da sessão de checkout; as rotas de cliente dela são /checkouts/client/{client_secret}.
+    # @return [String]
+    attr_reader :session_id
+
+    # active abre sessões de compra; archived saiu de circulação.
+    # @return [String ("active", "archived")]
+    attr_reader :status
+
+    # Lê o estado da sessão depois que o client_secret é consumido: GET /checkouts/client/status/{status_key}. Só esta resposta o traz.
+    # @return [String]
+    attr_reader :status_key
+
+    # Endereço https para onde o comprador volta depois de pagar; vazio sem ele.
+    # @return [String]
+    attr_reader :success_url
+
+    # O endereço hospedado: redirecione o comprador para cá e ele paga na página da Peráta.
+    # @return [String]
+    attr_reader :url
+
+    def initialize(cancel_url:, client_secret:, client_secret_expires_at:, created_at:, expires_at:, id:, label:, price_id:, product_id:, quantity:, session_id:, status:, status_key:, success_url:, url:)
+      @cancel_url = cancel_url
+      @client_secret = client_secret
+      @client_secret_expires_at = client_secret_expires_at
+      @created_at = created_at
+      @expires_at = expires_at
+      @id = id
+      @label = label
+      @price_id = price_id
+      @product_id = product_id
+      @quantity = quantity
+      @session_id = session_id
+      @status = status
+      @status_key = status_key
+      @success_url = success_url
+      @url = url
+      freeze
+    end
+
+    # Builds a CheckoutCreated from the API's JSON.
+    def self.from_hash(data)
+      new(
+        cancel_url: data.fetch("cancel_url"),
+        client_secret: data.fetch("client_secret"),
+        client_secret_expires_at: data.fetch("client_secret_expires_at"),
+        created_at: data.fetch("created_at"),
+        expires_at: data["expires_at"],
+        id: data.fetch("id"),
+        label: data.fetch("label"),
+        price_id: data.fetch("price_id"),
+        product_id: data.fetch("product_id"),
+        quantity: data.fetch("quantity"),
+        session_id: data.fetch("session_id"),
+        status: data.fetch("status"),
+        status_key: data.fetch("status_key"),
+        success_url: data.fetch("success_url"),
+        url: data.fetch("url")
+      )
+    end
+  end
+
+  # CheckoutInstallment is a resource of Peráta's API.
+  class CheckoutInstallment < Model
+    MEMBERS = %i[count installment_cents interest_cents total_cents].freeze
+
+    # O número de parcelas; 1 é à vista.
+    # @return [Integer]
+    attr_reader :count
+
+    # @return [Integer]
+    attr_reader :installment_cents
+
+    # Zero quando o lojista arca com os juros (sem juros).
+    # @return [Integer]
+    attr_reader :interest_cents
+
+    # Quanto o comprador paga no total: o total da sessão, mais os juros quando o plano os tem.
+    # @return [Integer]
+    attr_reader :total_cents
+
+    def initialize(count:, installment_cents:, interest_cents:, total_cents:)
+      @count = count
+      @installment_cents = installment_cents
+      @interest_cents = interest_cents
+      @total_cents = total_cents
+      freeze
+    end
+
+    # Builds a CheckoutInstallment from the API's JSON.
+    def self.from_hash(data)
+      new(
+        count: data.fetch("count"),
+        installment_cents: data.fetch("installment_cents"),
+        interest_cents: data.fetch("interest_cents"),
+        total_cents: data.fetch("total_cents")
       )
     end
   end
@@ -467,6 +1094,199 @@ module Perata
       new(
         price_id: data.fetch("price_id"),
         product_id: data.fetch("product_id")
+      )
+    end
+  end
+
+  # CheckoutNextAction is a resource of Peráta's API.
+  class CheckoutNextAction < Model
+    MEMBERS = %i[type url].freeze
+
+    # none: nada falta; wait: o resultado está sendo descoberto, leia o estado de novo; show_pix e show_boleto: mostre o Pix ou o boleto do pagamento e espere o pagamento; redirect: envie o comprador para url, onde o banco ou a autenticação 3DS termina o pagamento.
+    # @return [String ("none", "wait", "show_pix", "show_boleto", "redirect")]
+    attr_reader :type
+
+    # Para onde enviar o comprador, no redirect.
+    # @return [String]
+    attr_reader :url
+
+    def initialize(type:, url:)
+      @type = type
+      @url = url
+      freeze
+    end
+
+    # Builds a CheckoutNextAction from the API's JSON.
+    def self.from_hash(data)
+      new(
+        type: data.fetch("type"),
+        url: data.fetch("url")
+      )
+    end
+  end
+
+  # CheckoutSavedCard is a resource of Peráta's API.
+  class CheckoutSavedCard < Model
+    MEMBERS = %i[brand expiry id last4 link].freeze
+
+    # @return [String]
+    attr_reader :brand
+
+    # MM/AA.
+    # @return [String]
+    attr_reader :expiry
+
+    # O que o confirm recebe como saved_card.
+    # @return [String]
+    attr_reader :id
+
+    # @return [String]
+    attr_reader :last4
+
+    # O cartão está no Peráta Link do comprador, não com o lojista.
+    # @return [Boolean]
+    attr_reader :link
+
+    def initialize(brand:, expiry:, id:, last4:, link:)
+      @brand = brand
+      @expiry = expiry
+      @id = id
+      @last4 = last4
+      @link = link
+      freeze
+    end
+
+    # Builds a CheckoutSavedCard from the API's JSON.
+    def self.from_hash(data)
+      new(
+        brand: data.fetch("brand"),
+        expiry: data.fetch("expiry"),
+        id: data.fetch("id"),
+        last4: data.fetch("last4"),
+        link: data.fetch("link")
+      )
+    end
+  end
+
+  # CheckoutSavedData is a resource of Peráta's API.
+  class CheckoutSavedData < Model
+    MEMBERS = %i[cards profile proof].freeze
+
+    # @return [Array<CheckoutSavedCard>]
+    attr_reader :cards
+
+    # @return [CheckoutSavedProfile]
+    attr_reader :profile
+
+    # O que o confirm recebe como saved_card_proof, para pagar com um cartão salvo ou atestar o e-mail.
+    # @return [String]
+    attr_reader :proof
+
+    def initialize(cards:, profile:, proof:)
+      @cards = cards
+      @profile = profile
+      @proof = proof
+      freeze
+    end
+
+    # Builds a CheckoutSavedData from the API's JSON.
+    def self.from_hash(data)
+      new(
+        cards: data.fetch("cards").map { |item| CheckoutSavedCard.from_hash(item) },
+        profile: CheckoutSavedProfile.from_hash(data.fetch("profile")),
+        proof: data.fetch("proof")
+      )
+    end
+  end
+
+  # CheckoutSavedDataSent is a resource of Peráta's API.
+  class CheckoutSavedDataSent < Model
+    MEMBERS = %i[channel fresh sent].freeze
+
+    # @return [String]
+    attr_reader :channel
+
+    # Sempre falso, pelo mesmo motivo.
+    # @return [Boolean]
+    attr_reader :fresh
+
+    # Sempre verdadeiro: a resposta não diz se há algo guardado para o e-mail.
+    # @return [Boolean]
+    attr_reader :sent
+
+    def initialize(channel:, fresh:, sent:)
+      @channel = channel
+      @fresh = fresh
+      @sent = sent
+      freeze
+    end
+
+    # Builds a CheckoutSavedDataSent from the API's JSON.
+    def self.from_hash(data)
+      new(
+        channel: data.fetch("channel"),
+        fresh: data.fetch("fresh"),
+        sent: data.fetch("sent")
+      )
+    end
+  end
+
+  # CheckoutSavedProfile is a resource of Peráta's API.
+  class CheckoutSavedProfile < Model
+    MEMBERS = %i[address_line1 address_line2 city district name postal_code state tax_id tax_id_kind].freeze
+
+    # @return [String]
+    attr_reader :address_line1
+
+    # @return [String]
+    attr_reader :address_line2
+
+    # @return [String]
+    attr_reader :city
+
+    # @return [String]
+    attr_reader :district
+
+    # @return [String]
+    attr_reader :name
+
+    # @return [String]
+    attr_reader :postal_code
+
+    # @return [String]
+    attr_reader :state
+
+    # @return [String]
+    attr_reader :tax_id
+
+    # @return [String]
+    attr_reader :tax_id_kind
+
+    def initialize(address_line1:, address_line2:, city:, district:, name:, postal_code:, state:, tax_id:, tax_id_kind:)
+      @address_line1 = address_line1
+      @address_line2 = address_line2
+      @city = city
+      @district = district
+      @name = name
+      @postal_code = postal_code
+      @state = state
+      @tax_id = tax_id
+      @tax_id_kind = tax_id_kind
+      freeze
+    end
+
+    # Builds a CheckoutSavedProfile from the API's JSON.
+    def self.from_hash(data)
+      new(
+        address_line1: data.fetch("address_line1"),
+        address_line2: data.fetch("address_line2"),
+        city: data.fetch("city"),
+        district: data.fetch("district"),
+        name: data.fetch("name"),
+        postal_code: data.fetch("postal_code"),
+        state: data.fetch("state"),
+        tax_id: data.fetch("tax_id"),
+        tax_id_kind: data.fetch("tax_id_kind")
       )
     end
   end

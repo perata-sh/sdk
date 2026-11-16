@@ -238,13 +238,41 @@ module Perata
 
   # The body of checkouts:create.
   class CheckoutsCreateParams < Params
-    MEMBERS = %i[cancel_url label price_id product_id quantity success_url].freeze
+    MEMBERS = %i[allow_discount_codes cancel_url customer_email customer_id customer_name expires_in external_customer_id label metadata price_id product_id quantity require_billing_address return_url success_url].freeze
+
+    # Deixa o comprador digitar um código de desconto; desligado quando fica de fora.
+    # @return [Boolean, nil]
+    attr_reader :allow_discount_codes
 
     # @return [String, nil]
     attr_reader :cancel_url
 
+    # O e-mail do comprador, quando você o conhece; senão o navegador do comprador o pede.
+    # @return [String, nil]
+    attr_reader :customer_email
+
+    # Um cliente seu: o checkout abre com o nome, o e-mail e os dados de cobrança dele. Não junto com external_customer_id, customer_email ou customer_name.
+    # @return [String, nil]
+    attr_reader :customer_id
+
+    # O nome do comprador, quando você o conhece.
+    # @return [String, nil]
+    attr_reader :customer_name
+
+    # Segundos em que a sessão e o client_secret continuam valendo; 1800 quando fica de fora.
+    # @return [Integer, nil]
+    attr_reader :expires_in
+
+    # O mesmo cliente, pelo ID que você deu a ele.
+    # @return [String, nil]
+    attr_reader :external_customer_id
+
     # @return [String, nil]
     attr_reader :label
+
+    # Até 50 pares guardados no link do checkout; valor em texto, número ou booleano.
+    # @return [Hash{String => Object}, nil]
+    attr_reader :metadata
 
     # @return [String]
     attr_reader :price_id
@@ -255,15 +283,32 @@ module Perata
     # @return [Integer, nil]
     attr_reader :quantity
 
+    # Pede o endereço de cobrança completo de todo comprador, não só no boleto; desligado quando fica de fora.
+    # @return [Boolean, nil]
+    attr_reader :require_billing_address
+
+    # Outro nome de cancel_url: a página https a que o comprador volta sem pagar. Enviada com um cancel_url diferente, é recusada.
+    # @return [String, nil]
+    attr_reader :return_url
+
     # @return [String, nil]
     attr_reader :success_url
 
-    def initialize(cancel_url: nil, label: nil, price_id:, product_id:, quantity: nil, success_url: nil)
+    def initialize(allow_discount_codes: nil, cancel_url: nil, customer_email: nil, customer_id: nil, customer_name: nil, expires_in: nil, external_customer_id: nil, label: nil, metadata: nil, price_id:, product_id:, quantity: nil, require_billing_address: nil, return_url: nil, success_url: nil)
+      @allow_discount_codes = allow_discount_codes
       @cancel_url = cancel_url
+      @customer_email = customer_email
+      @customer_id = customer_id
+      @customer_name = customer_name
+      @expires_in = expires_in
+      @external_customer_id = external_customer_id
       @label = label
+      @metadata = metadata
       @price_id = price_id
       @product_id = product_id
       @quantity = quantity
+      @require_billing_address = require_billing_address
+      @return_url = return_url
       @success_url = success_url
       freeze
     end
@@ -271,11 +316,20 @@ module Perata
     # The body as the API reads it.
     def to_wire
       wire = {}
+      wire["allow_discount_codes"] = @allow_discount_codes unless @allow_discount_codes.nil?
       wire["cancel_url"] = @cancel_url unless @cancel_url.nil?
+      wire["customer_email"] = @customer_email unless @customer_email.nil?
+      wire["customer_id"] = @customer_id unless @customer_id.nil?
+      wire["customer_name"] = @customer_name unless @customer_name.nil?
+      wire["expires_in"] = @expires_in unless @expires_in.nil?
+      wire["external_customer_id"] = @external_customer_id unless @external_customer_id.nil?
       wire["label"] = @label unless @label.nil?
+      wire["metadata"] = Perata.wire(@metadata) unless @metadata.nil?
       wire["price_id"] = @price_id
       wire["product_id"] = @product_id
       wire["quantity"] = @quantity unless @quantity.nil?
+      wire["require_billing_address"] = @require_billing_address unless @require_billing_address.nil?
+      wire["return_url"] = @return_url unless @return_url.nil?
       wire["success_url"] = @success_url unless @success_url.nil?
       wire
     end

@@ -94,10 +94,10 @@ class CheckoutsService:
     def __init__(self, client: Requester) -> None:
         self._client = client
 
-    def create(self, params: models.CheckoutsCreateParams, *, idempotency_key: str | None = None, api_key: str | None = None) -> models.Checkout:
-        """Criar o endereço de um checkout para um produto e um preço."""
+    def create(self, params: models.CheckoutsCreateParams, *, idempotency_key: str | None = None, api_key: str | None = None) -> models.CheckoutCreated:
+        """Criar um checkout: o endereço para onde o comprador é enviado e a sessão de compra aberta para ele, com o client_secret que o navegador do comprador usa nas rotas de cliente."""
         data = self._client.request("POST", "/api/v1/checkouts", body=params, idempotency_key=idempotency_key, api_key=api_key)
-        return models.Checkout.from_dict(data)
+        return models.CheckoutCreated.from_dict(data)
 
     def get(self, checkout: str, *, api_key: str | None = None) -> models.Checkout:
         """Ler um checkout: o endereço, o estado e as páginas de retorno."""

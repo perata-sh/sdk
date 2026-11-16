@@ -6,12 +6,12 @@ SDK oficial da API da Peráta para Java 11+, sem dependências: só `java.net.ht
 <dependency>
     <groupId>sh.perata</groupId>
     <artifactId>sdk</artifactId>
-    <version>0.4.0</version>
+    <version>0.5.0</version>
 </dependency>
 ```
 
 ```kotlin
-implementation("sh.perata:sdk:0.4.0") // Gradle
+implementation("sh.perata:sdk:0.5.0") // Gradle
 ```
 
 ```java
@@ -58,6 +58,32 @@ for (Product each : perata.products().listIter()) {
 
 Os modelos são imutáveis, com getters em camelCase (`payment.getAmountCents()`) e os valores enumerados como constantes (`Product.STATUS_ACTIVE`). O corpo de cada escrita é um builder aninhado no serviço (`ProductsService.CreateParams`); um campo opcional não definido fica fora da requisição. As listas aceitam `ListParams` (`page`, `limit` e os filtros) e o `…Iter` devolve um `Iterable` que percorre todas as páginas. As escritas aceitam `RequestOptions` com `idempotencyKey`, e todas aceitam `apiKey` para usar a chave de outra organização numa chamada. Um POST sem chave de idempotência é enviado com uma `Idempotency-Key` própria (UUID v4 aleatório, uma por chamada); passe a sua para poder repetir a mesma operação com segurança.
 
+## Checkout transparente e embutido
+
+O checkout embutido tem duas metades. O **servidor** cria a sessão com a chave de API e entrega ao navegador só o `client_secret`; o **navegador** monta os campos de pagamento com ele, sem chave de API. O cartão é digitado num quadro da Peráta e nunca passa pelo seu site nem pelo seu servidor.
+
+```java
+// No seu servidor, numa rota como POST /checkout/sessao
+CheckoutCreated checkout = perata.checkouts().create(
+        CheckoutsService.CreateParams.builder().productId(productId).priceId(priceId).build());
+
+// Só o client_secret e o status_key vão ao navegador, nunca a chave de API.
+Map<String, String> answer = Map.of("clientSecret", checkout.getClientSecret(), "statusKey", checkout.getStatusKey());
+```
+
+A resposta traz o `url` (o checkout hospedado, para redirecionar o comprador ou abrir em modal), o `session_id`, o `client_secret` com o `client_secret_expires_at` (a sessão vale 30 minutos, ou os segundos do `expires_in` que você pedir) e o `status_key`, com que o navegador acompanha um Pix ou um boleto depois que o `client_secret` é gasto. Os campos opcionais são `success_url`, `cancel_url`, `customer_email`, `customer_name`, `customer_id`, `metadata`, `allow_discount_codes`, `require_billing_address` e `expires_in`. O `client_secret` vem na criação, e só nela: na repetição de uma criação idempotente (a mesma `Idempotency-Key`) ele vem vazio, então entregue-o ao navegador na primeira resposta. Para a Peráta avisar o servidor de que o pedido foi pago, use o webhook `order.paid` (veja Webhooks).
+
+No navegador, com o `client_secret` que o seu servidor devolveu (o site precisa estar em **Configurações › Checkout incorporado › Sites permitidos**):
+
+```html
+<div id="pagamento"></div>
+<script src="https://perata.sh/v1/perata.js"></script>
+<script>
+  // clientSecret: o que o seu servidor devolveu acima
+  Perata().components.payment({ clientSecret, onSuccess: (result) => console.log(result.status) }).mount("#pagamento");
+</script>
+```
+
 ## Consumo (ingestão de eventos)
 
 A ingestão de consumo usa outra credencial: a de uma fonte de ingestão (**Configurações › Fontes de ingestão**), `pus_test_…` em teste e `pus_live_…` em produção. Monte um cliente com ela; a chave de API da organização (`prk_…`) é recusada aqui com 401, e uma credencial de um ambiente nunca escreve no outro.
@@ -99,4 +125,4 @@ A assinatura é a do Standard Webhooks (`webhook-id`, `webhook-timestamp`, `webh
 
 O evento é tipado: um tipo para cada dado que o webhook carrega (`OrderWebhookEvent` traz um `Order`, `DisputeWebhookEvent` a disputa, `IdentifiersWebhookEvent` os identificadores…), e o `type` diz o que aconteceu; um tipo que esta versão do SDK ainda não conhece chega como `UnknownWebhookEvent`, com os dados como vieram. Durante a rotação do segredo o cabeçalho traz mais de uma assinatura, e basta uma conferir. `Webhook.verifySignature` só confere a assinatura.
 
-Versão do SDK: 0.4.0 · contrato da API: 0.1.0
+Versão do SDK: 0.5.0 · contrato da API: 0.1.0

@@ -64,6 +64,34 @@ $tests['a write sends its body and idempotency key'] = static function (): void 
     check(json_decode((string) $seen[0]['body'], true) === ['name' => 'Curso'], 'body ' . $seen[0]['body']);
 };
 
+$tests['a checkout session hands back the client secret for the browser'] = static function (): void {
+    $session = static fn (string $secret): array => [
+        'id' => 'pcl_1', 'url' => 'https://perata.sh/pagamento/pcl_1', 'product_id' => 'prod_1', 'price_id' => 'price_1',
+        'status' => 'active', 'label' => '', 'quantity' => 1, 'success_url' => 'https://loja.example/obrigado', 'cancel_url' => '',
+        'expires_at' => null, 'created_at' => '2026-11-16T12:00:00Z', 'session_id' => 'cs_1', 'client_secret' => $secret,
+        'client_secret_expires_at' => '2026-11-16T12:30:00Z', 'status_key' => 'sk_1',
+    ];
+    $calls = 0;
+    [$perata, $seen] = client(static function () use ($session, &$calls): array {
+        return $calls++ === 0 ? [201, [], ['data' => $session('cs_secret_1')]] : [201, ['Idempotent-Replayed' => 'true'], ['data' => $session('')]];
+    });
+    $params = ['product_id' => 'prod_1', 'price_id' => 'price_1', 'success_url' => 'https://loja.example/obrigado'];
+    $checkout = $perata->checkouts->create($params, idempotencyKey: 'pedido-1');
+    check($checkout->clientSecret === 'cs_secret_1' && $checkout->sessionId === 'cs_1' && $checkout->statusKey === 'sk_1', 'secret and keys');
+    check($checkout->clientSecretExpiresAt === '2026-11-16T12:30:00Z' && $checkout->url === 'https://perata.sh/pagamento/pcl_1' && $checkout->expiresAt === null, 'dates and url');
+    check($seen[0]['method'] === 'POST' && $seen[0]['url'] === 'https://perata.test/api/v1/checkouts' && $seen[0]['headers']['Idempotency-Key'] === 'pedido-1', 'request');
+    check(json_decode((string) $seen[0]['body'], true) === $params, 'body ' . $seen[0]['body']);
+    $again = $perata->checkouts->create($params, idempotencyKey: 'pedido-1');
+    check($again->clientSecret === '' && $again->sessionId === 'cs_1' && $again->statusKey === 'sk_1', 'replay');
+};
+
+$tests['a model that may be null decodes both ways'] = static function (): void {
+    $pix = ['copia_e_cola' => '000201', 'qr_code_svg' => '<svg/>', 'expires_at' => null];
+    $payment = ['id' => 'pay_1', 'method' => 'pix', 'state' => 'pending', 'unresolved' => false, 'card_brand' => '', 'card_kind' => '', 'installments' => 1, 'pix' => $pix, 'boleto' => null];
+    $got = \Perata\Models\CheckoutClientPayment::fromArray($payment);
+    check($got->boleto === null && $got->pix !== null && $got->pix->copiaECola === '000201' && $got->pix->expiresAt === null, 'payment');
+};
+
 $tests['a base URL must be https unless it is loopback'] = static function (): void {
     foreach (['https://perata.sh', 'http://localhost:8080', 'http://LOCALHOST', 'http://127.0.0.1:1', 'http://127.255.0.3', 'http://[::1]:8080'] as $base) {
         new Perata('k', $base);

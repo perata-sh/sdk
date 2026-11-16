@@ -14,6 +14,7 @@ namespace Perata;
 [JsonSerializable(typeof(Envelope<Benefit>), TypeInfoPropertyName = "BenefitEnvelope")]
 [JsonSerializable(typeof(Envelope<Page<BenefitGrant>>), TypeInfoPropertyName = "BenefitGrantPageEnvelope")]
 [JsonSerializable(typeof(Envelope<Page<Benefit>>), TypeInfoPropertyName = "BenefitPageEnvelope")]
+[JsonSerializable(typeof(Envelope<CheckoutCreated>), TypeInfoPropertyName = "CheckoutCreatedEnvelope")]
 [JsonSerializable(typeof(Envelope<Checkout>), TypeInfoPropertyName = "CheckoutEnvelope")]
 [JsonSerializable(typeof(Envelope<CheckoutLink>), TypeInfoPropertyName = "CheckoutLinkEnvelope")]
 [JsonSerializable(typeof(Envelope<Page<CheckoutLink>>), TypeInfoPropertyName = "CheckoutLinkPageEnvelope")]

@@ -56,6 +56,88 @@ defmodule PerataTest do
     assert JSON.decode!(seen.body) == %{"name" => "Curso"}
   end
 
+  defp session(client_secret) do
+    %{
+      "id" => "pcl_1",
+      "url" => "https://perata.sh/pagamento/pcl_1",
+      "product_id" => "prod_1",
+      "price_id" => "price_1",
+      "status" => "active",
+      "label" => "",
+      "quantity" => 1,
+      "success_url" => "https://loja.example/obrigado",
+      "cancel_url" => "",
+      "expires_at" => nil,
+      "created_at" => "2026-11-16T12:00:00Z",
+      "session_id" => "cs_1",
+      "client_secret" => client_secret,
+      "client_secret_expires_at" => "2026-11-16T12:30:00Z",
+      "status_key" => "sk_1"
+    }
+  end
+
+  test "a checkout session hands back the client secret for the browser" do
+    {:ok, calls} = Agent.start_link(fn -> 0 end)
+
+    perata =
+      client(fn _request ->
+        case Agent.get_and_update(calls, &{&1, &1 + 1}) do
+          0 -> {201, %{"data" => session("cs_secret_1")}, []}
+          _ -> {201, %{"data" => session("")}, [{"idempotent-replayed", "true"}]}
+        end
+      end)
+
+    params = %{
+      product_id: "prod_1",
+      price_id: "price_1",
+      success_url: "https://loja.example/obrigado"
+    }
+
+    assert {:ok, checkout} = Perata.Checkouts.create(perata, params, idempotency_key: "pedido-1")
+    assert checkout.client_secret == "cs_secret_1"
+    assert checkout.session_id == "cs_1"
+    assert checkout.status_key == "sk_1"
+    assert checkout.client_secret_expires_at == "2026-11-16T12:30:00Z"
+    assert checkout.url == "https://perata.sh/pagamento/pcl_1"
+    assert checkout.expires_at == nil
+
+    assert_received {:request, seen}
+    assert seen.method == "POST"
+    assert seen.url.path == "/api/v1/checkouts"
+    assert seen.headers["Idempotency-Key"] == "pedido-1"
+
+    assert JSON.decode!(seen.body) == %{
+             "product_id" => "prod_1",
+             "price_id" => "price_1",
+             "success_url" => "https://loja.example/obrigado"
+           }
+
+    assert {:ok, again} = Perata.Checkouts.create(perata, params, idempotency_key: "pedido-1")
+    assert again.client_secret == ""
+    assert again.session_id == "cs_1"
+  end
+
+  test "a model that may be null decodes both ways" do
+    pix = %{"copia_e_cola" => "000201", "qr_code_svg" => "<svg/>", "expires_at" => nil}
+
+    payment = %{
+      "id" => "pay_1",
+      "method" => "pix",
+      "state" => "pending",
+      "unresolved" => false,
+      "card_brand" => "",
+      "card_kind" => "",
+      "installments" => 1,
+      "pix" => pix,
+      "boleto" => nil
+    }
+
+    got = Perata.CheckoutClientPayment.from_map(payment)
+    assert got.boleto == nil
+    assert got.pix.copia_e_cola == "000201"
+    assert got.pix.expires_at == nil
+  end
+
   test "a base URL must be https unless it is loopback" do
     for base <- [
           "https://perata.sh",

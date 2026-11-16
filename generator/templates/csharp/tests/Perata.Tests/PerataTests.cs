@@ -87,6 +87,49 @@ public class PerataTests
         Assert.False(body.RootElement.TryGetProperty("description", out _), "an optional field left out was sent");
     }
 
+    private static string SessionJson(string clientSecret) =>
+        $$"""{"id":"pcl_1","url":"https://perata.sh/pagamento/pcl_1","product_id":"prod_1","price_id":"price_1","status":"active","label":"","quantity":1,"success_url":"https://loja.example/obrigado","cancel_url":"","expires_at":null,"created_at":"2026-11-16T12:00:00Z","session_id":"cs_1","client_secret":"{{clientSecret}}","client_secret_expires_at":"2026-11-16T12:30:00Z","status_key":"sk_1"}""";
+
+    [Fact]
+    public async Task ACheckoutSessionHandsBackTheClientSecretForTheBrowser()
+    {
+        var calls = 0;
+        var recorder = new Recorder(_ => calls++ == 0
+            ? new Answer(HttpStatusCode.Created, $$"""{"data":{{SessionJson("cs_secret_1")}}}""")
+            : new Answer(HttpStatusCode.Created, $$"""{"data":{{SessionJson("")}}}""", new Dictionary<string, string> { ["Idempotent-Replayed"] = "true" }));
+        var perata = Client(recorder);
+        var parameters = new CheckoutsCreateParams { ProductId = "prod_1", PriceId = "price_1", SuccessUrl = "https://loja.example/obrigado" };
+        var options = new RequestOptions { IdempotencyKey = "pedido-1" };
+        var checkout = await perata.Checkouts.CreateAsync(parameters, options);
+        Assert.Equal("cs_secret_1", checkout.ClientSecret);
+        Assert.Equal("cs_1", checkout.SessionId);
+        Assert.Equal("sk_1", checkout.StatusKey);
+        Assert.Equal("2026-11-16T12:30:00Z", checkout.ClientSecretExpiresAt);
+        Assert.Equal("https://perata.sh/pagamento/pcl_1", checkout.Url);
+        Assert.Null(checkout.ExpiresAt);
+        var seen = recorder.Requests[0];
+        Assert.Equal(HttpMethod.Post, seen.Method);
+        Assert.Equal("/api/v1/checkouts", seen.Url.AbsolutePath);
+        Assert.Equal("pedido-1", seen.Headers["Idempotency-Key"]);
+        using var body = JsonDocument.Parse(seen.Body!);
+        Assert.Equal("prod_1", body.RootElement.GetProperty("product_id").GetString());
+        Assert.Equal("price_1", body.RootElement.GetProperty("price_id").GetString());
+        Assert.Equal("https://loja.example/obrigado", body.RootElement.GetProperty("success_url").GetString());
+        var again = await perata.Checkouts.CreateAsync(parameters, options);
+        Assert.Equal("", again.ClientSecret);
+        Assert.Equal("cs_1", again.SessionId);
+    }
+
+    [Fact]
+    public void AModelThatMayBeNullDecodesBothWays()
+    {
+        const string json = """{"id":"pay_1","method":"pix","state":"pending","unresolved":false,"card_brand":"","card_kind":"","installments":1,"pix":{"copia_e_cola":"000201","qr_code_svg":"<svg/>","expires_at":null},"boleto":null}""";
+        var got = JsonSerializer.Deserialize<CheckoutClientPayment>(json)!;
+        Assert.Null(got.Boleto);
+        Assert.Equal("000201", got.Pix!.CopiaECola);
+        Assert.Null(got.Pix.ExpiresAt);
+    }
+
     [Theory]
     [InlineData("https://perata.sh", true)]
     [InlineData("http://localhost:8080", true)]

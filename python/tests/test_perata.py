@@ -5,6 +5,7 @@ from http.server import BaseHTTPRequestHandler, HTTPServer
 from urllib.parse import parse_qs, urlparse
 
 from perata import (
+    CheckoutClientPayment,
     IdentifiersWebhookEvent,
     OrderWebhookEvent,
     Perata,
@@ -69,6 +70,42 @@ class PerataTest(unittest.TestCase):
         self.assertEqual(seen["method"], "POST")
         self.assertEqual(seen["headers"]["Idempotency-Key"], "create-1")
         self.assertEqual(json.loads(seen["body"]), {"name": "Curso"})
+
+    def test_a_checkout_session_hands_back_the_client_secret_for_the_browser(self):
+        def session(client_secret):
+            return {
+                "id": "pcl_1", "url": "https://perata.sh/pagamento/pcl_1", "product_id": "prod_1", "price_id": "price_1",
+                "status": "active", "label": "", "quantity": 1, "success_url": "https://loja.example/obrigado", "cancel_url": "",
+                "expires_at": None, "created_at": "2026-11-16T12:00:00Z", "session_id": "cs_1", "client_secret": client_secret,
+                "client_secret_expires_at": "2026-11-16T12:30:00Z", "status_key": "sk_1",
+            }
+
+        answers = [(201, {"data": session("cs_secret_1")}, {}), (201, {"data": session("")}, {"Idempotent-Replayed": "true"})]
+        perata, recorder = client(lambda request: answers[len(recorder.seen) - 1])
+        params = {"product_id": "prod_1", "price_id": "price_1", "success_url": "https://loja.example/obrigado"}
+        checkout = perata.checkouts.create(params, idempotency_key="pedido-1")
+        self.assertEqual(checkout.client_secret, "cs_secret_1")
+        self.assertEqual(checkout.session_id, "cs_1")
+        self.assertEqual(checkout.status_key, "sk_1")
+        self.assertEqual(checkout.client_secret_expires_at, "2026-11-16T12:30:00Z")
+        self.assertEqual(checkout.url, "https://perata.sh/pagamento/pcl_1")
+        self.assertIsNone(checkout.expires_at)
+        seen = recorder.seen[0]
+        self.assertEqual(seen["method"], "POST")
+        self.assertEqual(seen["url"].path, "/api/v1/checkouts")
+        self.assertEqual(seen["headers"]["Idempotency-Key"], "pedido-1")
+        self.assertEqual(json.loads(seen["body"]), params)
+        again = perata.checkouts.create(params, idempotency_key="pedido-1")
+        self.assertEqual(again.client_secret, "")
+        self.assertEqual(again.session_id, "cs_1")
+
+    def test_a_model_that_may_be_null_decodes_both_ways(self):
+        pix = {"copia_e_cola": "000201", "qr_code_svg": "<svg/>", "expires_at": None}
+        payment = {"id": "pay_1", "method": "pix", "state": "pending", "unresolved": False, "card_brand": "", "card_kind": "", "installments": 1, "pix": pix, "boleto": None}
+        got = CheckoutClientPayment.from_dict(payment)
+        self.assertIsNone(got.boleto)
+        self.assertEqual(got.pix.copia_e_cola, "000201")
+        self.assertIsNone(got.pix.expires_at)
 
     def test_a_base_url_must_be_https_unless_it_is_loopback(self):
         for base_url in ["https://perata.sh", "http://localhost:8080", "http://LOCALHOST", "http://127.0.0.1:1", "http://127.255.0.3", "http://[::1]:8080"]:

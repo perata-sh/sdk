@@ -237,20 +237,54 @@ defmodule Perata.CheckoutsCreateParams do
   """
 
   @enforce_keys [:price_id, :product_id]
-  defstruct [:cancel_url, :label, :price_id, :product_id, :quantity, :success_url]
+  defstruct [
+    :allow_discount_codes,
+    :cancel_url,
+    :customer_email,
+    :customer_id,
+    :customer_name,
+    :expires_in,
+    :external_customer_id,
+    :label,
+    :metadata,
+    :price_id,
+    :product_id,
+    :quantity,
+    :require_billing_address,
+    :return_url,
+    :success_url
+  ]
 
   @typedoc """
+  * `allow_discount_codes` (optional): Deixa o comprador digitar um código de desconto; desligado quando fica de fora.
   * `cancel_url` (optional)
+  * `customer_email` (optional): O e-mail do comprador, quando você o conhece; senão o navegador do comprador o pede.
+  * `customer_id` (optional): Um cliente seu: o checkout abre com o nome, o e-mail e os dados de cobrança dele. Não junto com external_customer_id, customer_email ou customer_name.
+  * `customer_name` (optional): O nome do comprador, quando você o conhece.
+  * `expires_in` (optional): Segundos em que a sessão e o client_secret continuam valendo; 1800 quando fica de fora.
+  * `external_customer_id` (optional): O mesmo cliente, pelo ID que você deu a ele.
   * `label` (optional)
+  * `metadata` (optional): Até 50 pares guardados no link do checkout; valor em texto, número ou booleano.
   * `quantity` (optional)
+  * `require_billing_address` (optional): Pede o endereço de cobrança completo de todo comprador, não só no boleto; desligado quando fica de fora.
+  * `return_url` (optional): Outro nome de cancel_url: a página https a que o comprador volta sem pagar. Enviada com um cancel_url diferente, é recusada.
   * `success_url` (optional)
   """
   @type t :: %__MODULE__{
+          allow_discount_codes: boolean() | nil,
           cancel_url: String.t() | nil,
+          customer_email: String.t() | nil,
+          customer_id: String.t() | nil,
+          customer_name: String.t() | nil,
+          expires_in: integer() | nil,
+          external_customer_id: String.t() | nil,
           label: String.t() | nil,
+          metadata: %{optional(String.t()) => term()} | nil,
           price_id: String.t(),
           product_id: String.t(),
           quantity: integer() | nil,
+          require_billing_address: boolean() | nil,
+          return_url: String.t() | nil,
           success_url: String.t() | nil
         }
 
@@ -265,9 +299,18 @@ defmodule Perata.CheckoutsCreateParams do
     params = new(params)
 
     %{"price_id" => params.price_id, "product_id" => params.product_id}
+    |> Perata.Encode.put_optional("allow_discount_codes", params.allow_discount_codes)
     |> Perata.Encode.put_optional("cancel_url", params.cancel_url)
+    |> Perata.Encode.put_optional("customer_email", params.customer_email)
+    |> Perata.Encode.put_optional("customer_id", params.customer_id)
+    |> Perata.Encode.put_optional("customer_name", params.customer_name)
+    |> Perata.Encode.put_optional("expires_in", params.expires_in)
+    |> Perata.Encode.put_optional("external_customer_id", params.external_customer_id)
     |> Perata.Encode.put_optional("label", params.label)
+    |> Perata.Encode.put_optional("metadata", Perata.Encode.value(params.metadata))
     |> Perata.Encode.put_optional("quantity", params.quantity)
+    |> Perata.Encode.put_optional("require_billing_address", params.require_billing_address)
+    |> Perata.Encode.put_optional("return_url", params.return_url)
     |> Perata.Encode.put_optional("success_url", params.success_url)
   end
 end

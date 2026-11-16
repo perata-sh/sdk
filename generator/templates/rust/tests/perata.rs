@@ -5,11 +5,12 @@ use std::thread;
 use std::time::{Duration, UNIX_EPOCH};
 
 use perata::{
-    verify_webhook_at, verify_webhook_signature_at, BoxError, Client, CustomersCreateParams,
-    DiscountsCreateParams, DiscountsCreateParamsDuration, DiscountsCreateParamsType,
-    DiscountsListParams, Error, HttpRequest, HttpResponse, ProductStatus, ProductsCreateParams,
-    ProductsListParams, UsageIngestEvent, UsageIngestEventCost, UsageIngestEventCostCurrency,
-    UsageIngestParams, WebhookError, WebhookEvent,
+    verify_webhook_at, verify_webhook_signature_at, BoxError, CheckoutClientPayment,
+    CheckoutsCreateParams, Client, CustomersCreateParams, DiscountsCreateParams,
+    DiscountsCreateParamsDuration, DiscountsCreateParamsType, DiscountsListParams, Error,
+    HttpRequest, HttpResponse, ProductStatus, ProductsCreateParams, ProductsListParams,
+    UsageIngestEvent, UsageIngestEventCost, UsageIngestEventCostCurrency, UsageIngestParams,
+    WebhookError, WebhookEvent,
 };
 
 type Seen = Arc<Mutex<Vec<HttpRequest>>>;
@@ -77,6 +78,73 @@ fn a_write_sends_its_body_and_idempotency_key() {
     let body: serde_json::Value = serde_json::from_slice(seen[0].body.as_deref().unwrap()).unwrap();
     // The optional description, left unset, is not sent.
     assert_eq!(body, serde_json::json!({"name": "Curso"}));
+}
+
+#[test]
+fn a_checkout_session_hands_back_the_client_secret_for_the_browser() {
+    let session = |secret: &str| {
+        serde_json::json!({"data": {
+            "id": "pcl_1", "url": "https://perata.sh/pagamento/pcl_1", "product_id": "prod_1", "price_id": "price_1",
+            "status": "active", "label": "", "quantity": 1, "success_url": "https://loja.example/obrigado", "cancel_url": "",
+            "expires_at": null, "created_at": "2026-11-16T12:00:00Z", "session_id": "cs_1", "client_secret": secret,
+            "client_secret_expires_at": "2026-11-16T12:30:00Z", "status_key": "sk_1"
+        }})
+    };
+    let calls = std::sync::atomic::AtomicUsize::new(0);
+    let (client, seen) = client(move |_| {
+        if calls.fetch_add(1, std::sync::atomic::Ordering::SeqCst) == 0 {
+            json(201, session("cs_secret_1"))
+        } else {
+            json(201, session("")).with_header("Idempotent-Replayed", "true")
+        }
+    });
+    let params = CheckoutsCreateParams::new("price_1", "prod_1")
+        .success_url("https://loja.example/obrigado");
+    let checkout = client
+        .checkouts()
+        .idempotency_key("pedido-1")
+        .create(&params)
+        .unwrap();
+    assert_eq!(checkout.client_secret, "cs_secret_1");
+    assert_eq!(checkout.session_id, "cs_1");
+    assert_eq!(checkout.status_key, "sk_1");
+    assert_eq!(checkout.client_secret_expires_at, "2026-11-16T12:30:00Z");
+    assert_eq!(checkout.url, "https://perata.sh/pagamento/pcl_1");
+    assert_eq!(checkout.expires_at, None);
+    {
+        let seen = seen.lock().unwrap();
+        assert_eq!(seen[0].method, "POST");
+        assert_eq!(seen[0].url, "https://perata.test/api/v1/checkouts");
+        assert_eq!(seen[0].header("idempotency-key"), Some("pedido-1"));
+        let body: serde_json::Value =
+            serde_json::from_slice(seen[0].body.as_deref().unwrap()).unwrap();
+        assert_eq!(
+            body,
+            serde_json::json!({"product_id": "prod_1", "price_id": "price_1", "success_url": "https://loja.example/obrigado"})
+        );
+    }
+    let again = client
+        .checkouts()
+        .idempotency_key("pedido-1")
+        .create(&params)
+        .unwrap();
+    assert_eq!(again.client_secret, "");
+    assert_eq!(again.session_id, "cs_1");
+}
+
+#[test]
+fn a_model_that_may_be_null_decodes_both_ways() {
+    let payment: CheckoutClientPayment = serde_json::from_value(serde_json::json!({
+        "id": "pay_1", "method": "pix", "state": "pending", "unresolved": false, "card_brand": "", "card_kind": "",
+        "installments": 1,
+        "pix": {"copia_e_cola": "000201", "qr_code_svg": "<svg/>", "expires_at": null},
+        "boleto": null
+    }))
+    .unwrap();
+    assert!(payment.boleto.is_none());
+    let pix = payment.pix.unwrap();
+    assert_eq!(pix.copia_e_cola, "000201");
+    assert_eq!(pix.expires_at, None);
 }
 
 #[test]

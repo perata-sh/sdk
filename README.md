@@ -38,6 +38,7 @@ Só usam a biblioteca padrão da linguagem, com duas exceções onde ela não te
 openapi.json      o contrato da API pública, exportado pelo perata.sh
 generator/        OpenAPI → IR neutra → um emissor por linguagem (templates)
 cmd/sdkgen        o comando que gera
+regen.sh          sincroniza o contrato do perata.sh e gera os 11 SDKs
 <linguagem>/      saída do gerador, uma pasta por linguagem: nunca editada à mão
 js/, react/       pacotes do navegador, escritos à mão (não gerados)
 Package.swift     o manifesto do Swift na raiz, que o SwiftPM exige
@@ -45,9 +46,10 @@ composer.json     o manifesto do PHP na raiz, que o Packagist exige
 ```
 
 ```sh
-go run ./cmd/sdkgen -sync ../perata.sh/docs/contracts/api.openapi.json   # contrato novo
-go run ./cmd/sdkgen                                                      # regenerar
-./check.sh                                                               # todos os gates
+./regen.sh                  # contrato novo (o commitado no develop do perata.sh) e os 11 SDKs de novo
+./regen.sh --worktree       # o mesmo, com o arquivo da árvore de trabalho do perata.sh, commitado ou não
+go run ./cmd/sdkgen         # regenerar do openapi.json que já está aqui
+./check.sh                  # todos os gates
 ```
 
 Licença MIT.

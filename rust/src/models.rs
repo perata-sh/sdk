@@ -75,6 +75,32 @@ pub struct Card {
     pub last4: Option<String>,
 }
 
+/// CardAuthentication is a resource of Peráta's API.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct CardAuthentication {
+    /// O token com que o script de 3DS autentica; entregue só a uma página da própria origem da Peráta.
+    pub access_token: String,
+    pub environment: CardAuthenticationEnvironment,
+    /// Segundos de vida do token.
+    pub expires_in: i64,
+    pub provider: String,
+    /// O script de autenticação do adquirente.
+    pub script_url: String,
+}
+
+/// CardTokenization is a resource of Peráta's API.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct CardTokenization {
+    /// O token com que o script do adquirente envia o cartão; entregue só a uma página da própria origem da Peráta.
+    pub access_token: String,
+    pub environment: CardTokenizationEnvironment,
+    pub expires_at: String,
+    pub issued: String,
+    pub provider: String,
+}
+
 /// Checkout is a resource of Peráta's API.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[non_exhaustive]
@@ -96,6 +122,176 @@ pub struct Checkout {
     pub success_url: String,
     /// Endereço para onde o comprador é enviado.
     pub url: String,
+}
+
+/// CheckoutClient is a resource of Peráta's API.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct CheckoutClient {
+    /// Antes do desconto.
+    pub amount_cents: i64,
+    /// Para onde o comprador volta sem pagar.
+    pub cancel_url: String,
+    /// credit, e debit onde a autenticação do adquirente está ligada.
+    pub card_kinds: Vec<String>,
+    pub currency: CheckoutClientCurrency,
+    pub customer: Option<CheckoutClientCustomer>,
+    pub discount: Option<CheckoutClientDiscount>,
+    pub discount_cents: i64,
+    /// A sessão está aberta e ainda aceita atualizações e um pagamento.
+    pub editable: bool,
+    pub environment: CheckoutClientEnvironment,
+    /// Quando a sessão e o client_secret deixam de valer.
+    pub expires_at: String,
+    /// O ID da sessão de checkout.
+    pub id: String,
+    /// Os planos de uma venda no cartão de crédito, à vista primeiro; vazio quando a sessão não se paga em parcelas no cartão.
+    pub installments: Vec<CheckoutInstallment>,
+    pub items: Vec<CheckoutClientItem>,
+    /// O que o pagamento ainda precisa do comprador, pelo campo da rota de atualização: customer_email, tax_id e billing_address.
+    pub missing: Vec<String>,
+    pub next_action: CheckoutNextAction,
+    pub payment: Option<CheckoutClientPayment>,
+    /// As formas em que a sessão pode ser paga, entre card, pix, boleto e free; free é uma sessão que não pede pagamento.
+    pub payment_methods: Vec<String>,
+    /// O lojista pede o endereço de cobrança completo; o boleto o pede de qualquer jeito.
+    pub requires_billing_address: bool,
+    /// O CPF ou CNPJ é obrigatório porque há um pagamento a fazer.
+    pub requires_tax_id: bool,
+    /// open: esperando o comprador; confirmed: o pagamento foi pedido e não está liquidado (um Pix ou boleto esperando pagamento); succeeded: pago; failed e expired: acabou sem pagamento.
+    pub status: CheckoutClientStatus,
+    /// A chave que lê o estado desta sessão depois que o client_secret é consumido: GET /checkouts/client/status/{status_key}.
+    pub status_key: String,
+    /// Para onde o comprador vai depois de pagar: a página do próprio lojista, com o ID do checkout onde ele o pediu.
+    pub success_url: String,
+    /// O que o comprador paga, em centavos.
+    pub total_cents: i64,
+}
+
+/// CheckoutClientBoleto is a resource of Peráta's API.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct CheckoutClientBoleto {
+    /// A linha digitável do boleto.
+    pub digitable_line: String,
+    /// Quando o boleto deixa de poder ser pago: o fim do dia do vencimento, no horário de Brasília.
+    pub due_date: Option<String>,
+    /// Onde o boleto é baixado; vazio quando o adquirente não deu nenhum.
+    pub pdf_url: String,
+}
+
+/// CheckoutClientCustomer is a resource of Peráta's API.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct CheckoutClientCustomer {
+    pub address: BillingAddress,
+    pub billing_name: String,
+    pub email: String,
+    pub name: String,
+    /// O CPF ou CNPJ do comprador, só dígitos; vazio enquanto não for informado.
+    pub tax_id: String,
+    pub tax_id_kind: String,
+}
+
+/// CheckoutClientDiscount is a resource of Peráta's API.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct CheckoutClientDiscount {
+    /// O código que o comprador aplicou; vazio num desconto que o link fixa sem código.
+    pub code: String,
+    pub discount_cents: i64,
+}
+
+/// CheckoutClientItem is a resource of Peráta's API.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct CheckoutClientItem {
+    /// Quanto custa a linha antes de qualquer desconto: a unidade vezes a quantidade.
+    pub amount_cents: i64,
+    /// A descrição do produto como o lojista a escreveu, em Markdown; vazia sem ela.
+    pub description: String,
+    /// month ou year numa assinatura; vazio numa compra avulsa.
+    pub interval: String,
+    /// Quantos intervalos dura um ciclo.
+    pub interval_count: i64,
+    pub name: String,
+    pub product_id: String,
+    pub quantity: i64,
+    /// Quanto custa uma unidade, antes de qualquer desconto.
+    pub unit_cents: i64,
+}
+
+/// CheckoutClientPayment is a resource of Peráta's API.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct CheckoutClientPayment {
+    pub boleto: Option<CheckoutClientBoleto>,
+    pub card_brand: String,
+    pub card_kind: String,
+    pub id: String,
+    pub installments: i64,
+    pub method: CheckoutClientPaymentMethod,
+    pub pix: Option<CheckoutClientPix>,
+    pub state: CheckoutClientPaymentState,
+    /// Verdadeiro enquanto a resposta do adquirente ainda é descoberta; o comprador espera.
+    pub unresolved: bool,
+}
+
+/// CheckoutClientPix is a resource of Peráta's API.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct CheckoutClientPix {
+    /// O código Pix copia e cola.
+    pub copia_e_cola: String,
+    /// Quando o Pix deixa de poder ser pago, como o adquirente o deu.
+    pub expires_at: Option<String>,
+    /// O QR do código, desenhado como um documento SVG.
+    pub qr_code_svg: String,
+}
+
+/// CheckoutCreated is a resource of Peráta's API.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct CheckoutCreated {
+    /// Endereço https para onde o comprador volta se desistir; vazio sem ele.
+    pub cancel_url: String,
+    /// O segredo que o navegador do comprador usa para ler, atualizar e pagar a sessão, sem chave de API. Só esta resposta o traz; entregue-o à página que monta os campos seguros. Vem vazio na repetição de uma criação idempotente.
+    pub client_secret: String,
+    /// Quando a sessão e o client_secret deixam de valer.
+    pub client_secret_expires_at: String,
+    pub created_at: String,
+    /// Quando o link deixa de abrir sessões; nulo sem prazo.
+    pub expires_at: Option<String>,
+    /// O ID do link do checkout, o que GET e PATCH /checkouts/{id} recebem.
+    pub id: String,
+    /// Como o lojista chama o checkout nas próprias telas; o comprador não vê.
+    pub label: String,
+    pub price_id: String,
+    pub product_id: String,
+    pub quantity: i64,
+    /// O ID da sessão de checkout; as rotas de cliente dela são /checkouts/client/{client_secret}.
+    pub session_id: String,
+    /// active abre sessões de compra; archived saiu de circulação.
+    pub status: CheckoutCreatedStatus,
+    /// Lê o estado da sessão depois que o client_secret é consumido: GET /checkouts/client/status/{status_key}. Só esta resposta o traz.
+    pub status_key: String,
+    /// Endereço https para onde o comprador volta depois de pagar; vazio sem ele.
+    pub success_url: String,
+    /// O endereço hospedado: redirecione o comprador para cá e ele paga na página da Peráta.
+    pub url: String,
+}
+
+/// CheckoutInstallment is a resource of Peráta's API.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct CheckoutInstallment {
+    /// O número de parcelas; 1 é à vista.
+    pub count: i64,
+    pub installment_cents: i64,
+    /// Zero quando o lojista arca com os juros (sem juros).
+    pub interest_cents: i64,
+    /// Quanto o comprador paga no total: o total da sessão, mais os juros quando o plano os tem.
+    pub total_cents: i64,
 }
 
 /// CheckoutLink is a resource of Peráta's API.
@@ -145,6 +341,67 @@ pub struct CheckoutLink {
 pub struct CheckoutLinkProduct {
     pub price_id: String,
     pub product_id: String,
+}
+
+/// CheckoutNextAction is a resource of Peráta's API.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct CheckoutNextAction {
+    /// none: nada falta; wait: o resultado está sendo descoberto, leia o estado de novo; show_pix e show_boleto: mostre o Pix ou o boleto do pagamento e espere o pagamento; redirect: envie o comprador para url, onde o banco ou a autenticação 3DS termina o pagamento.
+    #[serde(rename = "type")]
+    pub type_: CheckoutNextActionType,
+    /// Para onde enviar o comprador, no redirect.
+    pub url: String,
+}
+
+/// CheckoutSavedCard is a resource of Peráta's API.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct CheckoutSavedCard {
+    pub brand: String,
+    /// MM/AA.
+    pub expiry: String,
+    /// O que o confirm recebe como saved_card.
+    pub id: String,
+    pub last4: String,
+    /// O cartão está no Peráta Link do comprador, não com o lojista.
+    pub link: bool,
+}
+
+/// CheckoutSavedData is a resource of Peráta's API.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct CheckoutSavedData {
+    pub cards: Vec<CheckoutSavedCard>,
+    pub profile: CheckoutSavedProfile,
+    /// O que o confirm recebe como saved_card_proof, para pagar com um cartão salvo ou atestar o e-mail.
+    pub proof: String,
+}
+
+/// CheckoutSavedDataSent is a resource of Peráta's API.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct CheckoutSavedDataSent {
+    pub channel: String,
+    /// Sempre falso, pelo mesmo motivo.
+    pub fresh: bool,
+    /// Sempre verdadeiro: a resposta não diz se há algo guardado para o e-mail.
+    pub sent: bool,
+}
+
+/// CheckoutSavedProfile is a resource of Peráta's API.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct CheckoutSavedProfile {
+    pub address_line1: String,
+    pub address_line2: String,
+    pub city: String,
+    pub district: String,
+    pub name: String,
+    pub postal_code: String,
+    pub state: String,
+    pub tax_id: String,
+    pub tax_id_kind: String,
 }
 
 /// Customer is a resource of Peráta's API.
@@ -1023,14 +1280,41 @@ impl CheckoutLinksUpdateParams {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[non_exhaustive]
 pub struct CheckoutsCreateParams {
+    /// Deixa o comprador digitar um código de desconto; desligado quando fica de fora.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub allow_discount_codes: Option<bool>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub cancel_url: Option<String>,
+    /// O e-mail do comprador, quando você o conhece; senão o navegador do comprador o pede.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub customer_email: Option<String>,
+    /// Um cliente seu: o checkout abre com o nome, o e-mail e os dados de cobrança dele. Não junto com external_customer_id, customer_email ou customer_name.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub customer_id: Option<String>,
+    /// O nome do comprador, quando você o conhece.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub customer_name: Option<String>,
+    /// Segundos em que a sessão e o client_secret continuam valendo; 1800 quando fica de fora.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub expires_in: Option<i64>,
+    /// O mesmo cliente, pelo ID que você deu a ele.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub external_customer_id: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub label: Option<String>,
+    /// Até 50 pares guardados no link do checkout; valor em texto, número ou booleano.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub metadata: Option<std::collections::HashMap<String, serde_json::Value>>,
     pub price_id: String,
     pub product_id: String,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub quantity: Option<i64>,
+    /// Pede o endereço de cobrança completo de todo comprador, não só no boleto; desligado quando fica de fora.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub require_billing_address: Option<bool>,
+    /// Outro nome de cancel_url: a página https a que o comprador volta sem pagar. Enviada com um cancel_url diferente, é recusada.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub return_url: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub success_url: Option<String>,
 }
@@ -1039,18 +1323,63 @@ impl CheckoutsCreateParams {
     /// A body with its required fields.
     pub fn new(price_id: impl Into<String>, product_id: impl Into<String>) -> Self {
         Self {
+            allow_discount_codes: None,
             cancel_url: None,
+            customer_email: None,
+            customer_id: None,
+            customer_name: None,
+            expires_in: None,
+            external_customer_id: None,
             label: None,
+            metadata: None,
             price_id: price_id.into(),
             product_id: product_id.into(),
             quantity: None,
+            require_billing_address: None,
+            return_url: None,
             success_url: None,
         }
+    }
+
+    /// Deixa o comprador digitar um código de desconto; desligado quando fica de fora.
+    pub fn allow_discount_codes(mut self, allow_discount_codes: bool) -> Self {
+        self.allow_discount_codes = Some(allow_discount_codes);
+        self
     }
 
     /// Sets `cancel_url`.
     pub fn cancel_url(mut self, cancel_url: impl Into<String>) -> Self {
         self.cancel_url = Some(cancel_url.into());
+        self
+    }
+
+    /// O e-mail do comprador, quando você o conhece; senão o navegador do comprador o pede.
+    pub fn customer_email(mut self, customer_email: impl Into<String>) -> Self {
+        self.customer_email = Some(customer_email.into());
+        self
+    }
+
+    /// Um cliente seu: o checkout abre com o nome, o e-mail e os dados de cobrança dele. Não junto com external_customer_id, customer_email ou customer_name.
+    pub fn customer_id(mut self, customer_id: impl Into<String>) -> Self {
+        self.customer_id = Some(customer_id.into());
+        self
+    }
+
+    /// O nome do comprador, quando você o conhece.
+    pub fn customer_name(mut self, customer_name: impl Into<String>) -> Self {
+        self.customer_name = Some(customer_name.into());
+        self
+    }
+
+    /// Segundos em que a sessão e o client_secret continuam valendo; 1800 quando fica de fora.
+    pub fn expires_in(mut self, expires_in: i64) -> Self {
+        self.expires_in = Some(expires_in);
+        self
+    }
+
+    /// O mesmo cliente, pelo ID que você deu a ele.
+    pub fn external_customer_id(mut self, external_customer_id: impl Into<String>) -> Self {
+        self.external_customer_id = Some(external_customer_id.into());
         self
     }
 
@@ -1060,9 +1389,27 @@ impl CheckoutsCreateParams {
         self
     }
 
+    /// Até 50 pares guardados no link do checkout; valor em texto, número ou booleano.
+    pub fn metadata(mut self, metadata: std::collections::HashMap<String, serde_json::Value>) -> Self {
+        self.metadata = Some(metadata);
+        self
+    }
+
     /// Sets `quantity`.
     pub fn quantity(mut self, quantity: i64) -> Self {
         self.quantity = Some(quantity);
+        self
+    }
+
+    /// Pede o endereço de cobrança completo de todo comprador, não só no boleto; desligado quando fica de fora.
+    pub fn require_billing_address(mut self, require_billing_address: bool) -> Self {
+        self.require_billing_address = Some(require_billing_address);
+        self
+    }
+
+    /// Outro nome de cancel_url: a página https a que o comprador volta sem pagar. Enviada com um cancel_url diferente, é recusada.
+    pub fn return_url(mut self, return_url: impl Into<String>) -> Self {
+        self.return_url = Some(return_url.into());
         self
     }
 
@@ -2275,6 +2622,126 @@ impl<'de> Deserialize<'de> for BenefitGrantStatus {
     }
 }
 
+/// The values of `CardAuthentication.environment`.
+///
+/// A value this SDK does not know yet is kept, as it came, in
+/// [`CardAuthenticationEnvironment::Unrecognized`].
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[non_exhaustive]
+pub enum CardAuthenticationEnvironment {
+    /// `test`
+    Test,
+    /// `live`
+    Live,
+    /// A value this SDK does not know yet.
+    Unrecognized(String),
+}
+
+impl CardAuthenticationEnvironment {
+    /// The value as the API writes it.
+    pub fn as_str(&self) -> &str {
+        match self {
+            CardAuthenticationEnvironment::Test => "test",
+            CardAuthenticationEnvironment::Live => "live",
+            CardAuthenticationEnvironment::Unrecognized(value) => value,
+        }
+    }
+}
+
+impl From<&str> for CardAuthenticationEnvironment {
+    fn from(value: &str) -> Self {
+        match value {
+            "test" => CardAuthenticationEnvironment::Test,
+            "live" => CardAuthenticationEnvironment::Live,
+            other => CardAuthenticationEnvironment::Unrecognized(other.to_owned()),
+        }
+    }
+}
+
+impl From<String> for CardAuthenticationEnvironment {
+    fn from(value: String) -> Self {
+        Self::from(value.as_str())
+    }
+}
+
+impl fmt::Display for CardAuthenticationEnvironment {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
+impl Serialize for CardAuthenticationEnvironment {
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        serializer.serialize_str(self.as_str())
+    }
+}
+
+impl<'de> Deserialize<'de> for CardAuthenticationEnvironment {
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        String::deserialize(deserializer).map(Self::from)
+    }
+}
+
+/// The values of `CardTokenization.environment`.
+///
+/// A value this SDK does not know yet is kept, as it came, in
+/// [`CardTokenizationEnvironment::Unrecognized`].
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[non_exhaustive]
+pub enum CardTokenizationEnvironment {
+    /// `test`
+    Test,
+    /// `live`
+    Live,
+    /// A value this SDK does not know yet.
+    Unrecognized(String),
+}
+
+impl CardTokenizationEnvironment {
+    /// The value as the API writes it.
+    pub fn as_str(&self) -> &str {
+        match self {
+            CardTokenizationEnvironment::Test => "test",
+            CardTokenizationEnvironment::Live => "live",
+            CardTokenizationEnvironment::Unrecognized(value) => value,
+        }
+    }
+}
+
+impl From<&str> for CardTokenizationEnvironment {
+    fn from(value: &str) -> Self {
+        match value {
+            "test" => CardTokenizationEnvironment::Test,
+            "live" => CardTokenizationEnvironment::Live,
+            other => CardTokenizationEnvironment::Unrecognized(other.to_owned()),
+        }
+    }
+}
+
+impl From<String> for CardTokenizationEnvironment {
+    fn from(value: String) -> Self {
+        Self::from(value.as_str())
+    }
+}
+
+impl fmt::Display for CardTokenizationEnvironment {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
+impl Serialize for CardTokenizationEnvironment {
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        serializer.serialize_str(self.as_str())
+    }
+}
+
+impl<'de> Deserialize<'de> for CardTokenizationEnvironment {
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        String::deserialize(deserializer).map(Self::from)
+    }
+}
+
 /// The values of `Checkout.status`. active abre sessões de compra; archived saiu de circulação.
 ///
 /// A value this SDK does not know yet is kept, as it came, in
@@ -2330,6 +2797,402 @@ impl Serialize for CheckoutStatus {
 }
 
 impl<'de> Deserialize<'de> for CheckoutStatus {
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        String::deserialize(deserializer).map(Self::from)
+    }
+}
+
+/// The values of `CheckoutClient.currency`.
+///
+/// A value this SDK does not know yet is kept, as it came, in
+/// [`CheckoutClientCurrency::Unrecognized`].
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[non_exhaustive]
+pub enum CheckoutClientCurrency {
+    /// `BRL`
+    Brl,
+    /// A value this SDK does not know yet.
+    Unrecognized(String),
+}
+
+impl CheckoutClientCurrency {
+    /// The value as the API writes it.
+    pub fn as_str(&self) -> &str {
+        match self {
+            CheckoutClientCurrency::Brl => "BRL",
+            CheckoutClientCurrency::Unrecognized(value) => value,
+        }
+    }
+}
+
+impl From<&str> for CheckoutClientCurrency {
+    fn from(value: &str) -> Self {
+        match value {
+            "BRL" => CheckoutClientCurrency::Brl,
+            other => CheckoutClientCurrency::Unrecognized(other.to_owned()),
+        }
+    }
+}
+
+impl From<String> for CheckoutClientCurrency {
+    fn from(value: String) -> Self {
+        Self::from(value.as_str())
+    }
+}
+
+impl fmt::Display for CheckoutClientCurrency {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
+impl Serialize for CheckoutClientCurrency {
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        serializer.serialize_str(self.as_str())
+    }
+}
+
+impl<'de> Deserialize<'de> for CheckoutClientCurrency {
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        String::deserialize(deserializer).map(Self::from)
+    }
+}
+
+/// The values of `CheckoutClient.environment`.
+///
+/// A value this SDK does not know yet is kept, as it came, in
+/// [`CheckoutClientEnvironment::Unrecognized`].
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[non_exhaustive]
+pub enum CheckoutClientEnvironment {
+    /// `test`
+    Test,
+    /// `live`
+    Live,
+    /// A value this SDK does not know yet.
+    Unrecognized(String),
+}
+
+impl CheckoutClientEnvironment {
+    /// The value as the API writes it.
+    pub fn as_str(&self) -> &str {
+        match self {
+            CheckoutClientEnvironment::Test => "test",
+            CheckoutClientEnvironment::Live => "live",
+            CheckoutClientEnvironment::Unrecognized(value) => value,
+        }
+    }
+}
+
+impl From<&str> for CheckoutClientEnvironment {
+    fn from(value: &str) -> Self {
+        match value {
+            "test" => CheckoutClientEnvironment::Test,
+            "live" => CheckoutClientEnvironment::Live,
+            other => CheckoutClientEnvironment::Unrecognized(other.to_owned()),
+        }
+    }
+}
+
+impl From<String> for CheckoutClientEnvironment {
+    fn from(value: String) -> Self {
+        Self::from(value.as_str())
+    }
+}
+
+impl fmt::Display for CheckoutClientEnvironment {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
+impl Serialize for CheckoutClientEnvironment {
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        serializer.serialize_str(self.as_str())
+    }
+}
+
+impl<'de> Deserialize<'de> for CheckoutClientEnvironment {
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        String::deserialize(deserializer).map(Self::from)
+    }
+}
+
+/// The values of `CheckoutClient.status`. open: esperando o comprador; confirmed: o pagamento foi pedido e não está liquidado (um Pix ou boleto esperando pagamento); succeeded: pago; failed e expired: acabou sem pagamento.
+///
+/// A value this SDK does not know yet is kept, as it came, in
+/// [`CheckoutClientStatus::Unrecognized`].
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[non_exhaustive]
+pub enum CheckoutClientStatus {
+    /// `open`
+    Open,
+    /// `confirmed`
+    Confirmed,
+    /// `succeeded`
+    Succeeded,
+    /// `failed`
+    Failed,
+    /// `expired`
+    Expired,
+    /// A value this SDK does not know yet.
+    Unrecognized(String),
+}
+
+impl CheckoutClientStatus {
+    /// The value as the API writes it.
+    pub fn as_str(&self) -> &str {
+        match self {
+            CheckoutClientStatus::Open => "open",
+            CheckoutClientStatus::Confirmed => "confirmed",
+            CheckoutClientStatus::Succeeded => "succeeded",
+            CheckoutClientStatus::Failed => "failed",
+            CheckoutClientStatus::Expired => "expired",
+            CheckoutClientStatus::Unrecognized(value) => value,
+        }
+    }
+}
+
+impl From<&str> for CheckoutClientStatus {
+    fn from(value: &str) -> Self {
+        match value {
+            "open" => CheckoutClientStatus::Open,
+            "confirmed" => CheckoutClientStatus::Confirmed,
+            "succeeded" => CheckoutClientStatus::Succeeded,
+            "failed" => CheckoutClientStatus::Failed,
+            "expired" => CheckoutClientStatus::Expired,
+            other => CheckoutClientStatus::Unrecognized(other.to_owned()),
+        }
+    }
+}
+
+impl From<String> for CheckoutClientStatus {
+    fn from(value: String) -> Self {
+        Self::from(value.as_str())
+    }
+}
+
+impl fmt::Display for CheckoutClientStatus {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
+impl Serialize for CheckoutClientStatus {
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        serializer.serialize_str(self.as_str())
+    }
+}
+
+impl<'de> Deserialize<'de> for CheckoutClientStatus {
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        String::deserialize(deserializer).map(Self::from)
+    }
+}
+
+/// The values of `CheckoutClientPayment.method`.
+///
+/// A value this SDK does not know yet is kept, as it came, in
+/// [`CheckoutClientPaymentMethod::Unrecognized`].
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[non_exhaustive]
+pub enum CheckoutClientPaymentMethod {
+    /// `card`
+    Card,
+    /// `pix`
+    Pix,
+    /// `boleto`
+    Boleto,
+    /// A value this SDK does not know yet.
+    Unrecognized(String),
+}
+
+impl CheckoutClientPaymentMethod {
+    /// The value as the API writes it.
+    pub fn as_str(&self) -> &str {
+        match self {
+            CheckoutClientPaymentMethod::Card => "card",
+            CheckoutClientPaymentMethod::Pix => "pix",
+            CheckoutClientPaymentMethod::Boleto => "boleto",
+            CheckoutClientPaymentMethod::Unrecognized(value) => value,
+        }
+    }
+}
+
+impl From<&str> for CheckoutClientPaymentMethod {
+    fn from(value: &str) -> Self {
+        match value {
+            "card" => CheckoutClientPaymentMethod::Card,
+            "pix" => CheckoutClientPaymentMethod::Pix,
+            "boleto" => CheckoutClientPaymentMethod::Boleto,
+            other => CheckoutClientPaymentMethod::Unrecognized(other.to_owned()),
+        }
+    }
+}
+
+impl From<String> for CheckoutClientPaymentMethod {
+    fn from(value: String) -> Self {
+        Self::from(value.as_str())
+    }
+}
+
+impl fmt::Display for CheckoutClientPaymentMethod {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
+impl Serialize for CheckoutClientPaymentMethod {
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        serializer.serialize_str(self.as_str())
+    }
+}
+
+impl<'de> Deserialize<'de> for CheckoutClientPaymentMethod {
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        String::deserialize(deserializer).map(Self::from)
+    }
+}
+
+/// The values of `CheckoutClientPayment.state`.
+///
+/// A value this SDK does not know yet is kept, as it came, in
+/// [`CheckoutClientPaymentState::Unrecognized`].
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[non_exhaustive]
+pub enum CheckoutClientPaymentState {
+    /// `unknown`
+    Unknown,
+    /// `pending`
+    Pending,
+    /// `authorized`
+    Authorized,
+    /// `captured`
+    Captured,
+    /// `refused`
+    Refused,
+    /// `canceled`
+    Canceled,
+    /// `refunded`
+    Refunded,
+    /// `partially_refunded`
+    PartiallyRefunded,
+    /// A value this SDK does not know yet.
+    Unrecognized(String),
+}
+
+impl CheckoutClientPaymentState {
+    /// The value as the API writes it.
+    pub fn as_str(&self) -> &str {
+        match self {
+            CheckoutClientPaymentState::Unknown => "unknown",
+            CheckoutClientPaymentState::Pending => "pending",
+            CheckoutClientPaymentState::Authorized => "authorized",
+            CheckoutClientPaymentState::Captured => "captured",
+            CheckoutClientPaymentState::Refused => "refused",
+            CheckoutClientPaymentState::Canceled => "canceled",
+            CheckoutClientPaymentState::Refunded => "refunded",
+            CheckoutClientPaymentState::PartiallyRefunded => "partially_refunded",
+            CheckoutClientPaymentState::Unrecognized(value) => value,
+        }
+    }
+}
+
+impl From<&str> for CheckoutClientPaymentState {
+    fn from(value: &str) -> Self {
+        match value {
+            "unknown" => CheckoutClientPaymentState::Unknown,
+            "pending" => CheckoutClientPaymentState::Pending,
+            "authorized" => CheckoutClientPaymentState::Authorized,
+            "captured" => CheckoutClientPaymentState::Captured,
+            "refused" => CheckoutClientPaymentState::Refused,
+            "canceled" => CheckoutClientPaymentState::Canceled,
+            "refunded" => CheckoutClientPaymentState::Refunded,
+            "partially_refunded" => CheckoutClientPaymentState::PartiallyRefunded,
+            other => CheckoutClientPaymentState::Unrecognized(other.to_owned()),
+        }
+    }
+}
+
+impl From<String> for CheckoutClientPaymentState {
+    fn from(value: String) -> Self {
+        Self::from(value.as_str())
+    }
+}
+
+impl fmt::Display for CheckoutClientPaymentState {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
+impl Serialize for CheckoutClientPaymentState {
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        serializer.serialize_str(self.as_str())
+    }
+}
+
+impl<'de> Deserialize<'de> for CheckoutClientPaymentState {
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        String::deserialize(deserializer).map(Self::from)
+    }
+}
+
+/// The values of `CheckoutCreated.status`. active abre sessões de compra; archived saiu de circulação.
+///
+/// A value this SDK does not know yet is kept, as it came, in
+/// [`CheckoutCreatedStatus::Unrecognized`].
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[non_exhaustive]
+pub enum CheckoutCreatedStatus {
+    /// `active`
+    Active,
+    /// `archived`
+    Archived,
+    /// A value this SDK does not know yet.
+    Unrecognized(String),
+}
+
+impl CheckoutCreatedStatus {
+    /// The value as the API writes it.
+    pub fn as_str(&self) -> &str {
+        match self {
+            CheckoutCreatedStatus::Active => "active",
+            CheckoutCreatedStatus::Archived => "archived",
+            CheckoutCreatedStatus::Unrecognized(value) => value,
+        }
+    }
+}
+
+impl From<&str> for CheckoutCreatedStatus {
+    fn from(value: &str) -> Self {
+        match value {
+            "active" => CheckoutCreatedStatus::Active,
+            "archived" => CheckoutCreatedStatus::Archived,
+            other => CheckoutCreatedStatus::Unrecognized(other.to_owned()),
+        }
+    }
+}
+
+impl From<String> for CheckoutCreatedStatus {
+    fn from(value: String) -> Self {
+        Self::from(value.as_str())
+    }
+}
+
+impl fmt::Display for CheckoutCreatedStatus {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
+impl Serialize for CheckoutCreatedStatus {
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        serializer.serialize_str(self.as_str())
+    }
+}
+
+impl<'de> Deserialize<'de> for CheckoutCreatedStatus {
     fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
         String::deserialize(deserializer).map(Self::from)
     }
@@ -2518,6 +3381,78 @@ impl Serialize for CheckoutLinkTrialInterval {
 }
 
 impl<'de> Deserialize<'de> for CheckoutLinkTrialInterval {
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        String::deserialize(deserializer).map(Self::from)
+    }
+}
+
+/// The values of `CheckoutNextAction.type`. none: nada falta; wait: o resultado está sendo descoberto, leia o estado de novo; show_pix e show_boleto: mostre o Pix ou o boleto do pagamento e espere o pagamento; redirect: envie o comprador para url, onde o banco ou a autenticação 3DS termina o pagamento.
+///
+/// A value this SDK does not know yet is kept, as it came, in
+/// [`CheckoutNextActionType::Unrecognized`].
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[non_exhaustive]
+pub enum CheckoutNextActionType {
+    /// `none`
+    None,
+    /// `wait`
+    Wait,
+    /// `show_pix`
+    ShowPix,
+    /// `show_boleto`
+    ShowBoleto,
+    /// `redirect`
+    Redirect,
+    /// A value this SDK does not know yet.
+    Unrecognized(String),
+}
+
+impl CheckoutNextActionType {
+    /// The value as the API writes it.
+    pub fn as_str(&self) -> &str {
+        match self {
+            CheckoutNextActionType::None => "none",
+            CheckoutNextActionType::Wait => "wait",
+            CheckoutNextActionType::ShowPix => "show_pix",
+            CheckoutNextActionType::ShowBoleto => "show_boleto",
+            CheckoutNextActionType::Redirect => "redirect",
+            CheckoutNextActionType::Unrecognized(value) => value,
+        }
+    }
+}
+
+impl From<&str> for CheckoutNextActionType {
+    fn from(value: &str) -> Self {
+        match value {
+            "none" => CheckoutNextActionType::None,
+            "wait" => CheckoutNextActionType::Wait,
+            "show_pix" => CheckoutNextActionType::ShowPix,
+            "show_boleto" => CheckoutNextActionType::ShowBoleto,
+            "redirect" => CheckoutNextActionType::Redirect,
+            other => CheckoutNextActionType::Unrecognized(other.to_owned()),
+        }
+    }
+}
+
+impl From<String> for CheckoutNextActionType {
+    fn from(value: String) -> Self {
+        Self::from(value.as_str())
+    }
+}
+
+impl fmt::Display for CheckoutNextActionType {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
+impl Serialize for CheckoutNextActionType {
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        serializer.serialize_str(self.as_str())
+    }
+}
+
+impl<'de> Deserialize<'de> for CheckoutNextActionType {
     fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
         String::deserialize(deserializer).map(Self::from)
     }

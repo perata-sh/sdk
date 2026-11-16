@@ -270,8 +270,8 @@ class CheckoutsService {
 
   final Requester _client;
 
-  /// Criar o endereço de um checkout para um produto e um preço.
-  Future<Checkout> create(
+  /// Criar um checkout: o endereço para onde o comprador é enviado e a sessão de compra aberta para ele, com o client_secret que o navegador do comprador usa nas rotas de cliente.
+  Future<CheckoutCreated> create(
     CheckoutsCreateParams params, {
     String? idempotencyKey,
     String? apiKey,
@@ -283,7 +283,7 @@ class CheckoutsService {
       idempotencyKey: idempotencyKey,
       apiKey: apiKey,
     );
-    return Checkout.fromJson(data);
+    return CheckoutCreated.fromJson(data);
   }
 
   /// Ler um checkout: o endereço, o estado e as páginas de retorno.

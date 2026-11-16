@@ -247,6 +247,96 @@ final class Card {
   };
 }
 
+/// CardAuthentication is a resource of Peráta's API.
+final class CardAuthentication {
+  const CardAuthentication({
+    required this.accessToken,
+    required this.environment,
+    required this.expiresIn,
+    required this.provider,
+    required this.scriptUrl,
+  });
+
+  /// A CardAuthentication out of the API's JSON.
+  factory CardAuthentication.fromJson(Map<String, Object?> json) {
+    return CardAuthentication(
+      accessToken: json['access_token'] as String,
+      environment: json['environment'] as String,
+      expiresIn: json['expires_in'] as int,
+      provider: json['provider'] as String,
+      scriptUrl: json['script_url'] as String,
+    );
+  }
+
+  /// O token com que o script de 3DS autentica; entregue só a uma página da
+  /// própria origem da Peráta.
+  final String accessToken;
+
+  /// One of `test`, `live`.
+  final String environment;
+
+  /// Segundos de vida do token.
+  final int expiresIn;
+
+  final String provider;
+
+  /// O script de autenticação do adquirente.
+  final String scriptUrl;
+
+  /// The JSON the API answers.
+  Map<String, Object?> toJson() => {
+    'access_token': accessToken,
+    'environment': environment,
+    'expires_in': expiresIn,
+    'provider': provider,
+    'script_url': scriptUrl,
+  };
+}
+
+/// CardTokenization is a resource of Peráta's API.
+final class CardTokenization {
+  const CardTokenization({
+    required this.accessToken,
+    required this.environment,
+    required this.expiresAt,
+    required this.issued,
+    required this.provider,
+  });
+
+  /// A CardTokenization out of the API's JSON.
+  factory CardTokenization.fromJson(Map<String, Object?> json) {
+    return CardTokenization(
+      accessToken: json['access_token'] as String,
+      environment: json['environment'] as String,
+      expiresAt: json['expires_at'] as String,
+      issued: json['issued'] as String,
+      provider: json['provider'] as String,
+    );
+  }
+
+  /// O token com que o script do adquirente envia o cartão; entregue só a uma
+  /// página da própria origem da Peráta.
+  final String accessToken;
+
+  /// One of `test`, `live`.
+  final String environment;
+
+  final String expiresAt;
+
+  final String issued;
+
+  final String provider;
+
+  /// The JSON the API answers.
+  Map<String, Object?> toJson() => {
+    'access_token': accessToken,
+    'environment': environment,
+    'expires_at': expiresAt,
+    'issued': issued,
+    'provider': provider,
+  };
+}
+
 /// Checkout is a resource of Peráta's API.
 final class Checkout {
   const Checkout({
@@ -323,6 +413,608 @@ final class Checkout {
     'status': status,
     'success_url': successUrl,
     'url': url,
+  };
+}
+
+/// CheckoutClient is a resource of Peráta's API.
+final class CheckoutClient {
+  const CheckoutClient({
+    required this.amountCents,
+    required this.cancelUrl,
+    required this.cardKinds,
+    required this.currency,
+    this.customer,
+    this.discount,
+    required this.discountCents,
+    required this.editable,
+    required this.environment,
+    required this.expiresAt,
+    required this.id,
+    required this.installments,
+    required this.items,
+    required this.missing,
+    required this.nextAction,
+    this.payment,
+    required this.paymentMethods,
+    required this.requiresBillingAddress,
+    required this.requiresTaxId,
+    required this.status,
+    required this.statusKey,
+    required this.successUrl,
+    required this.totalCents,
+  });
+
+  /// A CheckoutClient out of the API's JSON.
+  factory CheckoutClient.fromJson(Map<String, Object?> json) {
+    return CheckoutClient(
+      amountCents: json['amount_cents'] as int,
+      cancelUrl: json['cancel_url'] as String,
+      cardKinds: readList(json['card_kinds'], readString),
+      currency: json['currency'] as String,
+      customer: readOptional(
+        json['customer'],
+        (value) => CheckoutClientCustomer.fromJson(readObject(value)),
+      ),
+      discount: readOptional(
+        json['discount'],
+        (value) => CheckoutClientDiscount.fromJson(readObject(value)),
+      ),
+      discountCents: json['discount_cents'] as int,
+      editable: json['editable'] as bool,
+      environment: json['environment'] as String,
+      expiresAt: json['expires_at'] as String,
+      id: json['id'] as String,
+      installments: readList(
+        json['installments'],
+        (value) => CheckoutInstallment.fromJson(readObject(value)),
+      ),
+      items: readList(
+        json['items'],
+        (value) => CheckoutClientItem.fromJson(readObject(value)),
+      ),
+      missing: readList(json['missing'], readString),
+      nextAction: CheckoutNextAction.fromJson(readObject(json['next_action'])),
+      payment: readOptional(
+        json['payment'],
+        (value) => CheckoutClientPayment.fromJson(readObject(value)),
+      ),
+      paymentMethods: readList(json['payment_methods'], readString),
+      requiresBillingAddress: json['requires_billing_address'] as bool,
+      requiresTaxId: json['requires_tax_id'] as bool,
+      status: json['status'] as String,
+      statusKey: json['status_key'] as String,
+      successUrl: json['success_url'] as String,
+      totalCents: json['total_cents'] as int,
+    );
+  }
+
+  /// Antes do desconto.
+  final int amountCents;
+
+  /// Para onde o comprador volta sem pagar.
+  final String cancelUrl;
+
+  /// credit, e debit onde a autenticação do adquirente está ligada.
+  final List<String> cardKinds;
+
+  /// One of `BRL`.
+  final String currency;
+
+  final CheckoutClientCustomer? customer;
+
+  final CheckoutClientDiscount? discount;
+
+  final int discountCents;
+
+  /// A sessão está aberta e ainda aceita atualizações e um pagamento.
+  final bool editable;
+
+  /// One of `test`, `live`.
+  final String environment;
+
+  /// Quando a sessão e o client_secret deixam de valer.
+  final String expiresAt;
+
+  /// O ID da sessão de checkout.
+  final String id;
+
+  /// Os planos de uma venda no cartão de crédito, à vista primeiro; vazio
+  /// quando a sessão não se paga em parcelas no cartão.
+  final List<CheckoutInstallment> installments;
+
+  final List<CheckoutClientItem> items;
+
+  /// O que o pagamento ainda precisa do comprador, pelo campo da rota de
+  /// atualização: customer_email, tax_id e billing_address.
+  final List<String> missing;
+
+  final CheckoutNextAction nextAction;
+
+  final CheckoutClientPayment? payment;
+
+  /// As formas em que a sessão pode ser paga, entre card, pix, boleto e free;
+  /// free é uma sessão que não pede pagamento.
+  final List<String> paymentMethods;
+
+  /// O lojista pede o endereço de cobrança completo; o boleto o pede de
+  /// qualquer jeito.
+  final bool requiresBillingAddress;
+
+  /// O CPF ou CNPJ é obrigatório porque há um pagamento a fazer.
+  final bool requiresTaxId;
+
+  /// open: esperando o comprador; confirmed: o pagamento foi pedido e não está
+  /// liquidado (um Pix ou boleto esperando pagamento); succeeded: pago; failed
+  /// e expired: acabou sem pagamento.
+  ///
+  /// One of `open`, `confirmed`, `succeeded`, `failed`, `expired`.
+  final String status;
+
+  /// A chave que lê o estado desta sessão depois que o client_secret é
+  /// consumido: GET /checkouts/client/status/{status_key}.
+  final String statusKey;
+
+  /// Para onde o comprador vai depois de pagar: a página do próprio lojista,
+  /// com o ID do checkout onde ele o pediu.
+  final String successUrl;
+
+  /// O que o comprador paga, em centavos.
+  final int totalCents;
+
+  /// The JSON the API answers.
+  Map<String, Object?> toJson() => {
+    'amount_cents': amountCents,
+    'cancel_url': cancelUrl,
+    'card_kinds': cardKinds,
+    'currency': currency,
+    'customer': customer?.toJson(),
+    'discount': discount?.toJson(),
+    'discount_cents': discountCents,
+    'editable': editable,
+    'environment': environment,
+    'expires_at': expiresAt,
+    'id': id,
+    'installments': installments.map((item) => item.toJson()).toList(),
+    'items': items.map((item) => item.toJson()).toList(),
+    'missing': missing,
+    'next_action': nextAction.toJson(),
+    'payment': payment?.toJson(),
+    'payment_methods': paymentMethods,
+    'requires_billing_address': requiresBillingAddress,
+    'requires_tax_id': requiresTaxId,
+    'status': status,
+    'status_key': statusKey,
+    'success_url': successUrl,
+    'total_cents': totalCents,
+  };
+}
+
+/// CheckoutClientBoleto is a resource of Peráta's API.
+final class CheckoutClientBoleto {
+  const CheckoutClientBoleto({
+    required this.digitableLine,
+    this.dueDate,
+    required this.pdfUrl,
+  });
+
+  /// A CheckoutClientBoleto out of the API's JSON.
+  factory CheckoutClientBoleto.fromJson(Map<String, Object?> json) {
+    return CheckoutClientBoleto(
+      digitableLine: json['digitable_line'] as String,
+      dueDate: json['due_date'] as String?,
+      pdfUrl: json['pdf_url'] as String,
+    );
+  }
+
+  /// A linha digitável do boleto.
+  final String digitableLine;
+
+  /// Quando o boleto deixa de poder ser pago: o fim do dia do vencimento, no
+  /// horário de Brasília.
+  final String? dueDate;
+
+  /// Onde o boleto é baixado; vazio quando o adquirente não deu nenhum.
+  final String pdfUrl;
+
+  /// The JSON the API answers.
+  Map<String, Object?> toJson() => {
+    'digitable_line': digitableLine,
+    'due_date': dueDate,
+    'pdf_url': pdfUrl,
+  };
+}
+
+/// CheckoutClientCustomer is a resource of Peráta's API.
+final class CheckoutClientCustomer {
+  const CheckoutClientCustomer({
+    required this.address,
+    required this.billingName,
+    required this.email,
+    required this.name,
+    required this.taxId,
+    required this.taxIdKind,
+  });
+
+  /// A CheckoutClientCustomer out of the API's JSON.
+  factory CheckoutClientCustomer.fromJson(Map<String, Object?> json) {
+    return CheckoutClientCustomer(
+      address: BillingAddress.fromJson(readObject(json['address'])),
+      billingName: json['billing_name'] as String,
+      email: json['email'] as String,
+      name: json['name'] as String,
+      taxId: json['tax_id'] as String,
+      taxIdKind: json['tax_id_kind'] as String,
+    );
+  }
+
+  final BillingAddress address;
+
+  final String billingName;
+
+  final String email;
+
+  final String name;
+
+  /// O CPF ou CNPJ do comprador, só dígitos; vazio enquanto não for informado.
+  final String taxId;
+
+  final String taxIdKind;
+
+  /// The JSON the API answers.
+  Map<String, Object?> toJson() => {
+    'address': address.toJson(),
+    'billing_name': billingName,
+    'email': email,
+    'name': name,
+    'tax_id': taxId,
+    'tax_id_kind': taxIdKind,
+  };
+}
+
+/// CheckoutClientDiscount is a resource of Peráta's API.
+final class CheckoutClientDiscount {
+  const CheckoutClientDiscount({
+    required this.code,
+    required this.discountCents,
+  });
+
+  /// A CheckoutClientDiscount out of the API's JSON.
+  factory CheckoutClientDiscount.fromJson(Map<String, Object?> json) {
+    return CheckoutClientDiscount(
+      code: json['code'] as String,
+      discountCents: json['discount_cents'] as int,
+    );
+  }
+
+  /// O código que o comprador aplicou; vazio num desconto que o link fixa sem
+  /// código.
+  final String code;
+
+  final int discountCents;
+
+  /// The JSON the API answers.
+  Map<String, Object?> toJson() => {
+    'code': code,
+    'discount_cents': discountCents,
+  };
+}
+
+/// CheckoutClientItem is a resource of Peráta's API.
+final class CheckoutClientItem {
+  const CheckoutClientItem({
+    required this.amountCents,
+    required this.description,
+    required this.interval,
+    required this.intervalCount,
+    required this.name,
+    required this.productId,
+    required this.quantity,
+    required this.unitCents,
+  });
+
+  /// A CheckoutClientItem out of the API's JSON.
+  factory CheckoutClientItem.fromJson(Map<String, Object?> json) {
+    return CheckoutClientItem(
+      amountCents: json['amount_cents'] as int,
+      description: json['description'] as String,
+      interval: json['interval'] as String,
+      intervalCount: json['interval_count'] as int,
+      name: json['name'] as String,
+      productId: json['product_id'] as String,
+      quantity: json['quantity'] as int,
+      unitCents: json['unit_cents'] as int,
+    );
+  }
+
+  /// Quanto custa a linha antes de qualquer desconto: a unidade vezes a
+  /// quantidade.
+  final int amountCents;
+
+  /// A descrição do produto como o lojista a escreveu, em Markdown; vazia sem
+  /// ela.
+  final String description;
+
+  /// month ou year numa assinatura; vazio numa compra avulsa.
+  final String interval;
+
+  /// Quantos intervalos dura um ciclo.
+  final int intervalCount;
+
+  final String name;
+
+  final String productId;
+
+  final int quantity;
+
+  /// Quanto custa uma unidade, antes de qualquer desconto.
+  final int unitCents;
+
+  /// The JSON the API answers.
+  Map<String, Object?> toJson() => {
+    'amount_cents': amountCents,
+    'description': description,
+    'interval': interval,
+    'interval_count': intervalCount,
+    'name': name,
+    'product_id': productId,
+    'quantity': quantity,
+    'unit_cents': unitCents,
+  };
+}
+
+/// CheckoutClientPayment is a resource of Peráta's API.
+final class CheckoutClientPayment {
+  const CheckoutClientPayment({
+    this.boleto,
+    required this.cardBrand,
+    required this.cardKind,
+    required this.id,
+    required this.installments,
+    required this.method,
+    this.pix,
+    required this.state,
+    required this.unresolved,
+  });
+
+  /// A CheckoutClientPayment out of the API's JSON.
+  factory CheckoutClientPayment.fromJson(Map<String, Object?> json) {
+    return CheckoutClientPayment(
+      boleto: readOptional(
+        json['boleto'],
+        (value) => CheckoutClientBoleto.fromJson(readObject(value)),
+      ),
+      cardBrand: json['card_brand'] as String,
+      cardKind: json['card_kind'] as String,
+      id: json['id'] as String,
+      installments: json['installments'] as int,
+      method: json['method'] as String,
+      pix: readOptional(
+        json['pix'],
+        (value) => CheckoutClientPix.fromJson(readObject(value)),
+      ),
+      state: json['state'] as String,
+      unresolved: json['unresolved'] as bool,
+    );
+  }
+
+  final CheckoutClientBoleto? boleto;
+
+  final String cardBrand;
+
+  final String cardKind;
+
+  final String id;
+
+  final int installments;
+
+  /// One of `card`, `pix`, `boleto`.
+  final String method;
+
+  final CheckoutClientPix? pix;
+
+  /// One of `unknown`, `pending`, `authorized`, `captured`, `refused`,
+  /// `canceled`, `refunded`, `partially_refunded`.
+  final String state;
+
+  /// Verdadeiro enquanto a resposta do adquirente ainda é descoberta; o
+  /// comprador espera.
+  final bool unresolved;
+
+  /// The JSON the API answers.
+  Map<String, Object?> toJson() => {
+    'boleto': boleto?.toJson(),
+    'card_brand': cardBrand,
+    'card_kind': cardKind,
+    'id': id,
+    'installments': installments,
+    'method': method,
+    'pix': pix?.toJson(),
+    'state': state,
+    'unresolved': unresolved,
+  };
+}
+
+/// CheckoutClientPix is a resource of Peráta's API.
+final class CheckoutClientPix {
+  const CheckoutClientPix({
+    required this.copiaECola,
+    this.expiresAt,
+    required this.qrCodeSvg,
+  });
+
+  /// A CheckoutClientPix out of the API's JSON.
+  factory CheckoutClientPix.fromJson(Map<String, Object?> json) {
+    return CheckoutClientPix(
+      copiaECola: json['copia_e_cola'] as String,
+      expiresAt: json['expires_at'] as String?,
+      qrCodeSvg: json['qr_code_svg'] as String,
+    );
+  }
+
+  /// O código Pix copia e cola.
+  final String copiaECola;
+
+  /// Quando o Pix deixa de poder ser pago, como o adquirente o deu.
+  final String? expiresAt;
+
+  /// O QR do código, desenhado como um documento SVG.
+  final String qrCodeSvg;
+
+  /// The JSON the API answers.
+  Map<String, Object?> toJson() => {
+    'copia_e_cola': copiaECola,
+    'expires_at': expiresAt,
+    'qr_code_svg': qrCodeSvg,
+  };
+}
+
+/// CheckoutCreated is a resource of Peráta's API.
+final class CheckoutCreated {
+  const CheckoutCreated({
+    required this.cancelUrl,
+    required this.clientSecret,
+    required this.clientSecretExpiresAt,
+    required this.createdAt,
+    this.expiresAt,
+    required this.id,
+    required this.label,
+    required this.priceId,
+    required this.productId,
+    required this.quantity,
+    required this.sessionId,
+    required this.status,
+    required this.statusKey,
+    required this.successUrl,
+    required this.url,
+  });
+
+  /// A CheckoutCreated out of the API's JSON.
+  factory CheckoutCreated.fromJson(Map<String, Object?> json) {
+    return CheckoutCreated(
+      cancelUrl: json['cancel_url'] as String,
+      clientSecret: json['client_secret'] as String,
+      clientSecretExpiresAt: json['client_secret_expires_at'] as String,
+      createdAt: json['created_at'] as String,
+      expiresAt: json['expires_at'] as String?,
+      id: json['id'] as String,
+      label: json['label'] as String,
+      priceId: json['price_id'] as String,
+      productId: json['product_id'] as String,
+      quantity: json['quantity'] as int,
+      sessionId: json['session_id'] as String,
+      status: json['status'] as String,
+      statusKey: json['status_key'] as String,
+      successUrl: json['success_url'] as String,
+      url: json['url'] as String,
+    );
+  }
+
+  /// Endereço https para onde o comprador volta se desistir; vazio sem ele.
+  final String cancelUrl;
+
+  /// O segredo que o navegador do comprador usa para ler, atualizar e pagar a
+  /// sessão, sem chave de API. Só esta resposta o traz; entregue-o à página que
+  /// monta os campos seguros. Vem vazio na repetição de uma criação
+  /// idempotente.
+  final String clientSecret;
+
+  /// Quando a sessão e o client_secret deixam de valer.
+  final String clientSecretExpiresAt;
+
+  final String createdAt;
+
+  /// Quando o link deixa de abrir sessões; nulo sem prazo.
+  final String? expiresAt;
+
+  /// O ID do link do checkout, o que GET e PATCH /checkouts/{id} recebem.
+  final String id;
+
+  /// Como o lojista chama o checkout nas próprias telas; o comprador não vê.
+  final String label;
+
+  final String priceId;
+
+  final String productId;
+
+  final int quantity;
+
+  /// O ID da sessão de checkout; as rotas de cliente dela são
+  /// /checkouts/client/{client_secret}.
+  final String sessionId;
+
+  /// active abre sessões de compra; archived saiu de circulação.
+  ///
+  /// One of `active`, `archived`.
+  final String status;
+
+  /// Lê o estado da sessão depois que o client_secret é consumido: GET
+  /// /checkouts/client/status/{status_key}. Só esta resposta o traz.
+  final String statusKey;
+
+  /// Endereço https para onde o comprador volta depois de pagar; vazio sem ele.
+  final String successUrl;
+
+  /// O endereço hospedado: redirecione o comprador para cá e ele paga na página
+  /// da Peráta.
+  final String url;
+
+  /// The JSON the API answers.
+  Map<String, Object?> toJson() => {
+    'cancel_url': cancelUrl,
+    'client_secret': clientSecret,
+    'client_secret_expires_at': clientSecretExpiresAt,
+    'created_at': createdAt,
+    'expires_at': expiresAt,
+    'id': id,
+    'label': label,
+    'price_id': priceId,
+    'product_id': productId,
+    'quantity': quantity,
+    'session_id': sessionId,
+    'status': status,
+    'status_key': statusKey,
+    'success_url': successUrl,
+    'url': url,
+  };
+}
+
+/// CheckoutInstallment is a resource of Peráta's API.
+final class CheckoutInstallment {
+  const CheckoutInstallment({
+    required this.count,
+    required this.installmentCents,
+    required this.interestCents,
+    required this.totalCents,
+  });
+
+  /// A CheckoutInstallment out of the API's JSON.
+  factory CheckoutInstallment.fromJson(Map<String, Object?> json) {
+    return CheckoutInstallment(
+      count: json['count'] as int,
+      installmentCents: json['installment_cents'] as int,
+      interestCents: json['interest_cents'] as int,
+      totalCents: json['total_cents'] as int,
+    );
+  }
+
+  /// O número de parcelas; 1 é à vista.
+  final int count;
+
+  final int installmentCents;
+
+  /// Zero quando o lojista arca com os juros (sem juros).
+  final int interestCents;
+
+  /// Quanto o comprador paga no total: o total da sessão, mais os juros quando
+  /// o plano os tem.
+  final int totalCents;
+
+  /// The JSON the API answers.
+  Map<String, Object?> toJson() => {
+    'count': count,
+    'installment_cents': installmentCents,
+    'interest_cents': interestCents,
+    'total_cents': totalCents,
   };
 }
 
@@ -495,6 +1187,213 @@ final class CheckoutLinkProduct {
   Map<String, Object?> toJson() => {
     'price_id': priceId,
     'product_id': productId,
+  };
+}
+
+/// CheckoutNextAction is a resource of Peráta's API.
+final class CheckoutNextAction {
+  const CheckoutNextAction({
+    required this.type,
+    required this.url,
+  });
+
+  /// A CheckoutNextAction out of the API's JSON.
+  factory CheckoutNextAction.fromJson(Map<String, Object?> json) {
+    return CheckoutNextAction(
+      type: json['type'] as String,
+      url: json['url'] as String,
+    );
+  }
+
+  /// none: nada falta; wait: o resultado está sendo descoberto, leia o estado
+  /// de novo; show_pix e show_boleto: mostre o Pix ou o boleto do pagamento e
+  /// espere o pagamento; redirect: envie o comprador para url, onde o banco ou
+  /// a autenticação 3DS termina o pagamento.
+  ///
+  /// One of `none`, `wait`, `show_pix`, `show_boleto`, `redirect`.
+  final String type;
+
+  /// Para onde enviar o comprador, no redirect.
+  final String url;
+
+  /// The JSON the API answers.
+  Map<String, Object?> toJson() => {
+    'type': type,
+    'url': url,
+  };
+}
+
+/// CheckoutSavedCard is a resource of Peráta's API.
+final class CheckoutSavedCard {
+  const CheckoutSavedCard({
+    required this.brand,
+    required this.expiry,
+    required this.id,
+    required this.last4,
+    required this.link,
+  });
+
+  /// A CheckoutSavedCard out of the API's JSON.
+  factory CheckoutSavedCard.fromJson(Map<String, Object?> json) {
+    return CheckoutSavedCard(
+      brand: json['brand'] as String,
+      expiry: json['expiry'] as String,
+      id: json['id'] as String,
+      last4: json['last4'] as String,
+      link: json['link'] as bool,
+    );
+  }
+
+  final String brand;
+
+  /// MM/AA.
+  final String expiry;
+
+  /// O que o confirm recebe como saved_card.
+  final String id;
+
+  final String last4;
+
+  /// O cartão está no Peráta Link do comprador, não com o lojista.
+  final bool link;
+
+  /// The JSON the API answers.
+  Map<String, Object?> toJson() => {
+    'brand': brand,
+    'expiry': expiry,
+    'id': id,
+    'last4': last4,
+    'link': link,
+  };
+}
+
+/// CheckoutSavedData is a resource of Peráta's API.
+final class CheckoutSavedData {
+  const CheckoutSavedData({
+    required this.cards,
+    required this.profile,
+    required this.proof,
+  });
+
+  /// A CheckoutSavedData out of the API's JSON.
+  factory CheckoutSavedData.fromJson(Map<String, Object?> json) {
+    return CheckoutSavedData(
+      cards: readList(
+        json['cards'],
+        (value) => CheckoutSavedCard.fromJson(readObject(value)),
+      ),
+      profile: CheckoutSavedProfile.fromJson(readObject(json['profile'])),
+      proof: json['proof'] as String,
+    );
+  }
+
+  final List<CheckoutSavedCard> cards;
+
+  final CheckoutSavedProfile profile;
+
+  /// O que o confirm recebe como saved_card_proof, para pagar com um cartão
+  /// salvo ou atestar o e-mail.
+  final String proof;
+
+  /// The JSON the API answers.
+  Map<String, Object?> toJson() => {
+    'cards': cards.map((item) => item.toJson()).toList(),
+    'profile': profile.toJson(),
+    'proof': proof,
+  };
+}
+
+/// CheckoutSavedDataSent is a resource of Peráta's API.
+final class CheckoutSavedDataSent {
+  const CheckoutSavedDataSent({
+    required this.channel,
+    required this.fresh,
+    required this.sent,
+  });
+
+  /// A CheckoutSavedDataSent out of the API's JSON.
+  factory CheckoutSavedDataSent.fromJson(Map<String, Object?> json) {
+    return CheckoutSavedDataSent(
+      channel: json['channel'] as String,
+      fresh: json['fresh'] as bool,
+      sent: json['sent'] as bool,
+    );
+  }
+
+  final String channel;
+
+  /// Sempre falso, pelo mesmo motivo.
+  final bool fresh;
+
+  /// Sempre verdadeiro: a resposta não diz se há algo guardado para o e-mail.
+  final bool sent;
+
+  /// The JSON the API answers.
+  Map<String, Object?> toJson() => {
+    'channel': channel,
+    'fresh': fresh,
+    'sent': sent,
+  };
+}
+
+/// CheckoutSavedProfile is a resource of Peráta's API.
+final class CheckoutSavedProfile {
+  const CheckoutSavedProfile({
+    required this.addressLine1,
+    required this.addressLine2,
+    required this.city,
+    required this.district,
+    required this.name,
+    required this.postalCode,
+    required this.state,
+    required this.taxId,
+    required this.taxIdKind,
+  });
+
+  /// A CheckoutSavedProfile out of the API's JSON.
+  factory CheckoutSavedProfile.fromJson(Map<String, Object?> json) {
+    return CheckoutSavedProfile(
+      addressLine1: json['address_line1'] as String,
+      addressLine2: json['address_line2'] as String,
+      city: json['city'] as String,
+      district: json['district'] as String,
+      name: json['name'] as String,
+      postalCode: json['postal_code'] as String,
+      state: json['state'] as String,
+      taxId: json['tax_id'] as String,
+      taxIdKind: json['tax_id_kind'] as String,
+    );
+  }
+
+  final String addressLine1;
+
+  final String addressLine2;
+
+  final String city;
+
+  final String district;
+
+  final String name;
+
+  final String postalCode;
+
+  final String state;
+
+  final String taxId;
+
+  final String taxIdKind;
+
+  /// The JSON the API answers.
+  Map<String, Object?> toJson() => {
+    'address_line1': addressLine1,
+    'address_line2': addressLine2,
+    'city': city,
+    'district': district,
+    'name': name,
+    'postal_code': postalCode,
+    'state': state,
+    'tax_id': taxId,
+    'tax_id_kind': taxIdKind,
   };
 }
 
@@ -2570,17 +3469,53 @@ final class CheckoutLinksUpdateParams {
 /// The body of checkouts:create.
 final class CheckoutsCreateParams {
   const CheckoutsCreateParams({
+    this.allowDiscountCodes,
     this.cancelUrl,
+    this.customerEmail,
+    this.customerId,
+    this.customerName,
+    this.expiresIn,
+    this.externalCustomerId,
     this.label,
+    this.metadata,
     required this.priceId,
     required this.productId,
     this.quantity,
+    this.requireBillingAddress,
+    this.returnUrl,
     this.successUrl,
   });
 
+  /// Deixa o comprador digitar um código de desconto; desligado quando fica de
+  /// fora.
+  final bool? allowDiscountCodes;
+
   final String? cancelUrl;
 
+  /// O e-mail do comprador, quando você o conhece; senão o navegador do
+  /// comprador o pede.
+  final String? customerEmail;
+
+  /// Um cliente seu: o checkout abre com o nome, o e-mail e os dados de
+  /// cobrança dele. Não junto com external_customer_id, customer_email ou
+  /// customer_name.
+  final String? customerId;
+
+  /// O nome do comprador, quando você o conhece.
+  final String? customerName;
+
+  /// Segundos em que a sessão e o client_secret continuam valendo; 1800 quando
+  /// fica de fora.
+  final int? expiresIn;
+
+  /// O mesmo cliente, pelo ID que você deu a ele.
+  final String? externalCustomerId;
+
   final String? label;
+
+  /// Até 50 pares guardados no link do checkout; valor em texto, número ou
+  /// booleano.
+  final Map<String, Object?>? metadata;
 
   final String priceId;
 
@@ -2588,15 +3523,32 @@ final class CheckoutsCreateParams {
 
   final int? quantity;
 
+  /// Pede o endereço de cobrança completo de todo comprador, não só no boleto;
+  /// desligado quando fica de fora.
+  final bool? requireBillingAddress;
+
+  /// Outro nome de cancel_url: a página https a que o comprador volta sem
+  /// pagar. Enviada com um cancel_url diferente, é recusada.
+  final String? returnUrl;
+
   final String? successUrl;
 
   /// The JSON the API takes; a field left null is left out.
   Map<String, Object?> toJson() => {
+    'allow_discount_codes': ?allowDiscountCodes,
     'cancel_url': ?cancelUrl,
+    'customer_email': ?customerEmail,
+    'customer_id': ?customerId,
+    'customer_name': ?customerName,
+    'expires_in': ?expiresIn,
+    'external_customer_id': ?externalCustomerId,
     'label': ?label,
+    'metadata': ?metadata,
     'price_id': priceId,
     'product_id': productId,
     'quantity': ?quantity,
+    'require_billing_address': ?requireBillingAddress,
+    'return_url': ?returnUrl,
     'success_url': ?successUrl,
   };
 }

@@ -257,9 +257,9 @@ func (s *CheckoutLinksService) Update(ctx context.Context, checkoutLink string, 
 // CheckoutsService is the API's checkouts.
 type CheckoutsService struct{ client *Client }
 
-// Create: Criar o endereço de um checkout para um produto e um preço.
-func (s *CheckoutsService) Create(ctx context.Context, params CheckoutsCreateParams, opts ...RequestOption) (*Checkout, error) {
-	var out Checkout
+// Create: Criar um checkout: o endereço para onde o comprador é enviado e a sessão de compra aberta para ele, com o client_secret que o navegador do comprador usa nas rotas de cliente.
+func (s *CheckoutsService) Create(ctx context.Context, params CheckoutsCreateParams, opts ...RequestOption) (*CheckoutCreated, error) {
+	var out CheckoutCreated
 	err := s.client.do(ctx, http.MethodPost, "/api/v1/checkouts", nil, params, &out, opts)
 	if err != nil {
 		return nil, err

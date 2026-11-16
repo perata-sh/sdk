@@ -52,6 +52,60 @@ func TestAWriteSendsItsBodyAndIdempotencyKey(t *testing.T) {
 	}
 }
 
+// The server creates the session and hands the browser its client_secret; the
+// answer carries the secret once, and a replay of the same Idempotency-Key
+// carries it empty.
+func TestACheckoutSessionHandsBackTheClientSecretForTheBrowser(t *testing.T) {
+	replayed := false
+	client := server(t, func(w http.ResponseWriter, r *http.Request) {
+		var body map[string]any
+		_ = json.NewDecoder(r.Body).Decode(&body)
+		if r.Method != http.MethodPost || r.URL.Path != "/api/v1/checkouts" || r.Header.Get("Idempotency-Key") != "pedido-1" ||
+			body["product_id"] != "prod_1" || body["price_id"] != "price_1" || body["success_url"] != "https://loja.example/obrigado" {
+			t.Errorf("request %s %s %q %v", r.Method, r.URL.Path, r.Header.Get("Idempotency-Key"), body)
+		}
+		secret := "cs_secret_1"
+		if replayed {
+			w.Header().Set("Idempotent-Replayed", "true")
+			secret = ""
+		}
+		w.WriteHeader(http.StatusCreated)
+		fmt.Fprintf(w, `{"data":{"id":"pcl_1","url":"https://perata.sh/pagamento/pcl_1","product_id":"prod_1","price_id":"price_1","status":"active","label":"","quantity":1,"success_url":"https://loja.example/obrigado","cancel_url":"","expires_at":null,"created_at":"2026-11-16T12:00:00Z","session_id":"cs_1","client_secret":%q,"client_secret_expires_at":"2026-11-16T12:30:00Z","status_key":"sk_1"}}`, secret)
+	})
+	ctx := context.Background()
+	successURL := "https://loja.example/obrigado"
+	params := CheckoutsCreateParams{ProductID: "prod_1", PriceID: "price_1", SuccessURL: &successURL}
+	checkout, err := client.Checkouts.Create(ctx, params, WithIdempotencyKey("pedido-1"))
+	if err != nil || checkout.ClientSecret != "cs_secret_1" || checkout.SessionID != "cs_1" || checkout.StatusKey != "sk_1" ||
+		checkout.ClientSecretExpiresAt != "2026-11-16T12:30:00Z" || checkout.URL != "https://perata.sh/pagamento/pcl_1" || checkout.ExpiresAt != nil {
+		t.Fatalf("checkout %+v, %v", checkout, err)
+	}
+	replayed = true
+	again, err := client.Checkouts.Create(ctx, params, WithIdempotencyKey("pedido-1"))
+	if err != nil || again.ClientSecret != "" || again.SessionID != "cs_1" || again.StatusKey != "sk_1" {
+		t.Fatalf("replay %+v, %v", again, err)
+	}
+}
+
+// A model that may be null decodes both ways: the session as the buyer's browser
+// reads it has no customer, discount or payment until there is one.
+func TestASessionAsTheBrowserReadsItDecodesItsNullableModels(t *testing.T) {
+	var empty, filled CheckoutClient
+	if err := json.Unmarshal([]byte(`{"customer":null,"discount":null,"payment":null}`), &empty); err != nil {
+		t.Fatal(err)
+	}
+	if empty.Customer != nil || empty.Discount != nil || empty.Payment != nil {
+		t.Fatalf("empty %+v", empty)
+	}
+	raw := `{"customer":{"email":"ana@exemplo.com"},"payment":{"pix":{"copia_e_cola":"000201"},"boleto":null}}`
+	if err := json.Unmarshal([]byte(raw), &filled); err != nil {
+		t.Fatal(err)
+	}
+	if filled.Customer == nil || filled.Customer.Email != "ana@exemplo.com" || filled.Payment == nil || filled.Payment.Boleto != nil || filled.Payment.Pix == nil {
+		t.Fatalf("filled %+v", filled)
+	}
+}
+
 func TestUsageIngestionCarriesTheSourceCredentialAndItsEvents(t *testing.T) {
 	var seen *http.Request
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

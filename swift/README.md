@@ -4,7 +4,7 @@ SDK oficial da API da Peráta para Swift 6 (macOS 12+, iOS 15+, tvOS 15+, watchO
 
 ```swift
 // Package.swift
-.package(url: "https://github.com/perata-sh/sdk", from: "0.4.0"),
+.package(url: "https://github.com/perata-sh/sdk", from: "0.5.0"),
 // e, no target:
 .product(name: "Perata", package: "sdk"),
 ```
@@ -45,6 +45,31 @@ for try await product in perata.products.listIter() {
 | `perata.webhooks` | `createEndpoint`, `deleteEndpoint`, `getEndpoint`, `listDeliveries`, `listDeliveriesIter`, `listEndpoints`, `listEndpointsIter`, `updateEndpoint` |
 
 Os modelos são structs `Codable` com propriedades em camelCase (`payment.amountCents`); os corpos das escritas são structs cujo inicializador pede primeiro os campos obrigatórios, e um campo opcional `nil` não é enviado. Os campos enumerados (`ProductStatus.active`) guardam em `rawValue` um valor que esta versão ainda não conhece. As escritas aceitam `idempotencyKey:`, e todas aceitam `apiKey:` para usar a chave de outra organização numa chamada. `PerataClient` aceita `baseURL`, `timeout` (30 s por padrão) e `transport`, para usar outro cliente HTTP ou testar sem rede. Um POST sem chave de idempotência é enviado com uma `Idempotency-Key` própria (UUID v4 aleatório, uma por chamada); passe a sua para poder repetir a mesma operação com segurança.
+
+## Checkout transparente e embutido
+
+O checkout embutido tem duas metades. O **servidor** cria a sessão com a chave de API e entrega ao navegador só o `client_secret`; o **navegador** monta os campos de pagamento com ele, sem chave de API. O cartão é digitado num quadro da Peráta e nunca passa pelo seu site nem pelo seu servidor.
+
+```swift
+// No seu servidor (Swift no servidor, nunca num app), numa rota como POST /checkout/sessao
+let checkout = try await perata.checkouts.create(CheckoutsCreateParams(priceID: priceID, productID: productID))
+
+// Só o client_secret e o status_key vão ao navegador, nunca a chave de API.
+let answer = ["clientSecret": checkout.clientSecret, "statusKey": checkout.statusKey]
+```
+
+A resposta traz o `url` (o checkout hospedado, para redirecionar o comprador ou abrir em modal), o `session_id`, o `client_secret` com o `client_secret_expires_at` (a sessão vale 30 minutos, ou os segundos do `expires_in` que você pedir) e o `status_key`, com que o navegador acompanha um Pix ou um boleto depois que o `client_secret` é gasto. Os campos opcionais são `success_url`, `cancel_url`, `customer_email`, `customer_name`, `customer_id`, `metadata`, `allow_discount_codes`, `require_billing_address` e `expires_in`. O `client_secret` vem na criação, e só nela: na repetição de uma criação idempotente (a mesma `Idempotency-Key`) ele vem vazio, então entregue-o ao navegador na primeira resposta. Para a Peráta avisar o servidor de que o pedido foi pago, use o webhook `order.paid` (veja Webhooks).
+
+No navegador, com o `client_secret` que o seu servidor devolveu (o site precisa estar em **Configurações › Checkout incorporado › Sites permitidos**):
+
+```html
+<div id="pagamento"></div>
+<script src="https://perata.sh/v1/perata.js"></script>
+<script>
+  // clientSecret: o que o seu servidor devolveu acima
+  Perata().components.payment({ clientSecret, onSuccess: (result) => console.log(result.status) }).mount("#pagamento");
+</script>
+```
 
 ## Consumo (ingestão de eventos)
 
@@ -90,4 +115,4 @@ A assinatura é a do Standard Webhooks (`webhook-id`, `webhook-timestamp`, `webh
 
 O evento é tipado: um caso para cada dado que o webhook carrega (`.order` traz um `Order`, `.dispute` a disputa, `.identifiers` os identificadores…), e o `type` diz o que aconteceu; um tipo que esta versão do SDK ainda não conhece chega como `.unknown`, com o corpo como veio. Durante a rotação do segredo o cabeçalho traz mais de uma assinatura, e basta uma conferir. `verifyWebhookSignature` só confere a assinatura.
 
-Versão do SDK: 0.4.0 · contrato da API: 0.1.0
+Versão do SDK: 0.5.0 · contrato da API: 0.1.0

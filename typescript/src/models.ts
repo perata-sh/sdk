@@ -57,6 +57,28 @@ export interface Card {
   last4: string | null;
 }
 
+/** CardAuthentication is a resource of Peráta's API. */
+export interface CardAuthentication {
+  /** O token com que o script de 3DS autentica; entregue só a uma página da própria origem da Peráta. */
+  access_token: string;
+  environment: "test" | "live";
+  /** Segundos de vida do token. */
+  expires_in: number;
+  provider: string;
+  /** O script de autenticação do adquirente. */
+  script_url: string;
+}
+
+/** CardTokenization is a resource of Peráta's API. */
+export interface CardTokenization {
+  /** O token com que o script do adquirente envia o cartão; entregue só a uma página da própria origem da Peráta. */
+  access_token: string;
+  environment: "test" | "live";
+  expires_at: string;
+  issued: string;
+  provider: string;
+}
+
 /** Checkout is a resource of Peráta's API. */
 export interface Checkout {
   /** Endereço https para onde o comprador volta se desistir; vazio sem ele. */
@@ -76,6 +98,158 @@ export interface Checkout {
   success_url: string;
   /** Endereço para onde o comprador é enviado. */
   url: string;
+}
+
+/** CheckoutClient is a resource of Peráta's API. */
+export interface CheckoutClient {
+  /** Antes do desconto. */
+  amount_cents: number;
+  /** Para onde o comprador volta sem pagar. */
+  cancel_url: string;
+  /** credit, e debit onde a autenticação do adquirente está ligada. */
+  card_kinds: string[];
+  currency: "BRL";
+  customer: CheckoutClientCustomer | null;
+  discount: CheckoutClientDiscount | null;
+  discount_cents: number;
+  /** A sessão está aberta e ainda aceita atualizações e um pagamento. */
+  editable: boolean;
+  environment: "test" | "live";
+  /** Quando a sessão e o client_secret deixam de valer. */
+  expires_at: string;
+  /** O ID da sessão de checkout. */
+  id: string;
+  /** Os planos de uma venda no cartão de crédito, à vista primeiro; vazio quando a sessão não se paga em parcelas no cartão. */
+  installments: CheckoutInstallment[];
+  items: CheckoutClientItem[];
+  /** O que o pagamento ainda precisa do comprador, pelo campo da rota de atualização: customer_email, tax_id e billing_address. */
+  missing: string[];
+  next_action: CheckoutNextAction;
+  payment: CheckoutClientPayment | null;
+  /** As formas em que a sessão pode ser paga, entre card, pix, boleto e free; free é uma sessão que não pede pagamento. */
+  payment_methods: string[];
+  /** O lojista pede o endereço de cobrança completo; o boleto o pede de qualquer jeito. */
+  requires_billing_address: boolean;
+  /** O CPF ou CNPJ é obrigatório porque há um pagamento a fazer. */
+  requires_tax_id: boolean;
+  /** open: esperando o comprador; confirmed: o pagamento foi pedido e não está liquidado (um Pix ou boleto esperando pagamento); succeeded: pago; failed e expired: acabou sem pagamento. */
+  status: "open" | "confirmed" | "succeeded" | "failed" | "expired";
+  /** A chave que lê o estado desta sessão depois que o client_secret é consumido: GET /checkouts/client/status/{status_key}. */
+  status_key: string;
+  /** Para onde o comprador vai depois de pagar: a página do próprio lojista, com o ID do checkout onde ele o pediu. */
+  success_url: string;
+  /** O que o comprador paga, em centavos. */
+  total_cents: number;
+}
+
+/** CheckoutClientBoleto is a resource of Peráta's API. */
+export interface CheckoutClientBoleto {
+  /** A linha digitável do boleto. */
+  digitable_line: string;
+  /** Quando o boleto deixa de poder ser pago: o fim do dia do vencimento, no horário de Brasília. */
+  due_date: string | null;
+  /** Onde o boleto é baixado; vazio quando o adquirente não deu nenhum. */
+  pdf_url: string;
+}
+
+/** CheckoutClientCustomer is a resource of Peráta's API. */
+export interface CheckoutClientCustomer {
+  address: BillingAddress;
+  billing_name: string;
+  email: string;
+  name: string;
+  /** O CPF ou CNPJ do comprador, só dígitos; vazio enquanto não for informado. */
+  tax_id: string;
+  tax_id_kind: string;
+}
+
+/** CheckoutClientDiscount is a resource of Peráta's API. */
+export interface CheckoutClientDiscount {
+  /** O código que o comprador aplicou; vazio num desconto que o link fixa sem código. */
+  code: string;
+  discount_cents: number;
+}
+
+/** CheckoutClientItem is a resource of Peráta's API. */
+export interface CheckoutClientItem {
+  /** Quanto custa a linha antes de qualquer desconto: a unidade vezes a quantidade. */
+  amount_cents: number;
+  /** A descrição do produto como o lojista a escreveu, em Markdown; vazia sem ela. */
+  description: string;
+  /** month ou year numa assinatura; vazio numa compra avulsa. */
+  interval: string;
+  /** Quantos intervalos dura um ciclo. */
+  interval_count: number;
+  name: string;
+  product_id: string;
+  quantity: number;
+  /** Quanto custa uma unidade, antes de qualquer desconto. */
+  unit_cents: number;
+}
+
+/** CheckoutClientPayment is a resource of Peráta's API. */
+export interface CheckoutClientPayment {
+  boleto: CheckoutClientBoleto | null;
+  card_brand: string;
+  card_kind: string;
+  id: string;
+  installments: number;
+  method: "card" | "pix" | "boleto";
+  pix: CheckoutClientPix | null;
+  state: "unknown" | "pending" | "authorized" | "captured" | "refused" | "canceled" | "refunded" | "partially_refunded";
+  /** Verdadeiro enquanto a resposta do adquirente ainda é descoberta; o comprador espera. */
+  unresolved: boolean;
+}
+
+/** CheckoutClientPix is a resource of Peráta's API. */
+export interface CheckoutClientPix {
+  /** O código Pix copia e cola. */
+  copia_e_cola: string;
+  /** Quando o Pix deixa de poder ser pago, como o adquirente o deu. */
+  expires_at: string | null;
+  /** O QR do código, desenhado como um documento SVG. */
+  qr_code_svg: string;
+}
+
+/** CheckoutCreated is a resource of Peráta's API. */
+export interface CheckoutCreated {
+  /** Endereço https para onde o comprador volta se desistir; vazio sem ele. */
+  cancel_url: string;
+  /** O segredo que o navegador do comprador usa para ler, atualizar e pagar a sessão, sem chave de API. Só esta resposta o traz; entregue-o à página que monta os campos seguros. Vem vazio na repetição de uma criação idempotente. */
+  client_secret: string;
+  /** Quando a sessão e o client_secret deixam de valer. */
+  client_secret_expires_at: string;
+  created_at: string;
+  /** Quando o link deixa de abrir sessões; nulo sem prazo. */
+  expires_at: string | null;
+  /** O ID do link do checkout, o que GET e PATCH /checkouts/{id} recebem. */
+  id: string;
+  /** Como o lojista chama o checkout nas próprias telas; o comprador não vê. */
+  label: string;
+  price_id: string;
+  product_id: string;
+  quantity: number;
+  /** O ID da sessão de checkout; as rotas de cliente dela são /checkouts/client/{client_secret}. */
+  session_id: string;
+  /** active abre sessões de compra; archived saiu de circulação. */
+  status: "active" | "archived";
+  /** Lê o estado da sessão depois que o client_secret é consumido: GET /checkouts/client/status/{status_key}. Só esta resposta o traz. */
+  status_key: string;
+  /** Endereço https para onde o comprador volta depois de pagar; vazio sem ele. */
+  success_url: string;
+  /** O endereço hospedado: redirecione o comprador para cá e ele paga na página da Peráta. */
+  url: string;
+}
+
+/** CheckoutInstallment is a resource of Peráta's API. */
+export interface CheckoutInstallment {
+  /** O número de parcelas; 1 é à vista. */
+  count: number;
+  installment_cents: number;
+  /** Zero quando o lojista arca com os juros (sem juros). */
+  interest_cents: number;
+  /** Quanto o comprador paga no total: o total da sessão, mais os juros quando o plano os tem. */
+  total_cents: number;
 }
 
 /** CheckoutLink is a resource of Peráta's API. */
@@ -121,6 +295,56 @@ export interface CheckoutLink {
 export interface CheckoutLinkProduct {
   price_id: string;
   product_id: string;
+}
+
+/** CheckoutNextAction is a resource of Peráta's API. */
+export interface CheckoutNextAction {
+  /** none: nada falta; wait: o resultado está sendo descoberto, leia o estado de novo; show_pix e show_boleto: mostre o Pix ou o boleto do pagamento e espere o pagamento; redirect: envie o comprador para url, onde o banco ou a autenticação 3DS termina o pagamento. */
+  type: "none" | "wait" | "show_pix" | "show_boleto" | "redirect";
+  /** Para onde enviar o comprador, no redirect. */
+  url: string;
+}
+
+/** CheckoutSavedCard is a resource of Peráta's API. */
+export interface CheckoutSavedCard {
+  brand: string;
+  /** MM/AA. */
+  expiry: string;
+  /** O que o confirm recebe como saved_card. */
+  id: string;
+  last4: string;
+  /** O cartão está no Peráta Link do comprador, não com o lojista. */
+  link: boolean;
+}
+
+/** CheckoutSavedData is a resource of Peráta's API. */
+export interface CheckoutSavedData {
+  cards: CheckoutSavedCard[];
+  profile: CheckoutSavedProfile;
+  /** O que o confirm recebe como saved_card_proof, para pagar com um cartão salvo ou atestar o e-mail. */
+  proof: string;
+}
+
+/** CheckoutSavedDataSent is a resource of Peráta's API. */
+export interface CheckoutSavedDataSent {
+  channel: string;
+  /** Sempre falso, pelo mesmo motivo. */
+  fresh: boolean;
+  /** Sempre verdadeiro: a resposta não diz se há algo guardado para o e-mail. */
+  sent: boolean;
+}
+
+/** CheckoutSavedProfile is a resource of Peráta's API. */
+export interface CheckoutSavedProfile {
+  address_line1: string;
+  address_line2: string;
+  city: string;
+  district: string;
+  name: string;
+  postal_code: string;
+  state: string;
+  tax_id: string;
+  tax_id_kind: string;
 }
 
 /** Customer is a resource of Peráta's API. */
@@ -624,11 +848,29 @@ export interface CheckoutLinksUpdateParams {
 
 /** The body of checkouts:create. */
 export interface CheckoutsCreateParams {
+  /** Deixa o comprador digitar um código de desconto; desligado quando fica de fora. */
+  allow_discount_codes?: boolean;
   cancel_url?: string;
+  /** O e-mail do comprador, quando você o conhece; senão o navegador do comprador o pede. */
+  customer_email?: string;
+  /** Um cliente seu: o checkout abre com o nome, o e-mail e os dados de cobrança dele. Não junto com external_customer_id, customer_email ou customer_name. */
+  customer_id?: string;
+  /** O nome do comprador, quando você o conhece. */
+  customer_name?: string;
+  /** Segundos em que a sessão e o client_secret continuam valendo; 1800 quando fica de fora. */
+  expires_in?: number;
+  /** O mesmo cliente, pelo ID que você deu a ele. */
+  external_customer_id?: string;
   label?: string;
+  /** Até 50 pares guardados no link do checkout; valor em texto, número ou booleano. */
+  metadata?: Record<string, unknown>;
   price_id: string;
   product_id: string;
   quantity?: number;
+  /** Pede o endereço de cobrança completo de todo comprador, não só no boleto; desligado quando fica de fora. */
+  require_billing_address?: boolean;
+  /** Outro nome de cancel_url: a página https a que o comprador volta sem pagar. Enviada com um cancel_url diferente, é recusada. */
+  return_url?: string;
   success_url?: string;
 }
 

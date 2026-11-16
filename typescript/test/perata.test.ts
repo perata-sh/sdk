@@ -45,6 +45,46 @@ test("a write sends its body and idempotency key", async () => {
   assert.deepEqual(JSON.parse(seen[0]?.body ?? ""), { name: "Curso" });
 });
 
+const session = (clientSecret: string) => ({
+  id: "pcl_1",
+  url: "https://perata.sh/pagamento/pcl_1",
+  product_id: "prod_1",
+  price_id: "price_1",
+  status: "active",
+  label: "",
+  quantity: 1,
+  success_url: "https://loja.example/obrigado",
+  cancel_url: "",
+  expires_at: null,
+  created_at: "2026-11-16T12:00:00Z",
+  session_id: "cs_1",
+  client_secret: clientSecret,
+  client_secret_expires_at: "2026-11-16T12:30:00Z",
+  status_key: "sk_1",
+});
+
+test("a checkout session hands back the client secret for the browser", async () => {
+  let replayed = false;
+  const { perata, seen } = client(() => json(201, { data: session(replayed ? "" : "cs_secret_1") }, replayed ? { "Idempotent-Replayed": "true" } : {}));
+  const params = { product_id: "prod_1", price_id: "price_1", success_url: "https://loja.example/obrigado" };
+  const checkout = await perata.checkouts.create(params, { idempotencyKey: "pedido-1" });
+  assert.equal(checkout.client_secret, "cs_secret_1");
+  assert.equal(checkout.session_id, "cs_1");
+  assert.equal(checkout.status_key, "sk_1");
+  assert.equal(checkout.client_secret_expires_at, "2026-11-16T12:30:00Z");
+  assert.equal(checkout.url, "https://perata.sh/pagamento/pcl_1");
+  assert.equal(checkout.expires_at, null);
+  assert.equal(seen[0]?.method, "POST");
+  assert.equal(seen[0]?.url.pathname, "/api/v1/checkouts");
+  assert.equal(seen[0]?.headers.get("idempotency-key"), "pedido-1");
+  assert.deepEqual(JSON.parse(seen[0]?.body ?? ""), params);
+  replayed = true;
+  const again = await perata.checkouts.create(params, { idempotencyKey: "pedido-1" });
+  assert.equal(again.client_secret, "");
+  assert.equal(again.session_id, "cs_1");
+  assert.equal(again.status_key, "sk_1");
+});
+
 test("usage ingestion carries the source credential and its events", async () => {
   const seen: Seen[] = [];
   const fake: typeof fetch = async (input, init) => {

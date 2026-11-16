@@ -18,14 +18,14 @@ final class CheckoutsService
     }
 
     /**
-     * Criar o endereço de um checkout para um produto e um preço.
+     * Criar um checkout: o endereço para onde o comprador é enviado e a sessão de compra aberta para ele, com o client_secret que o navegador do comprador usa nas rotas de cliente.
      *
-     * @param array{cancel_url?: string, label?: string, price_id: string, product_id: string, quantity?: int, success_url?: string} $params
+     * @param array{allow_discount_codes?: bool, cancel_url?: string, customer_email?: string, customer_id?: string, customer_name?: string, expires_in?: int, external_customer_id?: string, label?: string, metadata?: array<string, mixed>, price_id: string, product_id: string, quantity?: int, require_billing_address?: bool, return_url?: string, success_url?: string} $params
      */
-    public function create(array $params, ?string $idempotencyKey = null, ?string $apiKey = null): Models\Checkout
+    public function create(array $params, ?string $idempotencyKey = null, ?string $apiKey = null): Models\CheckoutCreated
     {
         $data = $this->client->request('POST', '/api/v1/checkouts', body: $params, idempotencyKey: $idempotencyKey, apiKey: $apiKey);
-        return Models\Checkout::fromArray($data);
+        return Models\CheckoutCreated::fromArray($data);
     }
 
     /**

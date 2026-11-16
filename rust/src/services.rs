@@ -446,8 +446,8 @@ impl<'a> CheckoutsService<'a> {
         self
     }
 
-    /// Criar o endereço de um checkout para um produto e um preço.
-    pub fn create(&self, params: &CheckoutsCreateParams) -> Result<Checkout, Error> {
+    /// Criar um checkout: o endereço para onde o comprador é enviado e a sessão de compra aberta para ele, com o client_secret que o navegador do comprador usa nas rotas de cliente.
+    pub fn create(&self, params: &CheckoutsCreateParams) -> Result<CheckoutCreated, Error> {
         self.client.request("POST", "/api/v1/checkouts", &[], Some(params), &self.options)
     }
 

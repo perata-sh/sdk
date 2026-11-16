@@ -101,6 +101,77 @@ class PerataTest {
         assertEquals(Map.of("name", "Curso"), Json.parse(new String(seen.getBody(), StandardCharsets.UTF_8)));
     }
 
+    private static Map<String, Object> session(String clientSecret) {
+        Map<String, Object> session = new LinkedHashMap<>();
+        session.put("id", "pcl_1");
+        session.put("url", "https://perata.sh/pagamento/pcl_1");
+        session.put("product_id", "prod_1");
+        session.put("price_id", "price_1");
+        session.put("status", "active");
+        session.put("label", "");
+        session.put("quantity", 1);
+        session.put("success_url", "https://loja.example/obrigado");
+        session.put("cancel_url", "");
+        session.put("expires_at", null);
+        session.put("created_at", "2026-11-16T12:00:00Z");
+        session.put("session_id", "cs_1");
+        session.put("client_secret", clientSecret);
+        session.put("client_secret_expires_at", "2026-11-16T12:30:00Z");
+        session.put("status_key", "sk_1");
+        return session;
+    }
+
+    @Test
+    void aCheckoutSessionHandsBackTheClientSecretForTheBrowser() {
+        int[] calls = {0};
+        Recorder recorder = new Recorder(request -> calls[0]++ == 0
+                ? json(201, Map.of(), data(session("cs_secret_1")))
+                : json(201, Map.of("Idempotent-Replayed", "true"), data(session(""))));
+        Perata perata = client(recorder);
+        CheckoutsService.CreateParams params = CheckoutsService.CreateParams.builder()
+                .productId("prod_1").priceId("price_1").successUrl("https://loja.example/obrigado").build();
+        RequestOptions options = RequestOptions.builder().idempotencyKey("pedido-1").build();
+        CheckoutCreated checkout = perata.checkouts().create(params, options);
+        assertEquals("cs_secret_1", checkout.getClientSecret());
+        assertEquals("cs_1", checkout.getSessionId());
+        assertEquals("sk_1", checkout.getStatusKey());
+        assertEquals("2026-11-16T12:30:00Z", checkout.getClientSecretExpiresAt());
+        assertEquals("https://perata.sh/pagamento/pcl_1", checkout.getUrl());
+        assertNull(checkout.getExpiresAt());
+        Transport.Request seen = recorder.seen.get(0);
+        assertEquals("POST", seen.getMethod());
+        assertEquals("/api/v1/checkouts", URI.create(seen.getUrl()).getPath());
+        assertEquals("pedido-1", seen.getHeaders().get("Idempotency-Key"));
+        assertEquals(
+                Map.of("product_id", "prod_1", "price_id", "price_1", "success_url", "https://loja.example/obrigado"),
+                Json.parse(new String(seen.getBody(), StandardCharsets.UTF_8)));
+        CheckoutCreated again = perata.checkouts().create(params, options);
+        assertEquals("", again.getClientSecret());
+        assertEquals("cs_1", again.getSessionId());
+    }
+
+    @Test
+    void aModelThatMayBeNullDecodesBothWays() {
+        Map<String, Object> pix = new LinkedHashMap<>();
+        pix.put("copia_e_cola", "000201");
+        pix.put("qr_code_svg", "<svg/>");
+        pix.put("expires_at", null);
+        Map<String, Object> payment = new LinkedHashMap<>();
+        payment.put("id", "pay_1");
+        payment.put("method", "pix");
+        payment.put("state", "pending");
+        payment.put("unresolved", false);
+        payment.put("card_brand", "");
+        payment.put("card_kind", "");
+        payment.put("installments", 1L);
+        payment.put("pix", pix);
+        payment.put("boleto", null);
+        CheckoutClientPayment got = CheckoutClientPayment.fromJson(payment);
+        assertNull(got.getBoleto());
+        assertEquals("000201", got.getPix().getCopiaECola());
+        assertNull(got.getPix().getExpiresAt());
+    }
+
     @Test
     void aBaseUrlMustBeHttpsUnlessItIsLoopback() {
         for (String base : List.of("https://perata.sh", "http://localhost:8080", "http://LOCALHOST", "http://127.0.0.1:1", "http://127.255.0.3", "http://[::1]:8080")) {

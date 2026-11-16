@@ -59,6 +59,28 @@ type Card struct {
 	Last4    *string `json:"last4"`
 }
 
+// CardAuthentication is a resource of Peráta's API.
+type CardAuthentication struct {
+	// O token com que o script de 3DS autentica; entregue só a uma página da própria origem da Peráta.
+	AccessToken string `json:"access_token"`
+	Environment string `json:"environment"`
+	// Segundos de vida do token.
+	ExpiresIn int64  `json:"expires_in"`
+	Provider  string `json:"provider"`
+	// O script de autenticação do adquirente.
+	ScriptURL string `json:"script_url"`
+}
+
+// CardTokenization is a resource of Peráta's API.
+type CardTokenization struct {
+	// O token com que o script do adquirente envia o cartão; entregue só a uma página da própria origem da Peráta.
+	AccessToken string `json:"access_token"`
+	Environment string `json:"environment"`
+	ExpiresAt   string `json:"expires_at"`
+	Issued      string `json:"issued"`
+	Provider    string `json:"provider"`
+}
+
 // Checkout is a resource of Peráta's API.
 type Checkout struct {
 	// Endereço https para onde o comprador volta se desistir; vazio sem ele.
@@ -78,6 +100,158 @@ type Checkout struct {
 	SuccessURL string `json:"success_url"`
 	// Endereço para onde o comprador é enviado.
 	URL string `json:"url"`
+}
+
+// CheckoutClient is a resource of Peráta's API.
+type CheckoutClient struct {
+	// Antes do desconto.
+	AmountCents int64 `json:"amount_cents"`
+	// Para onde o comprador volta sem pagar.
+	CancelURL string `json:"cancel_url"`
+	// credit, e debit onde a autenticação do adquirente está ligada.
+	CardKinds     []string                `json:"card_kinds"`
+	Currency      string                  `json:"currency"`
+	Customer      *CheckoutClientCustomer `json:"customer"`
+	Discount      *CheckoutClientDiscount `json:"discount"`
+	DiscountCents int64                   `json:"discount_cents"`
+	// A sessão está aberta e ainda aceita atualizações e um pagamento.
+	Editable    bool   `json:"editable"`
+	Environment string `json:"environment"`
+	// Quando a sessão e o client_secret deixam de valer.
+	ExpiresAt string `json:"expires_at"`
+	// O ID da sessão de checkout.
+	ID string `json:"id"`
+	// Os planos de uma venda no cartão de crédito, à vista primeiro; vazio quando a sessão não se paga em parcelas no cartão.
+	Installments []CheckoutInstallment `json:"installments"`
+	Items        []CheckoutClientItem  `json:"items"`
+	// O que o pagamento ainda precisa do comprador, pelo campo da rota de atualização: customer_email, tax_id e billing_address.
+	Missing    []string               `json:"missing"`
+	NextAction CheckoutNextAction     `json:"next_action"`
+	Payment    *CheckoutClientPayment `json:"payment"`
+	// As formas em que a sessão pode ser paga, entre card, pix, boleto e free; free é uma sessão que não pede pagamento.
+	PaymentMethods []string `json:"payment_methods"`
+	// O lojista pede o endereço de cobrança completo; o boleto o pede de qualquer jeito.
+	RequiresBillingAddress bool `json:"requires_billing_address"`
+	// O CPF ou CNPJ é obrigatório porque há um pagamento a fazer.
+	RequiresTaxID bool `json:"requires_tax_id"`
+	// open: esperando o comprador; confirmed: o pagamento foi pedido e não está liquidado (um Pix ou boleto esperando pagamento); succeeded: pago; failed e expired: acabou sem pagamento.
+	Status string `json:"status"`
+	// A chave que lê o estado desta sessão depois que o client_secret é consumido: GET /checkouts/client/status/{status_key}.
+	StatusKey string `json:"status_key"`
+	// Para onde o comprador vai depois de pagar: a página do próprio lojista, com o ID do checkout onde ele o pediu.
+	SuccessURL string `json:"success_url"`
+	// O que o comprador paga, em centavos.
+	TotalCents int64 `json:"total_cents"`
+}
+
+// CheckoutClientBoleto is a resource of Peráta's API.
+type CheckoutClientBoleto struct {
+	// A linha digitável do boleto.
+	DigitableLine string `json:"digitable_line"`
+	// Quando o boleto deixa de poder ser pago: o fim do dia do vencimento, no horário de Brasília.
+	DueDate *string `json:"due_date"`
+	// Onde o boleto é baixado; vazio quando o adquirente não deu nenhum.
+	PdfURL string `json:"pdf_url"`
+}
+
+// CheckoutClientCustomer is a resource of Peráta's API.
+type CheckoutClientCustomer struct {
+	Address     BillingAddress `json:"address"`
+	BillingName string         `json:"billing_name"`
+	Email       string         `json:"email"`
+	Name        string         `json:"name"`
+	// O CPF ou CNPJ do comprador, só dígitos; vazio enquanto não for informado.
+	TaxID     string `json:"tax_id"`
+	TaxIDKind string `json:"tax_id_kind"`
+}
+
+// CheckoutClientDiscount is a resource of Peráta's API.
+type CheckoutClientDiscount struct {
+	// O código que o comprador aplicou; vazio num desconto que o link fixa sem código.
+	Code          string `json:"code"`
+	DiscountCents int64  `json:"discount_cents"`
+}
+
+// CheckoutClientItem is a resource of Peráta's API.
+type CheckoutClientItem struct {
+	// Quanto custa a linha antes de qualquer desconto: a unidade vezes a quantidade.
+	AmountCents int64 `json:"amount_cents"`
+	// A descrição do produto como o lojista a escreveu, em Markdown; vazia sem ela.
+	Description string `json:"description"`
+	// month ou year numa assinatura; vazio numa compra avulsa.
+	Interval string `json:"interval"`
+	// Quantos intervalos dura um ciclo.
+	IntervalCount int64  `json:"interval_count"`
+	Name          string `json:"name"`
+	ProductID     string `json:"product_id"`
+	Quantity      int64  `json:"quantity"`
+	// Quanto custa uma unidade, antes de qualquer desconto.
+	UnitCents int64 `json:"unit_cents"`
+}
+
+// CheckoutClientPayment is a resource of Peráta's API.
+type CheckoutClientPayment struct {
+	Boleto       *CheckoutClientBoleto `json:"boleto"`
+	CardBrand    string                `json:"card_brand"`
+	CardKind     string                `json:"card_kind"`
+	ID           string                `json:"id"`
+	Installments int64                 `json:"installments"`
+	Method       string                `json:"method"`
+	Pix          *CheckoutClientPix    `json:"pix"`
+	State        string                `json:"state"`
+	// Verdadeiro enquanto a resposta do adquirente ainda é descoberta; o comprador espera.
+	Unresolved bool `json:"unresolved"`
+}
+
+// CheckoutClientPix is a resource of Peráta's API.
+type CheckoutClientPix struct {
+	// O código Pix copia e cola.
+	CopiaECola string `json:"copia_e_cola"`
+	// Quando o Pix deixa de poder ser pago, como o adquirente o deu.
+	ExpiresAt *string `json:"expires_at"`
+	// O QR do código, desenhado como um documento SVG.
+	QrCodeSvg string `json:"qr_code_svg"`
+}
+
+// CheckoutCreated is a resource of Peráta's API.
+type CheckoutCreated struct {
+	// Endereço https para onde o comprador volta se desistir; vazio sem ele.
+	CancelURL string `json:"cancel_url"`
+	// O segredo que o navegador do comprador usa para ler, atualizar e pagar a sessão, sem chave de API. Só esta resposta o traz; entregue-o à página que monta os campos seguros. Vem vazio na repetição de uma criação idempotente.
+	ClientSecret string `json:"client_secret"`
+	// Quando a sessão e o client_secret deixam de valer.
+	ClientSecretExpiresAt string `json:"client_secret_expires_at"`
+	CreatedAt             string `json:"created_at"`
+	// Quando o link deixa de abrir sessões; nulo sem prazo.
+	ExpiresAt *string `json:"expires_at"`
+	// O ID do link do checkout, o que GET e PATCH /checkouts/{id} recebem.
+	ID string `json:"id"`
+	// Como o lojista chama o checkout nas próprias telas; o comprador não vê.
+	Label     string `json:"label"`
+	PriceID   string `json:"price_id"`
+	ProductID string `json:"product_id"`
+	Quantity  int64  `json:"quantity"`
+	// O ID da sessão de checkout; as rotas de cliente dela são /checkouts/client/{client_secret}.
+	SessionID string `json:"session_id"`
+	// active abre sessões de compra; archived saiu de circulação.
+	Status string `json:"status"`
+	// Lê o estado da sessão depois que o client_secret é consumido: GET /checkouts/client/status/{status_key}. Só esta resposta o traz.
+	StatusKey string `json:"status_key"`
+	// Endereço https para onde o comprador volta depois de pagar; vazio sem ele.
+	SuccessURL string `json:"success_url"`
+	// O endereço hospedado: redirecione o comprador para cá e ele paga na página da Peráta.
+	URL string `json:"url"`
+}
+
+// CheckoutInstallment is a resource of Peráta's API.
+type CheckoutInstallment struct {
+	// O número de parcelas; 1 é à vista.
+	Count            int64 `json:"count"`
+	InstallmentCents int64 `json:"installment_cents"`
+	// Zero quando o lojista arca com os juros (sem juros).
+	InterestCents int64 `json:"interest_cents"`
+	// Quanto o comprador paga no total: o total da sessão, mais os juros quando o plano os tem.
+	TotalCents int64 `json:"total_cents"`
 }
 
 // CheckoutLink is a resource of Peráta's API.
@@ -123,6 +297,56 @@ type CheckoutLink struct {
 type CheckoutLinkProduct struct {
 	PriceID   string `json:"price_id"`
 	ProductID string `json:"product_id"`
+}
+
+// CheckoutNextAction is a resource of Peráta's API.
+type CheckoutNextAction struct {
+	// none: nada falta; wait: o resultado está sendo descoberto, leia o estado de novo; show_pix e show_boleto: mostre o Pix ou o boleto do pagamento e espere o pagamento; redirect: envie o comprador para url, onde o banco ou a autenticação 3DS termina o pagamento.
+	Type string `json:"type"`
+	// Para onde enviar o comprador, no redirect.
+	URL string `json:"url"`
+}
+
+// CheckoutSavedCard is a resource of Peráta's API.
+type CheckoutSavedCard struct {
+	Brand string `json:"brand"`
+	// MM/AA.
+	Expiry string `json:"expiry"`
+	// O que o confirm recebe como saved_card.
+	ID    string `json:"id"`
+	Last4 string `json:"last4"`
+	// O cartão está no Peráta Link do comprador, não com o lojista.
+	Link bool `json:"link"`
+}
+
+// CheckoutSavedData is a resource of Peráta's API.
+type CheckoutSavedData struct {
+	Cards   []CheckoutSavedCard  `json:"cards"`
+	Profile CheckoutSavedProfile `json:"profile"`
+	// O que o confirm recebe como saved_card_proof, para pagar com um cartão salvo ou atestar o e-mail.
+	Proof string `json:"proof"`
+}
+
+// CheckoutSavedDataSent is a resource of Peráta's API.
+type CheckoutSavedDataSent struct {
+	Channel string `json:"channel"`
+	// Sempre falso, pelo mesmo motivo.
+	Fresh bool `json:"fresh"`
+	// Sempre verdadeiro: a resposta não diz se há algo guardado para o e-mail.
+	Sent bool `json:"sent"`
+}
+
+// CheckoutSavedProfile is a resource of Peráta's API.
+type CheckoutSavedProfile struct {
+	AddressLine1 string `json:"address_line1"`
+	AddressLine2 string `json:"address_line2"`
+	City         string `json:"city"`
+	District     string `json:"district"`
+	Name         string `json:"name"`
+	PostalCode   string `json:"postal_code"`
+	State        string `json:"state"`
+	TaxID        string `json:"tax_id"`
+	TaxIDKind    string `json:"tax_id_kind"`
 }
 
 // Customer is a resource of Peráta's API.
@@ -626,11 +850,29 @@ type CheckoutLinksUpdateParams struct {
 
 // The body of checkouts:create.
 type CheckoutsCreateParams struct {
-	CancelURL  *string `json:"cancel_url,omitempty"`
-	Label      *string `json:"label,omitempty"`
-	PriceID    string  `json:"price_id"`
-	ProductID  string  `json:"product_id"`
-	Quantity   *int64  `json:"quantity,omitempty"`
+	// Deixa o comprador digitar um código de desconto; desligado quando fica de fora.
+	AllowDiscountCodes *bool   `json:"allow_discount_codes,omitempty"`
+	CancelURL          *string `json:"cancel_url,omitempty"`
+	// O e-mail do comprador, quando você o conhece; senão o navegador do comprador o pede.
+	CustomerEmail *string `json:"customer_email,omitempty"`
+	// Um cliente seu: o checkout abre com o nome, o e-mail e os dados de cobrança dele. Não junto com external_customer_id, customer_email ou customer_name.
+	CustomerID *string `json:"customer_id,omitempty"`
+	// O nome do comprador, quando você o conhece.
+	CustomerName *string `json:"customer_name,omitempty"`
+	// Segundos em que a sessão e o client_secret continuam valendo; 1800 quando fica de fora.
+	ExpiresIn *int64 `json:"expires_in,omitempty"`
+	// O mesmo cliente, pelo ID que você deu a ele.
+	ExternalCustomerID *string `json:"external_customer_id,omitempty"`
+	Label              *string `json:"label,omitempty"`
+	// Até 50 pares guardados no link do checkout; valor em texto, número ou booleano.
+	Metadata  map[string]any `json:"metadata,omitempty"`
+	PriceID   string         `json:"price_id"`
+	ProductID string         `json:"product_id"`
+	Quantity  *int64         `json:"quantity,omitempty"`
+	// Pede o endereço de cobrança completo de todo comprador, não só no boleto; desligado quando fica de fora.
+	RequireBillingAddress *bool `json:"require_billing_address,omitempty"`
+	// Outro nome de cancel_url: a página https a que o comprador volta sem pagar. Enviada com um cancel_url diferente, é recusada.
+	ReturnURL  *string `json:"return_url,omitempty"`
 	SuccessURL *string `json:"success_url,omitempty"`
 }
 
@@ -849,8 +1091,33 @@ const (
 	BenefitGrantBenefitTypeGithubRepository              = "github_repository"
 	BenefitGrantStatusGranted                            = "granted"
 	BenefitGrantStatusRevoked                            = "revoked"
+	CardAuthenticationEnvironmentTest                    = "test"
+	CardAuthenticationEnvironmentLive                    = "live"
+	CardTokenizationEnvironmentTest                      = "test"
+	CardTokenizationEnvironmentLive                      = "live"
 	CheckoutStatusActive                                 = "active"
 	CheckoutStatusArchived                               = "archived"
+	CheckoutClientCurrencyBRL                            = "BRL"
+	CheckoutClientEnvironmentTest                        = "test"
+	CheckoutClientEnvironmentLive                        = "live"
+	CheckoutClientStatusOpen                             = "open"
+	CheckoutClientStatusConfirmed                        = "confirmed"
+	CheckoutClientStatusSucceeded                        = "succeeded"
+	CheckoutClientStatusFailed                           = "failed"
+	CheckoutClientStatusExpired                          = "expired"
+	CheckoutClientPaymentMethodCard                      = "card"
+	CheckoutClientPaymentMethodPix                       = "pix"
+	CheckoutClientPaymentMethodBoleto                    = "boleto"
+	CheckoutClientPaymentStateUnknown                    = "unknown"
+	CheckoutClientPaymentStatePending                    = "pending"
+	CheckoutClientPaymentStateAuthorized                 = "authorized"
+	CheckoutClientPaymentStateCaptured                   = "captured"
+	CheckoutClientPaymentStateRefused                    = "refused"
+	CheckoutClientPaymentStateCanceled                   = "canceled"
+	CheckoutClientPaymentStateRefunded                   = "refunded"
+	CheckoutClientPaymentStatePartiallyRefunded          = "partially_refunded"
+	CheckoutCreatedStatusActive                          = "active"
+	CheckoutCreatedStatusArchived                        = "archived"
 	CheckoutLinkCaptureModeAutomatic                     = "automatic"
 	CheckoutLinkCaptureModeManual                        = "manual"
 	CheckoutLinkStatusActive                             = "active"
@@ -859,6 +1126,11 @@ const (
 	CheckoutLinkTrialIntervalWeek                        = "week"
 	CheckoutLinkTrialIntervalMonth                       = "month"
 	CheckoutLinkTrialIntervalYear                        = "year"
+	CheckoutNextActionTypeNone                           = "none"
+	CheckoutNextActionTypeWait                           = "wait"
+	CheckoutNextActionTypeShowPix                        = "show_pix"
+	CheckoutNextActionTypeShowBoleto                     = "show_boleto"
+	CheckoutNextActionTypeRedirect                       = "redirect"
 	CustomerStatusActive                                 = "active"
 	CustomerStatusArchived                               = "archived"
 	CustomerStateStatusActive                            = "active"

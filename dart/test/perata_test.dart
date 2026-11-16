@@ -96,6 +96,85 @@ void main() {
     expect(jsonDecode(seen.single.body), {'name': 'Curso'});
   });
 
+  test(
+    'a checkout session hands back the client secret for the browser',
+    () async {
+      Map<String, Object?> session(String clientSecret) => {
+        'id': 'pcl_1',
+        'url': 'https://perata.sh/pagamento/pcl_1',
+        'product_id': 'prod_1',
+        'price_id': 'price_1',
+        'status': 'active',
+        'label': '',
+        'quantity': 1,
+        'success_url': 'https://loja.example/obrigado',
+        'cancel_url': '',
+        'expires_at': null,
+        'created_at': '2026-11-16T12:00:00Z',
+        'session_id': 'cs_1',
+        'client_secret': clientSecret,
+        'client_secret_expires_at': '2026-11-16T12:30:00Z',
+        'status_key': 'sk_1',
+      };
+      var calls = 0;
+      final (perata, seen) = client(
+        (_) => calls++ == 0
+            ? json(201, {'data': session('cs_secret_1')})
+            : json(201, {'data': session('')}, {'idempotent-replayed': 'true'}),
+      );
+      const params = CheckoutsCreateParams(
+        productId: 'prod_1',
+        priceId: 'price_1',
+        successUrl: 'https://loja.example/obrigado',
+      );
+      final checkout = await perata.checkouts.create(
+        params,
+        idempotencyKey: 'pedido-1',
+      );
+      expect(checkout.clientSecret, 'cs_secret_1');
+      expect(checkout.sessionId, 'cs_1');
+      expect(checkout.statusKey, 'sk_1');
+      expect(checkout.clientSecretExpiresAt, '2026-11-16T12:30:00Z');
+      expect(checkout.url, 'https://perata.sh/pagamento/pcl_1');
+      expect(checkout.expiresAt, isNull);
+      expect(seen.first.method, 'POST');
+      expect(seen.first.url.path, '/api/v1/checkouts');
+      expect(seen.first.headers['idempotency-key'], 'pedido-1');
+      expect(jsonDecode(seen.first.body), {
+        'product_id': 'prod_1',
+        'price_id': 'price_1',
+        'success_url': 'https://loja.example/obrigado',
+      });
+      final again = await perata.checkouts.create(
+        params,
+        idempotencyKey: 'pedido-1',
+      );
+      expect(again.clientSecret, '');
+      expect(again.sessionId, 'cs_1');
+    },
+  );
+
+  test('a model that may be null decodes both ways', () {
+    final payment = CheckoutClientPayment.fromJson({
+      'id': 'pay_1',
+      'method': 'pix',
+      'state': 'pending',
+      'unresolved': false,
+      'card_brand': '',
+      'card_kind': '',
+      'installments': 1,
+      'pix': {
+        'copia_e_cola': '000201',
+        'qr_code_svg': '<svg/>',
+        'expires_at': null,
+      },
+      'boleto': null,
+    });
+    expect(payment.boleto, isNull);
+    expect(payment.pix!.copiaECola, '000201');
+    expect(payment.pix!.expiresAt, isNull);
+  });
+
   test('a base URL must be https unless it is loopback', () {
     for (final baseUrl in [
       'https://perata.sh',

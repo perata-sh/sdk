@@ -258,12 +258,12 @@ defmodule Perata.Checkouts do
   alias Perata.Client
 
   @doc """
-  Criar o endereço de um checkout para um produto e um preço.
+  Criar um checkout: o endereço para onde o comprador é enviado e a sessão de compra aberta para ele, com o client_secret que o navegador do comprador usa nas rotas de cliente.
 
   Options: `:idempotency_key` and `:api_key`.
   """
   @spec create(Client.t(), Perata.CheckoutsCreateParams.t() | keyword() | map(), keyword()) ::
-          {:ok, Perata.Checkout.t()} | {:error, Perata.Error.t()}
+          {:ok, Perata.CheckoutCreated.t()} | {:error, Perata.Error.t()}
   def create(%Client{} = client, params, opts \\ []) do
     path = "/api/v1/checkouts"
 
@@ -274,7 +274,7 @@ defmodule Perata.Checkouts do
     ]
 
     with {:ok, data} <- Client.request(client, "POST", path, request) do
-      {:ok, Perata.Checkout.from_map(data)}
+      {:ok, Perata.CheckoutCreated.from_map(data)}
     end
   end
 

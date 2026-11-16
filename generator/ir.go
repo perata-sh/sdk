@@ -172,12 +172,29 @@ type schema struct {
 	Items      *schema            `json:"items"`
 	// AdditionalProperties is a schema, or false for a closed object.
 	AdditionalProperties json.RawMessage `json:"additionalProperties"`
+	// AnyOf is read for one shape only: a schema or null, which is how OpenAPI
+	// 3.1 writes a nullable model.
+	AnyOf []*schema `json:"anyOf"`
+}
+
+// nullableAlternative is the schema a "schema or null" anyOf stands for, or nil
+// when the anyOf is anything else.
+func (s *schema) nullableAlternative() *schema {
+	if len(s.AnyOf) != 2 {
+		return nil
+	}
+	for i, each := range s.AnyOf {
+		if t, ok := each.Type.(string); ok && t == "null" && each.Ref == "" {
+			return s.AnyOf[1-i]
+		}
+	}
+	return nil
 }
 
 // free says the schema constrains nothing: no type, no shape, no values. Its
 // value is any JSON.
 func (s *schema) free() bool {
-	return s.Type == nil && s.Ref == "" && len(s.Properties) == 0 && s.Items == nil && len(s.Enum) == 0 && s.Format == "" && s.additional() == nil && len(s.AdditionalProperties) == 0
+	return s.Type == nil && s.Ref == "" && len(s.AnyOf) == 0 && len(s.Properties) == 0 && s.Items == nil && len(s.Enum) == 0 && s.Format == "" && s.additional() == nil && len(s.AdditionalProperties) == 0
 }
 
 // additional is the schema of a map's values, or nil.
@@ -563,6 +580,10 @@ func (l *loader) nested(name string, s *schema, input bool, fallback string) (*s
 }
 
 func (l *loader) typeOf(s *schema) (*TypeRef, bool, error) {
+	if other := s.nullableAlternative(); other != nil {
+		typ, _, err := l.typeOf(other)
+		return typ, true, err
+	}
 	if s.Ref != "" {
 		name := strings.TrimPrefix(s.Ref, "#/components/schemas/")
 		if alias := l.aliases[name]; alias != nil {
@@ -638,8 +659,11 @@ func Pascal(name string) string {
 // Camel writes payment_methods as paymentMethods.
 func Camel(name string) string {
 	pascal := Pascal(name)
-	if strings.HasPrefix(pascal, "ID") || strings.HasPrefix(pascal, "URL") {
-		return strings.ToLower(pascal[:2]) + pascal[2:]
+	// The leading acronym is lowercase whole: id, idToken, url, urlPath.
+	for _, acronym := range []string{"ID", "URL"} {
+		if strings.HasPrefix(pascal, acronym) {
+			return strings.ToLower(acronym) + pascal[len(acronym):]
+		}
 	}
 	return strings.ToLower(pascal[:1]) + pascal[1:]
 }

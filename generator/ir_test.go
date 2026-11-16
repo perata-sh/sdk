@@ -138,3 +138,13 @@ func contains(values []string, value string) bool {
 	}
 	return false
 }
+
+// A name that starts with an acronym keeps it whole and lowercase: a field
+// called url is url, not urL.
+func TestACamelNameKeepsItsLeadingAcronymLowercase(t *testing.T) {
+	for name, want := range map[string]string{"url": "url", "id": "id", "url_path": "urlPath", "id_token": "idToken", "customer_id": "customerID", "success_url": "successURL", "name": "name"} {
+		if got := Camel(name); got != want {
+			t.Errorf("Camel(%q) = %q, want %q", name, got, want)
+		}
+	}
+}

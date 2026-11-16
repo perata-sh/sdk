@@ -149,6 +149,60 @@ public struct Card: Codable, Sendable, Hashable {
     }
 }
 
+/// CardAuthentication is a resource of Peráta's API.
+public struct CardAuthentication: Codable, Sendable, Hashable {
+    /// O token com que o script de 3DS autentica; entregue só a uma página da própria origem da Peráta.
+    public let accessToken: String
+    public let environment: CardAuthenticationEnvironment
+    /// Segundos de vida do token.
+    public let expiresIn: Int
+    public let provider: String
+    /// O script de autenticação do adquirente.
+    public let scriptURL: String
+
+    public init(accessToken: String, environment: CardAuthenticationEnvironment, expiresIn: Int, provider: String, scriptURL: String) {
+        self.accessToken = accessToken
+        self.environment = environment
+        self.expiresIn = expiresIn
+        self.provider = provider
+        self.scriptURL = scriptURL
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case accessToken = "access_token"
+        case environment
+        case expiresIn = "expires_in"
+        case provider
+        case scriptURL = "script_url"
+    }
+}
+
+/// CardTokenization is a resource of Peráta's API.
+public struct CardTokenization: Codable, Sendable, Hashable {
+    /// O token com que o script do adquirente envia o cartão; entregue só a uma página da própria origem da Peráta.
+    public let accessToken: String
+    public let environment: CardTokenizationEnvironment
+    public let expiresAt: String
+    public let issued: String
+    public let provider: String
+
+    public init(accessToken: String, environment: CardTokenizationEnvironment, expiresAt: String, issued: String, provider: String) {
+        self.accessToken = accessToken
+        self.environment = environment
+        self.expiresAt = expiresAt
+        self.issued = issued
+        self.provider = provider
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case accessToken = "access_token"
+        case environment
+        case expiresAt = "expires_at"
+        case issued
+        case provider
+    }
+}
+
 /// Checkout is a resource of Peráta's API.
 public struct Checkout: Codable, Sendable, Hashable {
     /// Endereço https para onde o comprador volta se desistir; vazio sem ele.
@@ -167,9 +221,9 @@ public struct Checkout: Codable, Sendable, Hashable {
     /// Endereço https para onde o comprador volta depois de pagar; vazio sem ele.
     public let successURL: String
     /// Endereço para onde o comprador é enviado.
-    public let urL: String
+    public let url: String
 
-    public init(cancelURL: String, createdAt: String, expiresAt: String?, id: String, label: String, priceID: String, productID: String, quantity: Int, status: CheckoutStatus, successURL: String, urL: String) {
+    public init(cancelURL: String, createdAt: String, expiresAt: String?, id: String, label: String, priceID: String, productID: String, quantity: Int, status: CheckoutStatus, successURL: String, url: String) {
         self.cancelURL = cancelURL
         self.createdAt = createdAt
         self.expiresAt = expiresAt
@@ -180,7 +234,7 @@ public struct Checkout: Codable, Sendable, Hashable {
         self.quantity = quantity
         self.status = status
         self.successURL = successURL
-        self.urL = urL
+        self.url = url
     }
 
     enum CodingKeys: String, CodingKey {
@@ -194,7 +248,359 @@ public struct Checkout: Codable, Sendable, Hashable {
         case quantity
         case status
         case successURL = "success_url"
-        case urL = "url"
+        case url
+    }
+}
+
+/// CheckoutClient is a resource of Peráta's API.
+public struct CheckoutClient: Codable, Sendable, Hashable {
+    /// Antes do desconto.
+    public let amountCents: Int
+    /// Para onde o comprador volta sem pagar.
+    public let cancelURL: String
+    /// credit, e debit onde a autenticação do adquirente está ligada.
+    public let cardKinds: [String]
+    public let currency: CheckoutClientCurrency
+    public let customer: CheckoutClientCustomer?
+    public let discount: CheckoutClientDiscount?
+    public let discountCents: Int
+    /// A sessão está aberta e ainda aceita atualizações e um pagamento.
+    public let editable: Bool
+    public let environment: CheckoutClientEnvironment
+    /// Quando a sessão e o client_secret deixam de valer.
+    public let expiresAt: String
+    /// O ID da sessão de checkout.
+    public let id: String
+    /// Os planos de uma venda no cartão de crédito, à vista primeiro; vazio quando a sessão não se paga em parcelas no cartão.
+    public let installments: [CheckoutInstallment]
+    public let items: [CheckoutClientItem]
+    /// O que o pagamento ainda precisa do comprador, pelo campo da rota de atualização: customer_email, tax_id e billing_address.
+    public let missing: [String]
+    public let nextAction: CheckoutNextAction
+    public let payment: CheckoutClientPayment?
+    /// As formas em que a sessão pode ser paga, entre card, pix, boleto e free; free é uma sessão que não pede pagamento.
+    public let paymentMethods: [String]
+    /// O lojista pede o endereço de cobrança completo; o boleto o pede de qualquer jeito.
+    public let requiresBillingAddress: Bool
+    /// O CPF ou CNPJ é obrigatório porque há um pagamento a fazer.
+    public let requiresTaxID: Bool
+    /// open: esperando o comprador; confirmed: o pagamento foi pedido e não está liquidado (um Pix ou boleto esperando pagamento); succeeded: pago; failed e expired: acabou sem pagamento.
+    public let status: CheckoutClientStatus
+    /// A chave que lê o estado desta sessão depois que o client_secret é consumido: GET /checkouts/client/status/{status_key}.
+    public let statusKey: String
+    /// Para onde o comprador vai depois de pagar: a página do próprio lojista, com o ID do checkout onde ele o pediu.
+    public let successURL: String
+    /// O que o comprador paga, em centavos.
+    public let totalCents: Int
+
+    public init(amountCents: Int, cancelURL: String, cardKinds: [String], currency: CheckoutClientCurrency, customer: CheckoutClientCustomer?, discount: CheckoutClientDiscount?, discountCents: Int, editable: Bool, environment: CheckoutClientEnvironment, expiresAt: String, id: String, installments: [CheckoutInstallment], items: [CheckoutClientItem], missing: [String], nextAction: CheckoutNextAction, payment: CheckoutClientPayment?, paymentMethods: [String], requiresBillingAddress: Bool, requiresTaxID: Bool, status: CheckoutClientStatus, statusKey: String, successURL: String, totalCents: Int) {
+        self.amountCents = amountCents
+        self.cancelURL = cancelURL
+        self.cardKinds = cardKinds
+        self.currency = currency
+        self.customer = customer
+        self.discount = discount
+        self.discountCents = discountCents
+        self.editable = editable
+        self.environment = environment
+        self.expiresAt = expiresAt
+        self.id = id
+        self.installments = installments
+        self.items = items
+        self.missing = missing
+        self.nextAction = nextAction
+        self.payment = payment
+        self.paymentMethods = paymentMethods
+        self.requiresBillingAddress = requiresBillingAddress
+        self.requiresTaxID = requiresTaxID
+        self.status = status
+        self.statusKey = statusKey
+        self.successURL = successURL
+        self.totalCents = totalCents
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case amountCents = "amount_cents"
+        case cancelURL = "cancel_url"
+        case cardKinds = "card_kinds"
+        case currency
+        case customer
+        case discount
+        case discountCents = "discount_cents"
+        case editable
+        case environment
+        case expiresAt = "expires_at"
+        case id
+        case installments
+        case items
+        case missing
+        case nextAction = "next_action"
+        case payment
+        case paymentMethods = "payment_methods"
+        case requiresBillingAddress = "requires_billing_address"
+        case requiresTaxID = "requires_tax_id"
+        case status
+        case statusKey = "status_key"
+        case successURL = "success_url"
+        case totalCents = "total_cents"
+    }
+}
+
+/// CheckoutClientBoleto is a resource of Peráta's API.
+public struct CheckoutClientBoleto: Codable, Sendable, Hashable {
+    /// A linha digitável do boleto.
+    public let digitableLine: String
+    /// Quando o boleto deixa de poder ser pago: o fim do dia do vencimento, no horário de Brasília.
+    public let dueDate: String?
+    /// Onde o boleto é baixado; vazio quando o adquirente não deu nenhum.
+    public let pdfURL: String
+
+    public init(digitableLine: String, dueDate: String?, pdfURL: String) {
+        self.digitableLine = digitableLine
+        self.dueDate = dueDate
+        self.pdfURL = pdfURL
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case digitableLine = "digitable_line"
+        case dueDate = "due_date"
+        case pdfURL = "pdf_url"
+    }
+}
+
+/// CheckoutClientCustomer is a resource of Peráta's API.
+public struct CheckoutClientCustomer: Codable, Sendable, Hashable {
+    public let address: BillingAddress
+    public let billingName: String
+    public let email: String
+    public let name: String
+    /// O CPF ou CNPJ do comprador, só dígitos; vazio enquanto não for informado.
+    public let taxID: String
+    public let taxIDKind: String
+
+    public init(address: BillingAddress, billingName: String, email: String, name: String, taxID: String, taxIDKind: String) {
+        self.address = address
+        self.billingName = billingName
+        self.email = email
+        self.name = name
+        self.taxID = taxID
+        self.taxIDKind = taxIDKind
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case address
+        case billingName = "billing_name"
+        case email
+        case name
+        case taxID = "tax_id"
+        case taxIDKind = "tax_id_kind"
+    }
+}
+
+/// CheckoutClientDiscount is a resource of Peráta's API.
+public struct CheckoutClientDiscount: Codable, Sendable, Hashable {
+    /// O código que o comprador aplicou; vazio num desconto que o link fixa sem código.
+    public let code: String
+    public let discountCents: Int
+
+    public init(code: String, discountCents: Int) {
+        self.code = code
+        self.discountCents = discountCents
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case code
+        case discountCents = "discount_cents"
+    }
+}
+
+/// CheckoutClientItem is a resource of Peráta's API.
+public struct CheckoutClientItem: Codable, Sendable, Hashable {
+    /// Quanto custa a linha antes de qualquer desconto: a unidade vezes a quantidade.
+    public let amountCents: Int
+    /// A descrição do produto como o lojista a escreveu, em Markdown; vazia sem ela.
+    public let description: String
+    /// month ou year numa assinatura; vazio numa compra avulsa.
+    public let interval: String
+    /// Quantos intervalos dura um ciclo.
+    public let intervalCount: Int
+    public let name: String
+    public let productID: String
+    public let quantity: Int
+    /// Quanto custa uma unidade, antes de qualquer desconto.
+    public let unitCents: Int
+
+    public init(amountCents: Int, description: String, interval: String, intervalCount: Int, name: String, productID: String, quantity: Int, unitCents: Int) {
+        self.amountCents = amountCents
+        self.description = description
+        self.interval = interval
+        self.intervalCount = intervalCount
+        self.name = name
+        self.productID = productID
+        self.quantity = quantity
+        self.unitCents = unitCents
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case amountCents = "amount_cents"
+        case description
+        case interval
+        case intervalCount = "interval_count"
+        case name
+        case productID = "product_id"
+        case quantity
+        case unitCents = "unit_cents"
+    }
+}
+
+/// CheckoutClientPayment is a resource of Peráta's API.
+public struct CheckoutClientPayment: Codable, Sendable, Hashable {
+    public let boleto: CheckoutClientBoleto?
+    public let cardBrand: String
+    public let cardKind: String
+    public let id: String
+    public let installments: Int
+    public let method: CheckoutClientPaymentMethod
+    public let pix: CheckoutClientPix?
+    public let state: CheckoutClientPaymentState
+    /// Verdadeiro enquanto a resposta do adquirente ainda é descoberta; o comprador espera.
+    public let unresolved: Bool
+
+    public init(boleto: CheckoutClientBoleto?, cardBrand: String, cardKind: String, id: String, installments: Int, method: CheckoutClientPaymentMethod, pix: CheckoutClientPix?, state: CheckoutClientPaymentState, unresolved: Bool) {
+        self.boleto = boleto
+        self.cardBrand = cardBrand
+        self.cardKind = cardKind
+        self.id = id
+        self.installments = installments
+        self.method = method
+        self.pix = pix
+        self.state = state
+        self.unresolved = unresolved
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case boleto
+        case cardBrand = "card_brand"
+        case cardKind = "card_kind"
+        case id
+        case installments
+        case method
+        case pix
+        case state
+        case unresolved
+    }
+}
+
+/// CheckoutClientPix is a resource of Peráta's API.
+public struct CheckoutClientPix: Codable, Sendable, Hashable {
+    /// O código Pix copia e cola.
+    public let copiaECola: String
+    /// Quando o Pix deixa de poder ser pago, como o adquirente o deu.
+    public let expiresAt: String?
+    /// O QR do código, desenhado como um documento SVG.
+    public let qrCodeSvg: String
+
+    public init(copiaECola: String, expiresAt: String?, qrCodeSvg: String) {
+        self.copiaECola = copiaECola
+        self.expiresAt = expiresAt
+        self.qrCodeSvg = qrCodeSvg
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case copiaECola = "copia_e_cola"
+        case expiresAt = "expires_at"
+        case qrCodeSvg = "qr_code_svg"
+    }
+}
+
+/// CheckoutCreated is a resource of Peráta's API.
+public struct CheckoutCreated: Codable, Sendable, Hashable {
+    /// Endereço https para onde o comprador volta se desistir; vazio sem ele.
+    public let cancelURL: String
+    /// O segredo que o navegador do comprador usa para ler, atualizar e pagar a sessão, sem chave de API. Só esta resposta o traz; entregue-o à página que monta os campos seguros. Vem vazio na repetição de uma criação idempotente.
+    public let clientSecret: String
+    /// Quando a sessão e o client_secret deixam de valer.
+    public let clientSecretExpiresAt: String
+    public let createdAt: String
+    /// Quando o link deixa de abrir sessões; nulo sem prazo.
+    public let expiresAt: String?
+    /// O ID do link do checkout, o que GET e PATCH /checkouts/{id} recebem.
+    public let id: String
+    /// Como o lojista chama o checkout nas próprias telas; o comprador não vê.
+    public let label: String
+    public let priceID: String
+    public let productID: String
+    public let quantity: Int
+    /// O ID da sessão de checkout; as rotas de cliente dela são /checkouts/client/{client_secret}.
+    public let sessionID: String
+    /// active abre sessões de compra; archived saiu de circulação.
+    public let status: CheckoutCreatedStatus
+    /// Lê o estado da sessão depois que o client_secret é consumido: GET /checkouts/client/status/{status_key}. Só esta resposta o traz.
+    public let statusKey: String
+    /// Endereço https para onde o comprador volta depois de pagar; vazio sem ele.
+    public let successURL: String
+    /// O endereço hospedado: redirecione o comprador para cá e ele paga na página da Peráta.
+    public let url: String
+
+    public init(cancelURL: String, clientSecret: String, clientSecretExpiresAt: String, createdAt: String, expiresAt: String?, id: String, label: String, priceID: String, productID: String, quantity: Int, sessionID: String, status: CheckoutCreatedStatus, statusKey: String, successURL: String, url: String) {
+        self.cancelURL = cancelURL
+        self.clientSecret = clientSecret
+        self.clientSecretExpiresAt = clientSecretExpiresAt
+        self.createdAt = createdAt
+        self.expiresAt = expiresAt
+        self.id = id
+        self.label = label
+        self.priceID = priceID
+        self.productID = productID
+        self.quantity = quantity
+        self.sessionID = sessionID
+        self.status = status
+        self.statusKey = statusKey
+        self.successURL = successURL
+        self.url = url
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case cancelURL = "cancel_url"
+        case clientSecret = "client_secret"
+        case clientSecretExpiresAt = "client_secret_expires_at"
+        case createdAt = "created_at"
+        case expiresAt = "expires_at"
+        case id
+        case label
+        case priceID = "price_id"
+        case productID = "product_id"
+        case quantity
+        case sessionID = "session_id"
+        case status
+        case statusKey = "status_key"
+        case successURL = "success_url"
+        case url
+    }
+}
+
+/// CheckoutInstallment is a resource of Peráta's API.
+public struct CheckoutInstallment: Codable, Sendable, Hashable {
+    /// O número de parcelas; 1 é à vista.
+    public let count: Int
+    public let installmentCents: Int
+    /// Zero quando o lojista arca com os juros (sem juros).
+    public let interestCents: Int
+    /// Quanto o comprador paga no total: o total da sessão, mais os juros quando o plano os tem.
+    public let totalCents: Int
+
+    public init(count: Int, installmentCents: Int, interestCents: Int, totalCents: Int) {
+        self.count = count
+        self.installmentCents = installmentCents
+        self.interestCents = interestCents
+        self.totalCents = totalCents
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case count
+        case installmentCents = "installment_cents"
+        case interestCents = "interest_cents"
+        case totalCents = "total_cents"
     }
 }
 
@@ -234,9 +640,9 @@ public struct CheckoutLink: Codable, Sendable, Hashable {
     public let trialInterval: CheckoutLinkTrialInterval?
     public let trialIntervalCount: Int?
     /// Endereço para onde o comprador é enviado.
-    public let urL: String
+    public let url: String
 
-    public init(allowDiscountCodes: Bool, cancelURL: String, captureMode: CheckoutLinkCaptureMode, createdAt: String, discountID: String?, expiresAt: String?, id: String, label: String, maxInstallments: Int, metadata: [String: JSONValue], modifiedAt: String, priceID: String, productID: String, products: [CheckoutLinkProduct], quantity: Int, requireBillingAddress: Bool, status: CheckoutLinkStatus, successURL: String, trialInterval: CheckoutLinkTrialInterval?, trialIntervalCount: Int?, urL: String) {
+    public init(allowDiscountCodes: Bool, cancelURL: String, captureMode: CheckoutLinkCaptureMode, createdAt: String, discountID: String?, expiresAt: String?, id: String, label: String, maxInstallments: Int, metadata: [String: JSONValue], modifiedAt: String, priceID: String, productID: String, products: [CheckoutLinkProduct], quantity: Int, requireBillingAddress: Bool, status: CheckoutLinkStatus, successURL: String, trialInterval: CheckoutLinkTrialInterval?, trialIntervalCount: Int?, url: String) {
         self.allowDiscountCodes = allowDiscountCodes
         self.cancelURL = cancelURL
         self.captureMode = captureMode
@@ -257,7 +663,7 @@ public struct CheckoutLink: Codable, Sendable, Hashable {
         self.successURL = successURL
         self.trialInterval = trialInterval
         self.trialIntervalCount = trialIntervalCount
-        self.urL = urL
+        self.url = url
     }
 
     enum CodingKeys: String, CodingKey {
@@ -281,7 +687,7 @@ public struct CheckoutLink: Codable, Sendable, Hashable {
         case successURL = "success_url"
         case trialInterval = "trial_interval"
         case trialIntervalCount = "trial_interval_count"
-        case urL = "url"
+        case url
     }
 }
 
@@ -298,6 +704,130 @@ public struct CheckoutLinkProduct: Codable, Sendable, Hashable {
     enum CodingKeys: String, CodingKey {
         case priceID = "price_id"
         case productID = "product_id"
+    }
+}
+
+/// CheckoutNextAction is a resource of Peráta's API.
+public struct CheckoutNextAction: Codable, Sendable, Hashable {
+    /// none: nada falta; wait: o resultado está sendo descoberto, leia o estado de novo; show_pix e show_boleto: mostre o Pix ou o boleto do pagamento e espere o pagamento; redirect: envie o comprador para url, onde o banco ou a autenticação 3DS termina o pagamento.
+    public let type: CheckoutNextActionType
+    /// Para onde enviar o comprador, no redirect.
+    public let url: String
+
+    public init(type: CheckoutNextActionType, url: String) {
+        self.type = type
+        self.url = url
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case type
+        case url
+    }
+}
+
+/// CheckoutSavedCard is a resource of Peráta's API.
+public struct CheckoutSavedCard: Codable, Sendable, Hashable {
+    public let brand: String
+    /// MM/AA.
+    public let expiry: String
+    /// O que o confirm recebe como saved_card.
+    public let id: String
+    public let last4: String
+    /// O cartão está no Peráta Link do comprador, não com o lojista.
+    public let link: Bool
+
+    public init(brand: String, expiry: String, id: String, last4: String, link: Bool) {
+        self.brand = brand
+        self.expiry = expiry
+        self.id = id
+        self.last4 = last4
+        self.link = link
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case brand
+        case expiry
+        case id
+        case last4
+        case link
+    }
+}
+
+/// CheckoutSavedData is a resource of Peráta's API.
+public struct CheckoutSavedData: Codable, Sendable, Hashable {
+    public let cards: [CheckoutSavedCard]
+    public let profile: CheckoutSavedProfile
+    /// O que o confirm recebe como saved_card_proof, para pagar com um cartão salvo ou atestar o e-mail.
+    public let proof: String
+
+    public init(cards: [CheckoutSavedCard], profile: CheckoutSavedProfile, proof: String) {
+        self.cards = cards
+        self.profile = profile
+        self.proof = proof
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case cards
+        case profile
+        case proof
+    }
+}
+
+/// CheckoutSavedDataSent is a resource of Peráta's API.
+public struct CheckoutSavedDataSent: Codable, Sendable, Hashable {
+    public let channel: String
+    /// Sempre falso, pelo mesmo motivo.
+    public let fresh: Bool
+    /// Sempre verdadeiro: a resposta não diz se há algo guardado para o e-mail.
+    public let sent: Bool
+
+    public init(channel: String, fresh: Bool, sent: Bool) {
+        self.channel = channel
+        self.fresh = fresh
+        self.sent = sent
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case channel
+        case fresh
+        case sent
+    }
+}
+
+/// CheckoutSavedProfile is a resource of Peráta's API.
+public struct CheckoutSavedProfile: Codable, Sendable, Hashable {
+    public let addressLine1: String
+    public let addressLine2: String
+    public let city: String
+    public let district: String
+    public let name: String
+    public let postalCode: String
+    public let state: String
+    public let taxID: String
+    public let taxIDKind: String
+
+    public init(addressLine1: String, addressLine2: String, city: String, district: String, name: String, postalCode: String, state: String, taxID: String, taxIDKind: String) {
+        self.addressLine1 = addressLine1
+        self.addressLine2 = addressLine2
+        self.city = city
+        self.district = district
+        self.name = name
+        self.postalCode = postalCode
+        self.state = state
+        self.taxID = taxID
+        self.taxIDKind = taxIDKind
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case addressLine1 = "address_line1"
+        case addressLine2 = "address_line2"
+        case city
+        case district
+        case name
+        case postalCode = "postal_code"
+        case state
+        case taxID = "tax_id"
+        case taxIDKind = "tax_id_kind"
     }
 }
 
@@ -1360,9 +1890,9 @@ public struct WebhookEndpoint: Codable, Sendable, Hashable {
     public let id: String
     public let status: WebhookEndpointStatus
     /// Endereço https para onde as mensagens são enviadas.
-    public let urL: String
+    public let url: String
 
-    public init(consecutiveFailures: Int, createdAt: String, description: String, events: [String], format: WebhookEndpointFormat, id: String, status: WebhookEndpointStatus, urL: String) {
+    public init(consecutiveFailures: Int, createdAt: String, description: String, events: [String], format: WebhookEndpointFormat, id: String, status: WebhookEndpointStatus, url: String) {
         self.consecutiveFailures = consecutiveFailures
         self.createdAt = createdAt
         self.description = description
@@ -1370,7 +1900,7 @@ public struct WebhookEndpoint: Codable, Sendable, Hashable {
         self.format = format
         self.id = id
         self.status = status
-        self.urL = urL
+        self.url = url
     }
 
     enum CodingKeys: String, CodingKey {
@@ -1381,7 +1911,7 @@ public struct WebhookEndpoint: Codable, Sendable, Hashable {
         case format
         case id
         case status
-        case urL = "url"
+        case url
     }
 }
 
@@ -1396,9 +1926,9 @@ public struct WebhookEndpointCreated: Codable, Sendable, Hashable {
     /// O segredo (whsec_…) com que as mensagens são assinadas. Só esta resposta o traz; na repetição da criação sob a mesma Idempotency-Key vem vazio.
     public let secret: String
     public let status: WebhookEndpointCreatedStatus
-    public let urL: String
+    public let url: String
 
-    public init(consecutiveFailures: Int, createdAt: String, description: String, events: [String], format: WebhookEndpointCreatedFormat, id: String, secret: String, status: WebhookEndpointCreatedStatus, urL: String) {
+    public init(consecutiveFailures: Int, createdAt: String, description: String, events: [String], format: WebhookEndpointCreatedFormat, id: String, secret: String, status: WebhookEndpointCreatedStatus, url: String) {
         self.consecutiveFailures = consecutiveFailures
         self.createdAt = createdAt
         self.description = description
@@ -1407,7 +1937,7 @@ public struct WebhookEndpointCreated: Codable, Sendable, Hashable {
         self.id = id
         self.secret = secret
         self.status = status
-        self.urL = urL
+        self.url = url
     }
 
     enum CodingKeys: String, CodingKey {
@@ -1419,7 +1949,7 @@ public struct WebhookEndpointCreated: Codable, Sendable, Hashable {
         case id
         case secret
         case status
-        case urL = "url"
+        case url
     }
 }
 
@@ -1653,38 +2183,83 @@ public struct CheckoutLinksUpdateParams: Encodable, Sendable, Hashable {
 /// The initializer takes the required fields first; an optional field left
 /// nil is not sent.
 public struct CheckoutsCreateParams: Encodable, Sendable, Hashable {
+    /// Deixa o comprador digitar um código de desconto; desligado quando fica de fora.
+    public var allowDiscountCodes: Bool?
     public var cancelURL: String?
+    /// O e-mail do comprador, quando você o conhece; senão o navegador do comprador o pede.
+    public var customerEmail: String?
+    /// Um cliente seu: o checkout abre com o nome, o e-mail e os dados de cobrança dele. Não junto com external_customer_id, customer_email ou customer_name.
+    public var customerID: String?
+    /// O nome do comprador, quando você o conhece.
+    public var customerName: String?
+    /// Segundos em que a sessão e o client_secret continuam valendo; 1800 quando fica de fora.
+    public var expiresIn: Int?
+    /// O mesmo cliente, pelo ID que você deu a ele.
+    public var externalCustomerID: String?
     public var label: String?
+    /// Até 50 pares guardados no link do checkout; valor em texto, número ou booleano.
+    public var metadata: [String: JSONValue]?
     public var priceID: String
     public var productID: String
     public var quantity: Int?
+    /// Pede o endereço de cobrança completo de todo comprador, não só no boleto; desligado quando fica de fora.
+    public var requireBillingAddress: Bool?
+    /// Outro nome de cancel_url: a página https a que o comprador volta sem pagar. Enviada com um cancel_url diferente, é recusada.
+    public var returnURL: String?
     public var successURL: String?
 
-    public init(priceID: String, productID: String, cancelURL: String? = nil, label: String? = nil, quantity: Int? = nil, successURL: String? = nil) {
+    public init(priceID: String, productID: String, allowDiscountCodes: Bool? = nil, cancelURL: String? = nil, customerEmail: String? = nil, customerID: String? = nil, customerName: String? = nil, expiresIn: Int? = nil, externalCustomerID: String? = nil, label: String? = nil, metadata: [String: JSONValue]? = nil, quantity: Int? = nil, requireBillingAddress: Bool? = nil, returnURL: String? = nil, successURL: String? = nil) {
+        self.allowDiscountCodes = allowDiscountCodes
         self.cancelURL = cancelURL
+        self.customerEmail = customerEmail
+        self.customerID = customerID
+        self.customerName = customerName
+        self.expiresIn = expiresIn
+        self.externalCustomerID = externalCustomerID
         self.label = label
+        self.metadata = metadata
         self.priceID = priceID
         self.productID = productID
         self.quantity = quantity
+        self.requireBillingAddress = requireBillingAddress
+        self.returnURL = returnURL
         self.successURL = successURL
     }
 
     enum CodingKeys: String, CodingKey {
+        case allowDiscountCodes = "allow_discount_codes"
         case cancelURL = "cancel_url"
+        case customerEmail = "customer_email"
+        case customerID = "customer_id"
+        case customerName = "customer_name"
+        case expiresIn = "expires_in"
+        case externalCustomerID = "external_customer_id"
         case label
+        case metadata
         case priceID = "price_id"
         case productID = "product_id"
         case quantity
+        case requireBillingAddress = "require_billing_address"
+        case returnURL = "return_url"
         case successURL = "success_url"
     }
 
     public func encode(to encoder: any Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encodeIfPresent(allowDiscountCodes, forKey: .allowDiscountCodes)
         try container.encodeIfPresent(cancelURL, forKey: .cancelURL)
+        try container.encodeIfPresent(customerEmail, forKey: .customerEmail)
+        try container.encodeIfPresent(customerID, forKey: .customerID)
+        try container.encodeIfPresent(customerName, forKey: .customerName)
+        try container.encodeIfPresent(expiresIn, forKey: .expiresIn)
+        try container.encodeIfPresent(externalCustomerID, forKey: .externalCustomerID)
         try container.encodeIfPresent(label, forKey: .label)
+        try container.encodeIfPresent(metadata, forKey: .metadata)
         try container.encode(priceID, forKey: .priceID)
         try container.encode(productID, forKey: .productID)
         try container.encodeIfPresent(quantity, forKey: .quantity)
+        try container.encodeIfPresent(requireBillingAddress, forKey: .requireBillingAddress)
+        try container.encodeIfPresent(returnURL, forKey: .returnURL)
         try container.encodeIfPresent(successURL, forKey: .successURL)
     }
 }
@@ -2287,20 +2862,20 @@ public struct WebhooksCreateEndpointParams: Encodable, Sendable, Hashable {
     /// Sem ele, o que o endereço indica.
     public var format: WebhooksCreateEndpointParamsFormat?
     /// Endereço https público; endereços internos são recusados.
-    public var urL: String
+    public var url: String
 
-    public init(urL: String, description: String? = nil, events: [String]? = nil, format: WebhooksCreateEndpointParamsFormat? = nil) {
+    public init(url: String, description: String? = nil, events: [String]? = nil, format: WebhooksCreateEndpointParamsFormat? = nil) {
         self.description = description
         self.events = events
         self.format = format
-        self.urL = urL
+        self.url = url
     }
 
     enum CodingKeys: String, CodingKey {
         case description
         case events
         case format
-        case urL = "url"
+        case url
     }
 
     public func encode(to encoder: any Encoder) throws {
@@ -2308,7 +2883,7 @@ public struct WebhooksCreateEndpointParams: Encodable, Sendable, Hashable {
         try container.encodeIfPresent(description, forKey: .description)
         try container.encodeIfPresent(events, forKey: .events)
         try container.encodeIfPresent(format, forKey: .format)
-        try container.encode(urL, forKey: .urL)
+        try container.encode(url, forKey: .url)
     }
 }
 
@@ -2323,14 +2898,14 @@ public struct WebhooksUpdateEndpointParams: Encodable, Sendable, Hashable {
     /// Substitui os eventos.
     public var events: [String]?
     public var format: WebhooksUpdateEndpointParamsFormat?
-    public var urL: String?
+    public var url: String?
 
-    public init(description: String? = nil, enabled: Bool? = nil, events: [String]? = nil, format: WebhooksUpdateEndpointParamsFormat? = nil, urL: String? = nil) {
+    public init(description: String? = nil, enabled: Bool? = nil, events: [String]? = nil, format: WebhooksUpdateEndpointParamsFormat? = nil, url: String? = nil) {
         self.description = description
         self.enabled = enabled
         self.events = events
         self.format = format
-        self.urL = urL
+        self.url = url
     }
 
     enum CodingKeys: String, CodingKey {
@@ -2338,7 +2913,7 @@ public struct WebhooksUpdateEndpointParams: Encodable, Sendable, Hashable {
         case enabled
         case events
         case format
-        case urL = "url"
+        case url
     }
 
     public func encode(to encoder: any Encoder) throws {
@@ -2347,7 +2922,7 @@ public struct WebhooksUpdateEndpointParams: Encodable, Sendable, Hashable {
         try container.encodeIfPresent(enabled, forKey: .enabled)
         try container.encodeIfPresent(events, forKey: .events)
         try container.encodeIfPresent(format, forKey: .format)
-        try container.encodeIfPresent(urL, forKey: .urL)
+        try container.encodeIfPresent(url, forKey: .url)
     }
 }
 
@@ -2471,6 +3046,46 @@ public struct BenefitGrantStatus: RawRepresentable, Codable, Sendable, Hashable,
     public static let revoked = BenefitGrantStatus(rawValue: "revoked")
 }
 
+/// The values of `CardAuthentication.environment`.
+///
+/// A value this SDK does not know yet is kept as it came, in `rawValue`.
+public struct CardAuthenticationEnvironment: RawRepresentable, Codable, Sendable, Hashable, ExpressibleByStringLiteral {
+    public let rawValue: String
+
+    public init(rawValue: String) {
+        self.rawValue = rawValue
+    }
+
+    public init(stringLiteral value: String) {
+        self.rawValue = value
+    }
+
+    /// `test`
+    public static let test = CardAuthenticationEnvironment(rawValue: "test")
+    /// `live`
+    public static let live = CardAuthenticationEnvironment(rawValue: "live")
+}
+
+/// The values of `CardTokenization.environment`.
+///
+/// A value this SDK does not know yet is kept as it came, in `rawValue`.
+public struct CardTokenizationEnvironment: RawRepresentable, Codable, Sendable, Hashable, ExpressibleByStringLiteral {
+    public let rawValue: String
+
+    public init(rawValue: String) {
+        self.rawValue = rawValue
+    }
+
+    public init(stringLiteral value: String) {
+        self.rawValue = value
+    }
+
+    /// `test`
+    public static let test = CardTokenizationEnvironment(rawValue: "test")
+    /// `live`
+    public static let live = CardTokenizationEnvironment(rawValue: "live")
+}
+
 /// The values of `Checkout.status`. active abre sessões de compra; archived saiu de circulação.
 ///
 /// A value this SDK does not know yet is kept as it came, in `rawValue`.
@@ -2489,6 +3104,144 @@ public struct CheckoutStatus: RawRepresentable, Codable, Sendable, Hashable, Exp
     public static let active = CheckoutStatus(rawValue: "active")
     /// `archived`
     public static let archived = CheckoutStatus(rawValue: "archived")
+}
+
+/// The values of `CheckoutClient.currency`.
+///
+/// A value this SDK does not know yet is kept as it came, in `rawValue`.
+public struct CheckoutClientCurrency: RawRepresentable, Codable, Sendable, Hashable, ExpressibleByStringLiteral {
+    public let rawValue: String
+
+    public init(rawValue: String) {
+        self.rawValue = rawValue
+    }
+
+    public init(stringLiteral value: String) {
+        self.rawValue = value
+    }
+
+    /// `BRL`
+    public static let brl = CheckoutClientCurrency(rawValue: "BRL")
+}
+
+/// The values of `CheckoutClient.environment`.
+///
+/// A value this SDK does not know yet is kept as it came, in `rawValue`.
+public struct CheckoutClientEnvironment: RawRepresentable, Codable, Sendable, Hashable, ExpressibleByStringLiteral {
+    public let rawValue: String
+
+    public init(rawValue: String) {
+        self.rawValue = rawValue
+    }
+
+    public init(stringLiteral value: String) {
+        self.rawValue = value
+    }
+
+    /// `test`
+    public static let test = CheckoutClientEnvironment(rawValue: "test")
+    /// `live`
+    public static let live = CheckoutClientEnvironment(rawValue: "live")
+}
+
+/// The values of `CheckoutClient.status`. open: esperando o comprador; confirmed: o pagamento foi pedido e não está liquidado (um Pix ou boleto esperando pagamento); succeeded: pago; failed e expired: acabou sem pagamento.
+///
+/// A value this SDK does not know yet is kept as it came, in `rawValue`.
+public struct CheckoutClientStatus: RawRepresentable, Codable, Sendable, Hashable, ExpressibleByStringLiteral {
+    public let rawValue: String
+
+    public init(rawValue: String) {
+        self.rawValue = rawValue
+    }
+
+    public init(stringLiteral value: String) {
+        self.rawValue = value
+    }
+
+    /// `open`
+    public static let `open` = CheckoutClientStatus(rawValue: "open")
+    /// `confirmed`
+    public static let confirmed = CheckoutClientStatus(rawValue: "confirmed")
+    /// `succeeded`
+    public static let succeeded = CheckoutClientStatus(rawValue: "succeeded")
+    /// `failed`
+    public static let failed = CheckoutClientStatus(rawValue: "failed")
+    /// `expired`
+    public static let expired = CheckoutClientStatus(rawValue: "expired")
+}
+
+/// The values of `CheckoutClientPayment.method`.
+///
+/// A value this SDK does not know yet is kept as it came, in `rawValue`.
+public struct CheckoutClientPaymentMethod: RawRepresentable, Codable, Sendable, Hashable, ExpressibleByStringLiteral {
+    public let rawValue: String
+
+    public init(rawValue: String) {
+        self.rawValue = rawValue
+    }
+
+    public init(stringLiteral value: String) {
+        self.rawValue = value
+    }
+
+    /// `card`
+    public static let card = CheckoutClientPaymentMethod(rawValue: "card")
+    /// `pix`
+    public static let pix = CheckoutClientPaymentMethod(rawValue: "pix")
+    /// `boleto`
+    public static let boleto = CheckoutClientPaymentMethod(rawValue: "boleto")
+}
+
+/// The values of `CheckoutClientPayment.state`.
+///
+/// A value this SDK does not know yet is kept as it came, in `rawValue`.
+public struct CheckoutClientPaymentState: RawRepresentable, Codable, Sendable, Hashable, ExpressibleByStringLiteral {
+    public let rawValue: String
+
+    public init(rawValue: String) {
+        self.rawValue = rawValue
+    }
+
+    public init(stringLiteral value: String) {
+        self.rawValue = value
+    }
+
+    /// `unknown`
+    public static let unknown = CheckoutClientPaymentState(rawValue: "unknown")
+    /// `pending`
+    public static let pending = CheckoutClientPaymentState(rawValue: "pending")
+    /// `authorized`
+    public static let authorized = CheckoutClientPaymentState(rawValue: "authorized")
+    /// `captured`
+    public static let captured = CheckoutClientPaymentState(rawValue: "captured")
+    /// `refused`
+    public static let refused = CheckoutClientPaymentState(rawValue: "refused")
+    /// `canceled`
+    public static let canceled = CheckoutClientPaymentState(rawValue: "canceled")
+    /// `refunded`
+    public static let refunded = CheckoutClientPaymentState(rawValue: "refunded")
+    /// `partially_refunded`
+    public static let partiallyRefunded = CheckoutClientPaymentState(rawValue: "partially_refunded")
+}
+
+/// The values of `CheckoutCreated.status`. active abre sessões de compra; archived saiu de circulação.
+///
+/// A value this SDK does not know yet is kept as it came, in `rawValue`.
+public struct CheckoutCreatedStatus: RawRepresentable, Codable, Sendable, Hashable, ExpressibleByStringLiteral {
+    public let rawValue: String
+
+    public init(rawValue: String) {
+        self.rawValue = rawValue
+    }
+
+    public init(stringLiteral value: String) {
+        self.rawValue = value
+    }
+
+    /// `active`
+    public static let active = CheckoutCreatedStatus(rawValue: "active")
+    /// `archived`
+    public static let archived = CheckoutCreatedStatus(rawValue: "archived")
 }
 
 /// The values of `CheckoutLink.capture_mode`. manual segura a venda no cartão para o lojista capturar depois.
@@ -2553,6 +3306,32 @@ public struct CheckoutLinkTrialInterval: RawRepresentable, Codable, Sendable, Ha
     public static let month = CheckoutLinkTrialInterval(rawValue: "month")
     /// `year`
     public static let year = CheckoutLinkTrialInterval(rawValue: "year")
+}
+
+/// The values of `CheckoutNextAction.type`. none: nada falta; wait: o resultado está sendo descoberto, leia o estado de novo; show_pix e show_boleto: mostre o Pix ou o boleto do pagamento e espere o pagamento; redirect: envie o comprador para url, onde o banco ou a autenticação 3DS termina o pagamento.
+///
+/// A value this SDK does not know yet is kept as it came, in `rawValue`.
+public struct CheckoutNextActionType: RawRepresentable, Codable, Sendable, Hashable, ExpressibleByStringLiteral {
+    public let rawValue: String
+
+    public init(rawValue: String) {
+        self.rawValue = rawValue
+    }
+
+    public init(stringLiteral value: String) {
+        self.rawValue = value
+    }
+
+    /// `none`
+    public static let none = CheckoutNextActionType(rawValue: "none")
+    /// `wait`
+    public static let wait = CheckoutNextActionType(rawValue: "wait")
+    /// `show_pix`
+    public static let showPix = CheckoutNextActionType(rawValue: "show_pix")
+    /// `show_boleto`
+    public static let showBoleto = CheckoutNextActionType(rawValue: "show_boleto")
+    /// `redirect`
+    public static let redirect = CheckoutNextActionType(rawValue: "redirect")
 }
 
 /// The values of `Customer.status`.

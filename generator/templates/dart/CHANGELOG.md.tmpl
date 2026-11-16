@@ -2,6 +2,16 @@
 
 Todos os SDKs da Peráta saem com a mesma versão; as mudanças de cada uma estão também nas [releases de perata-sh/sdk](https://github.com/perata-sh/sdk/releases).
 
+## {{.Version}} (16/11/2026)
+
+Gerado a partir do contrato da API {{.APIVersion}}.
+
+- Checkout transparente e embutido: `checkouts.create` (`POST /api/v1/checkouts`) abre também a sessão de compra e devolve o novo `CheckoutCreated`, que traz tudo o que `Checkout` trazia mais `sessionId`, `clientSecret`, `clientSecretExpiresAt` e `statusKey`. O servidor entrega o `clientSecret` ao navegador, que monta os campos de pagamento com o Peráta.js sem chave de API; o `statusKey` acompanha um Pix ou boleto depois que o `clientSecret` é gasto. O `clientSecret` vem na criação e só nela: na repetição de uma criação idempotente ele vem vazio. A sessão vale 30 minutos, ou o `expiresIn` pedido. **Mudança incompatível de tipo: quem declarava o retorno como `Checkout` passa a usar `CheckoutCreated`.**
+- `CheckoutsCreateParams` ganha `returnUrl`, `customerId`, `externalCustomerId`, `customerEmail`, `customerName`, `metadata`, `allowDiscountCodes`, `requireBillingAddress` e `expiresIn`.
+- Modelos novos do contrato: `CheckoutClient` (a sessão como o navegador a lê), com `CheckoutClientItem`, `CheckoutClientCustomer`, `CheckoutClientDiscount`, `CheckoutClientPayment`, `CheckoutClientPix` e `CheckoutClientBoleto`, além de `CheckoutInstallment`, `CheckoutNextAction`, `CheckoutSavedData`, `CheckoutSavedDataSent`, `CheckoutSavedCard`, `CheckoutSavedProfile`, `CardAuthentication` e `CardTokenization`. As rotas `/api/v1/checkouts/client/*` são chamadas pelo navegador com o `clientSecret` (pelo Peráta.js), não com a chave da API, e por isso não são métodos deste SDK.
+- Um campo que pode ser nulo e aponta para um modelo (`customer`, `discount` e `payment` de `CheckoutClient`; `pix` e `boleto` de `CheckoutClientPayment`) é agora tipado como o modelo ou nulo, e não mais um valor livre.
+- O README ganhou o fluxo do checkout transparente e embutido.
+
 ## {{.Version}} (14/11/2026)
 
 Gerado a partir do contrato da API {{.APIVersion}}.

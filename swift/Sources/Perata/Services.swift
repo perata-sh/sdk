@@ -133,8 +133,8 @@ public struct CheckoutLinksService: Sendable {
 public struct CheckoutsService: Sendable {
     let requester: Requester
 
-    /// Criar o endereço de um checkout para um produto e um preço.
-    public func create(_ params: CheckoutsCreateParams, idempotencyKey: String? = nil, apiKey: String? = nil) async throws -> Checkout {
+    /// Criar um checkout: o endereço para onde o comprador é enviado e a sessão de compra aberta para ele, com o client_secret que o navegador do comprador usa nas rotas de cliente.
+    public func create(_ params: CheckoutsCreateParams, idempotencyKey: String? = nil, apiKey: String? = nil) async throws -> CheckoutCreated {
         try await requester.request(
             "POST", "/api/v1/checkouts", body: params, idempotencyKey: idempotencyKey, apiKey: apiKey
         )
