@@ -19,6 +19,10 @@ public sealed record CardTokenization
     [JsonPropertyName("access_token")]
     public required string AccessToken { get; init; }
 
+    /// <summary>O bilhete da tentativa deste cartão: de uso único, válido só para esta sessão e por 20 minutos. Devolva-o em card_ticket ao confirmar; sem um bilhete válido nenhum cartão é tentado.</summary>
+    [JsonPropertyName("card_ticket")]
+    public required string CardTicket { get; init; }
+
     /// <summary>The API's <c>environment</c>.</summary>
     [JsonPropertyName("environment")]
     public required string Environment { get; init; }

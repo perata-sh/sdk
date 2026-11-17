@@ -87,6 +87,8 @@ pub struct CardAuthentication {
     pub provider: String,
     /// O script de autenticação do adquirente.
     pub script_url: String,
+    /// O valor, em centavos, que o script deve autenticar: o total da sessão no servidor. Copie-o no campo bpmpi_totalamount; depois que ele é entregue, o total da sessão não muda mais.
+    pub total_cents: i64,
 }
 
 /// CardTokenization is a resource of Peráta's API.
@@ -95,6 +97,8 @@ pub struct CardAuthentication {
 pub struct CardTokenization {
     /// O token com que o script do adquirente envia o cartão; entregue só a uma página da própria origem da Peráta.
     pub access_token: String,
+    /// O bilhete da tentativa deste cartão: de uso único, válido só para esta sessão e por 20 minutos. Devolva-o em card_ticket ao confirmar; sem um bilhete válido nenhum cartão é tentado.
+    pub card_ticket: String,
     pub environment: CardTokenizationEnvironment,
     pub expires_at: String,
     pub issued: String,
@@ -277,7 +281,7 @@ pub struct CheckoutCreated {
     pub status_key: String,
     /// Endereço https para onde o comprador volta depois de pagar; vazio sem ele.
     pub success_url: String,
-    /// O endereço hospedado: redirecione o comprador para cá e ele paga na página da Peráta.
+    /// O endereço hospedado desta sessão: redirecione o comprador para cá, ou abra-o no modal, e ele paga na página da Peráta exatamente a sessão que esta resposta abriu, que aparece no status_key, no GET da sessão e nos webhooks com o mesmo checkout_id. Quem abre o endereço depois do pagamento vê a confirmação e nada é cobrado de novo. Na repetição de uma criação idempotente o segredo não existe mais e o endereço volta a ser o do link, que abre uma sessão nova a cada visita.
     pub url: String,
 }
 

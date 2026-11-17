@@ -238,7 +238,7 @@ module Perata
 
   # CardAuthentication is a resource of Peráta's API.
   class CardAuthentication < Model
-    MEMBERS = %i[access_token environment expires_in provider script_url].freeze
+    MEMBERS = %i[access_token environment expires_in provider script_url total_cents].freeze
 
     # O token com que o script de 3DS autentica; entregue só a uma página da própria origem da Peráta.
     # @return [String]
@@ -258,12 +258,17 @@ module Perata
     # @return [String]
     attr_reader :script_url
 
-    def initialize(access_token:, environment:, expires_in:, provider:, script_url:)
+    # O valor, em centavos, que o script deve autenticar: o total da sessão no servidor. Copie-o no campo bpmpi_totalamount; depois que ele é entregue, o total da sessão não muda mais.
+    # @return [Integer]
+    attr_reader :total_cents
+
+    def initialize(access_token:, environment:, expires_in:, provider:, script_url:, total_cents:)
       @access_token = access_token
       @environment = environment
       @expires_in = expires_in
       @provider = provider
       @script_url = script_url
+      @total_cents = total_cents
       freeze
     end
 
@@ -274,18 +279,23 @@ module Perata
         environment: data.fetch("environment"),
         expires_in: data.fetch("expires_in"),
         provider: data.fetch("provider"),
-        script_url: data.fetch("script_url")
+        script_url: data.fetch("script_url"),
+        total_cents: data.fetch("total_cents")
       )
     end
   end
 
   # CardTokenization is a resource of Peráta's API.
   class CardTokenization < Model
-    MEMBERS = %i[access_token environment expires_at issued provider].freeze
+    MEMBERS = %i[access_token card_ticket environment expires_at issued provider].freeze
 
     # O token com que o script do adquirente envia o cartão; entregue só a uma página da própria origem da Peráta.
     # @return [String]
     attr_reader :access_token
+
+    # O bilhete da tentativa deste cartão: de uso único, válido só para esta sessão e por 20 minutos. Devolva-o em card_ticket ao confirmar; sem um bilhete válido nenhum cartão é tentado.
+    # @return [String]
+    attr_reader :card_ticket
 
     # @return [String ("test", "live")]
     attr_reader :environment
@@ -299,8 +309,9 @@ module Perata
     # @return [String]
     attr_reader :provider
 
-    def initialize(access_token:, environment:, expires_at:, issued:, provider:)
+    def initialize(access_token:, card_ticket:, environment:, expires_at:, issued:, provider:)
       @access_token = access_token
+      @card_ticket = card_ticket
       @environment = environment
       @expires_at = expires_at
       @issued = issued
@@ -312,6 +323,7 @@ module Perata
     def self.from_hash(data)
       new(
         access_token: data.fetch("access_token"),
+        card_ticket: data.fetch("card_ticket"),
         environment: data.fetch("environment"),
         expires_at: data.fetch("expires_at"),
         issued: data.fetch("issued"),
@@ -856,7 +868,7 @@ module Perata
     # @return [String]
     attr_reader :success_url
 
-    # O endereço hospedado: redirecione o comprador para cá e ele paga na página da Peráta.
+    # O endereço hospedado desta sessão: redirecione o comprador para cá, ou abra-o no modal, e ele paga na página da Peráta exatamente a sessão que esta resposta abriu, que aparece no status_key, no GET da sessão e nos webhooks com o mesmo checkout_id. Quem abre o endereço depois do pagamento vê a confirmação e nada é cobrado de novo. Na repetição de uma criação idempotente o segredo não existe mais e o endereço volta a ser o do link, que abre uma sessão nova a cada visita.
     # @return [String]
     attr_reader :url
 

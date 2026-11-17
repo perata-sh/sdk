@@ -67,12 +67,16 @@ export interface CardAuthentication {
   provider: string;
   /** O script de autenticação do adquirente. */
   script_url: string;
+  /** O valor, em centavos, que o script deve autenticar: o total da sessão no servidor. Copie-o no campo bpmpi_totalamount; depois que ele é entregue, o total da sessão não muda mais. */
+  total_cents: number;
 }
 
 /** CardTokenization is a resource of Peráta's API. */
 export interface CardTokenization {
   /** O token com que o script do adquirente envia o cartão; entregue só a uma página da própria origem da Peráta. */
   access_token: string;
+  /** O bilhete da tentativa deste cartão: de uso único, válido só para esta sessão e por 20 minutos. Devolva-o em card_ticket ao confirmar; sem um bilhete válido nenhum cartão é tentado. */
+  card_ticket: string;
   environment: "test" | "live";
   expires_at: string;
   issued: string;
@@ -237,7 +241,7 @@ export interface CheckoutCreated {
   status_key: string;
   /** Endereço https para onde o comprador volta depois de pagar; vazio sem ele. */
   success_url: string;
-  /** O endereço hospedado: redirecione o comprador para cá e ele paga na página da Peráta. */
+  /** O endereço hospedado desta sessão: redirecione o comprador para cá, ou abra-o no modal, e ele paga na página da Peráta exatamente a sessão que esta resposta abriu, que aparece no status_key, no GET da sessão e nos webhooks com o mesmo checkout_id. Quem abre o endereço depois do pagamento vê a confirmação e nada é cobrado de novo. Na repetição de uma criação idempotente o segredo não existe mais e o endereço volta a ser o do link, que abre uma sessão nova a cada visita. */
   url: string;
 }
 

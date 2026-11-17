@@ -34,4 +34,8 @@ public sealed record CardAuthentication
     /// <summary>O script de autenticação do adquirente.</summary>
     [JsonPropertyName("script_url")]
     public required string ScriptUrl { get; init; }
+
+    /// <summary>O valor, em centavos, que o script deve autenticar: o total da sessão no servidor. Copie-o no campo bpmpi_totalamount; depois que ele é entregue, o total da sessão não muda mais.</summary>
+    [JsonPropertyName("total_cents")]
+    public required long TotalCents { get; init; }
 }

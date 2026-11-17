@@ -1661,7 +1661,7 @@
           "checkouts"
         ],
         "summary": "Atualizar uma sessão de checkout pelo client_secret",
-        "description": "Informa à sessão quem é o comprador e qual código de desconto vale; o campo que fica de fora não muda e uma string vazia o limpa. Responde a sessão como ficou, com os novos valores. Sem chave de API: o client_secret da sessão, no endereço, é a credencial; o POST /checkouts o devolve uma só vez ao servidor do lojista. Um navegador numa página das origens que a organização cadastra em Checkout incorporado pode chamá-la (CORS, sem credenciais nem cookies). Os erros são documentos de problema (application/problem+json), como o checkout hospedado os responde. O script que monta os campos de pagamento, perata.js, vem de /v1/perata.js, que recebe as correções em minutos; para fixar uma versão, carregue-o do endereço que leva o hash do conteúdo (/v1/perata.\u003chash\u003e.js) com o atributo integrity (Subresource Integrity, sha384) e crossorigin=\"anonymous\". O endereço e o valor de cada versão ficam em Configurações › Como integrar, no painel.",
+        "description": "Informa à sessão quem é o comprador e qual código de desconto vale; o campo que fica de fora não muda e uma string vazia o limpa. Responde a sessão como ficou, com os novos valores. Cada código digitado é uma tentativa: a sessão aceita 10 por hora (429 depois), e um código que não vale, seja qual for o motivo, recebe a mesma resposta. Depois que o token de autenticação 3DS é gerado, o total da sessão não muda mais: trocar ou tirar o desconto, ou um e-mail que o tiraria, responde 409. Sem chave de API: o client_secret da sessão, no endereço, é a credencial; o POST /checkouts o devolve uma só vez ao servidor do lojista. Um navegador numa página das origens que a organização cadastra em Checkout incorporado pode chamá-la (CORS, sem credenciais nem cookies). Os erros são documentos de problema (application/problem+json), como o checkout hospedado os responde. O script que monta os campos de pagamento, perata.js, vem de /v1/perata.js, que recebe as correções em minutos; para fixar uma versão, carregue-o do endereço que leva o hash do conteúdo (/v1/perata.\u003chash\u003e.js) com o atributo integrity (Subresource Integrity, sha384) e crossorigin=\"anonymous\". O endereço e o valor de cada versão ficam em Configurações › Como integrar, no painel.",
         "operationId": "checkouts:client_update",
         "parameters": [
           {
@@ -1769,7 +1769,7 @@
           "checkouts"
         ],
         "summary": "Gerar o token de autenticação 3DS de uma sessão de checkout",
-        "description": "Gera o token com que o script de 3DS autentica um cartão de débito. É entregue só a pedidos do navegador vindos de uma página da própria origem da Peráta, com o desafio Turnstile resolvido (turnstile_token), sob a mesma regra de card-tokenization. Sem chave de API: o client_secret da sessão, no endereço, é a credencial; o POST /checkouts o devolve uma só vez ao servidor do lojista. Um navegador numa página das origens que a organização cadastra em Checkout incorporado pode chamá-la (CORS, sem credenciais nem cookies). Os erros são documentos de problema (application/problem+json), como o checkout hospedado os responde. O script que monta os campos de pagamento, perata.js, vem de /v1/perata.js, que recebe as correções em minutos; para fixar uma versão, carregue-o do endereço que leva o hash do conteúdo (/v1/perata.\u003chash\u003e.js) com o atributo integrity (Subresource Integrity, sha384) e crossorigin=\"anonymous\". O endereço e o valor de cada versão ficam em Configurações › Como integrar, no painel.",
+        "description": "Gera o token com que o script de 3DS autentica um cartão de débito. É entregue só a pedidos do navegador vindos de uma página da própria origem da Peráta, com o desafio Turnstile resolvido (turnstile_token), sob a mesma regra de card-tokenization. A resposta traz total_cents: o valor, em centavos, que o script autentica, que é o total da sessão no servidor e fica gravado nela. O navegador copia esse número no script e não usa nenhum outro; a confirmação do débito só aceita a autenticação de uma sessão com token gerado, pelo valor que será cobrado, e uma autenticação paga uma venda só. Sem chave de API: o client_secret da sessão, no endereço, é a credencial; o POST /checkouts o devolve uma só vez ao servidor do lojista. Um navegador numa página das origens que a organização cadastra em Checkout incorporado pode chamá-la (CORS, sem credenciais nem cookies). Os erros são documentos de problema (application/problem+json), como o checkout hospedado os responde. O script que monta os campos de pagamento, perata.js, vem de /v1/perata.js, que recebe as correções em minutos; para fixar uma versão, carregue-o do endereço que leva o hash do conteúdo (/v1/perata.\u003chash\u003e.js) com o atributo integrity (Subresource Integrity, sha384) e crossorigin=\"anonymous\". O endereço e o valor de cada versão ficam em Configurações › Como integrar, no painel.",
         "operationId": "checkouts:client_card_authentication",
         "parameters": [
           {
@@ -1936,6 +1936,10 @@
                   "card_token": {
                     "type": "string",
                     "description": "O CardToken de um cartão que será guardado, para um teste grátis ou compras futuras, devolvido pelos campos seguros."
+                  },
+                  "card_ticket": {
+                    "type": "string",
+                    "description": "O bilhete que a geração do token do cartão devolveu (card_ticket). Todo cartão digitado ou guardado pelos campos seguros precisa de um bilhete válido, de uso único e desta sessão; sem ele a confirmação é recusada antes de tentar o cartão."
                   },
                   "card_kind": {
                     "type": "string",
@@ -12188,7 +12192,8 @@
           "environment",
           "access_token",
           "expires_in",
-          "script_url"
+          "script_url",
+          "total_cents"
         ],
         "properties": {
           "provider": {
@@ -12213,6 +12218,10 @@
             "type": "string",
             "format": "uri",
             "description": "O script de autenticação do adquirente."
+          },
+          "total_cents": {
+            "type": "integer",
+            "description": "O valor, em centavos, que o script deve autenticar: o total da sessão no servidor. Copie-o no campo bpmpi_totalamount; depois que ele é entregue, o total da sessão não muda mais."
           }
         }
       },
@@ -12234,7 +12243,8 @@
           "environment",
           "access_token",
           "issued",
-          "expires_at"
+          "expires_at",
+          "card_ticket"
         ],
         "properties": {
           "provider": {
@@ -12256,6 +12266,10 @@
           },
           "expires_at": {
             "type": "string"
+          },
+          "card_ticket": {
+            "type": "string",
+            "description": "O bilhete da tentativa deste cartão: de uso único, válido só para esta sessão e por 20 minutos. Devolva-o em card_ticket ao confirmar; sem um bilhete válido nenhum cartão é tentado."
           }
         }
       },
@@ -12757,7 +12771,7 @@
           "url": {
             "type": "string",
             "format": "uri",
-            "description": "O endereço hospedado: redirecione o comprador para cá e ele paga na página da Peráta."
+            "description": "O endereço hospedado desta sessão: redirecione o comprador para cá, ou abra-o no modal, e ele paga na página da Peráta exatamente a sessão que esta resposta abriu, que aparece no status_key, no GET da sessão e nos webhooks com o mesmo checkout_id. Quem abre o endereço depois do pagamento vê a confirmação e nada é cobrado de novo. Na repetição de uma criação idempotente o segredo não existe mais e o endereço volta a ser o do link, que abre uma sessão nova a cada visita."
           },
           "product_id": {
             "type": "string"
@@ -13766,7 +13780,7 @@
         "properties": {
           "error": {
             "type": "string",
-            "description": "Código do erro: invalid_credential, forbidden, not_found, invalid_request, conflict, idempotency_conflict, idempotency_in_progress, invalid_idempotency_key, method_not_allowed, body_too_large, rate_limited, unavailable."
+            "description": "Código do erro: invalid_credential, forbidden, not_found, invalid_request, conflict, idempotency_conflict, idempotency_in_progress, invalid_idempotency_key, method_not_allowed, unsupported_media_type, body_too_large, rate_limited, unavailable."
           },
           "message": {
             "type": "string"

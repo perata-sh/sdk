@@ -13,13 +13,15 @@ public final class CardTokenization {
     public static final String ENVIRONMENT_LIVE = "live";
 
     private final String accessToken;
+    private final String cardTicket;
     private final String environment;
     private final String expiresAt;
     private final String issued;
     private final String provider;
 
-    CardTokenization(String accessToken, String environment, String expiresAt, String issued, String provider) {
+    CardTokenization(String accessToken, String cardTicket, String environment, String expiresAt, String issued, String provider) {
         this.accessToken = accessToken;
+        this.cardTicket = cardTicket;
         this.environment = environment;
         this.expiresAt = expiresAt;
         this.issued = issued;
@@ -29,6 +31,7 @@ public final class CardTokenization {
     static CardTokenization fromJson(Map<String, Object> data) {
         return new CardTokenization(
                 Json.required(data, "access_token", Json::asString),
+                Json.required(data, "card_ticket", Json::asString),
                 Json.required(data, "environment", Json::asString),
                 Json.required(data, "expires_at", Json::asString),
                 Json.required(data, "issued", Json::asString),
@@ -38,6 +41,11 @@ public final class CardTokenization {
     /** @return O token com que o script do adquirente envia o cartão; entregue só a uma página da própria origem da Peráta. */
     public String getAccessToken() {
         return accessToken;
+    }
+
+    /** @return O bilhete da tentativa deste cartão: de uso único, válido só para esta sessão e por 20 minutos. Devolva-o em card_ticket ao confirmar; sem um bilhete válido nenhum cartão é tentado. */
+    public String getCardTicket() {
+        return cardTicket;
     }
 
     /** @return the API's {@code environment} */
@@ -62,6 +70,6 @@ public final class CardTokenization {
 
     @Override
     public String toString() {
-        return "CardTokenization{" + "accessToken=" + accessToken + ", environment=" + environment + ", expiresAt=" + expiresAt + ", issued=" + issued + ", provider=" + provider + "}";
+        return "CardTokenization{" + "accessToken=" + accessToken + ", cardTicket=" + cardTicket + ", environment=" + environment + ", expiresAt=" + expiresAt + ", issued=" + issued + ", provider=" + provider + "}";
     }
 }

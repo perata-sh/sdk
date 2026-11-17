@@ -159,13 +159,16 @@ public struct CardAuthentication: Codable, Sendable, Hashable {
     public let provider: String
     /// O script de autenticação do adquirente.
     public let scriptURL: String
+    /// O valor, em centavos, que o script deve autenticar: o total da sessão no servidor. Copie-o no campo bpmpi_totalamount; depois que ele é entregue, o total da sessão não muda mais.
+    public let totalCents: Int
 
-    public init(accessToken: String, environment: CardAuthenticationEnvironment, expiresIn: Int, provider: String, scriptURL: String) {
+    public init(accessToken: String, environment: CardAuthenticationEnvironment, expiresIn: Int, provider: String, scriptURL: String, totalCents: Int) {
         self.accessToken = accessToken
         self.environment = environment
         self.expiresIn = expiresIn
         self.provider = provider
         self.scriptURL = scriptURL
+        self.totalCents = totalCents
     }
 
     enum CodingKeys: String, CodingKey {
@@ -174,6 +177,7 @@ public struct CardAuthentication: Codable, Sendable, Hashable {
         case expiresIn = "expires_in"
         case provider
         case scriptURL = "script_url"
+        case totalCents = "total_cents"
     }
 }
 
@@ -181,13 +185,16 @@ public struct CardAuthentication: Codable, Sendable, Hashable {
 public struct CardTokenization: Codable, Sendable, Hashable {
     /// O token com que o script do adquirente envia o cartão; entregue só a uma página da própria origem da Peráta.
     public let accessToken: String
+    /// O bilhete da tentativa deste cartão: de uso único, válido só para esta sessão e por 20 minutos. Devolva-o em card_ticket ao confirmar; sem um bilhete válido nenhum cartão é tentado.
+    public let cardTicket: String
     public let environment: CardTokenizationEnvironment
     public let expiresAt: String
     public let issued: String
     public let provider: String
 
-    public init(accessToken: String, environment: CardTokenizationEnvironment, expiresAt: String, issued: String, provider: String) {
+    public init(accessToken: String, cardTicket: String, environment: CardTokenizationEnvironment, expiresAt: String, issued: String, provider: String) {
         self.accessToken = accessToken
+        self.cardTicket = cardTicket
         self.environment = environment
         self.expiresAt = expiresAt
         self.issued = issued
@@ -196,6 +203,7 @@ public struct CardTokenization: Codable, Sendable, Hashable {
 
     enum CodingKeys: String, CodingKey {
         case accessToken = "access_token"
+        case cardTicket = "card_ticket"
         case environment
         case expiresAt = "expires_at"
         case issued
@@ -539,7 +547,7 @@ public struct CheckoutCreated: Codable, Sendable, Hashable {
     public let statusKey: String
     /// Endereço https para onde o comprador volta depois de pagar; vazio sem ele.
     public let successURL: String
-    /// O endereço hospedado: redirecione o comprador para cá e ele paga na página da Peráta.
+    /// O endereço hospedado desta sessão: redirecione o comprador para cá, ou abra-o no modal, e ele paga na página da Peráta exatamente a sessão que esta resposta abriu, que aparece no status_key, no GET da sessão e nos webhooks com o mesmo checkout_id. Quem abre o endereço depois do pagamento vê a confirmação e nada é cobrado de novo. Na repetição de uma criação idempotente o segredo não existe mais e o endereço volta a ser o do link, que abre uma sessão nova a cada visita.
     public let url: String
 
     public init(cancelURL: String, clientSecret: String, clientSecretExpiresAt: String, createdAt: String, expiresAt: String?, id: String, label: String, priceID: String, productID: String, quantity: Int, sessionID: String, status: CheckoutCreatedStatus, statusKey: String, successURL: String, url: String) {

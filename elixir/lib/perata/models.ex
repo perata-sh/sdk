@@ -176,20 +176,22 @@ end
 defmodule Perata.CardAuthentication do
   @moduledoc "CardAuthentication is a resource of Peráta's API."
 
-  defstruct [:access_token, :environment, :expires_in, :provider, :script_url]
+  defstruct [:access_token, :environment, :expires_in, :provider, :script_url, :total_cents]
 
   @typedoc """
   * `access_token`: O token com que o script de 3DS autentica; entregue só a uma página da própria origem da Peráta.
   * `environment` (one of `"test"`, `"live"`)
   * `expires_in`: Segundos de vida do token.
   * `script_url`: O script de autenticação do adquirente.
+  * `total_cents`: O valor, em centavos, que o script deve autenticar: o total da sessão no servidor. Copie-o no campo bpmpi_totalamount; depois que ele é entregue, o total da sessão não muda mais.
   """
   @type t :: %__MODULE__{
           access_token: String.t(),
           environment: String.t(),
           expires_in: integer(),
           provider: String.t(),
-          script_url: String.t()
+          script_url: String.t(),
+          total_cents: integer()
         }
 
   @doc "Builds a CardAuthentication from the API's JSON."
@@ -200,7 +202,8 @@ defmodule Perata.CardAuthentication do
       environment: Map.fetch!(data, "environment"),
       expires_in: Map.fetch!(data, "expires_in"),
       provider: Map.fetch!(data, "provider"),
-      script_url: Map.fetch!(data, "script_url")
+      script_url: Map.fetch!(data, "script_url"),
+      total_cents: Map.fetch!(data, "total_cents")
     }
   end
 end
@@ -208,14 +211,16 @@ end
 defmodule Perata.CardTokenization do
   @moduledoc "CardTokenization is a resource of Peráta's API."
 
-  defstruct [:access_token, :environment, :expires_at, :issued, :provider]
+  defstruct [:access_token, :card_ticket, :environment, :expires_at, :issued, :provider]
 
   @typedoc """
   * `access_token`: O token com que o script do adquirente envia o cartão; entregue só a uma página da própria origem da Peráta.
+  * `card_ticket`: O bilhete da tentativa deste cartão: de uso único, válido só para esta sessão e por 20 minutos. Devolva-o em card_ticket ao confirmar; sem um bilhete válido nenhum cartão é tentado.
   * `environment` (one of `"test"`, `"live"`)
   """
   @type t :: %__MODULE__{
           access_token: String.t(),
+          card_ticket: String.t(),
           environment: String.t(),
           expires_at: String.t(),
           issued: String.t(),
@@ -227,6 +232,7 @@ defmodule Perata.CardTokenization do
   def from_map(%{} = data) do
     %__MODULE__{
       access_token: Map.fetch!(data, "access_token"),
+      card_ticket: Map.fetch!(data, "card_ticket"),
       environment: Map.fetch!(data, "environment"),
       expires_at: Map.fetch!(data, "expires_at"),
       issued: Map.fetch!(data, "issued"),
@@ -635,7 +641,7 @@ defmodule Perata.CheckoutCreated do
   * `status` (one of `"active"`, `"archived"`): active abre sessões de compra; archived saiu de circulação.
   * `status_key`: Lê o estado da sessão depois que o client_secret é consumido: GET /checkouts/client/status/{status_key}. Só esta resposta o traz.
   * `success_url`: Endereço https para onde o comprador volta depois de pagar; vazio sem ele.
-  * `url`: O endereço hospedado: redirecione o comprador para cá e ele paga na página da Peráta.
+  * `url`: O endereço hospedado desta sessão: redirecione o comprador para cá, ou abra-o no modal, e ele paga na página da Peráta exatamente a sessão que esta resposta abriu, que aparece no status_key, no GET da sessão e nos webhooks com o mesmo checkout_id. Quem abre o endereço depois do pagamento vê a confirmação e nada é cobrado de novo. Na repetição de uma criação idempotente o segredo não existe mais e o endereço volta a ser o do link, que abre uma sessão nova a cada visita.
   """
   @type t :: %__MODULE__{
           cancel_url: String.t(),

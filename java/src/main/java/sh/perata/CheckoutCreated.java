@@ -135,7 +135,7 @@ public final class CheckoutCreated {
         return successUrl;
     }
 
-    /** @return O endereço hospedado: redirecione o comprador para cá e ele paga na página da Peráta. */
+    /** @return O endereço hospedado desta sessão: redirecione o comprador para cá, ou abra-o no modal, e ele paga na página da Peráta exatamente a sessão que esta resposta abriu, que aparece no status_key, no GET da sessão e nos webhooks com o mesmo checkout_id. Quem abre o endereço depois do pagamento vê a confirmação e nada é cobrado de novo. Na repetição de uma criação idempotente o segredo não existe mais e o endereço volta a ser o do link, que abre uma sessão nova a cada visita. */
     public String getUrl() {
         return url;
     }

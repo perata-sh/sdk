@@ -12,6 +12,8 @@ final class CardTokenization
     public function __construct(
         /** O token com que o script do adquirente envia o cartão; entregue só a uma página da própria origem da Peráta. */
         public readonly string $accessToken,
+        /** O bilhete da tentativa deste cartão: de uso único, válido só para esta sessão e por 20 minutos. Devolva-o em card_ticket ao confirmar; sem um bilhete válido nenhum cartão é tentado. */
+        public readonly string $cardTicket,
         /** @var 'test'|'live' */
         public readonly string $environment,
         public readonly string $expiresAt,
@@ -27,6 +29,7 @@ final class CardTokenization
     {
         return new self(
             accessToken: $data['access_token'],
+            cardTicket: $data['card_ticket'],
             environment: $data['environment'],
             expiresAt: $data['expires_at'],
             issued: $data['issued'],

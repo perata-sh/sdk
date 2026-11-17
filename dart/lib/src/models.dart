@@ -255,6 +255,7 @@ final class CardAuthentication {
     required this.expiresIn,
     required this.provider,
     required this.scriptUrl,
+    required this.totalCents,
   });
 
   /// A CardAuthentication out of the API's JSON.
@@ -265,6 +266,7 @@ final class CardAuthentication {
       expiresIn: json['expires_in'] as int,
       provider: json['provider'] as String,
       scriptUrl: json['script_url'] as String,
+      totalCents: json['total_cents'] as int,
     );
   }
 
@@ -283,6 +285,11 @@ final class CardAuthentication {
   /// O script de autenticação do adquirente.
   final String scriptUrl;
 
+  /// O valor, em centavos, que o script deve autenticar: o total da sessão no
+  /// servidor. Copie-o no campo bpmpi_totalamount; depois que ele é entregue, o
+  /// total da sessão não muda mais.
+  final int totalCents;
+
   /// The JSON the API answers.
   Map<String, Object?> toJson() => {
     'access_token': accessToken,
@@ -290,6 +297,7 @@ final class CardAuthentication {
     'expires_in': expiresIn,
     'provider': provider,
     'script_url': scriptUrl,
+    'total_cents': totalCents,
   };
 }
 
@@ -297,6 +305,7 @@ final class CardAuthentication {
 final class CardTokenization {
   const CardTokenization({
     required this.accessToken,
+    required this.cardTicket,
     required this.environment,
     required this.expiresAt,
     required this.issued,
@@ -307,6 +316,7 @@ final class CardTokenization {
   factory CardTokenization.fromJson(Map<String, Object?> json) {
     return CardTokenization(
       accessToken: json['access_token'] as String,
+      cardTicket: json['card_ticket'] as String,
       environment: json['environment'] as String,
       expiresAt: json['expires_at'] as String,
       issued: json['issued'] as String,
@@ -317,6 +327,11 @@ final class CardTokenization {
   /// O token com que o script do adquirente envia o cartão; entregue só a uma
   /// página da própria origem da Peráta.
   final String accessToken;
+
+  /// O bilhete da tentativa deste cartão: de uso único, válido só para esta
+  /// sessão e por 20 minutos. Devolva-o em card_ticket ao confirmar; sem um
+  /// bilhete válido nenhum cartão é tentado.
+  final String cardTicket;
 
   /// One of `test`, `live`.
   final String environment;
@@ -330,6 +345,7 @@ final class CardTokenization {
   /// The JSON the API answers.
   Map<String, Object?> toJson() => {
     'access_token': accessToken,
+    'card_ticket': cardTicket,
     'environment': environment,
     'expires_at': expiresAt,
     'issued': issued,
@@ -954,8 +970,13 @@ final class CheckoutCreated {
   /// Endereço https para onde o comprador volta depois de pagar; vazio sem ele.
   final String successUrl;
 
-  /// O endereço hospedado: redirecione o comprador para cá e ele paga na página
-  /// da Peráta.
+  /// O endereço hospedado desta sessão: redirecione o comprador para cá, ou
+  /// abra-o no modal, e ele paga na página da Peráta exatamente a sessão que
+  /// esta resposta abriu, que aparece no status_key, no GET da sessão e nos
+  /// webhooks com o mesmo checkout_id. Quem abre o endereço depois do pagamento
+  /// vê a confirmação e nada é cobrado de novo. Na repetição de uma criação
+  /// idempotente o segredo não existe mais e o endereço volta a ser o do link,
+  /// que abre uma sessão nova a cada visita.
   final String url;
 
   /// The JSON the API answers.

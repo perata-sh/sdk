@@ -137,6 +137,8 @@ class CardAuthentication:
     provider: str
     script_url: str
     """O script de autenticação do adquirente."""
+    total_cents: int
+    """O valor, em centavos, que o script deve autenticar: o total da sessão no servidor. Copie-o no campo bpmpi_totalamount; depois que ele é entregue, o total da sessão não muda mais."""
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> CardAuthentication:
@@ -146,6 +148,7 @@ class CardAuthentication:
             expires_in=data["expires_in"],
             provider=data["provider"],
             script_url=data["script_url"],
+            total_cents=data["total_cents"],
         )
 
 
@@ -155,6 +158,8 @@ class CardTokenization:
 
     access_token: str
     """O token com que o script do adquirente envia o cartão; entregue só a uma página da própria origem da Peráta."""
+    card_ticket: str
+    """O bilhete da tentativa deste cartão: de uso único, válido só para esta sessão e por 20 minutos. Devolva-o em card_ticket ao confirmar; sem um bilhete válido nenhum cartão é tentado."""
     environment: Literal["test", "live"]
     expires_at: str
     issued: str
@@ -164,6 +169,7 @@ class CardTokenization:
     def from_dict(cls, data: dict[str, Any]) -> CardTokenization:
         return cls(
             access_token=data["access_token"],
+            card_ticket=data["card_ticket"],
             environment=data["environment"],
             expires_at=data["expires_at"],
             issued=data["issued"],
@@ -453,7 +459,7 @@ class CheckoutCreated:
     success_url: str
     """Endereço https para onde o comprador volta depois de pagar; vazio sem ele."""
     url: str
-    """O endereço hospedado: redirecione o comprador para cá e ele paga na página da Peráta."""
+    """O endereço hospedado desta sessão: redirecione o comprador para cá, ou abra-o no modal, e ele paga na página da Peráta exatamente a sessão que esta resposta abriu, que aparece no status_key, no GET da sessão e nos webhooks com o mesmo checkout_id. Quem abre o endereço depois do pagamento vê a confirmação e nada é cobrado de novo. Na repetição de uma criação idempotente o segredo não existe mais e o endereço volta a ser o do link, que abre uma sessão nova a cada visita."""
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> CheckoutCreated:

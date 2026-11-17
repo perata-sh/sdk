@@ -19,6 +19,8 @@ final class CardAuthentication
         public readonly string $provider,
         /** O script de autenticação do adquirente. */
         public readonly string $scriptUrl,
+        /** O valor, em centavos, que o script deve autenticar: o total da sessão no servidor. Copie-o no campo bpmpi_totalamount; depois que ele é entregue, o total da sessão não muda mais. */
+        public readonly int $totalCents,
     ) {
     }
 
@@ -33,6 +35,7 @@ final class CardAuthentication
             expiresIn: $data['expires_in'],
             provider: $data['provider'],
             scriptUrl: $data['script_url'],
+            totalCents: $data['total_cents'],
         );
     }
 }

@@ -17,13 +17,15 @@ public final class CardAuthentication {
     private final long expiresIn;
     private final String provider;
     private final String scriptUrl;
+    private final long totalCents;
 
-    CardAuthentication(String accessToken, String environment, long expiresIn, String provider, String scriptUrl) {
+    CardAuthentication(String accessToken, String environment, long expiresIn, String provider, String scriptUrl, long totalCents) {
         this.accessToken = accessToken;
         this.environment = environment;
         this.expiresIn = expiresIn;
         this.provider = provider;
         this.scriptUrl = scriptUrl;
+        this.totalCents = totalCents;
     }
 
     static CardAuthentication fromJson(Map<String, Object> data) {
@@ -32,7 +34,8 @@ public final class CardAuthentication {
                 Json.required(data, "environment", Json::asString),
                 Json.required(data, "expires_in", Json::asLong),
                 Json.required(data, "provider", Json::asString),
-                Json.required(data, "script_url", Json::asString));
+                Json.required(data, "script_url", Json::asString),
+                Json.required(data, "total_cents", Json::asLong));
     }
 
     /** @return O token com que o script de 3DS autentica; entregue só a uma página da própria origem da Peráta. */
@@ -60,8 +63,13 @@ public final class CardAuthentication {
         return scriptUrl;
     }
 
+    /** @return O valor, em centavos, que o script deve autenticar: o total da sessão no servidor. Copie-o no campo bpmpi_totalamount; depois que ele é entregue, o total da sessão não muda mais. */
+    public long getTotalCents() {
+        return totalCents;
+    }
+
     @Override
     public String toString() {
-        return "CardAuthentication{" + "accessToken=" + accessToken + ", environment=" + environment + ", expiresIn=" + expiresIn + ", provider=" + provider + ", scriptUrl=" + scriptUrl + "}";
+        return "CardAuthentication{" + "accessToken=" + accessToken + ", environment=" + environment + ", expiresIn=" + expiresIn + ", provider=" + provider + ", scriptUrl=" + scriptUrl + ", totalCents=" + totalCents + "}";
     }
 }
