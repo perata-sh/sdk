@@ -181,14 +181,22 @@ class CardTokenization:
 class Checkout:
     """Checkout is a resource of Peráta's API."""
 
+    amount_cents: int | None
+    """O valor, em centavos, que o seu servidor fixou na criação; nulo quando é o comprador quem digita o valor."""
     cancel_url: str
     """Endereço https para onde o comprador volta se desistir; vazio sem ele."""
+    client_reference_id: str
+    """O id do pedido no seu sistema, como o seu servidor o enviou na criação; vazio sem ele. Volta no checkout, no pedido, no pagamento e nos eventos."""
     created_at: str
     expires_at: str | None
     """Quando o checkout deixa de abrir sessões; nulo sem prazo."""
     id: str
+    items: list[CheckoutLine]
+    """As linhas do valor fixado, na ordem em que foram enviadas; vazio sem elas."""
     label: str
     """Como o lojista chama o checkout nas próprias telas; o comprador não vê."""
+    metadata: dict[str, Any]
+    """Os pares que o seu servidor guardou na criação; voltam nos eventos da venda."""
     price_id: str
     product_id: str
     quantity: int
@@ -202,11 +210,15 @@ class Checkout:
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> Checkout:
         return cls(
+            amount_cents=data.get("amount_cents"),
             cancel_url=data["cancel_url"],
+            client_reference_id=data["client_reference_id"],
             created_at=data["created_at"],
             expires_at=data.get("expires_at"),
             id=data["id"],
+            items=[CheckoutLine.from_dict(item) for item in data["items"]],
             label=data["label"],
+            metadata=data["metadata"],
             price_id=data["price_id"],
             product_id=data["product_id"],
             quantity=data["quantity"],
@@ -222,10 +234,14 @@ class CheckoutClient:
 
     amount_cents: int
     """Antes do desconto."""
+    amount_locked: bool
+    """Verdadeiro quando o servidor do lojista fixou o valor (amount_cents na criação do checkout): mostre-o ao comprador sem campo para mudá-lo. Nenhuma rota de cliente aceita outro valor."""
     cancel_url: str
     """Para onde o comprador volta sem pagar."""
     card_kinds: list[str]
     """credit, e debit onde a autenticação do adquirente está ligada."""
+    client_reference_id: str
+    """O id do pedido no seu sistema, quando o seu servidor o enviou; vazio sem ele."""
     currency: Literal["BRL"]
     customer: CheckoutClientCustomer | None
     discount: CheckoutClientDiscount | None
@@ -263,8 +279,10 @@ class CheckoutClient:
     def from_dict(cls, data: dict[str, Any]) -> CheckoutClient:
         return cls(
             amount_cents=data["amount_cents"],
+            amount_locked=data["amount_locked"],
             cancel_url=data["cancel_url"],
             card_kinds=data["card_kinds"],
+            client_reference_id=data["client_reference_id"],
             currency=data["currency"],
             customer=None if data.get("customer") is None else CheckoutClientCustomer.from_dict(data["customer"]),
             discount=None if data.get("discount") is None else CheckoutClientDiscount.from_dict(data["discount"]),
@@ -434,8 +452,12 @@ class CheckoutClientPix:
 class CheckoutCreated:
     """CheckoutCreated is a resource of Peráta's API."""
 
+    amount_cents: int | None
+    """O valor, em centavos, que o seu servidor fixou; o comprador o vê e não pode mudá-lo. Nulo quando é o comprador quem digita o valor."""
     cancel_url: str
     """Endereço https para onde o comprador volta se desistir; vazio sem ele."""
+    client_reference_id: str
+    """O id do pedido no seu sistema, como o seu servidor o enviou; vazio sem ele. Volta no checkout, no pedido, no pagamento e nos eventos."""
     client_secret: str
     """O segredo que o navegador do comprador usa para ler, atualizar e pagar a sessão, sem chave de API. Só esta resposta o traz; entregue-o à página que monta os campos seguros. Vem vazio na repetição de uma criação idempotente."""
     client_secret_expires_at: str
@@ -445,8 +467,12 @@ class CheckoutCreated:
     """Quando o link deixa de abrir sessões; nulo sem prazo."""
     id: str
     """O ID do link do checkout, o que GET e PATCH /checkouts/{id} recebem."""
+    items: list[CheckoutLine]
+    """As linhas do valor fixado, na ordem em que foram enviadas; vazio sem elas."""
     label: str
     """Como o lojista chama o checkout nas próprias telas; o comprador não vê."""
+    metadata: dict[str, Any]
+    """Os pares que o seu servidor enviou; voltam no pedido, no pagamento e nos eventos da venda (checkout.*, order.*, checkout_payment.* e refund.*)."""
     price_id: str
     product_id: str
     quantity: int
@@ -464,13 +490,17 @@ class CheckoutCreated:
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> CheckoutCreated:
         return cls(
+            amount_cents=data.get("amount_cents"),
             cancel_url=data["cancel_url"],
+            client_reference_id=data["client_reference_id"],
             client_secret=data["client_secret"],
             client_secret_expires_at=data["client_secret_expires_at"],
             created_at=data["created_at"],
             expires_at=data.get("expires_at"),
             id=data["id"],
+            items=[CheckoutLine.from_dict(item) for item in data["items"]],
             label=data["label"],
+            metadata=data["metadata"],
             price_id=data["price_id"],
             product_id=data["product_id"],
             quantity=data["quantity"],
@@ -501,6 +531,24 @@ class CheckoutInstallment:
             installment_cents=data["installment_cents"],
             interest_cents=data["interest_cents"],
             total_cents=data["total_cents"],
+        )
+
+
+@dataclass(frozen=True)
+class CheckoutLine:
+    """CheckoutLine is a resource of Peráta's API."""
+
+    name: str
+    quantity: int
+    unit_amount_cents: int
+    """O valor de uma unidade, em centavos; negativo é desconto."""
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> CheckoutLine:
+        return cls(
+            name=data["name"],
+            quantity=data["quantity"],
+            unit_amount_cents=data["unit_amount_cents"],
         )
 
 
@@ -1010,6 +1058,8 @@ class Order:
     """Order is a resource of Peráta's API."""
 
     amount_cents: int
+    client_reference_id: str
+    """O id do pedido no seu sistema, enviado ao criar o checkout; vazio sem ele."""
     currency: Literal["BRL"]
     customer_id: str
     id: str
@@ -1017,6 +1067,10 @@ class Order:
     """Juros do parcelamento pagos pelo comprador, cobrados além de amount_cents."""
     installments: int
     """Em quantas parcelas o cartão de crédito foi cobrado; 1 à vista."""
+    items: list[CheckoutLine]
+    """As linhas do pedido, quando o seu servidor as enviou ao criar o checkout; vazio sem elas."""
+    metadata: dict[str, Any]
+    """Os pares que o seu servidor enviou ao criar o checkout."""
     paid_at: str | None
     price_id: str
     product_id: str
@@ -1026,11 +1080,14 @@ class Order:
     def from_dict(cls, data: dict[str, Any]) -> Order:
         return cls(
             amount_cents=data["amount_cents"],
+            client_reference_id=data["client_reference_id"],
             currency=data["currency"],
             customer_id=data["customer_id"],
             id=data["id"],
             installment_interest_cents=data["installment_interest_cents"],
             installments=data["installments"],
+            items=[CheckoutLine.from_dict(item) for item in data["items"]],
+            metadata=data["metadata"],
             paid_at=data.get("paid_at"),
             price_id=data["price_id"],
             product_id=data["product_id"],
@@ -1048,6 +1105,8 @@ class OrderInvoice:
     currency: Literal["BRL"]
     discount_cents: int
     generated_at: str
+    items: list[CheckoutLine]
+    """As linhas do pedido, quando o lojista as enviou; vazio sem elas."""
     number: str
     """Número da fatura, na série da organização (PREFIXO-0001)."""
     order_id: str
@@ -1067,6 +1126,7 @@ class OrderInvoice:
             currency=data["currency"],
             discount_cents=data["discount_cents"],
             generated_at=data["generated_at"],
+            items=[CheckoutLine.from_dict(item) for item in data["items"]],
             number=data["number"],
             order_id=data["order_id"],
             product_name=data["product_name"],
@@ -1088,6 +1148,8 @@ class OrderReceipt:
     installment_interest_cents: int
     installments: int
     """Em quantas parcelas o cartão de crédito foi cobrado; 1 à vista."""
+    items: list[CheckoutLine]
+    """As linhas do pedido, quando o lojista as enviou; vazio sem elas."""
     number: str
     """Número do pedido na série da organização; vazio antes de ter um."""
     order_id: str
@@ -1108,6 +1170,7 @@ class OrderReceipt:
             discount_cents=data["discount_cents"],
             installment_interest_cents=data["installment_interest_cents"],
             installments=data["installments"],
+            items=[CheckoutLine.from_dict(item) for item in data["items"]],
             number=data["number"],
             order_id=data["order_id"],
             paid_at=data.get("paid_at"),
@@ -1140,6 +1203,8 @@ class Payment:
     amount_cents: int
     captured_cents: int
     checkout_id: str
+    client_reference_id: str
+    """O id do pedido no seu sistema, enviado ao criar o checkout; vazio sem ele."""
     created_at: str
     currency: Literal["BRL"]
     customer_id: str
@@ -1150,6 +1215,8 @@ class Payment:
     """Juros do parcelamento dentro de amount_cents."""
     installments: int
     """Em quantas parcelas o cartão de crédito foi cobrado; 1 à vista."""
+    metadata: dict[str, Any]
+    """Os pares que o seu servidor enviou ao criar o checkout."""
     method: Literal["card", "pix", "boleto"]
     refunded_cents: int
     state: Literal["unknown", "pending", "authorized", "captured", "refused", "canceled", "refunded", "partially_refunded"]
@@ -1160,6 +1227,7 @@ class Payment:
             amount_cents=data["amount_cents"],
             captured_cents=data["captured_cents"],
             checkout_id=data["checkout_id"],
+            client_reference_id=data["client_reference_id"],
             created_at=data["created_at"],
             currency=data["currency"],
             customer_id=data["customer_id"],
@@ -1167,6 +1235,7 @@ class Payment:
             installment_amount_cents=data["installment_amount_cents"],
             installment_interest_cents=data["installment_interest_cents"],
             installments=data["installments"],
+            metadata=data["metadata"],
             method=data["method"],
             refunded_cents=data["refunded_cents"],
             state=data["state"],
@@ -1371,6 +1440,8 @@ class WebhookCheckout:
 
     amount_cents: int
     checkout_link_id: str | None
+    client_reference_id: str | None
+    """O id do pedido no sistema do lojista; vazio sem ele."""
     created_at: str
     currency: Literal["BRL"]
     customer_id: str | None
@@ -1378,6 +1449,10 @@ class WebhookCheckout:
     discount_cents: int
     expires_at: str
     id: str
+    items: list[CheckoutLine] | None
+    """As linhas do valor que o servidor do lojista fixou; vazio sem elas."""
+    metadata: dict[str, Any] | None
+    """Os pares que o servidor do lojista enviou ao criar o checkout; vazio sem eles."""
     price_id: str
     product_id: str
     status: Literal["open", "confirmed", "succeeded", "failed", "expired"]
@@ -1388,12 +1463,15 @@ class WebhookCheckout:
         return cls(
             amount_cents=data["amount_cents"],
             checkout_link_id=data.get("checkout_link_id"),
+            client_reference_id=data.get("client_reference_id"),
             created_at=data["created_at"],
             currency=data["currency"],
             customer_id=data.get("customer_id"),
             discount_cents=data["discount_cents"],
             expires_at=data["expires_at"],
             id=data["id"],
+            items=None if data.get("items") is None else [CheckoutLine.from_dict(item) for item in data["items"]],
+            metadata=data.get("metadata"),
             price_id=data["price_id"],
             product_id=data["product_id"],
             status=data["status"],
@@ -1590,6 +1668,75 @@ class WebhookEndpointCreated:
 
 
 @dataclass(frozen=True)
+class WebhookRefund:
+    """WebhookRefund is a resource of Peráta's API."""
+
+    amount_cents: int
+    checkout_id: str | None
+    """O checkout (o pedido) que o reembolso devolve, quando se sabe."""
+    client_reference_id: str | None
+    """O id do pedido no sistema do lojista; vazio sem ele."""
+    id: str
+    metadata: dict[str, Any]
+    """Os pares que o servidor do lojista enviou ao criar o checkout; vazio sem eles."""
+    payment_id: str
+    status: Literal["requested", "pending", "unknown", "succeeded", "failed", "canceled"]
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> WebhookRefund:
+        return cls(
+            amount_cents=data["amount_cents"],
+            checkout_id=data.get("checkout_id"),
+            client_reference_id=data.get("client_reference_id"),
+            id=data["id"],
+            metadata=data["metadata"],
+            payment_id=data["payment_id"],
+            status=data["status"],
+        )
+
+
+@dataclass(frozen=True)
+class WebhookSale:
+    """Os eventos da venda (checkout_payment.* e refund.*): os identificadores de sempre e, além deles, o checkout, o valor e o que o servidor do lojista enviou ao criar o checkout."""
+
+    aggregate: str
+    aggregate_id: str
+    amount_cents: int | None
+    """O valor do pagamento (com os juros do parcelamento, quando há) ou o valor reembolsado, em centavos."""
+    checkout_id: str | None
+    """O checkout (o pedido) do pagamento ou do reembolso."""
+    client_reference_id: str | None
+    """O id do pedido no sistema do lojista; vazio sem ele."""
+    currency: Literal["BRL"] | None
+    environment: str
+    event_id: str
+    merchant_id: str
+    metadata: dict[str, Any] | None
+    """Os pares que o servidor do lojista enviou ao criar o checkout; vazio sem eles."""
+    method: Literal["card", "pix", "boleto"] | None
+    """O meio do pagamento, nos eventos checkout_payment.*."""
+    payment_id: str | None
+    """O pagamento que o reembolso devolve, nos eventos refund.*."""
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> WebhookSale:
+        return cls(
+            aggregate=data["aggregate"],
+            aggregate_id=data["aggregate_id"],
+            amount_cents=data.get("amount_cents"),
+            checkout_id=data.get("checkout_id"),
+            client_reference_id=data.get("client_reference_id"),
+            currency=data.get("currency"),
+            environment=data["environment"],
+            event_id=data["event_id"],
+            merchant_id=data["merchant_id"],
+            metadata=data.get("metadata"),
+            method=data.get("method"),
+            payment_id=data.get("payment_id"),
+        )
+
+
+@dataclass(frozen=True)
 class UsageIngestReceipt:
     """What usage.ingest answers."""
 
@@ -1674,7 +1821,11 @@ class CheckoutsCreateParams(TypedDict):
 
     allow_discount_codes: NotRequired[bool]
     """Deixa o comprador digitar um código de desconto; desligado quando fica de fora."""
+    amount_cents: NotRequired[int]
+    """O valor do pedido todo, em centavos, que o seu servidor fixa. Só vale em um preço de valor livre (custom); em outro preço é recusado com 422. Respeita o mínimo e o máximo do preço, também com 422. O comprador vê o valor e não pode mudá-lo, na página, no modal, nos componentes e no checkout transparente; vale para cartão de crédito, débito e Pix, e é o valor que volta em pedidos, pagamentos, recibo e eventos. Repetir a criação com a mesma Idempotency-Key e outro valor dá 409."""
     cancel_url: NotRequired[str]
+    client_reference_id: NotRequired[str]
+    """O id do pedido no seu sistema, de até 255 caracteres. Volta no checkout, no pedido, no pagamento e nos eventos checkout.*, order.*, checkout_payment.* e refund.*, para você achar de qual pedido veio cada pagamento."""
     customer_email: NotRequired[str]
     """O e-mail do comprador, quando você o conhece; senão o navegador do comprador o pede."""
     customer_id: NotRequired[str]
@@ -1682,20 +1833,34 @@ class CheckoutsCreateParams(TypedDict):
     customer_name: NotRequired[str]
     """O nome do comprador, quando você o conhece."""
     expires_in: NotRequired[int]
-    """Segundos em que a sessão e o client_secret continuam valendo; 1800 quando fica de fora."""
+    """Segundos em que a sessão e o client_secret continuam valendo, de um minuto a três dias; 1800 (30 minutos) quando fica de fora. Uma sessão paga com Pix pode ser aberta até esse prazo e, aberta, o Pix gerado vale 24 horas."""
     external_customer_id: NotRequired[str]
     """O mesmo cliente, pelo ID que você deu a ele."""
+    items: NotRequired[list[CheckoutsCreateItem]]
+    """As linhas do pedido, até 50, para o comprador ler o detalhe: aparecem no checkout (página, modal, componentes e transparente), no pedido, no recibo, no portal do cliente e nos eventos. A soma de quantity vezes unit_amount_cents precisa ser igual a amount_cents, ou a resposta é 422; enviadas sem amount_cents, a soma é o valor."""
     label: NotRequired[str]
     metadata: NotRequired[dict[str, Any]]
     """Até 50 pares guardados no link do checkout; valor em texto, número ou booleano."""
     price_id: str
     product_id: str
     quantity: NotRequired[int]
+    """Quantas unidades. Com amount_cents é sempre 1: envie 1 ou omita; qualquer outro valor é recusado com 422."""
     require_billing_address: NotRequired[bool]
     """Pede o endereço de cobrança completo de todo comprador, não só no boleto; desligado quando fica de fora."""
     return_url: NotRequired[str]
     """Outro nome de cancel_url: a página https a que o comprador volta sem pagar. Enviada com um cancel_url diferente, é recusada."""
     success_url: NotRequired[str]
+
+
+class CheckoutsCreateItem(TypedDict):
+    """One item of items in CheckoutsCreateParams."""
+
+    name: str
+    """O nome da linha, de até 200 caracteres."""
+    quantity: NotRequired[int]
+    """Quantas unidades da linha; 1 quando fica de fora."""
+    unit_amount_cents: int
+    """O valor de uma unidade, em centavos. Negativo é desconto ou cupom, desde que a soma continue maior que zero."""
 
 
 class CheckoutsUpdateParams(TypedDict):

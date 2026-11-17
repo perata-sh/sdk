@@ -19,6 +19,11 @@ final class OrderReceipt
         public readonly int $installmentInterestCents,
         /** Em quantas parcelas o cartão de crédito foi cobrado; 1 à vista. */
         public readonly int $installments,
+        /**
+         * As linhas do pedido, quando o lojista as enviou; vazio sem elas.
+         * @var list<CheckoutLine>
+         */
+        public readonly array $items,
         /** Número do pedido na série da organização; vazio antes de ter um. */
         public readonly string $number,
         public readonly string $orderId,
@@ -44,6 +49,7 @@ final class OrderReceipt
             discountCents: $data['discount_cents'],
             installmentInterestCents: $data['installment_interest_cents'],
             installments: $data['installments'],
+            items: array_values(array_map(static fn (array $item) => CheckoutLine::fromArray($item), $data['items'])),
             number: $data['number'],
             orderId: $data['order_id'],
             paidAt: $data['paid_at'] ?? null,

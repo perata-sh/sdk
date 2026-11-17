@@ -118,6 +118,10 @@ class PerataTest {
         session.put("client_secret", clientSecret);
         session.put("client_secret_expires_at", "2026-11-16T12:30:00Z");
         session.put("status_key", "sk_1");
+        session.put("amount_cents", null);
+        session.put("items", java.util.List.of());
+        session.put("metadata", java.util.Map.of());
+        session.put("client_reference_id", "");
         return session;
     }
 
@@ -353,7 +357,7 @@ class PerataTest {
     private static final String REFERENCE_SECRET = "whsec_MfKQ9r8GKYqrTwjUPD8ILPZIo2LaLaSw";
     private static final String OLD_SECRET = "whsec_cGVyYXRhLXNkay1vbGQta2V5LTAxMjM0NTY3ODlhYmM=";
     private static final String NEW_SECRET = "whsec_cGVyYXRhLXNkay1uZXcta2V5LTAxMjM0NTY3ODlhYmM=";
-    private static final String ORDER_PAID = "{\"id\":\"msg_2\",\"type\":\"order.paid\",\"timestamp\":\"2026-10-22T12:00:00Z\",\"data\":{\"id\":\"ord_1\",\"customer_id\":\"cus_1\",\"product_id\":\"prod_1\",\"price_id\":\"price_1\",\"amount_cents\":12000,\"currency\":\"BRL\",\"status\":\"succeeded\",\"paid_at\":\"2026-10-22T12:00:00Z\",\"installments\":3,\"installment_interest_cents\":360}}";
+    private static final String ORDER_PAID = "{\"id\":\"msg_2\",\"type\":\"order.paid\",\"timestamp\":\"2026-10-22T12:00:00Z\",\"data\":{\"id\":\"ord_1\",\"customer_id\":\"cus_1\",\"product_id\":\"prod_1\",\"price_id\":\"price_1\",\"amount_cents\":12000,\"currency\":\"BRL\",\"status\":\"succeeded\",\"paid_at\":\"2026-10-22T12:00:00Z\",\"installments\":3,\"installment_interest_cents\":360,\"items\":[],\"metadata\":{},\"client_reference_id\":\"\"}}";
     private static final String USAGE_RECORDED = "{\"id\":\"msg_3\",\"type\":\"usage_event.recorded\",\"timestamp\":\"2026-10-22T12:00:00Z\",\"data\":{\"event_id\":\"ue_1\",\"aggregate\":\"usage_event\",\"aggregate_id\":\"ue_1\",\"merchant_id\":\"mer_1\",\"environment\":\"test\"}}";
     private static final String PAYOUT_SENT = "{\"id\":\"msg_4\",\"type\":\"payout.sent\",\"timestamp\":\"2026-10-22T12:00:00Z\",\"data\":{\"payout_id\":\"po_1\",\"amount_cents\":5000}}";
     private static final long SIGNED_AT = 1792670400L;
@@ -392,7 +396,7 @@ class PerataTest {
     @Test
     void aWebhookAnswersItsTypedEvent() {
         Instant now = Instant.ofEpochSecond(SIGNED_AT + 120);
-        Map<String, String> headers = webhookHeaders("msg_2", SIGNED_AT, "v1,wYfYi9j4EexjSjLLsUssBYbtAFSwF9KVQBJ2o+qD6Jw= v1,0rD3K6HM83kGY+mZMPVidXSW2zXHHDvy3bMt2QzM8Ak=");
+        Map<String, String> headers = webhookHeaders("msg_2", SIGNED_AT, "v1,MW5FnOPf5xZdiHRmDImEy+x3spgWmDCUEuwjHOZ7a2Y= v1,rWmUsQveS0J9yTlnQfb7Olszghg8xf7DJHLHG0a7YZo=");
         byte[] orderPaid = ORDER_PAID.getBytes(StandardCharsets.UTF_8);
         for (String secret : List.of(NEW_SECRET, OLD_SECRET)) {
             WebhookEvent event = Webhook.verify(secret, headers, orderPaid, now);

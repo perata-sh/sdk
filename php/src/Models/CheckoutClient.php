@@ -12,6 +12,8 @@ final class CheckoutClient
     public function __construct(
         /** Antes do desconto. */
         public readonly int $amountCents,
+        /** Verdadeiro quando o servidor do lojista fixou o valor (amount_cents na criação do checkout): mostre-o ao comprador sem campo para mudá-lo. Nenhuma rota de cliente aceita outro valor. */
+        public readonly bool $amountLocked,
         /** Para onde o comprador volta sem pagar. */
         public readonly string $cancelUrl,
         /**
@@ -19,6 +21,8 @@ final class CheckoutClient
          * @var list<string>
          */
         public readonly array $cardKinds,
+        /** O id do pedido no seu sistema, quando o seu servidor o enviou; vazio sem ele. */
+        public readonly string $clientReferenceId,
         /** @var 'BRL' */
         public readonly string $currency,
         public readonly ?CheckoutClientCustomer $customer,
@@ -76,8 +80,10 @@ final class CheckoutClient
     {
         return new self(
             amountCents: $data['amount_cents'],
+            amountLocked: $data['amount_locked'],
             cancelUrl: $data['cancel_url'],
             cardKinds: $data['card_kinds'],
+            clientReferenceId: $data['client_reference_id'],
             currency: $data['currency'],
             customer: isset($data['customer']) ? CheckoutClientCustomer::fromArray($data['customer']) : null,
             discount: isset($data['discount']) ? CheckoutClientDiscount::fromArray($data['discount']) : null,

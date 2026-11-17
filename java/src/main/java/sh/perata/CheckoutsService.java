@@ -41,12 +41,15 @@ public final class CheckoutsService {
     public static final class CreateParams {
 
         private final Boolean allowDiscountCodes;
+        private final Long amountCents;
         private final String cancelUrl;
+        private final String clientReferenceId;
         private final String customerEmail;
         private final String customerId;
         private final String customerName;
         private final Long expiresIn;
         private final String externalCustomerId;
+        private final List<CheckoutsCreateItem> items;
         private final String label;
         private final Map<String, Object> metadata;
         private final String priceId;
@@ -58,12 +61,15 @@ public final class CheckoutsService {
 
         private CreateParams(Builder builder) {
             this.allowDiscountCodes = builder.allowDiscountCodes;
+            this.amountCents = builder.amountCents;
             this.cancelUrl = builder.cancelUrl;
+            this.clientReferenceId = builder.clientReferenceId;
             this.customerEmail = builder.customerEmail;
             this.customerId = builder.customerId;
             this.customerName = builder.customerName;
             this.expiresIn = builder.expiresIn;
             this.externalCustomerId = builder.externalCustomerId;
+            this.items = builder.items;
             this.label = builder.label;
             this.metadata = builder.metadata;
             this.priceId = builder.priceId;
@@ -84,9 +90,19 @@ public final class CheckoutsService {
             return allowDiscountCodes;
         }
 
+        /** @return O valor do pedido todo, em centavos, que o seu servidor fixa. Só vale em um preço de valor livre (custom); em outro preço é recusado com 422. Respeita o mínimo e o máximo do preço, também com 422. O comprador vê o valor e não pode mudá-lo, na página, no modal, nos componentes e no checkout transparente; vale para cartão de crédito, débito e Pix, e é o valor que volta em pedidos, pagamentos, recibo e eventos. Repetir a criação com a mesma Idempotency-Key e outro valor dá 409. (null when left out) */
+        public Long getAmountCents() {
+            return amountCents;
+        }
+
         /** @return the {@code cancel_url} sent (null when left out) */
         public String getCancelUrl() {
             return cancelUrl;
+        }
+
+        /** @return O id do pedido no seu sistema, de até 255 caracteres. Volta no checkout, no pedido, no pagamento e nos eventos checkout.*, order.*, checkout_payment.* e refund.*, para você achar de qual pedido veio cada pagamento. (null when left out) */
+        public String getClientReferenceId() {
+            return clientReferenceId;
         }
 
         /** @return O e-mail do comprador, quando você o conhece; senão o navegador do comprador o pede. (null when left out) */
@@ -104,7 +120,7 @@ public final class CheckoutsService {
             return customerName;
         }
 
-        /** @return Segundos em que a sessão e o client_secret continuam valendo; 1800 quando fica de fora. (null when left out) */
+        /** @return Segundos em que a sessão e o client_secret continuam valendo, de um minuto a três dias; 1800 (30 minutos) quando fica de fora. Uma sessão paga com Pix pode ser aberta até esse prazo e, aberta, o Pix gerado vale 24 horas. (null when left out) */
         public Long getExpiresIn() {
             return expiresIn;
         }
@@ -112,6 +128,11 @@ public final class CheckoutsService {
         /** @return O mesmo cliente, pelo ID que você deu a ele. (null when left out) */
         public String getExternalCustomerId() {
             return externalCustomerId;
+        }
+
+        /** @return As linhas do pedido, até 50, para o comprador ler o detalhe: aparecem no checkout (página, modal, componentes e transparente), no pedido, no recibo, no portal do cliente e nos eventos. A soma de quantity vezes unit_amount_cents precisa ser igual a amount_cents, ou a resposta é 422; enviadas sem amount_cents, a soma é o valor. (null when left out) */
+        public List<CheckoutsCreateItem> getItems() {
+            return items;
         }
 
         /** @return the {@code label} sent (null when left out) */
@@ -134,7 +155,7 @@ public final class CheckoutsService {
             return productId;
         }
 
-        /** @return the {@code quantity} sent (null when left out) */
+        /** @return Quantas unidades. Com amount_cents é sempre 1: envie 1 ou omita; qualquer outro valor é recusado com 422. (null when left out) */
         public Long getQuantity() {
             return quantity;
         }
@@ -159,8 +180,14 @@ public final class CheckoutsService {
             if (allowDiscountCodes != null) {
                 body.put("allow_discount_codes", allowDiscountCodes);
             }
+            if (amountCents != null) {
+                body.put("amount_cents", amountCents);
+            }
             if (cancelUrl != null) {
                 body.put("cancel_url", cancelUrl);
+            }
+            if (clientReferenceId != null) {
+                body.put("client_reference_id", clientReferenceId);
             }
             if (customerEmail != null) {
                 body.put("customer_email", customerEmail);
@@ -176,6 +203,9 @@ public final class CheckoutsService {
             }
             if (externalCustomerId != null) {
                 body.put("external_customer_id", externalCustomerId);
+            }
+            if (items != null) {
+                body.put("items", Json.toJsonList(items, CheckoutsCreateItem::toJson));
             }
             if (label != null) {
                 body.put("label", label);
@@ -203,12 +233,15 @@ public final class CheckoutsService {
         /** Builds {@link CreateParams}; the fields left unset are left out of the request. */
         public static final class Builder {
             private Boolean allowDiscountCodes;
+            private Long amountCents;
             private String cancelUrl;
+            private String clientReferenceId;
             private String customerEmail;
             private String customerId;
             private String customerName;
             private Long expiresIn;
             private String externalCustomerId;
+            private List<CheckoutsCreateItem> items;
             private String label;
             private Map<String, Object> metadata;
             private String priceId;
@@ -231,11 +264,29 @@ public final class CheckoutsService {
             }
 
             /**
+             * @param amountCents O valor do pedido todo, em centavos, que o seu servidor fixa. Só vale em um preço de valor livre (custom); em outro preço é recusado com 422. Respeita o mínimo e o máximo do preço, também com 422. O comprador vê o valor e não pode mudá-lo, na página, no modal, nos componentes e no checkout transparente; vale para cartão de crédito, débito e Pix, e é o valor que volta em pedidos, pagamentos, recibo e eventos. Repetir a criação com a mesma Idempotency-Key e outro valor dá 409.
+             * @return this builder
+             */
+            public Builder amountCents(Long amountCents) {
+                this.amountCents = amountCents;
+                return this;
+            }
+
+            /**
              * @param cancelUrl the {@code cancel_url} to send
              * @return this builder
              */
             public Builder cancelUrl(String cancelUrl) {
                 this.cancelUrl = cancelUrl;
+                return this;
+            }
+
+            /**
+             * @param clientReferenceId O id do pedido no seu sistema, de até 255 caracteres. Volta no checkout, no pedido, no pagamento e nos eventos checkout.*, order.*, checkout_payment.* e refund.*, para você achar de qual pedido veio cada pagamento.
+             * @return this builder
+             */
+            public Builder clientReferenceId(String clientReferenceId) {
+                this.clientReferenceId = clientReferenceId;
                 return this;
             }
 
@@ -267,7 +318,7 @@ public final class CheckoutsService {
             }
 
             /**
-             * @param expiresIn Segundos em que a sessão e o client_secret continuam valendo; 1800 quando fica de fora.
+             * @param expiresIn Segundos em que a sessão e o client_secret continuam valendo, de um minuto a três dias; 1800 (30 minutos) quando fica de fora. Uma sessão paga com Pix pode ser aberta até esse prazo e, aberta, o Pix gerado vale 24 horas.
              * @return this builder
              */
             public Builder expiresIn(Long expiresIn) {
@@ -281,6 +332,15 @@ public final class CheckoutsService {
              */
             public Builder externalCustomerId(String externalCustomerId) {
                 this.externalCustomerId = externalCustomerId;
+                return this;
+            }
+
+            /**
+             * @param items As linhas do pedido, até 50, para o comprador ler o detalhe: aparecem no checkout (página, modal, componentes e transparente), no pedido, no recibo, no portal do cliente e nos eventos. A soma de quantity vezes unit_amount_cents precisa ser igual a amount_cents, ou a resposta é 422; enviadas sem amount_cents, a soma é o valor.
+             * @return this builder
+             */
+            public Builder items(List<CheckoutsCreateItem> items) {
+                this.items = items;
                 return this;
             }
 
@@ -321,7 +381,7 @@ public final class CheckoutsService {
             }
 
             /**
-             * @param quantity the {@code quantity} to send
+             * @param quantity Quantas unidades. Com amount_cents é sempre 1: envie 1 ou omita; qualquer outro valor é recusado com 422.
              * @return this builder
              */
             public Builder quantity(Long quantity) {
@@ -368,6 +428,102 @@ public final class CheckoutsService {
                     throw new IllegalStateException("perata: CreateParams needs productId");
                 }
                 return new CreateParams(this);
+            }
+        }
+    }
+
+
+    /** One item of items in CheckoutsCreateParams. */
+    public static final class CheckoutsCreateItem {
+
+        private final String name;
+        private final Long quantity;
+        private final long unitAmountCents;
+
+        private CheckoutsCreateItem(Builder builder) {
+            this.name = builder.name;
+            this.quantity = builder.quantity;
+            this.unitAmountCents = builder.unitAmountCents;
+        }
+
+        /** @return a builder of the request */
+        public static Builder builder() {
+            return new Builder();
+        }
+
+        /** @return O nome da linha, de até 200 caracteres. */
+        public String getName() {
+            return name;
+        }
+
+        /** @return Quantas unidades da linha; 1 quando fica de fora. (null when left out) */
+        public Long getQuantity() {
+            return quantity;
+        }
+
+        /** @return O valor de uma unidade, em centavos. Negativo é desconto ou cupom, desde que a soma continue maior que zero. */
+        public long getUnitAmountCents() {
+            return unitAmountCents;
+        }
+
+        Map<String, Object> toJson() {
+            Map<String, Object> body = new LinkedHashMap<>();
+            body.put("name", name);
+            if (quantity != null) {
+                body.put("quantity", quantity);
+            }
+            body.put("unit_amount_cents", unitAmountCents);
+            return body;
+        }
+
+        /** Builds {@link CheckoutsCreateItem}; the fields left unset are left out of the request. */
+        public static final class Builder {
+            private String name;
+            private Long quantity;
+            private Long unitAmountCents;
+
+            private Builder() {
+            }
+
+            /**
+             * @param name O nome da linha, de até 200 caracteres. (required)
+             * @return this builder
+             */
+            public Builder name(String name) {
+                this.name = name;
+                return this;
+            }
+
+            /**
+             * @param quantity Quantas unidades da linha; 1 quando fica de fora.
+             * @return this builder
+             */
+            public Builder quantity(Long quantity) {
+                this.quantity = quantity;
+                return this;
+            }
+
+            /**
+             * @param unitAmountCents O valor de uma unidade, em centavos. Negativo é desconto ou cupom, desde que a soma continue maior que zero. (required)
+             * @return this builder
+             */
+            public Builder unitAmountCents(long unitAmountCents) {
+                this.unitAmountCents = unitAmountCents;
+                return this;
+            }
+
+            /**
+             * @return the request
+             * @throws IllegalStateException when a required field is unset
+             */
+            public CheckoutsCreateItem build() {
+                if (name == null) {
+                    throw new IllegalStateException("perata: CheckoutsCreateItem needs name");
+                }
+                if (unitAmountCents == null) {
+                    throw new IllegalStateException("perata: CheckoutsCreateItem needs unitAmountCents");
+                }
+                return new CheckoutsCreateItem(this);
             }
         }
     }

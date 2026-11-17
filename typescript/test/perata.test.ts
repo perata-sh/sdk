@@ -61,6 +61,10 @@ const session = (clientSecret: string) => ({
   client_secret: clientSecret,
   client_secret_expires_at: "2026-11-16T12:30:00Z",
   status_key: "sk_1",
+  amount_cents: null,
+  items: [],
+  metadata: {},
+  client_reference_id: "",
 });
 
 test("a checkout session hands back the client secret for the browser", async () => {
@@ -273,7 +277,7 @@ const referenceSecret = "whsec_MfKQ9r8GKYqrTwjUPD8ILPZIo2LaLaSw";
 const oldSecret = "whsec_cGVyYXRhLXNkay1vbGQta2V5LTAxMjM0NTY3ODlhYmM=";
 const newSecret = "whsec_cGVyYXRhLXNkay1uZXcta2V5LTAxMjM0NTY3ODlhYmM=";
 const orderPaid =
-  '{"id":"msg_2","type":"order.paid","timestamp":"2026-10-22T12:00:00Z","data":{"id":"ord_1","customer_id":"cus_1","product_id":"prod_1","price_id":"price_1","amount_cents":12000,"currency":"BRL","status":"succeeded","paid_at":"2026-10-22T12:00:00Z","installments":3,"installment_interest_cents":360}}';
+  '{"id":"msg_2","type":"order.paid","timestamp":"2026-10-22T12:00:00Z","data":{"id":"ord_1","customer_id":"cus_1","product_id":"prod_1","price_id":"price_1","amount_cents":12000,"currency":"BRL","status":"succeeded","paid_at":"2026-10-22T12:00:00Z","installments":3,"installment_interest_cents":360,"items":[],"metadata":{},"client_reference_id":""}}';
 const usageRecorded =
   '{"id":"msg_3","type":"usage_event.recorded","timestamp":"2026-10-22T12:00:00Z","data":{"event_id":"ue_1","aggregate":"usage_event","aggregate_id":"ue_1","merchant_id":"mer_1","environment":"test"}}';
 const payoutSent = '{"id":"msg_4","type":"payout.sent","timestamp":"2026-10-22T12:00:00Z","data":{"payout_id":"po_1","amount_cents":5000}}';
@@ -299,7 +303,7 @@ test("a timestamp that is not plain digits is refused", async () => {
 
 test("a webhook answers its typed event", async () => {
   const now = (signedAt + 120) * 1000;
-  const headers = webhookHeaders("msg_2", signedAt, "v1,wYfYi9j4EexjSjLLsUssBYbtAFSwF9KVQBJ2o+qD6Jw= v1,0rD3K6HM83kGY+mZMPVidXSW2zXHHDvy3bMt2QzM8Ak=");
+  const headers = webhookHeaders("msg_2", signedAt, "v1,MW5FnOPf5xZdiHRmDImEy+x3spgWmDCUEuwjHOZ7a2Y= v1,rWmUsQveS0J9yTlnQfb7Olszghg8xf7DJHLHG0a7YZo=");
   for (const secret of [newSecret, oldSecret]) {
     const event = await verifyWebhook(secret, headers, orderPaid, now);
     assert.equal(event.type, "order.paid");

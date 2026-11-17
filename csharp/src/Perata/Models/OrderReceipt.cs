@@ -40,6 +40,10 @@ public sealed record OrderReceipt
     [JsonPropertyName("installments")]
     public required long Installments { get; init; }
 
+    /// <summary>As linhas do pedido, quando o lojista as enviou; vazio sem elas.</summary>
+    [JsonPropertyName("items")]
+    public required IReadOnlyList<CheckoutLine> Items { get; init; }
+
     /// <summary>Número do pedido na série da organização; vazio antes de ter um.</summary>
     [JsonPropertyName("number")]
     public required string Number { get; init; }

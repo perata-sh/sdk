@@ -6,26 +6,26 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * The events that carry a Refund: {@code refund.created}, {@code refund.updated}.
+ * The events that carry a WebhookRefund: {@code refund.created}, {@code refund.updated}.
  */
 public final class RefundWebhookEvent extends WebhookEvent {
     /** The event types this class carries. */
     public static final List<String> TYPES = List.of("refund.created", "refund.updated");
 
-    private final Refund data;
+    private final WebhookRefund data;
 
-    RefundWebhookEvent(String id, String type, String timestamp, Refund data) {
+    RefundWebhookEvent(String id, String type, String timestamp, WebhookRefund data) {
         super(id, type, timestamp);
         this.data = data;
     }
 
     static RefundWebhookEvent fromJson(String id, String type, String timestamp, Map<String, Object> data) {
-        return new RefundWebhookEvent(id, type, timestamp, Refund.fromJson(data));
+        return new RefundWebhookEvent(id, type, timestamp, WebhookRefund.fromJson(data));
     }
 
     /** @return what the event carries */
     @Override
-    public Refund getData() {
+    public WebhookRefund getData() {
         return data;
     }
 }

@@ -174,6 +174,9 @@ public final class Webhook {
         if (RefundWebhookEvent.TYPES.contains(type)) {
             return RefundWebhookEvent.fromJson(id, type, timestamp, data);
         }
+        if (SaleWebhookEvent.TYPES.contains(type)) {
+            return SaleWebhookEvent.fromJson(id, type, timestamp, data);
+        }
         if (SubscriptionWebhookEvent.TYPES.contains(type)) {
             return SubscriptionWebhookEvent.fromJson(id, type, timestamp, data);
         }

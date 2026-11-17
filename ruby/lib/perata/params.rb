@@ -238,14 +238,22 @@ module Perata
 
   # The body of checkouts:create.
   class CheckoutsCreateParams < Params
-    MEMBERS = %i[allow_discount_codes cancel_url customer_email customer_id customer_name expires_in external_customer_id label metadata price_id product_id quantity require_billing_address return_url success_url].freeze
+    MEMBERS = %i[allow_discount_codes amount_cents cancel_url client_reference_id customer_email customer_id customer_name expires_in external_customer_id items label metadata price_id product_id quantity require_billing_address return_url success_url].freeze
 
     # Deixa o comprador digitar um código de desconto; desligado quando fica de fora.
     # @return [Boolean, nil]
     attr_reader :allow_discount_codes
 
+    # O valor do pedido todo, em centavos, que o seu servidor fixa. Só vale em um preço de valor livre (custom); em outro preço é recusado com 422. Respeita o mínimo e o máximo do preço, também com 422. O comprador vê o valor e não pode mudá-lo, na página, no modal, nos componentes e no checkout transparente; vale para cartão de crédito, débito e Pix, e é o valor que volta em pedidos, pagamentos, recibo e eventos. Repetir a criação com a mesma Idempotency-Key e outro valor dá 409.
+    # @return [Integer, nil]
+    attr_reader :amount_cents
+
     # @return [String, nil]
     attr_reader :cancel_url
+
+    # O id do pedido no seu sistema, de até 255 caracteres. Volta no checkout, no pedido, no pagamento e nos eventos checkout.*, order.*, checkout_payment.* e refund.*, para você achar de qual pedido veio cada pagamento.
+    # @return [String, nil]
+    attr_reader :client_reference_id
 
     # O e-mail do comprador, quando você o conhece; senão o navegador do comprador o pede.
     # @return [String, nil]
@@ -259,13 +267,17 @@ module Perata
     # @return [String, nil]
     attr_reader :customer_name
 
-    # Segundos em que a sessão e o client_secret continuam valendo; 1800 quando fica de fora.
+    # Segundos em que a sessão e o client_secret continuam valendo, de um minuto a três dias; 1800 (30 minutos) quando fica de fora. Uma sessão paga com Pix pode ser aberta até esse prazo e, aberta, o Pix gerado vale 24 horas.
     # @return [Integer, nil]
     attr_reader :expires_in
 
     # O mesmo cliente, pelo ID que você deu a ele.
     # @return [String, nil]
     attr_reader :external_customer_id
+
+    # As linhas do pedido, até 50, para o comprador ler o detalhe: aparecem no checkout (página, modal, componentes e transparente), no pedido, no recibo, no portal do cliente e nos eventos. A soma de quantity vezes unit_amount_cents precisa ser igual a amount_cents, ou a resposta é 422; enviadas sem amount_cents, a soma é o valor.
+    # @return [Array<CheckoutsCreateItem>, nil]
+    attr_reader :items
 
     # @return [String, nil]
     attr_reader :label
@@ -280,6 +292,7 @@ module Perata
     # @return [String]
     attr_reader :product_id
 
+    # Quantas unidades. Com amount_cents é sempre 1: envie 1 ou omita; qualquer outro valor é recusado com 422.
     # @return [Integer, nil]
     attr_reader :quantity
 
@@ -294,14 +307,17 @@ module Perata
     # @return [String, nil]
     attr_reader :success_url
 
-    def initialize(allow_discount_codes: nil, cancel_url: nil, customer_email: nil, customer_id: nil, customer_name: nil, expires_in: nil, external_customer_id: nil, label: nil, metadata: nil, price_id:, product_id:, quantity: nil, require_billing_address: nil, return_url: nil, success_url: nil)
+    def initialize(allow_discount_codes: nil, amount_cents: nil, cancel_url: nil, client_reference_id: nil, customer_email: nil, customer_id: nil, customer_name: nil, expires_in: nil, external_customer_id: nil, items: nil, label: nil, metadata: nil, price_id:, product_id:, quantity: nil, require_billing_address: nil, return_url: nil, success_url: nil)
       @allow_discount_codes = allow_discount_codes
+      @amount_cents = amount_cents
       @cancel_url = cancel_url
+      @client_reference_id = client_reference_id
       @customer_email = customer_email
       @customer_id = customer_id
       @customer_name = customer_name
       @expires_in = expires_in
       @external_customer_id = external_customer_id
+      @items = items
       @label = label
       @metadata = metadata
       @price_id = price_id
@@ -317,12 +333,15 @@ module Perata
     def to_wire
       wire = {}
       wire["allow_discount_codes"] = @allow_discount_codes unless @allow_discount_codes.nil?
+      wire["amount_cents"] = @amount_cents unless @amount_cents.nil?
       wire["cancel_url"] = @cancel_url unless @cancel_url.nil?
+      wire["client_reference_id"] = @client_reference_id unless @client_reference_id.nil?
       wire["customer_email"] = @customer_email unless @customer_email.nil?
       wire["customer_id"] = @customer_id unless @customer_id.nil?
       wire["customer_name"] = @customer_name unless @customer_name.nil?
       wire["expires_in"] = @expires_in unless @expires_in.nil?
       wire["external_customer_id"] = @external_customer_id unless @external_customer_id.nil?
+      wire["items"] = Perata.wire(@items) unless @items.nil?
       wire["label"] = @label unless @label.nil?
       wire["metadata"] = Perata.wire(@metadata) unless @metadata.nil?
       wire["price_id"] = @price_id
@@ -331,6 +350,39 @@ module Perata
       wire["require_billing_address"] = @require_billing_address unless @require_billing_address.nil?
       wire["return_url"] = @return_url unless @return_url.nil?
       wire["success_url"] = @success_url unless @success_url.nil?
+      wire
+    end
+  end
+
+  # One item of items in CheckoutsCreateParams.
+  class CheckoutsCreateItem < Params
+    MEMBERS = %i[name quantity unit_amount_cents].freeze
+
+    # O nome da linha, de até 200 caracteres.
+    # @return [String]
+    attr_reader :name
+
+    # Quantas unidades da linha; 1 quando fica de fora.
+    # @return [Integer, nil]
+    attr_reader :quantity
+
+    # O valor de uma unidade, em centavos. Negativo é desconto ou cupom, desde que a soma continue maior que zero.
+    # @return [Integer]
+    attr_reader :unit_amount_cents
+
+    def initialize(name:, quantity: nil, unit_amount_cents:)
+      @name = name
+      @quantity = quantity
+      @unit_amount_cents = unit_amount_cents
+      freeze
+    end
+
+    # The body as the API reads it.
+    def to_wire
+      wire = {}
+      wire["name"] = @name
+      wire["quantity"] = @quantity unless @quantity.nil?
+      wire["unit_amount_cents"] = @unit_amount_cents
       wire
     end
   end

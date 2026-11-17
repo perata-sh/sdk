@@ -10,8 +10,12 @@ namespace Perata\Models;
 final class CheckoutCreated
 {
     public function __construct(
+        /** O valor, em centavos, que o seu servidor fixou; o comprador o vê e não pode mudá-lo. Nulo quando é o comprador quem digita o valor. */
+        public readonly ?int $amountCents,
         /** Endereço https para onde o comprador volta se desistir; vazio sem ele. */
         public readonly string $cancelUrl,
+        /** O id do pedido no seu sistema, como o seu servidor o enviou; vazio sem ele. Volta no checkout, no pedido, no pagamento e nos eventos. */
+        public readonly string $clientReferenceId,
         /** O segredo que o navegador do comprador usa para ler, atualizar e pagar a sessão, sem chave de API. Só esta resposta o traz; entregue-o à página que monta os campos seguros. Vem vazio na repetição de uma criação idempotente. */
         public readonly string $clientSecret,
         /** Quando a sessão e o client_secret deixam de valer. */
@@ -21,8 +25,18 @@ final class CheckoutCreated
         public readonly ?string $expiresAt,
         /** O ID do link do checkout, o que GET e PATCH /checkouts/{id} recebem. */
         public readonly string $id,
+        /**
+         * As linhas do valor fixado, na ordem em que foram enviadas; vazio sem elas.
+         * @var list<CheckoutLine>
+         */
+        public readonly array $items,
         /** Como o lojista chama o checkout nas próprias telas; o comprador não vê. */
         public readonly string $label,
+        /**
+         * Os pares que o seu servidor enviou; voltam no pedido, no pagamento e nos eventos da venda (checkout.*, order.*, checkout_payment.* e refund.*).
+         * @var array<string, mixed>
+         */
+        public readonly array $metadata,
         public readonly string $priceId,
         public readonly string $productId,
         public readonly int $quantity,
@@ -48,13 +62,17 @@ final class CheckoutCreated
     public static function fromArray(array $data): self
     {
         return new self(
+            amountCents: $data['amount_cents'] ?? null,
             cancelUrl: $data['cancel_url'],
+            clientReferenceId: $data['client_reference_id'],
             clientSecret: $data['client_secret'],
             clientSecretExpiresAt: $data['client_secret_expires_at'],
             createdAt: $data['created_at'],
             expiresAt: $data['expires_at'] ?? null,
             id: $data['id'],
+            items: array_values(array_map(static fn (array $item) => CheckoutLine::fromArray($item), $data['items'])),
             label: $data['label'],
+            metadata: $data['metadata'],
             priceId: $data['price_id'],
             productId: $data['product_id'],
             quantity: $data['quantity'],

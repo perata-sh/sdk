@@ -57,6 +57,10 @@ public sealed record Payment
     [JsonPropertyName("checkout_id")]
     public required string CheckoutId { get; init; }
 
+    /// <summary>O id do pedido no seu sistema, enviado ao criar o checkout; vazio sem ele.</summary>
+    [JsonPropertyName("client_reference_id")]
+    public required string ClientReferenceId { get; init; }
+
     /// <summary>The API's <c>created_at</c>.</summary>
     [JsonPropertyName("created_at")]
     public required string CreatedAt { get; init; }
@@ -84,6 +88,10 @@ public sealed record Payment
     /// <summary>Em quantas parcelas o cartão de crédito foi cobrado; 1 à vista.</summary>
     [JsonPropertyName("installments")]
     public required long Installments { get; init; }
+
+    /// <summary>Os pares que o seu servidor enviou ao criar o checkout.</summary>
+    [JsonPropertyName("metadata")]
+    public required IReadOnlyDictionary<string, JsonElement> Metadata { get; init; }
 
     /// <summary>The API's <c>method</c>.</summary>
     [JsonPropertyName("method")]

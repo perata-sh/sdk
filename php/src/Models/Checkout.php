@@ -10,14 +10,28 @@ namespace Perata\Models;
 final class Checkout
 {
     public function __construct(
+        /** O valor, em centavos, que o seu servidor fixou na criação; nulo quando é o comprador quem digita o valor. */
+        public readonly ?int $amountCents,
         /** Endereço https para onde o comprador volta se desistir; vazio sem ele. */
         public readonly string $cancelUrl,
+        /** O id do pedido no seu sistema, como o seu servidor o enviou na criação; vazio sem ele. Volta no checkout, no pedido, no pagamento e nos eventos. */
+        public readonly string $clientReferenceId,
         public readonly string $createdAt,
         /** Quando o checkout deixa de abrir sessões; nulo sem prazo. */
         public readonly ?string $expiresAt,
         public readonly string $id,
+        /**
+         * As linhas do valor fixado, na ordem em que foram enviadas; vazio sem elas.
+         * @var list<CheckoutLine>
+         */
+        public readonly array $items,
         /** Como o lojista chama o checkout nas próprias telas; o comprador não vê. */
         public readonly string $label,
+        /**
+         * Os pares que o seu servidor guardou na criação; voltam nos eventos da venda.
+         * @var array<string, mixed>
+         */
+        public readonly array $metadata,
         public readonly string $priceId,
         public readonly string $productId,
         public readonly int $quantity,
@@ -39,11 +53,15 @@ final class Checkout
     public static function fromArray(array $data): self
     {
         return new self(
+            amountCents: $data['amount_cents'] ?? null,
             cancelUrl: $data['cancel_url'],
+            clientReferenceId: $data['client_reference_id'],
             createdAt: $data['created_at'],
             expiresAt: $data['expires_at'] ?? null,
             id: $data['id'],
+            items: array_values(array_map(static fn (array $item) => CheckoutLine::fromArray($item), $data['items'])),
             label: $data['label'],
+            metadata: $data['metadata'],
             priceId: $data['price_id'],
             productId: $data['product_id'],
             quantity: $data['quantity'],

@@ -13,7 +13,7 @@ from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import Any, Literal, TypeAlias, cast, get_args
 
-from .models import BenefitGrant, Customer, Order, Product, Refund, Subscription, WebhookBenefit, WebhookCheckout, WebhookDiscount, WebhookDispute
+from .models import BenefitGrant, Customer, Order, Product, Subscription, WebhookBenefit, WebhookCheckout, WebhookDiscount, WebhookDispute, WebhookRefund, WebhookSale
 
 WEBHOOK_TOLERANCE_SECONDS = 300
 """How far from now a webhook's timestamp may be."""
@@ -116,7 +116,7 @@ class DisputeWebhookEvent:
     data: WebhookDispute
 
 
-IdentifiersWebhookEventType: TypeAlias = Literal["benefit.archived", "benefit.version_created", "benefit_product_link.linked", "benefit_product_link.unlinked", "checkout_link.archived", "checkout_link.created", "checkout_payment.authorized", "checkout_payment.canceled", "checkout_payment.captured", "checkout_payment.partially_refunded", "checkout_payment.refunded", "checkout_payment.refused", "checkout_session.confirmed", "checkout_session.expired", "checkout_session.failed", "checkout_session.opened", "checkout_session.succeeded", "customer.archived", "discount.exhausted", "discount.expired", "discount.reactivated", "discount.redeemed", "discount_redemption.released", "invoice.drafted", "invoice.issued", "invoice.settled", "invoice.uncollectible", "invoice.voided", "price.archived", "price.created", "product.archived", "refund.canceled", "refund.failed", "refund.requested", "refund.succeeded", "seat_allocation.opened", "seat_allocation.resized", "seat_assignment.claimed", "seat_assignment.invited", "seat_assignment.revoked", "usage_event.recorded", "usage_period.closed", "usage_period.opened", "usage_period_adjustment.created"]
+IdentifiersWebhookEventType: TypeAlias = Literal["benefit.archived", "benefit.version_created", "benefit_product_link.linked", "benefit_product_link.unlinked", "checkout_link.archived", "checkout_link.created", "checkout_session.confirmed", "checkout_session.expired", "checkout_session.failed", "checkout_session.opened", "checkout_session.succeeded", "customer.archived", "discount.exhausted", "discount.expired", "discount.reactivated", "discount.redeemed", "discount_redemption.released", "invoice.drafted", "invoice.issued", "invoice.settled", "invoice.uncollectible", "invoice.voided", "price.archived", "price.created", "product.archived", "seat_allocation.opened", "seat_allocation.resized", "seat_assignment.claimed", "seat_assignment.invited", "seat_assignment.revoked", "usage_event.recorded", "usage_period.closed", "usage_period.opened", "usage_period_adjustment.created"]
 
 
 @dataclass(frozen=True)
@@ -166,14 +166,29 @@ RefundWebhookEventType: TypeAlias = Literal["refund.created", "refund.updated"]
 
 @dataclass(frozen=True)
 class RefundWebhookEvent:
-    """The events that carry a Refund."""
+    """The events that carry a WebhookRefund."""
 
     id: str
     """The message's id, the same as the webhook-id header."""
     type: RefundWebhookEventType
     timestamp: str
     """When it happened, in RFC 3339."""
-    data: Refund
+    data: WebhookRefund
+
+
+SaleWebhookEventType: TypeAlias = Literal["checkout_payment.authorized", "checkout_payment.canceled", "checkout_payment.captured", "checkout_payment.partially_refunded", "checkout_payment.refunded", "checkout_payment.refused", "refund.canceled", "refund.failed", "refund.requested", "refund.succeeded"]
+
+
+@dataclass(frozen=True)
+class SaleWebhookEvent:
+    """The events that carry a WebhookSale."""
+
+    id: str
+    """The message's id, the same as the webhook-id header."""
+    type: SaleWebhookEventType
+    timestamp: str
+    """When it happened, in RFC 3339."""
+    data: WebhookSale
 
 
 SubscriptionWebhookEventType: TypeAlias = Literal["subscription.active", "subscription.canceled", "subscription.created", "subscription.cycled", "subscription.past_due", "subscription.paused", "subscription.resumed", "subscription.revoked", "subscription.uncanceled", "subscription.updated"]
@@ -212,6 +227,7 @@ WebhookEvent: TypeAlias = (
     | OrderWebhookEvent
     | ProductWebhookEvent
     | RefundWebhookEvent
+    | SaleWebhookEvent
     | SubscriptionWebhookEvent
     | UnknownWebhookEvent
 )
@@ -264,7 +280,11 @@ def _event(raw: bytes) -> WebhookEvent:
         )
     if kind in get_args(RefundWebhookEventType):
         return RefundWebhookEvent(
-            id=event["id"], type=cast(RefundWebhookEventType, kind), timestamp=event["timestamp"], data=Refund.from_dict(data)
+            id=event["id"], type=cast(RefundWebhookEventType, kind), timestamp=event["timestamp"], data=WebhookRefund.from_dict(data)
+        )
+    if kind in get_args(SaleWebhookEventType):
+        return SaleWebhookEvent(
+            id=event["id"], type=cast(SaleWebhookEventType, kind), timestamp=event["timestamp"], data=WebhookSale.from_dict(data)
         )
     if kind in get_args(SubscriptionWebhookEventType):
         return SubscriptionWebhookEvent(

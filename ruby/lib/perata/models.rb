@@ -334,11 +334,19 @@ module Perata
 
   # Checkout is a resource of Peráta's API.
   class Checkout < Model
-    MEMBERS = %i[cancel_url created_at expires_at id label price_id product_id quantity status success_url url].freeze
+    MEMBERS = %i[amount_cents cancel_url client_reference_id created_at expires_at id items label metadata price_id product_id quantity status success_url url].freeze
+
+    # O valor, em centavos, que o seu servidor fixou na criação; nulo quando é o comprador quem digita o valor.
+    # @return [Integer, nil]
+    attr_reader :amount_cents
 
     # Endereço https para onde o comprador volta se desistir; vazio sem ele.
     # @return [String]
     attr_reader :cancel_url
+
+    # O id do pedido no seu sistema, como o seu servidor o enviou na criação; vazio sem ele. Volta no checkout, no pedido, no pagamento e nos eventos.
+    # @return [String]
+    attr_reader :client_reference_id
 
     # @return [String]
     attr_reader :created_at
@@ -350,9 +358,17 @@ module Perata
     # @return [String]
     attr_reader :id
 
+    # As linhas do valor fixado, na ordem em que foram enviadas; vazio sem elas.
+    # @return [Array<CheckoutLine>]
+    attr_reader :items
+
     # Como o lojista chama o checkout nas próprias telas; o comprador não vê.
     # @return [String]
     attr_reader :label
+
+    # Os pares que o seu servidor guardou na criação; voltam nos eventos da venda.
+    # @return [Hash{String => Object}]
+    attr_reader :metadata
 
     # @return [String]
     attr_reader :price_id
@@ -375,12 +391,16 @@ module Perata
     # @return [String]
     attr_reader :url
 
-    def initialize(cancel_url:, created_at:, expires_at:, id:, label:, price_id:, product_id:, quantity:, status:, success_url:, url:)
+    def initialize(amount_cents:, cancel_url:, client_reference_id:, created_at:, expires_at:, id:, items:, label:, metadata:, price_id:, product_id:, quantity:, status:, success_url:, url:)
+      @amount_cents = amount_cents
       @cancel_url = cancel_url
+      @client_reference_id = client_reference_id
       @created_at = created_at
       @expires_at = expires_at
       @id = id
+      @items = items
       @label = label
+      @metadata = metadata
       @price_id = price_id
       @product_id = product_id
       @quantity = quantity
@@ -393,11 +413,15 @@ module Perata
     # Builds a Checkout from the API's JSON.
     def self.from_hash(data)
       new(
+        amount_cents: data["amount_cents"],
         cancel_url: data.fetch("cancel_url"),
+        client_reference_id: data.fetch("client_reference_id"),
         created_at: data.fetch("created_at"),
         expires_at: data["expires_at"],
         id: data.fetch("id"),
+        items: data.fetch("items").map { |item| CheckoutLine.from_hash(item) },
         label: data.fetch("label"),
+        metadata: data.fetch("metadata"),
         price_id: data.fetch("price_id"),
         product_id: data.fetch("product_id"),
         quantity: data.fetch("quantity"),
@@ -410,11 +434,15 @@ module Perata
 
   # CheckoutClient is a resource of Peráta's API.
   class CheckoutClient < Model
-    MEMBERS = %i[amount_cents cancel_url card_kinds currency customer discount discount_cents editable environment expires_at id installments items missing next_action payment payment_methods requires_billing_address requires_tax_id status status_key success_url total_cents].freeze
+    MEMBERS = %i[amount_cents amount_locked cancel_url card_kinds client_reference_id currency customer discount discount_cents editable environment expires_at id installments items missing next_action payment payment_methods requires_billing_address requires_tax_id status status_key success_url total_cents].freeze
 
     # Antes do desconto.
     # @return [Integer]
     attr_reader :amount_cents
+
+    # Verdadeiro quando o servidor do lojista fixou o valor (amount_cents na criação do checkout): mostre-o ao comprador sem campo para mudá-lo. Nenhuma rota de cliente aceita outro valor.
+    # @return [Boolean]
+    attr_reader :amount_locked
 
     # Para onde o comprador volta sem pagar.
     # @return [String]
@@ -423,6 +451,10 @@ module Perata
     # credit, e debit onde a autenticação do adquirente está ligada.
     # @return [Array<String>]
     attr_reader :card_kinds
+
+    # O id do pedido no seu sistema, quando o seu servidor o enviou; vazio sem ele.
+    # @return [String]
+    attr_reader :client_reference_id
 
     # @return [String ("BRL")]
     attr_reader :currency
@@ -496,10 +528,12 @@ module Perata
     # @return [Integer]
     attr_reader :total_cents
 
-    def initialize(amount_cents:, cancel_url:, card_kinds:, currency:, customer:, discount:, discount_cents:, editable:, environment:, expires_at:, id:, installments:, items:, missing:, next_action:, payment:, payment_methods:, requires_billing_address:, requires_tax_id:, status:, status_key:, success_url:, total_cents:)
+    def initialize(amount_cents:, amount_locked:, cancel_url:, card_kinds:, client_reference_id:, currency:, customer:, discount:, discount_cents:, editable:, environment:, expires_at:, id:, installments:, items:, missing:, next_action:, payment:, payment_methods:, requires_billing_address:, requires_tax_id:, status:, status_key:, success_url:, total_cents:)
       @amount_cents = amount_cents
+      @amount_locked = amount_locked
       @cancel_url = cancel_url
       @card_kinds = card_kinds
+      @client_reference_id = client_reference_id
       @currency = currency
       @customer = customer
       @discount = discount
@@ -527,8 +561,10 @@ module Perata
     def self.from_hash(data)
       new(
         amount_cents: data.fetch("amount_cents"),
+        amount_locked: data.fetch("amount_locked"),
         cancel_url: data.fetch("cancel_url"),
         card_kinds: data.fetch("card_kinds"),
+        client_reference_id: data.fetch("client_reference_id"),
         currency: data.fetch("currency"),
         customer: data["customer"]&.then { |value| CheckoutClientCustomer.from_hash(value) },
         discount: data["discount"]&.then { |value| CheckoutClientDiscount.from_hash(value) },
@@ -814,11 +850,19 @@ module Perata
 
   # CheckoutCreated is a resource of Peráta's API.
   class CheckoutCreated < Model
-    MEMBERS = %i[cancel_url client_secret client_secret_expires_at created_at expires_at id label price_id product_id quantity session_id status status_key success_url url].freeze
+    MEMBERS = %i[amount_cents cancel_url client_reference_id client_secret client_secret_expires_at created_at expires_at id items label metadata price_id product_id quantity session_id status status_key success_url url].freeze
+
+    # O valor, em centavos, que o seu servidor fixou; o comprador o vê e não pode mudá-lo. Nulo quando é o comprador quem digita o valor.
+    # @return [Integer, nil]
+    attr_reader :amount_cents
 
     # Endereço https para onde o comprador volta se desistir; vazio sem ele.
     # @return [String]
     attr_reader :cancel_url
+
+    # O id do pedido no seu sistema, como o seu servidor o enviou; vazio sem ele. Volta no checkout, no pedido, no pagamento e nos eventos.
+    # @return [String]
+    attr_reader :client_reference_id
 
     # O segredo que o navegador do comprador usa para ler, atualizar e pagar a sessão, sem chave de API. Só esta resposta o traz; entregue-o à página que monta os campos seguros. Vem vazio na repetição de uma criação idempotente.
     # @return [String]
@@ -839,9 +883,17 @@ module Perata
     # @return [String]
     attr_reader :id
 
+    # As linhas do valor fixado, na ordem em que foram enviadas; vazio sem elas.
+    # @return [Array<CheckoutLine>]
+    attr_reader :items
+
     # Como o lojista chama o checkout nas próprias telas; o comprador não vê.
     # @return [String]
     attr_reader :label
+
+    # Os pares que o seu servidor enviou; voltam no pedido, no pagamento e nos eventos da venda (checkout.*, order.*, checkout_payment.* e refund.*).
+    # @return [Hash{String => Object}]
+    attr_reader :metadata
 
     # @return [String]
     attr_reader :price_id
@@ -872,14 +924,18 @@ module Perata
     # @return [String]
     attr_reader :url
 
-    def initialize(cancel_url:, client_secret:, client_secret_expires_at:, created_at:, expires_at:, id:, label:, price_id:, product_id:, quantity:, session_id:, status:, status_key:, success_url:, url:)
+    def initialize(amount_cents:, cancel_url:, client_reference_id:, client_secret:, client_secret_expires_at:, created_at:, expires_at:, id:, items:, label:, metadata:, price_id:, product_id:, quantity:, session_id:, status:, status_key:, success_url:, url:)
+      @amount_cents = amount_cents
       @cancel_url = cancel_url
+      @client_reference_id = client_reference_id
       @client_secret = client_secret
       @client_secret_expires_at = client_secret_expires_at
       @created_at = created_at
       @expires_at = expires_at
       @id = id
+      @items = items
       @label = label
+      @metadata = metadata
       @price_id = price_id
       @product_id = product_id
       @quantity = quantity
@@ -894,13 +950,17 @@ module Perata
     # Builds a CheckoutCreated from the API's JSON.
     def self.from_hash(data)
       new(
+        amount_cents: data["amount_cents"],
         cancel_url: data.fetch("cancel_url"),
+        client_reference_id: data.fetch("client_reference_id"),
         client_secret: data.fetch("client_secret"),
         client_secret_expires_at: data.fetch("client_secret_expires_at"),
         created_at: data.fetch("created_at"),
         expires_at: data["expires_at"],
         id: data.fetch("id"),
+        items: data.fetch("items").map { |item| CheckoutLine.from_hash(item) },
         label: data.fetch("label"),
+        metadata: data.fetch("metadata"),
         price_id: data.fetch("price_id"),
         product_id: data.fetch("product_id"),
         quantity: data.fetch("quantity"),
@@ -947,6 +1007,37 @@ module Perata
         installment_cents: data.fetch("installment_cents"),
         interest_cents: data.fetch("interest_cents"),
         total_cents: data.fetch("total_cents")
+      )
+    end
+  end
+
+  # CheckoutLine is a resource of Peráta's API.
+  class CheckoutLine < Model
+    MEMBERS = %i[name quantity unit_amount_cents].freeze
+
+    # @return [String]
+    attr_reader :name
+
+    # @return [Integer]
+    attr_reader :quantity
+
+    # O valor de uma unidade, em centavos; negativo é desconto.
+    # @return [Integer]
+    attr_reader :unit_amount_cents
+
+    def initialize(name:, quantity:, unit_amount_cents:)
+      @name = name
+      @quantity = quantity
+      @unit_amount_cents = unit_amount_cents
+      freeze
+    end
+
+    # Builds a CheckoutLine from the API's JSON.
+    def self.from_hash(data)
+      new(
+        name: data.fetch("name"),
+        quantity: data.fetch("quantity"),
+        unit_amount_cents: data.fetch("unit_amount_cents")
       )
     end
   end
@@ -1909,10 +2000,14 @@ module Perata
 
   # Order is a resource of Peráta's API.
   class Order < Model
-    MEMBERS = %i[amount_cents currency customer_id id installment_interest_cents installments paid_at price_id product_id status].freeze
+    MEMBERS = %i[amount_cents client_reference_id currency customer_id id installment_interest_cents installments items metadata paid_at price_id product_id status].freeze
 
     # @return [Integer]
     attr_reader :amount_cents
+
+    # O id do pedido no seu sistema, enviado ao criar o checkout; vazio sem ele.
+    # @return [String]
+    attr_reader :client_reference_id
 
     # @return [String ("BRL")]
     attr_reader :currency
@@ -1931,6 +2026,14 @@ module Perata
     # @return [Integer]
     attr_reader :installments
 
+    # As linhas do pedido, quando o seu servidor as enviou ao criar o checkout; vazio sem elas.
+    # @return [Array<CheckoutLine>]
+    attr_reader :items
+
+    # Os pares que o seu servidor enviou ao criar o checkout.
+    # @return [Hash{String => Object}]
+    attr_reader :metadata
+
     # @return [String, nil]
     attr_reader :paid_at
 
@@ -1943,13 +2046,16 @@ module Perata
     # @return [String ("open", "confirmed", "succeeded", "failed", "expired")]
     attr_reader :status
 
-    def initialize(amount_cents:, currency:, customer_id:, id:, installment_interest_cents:, installments:, paid_at:, price_id:, product_id:, status:)
+    def initialize(amount_cents:, client_reference_id:, currency:, customer_id:, id:, installment_interest_cents:, installments:, items:, metadata:, paid_at:, price_id:, product_id:, status:)
       @amount_cents = amount_cents
+      @client_reference_id = client_reference_id
       @currency = currency
       @customer_id = customer_id
       @id = id
       @installment_interest_cents = installment_interest_cents
       @installments = installments
+      @items = items
+      @metadata = metadata
       @paid_at = paid_at
       @price_id = price_id
       @product_id = product_id
@@ -1961,11 +2067,14 @@ module Perata
     def self.from_hash(data)
       new(
         amount_cents: data.fetch("amount_cents"),
+        client_reference_id: data.fetch("client_reference_id"),
         currency: data.fetch("currency"),
         customer_id: data.fetch("customer_id"),
         id: data.fetch("id"),
         installment_interest_cents: data.fetch("installment_interest_cents"),
         installments: data.fetch("installments"),
+        items: data.fetch("items").map { |item| CheckoutLine.from_hash(item) },
+        metadata: data.fetch("metadata"),
         paid_at: data["paid_at"],
         price_id: data.fetch("price_id"),
         product_id: data.fetch("product_id"),
@@ -1976,7 +2085,7 @@ module Perata
 
   # OrderInvoice is a resource of Peráta's API.
   class OrderInvoice < Model
-    MEMBERS = %i[address amount_cents billing_name currency discount_cents generated_at number order_id product_name tax_id tax_id_kind total_cents].freeze
+    MEMBERS = %i[address amount_cents billing_name currency discount_cents generated_at items number order_id product_name tax_id tax_id_kind total_cents].freeze
 
     # @return [BillingAddress]
     attr_reader :address
@@ -1995,6 +2104,10 @@ module Perata
 
     # @return [String]
     attr_reader :generated_at
+
+    # As linhas do pedido, quando o lojista as enviou; vazio sem elas.
+    # @return [Array<CheckoutLine>]
+    attr_reader :items
 
     # Número da fatura, na série da organização (PREFIXO-0001).
     # @return [String]
@@ -2017,13 +2130,14 @@ module Perata
     # @return [Integer]
     attr_reader :total_cents
 
-    def initialize(address:, amount_cents:, billing_name:, currency:, discount_cents:, generated_at:, number:, order_id:, product_name:, tax_id:, tax_id_kind:, total_cents:)
+    def initialize(address:, amount_cents:, billing_name:, currency:, discount_cents:, generated_at:, items:, number:, order_id:, product_name:, tax_id:, tax_id_kind:, total_cents:)
       @address = address
       @amount_cents = amount_cents
       @billing_name = billing_name
       @currency = currency
       @discount_cents = discount_cents
       @generated_at = generated_at
+      @items = items
       @number = number
       @order_id = order_id
       @product_name = product_name
@@ -2042,6 +2156,7 @@ module Perata
         currency: data.fetch("currency"),
         discount_cents: data.fetch("discount_cents"),
         generated_at: data.fetch("generated_at"),
+        items: data.fetch("items").map { |item| CheckoutLine.from_hash(item) },
         number: data.fetch("number"),
         order_id: data.fetch("order_id"),
         product_name: data.fetch("product_name"),
@@ -2054,7 +2169,7 @@ module Perata
 
   # OrderReceipt is a resource of Peráta's API.
   class OrderReceipt < Model
-    MEMBERS = %i[amount_cents currency customer_email customer_name discount_cents installment_interest_cents installments number order_id paid_at payment_method product_name refunded_cents total_cents].freeze
+    MEMBERS = %i[amount_cents currency customer_email customer_name discount_cents installment_interest_cents installments items number order_id paid_at payment_method product_name refunded_cents total_cents].freeze
 
     # @return [Integer]
     attr_reader :amount_cents
@@ -2077,6 +2192,10 @@ module Perata
     # Em quantas parcelas o cartão de crédito foi cobrado; 1 à vista.
     # @return [Integer]
     attr_reader :installments
+
+    # As linhas do pedido, quando o lojista as enviou; vazio sem elas.
+    # @return [Array<CheckoutLine>]
+    attr_reader :items
 
     # Número do pedido na série da organização; vazio antes de ter um.
     # @return [String]
@@ -2101,7 +2220,7 @@ module Perata
     # @return [Integer]
     attr_reader :total_cents
 
-    def initialize(amount_cents:, currency:, customer_email:, customer_name:, discount_cents:, installment_interest_cents:, installments:, number:, order_id:, paid_at:, payment_method:, product_name:, refunded_cents:, total_cents:)
+    def initialize(amount_cents:, currency:, customer_email:, customer_name:, discount_cents:, installment_interest_cents:, installments:, items:, number:, order_id:, paid_at:, payment_method:, product_name:, refunded_cents:, total_cents:)
       @amount_cents = amount_cents
       @currency = currency
       @customer_email = customer_email
@@ -2109,6 +2228,7 @@ module Perata
       @discount_cents = discount_cents
       @installment_interest_cents = installment_interest_cents
       @installments = installments
+      @items = items
       @number = number
       @order_id = order_id
       @paid_at = paid_at
@@ -2129,6 +2249,7 @@ module Perata
         discount_cents: data.fetch("discount_cents"),
         installment_interest_cents: data.fetch("installment_interest_cents"),
         installments: data.fetch("installments"),
+        items: data.fetch("items").map { |item| CheckoutLine.from_hash(item) },
         number: data.fetch("number"),
         order_id: data.fetch("order_id"),
         paid_at: data["paid_at"],
@@ -2167,7 +2288,7 @@ module Perata
 
   # Payment is a resource of Peráta's API.
   class Payment < Model
-    MEMBERS = %i[amount_cents captured_cents checkout_id created_at currency customer_id id installment_amount_cents installment_interest_cents installments method refunded_cents state].freeze
+    MEMBERS = %i[amount_cents captured_cents checkout_id client_reference_id created_at currency customer_id id installment_amount_cents installment_interest_cents installments metadata method refunded_cents state].freeze
 
     # @return [Integer]
     attr_reader :amount_cents
@@ -2177,6 +2298,10 @@ module Perata
 
     # @return [String]
     attr_reader :checkout_id
+
+    # O id do pedido no seu sistema, enviado ao criar o checkout; vazio sem ele.
+    # @return [String]
+    attr_reader :client_reference_id
 
     # @return [String]
     attr_reader :created_at
@@ -2202,6 +2327,10 @@ module Perata
     # @return [Integer]
     attr_reader :installments
 
+    # Os pares que o seu servidor enviou ao criar o checkout.
+    # @return [Hash{String => Object}]
+    attr_reader :metadata
+
     # @return [String ("card", "pix", "boleto")]
     attr_reader :method
 
@@ -2211,10 +2340,11 @@ module Perata
     # @return [String ("unknown", "pending", "authorized", "captured", "refused", "canceled", "refunded", "partially_refunded")]
     attr_reader :state
 
-    def initialize(amount_cents:, captured_cents:, checkout_id:, created_at:, currency:, customer_id:, id:, installment_amount_cents:, installment_interest_cents:, installments:, method:, refunded_cents:, state:)
+    def initialize(amount_cents:, captured_cents:, checkout_id:, client_reference_id:, created_at:, currency:, customer_id:, id:, installment_amount_cents:, installment_interest_cents:, installments:, metadata:, method:, refunded_cents:, state:)
       @amount_cents = amount_cents
       @captured_cents = captured_cents
       @checkout_id = checkout_id
+      @client_reference_id = client_reference_id
       @created_at = created_at
       @currency = currency
       @customer_id = customer_id
@@ -2222,6 +2352,7 @@ module Perata
       @installment_amount_cents = installment_amount_cents
       @installment_interest_cents = installment_interest_cents
       @installments = installments
+      @metadata = metadata
       @method = method
       @refunded_cents = refunded_cents
       @state = state
@@ -2234,6 +2365,7 @@ module Perata
         amount_cents: data.fetch("amount_cents"),
         captured_cents: data.fetch("captured_cents"),
         checkout_id: data.fetch("checkout_id"),
+        client_reference_id: data.fetch("client_reference_id"),
         created_at: data.fetch("created_at"),
         currency: data.fetch("currency"),
         customer_id: data.fetch("customer_id"),
@@ -2241,6 +2373,7 @@ module Perata
         installment_amount_cents: data.fetch("installment_amount_cents"),
         installment_interest_cents: data.fetch("installment_interest_cents"),
         installments: data.fetch("installments"),
+        metadata: data.fetch("metadata"),
         method: data.fetch("method"),
         refunded_cents: data.fetch("refunded_cents"),
         state: data.fetch("state")
@@ -2621,13 +2754,17 @@ module Perata
 
   # WebhookCheckout is a resource of Peráta's API.
   class WebhookCheckout < Model
-    MEMBERS = %i[amount_cents checkout_link_id created_at currency customer_id discount_cents expires_at id price_id product_id status total_cents].freeze
+    MEMBERS = %i[amount_cents checkout_link_id client_reference_id created_at currency customer_id discount_cents expires_at id items metadata price_id product_id status total_cents].freeze
 
     # @return [Integer]
     attr_reader :amount_cents
 
     # @return [String, nil]
     attr_reader :checkout_link_id
+
+    # O id do pedido no sistema do lojista; vazio sem ele.
+    # @return [String, nil]
+    attr_reader :client_reference_id
 
     # @return [String]
     attr_reader :created_at
@@ -2648,6 +2785,14 @@ module Perata
     # @return [String]
     attr_reader :id
 
+    # As linhas do valor que o servidor do lojista fixou; vazio sem elas.
+    # @return [Array<CheckoutLine>, nil]
+    attr_reader :items
+
+    # Os pares que o servidor do lojista enviou ao criar o checkout; vazio sem eles.
+    # @return [Hash{String => Object}, nil]
+    attr_reader :metadata
+
     # @return [String]
     attr_reader :price_id
 
@@ -2660,15 +2805,18 @@ module Perata
     # @return [Integer]
     attr_reader :total_cents
 
-    def initialize(amount_cents:, checkout_link_id:, created_at:, currency:, customer_id:, discount_cents:, expires_at:, id:, price_id:, product_id:, status:, total_cents:)
+    def initialize(amount_cents:, checkout_link_id:, client_reference_id: nil, created_at:, currency:, customer_id:, discount_cents:, expires_at:, id:, items: nil, metadata: nil, price_id:, product_id:, status:, total_cents:)
       @amount_cents = amount_cents
       @checkout_link_id = checkout_link_id
+      @client_reference_id = client_reference_id
       @created_at = created_at
       @currency = currency
       @customer_id = customer_id
       @discount_cents = discount_cents
       @expires_at = expires_at
       @id = id
+      @items = items
+      @metadata = metadata
       @price_id = price_id
       @product_id = product_id
       @status = status
@@ -2681,12 +2829,15 @@ module Perata
       new(
         amount_cents: data.fetch("amount_cents"),
         checkout_link_id: data["checkout_link_id"],
+        client_reference_id: data["client_reference_id"],
         created_at: data.fetch("created_at"),
         currency: data.fetch("currency"),
         customer_id: data["customer_id"],
         discount_cents: data.fetch("discount_cents"),
         expires_at: data.fetch("expires_at"),
         id: data.fetch("id"),
+        items: data["items"]&.then { |value| value.map { |item| CheckoutLine.from_hash(item) } },
+        metadata: data["metadata"],
         price_id: data.fetch("price_id"),
         product_id: data.fetch("product_id"),
         status: data.fetch("status"),
@@ -3076,6 +3227,140 @@ module Perata
         secret: data.fetch("secret"),
         status: data.fetch("status"),
         url: data.fetch("url")
+      )
+    end
+  end
+
+  # WebhookRefund is a resource of Peráta's API.
+  class WebhookRefund < Model
+    MEMBERS = %i[amount_cents checkout_id client_reference_id id metadata payment_id status].freeze
+
+    # @return [Integer]
+    attr_reader :amount_cents
+
+    # O checkout (o pedido) que o reembolso devolve, quando se sabe.
+    # @return [String, nil]
+    attr_reader :checkout_id
+
+    # O id do pedido no sistema do lojista; vazio sem ele.
+    # @return [String, nil]
+    attr_reader :client_reference_id
+
+    # @return [String]
+    attr_reader :id
+
+    # Os pares que o servidor do lojista enviou ao criar o checkout; vazio sem eles.
+    # @return [Hash{String => Object}]
+    attr_reader :metadata
+
+    # @return [String]
+    attr_reader :payment_id
+
+    # @return [String ("requested", "pending", "unknown", "succeeded", "failed", "canceled")]
+    attr_reader :status
+
+    def initialize(amount_cents:, checkout_id: nil, client_reference_id: nil, id:, metadata:, payment_id:, status:)
+      @amount_cents = amount_cents
+      @checkout_id = checkout_id
+      @client_reference_id = client_reference_id
+      @id = id
+      @metadata = metadata
+      @payment_id = payment_id
+      @status = status
+      freeze
+    end
+
+    # Builds a WebhookRefund from the API's JSON.
+    def self.from_hash(data)
+      new(
+        amount_cents: data.fetch("amount_cents"),
+        checkout_id: data["checkout_id"],
+        client_reference_id: data["client_reference_id"],
+        id: data.fetch("id"),
+        metadata: data.fetch("metadata"),
+        payment_id: data.fetch("payment_id"),
+        status: data.fetch("status")
+      )
+    end
+  end
+
+  # Os eventos da venda (checkout_payment.* e refund.*): os identificadores de sempre e, além deles, o checkout, o valor e o que o servidor do lojista enviou ao criar o checkout.
+  class WebhookSale < Model
+    MEMBERS = %i[aggregate aggregate_id amount_cents checkout_id client_reference_id currency environment event_id merchant_id metadata method payment_id].freeze
+
+    # @return [String]
+    attr_reader :aggregate
+
+    # @return [String]
+    attr_reader :aggregate_id
+
+    # O valor do pagamento (com os juros do parcelamento, quando há) ou o valor reembolsado, em centavos.
+    # @return [Integer, nil]
+    attr_reader :amount_cents
+
+    # O checkout (o pedido) do pagamento ou do reembolso.
+    # @return [String, nil]
+    attr_reader :checkout_id
+
+    # O id do pedido no sistema do lojista; vazio sem ele.
+    # @return [String, nil]
+    attr_reader :client_reference_id
+
+    # @return [String ("BRL"), nil]
+    attr_reader :currency
+
+    # @return [String]
+    attr_reader :environment
+
+    # @return [String]
+    attr_reader :event_id
+
+    # @return [String]
+    attr_reader :merchant_id
+
+    # Os pares que o servidor do lojista enviou ao criar o checkout; vazio sem eles.
+    # @return [Hash{String => Object}, nil]
+    attr_reader :metadata
+
+    # O meio do pagamento, nos eventos checkout_payment.*.
+    # @return [String ("card", "pix", "boleto"), nil]
+    attr_reader :method
+
+    # O pagamento que o reembolso devolve, nos eventos refund.*.
+    # @return [String, nil]
+    attr_reader :payment_id
+
+    def initialize(aggregate:, aggregate_id:, amount_cents: nil, checkout_id: nil, client_reference_id: nil, currency: nil, environment:, event_id:, merchant_id:, metadata: nil, method: nil, payment_id: nil)
+      @aggregate = aggregate
+      @aggregate_id = aggregate_id
+      @amount_cents = amount_cents
+      @checkout_id = checkout_id
+      @client_reference_id = client_reference_id
+      @currency = currency
+      @environment = environment
+      @event_id = event_id
+      @merchant_id = merchant_id
+      @metadata = metadata
+      @method = method
+      @payment_id = payment_id
+      freeze
+    end
+
+    # Builds a WebhookSale from the API's JSON.
+    def self.from_hash(data)
+      new(
+        aggregate: data.fetch("aggregate"),
+        aggregate_id: data.fetch("aggregate_id"),
+        amount_cents: data["amount_cents"],
+        checkout_id: data["checkout_id"],
+        client_reference_id: data["client_reference_id"],
+        currency: data["currency"],
+        environment: data.fetch("environment"),
+        event_id: data.fetch("event_id"),
+        merchant_id: data.fetch("merchant_id"),
+        metadata: data["metadata"],
+        method: data["method"],
+        payment_id: data["payment_id"]
       )
     end
   end

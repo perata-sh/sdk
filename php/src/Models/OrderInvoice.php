@@ -17,6 +17,11 @@ final class OrderInvoice
         public readonly string $currency,
         public readonly int $discountCents,
         public readonly string $generatedAt,
+        /**
+         * As linhas do pedido, quando o lojista as enviou; vazio sem elas.
+         * @var list<CheckoutLine>
+         */
+        public readonly array $items,
         /** Número da fatura, na série da organização (PREFIXO-0001). */
         public readonly string $number,
         public readonly string $orderId,
@@ -41,6 +46,7 @@ final class OrderInvoice
             currency: $data['currency'],
             discountCents: $data['discount_cents'],
             generatedAt: $data['generated_at'],
+            items: array_values(array_map(static fn (array $item) => CheckoutLine::fromArray($item), $data['items'])),
             number: $data['number'],
             orderId: $data['order_id'],
             productName: $data['product_name'],

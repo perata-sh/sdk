@@ -12,11 +12,15 @@ public final class Checkout {
     /** A value of {@link #getStatus()}. */
     public static final String STATUS_ARCHIVED = "archived";
 
+    private final Long amountCents;
     private final String cancelUrl;
+    private final String clientReferenceId;
     private final String createdAt;
     private final String expiresAt;
     private final String id;
+    private final List<CheckoutLine> items;
     private final String label;
+    private final Map<String, Object> metadata;
     private final String priceId;
     private final String productId;
     private final long quantity;
@@ -24,12 +28,16 @@ public final class Checkout {
     private final String successUrl;
     private final String url;
 
-    Checkout(String cancelUrl, String createdAt, String expiresAt, String id, String label, String priceId, String productId, long quantity, String status, String successUrl, String url) {
+    Checkout(Long amountCents, String cancelUrl, String clientReferenceId, String createdAt, String expiresAt, String id, List<CheckoutLine> items, String label, Map<String, Object> metadata, String priceId, String productId, long quantity, String status, String successUrl, String url) {
+        this.amountCents = amountCents;
         this.cancelUrl = cancelUrl;
+        this.clientReferenceId = clientReferenceId;
         this.createdAt = createdAt;
         this.expiresAt = expiresAt;
         this.id = id;
+        this.items = items;
         this.label = label;
+        this.metadata = metadata;
         this.priceId = priceId;
         this.productId = productId;
         this.quantity = quantity;
@@ -40,11 +48,15 @@ public final class Checkout {
 
     static Checkout fromJson(Map<String, Object> data) {
         return new Checkout(
+                Json.optional(data, "amount_cents", Json::asLong),
                 Json.required(data, "cancel_url", Json::asString),
+                Json.required(data, "client_reference_id", Json::asString),
                 Json.required(data, "created_at", Json::asString),
                 Json.optional(data, "expires_at", Json::asString),
                 Json.required(data, "id", Json::asString),
+                Json.required(data, "items", Json.list(Json.model(CheckoutLine::fromJson))),
                 Json.required(data, "label", Json::asString),
+                Json.required(data, "metadata", Json.map(Json::any)),
                 Json.required(data, "price_id", Json::asString),
                 Json.required(data, "product_id", Json::asString),
                 Json.required(data, "quantity", Json::asLong),
@@ -53,9 +65,19 @@ public final class Checkout {
                 Json.required(data, "url", Json::asString));
     }
 
+    /** @return O valor, em centavos, que o seu servidor fixou na criação; nulo quando é o comprador quem digita o valor. (null when the API sends none) */
+    public Long getAmountCents() {
+        return amountCents;
+    }
+
     /** @return Endereço https para onde o comprador volta se desistir; vazio sem ele. */
     public String getCancelUrl() {
         return cancelUrl;
+    }
+
+    /** @return O id do pedido no seu sistema, como o seu servidor o enviou na criação; vazio sem ele. Volta no checkout, no pedido, no pagamento e nos eventos. */
+    public String getClientReferenceId() {
+        return clientReferenceId;
     }
 
     /** @return the API's {@code created_at} */
@@ -73,9 +95,19 @@ public final class Checkout {
         return id;
     }
 
+    /** @return As linhas do valor fixado, na ordem em que foram enviadas; vazio sem elas. */
+    public List<CheckoutLine> getItems() {
+        return items;
+    }
+
     /** @return Como o lojista chama o checkout nas próprias telas; o comprador não vê. */
     public String getLabel() {
         return label;
+    }
+
+    /** @return Os pares que o seu servidor guardou na criação; voltam nos eventos da venda. */
+    public Map<String, Object> getMetadata() {
+        return metadata;
     }
 
     /** @return the API's {@code price_id} */
@@ -110,6 +142,6 @@ public final class Checkout {
 
     @Override
     public String toString() {
-        return "Checkout{" + "cancelUrl=" + cancelUrl + ", createdAt=" + createdAt + ", expiresAt=" + expiresAt + ", id=" + id + ", label=" + label + ", priceId=" + priceId + ", productId=" + productId + ", quantity=" + quantity + ", status=" + status + ", successUrl=" + successUrl + ", url=" + url + "}";
+        return "Checkout{" + "amountCents=" + amountCents + ", cancelUrl=" + cancelUrl + ", clientReferenceId=" + clientReferenceId + ", createdAt=" + createdAt + ", expiresAt=" + expiresAt + ", id=" + id + ", items=" + items + ", label=" + label + ", metadata=" + metadata + ", priceId=" + priceId + ", productId=" + productId + ", quantity=" + quantity + ", status=" + status + ", successUrl=" + successUrl + ", url=" + url + "}";
     }
 }

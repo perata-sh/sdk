@@ -17,6 +17,7 @@ public final class OrderReceipt {
     private final long discountCents;
     private final long installmentInterestCents;
     private final long installments;
+    private final List<CheckoutLine> items;
     private final String number;
     private final String orderId;
     private final String paidAt;
@@ -25,7 +26,7 @@ public final class OrderReceipt {
     private final long refundedCents;
     private final long totalCents;
 
-    OrderReceipt(long amountCents, String currency, String customerEmail, String customerName, long discountCents, long installmentInterestCents, long installments, String number, String orderId, String paidAt, String paymentMethod, String productName, long refundedCents, long totalCents) {
+    OrderReceipt(long amountCents, String currency, String customerEmail, String customerName, long discountCents, long installmentInterestCents, long installments, List<CheckoutLine> items, String number, String orderId, String paidAt, String paymentMethod, String productName, long refundedCents, long totalCents) {
         this.amountCents = amountCents;
         this.currency = currency;
         this.customerEmail = customerEmail;
@@ -33,6 +34,7 @@ public final class OrderReceipt {
         this.discountCents = discountCents;
         this.installmentInterestCents = installmentInterestCents;
         this.installments = installments;
+        this.items = items;
         this.number = number;
         this.orderId = orderId;
         this.paidAt = paidAt;
@@ -51,6 +53,7 @@ public final class OrderReceipt {
                 Json.required(data, "discount_cents", Json::asLong),
                 Json.required(data, "installment_interest_cents", Json::asLong),
                 Json.required(data, "installments", Json::asLong),
+                Json.required(data, "items", Json.list(Json.model(CheckoutLine::fromJson))),
                 Json.required(data, "number", Json::asString),
                 Json.required(data, "order_id", Json::asString),
                 Json.optional(data, "paid_at", Json::asString),
@@ -95,6 +98,11 @@ public final class OrderReceipt {
         return installments;
     }
 
+    /** @return As linhas do pedido, quando o lojista as enviou; vazio sem elas. */
+    public List<CheckoutLine> getItems() {
+        return items;
+    }
+
     /** @return Número do pedido na série da organização; vazio antes de ter um. */
     public String getNumber() {
         return number;
@@ -132,6 +140,6 @@ public final class OrderReceipt {
 
     @Override
     public String toString() {
-        return "OrderReceipt{" + "amountCents=" + amountCents + ", currency=" + currency + ", customerEmail=" + customerEmail + ", customerName=" + customerName + ", discountCents=" + discountCents + ", installmentInterestCents=" + installmentInterestCents + ", installments=" + installments + ", number=" + number + ", orderId=" + orderId + ", paidAt=" + paidAt + ", paymentMethod=" + paymentMethod + ", productName=" + productName + ", refundedCents=" + refundedCents + ", totalCents=" + totalCents + "}";
+        return "OrderReceipt{" + "amountCents=" + amountCents + ", currency=" + currency + ", customerEmail=" + customerEmail + ", customerName=" + customerName + ", discountCents=" + discountCents + ", installmentInterestCents=" + installmentInterestCents + ", installments=" + installments + ", items=" + items + ", number=" + number + ", orderId=" + orderId + ", paidAt=" + paidAt + ", paymentMethod=" + paymentMethod + ", productName=" + productName + ", refundedCents=" + refundedCents + ", totalCents=" + totalCents + "}";
     }
 }

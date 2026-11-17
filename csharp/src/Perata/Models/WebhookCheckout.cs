@@ -35,6 +35,10 @@ public sealed record WebhookCheckout
     [JsonPropertyName("checkout_link_id")]
     public string? CheckoutLinkId { get; init; }
 
+    /// <summary>O id do pedido no sistema do lojista; vazio sem ele. Null when the API sends none.</summary>
+    [JsonPropertyName("client_reference_id")]
+    public string? ClientReferenceId { get; init; }
+
     /// <summary>The API's <c>created_at</c>.</summary>
     [JsonPropertyName("created_at")]
     public required string CreatedAt { get; init; }
@@ -58,6 +62,14 @@ public sealed record WebhookCheckout
     /// <summary>The API's <c>id</c>.</summary>
     [JsonPropertyName("id")]
     public required string Id { get; init; }
+
+    /// <summary>As linhas do valor que o servidor do lojista fixou; vazio sem elas. Null when the API sends none.</summary>
+    [JsonPropertyName("items")]
+    public IReadOnlyList<CheckoutLine>? Items { get; init; }
+
+    /// <summary>Os pares que o servidor do lojista enviou ao criar o checkout; vazio sem eles. Null when the API sends none.</summary>
+    [JsonPropertyName("metadata")]
+    public IReadOnlyDictionary<string, JsonElement>? Metadata { get; init; }
 
     /// <summary>The API's <c>price_id</c>.</summary>
     [JsonPropertyName("price_id")]

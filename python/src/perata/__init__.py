@@ -6,7 +6,7 @@ from ._errors import PerataError
 from ._pagination import Page
 from ._services import BenefitsService, CheckoutLinksService, CheckoutsService, CustomerSessionsService, CustomersService, DiscountsService, DisputesService, EventsService, MetersService, OrdersService, PaymentMethodsService, PaymentsService, PricesService, ProductsService, RefundsService, SubscriptionsService, UsageService, WebhooksService
 from ._version import API_VERSION, DEFAULT_BASE_URL, VERSION
-from .models import Benefit, BenefitGrant, BillingAddress, Card, CardAuthentication, CardTokenization, Checkout, CheckoutClient, CheckoutClientBoleto, CheckoutClientCustomer, CheckoutClientDiscount, CheckoutClientItem, CheckoutClientPayment, CheckoutClientPix, CheckoutCreated, CheckoutInstallment, CheckoutLink, CheckoutLinkProduct, CheckoutNextAction, CheckoutSavedCard, CheckoutSavedData, CheckoutSavedDataSent, CheckoutSavedProfile, Customer, CustomerSession, CustomerState, CustomerStateBenefitGrant, Discount, Dispute, Event, Meter, MeterAggregation, MeterUnit, Order, OrderInvoice, OrderReceipt, Pagination, Payment, PaymentMethod, PaymentMethodDetached, Price, Product, Refund, Subscription, UsageError, WebhookBenefit, WebhookCheckout, WebhookDelivery, WebhookDiscount, WebhookDispute, WebhookEndpoint, WebhookEndpointCreated, BenefitsCreateParams, BenefitsUpdateParams, CheckoutLinksCreateParams, CheckoutLinksUpdateParams, CheckoutsCreateParams, CheckoutsUpdateParams, CustomerSessionsCreateParams, CustomersCreateParams, CustomersUpdateParams, DiscountsCreateParams, DiscountsUpdateParams, CustomersUpdateExternalParams, PricesCreateParams, ProductsCreateParams, ProductsUpdateParams, RefundsCreateParams, SubscriptionsUpdateParams, SubscriptionsCancelParams, UsageIngestParams, UsageIngestReceipt, UsageIngestEventCost, UsageIngestEventLlm, UsageIngestEvent, WebhooksCreateEndpointParams, WebhooksUpdateEndpointParams
+from .models import Benefit, BenefitGrant, BillingAddress, Card, CardAuthentication, CardTokenization, Checkout, CheckoutClient, CheckoutClientBoleto, CheckoutClientCustomer, CheckoutClientDiscount, CheckoutClientItem, CheckoutClientPayment, CheckoutClientPix, CheckoutCreated, CheckoutInstallment, CheckoutLine, CheckoutLink, CheckoutLinkProduct, CheckoutNextAction, CheckoutSavedCard, CheckoutSavedData, CheckoutSavedDataSent, CheckoutSavedProfile, Customer, CustomerSession, CustomerState, CustomerStateBenefitGrant, Discount, Dispute, Event, Meter, MeterAggregation, MeterUnit, Order, OrderInvoice, OrderReceipt, Pagination, Payment, PaymentMethod, PaymentMethodDetached, Price, Product, Refund, Subscription, UsageError, WebhookBenefit, WebhookCheckout, WebhookDelivery, WebhookDiscount, WebhookDispute, WebhookEndpoint, WebhookEndpointCreated, WebhookRefund, WebhookSale, BenefitsCreateParams, BenefitsUpdateParams, CheckoutLinksCreateParams, CheckoutLinksUpdateParams, CheckoutsCreateParams, CheckoutsCreateItem, CheckoutsUpdateParams, CustomerSessionsCreateParams, CustomersCreateParams, CustomersUpdateParams, DiscountsCreateParams, DiscountsUpdateParams, CustomersUpdateExternalParams, PricesCreateParams, ProductsCreateParams, ProductsUpdateParams, RefundsCreateParams, SubscriptionsUpdateParams, SubscriptionsCancelParams, UsageIngestParams, UsageIngestReceipt, UsageIngestEventCost, UsageIngestEventLlm, UsageIngestEvent, WebhooksCreateEndpointParams, WebhooksUpdateEndpointParams
 from .webhooks import (
     WEBHOOK_TOLERANCE_SECONDS,
     BenefitWebhookEvent,
@@ -29,6 +29,8 @@ from .webhooks import (
     ProductWebhookEventType,
     RefundWebhookEvent,
     RefundWebhookEventType,
+    SaleWebhookEvent,
+    SaleWebhookEventType,
     SubscriptionWebhookEvent,
     SubscriptionWebhookEventType,
     UnknownWebhookEvent,
@@ -73,6 +75,8 @@ __all__ = [
     "ProductWebhookEventType",
     "RefundWebhookEvent",
     "RefundWebhookEventType",
+    "SaleWebhookEvent",
+    "SaleWebhookEventType",
     "SubscriptionWebhookEvent",
     "SubscriptionWebhookEventType",
     "BenefitsService",
@@ -109,6 +113,7 @@ __all__ = [
     "CheckoutClientPix",
     "CheckoutCreated",
     "CheckoutInstallment",
+    "CheckoutLine",
     "CheckoutLink",
     "CheckoutLinkProduct",
     "CheckoutNextAction",
@@ -145,11 +150,14 @@ __all__ = [
     "WebhookDispute",
     "WebhookEndpoint",
     "WebhookEndpointCreated",
+    "WebhookRefund",
+    "WebhookSale",
     "BenefitsCreateParams",
     "BenefitsUpdateParams",
     "CheckoutLinksCreateParams",
     "CheckoutLinksUpdateParams",
     "CheckoutsCreateParams",
+    "CheckoutsCreateItem",
     "CheckoutsUpdateParams",
     "CustomerSessionsCreateParams",
     "CustomersCreateParams",

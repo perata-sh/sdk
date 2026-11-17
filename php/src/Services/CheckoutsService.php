@@ -20,7 +20,7 @@ final class CheckoutsService
     /**
      * Criar um checkout: o endereço para onde o comprador é enviado e a sessão de compra aberta para ele, com o client_secret que o navegador do comprador usa nas rotas de cliente.
      *
-     * @param array{allow_discount_codes?: bool, cancel_url?: string, customer_email?: string, customer_id?: string, customer_name?: string, expires_in?: int, external_customer_id?: string, label?: string, metadata?: array<string, mixed>, price_id: string, product_id: string, quantity?: int, require_billing_address?: bool, return_url?: string, success_url?: string} $params
+     * @param array{allow_discount_codes?: bool, amount_cents?: int, cancel_url?: string, client_reference_id?: string, customer_email?: string, customer_id?: string, customer_name?: string, expires_in?: int, external_customer_id?: string, items?: list<array{name: string, quantity?: int, unit_amount_cents: int}>, label?: string, metadata?: array<string, mixed>, price_id: string, product_id: string, quantity?: int, require_billing_address?: bool, return_url?: string, success_url?: string} $params
      */
     public function create(array $params, ?string $idempotencyKey = null, ?string $apiKey = null): Models\CheckoutCreated
     {

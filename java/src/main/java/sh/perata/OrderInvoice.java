@@ -16,6 +16,7 @@ public final class OrderInvoice {
     private final String currency;
     private final long discountCents;
     private final String generatedAt;
+    private final List<CheckoutLine> items;
     private final String number;
     private final String orderId;
     private final String productName;
@@ -23,13 +24,14 @@ public final class OrderInvoice {
     private final String taxIdKind;
     private final long totalCents;
 
-    OrderInvoice(BillingAddress address, long amountCents, String billingName, String currency, long discountCents, String generatedAt, String number, String orderId, String productName, String taxId, String taxIdKind, long totalCents) {
+    OrderInvoice(BillingAddress address, long amountCents, String billingName, String currency, long discountCents, String generatedAt, List<CheckoutLine> items, String number, String orderId, String productName, String taxId, String taxIdKind, long totalCents) {
         this.address = address;
         this.amountCents = amountCents;
         this.billingName = billingName;
         this.currency = currency;
         this.discountCents = discountCents;
         this.generatedAt = generatedAt;
+        this.items = items;
         this.number = number;
         this.orderId = orderId;
         this.productName = productName;
@@ -46,6 +48,7 @@ public final class OrderInvoice {
                 Json.required(data, "currency", Json::asString),
                 Json.required(data, "discount_cents", Json::asLong),
                 Json.required(data, "generated_at", Json::asString),
+                Json.required(data, "items", Json.list(Json.model(CheckoutLine::fromJson))),
                 Json.required(data, "number", Json::asString),
                 Json.required(data, "order_id", Json::asString),
                 Json.required(data, "product_name", Json::asString),
@@ -84,6 +87,11 @@ public final class OrderInvoice {
         return generatedAt;
     }
 
+    /** @return As linhas do pedido, quando o lojista as enviou; vazio sem elas. */
+    public List<CheckoutLine> getItems() {
+        return items;
+    }
+
     /** @return Número da fatura, na série da organização (PREFIXO-0001). */
     public String getNumber() {
         return number;
@@ -116,6 +124,6 @@ public final class OrderInvoice {
 
     @Override
     public String toString() {
-        return "OrderInvoice{" + "address=" + address + ", amountCents=" + amountCents + ", billingName=" + billingName + ", currency=" + currency + ", discountCents=" + discountCents + ", generatedAt=" + generatedAt + ", number=" + number + ", orderId=" + orderId + ", productName=" + productName + ", taxId=" + taxId + ", taxIdKind=" + taxIdKind + ", totalCents=" + totalCents + "}";
+        return "OrderInvoice{" + "address=" + address + ", amountCents=" + amountCents + ", billingName=" + billingName + ", currency=" + currency + ", discountCents=" + discountCents + ", generatedAt=" + generatedAt + ", items=" + items + ", number=" + number + ", orderId=" + orderId + ", productName=" + productName + ", taxId=" + taxId + ", taxIdKind=" + taxIdKind + ", totalCents=" + totalCents + "}";
     }
 }

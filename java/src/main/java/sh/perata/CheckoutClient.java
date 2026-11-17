@@ -25,8 +25,10 @@ public final class CheckoutClient {
     public static final String STATUS_EXPIRED = "expired";
 
     private final long amountCents;
+    private final boolean amountLocked;
     private final String cancelUrl;
     private final List<String> cardKinds;
+    private final String clientReferenceId;
     private final String currency;
     private final CheckoutClientCustomer customer;
     private final CheckoutClientDiscount discount;
@@ -48,10 +50,12 @@ public final class CheckoutClient {
     private final String successUrl;
     private final long totalCents;
 
-    CheckoutClient(long amountCents, String cancelUrl, List<String> cardKinds, String currency, CheckoutClientCustomer customer, CheckoutClientDiscount discount, long discountCents, boolean editable, String environment, String expiresAt, String id, List<CheckoutInstallment> installments, List<CheckoutClientItem> items, List<String> missing, CheckoutNextAction nextAction, CheckoutClientPayment payment, List<String> paymentMethods, boolean requiresBillingAddress, boolean requiresTaxId, String status, String statusKey, String successUrl, long totalCents) {
+    CheckoutClient(long amountCents, boolean amountLocked, String cancelUrl, List<String> cardKinds, String clientReferenceId, String currency, CheckoutClientCustomer customer, CheckoutClientDiscount discount, long discountCents, boolean editable, String environment, String expiresAt, String id, List<CheckoutInstallment> installments, List<CheckoutClientItem> items, List<String> missing, CheckoutNextAction nextAction, CheckoutClientPayment payment, List<String> paymentMethods, boolean requiresBillingAddress, boolean requiresTaxId, String status, String statusKey, String successUrl, long totalCents) {
         this.amountCents = amountCents;
+        this.amountLocked = amountLocked;
         this.cancelUrl = cancelUrl;
         this.cardKinds = cardKinds;
+        this.clientReferenceId = clientReferenceId;
         this.currency = currency;
         this.customer = customer;
         this.discount = discount;
@@ -77,8 +81,10 @@ public final class CheckoutClient {
     static CheckoutClient fromJson(Map<String, Object> data) {
         return new CheckoutClient(
                 Json.required(data, "amount_cents", Json::asLong),
+                Json.required(data, "amount_locked", Json::asBoolean),
                 Json.required(data, "cancel_url", Json::asString),
                 Json.required(data, "card_kinds", Json.list(Json::asString)),
+                Json.required(data, "client_reference_id", Json::asString),
                 Json.required(data, "currency", Json::asString),
                 Json.optional(data, "customer", Json.model(CheckoutClientCustomer::fromJson)),
                 Json.optional(data, "discount", Json.model(CheckoutClientDiscount::fromJson)),
@@ -106,6 +112,11 @@ public final class CheckoutClient {
         return amountCents;
     }
 
+    /** @return Verdadeiro quando o servidor do lojista fixou o valor (amount_cents na criação do checkout): mostre-o ao comprador sem campo para mudá-lo. Nenhuma rota de cliente aceita outro valor. */
+    public boolean getAmountLocked() {
+        return amountLocked;
+    }
+
     /** @return Para onde o comprador volta sem pagar. */
     public String getCancelUrl() {
         return cancelUrl;
@@ -114,6 +125,11 @@ public final class CheckoutClient {
     /** @return credit, e debit onde a autenticação do adquirente está ligada. */
     public List<String> getCardKinds() {
         return cardKinds;
+    }
+
+    /** @return O id do pedido no seu sistema, quando o seu servidor o enviou; vazio sem ele. */
+    public String getClientReferenceId() {
+        return clientReferenceId;
     }
 
     /** @return the API's {@code currency} */
@@ -218,6 +234,6 @@ public final class CheckoutClient {
 
     @Override
     public String toString() {
-        return "CheckoutClient{" + "amountCents=" + amountCents + ", cancelUrl=" + cancelUrl + ", cardKinds=" + cardKinds + ", currency=" + currency + ", customer=" + customer + ", discount=" + discount + ", discountCents=" + discountCents + ", editable=" + editable + ", environment=" + environment + ", expiresAt=" + expiresAt + ", id=" + id + ", installments=" + installments + ", items=" + items + ", missing=" + missing + ", nextAction=" + nextAction + ", payment=" + payment + ", paymentMethods=" + paymentMethods + ", requiresBillingAddress=" + requiresBillingAddress + ", requiresTaxId=" + requiresTaxId + ", status=" + status + ", statusKey=" + statusKey + ", successUrl=" + successUrl + ", totalCents=" + totalCents + "}";
+        return "CheckoutClient{" + "amountCents=" + amountCents + ", amountLocked=" + amountLocked + ", cancelUrl=" + cancelUrl + ", cardKinds=" + cardKinds + ", clientReferenceId=" + clientReferenceId + ", currency=" + currency + ", customer=" + customer + ", discount=" + discount + ", discountCents=" + discountCents + ", editable=" + editable + ", environment=" + environment + ", expiresAt=" + expiresAt + ", id=" + id + ", installments=" + installments + ", items=" + items + ", missing=" + missing + ", nextAction=" + nextAction + ", payment=" + payment + ", paymentMethods=" + paymentMethods + ", requiresBillingAddress=" + requiresBillingAddress + ", requiresTaxId=" + requiresTaxId + ", status=" + status + ", statusKey=" + statusKey + ", successUrl=" + successUrl + ", totalCents=" + totalCents + "}";
     }
 }

@@ -50,7 +50,7 @@ const orderPaid =
     '"data":{"id":"ord_1","customer_id":"cus_1","product_id":"prod_1",'
     '"price_id":"price_1","amount_cents":12000,"currency":"BRL",'
     '"status":"succeeded","paid_at":"2026-10-22T12:00:00Z","installments":3,'
-    '"installment_interest_cents":360}}';
+    '"installment_interest_cents":360,"items":[],"metadata":{},"client_reference_id":""}}';
 const usageRecorded =
     '{"id":"msg_3","type":"usage_event.recorded",'
     '"timestamp":"2026-10-22T12:00:00Z","data":{"event_id":"ue_1",'
@@ -115,6 +115,10 @@ void main() {
         'client_secret': clientSecret,
         'client_secret_expires_at': '2026-11-16T12:30:00Z',
         'status_key': 'sk_1',
+        'amount_cents': null,
+        'items': <dynamic>[],
+        'metadata': <String, dynamic>{},
+        'client_reference_id': '',
       };
       var calls = 0;
       final (perata, seen) = client(
@@ -559,8 +563,8 @@ void main() {
     final headers = webhookHeaders(
       'msg_2',
       signedAt,
-      'v1,wYfYi9j4EexjSjLLsUssBYbtAFSwF9KVQBJ2o+qD6Jw= '
-          'v1,0rD3K6HM83kGY+mZMPVidXSW2zXHHDvy3bMt2QzM8Ak=',
+      'v1,MW5FnOPf5xZdiHRmDImEy+x3spgWmDCUEuwjHOZ7a2Y= '
+          'v1,rWmUsQveS0J9yTlnQfb7Olszghg8xf7DJHLHG0a7YZo=',
     );
     for (final secret in [newSecret, oldSecret]) {
       final event = verifyWebhook(secret, headers, orderPaid, now: now);

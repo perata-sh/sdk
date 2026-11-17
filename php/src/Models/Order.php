@@ -11,6 +11,8 @@ final class Order
 {
     public function __construct(
         public readonly int $amountCents,
+        /** O id do pedido no seu sistema, enviado ao criar o checkout; vazio sem ele. */
+        public readonly string $clientReferenceId,
         /** @var 'BRL' */
         public readonly string $currency,
         public readonly string $customerId,
@@ -19,6 +21,16 @@ final class Order
         public readonly int $installmentInterestCents,
         /** Em quantas parcelas o cartão de crédito foi cobrado; 1 à vista. */
         public readonly int $installments,
+        /**
+         * As linhas do pedido, quando o seu servidor as enviou ao criar o checkout; vazio sem elas.
+         * @var list<CheckoutLine>
+         */
+        public readonly array $items,
+        /**
+         * Os pares que o seu servidor enviou ao criar o checkout.
+         * @var array<string, mixed>
+         */
+        public readonly array $metadata,
         public readonly ?string $paidAt,
         public readonly string $priceId,
         public readonly string $productId,
@@ -34,11 +46,14 @@ final class Order
     {
         return new self(
             amountCents: $data['amount_cents'],
+            clientReferenceId: $data['client_reference_id'],
             currency: $data['currency'],
             customerId: $data['customer_id'],
             id: $data['id'],
             installmentInterestCents: $data['installment_interest_cents'],
             installments: $data['installments'],
+            items: array_values(array_map(static fn (array $item) => CheckoutLine::fromArray($item), $data['items'])),
+            metadata: $data['metadata'],
             paidAt: $data['paid_at'] ?? null,
             priceId: $data['price_id'],
             productId: $data['product_id'],

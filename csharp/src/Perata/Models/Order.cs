@@ -31,6 +31,10 @@ public sealed record Order
     [JsonPropertyName("amount_cents")]
     public required long AmountCents { get; init; }
 
+    /// <summary>O id do pedido no seu sistema, enviado ao criar o checkout; vazio sem ele.</summary>
+    [JsonPropertyName("client_reference_id")]
+    public required string ClientReferenceId { get; init; }
+
     /// <summary>The API's <c>currency</c>.</summary>
     [JsonPropertyName("currency")]
     public required string Currency { get; init; }
@@ -50,6 +54,14 @@ public sealed record Order
     /// <summary>Em quantas parcelas o cartão de crédito foi cobrado; 1 à vista.</summary>
     [JsonPropertyName("installments")]
     public required long Installments { get; init; }
+
+    /// <summary>As linhas do pedido, quando o seu servidor as enviou ao criar o checkout; vazio sem elas.</summary>
+    [JsonPropertyName("items")]
+    public required IReadOnlyList<CheckoutLine> Items { get; init; }
+
+    /// <summary>Os pares que o seu servidor enviou ao criar o checkout.</summary>
+    [JsonPropertyName("metadata")]
+    public required IReadOnlyDictionary<string, JsonElement> Metadata { get; init; }
 
     /// <summary>The API's <c>paid_at</c>. Null when the API sends none.</summary>
     [JsonPropertyName("paid_at")]

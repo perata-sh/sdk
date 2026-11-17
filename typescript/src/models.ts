@@ -85,14 +85,22 @@ export interface CardTokenization {
 
 /** Checkout is a resource of Peráta's API. */
 export interface Checkout {
+  /** O valor, em centavos, que o seu servidor fixou na criação; nulo quando é o comprador quem digita o valor. */
+  amount_cents: number | null;
   /** Endereço https para onde o comprador volta se desistir; vazio sem ele. */
   cancel_url: string;
+  /** O id do pedido no seu sistema, como o seu servidor o enviou na criação; vazio sem ele. Volta no checkout, no pedido, no pagamento e nos eventos. */
+  client_reference_id: string;
   created_at: string;
   /** Quando o checkout deixa de abrir sessões; nulo sem prazo. */
   expires_at: string | null;
   id: string;
+  /** As linhas do valor fixado, na ordem em que foram enviadas; vazio sem elas. */
+  items: CheckoutLine[];
   /** Como o lojista chama o checkout nas próprias telas; o comprador não vê. */
   label: string;
+  /** Os pares que o seu servidor guardou na criação; voltam nos eventos da venda. */
+  metadata: Record<string, unknown>;
   price_id: string;
   product_id: string;
   quantity: number;
@@ -108,10 +116,14 @@ export interface Checkout {
 export interface CheckoutClient {
   /** Antes do desconto. */
   amount_cents: number;
+  /** Verdadeiro quando o servidor do lojista fixou o valor (amount_cents na criação do checkout): mostre-o ao comprador sem campo para mudá-lo. Nenhuma rota de cliente aceita outro valor. */
+  amount_locked: boolean;
   /** Para onde o comprador volta sem pagar. */
   cancel_url: string;
   /** credit, e debit onde a autenticação do adquirente está ligada. */
   card_kinds: string[];
+  /** O id do pedido no seu sistema, quando o seu servidor o enviou; vazio sem ele. */
+  client_reference_id: string;
   currency: "BRL";
   customer: CheckoutClientCustomer | null;
   discount: CheckoutClientDiscount | null;
@@ -217,8 +229,12 @@ export interface CheckoutClientPix {
 
 /** CheckoutCreated is a resource of Peráta's API. */
 export interface CheckoutCreated {
+  /** O valor, em centavos, que o seu servidor fixou; o comprador o vê e não pode mudá-lo. Nulo quando é o comprador quem digita o valor. */
+  amount_cents: number | null;
   /** Endereço https para onde o comprador volta se desistir; vazio sem ele. */
   cancel_url: string;
+  /** O id do pedido no seu sistema, como o seu servidor o enviou; vazio sem ele. Volta no checkout, no pedido, no pagamento e nos eventos. */
+  client_reference_id: string;
   /** O segredo que o navegador do comprador usa para ler, atualizar e pagar a sessão, sem chave de API. Só esta resposta o traz; entregue-o à página que monta os campos seguros. Vem vazio na repetição de uma criação idempotente. */
   client_secret: string;
   /** Quando a sessão e o client_secret deixam de valer. */
@@ -228,8 +244,12 @@ export interface CheckoutCreated {
   expires_at: string | null;
   /** O ID do link do checkout, o que GET e PATCH /checkouts/{id} recebem. */
   id: string;
+  /** As linhas do valor fixado, na ordem em que foram enviadas; vazio sem elas. */
+  items: CheckoutLine[];
   /** Como o lojista chama o checkout nas próprias telas; o comprador não vê. */
   label: string;
+  /** Os pares que o seu servidor enviou; voltam no pedido, no pagamento e nos eventos da venda (checkout.*, order.*, checkout_payment.* e refund.*). */
+  metadata: Record<string, unknown>;
   price_id: string;
   product_id: string;
   quantity: number;
@@ -254,6 +274,14 @@ export interface CheckoutInstallment {
   interest_cents: number;
   /** Quanto o comprador paga no total: o total da sessão, mais os juros quando o plano os tem. */
   total_cents: number;
+}
+
+/** CheckoutLine is a resource of Peráta's API. */
+export interface CheckoutLine {
+  name: string;
+  quantity: number;
+  /** O valor de uma unidade, em centavos; negativo é desconto. */
+  unit_amount_cents: number;
 }
 
 /** CheckoutLink is a resource of Peráta's API. */
@@ -512,6 +540,8 @@ export interface MeterUnit {
 /** Order is a resource of Peráta's API. */
 export interface Order {
   amount_cents: number;
+  /** O id do pedido no seu sistema, enviado ao criar o checkout; vazio sem ele. */
+  client_reference_id: string;
   currency: "BRL";
   customer_id: string;
   id: string;
@@ -519,6 +549,10 @@ export interface Order {
   installment_interest_cents: number;
   /** Em quantas parcelas o cartão de crédito foi cobrado; 1 à vista. */
   installments: number;
+  /** As linhas do pedido, quando o seu servidor as enviou ao criar o checkout; vazio sem elas. */
+  items: CheckoutLine[];
+  /** Os pares que o seu servidor enviou ao criar o checkout. */
+  metadata: Record<string, unknown>;
   paid_at: string | null;
   price_id: string;
   product_id: string;
@@ -533,6 +567,8 @@ export interface OrderInvoice {
   currency: "BRL";
   discount_cents: number;
   generated_at: string;
+  /** As linhas do pedido, quando o lojista as enviou; vazio sem elas. */
+  items: CheckoutLine[];
   /** Número da fatura, na série da organização (PREFIXO-0001). */
   number: string;
   order_id: string;
@@ -554,6 +590,8 @@ export interface OrderReceipt {
   installment_interest_cents: number;
   /** Em quantas parcelas o cartão de crédito foi cobrado; 1 à vista. */
   installments: number;
+  /** As linhas do pedido, quando o lojista as enviou; vazio sem elas. */
+  items: CheckoutLine[];
   /** Número do pedido na série da organização; vazio antes de ter um. */
   number: string;
   order_id: string;
@@ -576,6 +614,8 @@ export interface Payment {
   amount_cents: number;
   captured_cents: number;
   checkout_id: string;
+  /** O id do pedido no seu sistema, enviado ao criar o checkout; vazio sem ele. */
+  client_reference_id: string;
   created_at: string;
   currency: "BRL";
   customer_id: string;
@@ -586,6 +626,8 @@ export interface Payment {
   installment_interest_cents: number;
   /** Em quantas parcelas o cartão de crédito foi cobrado; 1 à vista. */
   installments: number;
+  /** Os pares que o seu servidor enviou ao criar o checkout. */
+  metadata: Record<string, unknown>;
   method: "card" | "pix" | "boleto";
   refunded_cents: number;
   state: "unknown" | "pending" | "authorized" | "captured" | "refused" | "canceled" | "refunded" | "partially_refunded";
@@ -682,6 +724,8 @@ export interface WebhookBenefit {
 export interface WebhookCheckout {
   amount_cents: number;
   checkout_link_id: string | null;
+  /** O id do pedido no sistema do lojista; vazio sem ele. */
+  client_reference_id?: string;
   created_at: string;
   currency: "BRL";
   /** Nulo até o comprador confirmar. */
@@ -689,6 +733,10 @@ export interface WebhookCheckout {
   discount_cents: number;
   expires_at: string;
   id: string;
+  /** As linhas do valor que o servidor do lojista fixou; vazio sem elas. */
+  items?: CheckoutLine[];
+  /** Os pares que o servidor do lojista enviou ao criar o checkout; vazio sem eles. */
+  metadata?: Record<string, unknown>;
   price_id: string;
   product_id: string;
   status: "open" | "confirmed" | "succeeded" | "failed" | "expired";
@@ -789,6 +837,42 @@ export interface WebhookEndpointCreated {
   url: string;
 }
 
+/** WebhookRefund is a resource of Peráta's API. */
+export interface WebhookRefund {
+  amount_cents: number;
+  /** O checkout (o pedido) que o reembolso devolve, quando se sabe. */
+  checkout_id?: string;
+  /** O id do pedido no sistema do lojista; vazio sem ele. */
+  client_reference_id?: string;
+  id: string;
+  /** Os pares que o servidor do lojista enviou ao criar o checkout; vazio sem eles. */
+  metadata: Record<string, unknown>;
+  payment_id: string;
+  status: "requested" | "pending" | "unknown" | "succeeded" | "failed" | "canceled";
+}
+
+/** Os eventos da venda (checkout_payment.* e refund.*): os identificadores de sempre e, além deles, o checkout, o valor e o que o servidor do lojista enviou ao criar o checkout. */
+export interface WebhookSale {
+  aggregate: string;
+  aggregate_id: string;
+  /** O valor do pagamento (com os juros do parcelamento, quando há) ou o valor reembolsado, em centavos. */
+  amount_cents?: number;
+  /** O checkout (o pedido) do pagamento ou do reembolso. */
+  checkout_id?: string;
+  /** O id do pedido no sistema do lojista; vazio sem ele. */
+  client_reference_id?: string;
+  currency?: "BRL";
+  environment: string;
+  event_id: string;
+  merchant_id: string;
+  /** Os pares que o servidor do lojista enviou ao criar o checkout; vazio sem eles. */
+  metadata?: Record<string, unknown>;
+  /** O meio do pagamento, nos eventos checkout_payment.*. */
+  method?: "card" | "pix" | "boleto";
+  /** O pagamento que o reembolso devolve, nos eventos refund.*. */
+  payment_id?: string;
+}
+
 /** The body of benefits:create. */
 export interface BenefitsCreateParams {
   description?: string;
@@ -854,28 +938,45 @@ export interface CheckoutLinksUpdateParams {
 export interface CheckoutsCreateParams {
   /** Deixa o comprador digitar um código de desconto; desligado quando fica de fora. */
   allow_discount_codes?: boolean;
+  /** O valor do pedido todo, em centavos, que o seu servidor fixa. Só vale em um preço de valor livre (custom); em outro preço é recusado com 422. Respeita o mínimo e o máximo do preço, também com 422. O comprador vê o valor e não pode mudá-lo, na página, no modal, nos componentes e no checkout transparente; vale para cartão de crédito, débito e Pix, e é o valor que volta em pedidos, pagamentos, recibo e eventos. Repetir a criação com a mesma Idempotency-Key e outro valor dá 409. */
+  amount_cents?: number;
   cancel_url?: string;
+  /** O id do pedido no seu sistema, de até 255 caracteres. Volta no checkout, no pedido, no pagamento e nos eventos checkout.*, order.*, checkout_payment.* e refund.*, para você achar de qual pedido veio cada pagamento. */
+  client_reference_id?: string;
   /** O e-mail do comprador, quando você o conhece; senão o navegador do comprador o pede. */
   customer_email?: string;
   /** Um cliente seu: o checkout abre com o nome, o e-mail e os dados de cobrança dele. Não junto com external_customer_id, customer_email ou customer_name. */
   customer_id?: string;
   /** O nome do comprador, quando você o conhece. */
   customer_name?: string;
-  /** Segundos em que a sessão e o client_secret continuam valendo; 1800 quando fica de fora. */
+  /** Segundos em que a sessão e o client_secret continuam valendo, de um minuto a três dias; 1800 (30 minutos) quando fica de fora. Uma sessão paga com Pix pode ser aberta até esse prazo e, aberta, o Pix gerado vale 24 horas. */
   expires_in?: number;
   /** O mesmo cliente, pelo ID que você deu a ele. */
   external_customer_id?: string;
+  /** As linhas do pedido, até 50, para o comprador ler o detalhe: aparecem no checkout (página, modal, componentes e transparente), no pedido, no recibo, no portal do cliente e nos eventos. A soma de quantity vezes unit_amount_cents precisa ser igual a amount_cents, ou a resposta é 422; enviadas sem amount_cents, a soma é o valor. */
+  items?: CheckoutsCreateItem[];
   label?: string;
   /** Até 50 pares guardados no link do checkout; valor em texto, número ou booleano. */
   metadata?: Record<string, unknown>;
   price_id: string;
   product_id: string;
+  /** Quantas unidades. Com amount_cents é sempre 1: envie 1 ou omita; qualquer outro valor é recusado com 422. */
   quantity?: number;
   /** Pede o endereço de cobrança completo de todo comprador, não só no boleto; desligado quando fica de fora. */
   require_billing_address?: boolean;
   /** Outro nome de cancel_url: a página https a que o comprador volta sem pagar. Enviada com um cancel_url diferente, é recusada. */
   return_url?: string;
   success_url?: string;
+}
+
+/** One item of items in CheckoutsCreateParams. */
+export interface CheckoutsCreateItem {
+  /** O nome da linha, de até 200 caracteres. */
+  name: string;
+  /** Quantas unidades da linha; 1 quando fica de fora. */
+  quantity?: number;
+  /** O valor de uma unidade, em centavos. Negativo é desconto ou cupom, desde que a soma continue maior que zero. */
+  unit_amount_cents: number;
 }
 
 /** The body of checkouts:update. */

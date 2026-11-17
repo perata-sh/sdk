@@ -105,7 +105,7 @@ public sealed record DisputeWebhookEvent(string Id, string Type, string Timestam
     };
 }
 
-/// <summary>The events that carry the event's identifiers: <c>benefit.archived</c>, <c>benefit.version_created</c>, <c>benefit_product_link.linked</c>, <c>benefit_product_link.unlinked</c>, <c>checkout_link.archived</c>, <c>checkout_link.created</c>, <c>checkout_payment.authorized</c>, <c>checkout_payment.canceled</c>, <c>checkout_payment.captured</c>, <c>checkout_payment.partially_refunded</c>, <c>checkout_payment.refunded</c>, <c>checkout_payment.refused</c>, <c>checkout_session.confirmed</c>, <c>checkout_session.expired</c>, <c>checkout_session.failed</c>, <c>checkout_session.opened</c>, <c>checkout_session.succeeded</c>, <c>customer.archived</c>, <c>discount.exhausted</c>, <c>discount.expired</c>, <c>discount.reactivated</c>, <c>discount.redeemed</c>, <c>discount_redemption.released</c>, <c>invoice.drafted</c>, <c>invoice.issued</c>, <c>invoice.settled</c>, <c>invoice.uncollectible</c>, <c>invoice.voided</c>, <c>price.archived</c>, <c>price.created</c>, <c>product.archived</c>, <c>refund.canceled</c>, <c>refund.failed</c>, <c>refund.requested</c>, <c>refund.succeeded</c>, <c>seat_allocation.opened</c>, <c>seat_allocation.resized</c>, <c>seat_assignment.claimed</c>, <c>seat_assignment.invited</c>, <c>seat_assignment.revoked</c>, <c>usage_event.recorded</c>, <c>usage_period.closed</c>, <c>usage_period.opened</c>, <c>usage_period_adjustment.created</c>.</summary>
+/// <summary>The events that carry the event's identifiers: <c>benefit.archived</c>, <c>benefit.version_created</c>, <c>benefit_product_link.linked</c>, <c>benefit_product_link.unlinked</c>, <c>checkout_link.archived</c>, <c>checkout_link.created</c>, <c>checkout_session.confirmed</c>, <c>checkout_session.expired</c>, <c>checkout_session.failed</c>, <c>checkout_session.opened</c>, <c>checkout_session.succeeded</c>, <c>customer.archived</c>, <c>discount.exhausted</c>, <c>discount.expired</c>, <c>discount.reactivated</c>, <c>discount.redeemed</c>, <c>discount_redemption.released</c>, <c>invoice.drafted</c>, <c>invoice.issued</c>, <c>invoice.settled</c>, <c>invoice.uncollectible</c>, <c>invoice.voided</c>, <c>price.archived</c>, <c>price.created</c>, <c>product.archived</c>, <c>seat_allocation.opened</c>, <c>seat_allocation.resized</c>, <c>seat_assignment.claimed</c>, <c>seat_assignment.invited</c>, <c>seat_assignment.revoked</c>, <c>usage_event.recorded</c>, <c>usage_period.closed</c>, <c>usage_period.opened</c>, <c>usage_period_adjustment.created</c>.</summary>
 /// <param name="Id">The message's id.</param>
 /// <param name="Type">What happened.</param>
 /// <param name="Timestamp">When it happened, RFC 3339.</param>
@@ -122,12 +122,6 @@ public sealed record IdentifiersWebhookEvent(string Id, string Type, string Time
         "benefit_product_link.unlinked",
         "checkout_link.archived",
         "checkout_link.created",
-        "checkout_payment.authorized",
-        "checkout_payment.canceled",
-        "checkout_payment.captured",
-        "checkout_payment.partially_refunded",
-        "checkout_payment.refunded",
-        "checkout_payment.refused",
         "checkout_session.confirmed",
         "checkout_session.expired",
         "checkout_session.failed",
@@ -147,10 +141,6 @@ public sealed record IdentifiersWebhookEvent(string Id, string Type, string Time
         "price.archived",
         "price.created",
         "product.archived",
-        "refund.canceled",
-        "refund.failed",
-        "refund.requested",
-        "refund.succeeded",
         "seat_allocation.opened",
         "seat_allocation.resized",
         "seat_assignment.claimed",
@@ -197,12 +187,12 @@ public sealed record ProductWebhookEvent(string Id, string Type, string Timestam
     };
 }
 
-/// <summary>The events that carry a Refund: <c>refund.created</c>, <c>refund.updated</c>.</summary>
+/// <summary>The events that carry a WebhookRefund: <c>refund.created</c>, <c>refund.updated</c>.</summary>
 /// <param name="Id">The message's id.</param>
 /// <param name="Type">What happened.</param>
 /// <param name="Timestamp">When it happened, RFC 3339.</param>
 /// <param name="Data">What the event carries.</param>
-public sealed record RefundWebhookEvent(string Id, string Type, string Timestamp, Refund Data)
+public sealed record RefundWebhookEvent(string Id, string Type, string Timestamp, WebhookRefund Data)
     : WebhookEvent(Id, Type, Timestamp)
 {
     /// <summary>The event types this record carries.</summary>
@@ -210,6 +200,30 @@ public sealed record RefundWebhookEvent(string Id, string Type, string Timestamp
     {
         "refund.created",
         "refund.updated",
+    };
+}
+
+/// <summary>The events that carry a WebhookSale: <c>checkout_payment.authorized</c>, <c>checkout_payment.canceled</c>, <c>checkout_payment.captured</c>, <c>checkout_payment.partially_refunded</c>, <c>checkout_payment.refunded</c>, <c>checkout_payment.refused</c>, <c>refund.canceled</c>, <c>refund.failed</c>, <c>refund.requested</c>, <c>refund.succeeded</c>.</summary>
+/// <param name="Id">The message's id.</param>
+/// <param name="Type">What happened.</param>
+/// <param name="Timestamp">When it happened, RFC 3339.</param>
+/// <param name="Data">What the event carries.</param>
+public sealed record SaleWebhookEvent(string Id, string Type, string Timestamp, WebhookSale Data)
+    : WebhookEvent(Id, Type, Timestamp)
+{
+    /// <summary>The event types this record carries.</summary>
+    public static IReadOnlySet<string> Types { get; } = new HashSet<string>
+    {
+        "checkout_payment.authorized",
+        "checkout_payment.canceled",
+        "checkout_payment.captured",
+        "checkout_payment.partially_refunded",
+        "checkout_payment.refunded",
+        "checkout_payment.refused",
+        "refund.canceled",
+        "refund.failed",
+        "refund.requested",
+        "refund.succeeded",
     };
 }
 

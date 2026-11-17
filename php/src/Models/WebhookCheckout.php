@@ -12,6 +12,8 @@ final class WebhookCheckout
     public function __construct(
         public readonly int $amountCents,
         public readonly ?string $checkoutLinkId,
+        /** O id do pedido no sistema do lojista; vazio sem ele. */
+        public readonly ?string $clientReferenceId,
         public readonly string $createdAt,
         /** @var 'BRL' */
         public readonly string $currency,
@@ -20,6 +22,16 @@ final class WebhookCheckout
         public readonly int $discountCents,
         public readonly string $expiresAt,
         public readonly string $id,
+        /**
+         * As linhas do valor que o servidor do lojista fixou; vazio sem elas.
+         * @var list<CheckoutLine>|null
+         */
+        public readonly ?array $items,
+        /**
+         * Os pares que o servidor do lojista enviou ao criar o checkout; vazio sem eles.
+         * @var array<string, mixed>|null
+         */
+        public readonly ?array $metadata,
         public readonly string $priceId,
         public readonly string $productId,
         /** @var 'open'|'confirmed'|'succeeded'|'failed'|'expired' */
@@ -36,12 +48,15 @@ final class WebhookCheckout
         return new self(
             amountCents: $data['amount_cents'],
             checkoutLinkId: $data['checkout_link_id'] ?? null,
+            clientReferenceId: $data['client_reference_id'] ?? null,
             createdAt: $data['created_at'],
             currency: $data['currency'],
             customerId: $data['customer_id'] ?? null,
             discountCents: $data['discount_cents'],
             expiresAt: $data['expires_at'],
             id: $data['id'],
+            items: isset($data['items']) ? array_values(array_map(static fn (array $item) => CheckoutLine::fromArray($item), $data['items'])) : null,
+            metadata: $data['metadata'] ?? null,
             priceId: $data['price_id'],
             productId: $data['product_id'],
             status: $data['status'],

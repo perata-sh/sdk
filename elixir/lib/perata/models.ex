@@ -245,11 +245,15 @@ defmodule Perata.Checkout do
   @moduledoc "Checkout is a resource of Peráta's API."
 
   defstruct [
+    :amount_cents,
     :cancel_url,
+    :client_reference_id,
     :created_at,
     :expires_at,
     :id,
+    :items,
     :label,
+    :metadata,
     :price_id,
     :product_id,
     :quantity,
@@ -259,19 +263,27 @@ defmodule Perata.Checkout do
   ]
 
   @typedoc """
+  * `amount_cents`: O valor, em centavos, que o seu servidor fixou na criação; nulo quando é o comprador quem digita o valor.
   * `cancel_url`: Endereço https para onde o comprador volta se desistir; vazio sem ele.
+  * `client_reference_id`: O id do pedido no seu sistema, como o seu servidor o enviou na criação; vazio sem ele. Volta no checkout, no pedido, no pagamento e nos eventos.
   * `expires_at`: Quando o checkout deixa de abrir sessões; nulo sem prazo.
+  * `items`: As linhas do valor fixado, na ordem em que foram enviadas; vazio sem elas.
   * `label`: Como o lojista chama o checkout nas próprias telas; o comprador não vê.
+  * `metadata`: Os pares que o seu servidor guardou na criação; voltam nos eventos da venda.
   * `status` (one of `"active"`, `"archived"`): active abre sessões de compra; archived saiu de circulação.
   * `success_url`: Endereço https para onde o comprador volta depois de pagar; vazio sem ele.
   * `url`: Endereço para onde o comprador é enviado.
   """
   @type t :: %__MODULE__{
+          amount_cents: integer() | nil,
           cancel_url: String.t(),
+          client_reference_id: String.t(),
           created_at: String.t(),
           expires_at: String.t() | nil,
           id: String.t(),
+          items: [Perata.CheckoutLine.t()],
           label: String.t(),
+          metadata: %{optional(String.t()) => term()},
           price_id: String.t(),
           product_id: String.t(),
           quantity: integer(),
@@ -284,11 +296,15 @@ defmodule Perata.Checkout do
   @spec from_map(map()) :: t()
   def from_map(%{} = data) do
     %__MODULE__{
+      amount_cents: data["amount_cents"],
       cancel_url: Map.fetch!(data, "cancel_url"),
+      client_reference_id: Map.fetch!(data, "client_reference_id"),
       created_at: Map.fetch!(data, "created_at"),
       expires_at: data["expires_at"],
       id: Map.fetch!(data, "id"),
+      items: Enum.map(Map.fetch!(data, "items"), &Perata.CheckoutLine.from_map/1),
       label: Map.fetch!(data, "label"),
+      metadata: Map.fetch!(data, "metadata"),
       price_id: Map.fetch!(data, "price_id"),
       product_id: Map.fetch!(data, "product_id"),
       quantity: Map.fetch!(data, "quantity"),
@@ -304,8 +320,10 @@ defmodule Perata.CheckoutClient do
 
   defstruct [
     :amount_cents,
+    :amount_locked,
     :cancel_url,
     :card_kinds,
+    :client_reference_id,
     :currency,
     :customer,
     :discount,
@@ -330,8 +348,10 @@ defmodule Perata.CheckoutClient do
 
   @typedoc """
   * `amount_cents`: Antes do desconto.
+  * `amount_locked`: Verdadeiro quando o servidor do lojista fixou o valor (amount_cents na criação do checkout): mostre-o ao comprador sem campo para mudá-lo. Nenhuma rota de cliente aceita outro valor.
   * `cancel_url`: Para onde o comprador volta sem pagar.
   * `card_kinds`: credit, e debit onde a autenticação do adquirente está ligada.
+  * `client_reference_id`: O id do pedido no seu sistema, quando o seu servidor o enviou; vazio sem ele.
   * `currency` (one of `"BRL"`)
   * `editable`: A sessão está aberta e ainda aceita atualizações e um pagamento.
   * `environment` (one of `"test"`, `"live"`)
@@ -349,8 +369,10 @@ defmodule Perata.CheckoutClient do
   """
   @type t :: %__MODULE__{
           amount_cents: integer(),
+          amount_locked: boolean(),
           cancel_url: String.t(),
           card_kinds: [String.t()],
+          client_reference_id: String.t(),
           currency: String.t(),
           customer: Perata.CheckoutClientCustomer.t() | nil,
           discount: Perata.CheckoutClientDiscount.t() | nil,
@@ -378,8 +400,10 @@ defmodule Perata.CheckoutClient do
   def from_map(%{} = data) do
     %__MODULE__{
       amount_cents: Map.fetch!(data, "amount_cents"),
+      amount_locked: Map.fetch!(data, "amount_locked"),
       cancel_url: Map.fetch!(data, "cancel_url"),
       card_kinds: Map.fetch!(data, "card_kinds"),
+      client_reference_id: Map.fetch!(data, "client_reference_id"),
       currency: Map.fetch!(data, "currency"),
       customer: with(value when not is_nil(value) <- data["customer"], do: Perata.CheckoutClientCustomer.from_map(value)),
       discount: with(value when not is_nil(value) <- data["discount"], do: Perata.CheckoutClientDiscount.from_map(value)),
@@ -613,13 +637,17 @@ defmodule Perata.CheckoutCreated do
   @moduledoc "CheckoutCreated is a resource of Peráta's API."
 
   defstruct [
+    :amount_cents,
     :cancel_url,
+    :client_reference_id,
     :client_secret,
     :client_secret_expires_at,
     :created_at,
     :expires_at,
     :id,
+    :items,
     :label,
+    :metadata,
     :price_id,
     :product_id,
     :quantity,
@@ -631,12 +659,16 @@ defmodule Perata.CheckoutCreated do
   ]
 
   @typedoc """
+  * `amount_cents`: O valor, em centavos, que o seu servidor fixou; o comprador o vê e não pode mudá-lo. Nulo quando é o comprador quem digita o valor.
   * `cancel_url`: Endereço https para onde o comprador volta se desistir; vazio sem ele.
+  * `client_reference_id`: O id do pedido no seu sistema, como o seu servidor o enviou; vazio sem ele. Volta no checkout, no pedido, no pagamento e nos eventos.
   * `client_secret`: O segredo que o navegador do comprador usa para ler, atualizar e pagar a sessão, sem chave de API. Só esta resposta o traz; entregue-o à página que monta os campos seguros. Vem vazio na repetição de uma criação idempotente.
   * `client_secret_expires_at`: Quando a sessão e o client_secret deixam de valer.
   * `expires_at`: Quando o link deixa de abrir sessões; nulo sem prazo.
   * `id`: O ID do link do checkout, o que GET e PATCH /checkouts/{id} recebem.
+  * `items`: As linhas do valor fixado, na ordem em que foram enviadas; vazio sem elas.
   * `label`: Como o lojista chama o checkout nas próprias telas; o comprador não vê.
+  * `metadata`: Os pares que o seu servidor enviou; voltam no pedido, no pagamento e nos eventos da venda (checkout.*, order.*, checkout_payment.* e refund.*).
   * `session_id`: O ID da sessão de checkout; as rotas de cliente dela são /checkouts/client/{client_secret}.
   * `status` (one of `"active"`, `"archived"`): active abre sessões de compra; archived saiu de circulação.
   * `status_key`: Lê o estado da sessão depois que o client_secret é consumido: GET /checkouts/client/status/{status_key}. Só esta resposta o traz.
@@ -644,13 +676,17 @@ defmodule Perata.CheckoutCreated do
   * `url`: O endereço hospedado desta sessão: redirecione o comprador para cá, ou abra-o no modal, e ele paga na página da Peráta exatamente a sessão que esta resposta abriu, que aparece no status_key, no GET da sessão e nos webhooks com o mesmo checkout_id. Quem abre o endereço depois do pagamento vê a confirmação e nada é cobrado de novo. Na repetição de uma criação idempotente o segredo não existe mais e o endereço volta a ser o do link, que abre uma sessão nova a cada visita.
   """
   @type t :: %__MODULE__{
+          amount_cents: integer() | nil,
           cancel_url: String.t(),
+          client_reference_id: String.t(),
           client_secret: String.t(),
           client_secret_expires_at: String.t(),
           created_at: String.t(),
           expires_at: String.t() | nil,
           id: String.t(),
+          items: [Perata.CheckoutLine.t()],
           label: String.t(),
+          metadata: %{optional(String.t()) => term()},
           price_id: String.t(),
           product_id: String.t(),
           quantity: integer(),
@@ -665,13 +701,17 @@ defmodule Perata.CheckoutCreated do
   @spec from_map(map()) :: t()
   def from_map(%{} = data) do
     %__MODULE__{
+      amount_cents: data["amount_cents"],
       cancel_url: Map.fetch!(data, "cancel_url"),
+      client_reference_id: Map.fetch!(data, "client_reference_id"),
       client_secret: Map.fetch!(data, "client_secret"),
       client_secret_expires_at: Map.fetch!(data, "client_secret_expires_at"),
       created_at: Map.fetch!(data, "created_at"),
       expires_at: data["expires_at"],
       id: Map.fetch!(data, "id"),
+      items: Enum.map(Map.fetch!(data, "items"), &Perata.CheckoutLine.from_map/1),
       label: Map.fetch!(data, "label"),
+      metadata: Map.fetch!(data, "metadata"),
       price_id: Map.fetch!(data, "price_id"),
       product_id: Map.fetch!(data, "product_id"),
       quantity: Map.fetch!(data, "quantity"),
@@ -709,6 +749,31 @@ defmodule Perata.CheckoutInstallment do
       installment_cents: Map.fetch!(data, "installment_cents"),
       interest_cents: Map.fetch!(data, "interest_cents"),
       total_cents: Map.fetch!(data, "total_cents")
+    }
+  end
+end
+
+defmodule Perata.CheckoutLine do
+  @moduledoc "CheckoutLine is a resource of Peráta's API."
+
+  defstruct [:name, :quantity, :unit_amount_cents]
+
+  @typedoc """
+  * `unit_amount_cents`: O valor de uma unidade, em centavos; negativo é desconto.
+  """
+  @type t :: %__MODULE__{
+          name: String.t(),
+          quantity: integer(),
+          unit_amount_cents: integer()
+        }
+
+  @doc "Builds a CheckoutLine from the API's JSON."
+  @spec from_map(map()) :: t()
+  def from_map(%{} = data) do
+    %__MODULE__{
+      name: Map.fetch!(data, "name"),
+      quantity: Map.fetch!(data, "quantity"),
+      unit_amount_cents: Map.fetch!(data, "unit_amount_cents")
     }
   end
 end
@@ -1439,11 +1504,14 @@ defmodule Perata.Order do
 
   defstruct [
     :amount_cents,
+    :client_reference_id,
     :currency,
     :customer_id,
     :id,
     :installment_interest_cents,
     :installments,
+    :items,
+    :metadata,
     :paid_at,
     :price_id,
     :product_id,
@@ -1451,18 +1519,24 @@ defmodule Perata.Order do
   ]
 
   @typedoc """
+  * `client_reference_id`: O id do pedido no seu sistema, enviado ao criar o checkout; vazio sem ele.
   * `currency` (one of `"BRL"`)
   * `installment_interest_cents`: Juros do parcelamento pagos pelo comprador, cobrados além de amount_cents.
   * `installments`: Em quantas parcelas o cartão de crédito foi cobrado; 1 à vista.
+  * `items`: As linhas do pedido, quando o seu servidor as enviou ao criar o checkout; vazio sem elas.
+  * `metadata`: Os pares que o seu servidor enviou ao criar o checkout.
   * `status` (one of `"open"`, `"confirmed"`, `"succeeded"`, `"failed"`, `"expired"`)
   """
   @type t :: %__MODULE__{
           amount_cents: integer(),
+          client_reference_id: String.t(),
           currency: String.t(),
           customer_id: String.t(),
           id: String.t(),
           installment_interest_cents: integer(),
           installments: integer(),
+          items: [Perata.CheckoutLine.t()],
+          metadata: %{optional(String.t()) => term()},
           paid_at: String.t() | nil,
           price_id: String.t(),
           product_id: String.t(),
@@ -1474,11 +1548,14 @@ defmodule Perata.Order do
   def from_map(%{} = data) do
     %__MODULE__{
       amount_cents: Map.fetch!(data, "amount_cents"),
+      client_reference_id: Map.fetch!(data, "client_reference_id"),
       currency: Map.fetch!(data, "currency"),
       customer_id: Map.fetch!(data, "customer_id"),
       id: Map.fetch!(data, "id"),
       installment_interest_cents: Map.fetch!(data, "installment_interest_cents"),
       installments: Map.fetch!(data, "installments"),
+      items: Enum.map(Map.fetch!(data, "items"), &Perata.CheckoutLine.from_map/1),
+      metadata: Map.fetch!(data, "metadata"),
       paid_at: data["paid_at"],
       price_id: Map.fetch!(data, "price_id"),
       product_id: Map.fetch!(data, "product_id"),
@@ -1497,6 +1574,7 @@ defmodule Perata.OrderInvoice do
     :currency,
     :discount_cents,
     :generated_at,
+    :items,
     :number,
     :order_id,
     :product_name,
@@ -1507,6 +1585,7 @@ defmodule Perata.OrderInvoice do
 
   @typedoc """
   * `currency` (one of `"BRL"`)
+  * `items`: As linhas do pedido, quando o lojista as enviou; vazio sem elas.
   * `number`: Número da fatura, na série da organização (PREFIXO-0001).
   * `tax_id`: CPF ou CNPJ, só dígitos.
   * `tax_id_kind`: cpf ou cnpj; vazio sem documento.
@@ -1518,6 +1597,7 @@ defmodule Perata.OrderInvoice do
           currency: String.t(),
           discount_cents: integer(),
           generated_at: String.t(),
+          items: [Perata.CheckoutLine.t()],
           number: String.t(),
           order_id: String.t(),
           product_name: String.t(),
@@ -1536,6 +1616,7 @@ defmodule Perata.OrderInvoice do
       currency: Map.fetch!(data, "currency"),
       discount_cents: Map.fetch!(data, "discount_cents"),
       generated_at: Map.fetch!(data, "generated_at"),
+      items: Enum.map(Map.fetch!(data, "items"), &Perata.CheckoutLine.from_map/1),
       number: Map.fetch!(data, "number"),
       order_id: Map.fetch!(data, "order_id"),
       product_name: Map.fetch!(data, "product_name"),
@@ -1557,6 +1638,7 @@ defmodule Perata.OrderReceipt do
     :discount_cents,
     :installment_interest_cents,
     :installments,
+    :items,
     :number,
     :order_id,
     :paid_at,
@@ -1569,6 +1651,7 @@ defmodule Perata.OrderReceipt do
   @typedoc """
   * `currency` (one of `"BRL"`)
   * `installments`: Em quantas parcelas o cartão de crédito foi cobrado; 1 à vista.
+  * `items`: As linhas do pedido, quando o lojista as enviou; vazio sem elas.
   * `number`: Número do pedido na série da organização; vazio antes de ter um.
   * `payment_method`: card, pix ou boleto; vazio quando o pagamento não foi achado.
   """
@@ -1580,6 +1663,7 @@ defmodule Perata.OrderReceipt do
           discount_cents: integer(),
           installment_interest_cents: integer(),
           installments: integer(),
+          items: [Perata.CheckoutLine.t()],
           number: String.t(),
           order_id: String.t(),
           paid_at: String.t() | nil,
@@ -1600,6 +1684,7 @@ defmodule Perata.OrderReceipt do
       discount_cents: Map.fetch!(data, "discount_cents"),
       installment_interest_cents: Map.fetch!(data, "installment_interest_cents"),
       installments: Map.fetch!(data, "installments"),
+      items: Enum.map(Map.fetch!(data, "items"), &Perata.CheckoutLine.from_map/1),
       number: Map.fetch!(data, "number"),
       order_id: Map.fetch!(data, "order_id"),
       paid_at: data["paid_at"],
@@ -1638,6 +1723,7 @@ defmodule Perata.Payment do
     :amount_cents,
     :captured_cents,
     :checkout_id,
+    :client_reference_id,
     :created_at,
     :currency,
     :customer_id,
@@ -1645,16 +1731,19 @@ defmodule Perata.Payment do
     :installment_amount_cents,
     :installment_interest_cents,
     :installments,
+    :metadata,
     :method,
     :refunded_cents,
     :state
   ]
 
   @typedoc """
+  * `client_reference_id`: O id do pedido no seu sistema, enviado ao criar o checkout; vazio sem ele.
   * `currency` (one of `"BRL"`)
   * `installment_amount_cents`: Valor de uma parcela; 0 à vista.
   * `installment_interest_cents`: Juros do parcelamento dentro de amount_cents.
   * `installments`: Em quantas parcelas o cartão de crédito foi cobrado; 1 à vista.
+  * `metadata`: Os pares que o seu servidor enviou ao criar o checkout.
   * `method` (one of `"card"`, `"pix"`, `"boleto"`)
   * `state` (one of `"unknown"`, `"pending"`, `"authorized"`, `"captured"`, `"refused"`, `"canceled"`, `"refunded"`, `"partially_refunded"`)
   """
@@ -1662,6 +1751,7 @@ defmodule Perata.Payment do
           amount_cents: integer(),
           captured_cents: integer(),
           checkout_id: String.t(),
+          client_reference_id: String.t(),
           created_at: String.t(),
           currency: String.t(),
           customer_id: String.t(),
@@ -1669,6 +1759,7 @@ defmodule Perata.Payment do
           installment_amount_cents: integer(),
           installment_interest_cents: integer(),
           installments: integer(),
+          metadata: %{optional(String.t()) => term()},
           method: String.t(),
           refunded_cents: integer(),
           state: String.t()
@@ -1681,6 +1772,7 @@ defmodule Perata.Payment do
       amount_cents: Map.fetch!(data, "amount_cents"),
       captured_cents: Map.fetch!(data, "captured_cents"),
       checkout_id: Map.fetch!(data, "checkout_id"),
+      client_reference_id: Map.fetch!(data, "client_reference_id"),
       created_at: Map.fetch!(data, "created_at"),
       currency: Map.fetch!(data, "currency"),
       customer_id: Map.fetch!(data, "customer_id"),
@@ -1688,6 +1780,7 @@ defmodule Perata.Payment do
       installment_amount_cents: Map.fetch!(data, "installment_amount_cents"),
       installment_interest_cents: Map.fetch!(data, "installment_interest_cents"),
       installments: Map.fetch!(data, "installments"),
+      metadata: Map.fetch!(data, "metadata"),
       method: Map.fetch!(data, "method"),
       refunded_cents: Map.fetch!(data, "refunded_cents"),
       state: Map.fetch!(data, "state")
@@ -1973,12 +2066,15 @@ defmodule Perata.WebhookCheckout do
   defstruct [
     :amount_cents,
     :checkout_link_id,
+    :client_reference_id,
     :created_at,
     :currency,
     :customer_id,
     :discount_cents,
     :expires_at,
     :id,
+    :items,
+    :metadata,
     :price_id,
     :product_id,
     :status,
@@ -1986,19 +2082,25 @@ defmodule Perata.WebhookCheckout do
   ]
 
   @typedoc """
+  * `client_reference_id`: O id do pedido no sistema do lojista; vazio sem ele.
   * `currency` (one of `"BRL"`)
   * `customer_id`: Nulo até o comprador confirmar.
+  * `items`: As linhas do valor que o servidor do lojista fixou; vazio sem elas.
+  * `metadata`: Os pares que o servidor do lojista enviou ao criar o checkout; vazio sem eles.
   * `status` (one of `"open"`, `"confirmed"`, `"succeeded"`, `"failed"`, `"expired"`)
   """
   @type t :: %__MODULE__{
           amount_cents: integer(),
           checkout_link_id: String.t() | nil,
+          client_reference_id: String.t() | nil,
           created_at: String.t(),
           currency: String.t(),
           customer_id: String.t() | nil,
           discount_cents: integer(),
           expires_at: String.t(),
           id: String.t(),
+          items: [Perata.CheckoutLine.t()] | nil,
+          metadata: %{optional(String.t()) => term()} | nil,
           price_id: String.t(),
           product_id: String.t(),
           status: String.t(),
@@ -2011,12 +2113,15 @@ defmodule Perata.WebhookCheckout do
     %__MODULE__{
       amount_cents: Map.fetch!(data, "amount_cents"),
       checkout_link_id: data["checkout_link_id"],
+      client_reference_id: data["client_reference_id"],
       created_at: Map.fetch!(data, "created_at"),
       currency: Map.fetch!(data, "currency"),
       customer_id: data["customer_id"],
       discount_cents: Map.fetch!(data, "discount_cents"),
       expires_at: Map.fetch!(data, "expires_at"),
       id: Map.fetch!(data, "id"),
+      items: with(value when not is_nil(value) <- data["items"], do: Enum.map(value, &Perata.CheckoutLine.from_map/1)),
+      metadata: data["metadata"],
       price_id: Map.fetch!(data, "price_id"),
       product_id: Map.fetch!(data, "product_id"),
       status: Map.fetch!(data, "status"),
@@ -2317,6 +2422,112 @@ defmodule Perata.WebhookEndpointCreated do
       secret: Map.fetch!(data, "secret"),
       status: Map.fetch!(data, "status"),
       url: Map.fetch!(data, "url")
+    }
+  end
+end
+
+defmodule Perata.WebhookRefund do
+  @moduledoc "WebhookRefund is a resource of Peráta's API."
+
+  defstruct [
+    :amount_cents,
+    :checkout_id,
+    :client_reference_id,
+    :id,
+    :metadata,
+    :payment_id,
+    :status
+  ]
+
+  @typedoc """
+  * `checkout_id`: O checkout (o pedido) que o reembolso devolve, quando se sabe.
+  * `client_reference_id`: O id do pedido no sistema do lojista; vazio sem ele.
+  * `metadata`: Os pares que o servidor do lojista enviou ao criar o checkout; vazio sem eles.
+  * `status` (one of `"requested"`, `"pending"`, `"unknown"`, `"succeeded"`, `"failed"`, `"canceled"`)
+  """
+  @type t :: %__MODULE__{
+          amount_cents: integer(),
+          checkout_id: String.t() | nil,
+          client_reference_id: String.t() | nil,
+          id: String.t(),
+          metadata: %{optional(String.t()) => term()},
+          payment_id: String.t(),
+          status: String.t()
+        }
+
+  @doc "Builds a WebhookRefund from the API's JSON."
+  @spec from_map(map()) :: t()
+  def from_map(%{} = data) do
+    %__MODULE__{
+      amount_cents: Map.fetch!(data, "amount_cents"),
+      checkout_id: data["checkout_id"],
+      client_reference_id: data["client_reference_id"],
+      id: Map.fetch!(data, "id"),
+      metadata: Map.fetch!(data, "metadata"),
+      payment_id: Map.fetch!(data, "payment_id"),
+      status: Map.fetch!(data, "status")
+    }
+  end
+end
+
+defmodule Perata.WebhookSale do
+  @moduledoc "Os eventos da venda (checkout_payment.* e refund.*): os identificadores de sempre e, além deles, o checkout, o valor e o que o servidor do lojista enviou ao criar o checkout."
+
+  defstruct [
+    :aggregate,
+    :aggregate_id,
+    :amount_cents,
+    :checkout_id,
+    :client_reference_id,
+    :currency,
+    :environment,
+    :event_id,
+    :merchant_id,
+    :metadata,
+    :method,
+    :payment_id
+  ]
+
+  @typedoc """
+  * `amount_cents`: O valor do pagamento (com os juros do parcelamento, quando há) ou o valor reembolsado, em centavos.
+  * `checkout_id`: O checkout (o pedido) do pagamento ou do reembolso.
+  * `client_reference_id`: O id do pedido no sistema do lojista; vazio sem ele.
+  * `currency` (one of `"BRL"`)
+  * `metadata`: Os pares que o servidor do lojista enviou ao criar o checkout; vazio sem eles.
+  * `method` (one of `"card"`, `"pix"`, `"boleto"`): O meio do pagamento, nos eventos checkout_payment.*.
+  * `payment_id`: O pagamento que o reembolso devolve, nos eventos refund.*.
+  """
+  @type t :: %__MODULE__{
+          aggregate: String.t(),
+          aggregate_id: String.t(),
+          amount_cents: integer() | nil,
+          checkout_id: String.t() | nil,
+          client_reference_id: String.t() | nil,
+          currency: String.t() | nil,
+          environment: String.t(),
+          event_id: String.t(),
+          merchant_id: String.t(),
+          metadata: %{optional(String.t()) => term()} | nil,
+          method: String.t() | nil,
+          payment_id: String.t() | nil
+        }
+
+  @doc "Builds a WebhookSale from the API's JSON."
+  @spec from_map(map()) :: t()
+  def from_map(%{} = data) do
+    %__MODULE__{
+      aggregate: Map.fetch!(data, "aggregate"),
+      aggregate_id: Map.fetch!(data, "aggregate_id"),
+      amount_cents: data["amount_cents"],
+      checkout_id: data["checkout_id"],
+      client_reference_id: data["client_reference_id"],
+      currency: data["currency"],
+      environment: Map.fetch!(data, "environment"),
+      event_id: Map.fetch!(data, "event_id"),
+      merchant_id: Map.fetch!(data, "merchant_id"),
+      metadata: data["metadata"],
+      method: data["method"],
+      payment_id: data["payment_id"]
     }
   end
 end

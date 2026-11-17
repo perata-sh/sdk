@@ -9,7 +9,7 @@ use hmac::{Hmac, KeyInit, Mac};
 use serde::{Deserialize, Serialize};
 use sha2::Sha256;
 
-use crate::models::{BenefitGrant, Customer, Order, Product, Refund, Subscription, WebhookBenefit, WebhookCheckout, WebhookDiscount, WebhookDispute};
+use crate::models::{BenefitGrant, Customer, Order, Product, Subscription, WebhookBenefit, WebhookCheckout, WebhookDiscount, WebhookDispute, WebhookRefund, WebhookSale};
 
 /// How far from now a webhook's timestamp may be.
 pub const WEBHOOK_TOLERANCE: Duration = Duration::from_secs(300);
@@ -48,7 +48,7 @@ pub type DiscountWebhookEvent = WebhookMessage<WebhookDiscount>;
 /// The events that carry a WebhookDispute: `dispute.lost`, `dispute.opened`, `dispute.won`.
 pub type DisputeWebhookEvent = WebhookMessage<WebhookDispute>;
 
-/// The events that carry the event's identifiers: `benefit.archived`, `benefit.version_created`, `benefit_product_link.linked`, `benefit_product_link.unlinked`, `checkout_link.archived`, `checkout_link.created`, `checkout_payment.authorized`, `checkout_payment.canceled`, `checkout_payment.captured`, `checkout_payment.partially_refunded`, `checkout_payment.refunded`, `checkout_payment.refused`, `checkout_session.confirmed`, `checkout_session.expired`, `checkout_session.failed`, `checkout_session.opened`, `checkout_session.succeeded`, `customer.archived`, `discount.exhausted`, `discount.expired`, `discount.reactivated`, `discount.redeemed`, `discount_redemption.released`, `invoice.drafted`, `invoice.issued`, `invoice.settled`, `invoice.uncollectible`, `invoice.voided`, `price.archived`, `price.created`, `product.archived`, `refund.canceled`, `refund.failed`, `refund.requested`, `refund.succeeded`, `seat_allocation.opened`, `seat_allocation.resized`, `seat_assignment.claimed`, `seat_assignment.invited`, `seat_assignment.revoked`, `usage_event.recorded`, `usage_period.closed`, `usage_period.opened`, `usage_period_adjustment.created`.
+/// The events that carry the event's identifiers: `benefit.archived`, `benefit.version_created`, `benefit_product_link.linked`, `benefit_product_link.unlinked`, `checkout_link.archived`, `checkout_link.created`, `checkout_session.confirmed`, `checkout_session.expired`, `checkout_session.failed`, `checkout_session.opened`, `checkout_session.succeeded`, `customer.archived`, `discount.exhausted`, `discount.expired`, `discount.reactivated`, `discount.redeemed`, `discount_redemption.released`, `invoice.drafted`, `invoice.issued`, `invoice.settled`, `invoice.uncollectible`, `invoice.voided`, `price.archived`, `price.created`, `product.archived`, `seat_allocation.opened`, `seat_allocation.resized`, `seat_assignment.claimed`, `seat_assignment.invited`, `seat_assignment.revoked`, `usage_event.recorded`, `usage_period.closed`, `usage_period.opened`, `usage_period_adjustment.created`.
 pub type IdentifiersWebhookEvent = WebhookMessage<std::collections::HashMap<String, String>>;
 
 /// The events that carry an Order: `order.created`, `order.paid`, `order.refunded`, `order.updated`.
@@ -57,8 +57,11 @@ pub type OrderWebhookEvent = WebhookMessage<Order>;
 /// The events that carry a Product: `product.created`, `product.updated`.
 pub type ProductWebhookEvent = WebhookMessage<Product>;
 
-/// The events that carry a Refund: `refund.created`, `refund.updated`.
-pub type RefundWebhookEvent = WebhookMessage<Refund>;
+/// The events that carry a WebhookRefund: `refund.created`, `refund.updated`.
+pub type RefundWebhookEvent = WebhookMessage<WebhookRefund>;
+
+/// The events that carry a WebhookSale: `checkout_payment.authorized`, `checkout_payment.canceled`, `checkout_payment.captured`, `checkout_payment.partially_refunded`, `checkout_payment.refunded`, `checkout_payment.refused`, `refund.canceled`, `refund.failed`, `refund.requested`, `refund.succeeded`.
+pub type SaleWebhookEvent = WebhookMessage<WebhookSale>;
 
 /// The events that carry a Subscription: `subscription.active`, `subscription.canceled`, `subscription.created`, `subscription.cycled`, `subscription.past_due`, `subscription.paused`, `subscription.resumed`, `subscription.revoked`, `subscription.uncanceled`, `subscription.updated`.
 pub type SubscriptionWebhookEvent = WebhookMessage<Subscription>;
@@ -84,7 +87,7 @@ pub enum WebhookEvent {
     Discount(DiscountWebhookEvent),
     /// `dispute.lost`, `dispute.opened`, `dispute.won`.
     Dispute(DisputeWebhookEvent),
-    /// `benefit.archived`, `benefit.version_created`, `benefit_product_link.linked`, `benefit_product_link.unlinked`, `checkout_link.archived`, `checkout_link.created`, `checkout_payment.authorized`, `checkout_payment.canceled`, `checkout_payment.captured`, `checkout_payment.partially_refunded`, `checkout_payment.refunded`, `checkout_payment.refused`, `checkout_session.confirmed`, `checkout_session.expired`, `checkout_session.failed`, `checkout_session.opened`, `checkout_session.succeeded`, `customer.archived`, `discount.exhausted`, `discount.expired`, `discount.reactivated`, `discount.redeemed`, `discount_redemption.released`, `invoice.drafted`, `invoice.issued`, `invoice.settled`, `invoice.uncollectible`, `invoice.voided`, `price.archived`, `price.created`, `product.archived`, `refund.canceled`, `refund.failed`, `refund.requested`, `refund.succeeded`, `seat_allocation.opened`, `seat_allocation.resized`, `seat_assignment.claimed`, `seat_assignment.invited`, `seat_assignment.revoked`, `usage_event.recorded`, `usage_period.closed`, `usage_period.opened`, `usage_period_adjustment.created`.
+    /// `benefit.archived`, `benefit.version_created`, `benefit_product_link.linked`, `benefit_product_link.unlinked`, `checkout_link.archived`, `checkout_link.created`, `checkout_session.confirmed`, `checkout_session.expired`, `checkout_session.failed`, `checkout_session.opened`, `checkout_session.succeeded`, `customer.archived`, `discount.exhausted`, `discount.expired`, `discount.reactivated`, `discount.redeemed`, `discount_redemption.released`, `invoice.drafted`, `invoice.issued`, `invoice.settled`, `invoice.uncollectible`, `invoice.voided`, `price.archived`, `price.created`, `product.archived`, `seat_allocation.opened`, `seat_allocation.resized`, `seat_assignment.claimed`, `seat_assignment.invited`, `seat_assignment.revoked`, `usage_event.recorded`, `usage_period.closed`, `usage_period.opened`, `usage_period_adjustment.created`.
     Identifiers(IdentifiersWebhookEvent),
     /// `order.created`, `order.paid`, `order.refunded`, `order.updated`.
     Order(OrderWebhookEvent),
@@ -92,6 +95,8 @@ pub enum WebhookEvent {
     Product(ProductWebhookEvent),
     /// `refund.created`, `refund.updated`.
     Refund(RefundWebhookEvent),
+    /// `checkout_payment.authorized`, `checkout_payment.canceled`, `checkout_payment.captured`, `checkout_payment.partially_refunded`, `checkout_payment.refunded`, `checkout_payment.refused`, `refund.canceled`, `refund.failed`, `refund.requested`, `refund.succeeded`.
+    Sale(SaleWebhookEvent),
     /// `subscription.active`, `subscription.canceled`, `subscription.created`, `subscription.cycled`, `subscription.past_due`, `subscription.paused`, `subscription.resumed`, `subscription.revoked`, `subscription.uncanceled`, `subscription.updated`.
     Subscription(SubscriptionWebhookEvent),
     /// A type this SDK does not know yet.
@@ -112,6 +117,7 @@ impl WebhookEvent {
             WebhookEvent::Order(event) => &event.id,
             WebhookEvent::Product(event) => &event.id,
             WebhookEvent::Refund(event) => &event.id,
+            WebhookEvent::Sale(event) => &event.id,
             WebhookEvent::Subscription(event) => &event.id,
             WebhookEvent::Unknown(event) => &event.id,
         }
@@ -130,6 +136,7 @@ impl WebhookEvent {
             WebhookEvent::Order(event) => &event.type_,
             WebhookEvent::Product(event) => &event.type_,
             WebhookEvent::Refund(event) => &event.type_,
+            WebhookEvent::Sale(event) => &event.type_,
             WebhookEvent::Subscription(event) => &event.type_,
             WebhookEvent::Unknown(event) => &event.type_,
         }
@@ -148,6 +155,7 @@ impl WebhookEvent {
             WebhookEvent::Order(event) => &event.timestamp,
             WebhookEvent::Product(event) => &event.timestamp,
             WebhookEvent::Refund(event) => &event.timestamp,
+            WebhookEvent::Sale(event) => &event.timestamp,
             WebhookEvent::Subscription(event) => &event.timestamp,
             WebhookEvent::Unknown(event) => &event.timestamp,
         }
@@ -175,7 +183,7 @@ impl WebhookEvent {
             "dispute.lost" | "dispute.opened" | "dispute.won" => {
                 serde_json::from_slice(body).map(WebhookEvent::Dispute)
             }
-            "benefit.archived" | "benefit.version_created" | "benefit_product_link.linked" | "benefit_product_link.unlinked" | "checkout_link.archived" | "checkout_link.created" | "checkout_payment.authorized" | "checkout_payment.canceled" | "checkout_payment.captured" | "checkout_payment.partially_refunded" | "checkout_payment.refunded" | "checkout_payment.refused" | "checkout_session.confirmed" | "checkout_session.expired" | "checkout_session.failed" | "checkout_session.opened" | "checkout_session.succeeded" | "customer.archived" | "discount.exhausted" | "discount.expired" | "discount.reactivated" | "discount.redeemed" | "discount_redemption.released" | "invoice.drafted" | "invoice.issued" | "invoice.settled" | "invoice.uncollectible" | "invoice.voided" | "price.archived" | "price.created" | "product.archived" | "refund.canceled" | "refund.failed" | "refund.requested" | "refund.succeeded" | "seat_allocation.opened" | "seat_allocation.resized" | "seat_assignment.claimed" | "seat_assignment.invited" | "seat_assignment.revoked" | "usage_event.recorded" | "usage_period.closed" | "usage_period.opened" | "usage_period_adjustment.created" => {
+            "benefit.archived" | "benefit.version_created" | "benefit_product_link.linked" | "benefit_product_link.unlinked" | "checkout_link.archived" | "checkout_link.created" | "checkout_session.confirmed" | "checkout_session.expired" | "checkout_session.failed" | "checkout_session.opened" | "checkout_session.succeeded" | "customer.archived" | "discount.exhausted" | "discount.expired" | "discount.reactivated" | "discount.redeemed" | "discount_redemption.released" | "invoice.drafted" | "invoice.issued" | "invoice.settled" | "invoice.uncollectible" | "invoice.voided" | "price.archived" | "price.created" | "product.archived" | "seat_allocation.opened" | "seat_allocation.resized" | "seat_assignment.claimed" | "seat_assignment.invited" | "seat_assignment.revoked" | "usage_event.recorded" | "usage_period.closed" | "usage_period.opened" | "usage_period_adjustment.created" => {
                 serde_json::from_slice(body).map(WebhookEvent::Identifiers)
             }
             "order.created" | "order.paid" | "order.refunded" | "order.updated" => {
@@ -186,6 +194,9 @@ impl WebhookEvent {
             }
             "refund.created" | "refund.updated" => {
                 serde_json::from_slice(body).map(WebhookEvent::Refund)
+            }
+            "checkout_payment.authorized" | "checkout_payment.canceled" | "checkout_payment.captured" | "checkout_payment.partially_refunded" | "checkout_payment.refunded" | "checkout_payment.refused" | "refund.canceled" | "refund.failed" | "refund.requested" | "refund.succeeded" => {
+                serde_json::from_slice(body).map(WebhookEvent::Sale)
             }
             "subscription.active" | "subscription.canceled" | "subscription.created" | "subscription.cycled" | "subscription.past_due" | "subscription.paused" | "subscription.resumed" | "subscription.revoked" | "subscription.uncanceled" | "subscription.updated" => {
                 serde_json::from_slice(body).map(WebhookEvent::Subscription)

@@ -37,6 +37,10 @@ public sealed record CheckoutClient
     [JsonPropertyName("amount_cents")]
     public required long AmountCents { get; init; }
 
+    /// <summary>Verdadeiro quando o servidor do lojista fixou o valor (amount_cents na criação do checkout): mostre-o ao comprador sem campo para mudá-lo. Nenhuma rota de cliente aceita outro valor.</summary>
+    [JsonPropertyName("amount_locked")]
+    public required bool AmountLocked { get; init; }
+
     /// <summary>Para onde o comprador volta sem pagar.</summary>
     [JsonPropertyName("cancel_url")]
     public required string CancelUrl { get; init; }
@@ -44,6 +48,10 @@ public sealed record CheckoutClient
     /// <summary>credit, e debit onde a autenticação do adquirente está ligada.</summary>
     [JsonPropertyName("card_kinds")]
     public required IReadOnlyList<string> CardKinds { get; init; }
+
+    /// <summary>O id do pedido no seu sistema, quando o seu servidor o enviou; vazio sem ele.</summary>
+    [JsonPropertyName("client_reference_id")]
+    public required string ClientReferenceId { get; init; }
 
     /// <summary>The API's <c>currency</c>.</summary>
     [JsonPropertyName("currency")]

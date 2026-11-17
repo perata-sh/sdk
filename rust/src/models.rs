@@ -109,14 +109,22 @@ pub struct CardTokenization {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[non_exhaustive]
 pub struct Checkout {
+    /// O valor, em centavos, que o seu servidor fixou na criação; nulo quando é o comprador quem digita o valor.
+    pub amount_cents: Option<i64>,
     /// Endereço https para onde o comprador volta se desistir; vazio sem ele.
     pub cancel_url: String,
+    /// O id do pedido no seu sistema, como o seu servidor o enviou na criação; vazio sem ele. Volta no checkout, no pedido, no pagamento e nos eventos.
+    pub client_reference_id: String,
     pub created_at: String,
     /// Quando o checkout deixa de abrir sessões; nulo sem prazo.
     pub expires_at: Option<String>,
     pub id: String,
+    /// As linhas do valor fixado, na ordem em que foram enviadas; vazio sem elas.
+    pub items: Vec<CheckoutLine>,
     /// Como o lojista chama o checkout nas próprias telas; o comprador não vê.
     pub label: String,
+    /// Os pares que o seu servidor guardou na criação; voltam nos eventos da venda.
+    pub metadata: std::collections::HashMap<String, serde_json::Value>,
     pub price_id: String,
     pub product_id: String,
     pub quantity: i64,
@@ -134,10 +142,14 @@ pub struct Checkout {
 pub struct CheckoutClient {
     /// Antes do desconto.
     pub amount_cents: i64,
+    /// Verdadeiro quando o servidor do lojista fixou o valor (amount_cents na criação do checkout): mostre-o ao comprador sem campo para mudá-lo. Nenhuma rota de cliente aceita outro valor.
+    pub amount_locked: bool,
     /// Para onde o comprador volta sem pagar.
     pub cancel_url: String,
     /// credit, e debit onde a autenticação do adquirente está ligada.
     pub card_kinds: Vec<String>,
+    /// O id do pedido no seu sistema, quando o seu servidor o enviou; vazio sem ele.
+    pub client_reference_id: String,
     pub currency: CheckoutClientCurrency,
     pub customer: Option<CheckoutClientCustomer>,
     pub discount: Option<CheckoutClientDiscount>,
@@ -257,8 +269,12 @@ pub struct CheckoutClientPix {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[non_exhaustive]
 pub struct CheckoutCreated {
+    /// O valor, em centavos, que o seu servidor fixou; o comprador o vê e não pode mudá-lo. Nulo quando é o comprador quem digita o valor.
+    pub amount_cents: Option<i64>,
     /// Endereço https para onde o comprador volta se desistir; vazio sem ele.
     pub cancel_url: String,
+    /// O id do pedido no seu sistema, como o seu servidor o enviou; vazio sem ele. Volta no checkout, no pedido, no pagamento e nos eventos.
+    pub client_reference_id: String,
     /// O segredo que o navegador do comprador usa para ler, atualizar e pagar a sessão, sem chave de API. Só esta resposta o traz; entregue-o à página que monta os campos seguros. Vem vazio na repetição de uma criação idempotente.
     pub client_secret: String,
     /// Quando a sessão e o client_secret deixam de valer.
@@ -268,8 +284,12 @@ pub struct CheckoutCreated {
     pub expires_at: Option<String>,
     /// O ID do link do checkout, o que GET e PATCH /checkouts/{id} recebem.
     pub id: String,
+    /// As linhas do valor fixado, na ordem em que foram enviadas; vazio sem elas.
+    pub items: Vec<CheckoutLine>,
     /// Como o lojista chama o checkout nas próprias telas; o comprador não vê.
     pub label: String,
+    /// Os pares que o seu servidor enviou; voltam no pedido, no pagamento e nos eventos da venda (checkout.*, order.*, checkout_payment.* e refund.*).
+    pub metadata: std::collections::HashMap<String, serde_json::Value>,
     pub price_id: String,
     pub product_id: String,
     pub quantity: i64,
@@ -296,6 +316,16 @@ pub struct CheckoutInstallment {
     pub interest_cents: i64,
     /// Quanto o comprador paga no total: o total da sessão, mais os juros quando o plano os tem.
     pub total_cents: i64,
+}
+
+/// CheckoutLine is a resource of Peráta's API.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct CheckoutLine {
+    pub name: String,
+    pub quantity: i64,
+    /// O valor de uma unidade, em centavos; negativo é desconto.
+    pub unit_amount_cents: i64,
 }
 
 /// CheckoutLink is a resource of Peráta's API.
@@ -593,6 +623,8 @@ pub struct MeterUnit {
 #[non_exhaustive]
 pub struct Order {
     pub amount_cents: i64,
+    /// O id do pedido no seu sistema, enviado ao criar o checkout; vazio sem ele.
+    pub client_reference_id: String,
     pub currency: OrderCurrency,
     pub customer_id: String,
     pub id: String,
@@ -600,6 +632,10 @@ pub struct Order {
     pub installment_interest_cents: i64,
     /// Em quantas parcelas o cartão de crédito foi cobrado; 1 à vista.
     pub installments: i64,
+    /// As linhas do pedido, quando o seu servidor as enviou ao criar o checkout; vazio sem elas.
+    pub items: Vec<CheckoutLine>,
+    /// Os pares que o seu servidor enviou ao criar o checkout.
+    pub metadata: std::collections::HashMap<String, serde_json::Value>,
     pub paid_at: Option<String>,
     pub price_id: String,
     pub product_id: String,
@@ -616,6 +652,8 @@ pub struct OrderInvoice {
     pub currency: OrderInvoiceCurrency,
     pub discount_cents: i64,
     pub generated_at: String,
+    /// As linhas do pedido, quando o lojista as enviou; vazio sem elas.
+    pub items: Vec<CheckoutLine>,
     /// Número da fatura, na série da organização (PREFIXO-0001).
     pub number: String,
     pub order_id: String,
@@ -639,6 +677,8 @@ pub struct OrderReceipt {
     pub installment_interest_cents: i64,
     /// Em quantas parcelas o cartão de crédito foi cobrado; 1 à vista.
     pub installments: i64,
+    /// As linhas do pedido, quando o lojista as enviou; vazio sem elas.
+    pub items: Vec<CheckoutLine>,
     /// Número do pedido na série da organização; vazio antes de ter um.
     pub number: String,
     pub order_id: String,
@@ -665,6 +705,8 @@ pub struct Payment {
     pub amount_cents: i64,
     pub captured_cents: i64,
     pub checkout_id: String,
+    /// O id do pedido no seu sistema, enviado ao criar o checkout; vazio sem ele.
+    pub client_reference_id: String,
     pub created_at: String,
     pub currency: PaymentCurrency,
     pub customer_id: String,
@@ -675,6 +717,8 @@ pub struct Payment {
     pub installment_interest_cents: i64,
     /// Em quantas parcelas o cartão de crédito foi cobrado; 1 à vista.
     pub installments: i64,
+    /// Os pares que o seu servidor enviou ao criar o checkout.
+    pub metadata: std::collections::HashMap<String, serde_json::Value>,
     pub method: PaymentMethodKind,
     pub refunded_cents: i64,
     pub state: PaymentState,
@@ -795,6 +839,9 @@ pub struct WebhookBenefit {
 pub struct WebhookCheckout {
     pub amount_cents: i64,
     pub checkout_link_id: Option<String>,
+    /// O id do pedido no sistema do lojista; vazio sem ele.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub client_reference_id: Option<String>,
     pub created_at: String,
     pub currency: WebhookCheckoutCurrency,
     /// Nulo até o comprador confirmar.
@@ -802,6 +849,12 @@ pub struct WebhookCheckout {
     pub discount_cents: i64,
     pub expires_at: String,
     pub id: String,
+    /// As linhas do valor que o servidor do lojista fixou; vazio sem elas.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub items: Option<Vec<CheckoutLine>>,
+    /// Os pares que o servidor do lojista enviou ao criar o checkout; vazio sem eles.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub metadata: Option<std::collections::HashMap<String, serde_json::Value>>,
     pub price_id: String,
     pub product_id: String,
     pub status: WebhookCheckoutStatus,
@@ -911,6 +964,55 @@ pub struct WebhookEndpointCreated {
     pub secret: String,
     pub status: WebhookEndpointCreatedStatus,
     pub url: String,
+}
+
+/// WebhookRefund is a resource of Peráta's API.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct WebhookRefund {
+    pub amount_cents: i64,
+    /// O checkout (o pedido) que o reembolso devolve, quando se sabe.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub checkout_id: Option<String>,
+    /// O id do pedido no sistema do lojista; vazio sem ele.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub client_reference_id: Option<String>,
+    pub id: String,
+    /// Os pares que o servidor do lojista enviou ao criar o checkout; vazio sem eles.
+    pub metadata: std::collections::HashMap<String, serde_json::Value>,
+    pub payment_id: String,
+    pub status: WebhookRefundStatus,
+}
+
+/// Os eventos da venda (checkout_payment.* e refund.*): os identificadores de sempre e, além deles, o checkout, o valor e o que o servidor do lojista enviou ao criar o checkout.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct WebhookSale {
+    pub aggregate: String,
+    pub aggregate_id: String,
+    /// O valor do pagamento (com os juros do parcelamento, quando há) ou o valor reembolsado, em centavos.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub amount_cents: Option<i64>,
+    /// O checkout (o pedido) do pagamento ou do reembolso.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub checkout_id: Option<String>,
+    /// O id do pedido no sistema do lojista; vazio sem ele.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub client_reference_id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub currency: Option<WebhookSaleCurrency>,
+    pub environment: String,
+    pub event_id: String,
+    pub merchant_id: String,
+    /// Os pares que o servidor do lojista enviou ao criar o checkout; vazio sem eles.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub metadata: Option<std::collections::HashMap<String, serde_json::Value>>,
+    /// O meio do pagamento, nos eventos checkout_payment.*.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub method: Option<WebhookSaleMethod>,
+    /// O pagamento que o reembolso devolve, nos eventos refund.*.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub payment_id: Option<String>,
 }
 
 /// What usage.ingest answers.
@@ -1287,8 +1389,14 @@ pub struct CheckoutsCreateParams {
     /// Deixa o comprador digitar um código de desconto; desligado quando fica de fora.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub allow_discount_codes: Option<bool>,
+    /// O valor do pedido todo, em centavos, que o seu servidor fixa. Só vale em um preço de valor livre (custom); em outro preço é recusado com 422. Respeita o mínimo e o máximo do preço, também com 422. O comprador vê o valor e não pode mudá-lo, na página, no modal, nos componentes e no checkout transparente; vale para cartão de crédito, débito e Pix, e é o valor que volta em pedidos, pagamentos, recibo e eventos. Repetir a criação com a mesma Idempotency-Key e outro valor dá 409.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub amount_cents: Option<i64>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub cancel_url: Option<String>,
+    /// O id do pedido no seu sistema, de até 255 caracteres. Volta no checkout, no pedido, no pagamento e nos eventos checkout.*, order.*, checkout_payment.* e refund.*, para você achar de qual pedido veio cada pagamento.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub client_reference_id: Option<String>,
     /// O e-mail do comprador, quando você o conhece; senão o navegador do comprador o pede.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub customer_email: Option<String>,
@@ -1298,12 +1406,15 @@ pub struct CheckoutsCreateParams {
     /// O nome do comprador, quando você o conhece.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub customer_name: Option<String>,
-    /// Segundos em que a sessão e o client_secret continuam valendo; 1800 quando fica de fora.
+    /// Segundos em que a sessão e o client_secret continuam valendo, de um minuto a três dias; 1800 (30 minutos) quando fica de fora. Uma sessão paga com Pix pode ser aberta até esse prazo e, aberta, o Pix gerado vale 24 horas.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub expires_in: Option<i64>,
     /// O mesmo cliente, pelo ID que você deu a ele.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub external_customer_id: Option<String>,
+    /// As linhas do pedido, até 50, para o comprador ler o detalhe: aparecem no checkout (página, modal, componentes e transparente), no pedido, no recibo, no portal do cliente e nos eventos. A soma de quantity vezes unit_amount_cents precisa ser igual a amount_cents, ou a resposta é 422; enviadas sem amount_cents, a soma é o valor.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub items: Option<Vec<CheckoutsCreateItem>>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub label: Option<String>,
     /// Até 50 pares guardados no link do checkout; valor em texto, número ou booleano.
@@ -1311,6 +1422,7 @@ pub struct CheckoutsCreateParams {
     pub metadata: Option<std::collections::HashMap<String, serde_json::Value>>,
     pub price_id: String,
     pub product_id: String,
+    /// Quantas unidades. Com amount_cents é sempre 1: envie 1 ou omita; qualquer outro valor é recusado com 422.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub quantity: Option<i64>,
     /// Pede o endereço de cobrança completo de todo comprador, não só no boleto; desligado quando fica de fora.
@@ -1328,12 +1440,15 @@ impl CheckoutsCreateParams {
     pub fn new(price_id: impl Into<String>, product_id: impl Into<String>) -> Self {
         Self {
             allow_discount_codes: None,
+            amount_cents: None,
             cancel_url: None,
+            client_reference_id: None,
             customer_email: None,
             customer_id: None,
             customer_name: None,
             expires_in: None,
             external_customer_id: None,
+            items: None,
             label: None,
             metadata: None,
             price_id: price_id.into(),
@@ -1351,9 +1466,21 @@ impl CheckoutsCreateParams {
         self
     }
 
+    /// O valor do pedido todo, em centavos, que o seu servidor fixa. Só vale em um preço de valor livre (custom); em outro preço é recusado com 422. Respeita o mínimo e o máximo do preço, também com 422. O comprador vê o valor e não pode mudá-lo, na página, no modal, nos componentes e no checkout transparente; vale para cartão de crédito, débito e Pix, e é o valor que volta em pedidos, pagamentos, recibo e eventos. Repetir a criação com a mesma Idempotency-Key e outro valor dá 409.
+    pub fn amount_cents(mut self, amount_cents: i64) -> Self {
+        self.amount_cents = Some(amount_cents);
+        self
+    }
+
     /// Sets `cancel_url`.
     pub fn cancel_url(mut self, cancel_url: impl Into<String>) -> Self {
         self.cancel_url = Some(cancel_url.into());
+        self
+    }
+
+    /// O id do pedido no seu sistema, de até 255 caracteres. Volta no checkout, no pedido, no pagamento e nos eventos checkout.*, order.*, checkout_payment.* e refund.*, para você achar de qual pedido veio cada pagamento.
+    pub fn client_reference_id(mut self, client_reference_id: impl Into<String>) -> Self {
+        self.client_reference_id = Some(client_reference_id.into());
         self
     }
 
@@ -1375,7 +1502,7 @@ impl CheckoutsCreateParams {
         self
     }
 
-    /// Segundos em que a sessão e o client_secret continuam valendo; 1800 quando fica de fora.
+    /// Segundos em que a sessão e o client_secret continuam valendo, de um minuto a três dias; 1800 (30 minutos) quando fica de fora. Uma sessão paga com Pix pode ser aberta até esse prazo e, aberta, o Pix gerado vale 24 horas.
     pub fn expires_in(mut self, expires_in: i64) -> Self {
         self.expires_in = Some(expires_in);
         self
@@ -1384,6 +1511,12 @@ impl CheckoutsCreateParams {
     /// O mesmo cliente, pelo ID que você deu a ele.
     pub fn external_customer_id(mut self, external_customer_id: impl Into<String>) -> Self {
         self.external_customer_id = Some(external_customer_id.into());
+        self
+    }
+
+    /// As linhas do pedido, até 50, para o comprador ler o detalhe: aparecem no checkout (página, modal, componentes e transparente), no pedido, no recibo, no portal do cliente e nos eventos. A soma de quantity vezes unit_amount_cents precisa ser igual a amount_cents, ou a resposta é 422; enviadas sem amount_cents, a soma é o valor.
+    pub fn items(mut self, items: Vec<CheckoutsCreateItem>) -> Self {
+        self.items = Some(items);
         self
     }
 
@@ -1399,7 +1532,7 @@ impl CheckoutsCreateParams {
         self
     }
 
-    /// Sets `quantity`.
+    /// Quantas unidades. Com amount_cents é sempre 1: envie 1 ou omita; qualquer outro valor é recusado com 422.
     pub fn quantity(mut self, quantity: i64) -> Self {
         self.quantity = Some(quantity);
         self
@@ -1420,6 +1553,39 @@ impl CheckoutsCreateParams {
     /// Sets `success_url`.
     pub fn success_url(mut self, success_url: impl Into<String>) -> Self {
         self.success_url = Some(success_url.into());
+        self
+    }
+}
+
+/// One item of items in CheckoutsCreateParams.
+///
+/// [`CheckoutsCreateItem::new`] takes the required fields; each optional one is set by
+/// the method of its name.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct CheckoutsCreateItem {
+    /// O nome da linha, de até 200 caracteres.
+    pub name: String,
+    /// Quantas unidades da linha; 1 quando fica de fora.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub quantity: Option<i64>,
+    /// O valor de uma unidade, em centavos. Negativo é desconto ou cupom, desde que a soma continue maior que zero.
+    pub unit_amount_cents: i64,
+}
+
+impl CheckoutsCreateItem {
+    /// A body with its required fields.
+    pub fn new(name: impl Into<String>, unit_amount_cents: i64) -> Self {
+        Self {
+            name: name.into(),
+            quantity: None,
+            unit_amount_cents,
+        }
+    }
+
+    /// Quantas unidades da linha; 1 quando fica de fora.
+    pub fn quantity(mut self, quantity: i64) -> Self {
+        self.quantity = Some(quantity);
         self
     }
 }
@@ -6245,6 +6411,202 @@ impl Serialize for WebhookEndpointCreatedStatus {
 }
 
 impl<'de> Deserialize<'de> for WebhookEndpointCreatedStatus {
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        String::deserialize(deserializer).map(Self::from)
+    }
+}
+
+/// The values of `WebhookRefund.status`.
+///
+/// A value this SDK does not know yet is kept, as it came, in
+/// [`WebhookRefundStatus::Unrecognized`].
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[non_exhaustive]
+pub enum WebhookRefundStatus {
+    /// `requested`
+    Requested,
+    /// `pending`
+    Pending,
+    /// `unknown`
+    Unknown,
+    /// `succeeded`
+    Succeeded,
+    /// `failed`
+    Failed,
+    /// `canceled`
+    Canceled,
+    /// A value this SDK does not know yet.
+    Unrecognized(String),
+}
+
+impl WebhookRefundStatus {
+    /// The value as the API writes it.
+    pub fn as_str(&self) -> &str {
+        match self {
+            WebhookRefundStatus::Requested => "requested",
+            WebhookRefundStatus::Pending => "pending",
+            WebhookRefundStatus::Unknown => "unknown",
+            WebhookRefundStatus::Succeeded => "succeeded",
+            WebhookRefundStatus::Failed => "failed",
+            WebhookRefundStatus::Canceled => "canceled",
+            WebhookRefundStatus::Unrecognized(value) => value,
+        }
+    }
+}
+
+impl From<&str> for WebhookRefundStatus {
+    fn from(value: &str) -> Self {
+        match value {
+            "requested" => WebhookRefundStatus::Requested,
+            "pending" => WebhookRefundStatus::Pending,
+            "unknown" => WebhookRefundStatus::Unknown,
+            "succeeded" => WebhookRefundStatus::Succeeded,
+            "failed" => WebhookRefundStatus::Failed,
+            "canceled" => WebhookRefundStatus::Canceled,
+            other => WebhookRefundStatus::Unrecognized(other.to_owned()),
+        }
+    }
+}
+
+impl From<String> for WebhookRefundStatus {
+    fn from(value: String) -> Self {
+        Self::from(value.as_str())
+    }
+}
+
+impl fmt::Display for WebhookRefundStatus {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
+impl Serialize for WebhookRefundStatus {
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        serializer.serialize_str(self.as_str())
+    }
+}
+
+impl<'de> Deserialize<'de> for WebhookRefundStatus {
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        String::deserialize(deserializer).map(Self::from)
+    }
+}
+
+/// The values of `WebhookSale.currency`.
+///
+/// A value this SDK does not know yet is kept, as it came, in
+/// [`WebhookSaleCurrency::Unrecognized`].
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[non_exhaustive]
+pub enum WebhookSaleCurrency {
+    /// `BRL`
+    Brl,
+    /// A value this SDK does not know yet.
+    Unrecognized(String),
+}
+
+impl WebhookSaleCurrency {
+    /// The value as the API writes it.
+    pub fn as_str(&self) -> &str {
+        match self {
+            WebhookSaleCurrency::Brl => "BRL",
+            WebhookSaleCurrency::Unrecognized(value) => value,
+        }
+    }
+}
+
+impl From<&str> for WebhookSaleCurrency {
+    fn from(value: &str) -> Self {
+        match value {
+            "BRL" => WebhookSaleCurrency::Brl,
+            other => WebhookSaleCurrency::Unrecognized(other.to_owned()),
+        }
+    }
+}
+
+impl From<String> for WebhookSaleCurrency {
+    fn from(value: String) -> Self {
+        Self::from(value.as_str())
+    }
+}
+
+impl fmt::Display for WebhookSaleCurrency {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
+impl Serialize for WebhookSaleCurrency {
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        serializer.serialize_str(self.as_str())
+    }
+}
+
+impl<'de> Deserialize<'de> for WebhookSaleCurrency {
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        String::deserialize(deserializer).map(Self::from)
+    }
+}
+
+/// The values of `WebhookSale.method`. O meio do pagamento, nos eventos checkout_payment.*.
+///
+/// A value this SDK does not know yet is kept, as it came, in
+/// [`WebhookSaleMethod::Unrecognized`].
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[non_exhaustive]
+pub enum WebhookSaleMethod {
+    /// `card`
+    Card,
+    /// `pix`
+    Pix,
+    /// `boleto`
+    Boleto,
+    /// A value this SDK does not know yet.
+    Unrecognized(String),
+}
+
+impl WebhookSaleMethod {
+    /// The value as the API writes it.
+    pub fn as_str(&self) -> &str {
+        match self {
+            WebhookSaleMethod::Card => "card",
+            WebhookSaleMethod::Pix => "pix",
+            WebhookSaleMethod::Boleto => "boleto",
+            WebhookSaleMethod::Unrecognized(value) => value,
+        }
+    }
+}
+
+impl From<&str> for WebhookSaleMethod {
+    fn from(value: &str) -> Self {
+        match value {
+            "card" => WebhookSaleMethod::Card,
+            "pix" => WebhookSaleMethod::Pix,
+            "boleto" => WebhookSaleMethod::Boleto,
+            other => WebhookSaleMethod::Unrecognized(other.to_owned()),
+        }
+    }
+}
+
+impl From<String> for WebhookSaleMethod {
+    fn from(value: String) -> Self {
+        Self::from(value.as_str())
+    }
+}
+
+impl fmt::Display for WebhookSaleMethod {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
+impl Serialize for WebhookSaleMethod {
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        serializer.serialize_str(self.as_str())
+    }
+}
+
+impl<'de> Deserialize<'de> for WebhookSaleMethod {
     fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
         String::deserialize(deserializer).map(Self::from)
     }

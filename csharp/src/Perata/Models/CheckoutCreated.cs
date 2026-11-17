@@ -15,9 +15,17 @@ public sealed record CheckoutCreated
     /// <summary>A value of <see cref="Status"/>.</summary>
     public const string StatusArchived = "archived";
 
+    /// <summary>O valor, em centavos, que o seu servidor fixou; o comprador o vê e não pode mudá-lo. Nulo quando é o comprador quem digita o valor. Null when the API sends none.</summary>
+    [JsonPropertyName("amount_cents")]
+    public long? AmountCents { get; init; }
+
     /// <summary>Endereço https para onde o comprador volta se desistir; vazio sem ele.</summary>
     [JsonPropertyName("cancel_url")]
     public required string CancelUrl { get; init; }
+
+    /// <summary>O id do pedido no seu sistema, como o seu servidor o enviou; vazio sem ele. Volta no checkout, no pedido, no pagamento e nos eventos.</summary>
+    [JsonPropertyName("client_reference_id")]
+    public required string ClientReferenceId { get; init; }
 
     /// <summary>O segredo que o navegador do comprador usa para ler, atualizar e pagar a sessão, sem chave de API. Só esta resposta o traz; entregue-o à página que monta os campos seguros. Vem vazio na repetição de uma criação idempotente.</summary>
     [JsonPropertyName("client_secret")]
@@ -39,9 +47,17 @@ public sealed record CheckoutCreated
     [JsonPropertyName("id")]
     public required string Id { get; init; }
 
+    /// <summary>As linhas do valor fixado, na ordem em que foram enviadas; vazio sem elas.</summary>
+    [JsonPropertyName("items")]
+    public required IReadOnlyList<CheckoutLine> Items { get; init; }
+
     /// <summary>Como o lojista chama o checkout nas próprias telas; o comprador não vê.</summary>
     [JsonPropertyName("label")]
     public required string Label { get; init; }
+
+    /// <summary>Os pares que o seu servidor enviou; voltam no pedido, no pagamento e nos eventos da venda (checkout.*, order.*, checkout_payment.* e refund.*).</summary>
+    [JsonPropertyName("metadata")]
+    public required IReadOnlyDictionary<string, JsonElement> Metadata { get; init; }
 
     /// <summary>The API's <c>price_id</c>.</summary>
     [JsonPropertyName("price_id")]

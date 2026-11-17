@@ -363,14 +363,34 @@ func dartEntry(indent int, key, value string) string {
 			var out []string
 			out = append(out, key+": "+callee+"(")
 			for _, arg := range splitTop(value[open+1:close], ',') {
-				arg = strings.TrimSpace(arg)
-				out = append(out, pad+"  "+arg+",")
+				out = append(out, dartArg(indent+2, strings.TrimSpace(arg))+",")
 			}
 			out = append(out, pad+")")
 			return strings.Join(out, "\n")
 		}
 	}
 	return line
+}
+
+// dartArg is one argument of a wrapped call at indent, as dart format lays it
+// out: on one line when it fits, otherwise a closure whose body is a call has
+// that call's arguments one a line.
+func dartArg(indent int, arg string) string {
+	pad := strings.Repeat(" ", indent)
+	const closure = "(value) => "
+	if indent+len(arg)+1 <= dartLimit || !strings.HasPrefix(arg, closure) {
+		return pad + arg
+	}
+	body := arg[len(closure):]
+	open := strings.IndexByte(body, '(')
+	if open <= 0 || !strings.HasSuffix(body, ")") || strings.Contains(body[:open], " ") {
+		return pad + arg
+	}
+	lines := []string{pad + closure + body[:open] + "("}
+	for _, inner := range splitTop(body[open+1:len(body)-1], ',') {
+		lines = append(lines, dartArg(indent+2, strings.TrimSpace(inner))+",")
+	}
+	return strings.Join(append(lines, pad+")"), "\n")
 }
 
 // dartText escapes the angle brackets of a description, which dartdoc would

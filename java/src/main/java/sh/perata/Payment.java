@@ -35,6 +35,7 @@ public final class Payment {
     private final long amountCents;
     private final long capturedCents;
     private final String checkoutId;
+    private final String clientReferenceId;
     private final String createdAt;
     private final String currency;
     private final String customerId;
@@ -42,14 +43,16 @@ public final class Payment {
     private final long installmentAmountCents;
     private final long installmentInterestCents;
     private final long installments;
+    private final Map<String, Object> metadata;
     private final String method;
     private final long refundedCents;
     private final String state;
 
-    Payment(long amountCents, long capturedCents, String checkoutId, String createdAt, String currency, String customerId, String id, long installmentAmountCents, long installmentInterestCents, long installments, String method, long refundedCents, String state) {
+    Payment(long amountCents, long capturedCents, String checkoutId, String clientReferenceId, String createdAt, String currency, String customerId, String id, long installmentAmountCents, long installmentInterestCents, long installments, Map<String, Object> metadata, String method, long refundedCents, String state) {
         this.amountCents = amountCents;
         this.capturedCents = capturedCents;
         this.checkoutId = checkoutId;
+        this.clientReferenceId = clientReferenceId;
         this.createdAt = createdAt;
         this.currency = currency;
         this.customerId = customerId;
@@ -57,6 +60,7 @@ public final class Payment {
         this.installmentAmountCents = installmentAmountCents;
         this.installmentInterestCents = installmentInterestCents;
         this.installments = installments;
+        this.metadata = metadata;
         this.method = method;
         this.refundedCents = refundedCents;
         this.state = state;
@@ -67,6 +71,7 @@ public final class Payment {
                 Json.required(data, "amount_cents", Json::asLong),
                 Json.required(data, "captured_cents", Json::asLong),
                 Json.required(data, "checkout_id", Json::asString),
+                Json.required(data, "client_reference_id", Json::asString),
                 Json.required(data, "created_at", Json::asString),
                 Json.required(data, "currency", Json::asString),
                 Json.required(data, "customer_id", Json::asString),
@@ -74,6 +79,7 @@ public final class Payment {
                 Json.required(data, "installment_amount_cents", Json::asLong),
                 Json.required(data, "installment_interest_cents", Json::asLong),
                 Json.required(data, "installments", Json::asLong),
+                Json.required(data, "metadata", Json.map(Json::any)),
                 Json.required(data, "method", Json::asString),
                 Json.required(data, "refunded_cents", Json::asLong),
                 Json.required(data, "state", Json::asString));
@@ -92,6 +98,11 @@ public final class Payment {
     /** @return the API's {@code checkout_id} */
     public String getCheckoutId() {
         return checkoutId;
+    }
+
+    /** @return O id do pedido no seu sistema, enviado ao criar o checkout; vazio sem ele. */
+    public String getClientReferenceId() {
+        return clientReferenceId;
     }
 
     /** @return the API's {@code created_at} */
@@ -129,6 +140,11 @@ public final class Payment {
         return installments;
     }
 
+    /** @return Os pares que o seu servidor enviou ao criar o checkout. */
+    public Map<String, Object> getMetadata() {
+        return metadata;
+    }
+
     /** @return the API's {@code method} */
     public String getMethod() {
         return method;
@@ -146,6 +162,6 @@ public final class Payment {
 
     @Override
     public String toString() {
-        return "Payment{" + "amountCents=" + amountCents + ", capturedCents=" + capturedCents + ", checkoutId=" + checkoutId + ", createdAt=" + createdAt + ", currency=" + currency + ", customerId=" + customerId + ", id=" + id + ", installmentAmountCents=" + installmentAmountCents + ", installmentInterestCents=" + installmentInterestCents + ", installments=" + installments + ", method=" + method + ", refundedCents=" + refundedCents + ", state=" + state + "}";
+        return "Payment{" + "amountCents=" + amountCents + ", capturedCents=" + capturedCents + ", checkoutId=" + checkoutId + ", clientReferenceId=" + clientReferenceId + ", createdAt=" + createdAt + ", currency=" + currency + ", customerId=" + customerId + ", id=" + id + ", installmentAmountCents=" + installmentAmountCents + ", installmentInterestCents=" + installmentInterestCents + ", installments=" + installments + ", metadata=" + metadata + ", method=" + method + ", refundedCents=" + refundedCents + ", state=" + state + "}";
     }
 }

@@ -73,7 +73,7 @@ module Perata
 
   # The events that carry the event's identifiers; +data+ is Hash{String => String}.
   class IdentifiersWebhookEvent < WebhookEvent
-    TYPES = %w[benefit.archived benefit.version_created benefit_product_link.linked benefit_product_link.unlinked checkout_link.archived checkout_link.created checkout_payment.authorized checkout_payment.canceled checkout_payment.captured checkout_payment.partially_refunded checkout_payment.refunded checkout_payment.refused checkout_session.confirmed checkout_session.expired checkout_session.failed checkout_session.opened checkout_session.succeeded customer.archived discount.exhausted discount.expired discount.reactivated discount.redeemed discount_redemption.released invoice.drafted invoice.issued invoice.settled invoice.uncollectible invoice.voided price.archived price.created product.archived refund.canceled refund.failed refund.requested refund.succeeded seat_allocation.opened seat_allocation.resized seat_assignment.claimed seat_assignment.invited seat_assignment.revoked usage_event.recorded usage_period.closed usage_period.opened usage_period_adjustment.created].freeze
+    TYPES = %w[benefit.archived benefit.version_created benefit_product_link.linked benefit_product_link.unlinked checkout_link.archived checkout_link.created checkout_session.confirmed checkout_session.expired checkout_session.failed checkout_session.opened checkout_session.succeeded customer.archived discount.exhausted discount.expired discount.reactivated discount.redeemed discount_redemption.released invoice.drafted invoice.issued invoice.settled invoice.uncollectible invoice.voided price.archived price.created product.archived seat_allocation.opened seat_allocation.resized seat_assignment.claimed seat_assignment.invited seat_assignment.revoked usage_event.recorded usage_period.closed usage_period.opened usage_period_adjustment.created].freeze
   end
 
   # The events that carry an Order; +data+ is Order.
@@ -86,9 +86,14 @@ module Perata
     TYPES = %w[product.created product.updated].freeze
   end
 
-  # The events that carry a Refund; +data+ is Refund.
+  # The events that carry a WebhookRefund; +data+ is WebhookRefund.
   class RefundWebhookEvent < WebhookEvent
     TYPES = %w[refund.created refund.updated].freeze
+  end
+
+  # The events that carry a WebhookSale; +data+ is WebhookSale.
+  class SaleWebhookEvent < WebhookEvent
+    TYPES = %w[checkout_payment.authorized checkout_payment.canceled checkout_payment.captured checkout_payment.partially_refunded checkout_payment.refunded checkout_payment.refused refund.canceled refund.failed refund.requested refund.succeeded].freeze
   end
 
   # The events that carry a Subscription; +data+ is Subscription.
@@ -164,7 +169,8 @@ module Perata
     when *IdentifiersWebhookEvent::TYPES then IdentifiersWebhookEvent.new(**message, data: data)
     when *OrderWebhookEvent::TYPES then OrderWebhookEvent.new(**message, data: Order.from_hash(data))
     when *ProductWebhookEvent::TYPES then ProductWebhookEvent.new(**message, data: Product.from_hash(data))
-    when *RefundWebhookEvent::TYPES then RefundWebhookEvent.new(**message, data: Refund.from_hash(data))
+    when *RefundWebhookEvent::TYPES then RefundWebhookEvent.new(**message, data: WebhookRefund.from_hash(data))
+    when *SaleWebhookEvent::TYPES then SaleWebhookEvent.new(**message, data: WebhookSale.from_hash(data))
     when *SubscriptionWebhookEvent::TYPES then SubscriptionWebhookEvent.new(**message, data: Subscription.from_hash(data))
     else UnknownWebhookEvent.new(**message, data: data)
     end

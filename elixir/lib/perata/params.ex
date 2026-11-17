@@ -239,12 +239,15 @@ defmodule Perata.CheckoutsCreateParams do
   @enforce_keys [:price_id, :product_id]
   defstruct [
     :allow_discount_codes,
+    :amount_cents,
     :cancel_url,
+    :client_reference_id,
     :customer_email,
     :customer_id,
     :customer_name,
     :expires_in,
     :external_customer_id,
+    :items,
     :label,
     :metadata,
     :price_id,
@@ -257,27 +260,33 @@ defmodule Perata.CheckoutsCreateParams do
 
   @typedoc """
   * `allow_discount_codes` (optional): Deixa o comprador digitar um código de desconto; desligado quando fica de fora.
+  * `amount_cents` (optional): O valor do pedido todo, em centavos, que o seu servidor fixa. Só vale em um preço de valor livre (custom); em outro preço é recusado com 422. Respeita o mínimo e o máximo do preço, também com 422. O comprador vê o valor e não pode mudá-lo, na página, no modal, nos componentes e no checkout transparente; vale para cartão de crédito, débito e Pix, e é o valor que volta em pedidos, pagamentos, recibo e eventos. Repetir a criação com a mesma Idempotency-Key e outro valor dá 409.
   * `cancel_url` (optional)
+  * `client_reference_id` (optional): O id do pedido no seu sistema, de até 255 caracteres. Volta no checkout, no pedido, no pagamento e nos eventos checkout.*, order.*, checkout_payment.* e refund.*, para você achar de qual pedido veio cada pagamento.
   * `customer_email` (optional): O e-mail do comprador, quando você o conhece; senão o navegador do comprador o pede.
   * `customer_id` (optional): Um cliente seu: o checkout abre com o nome, o e-mail e os dados de cobrança dele. Não junto com external_customer_id, customer_email ou customer_name.
   * `customer_name` (optional): O nome do comprador, quando você o conhece.
-  * `expires_in` (optional): Segundos em que a sessão e o client_secret continuam valendo; 1800 quando fica de fora.
+  * `expires_in` (optional): Segundos em que a sessão e o client_secret continuam valendo, de um minuto a três dias; 1800 (30 minutos) quando fica de fora. Uma sessão paga com Pix pode ser aberta até esse prazo e, aberta, o Pix gerado vale 24 horas.
   * `external_customer_id` (optional): O mesmo cliente, pelo ID que você deu a ele.
+  * `items` (optional): As linhas do pedido, até 50, para o comprador ler o detalhe: aparecem no checkout (página, modal, componentes e transparente), no pedido, no recibo, no portal do cliente e nos eventos. A soma de quantity vezes unit_amount_cents precisa ser igual a amount_cents, ou a resposta é 422; enviadas sem amount_cents, a soma é o valor.
   * `label` (optional)
   * `metadata` (optional): Até 50 pares guardados no link do checkout; valor em texto, número ou booleano.
-  * `quantity` (optional)
+  * `quantity` (optional): Quantas unidades. Com amount_cents é sempre 1: envie 1 ou omita; qualquer outro valor é recusado com 422.
   * `require_billing_address` (optional): Pede o endereço de cobrança completo de todo comprador, não só no boleto; desligado quando fica de fora.
   * `return_url` (optional): Outro nome de cancel_url: a página https a que o comprador volta sem pagar. Enviada com um cancel_url diferente, é recusada.
   * `success_url` (optional)
   """
   @type t :: %__MODULE__{
           allow_discount_codes: boolean() | nil,
+          amount_cents: integer() | nil,
           cancel_url: String.t() | nil,
+          client_reference_id: String.t() | nil,
           customer_email: String.t() | nil,
           customer_id: String.t() | nil,
           customer_name: String.t() | nil,
           expires_in: integer() | nil,
           external_customer_id: String.t() | nil,
+          items: [Perata.CheckoutsCreateItem.t()] | nil,
           label: String.t() | nil,
           metadata: %{optional(String.t()) => term()} | nil,
           price_id: String.t(),
@@ -300,18 +309,58 @@ defmodule Perata.CheckoutsCreateParams do
 
     %{"price_id" => params.price_id, "product_id" => params.product_id}
     |> Perata.Encode.put_optional("allow_discount_codes", params.allow_discount_codes)
+    |> Perata.Encode.put_optional("amount_cents", params.amount_cents)
     |> Perata.Encode.put_optional("cancel_url", params.cancel_url)
+    |> Perata.Encode.put_optional("client_reference_id", params.client_reference_id)
     |> Perata.Encode.put_optional("customer_email", params.customer_email)
     |> Perata.Encode.put_optional("customer_id", params.customer_id)
     |> Perata.Encode.put_optional("customer_name", params.customer_name)
     |> Perata.Encode.put_optional("expires_in", params.expires_in)
     |> Perata.Encode.put_optional("external_customer_id", params.external_customer_id)
+    |> Perata.Encode.put_optional("items", Perata.Encode.value(params.items))
     |> Perata.Encode.put_optional("label", params.label)
     |> Perata.Encode.put_optional("metadata", Perata.Encode.value(params.metadata))
     |> Perata.Encode.put_optional("quantity", params.quantity)
     |> Perata.Encode.put_optional("require_billing_address", params.require_billing_address)
     |> Perata.Encode.put_optional("return_url", params.return_url)
     |> Perata.Encode.put_optional("success_url", params.success_url)
+  end
+end
+
+defmodule Perata.CheckoutsCreateItem do
+  @moduledoc """
+  One item of items in CheckoutsCreateParams.
+
+  Build it with `new/1` from a keyword list or a map; an optional field left
+  out is left out of the JSON.
+  """
+
+  @enforce_keys [:name, :unit_amount_cents]
+  defstruct [:name, :quantity, :unit_amount_cents]
+
+  @typedoc """
+  * `name`: O nome da linha, de até 200 caracteres.
+  * `quantity` (optional): Quantas unidades da linha; 1 quando fica de fora.
+  * `unit_amount_cents`: O valor de uma unidade, em centavos. Negativo é desconto ou cupom, desde que a soma continue maior que zero.
+  """
+  @type t :: %__MODULE__{
+          name: String.t(),
+          quantity: integer() | nil,
+          unit_amount_cents: integer()
+        }
+
+  @doc "The params as they are, or built from a keyword list or a map with atom keys."
+  @spec new(t() | keyword() | map()) :: t()
+  def new(%__MODULE__{} = params), do: params
+  def new(fields), do: struct!(__MODULE__, fields)
+
+  @doc "The body as the API reads it, from the params or what `new/1` builds them from."
+  @spec to_map(t() | keyword() | map()) :: %{optional(String.t()) => term()}
+  def to_map(params) do
+    params = new(params)
+
+    %{"name" => params.name, "unit_amount_cents" => params.unit_amount_cents}
+    |> Perata.Encode.put_optional("quantity", params.quantity)
   end
 end
 

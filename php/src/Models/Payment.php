@@ -13,6 +13,8 @@ final class Payment
         public readonly int $amountCents,
         public readonly int $capturedCents,
         public readonly string $checkoutId,
+        /** O id do pedido no seu sistema, enviado ao criar o checkout; vazio sem ele. */
+        public readonly string $clientReferenceId,
         public readonly string $createdAt,
         /** @var 'BRL' */
         public readonly string $currency,
@@ -24,6 +26,11 @@ final class Payment
         public readonly int $installmentInterestCents,
         /** Em quantas parcelas o cartão de crédito foi cobrado; 1 à vista. */
         public readonly int $installments,
+        /**
+         * Os pares que o seu servidor enviou ao criar o checkout.
+         * @var array<string, mixed>
+         */
+        public readonly array $metadata,
         /** @var 'card'|'pix'|'boleto' */
         public readonly string $method,
         public readonly int $refundedCents,
@@ -41,6 +48,7 @@ final class Payment
             amountCents: $data['amount_cents'],
             capturedCents: $data['captured_cents'],
             checkoutId: $data['checkout_id'],
+            clientReferenceId: $data['client_reference_id'],
             createdAt: $data['created_at'],
             currency: $data['currency'],
             customerId: $data['customer_id'],
@@ -48,6 +56,7 @@ final class Payment
             installmentAmountCents: $data['installment_amount_cents'],
             installmentInterestCents: $data['installment_interest_cents'],
             installments: $data['installments'],
+            metadata: $data['metadata'],
             method: $data['method'],
             refundedCents: $data['refunded_cents'],
             state: $data['state'],

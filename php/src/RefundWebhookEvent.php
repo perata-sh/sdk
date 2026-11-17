@@ -7,7 +7,7 @@ declare(strict_types=1);
 namespace Perata;
 
 /**
- * The events that carry a Refund:
+ * The events that carry a WebhookRefund:
  * refund.created
  * refund.updated
  */
@@ -16,7 +16,7 @@ final class RefundWebhookEvent extends WebhookEvent
     /** The event types this class carries. */
     public const TYPES = ['refund.created', 'refund.updated'];
 
-    public function __construct(string $id, string $type, string $timestamp, public readonly Models\Refund $data)
+    public function __construct(string $id, string $type, string $timestamp, public readonly Models\WebhookRefund $data)
     {
         parent::__construct($id, $type, $timestamp);
     }

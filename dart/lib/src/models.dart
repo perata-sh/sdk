@@ -356,11 +356,15 @@ final class CardTokenization {
 /// Checkout is a resource of Peráta's API.
 final class Checkout {
   const Checkout({
+    this.amountCents,
     required this.cancelUrl,
+    required this.clientReferenceId,
     required this.createdAt,
     this.expiresAt,
     required this.id,
+    required this.items,
     required this.label,
+    required this.metadata,
     required this.priceId,
     required this.productId,
     required this.quantity,
@@ -372,11 +376,18 @@ final class Checkout {
   /// A Checkout out of the API's JSON.
   factory Checkout.fromJson(Map<String, Object?> json) {
     return Checkout(
+      amountCents: json['amount_cents'] as int?,
       cancelUrl: json['cancel_url'] as String,
+      clientReferenceId: json['client_reference_id'] as String,
       createdAt: json['created_at'] as String,
       expiresAt: json['expires_at'] as String?,
       id: json['id'] as String,
+      items: readList(
+        json['items'],
+        (value) => CheckoutLine.fromJson(readObject(value)),
+      ),
       label: json['label'] as String,
+      metadata: readMap(json['metadata'], (value) => value),
       priceId: json['price_id'] as String,
       productId: json['product_id'] as String,
       quantity: json['quantity'] as int,
@@ -386,8 +397,16 @@ final class Checkout {
     );
   }
 
+  /// O valor, em centavos, que o seu servidor fixou na criação; nulo quando é o
+  /// comprador quem digita o valor.
+  final int? amountCents;
+
   /// Endereço https para onde o comprador volta se desistir; vazio sem ele.
   final String cancelUrl;
+
+  /// O id do pedido no seu sistema, como o seu servidor o enviou na criação;
+  /// vazio sem ele. Volta no checkout, no pedido, no pagamento e nos eventos.
+  final String clientReferenceId;
 
   final String createdAt;
 
@@ -396,8 +415,15 @@ final class Checkout {
 
   final String id;
 
+  /// As linhas do valor fixado, na ordem em que foram enviadas; vazio sem elas.
+  final List<CheckoutLine> items;
+
   /// Como o lojista chama o checkout nas próprias telas; o comprador não vê.
   final String label;
+
+  /// Os pares que o seu servidor guardou na criação; voltam nos eventos da
+  /// venda.
+  final Map<String, Object?> metadata;
 
   final String priceId;
 
@@ -418,11 +444,15 @@ final class Checkout {
 
   /// The JSON the API answers.
   Map<String, Object?> toJson() => {
+    'amount_cents': amountCents,
     'cancel_url': cancelUrl,
+    'client_reference_id': clientReferenceId,
     'created_at': createdAt,
     'expires_at': expiresAt,
     'id': id,
+    'items': items.map((item) => item.toJson()).toList(),
     'label': label,
+    'metadata': metadata,
     'price_id': priceId,
     'product_id': productId,
     'quantity': quantity,
@@ -436,8 +466,10 @@ final class Checkout {
 final class CheckoutClient {
   const CheckoutClient({
     required this.amountCents,
+    required this.amountLocked,
     required this.cancelUrl,
     required this.cardKinds,
+    required this.clientReferenceId,
     required this.currency,
     this.customer,
     this.discount,
@@ -464,8 +496,10 @@ final class CheckoutClient {
   factory CheckoutClient.fromJson(Map<String, Object?> json) {
     return CheckoutClient(
       amountCents: json['amount_cents'] as int,
+      amountLocked: json['amount_locked'] as bool,
       cancelUrl: json['cancel_url'] as String,
       cardKinds: readList(json['card_kinds'], readString),
+      clientReferenceId: json['client_reference_id'] as String,
       currency: json['currency'] as String,
       customer: readOptional(
         json['customer'],
@@ -507,11 +541,20 @@ final class CheckoutClient {
   /// Antes do desconto.
   final int amountCents;
 
+  /// Verdadeiro quando o servidor do lojista fixou o valor (amount_cents na
+  /// criação do checkout): mostre-o ao comprador sem campo para mudá-lo.
+  /// Nenhuma rota de cliente aceita outro valor.
+  final bool amountLocked;
+
   /// Para onde o comprador volta sem pagar.
   final String cancelUrl;
 
   /// credit, e debit onde a autenticação do adquirente está ligada.
   final List<String> cardKinds;
+
+  /// O id do pedido no seu sistema, quando o seu servidor o enviou; vazio sem
+  /// ele.
+  final String clientReferenceId;
 
   /// One of `BRL`.
   final String currency;
@@ -580,8 +623,10 @@ final class CheckoutClient {
   /// The JSON the API answers.
   Map<String, Object?> toJson() => {
     'amount_cents': amountCents,
+    'amount_locked': amountLocked,
     'cancel_url': cancelUrl,
     'card_kinds': cardKinds,
+    'client_reference_id': clientReferenceId,
     'currency': currency,
     'customer': customer?.toJson(),
     'discount': discount?.toJson(),
@@ -887,13 +932,17 @@ final class CheckoutClientPix {
 /// CheckoutCreated is a resource of Peráta's API.
 final class CheckoutCreated {
   const CheckoutCreated({
+    this.amountCents,
     required this.cancelUrl,
+    required this.clientReferenceId,
     required this.clientSecret,
     required this.clientSecretExpiresAt,
     required this.createdAt,
     this.expiresAt,
     required this.id,
+    required this.items,
     required this.label,
+    required this.metadata,
     required this.priceId,
     required this.productId,
     required this.quantity,
@@ -907,13 +956,20 @@ final class CheckoutCreated {
   /// A CheckoutCreated out of the API's JSON.
   factory CheckoutCreated.fromJson(Map<String, Object?> json) {
     return CheckoutCreated(
+      amountCents: json['amount_cents'] as int?,
       cancelUrl: json['cancel_url'] as String,
+      clientReferenceId: json['client_reference_id'] as String,
       clientSecret: json['client_secret'] as String,
       clientSecretExpiresAt: json['client_secret_expires_at'] as String,
       createdAt: json['created_at'] as String,
       expiresAt: json['expires_at'] as String?,
       id: json['id'] as String,
+      items: readList(
+        json['items'],
+        (value) => CheckoutLine.fromJson(readObject(value)),
+      ),
       label: json['label'] as String,
+      metadata: readMap(json['metadata'], (value) => value),
       priceId: json['price_id'] as String,
       productId: json['product_id'] as String,
       quantity: json['quantity'] as int,
@@ -925,8 +981,16 @@ final class CheckoutCreated {
     );
   }
 
+  /// O valor, em centavos, que o seu servidor fixou; o comprador o vê e não
+  /// pode mudá-lo. Nulo quando é o comprador quem digita o valor.
+  final int? amountCents;
+
   /// Endereço https para onde o comprador volta se desistir; vazio sem ele.
   final String cancelUrl;
+
+  /// O id do pedido no seu sistema, como o seu servidor o enviou; vazio sem
+  /// ele. Volta no checkout, no pedido, no pagamento e nos eventos.
+  final String clientReferenceId;
 
   /// O segredo que o navegador do comprador usa para ler, atualizar e pagar a
   /// sessão, sem chave de API. Só esta resposta o traz; entregue-o à página que
@@ -945,8 +1009,15 @@ final class CheckoutCreated {
   /// O ID do link do checkout, o que GET e PATCH /checkouts/{id} recebem.
   final String id;
 
+  /// As linhas do valor fixado, na ordem em que foram enviadas; vazio sem elas.
+  final List<CheckoutLine> items;
+
   /// Como o lojista chama o checkout nas próprias telas; o comprador não vê.
   final String label;
+
+  /// Os pares que o seu servidor enviou; voltam no pedido, no pagamento e nos
+  /// eventos da venda (checkout.*, order.*, checkout_payment.* e refund.*).
+  final Map<String, Object?> metadata;
 
   final String priceId;
 
@@ -981,13 +1052,17 @@ final class CheckoutCreated {
 
   /// The JSON the API answers.
   Map<String, Object?> toJson() => {
+    'amount_cents': amountCents,
     'cancel_url': cancelUrl,
+    'client_reference_id': clientReferenceId,
     'client_secret': clientSecret,
     'client_secret_expires_at': clientSecretExpiresAt,
     'created_at': createdAt,
     'expires_at': expiresAt,
     'id': id,
+    'items': items.map((item) => item.toJson()).toList(),
     'label': label,
+    'metadata': metadata,
     'price_id': priceId,
     'product_id': productId,
     'quantity': quantity,
@@ -1036,6 +1111,38 @@ final class CheckoutInstallment {
     'installment_cents': installmentCents,
     'interest_cents': interestCents,
     'total_cents': totalCents,
+  };
+}
+
+/// CheckoutLine is a resource of Peráta's API.
+final class CheckoutLine {
+  const CheckoutLine({
+    required this.name,
+    required this.quantity,
+    required this.unitAmountCents,
+  });
+
+  /// A CheckoutLine out of the API's JSON.
+  factory CheckoutLine.fromJson(Map<String, Object?> json) {
+    return CheckoutLine(
+      name: json['name'] as String,
+      quantity: json['quantity'] as int,
+      unitAmountCents: json['unit_amount_cents'] as int,
+    );
+  }
+
+  final String name;
+
+  final int quantity;
+
+  /// O valor de uma unidade, em centavos; negativo é desconto.
+  final int unitAmountCents;
+
+  /// The JSON the API answers.
+  Map<String, Object?> toJson() => {
+    'name': name,
+    'quantity': quantity,
+    'unit_amount_cents': unitAmountCents,
   };
 }
 
@@ -2064,11 +2171,14 @@ final class MeterUnit {
 final class Order {
   const Order({
     required this.amountCents,
+    required this.clientReferenceId,
     required this.currency,
     required this.customerId,
     required this.id,
     required this.installmentInterestCents,
     required this.installments,
+    required this.items,
+    required this.metadata,
     this.paidAt,
     required this.priceId,
     required this.productId,
@@ -2079,11 +2189,17 @@ final class Order {
   factory Order.fromJson(Map<String, Object?> json) {
     return Order(
       amountCents: json['amount_cents'] as int,
+      clientReferenceId: json['client_reference_id'] as String,
       currency: json['currency'] as String,
       customerId: json['customer_id'] as String,
       id: json['id'] as String,
       installmentInterestCents: json['installment_interest_cents'] as int,
       installments: json['installments'] as int,
+      items: readList(
+        json['items'],
+        (value) => CheckoutLine.fromJson(readObject(value)),
+      ),
+      metadata: readMap(json['metadata'], (value) => value),
       paidAt: json['paid_at'] as String?,
       priceId: json['price_id'] as String,
       productId: json['product_id'] as String,
@@ -2092,6 +2208,9 @@ final class Order {
   }
 
   final int amountCents;
+
+  /// O id do pedido no seu sistema, enviado ao criar o checkout; vazio sem ele.
+  final String clientReferenceId;
 
   /// One of `BRL`.
   final String currency;
@@ -2106,6 +2225,13 @@ final class Order {
   /// Em quantas parcelas o cartão de crédito foi cobrado; 1 à vista.
   final int installments;
 
+  /// As linhas do pedido, quando o seu servidor as enviou ao criar o checkout;
+  /// vazio sem elas.
+  final List<CheckoutLine> items;
+
+  /// Os pares que o seu servidor enviou ao criar o checkout.
+  final Map<String, Object?> metadata;
+
   final String? paidAt;
 
   final String priceId;
@@ -2118,11 +2244,14 @@ final class Order {
   /// The JSON the API answers.
   Map<String, Object?> toJson() => {
     'amount_cents': amountCents,
+    'client_reference_id': clientReferenceId,
     'currency': currency,
     'customer_id': customerId,
     'id': id,
     'installment_interest_cents': installmentInterestCents,
     'installments': installments,
+    'items': items.map((item) => item.toJson()).toList(),
+    'metadata': metadata,
     'paid_at': paidAt,
     'price_id': priceId,
     'product_id': productId,
@@ -2139,6 +2268,7 @@ final class OrderInvoice {
     required this.currency,
     required this.discountCents,
     required this.generatedAt,
+    required this.items,
     required this.number,
     required this.orderId,
     required this.productName,
@@ -2156,6 +2286,10 @@ final class OrderInvoice {
       currency: json['currency'] as String,
       discountCents: json['discount_cents'] as int,
       generatedAt: json['generated_at'] as String,
+      items: readList(
+        json['items'],
+        (value) => CheckoutLine.fromJson(readObject(value)),
+      ),
       number: json['number'] as String,
       orderId: json['order_id'] as String,
       productName: json['product_name'] as String,
@@ -2177,6 +2311,9 @@ final class OrderInvoice {
   final int discountCents;
 
   final String generatedAt;
+
+  /// As linhas do pedido, quando o lojista as enviou; vazio sem elas.
+  final List<CheckoutLine> items;
 
   /// Número da fatura, na série da organização (PREFIXO-0001).
   final String number;
@@ -2201,6 +2338,7 @@ final class OrderInvoice {
     'currency': currency,
     'discount_cents': discountCents,
     'generated_at': generatedAt,
+    'items': items.map((item) => item.toJson()).toList(),
     'number': number,
     'order_id': orderId,
     'product_name': productName,
@@ -2220,6 +2358,7 @@ final class OrderReceipt {
     required this.discountCents,
     required this.installmentInterestCents,
     required this.installments,
+    required this.items,
     required this.number,
     required this.orderId,
     this.paidAt,
@@ -2239,6 +2378,10 @@ final class OrderReceipt {
       discountCents: json['discount_cents'] as int,
       installmentInterestCents: json['installment_interest_cents'] as int,
       installments: json['installments'] as int,
+      items: readList(
+        json['items'],
+        (value) => CheckoutLine.fromJson(readObject(value)),
+      ),
       number: json['number'] as String,
       orderId: json['order_id'] as String,
       paidAt: json['paid_at'] as String?,
@@ -2265,6 +2408,9 @@ final class OrderReceipt {
   /// Em quantas parcelas o cartão de crédito foi cobrado; 1 à vista.
   final int installments;
 
+  /// As linhas do pedido, quando o lojista as enviou; vazio sem elas.
+  final List<CheckoutLine> items;
+
   /// Número do pedido na série da organização; vazio antes de ter um.
   final String number;
 
@@ -2290,6 +2436,7 @@ final class OrderReceipt {
     'discount_cents': discountCents,
     'installment_interest_cents': installmentInterestCents,
     'installments': installments,
+    'items': items.map((item) => item.toJson()).toList(),
     'number': number,
     'order_id': orderId,
     'paid_at': paidAt,
@@ -2332,6 +2479,7 @@ final class Payment {
     required this.amountCents,
     required this.capturedCents,
     required this.checkoutId,
+    required this.clientReferenceId,
     required this.createdAt,
     required this.currency,
     required this.customerId,
@@ -2339,6 +2487,7 @@ final class Payment {
     required this.installmentAmountCents,
     required this.installmentInterestCents,
     required this.installments,
+    required this.metadata,
     required this.method,
     required this.refundedCents,
     required this.state,
@@ -2350,6 +2499,7 @@ final class Payment {
       amountCents: json['amount_cents'] as int,
       capturedCents: json['captured_cents'] as int,
       checkoutId: json['checkout_id'] as String,
+      clientReferenceId: json['client_reference_id'] as String,
       createdAt: json['created_at'] as String,
       currency: json['currency'] as String,
       customerId: json['customer_id'] as String,
@@ -2357,6 +2507,7 @@ final class Payment {
       installmentAmountCents: json['installment_amount_cents'] as int,
       installmentInterestCents: json['installment_interest_cents'] as int,
       installments: json['installments'] as int,
+      metadata: readMap(json['metadata'], (value) => value),
       method: json['method'] as String,
       refundedCents: json['refunded_cents'] as int,
       state: json['state'] as String,
@@ -2368,6 +2519,9 @@ final class Payment {
   final int capturedCents;
 
   final String checkoutId;
+
+  /// O id do pedido no seu sistema, enviado ao criar o checkout; vazio sem ele.
+  final String clientReferenceId;
 
   final String createdAt;
 
@@ -2387,6 +2541,9 @@ final class Payment {
   /// Em quantas parcelas o cartão de crédito foi cobrado; 1 à vista.
   final int installments;
 
+  /// Os pares que o seu servidor enviou ao criar o checkout.
+  final Map<String, Object?> metadata;
+
   /// One of `card`, `pix`, `boleto`.
   final String method;
 
@@ -2401,6 +2558,7 @@ final class Payment {
     'amount_cents': amountCents,
     'captured_cents': capturedCents,
     'checkout_id': checkoutId,
+    'client_reference_id': clientReferenceId,
     'created_at': createdAt,
     'currency': currency,
     'customer_id': customerId,
@@ -2408,6 +2566,7 @@ final class Payment {
     'installment_amount_cents': installmentAmountCents,
     'installment_interest_cents': installmentInterestCents,
     'installments': installments,
+    'metadata': metadata,
     'method': method,
     'refunded_cents': refundedCents,
     'state': state,
@@ -2816,12 +2975,15 @@ final class WebhookCheckout {
   const WebhookCheckout({
     required this.amountCents,
     this.checkoutLinkId,
+    this.clientReferenceId,
     required this.createdAt,
     required this.currency,
     this.customerId,
     required this.discountCents,
     required this.expiresAt,
     required this.id,
+    this.items,
+    this.metadata,
     required this.priceId,
     required this.productId,
     required this.status,
@@ -2833,12 +2995,24 @@ final class WebhookCheckout {
     return WebhookCheckout(
       amountCents: json['amount_cents'] as int,
       checkoutLinkId: json['checkout_link_id'] as String?,
+      clientReferenceId: json['client_reference_id'] as String?,
       createdAt: json['created_at'] as String,
       currency: json['currency'] as String,
       customerId: json['customer_id'] as String?,
       discountCents: json['discount_cents'] as int,
       expiresAt: json['expires_at'] as String,
       id: json['id'] as String,
+      items: readOptional(
+        json['items'],
+        (value) => readList(
+          value,
+          (value) => CheckoutLine.fromJson(readObject(value)),
+        ),
+      ),
+      metadata: readOptional(
+        json['metadata'],
+        (value) => readMap(value, (value) => value),
+      ),
       priceId: json['price_id'] as String,
       productId: json['product_id'] as String,
       status: json['status'] as String,
@@ -2849,6 +3023,9 @@ final class WebhookCheckout {
   final int amountCents;
 
   final String? checkoutLinkId;
+
+  /// O id do pedido no sistema do lojista; vazio sem ele.
+  final String? clientReferenceId;
 
   final String createdAt;
 
@@ -2864,6 +3041,13 @@ final class WebhookCheckout {
 
   final String id;
 
+  /// As linhas do valor que o servidor do lojista fixou; vazio sem elas.
+  final List<CheckoutLine>? items;
+
+  /// Os pares que o servidor do lojista enviou ao criar o checkout; vazio sem
+  /// eles.
+  final Map<String, Object?>? metadata;
+
   final String priceId;
 
   final String productId;
@@ -2877,12 +3061,15 @@ final class WebhookCheckout {
   Map<String, Object?> toJson() => {
     'amount_cents': amountCents,
     'checkout_link_id': checkoutLinkId,
+    'client_reference_id': ?clientReferenceId,
     'created_at': createdAt,
     'currency': currency,
     'customer_id': customerId,
     'discount_cents': discountCents,
     'expires_at': expiresAt,
     'id': id,
+    'items': ?items?.map((item) => item.toJson()).toList(),
+    'metadata': ?metadata,
     'price_id': priceId,
     'product_id': productId,
     'status': status,
@@ -3296,6 +3483,155 @@ final class WebhookEndpointCreated {
   };
 }
 
+/// WebhookRefund is a resource of Peráta's API.
+final class WebhookRefund {
+  const WebhookRefund({
+    required this.amountCents,
+    this.checkoutId,
+    this.clientReferenceId,
+    required this.id,
+    required this.metadata,
+    required this.paymentId,
+    required this.status,
+  });
+
+  /// A WebhookRefund out of the API's JSON.
+  factory WebhookRefund.fromJson(Map<String, Object?> json) {
+    return WebhookRefund(
+      amountCents: json['amount_cents'] as int,
+      checkoutId: json['checkout_id'] as String?,
+      clientReferenceId: json['client_reference_id'] as String?,
+      id: json['id'] as String,
+      metadata: readMap(json['metadata'], (value) => value),
+      paymentId: json['payment_id'] as String,
+      status: json['status'] as String,
+    );
+  }
+
+  final int amountCents;
+
+  /// O checkout (o pedido) que o reembolso devolve, quando se sabe.
+  final String? checkoutId;
+
+  /// O id do pedido no sistema do lojista; vazio sem ele.
+  final String? clientReferenceId;
+
+  final String id;
+
+  /// Os pares que o servidor do lojista enviou ao criar o checkout; vazio sem
+  /// eles.
+  final Map<String, Object?> metadata;
+
+  final String paymentId;
+
+  /// One of `requested`, `pending`, `unknown`, `succeeded`, `failed`,
+  /// `canceled`.
+  final String status;
+
+  /// The JSON the API answers.
+  Map<String, Object?> toJson() => {
+    'amount_cents': amountCents,
+    'checkout_id': ?checkoutId,
+    'client_reference_id': ?clientReferenceId,
+    'id': id,
+    'metadata': metadata,
+    'payment_id': paymentId,
+    'status': status,
+  };
+}
+
+/// Os eventos da venda (checkout_payment.* e refund.*): os identificadores de
+/// sempre e, além deles, o checkout, o valor e o que o servidor do lojista
+/// enviou ao criar o checkout.
+final class WebhookSale {
+  const WebhookSale({
+    required this.aggregate,
+    required this.aggregateId,
+    this.amountCents,
+    this.checkoutId,
+    this.clientReferenceId,
+    this.currency,
+    required this.environment,
+    required this.eventId,
+    required this.merchantId,
+    this.metadata,
+    this.method,
+    this.paymentId,
+  });
+
+  /// A WebhookSale out of the API's JSON.
+  factory WebhookSale.fromJson(Map<String, Object?> json) {
+    return WebhookSale(
+      aggregate: json['aggregate'] as String,
+      aggregateId: json['aggregate_id'] as String,
+      amountCents: json['amount_cents'] as int?,
+      checkoutId: json['checkout_id'] as String?,
+      clientReferenceId: json['client_reference_id'] as String?,
+      currency: json['currency'] as String?,
+      environment: json['environment'] as String,
+      eventId: json['event_id'] as String,
+      merchantId: json['merchant_id'] as String,
+      metadata: readOptional(
+        json['metadata'],
+        (value) => readMap(value, (value) => value),
+      ),
+      method: json['method'] as String?,
+      paymentId: json['payment_id'] as String?,
+    );
+  }
+
+  final String aggregate;
+
+  final String aggregateId;
+
+  /// O valor do pagamento (com os juros do parcelamento, quando há) ou o valor
+  /// reembolsado, em centavos.
+  final int? amountCents;
+
+  /// O checkout (o pedido) do pagamento ou do reembolso.
+  final String? checkoutId;
+
+  /// O id do pedido no sistema do lojista; vazio sem ele.
+  final String? clientReferenceId;
+
+  /// One of `BRL`.
+  final String? currency;
+
+  final String environment;
+
+  final String eventId;
+
+  final String merchantId;
+
+  /// Os pares que o servidor do lojista enviou ao criar o checkout; vazio sem
+  /// eles.
+  final Map<String, Object?>? metadata;
+
+  /// O meio do pagamento, nos eventos checkout_payment.*.
+  ///
+  /// One of `card`, `pix`, `boleto`.
+  final String? method;
+
+  /// O pagamento que o reembolso devolve, nos eventos refund.*.
+  final String? paymentId;
+
+  /// The JSON the API answers.
+  Map<String, Object?> toJson() => {
+    'aggregate': aggregate,
+    'aggregate_id': aggregateId,
+    'amount_cents': ?amountCents,
+    'checkout_id': ?checkoutId,
+    'client_reference_id': ?clientReferenceId,
+    'currency': ?currency,
+    'environment': environment,
+    'event_id': eventId,
+    'merchant_id': merchantId,
+    'metadata': ?metadata,
+    'method': ?method,
+    'payment_id': ?paymentId,
+  };
+}
+
 /// The body of benefits:create.
 final class BenefitsCreateParams {
   const BenefitsCreateParams({
@@ -3491,12 +3827,15 @@ final class CheckoutLinksUpdateParams {
 final class CheckoutsCreateParams {
   const CheckoutsCreateParams({
     this.allowDiscountCodes,
+    this.amountCents,
     this.cancelUrl,
+    this.clientReferenceId,
     this.customerEmail,
     this.customerId,
     this.customerName,
     this.expiresIn,
     this.externalCustomerId,
+    this.items,
     this.label,
     this.metadata,
     required this.priceId,
@@ -3511,7 +3850,22 @@ final class CheckoutsCreateParams {
   /// fora.
   final bool? allowDiscountCodes;
 
+  /// O valor do pedido todo, em centavos, que o seu servidor fixa. Só vale em
+  /// um preço de valor livre (custom); em outro preço é recusado com 422.
+  /// Respeita o mínimo e o máximo do preço, também com 422. O comprador vê o
+  /// valor e não pode mudá-lo, na página, no modal, nos componentes e no
+  /// checkout transparente; vale para cartão de crédito, débito e Pix, e é o
+  /// valor que volta em pedidos, pagamentos, recibo e eventos. Repetir a
+  /// criação com a mesma Idempotency-Key e outro valor dá 409.
+  final int? amountCents;
+
   final String? cancelUrl;
+
+  /// O id do pedido no seu sistema, de até 255 caracteres. Volta no checkout,
+  /// no pedido, no pagamento e nos eventos checkout.*, order.*,
+  /// checkout_payment.* e refund.*, para você achar de qual pedido veio cada
+  /// pagamento.
+  final String? clientReferenceId;
 
   /// O e-mail do comprador, quando você o conhece; senão o navegador do
   /// comprador o pede.
@@ -3525,12 +3879,20 @@ final class CheckoutsCreateParams {
   /// O nome do comprador, quando você o conhece.
   final String? customerName;
 
-  /// Segundos em que a sessão e o client_secret continuam valendo; 1800 quando
-  /// fica de fora.
+  /// Segundos em que a sessão e o client_secret continuam valendo, de um minuto
+  /// a três dias; 1800 (30 minutos) quando fica de fora. Uma sessão paga com
+  /// Pix pode ser aberta até esse prazo e, aberta, o Pix gerado vale 24 horas.
   final int? expiresIn;
 
   /// O mesmo cliente, pelo ID que você deu a ele.
   final String? externalCustomerId;
+
+  /// As linhas do pedido, até 50, para o comprador ler o detalhe: aparecem no
+  /// checkout (página, modal, componentes e transparente), no pedido, no
+  /// recibo, no portal do cliente e nos eventos. A soma de quantity vezes
+  /// unit_amount_cents precisa ser igual a amount_cents, ou a resposta é 422;
+  /// enviadas sem amount_cents, a soma é o valor.
+  final List<CheckoutsCreateItem>? items;
 
   final String? label;
 
@@ -3542,6 +3904,8 @@ final class CheckoutsCreateParams {
 
   final String productId;
 
+  /// Quantas unidades. Com amount_cents é sempre 1: envie 1 ou omita; qualquer
+  /// outro valor é recusado com 422.
   final int? quantity;
 
   /// Pede o endereço de cobrança completo de todo comprador, não só no boleto;
@@ -3557,12 +3921,15 @@ final class CheckoutsCreateParams {
   /// The JSON the API takes; a field left null is left out.
   Map<String, Object?> toJson() => {
     'allow_discount_codes': ?allowDiscountCodes,
+    'amount_cents': ?amountCents,
     'cancel_url': ?cancelUrl,
+    'client_reference_id': ?clientReferenceId,
     'customer_email': ?customerEmail,
     'customer_id': ?customerId,
     'customer_name': ?customerName,
     'expires_in': ?expiresIn,
     'external_customer_id': ?externalCustomerId,
+    'items': ?items?.map((item) => item.toJson()).toList(),
     'label': ?label,
     'metadata': ?metadata,
     'price_id': priceId,
@@ -3571,6 +3938,32 @@ final class CheckoutsCreateParams {
     'require_billing_address': ?requireBillingAddress,
     'return_url': ?returnUrl,
     'success_url': ?successUrl,
+  };
+}
+
+/// One item of items in CheckoutsCreateParams.
+final class CheckoutsCreateItem {
+  const CheckoutsCreateItem({
+    required this.name,
+    this.quantity,
+    required this.unitAmountCents,
+  });
+
+  /// O nome da linha, de até 200 caracteres.
+  final String name;
+
+  /// Quantas unidades da linha; 1 quando fica de fora.
+  final int? quantity;
+
+  /// O valor de uma unidade, em centavos. Negativo é desconto ou cupom, desde
+  /// que a soma continue maior que zero.
+  final int unitAmountCents;
+
+  /// The JSON the API takes; a field left null is left out.
+  Map<String, Object?> toJson() => {
+    'name': name,
+    'quantity': ?quantity,
+    'unit_amount_cents': unitAmountCents,
   };
 }
 

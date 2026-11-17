@@ -213,14 +213,22 @@ public struct CardTokenization: Codable, Sendable, Hashable {
 
 /// Checkout is a resource of Peráta's API.
 public struct Checkout: Codable, Sendable, Hashable {
+    /// O valor, em centavos, que o seu servidor fixou na criação; nulo quando é o comprador quem digita o valor.
+    public let amountCents: Int?
     /// Endereço https para onde o comprador volta se desistir; vazio sem ele.
     public let cancelURL: String
+    /// O id do pedido no seu sistema, como o seu servidor o enviou na criação; vazio sem ele. Volta no checkout, no pedido, no pagamento e nos eventos.
+    public let clientReferenceID: String
     public let createdAt: String
     /// Quando o checkout deixa de abrir sessões; nulo sem prazo.
     public let expiresAt: String?
     public let id: String
+    /// As linhas do valor fixado, na ordem em que foram enviadas; vazio sem elas.
+    public let items: [CheckoutLine]
     /// Como o lojista chama o checkout nas próprias telas; o comprador não vê.
     public let label: String
+    /// Os pares que o seu servidor guardou na criação; voltam nos eventos da venda.
+    public let metadata: [String: JSONValue]
     public let priceID: String
     public let productID: String
     public let quantity: Int
@@ -231,12 +239,16 @@ public struct Checkout: Codable, Sendable, Hashable {
     /// Endereço para onde o comprador é enviado.
     public let url: String
 
-    public init(cancelURL: String, createdAt: String, expiresAt: String?, id: String, label: String, priceID: String, productID: String, quantity: Int, status: CheckoutStatus, successURL: String, url: String) {
+    public init(amountCents: Int?, cancelURL: String, clientReferenceID: String, createdAt: String, expiresAt: String?, id: String, items: [CheckoutLine], label: String, metadata: [String: JSONValue], priceID: String, productID: String, quantity: Int, status: CheckoutStatus, successURL: String, url: String) {
+        self.amountCents = amountCents
         self.cancelURL = cancelURL
+        self.clientReferenceID = clientReferenceID
         self.createdAt = createdAt
         self.expiresAt = expiresAt
         self.id = id
+        self.items = items
         self.label = label
+        self.metadata = metadata
         self.priceID = priceID
         self.productID = productID
         self.quantity = quantity
@@ -246,11 +258,15 @@ public struct Checkout: Codable, Sendable, Hashable {
     }
 
     enum CodingKeys: String, CodingKey {
+        case amountCents = "amount_cents"
         case cancelURL = "cancel_url"
+        case clientReferenceID = "client_reference_id"
         case createdAt = "created_at"
         case expiresAt = "expires_at"
         case id
+        case items
         case label
+        case metadata
         case priceID = "price_id"
         case productID = "product_id"
         case quantity
@@ -264,10 +280,14 @@ public struct Checkout: Codable, Sendable, Hashable {
 public struct CheckoutClient: Codable, Sendable, Hashable {
     /// Antes do desconto.
     public let amountCents: Int
+    /// Verdadeiro quando o servidor do lojista fixou o valor (amount_cents na criação do checkout): mostre-o ao comprador sem campo para mudá-lo. Nenhuma rota de cliente aceita outro valor.
+    public let amountLocked: Bool
     /// Para onde o comprador volta sem pagar.
     public let cancelURL: String
     /// credit, e debit onde a autenticação do adquirente está ligada.
     public let cardKinds: [String]
+    /// O id do pedido no seu sistema, quando o seu servidor o enviou; vazio sem ele.
+    public let clientReferenceID: String
     public let currency: CheckoutClientCurrency
     public let customer: CheckoutClientCustomer?
     public let discount: CheckoutClientDiscount?
@@ -301,10 +321,12 @@ public struct CheckoutClient: Codable, Sendable, Hashable {
     /// O que o comprador paga, em centavos.
     public let totalCents: Int
 
-    public init(amountCents: Int, cancelURL: String, cardKinds: [String], currency: CheckoutClientCurrency, customer: CheckoutClientCustomer?, discount: CheckoutClientDiscount?, discountCents: Int, editable: Bool, environment: CheckoutClientEnvironment, expiresAt: String, id: String, installments: [CheckoutInstallment], items: [CheckoutClientItem], missing: [String], nextAction: CheckoutNextAction, payment: CheckoutClientPayment?, paymentMethods: [String], requiresBillingAddress: Bool, requiresTaxID: Bool, status: CheckoutClientStatus, statusKey: String, successURL: String, totalCents: Int) {
+    public init(amountCents: Int, amountLocked: Bool, cancelURL: String, cardKinds: [String], clientReferenceID: String, currency: CheckoutClientCurrency, customer: CheckoutClientCustomer?, discount: CheckoutClientDiscount?, discountCents: Int, editable: Bool, environment: CheckoutClientEnvironment, expiresAt: String, id: String, installments: [CheckoutInstallment], items: [CheckoutClientItem], missing: [String], nextAction: CheckoutNextAction, payment: CheckoutClientPayment?, paymentMethods: [String], requiresBillingAddress: Bool, requiresTaxID: Bool, status: CheckoutClientStatus, statusKey: String, successURL: String, totalCents: Int) {
         self.amountCents = amountCents
+        self.amountLocked = amountLocked
         self.cancelURL = cancelURL
         self.cardKinds = cardKinds
+        self.clientReferenceID = clientReferenceID
         self.currency = currency
         self.customer = customer
         self.discount = discount
@@ -329,8 +351,10 @@ public struct CheckoutClient: Codable, Sendable, Hashable {
 
     enum CodingKeys: String, CodingKey {
         case amountCents = "amount_cents"
+        case amountLocked = "amount_locked"
         case cancelURL = "cancel_url"
         case cardKinds = "card_kinds"
+        case clientReferenceID = "client_reference_id"
         case currency
         case customer
         case discount
@@ -523,8 +547,12 @@ public struct CheckoutClientPix: Codable, Sendable, Hashable {
 
 /// CheckoutCreated is a resource of Peráta's API.
 public struct CheckoutCreated: Codable, Sendable, Hashable {
+    /// O valor, em centavos, que o seu servidor fixou; o comprador o vê e não pode mudá-lo. Nulo quando é o comprador quem digita o valor.
+    public let amountCents: Int?
     /// Endereço https para onde o comprador volta se desistir; vazio sem ele.
     public let cancelURL: String
+    /// O id do pedido no seu sistema, como o seu servidor o enviou; vazio sem ele. Volta no checkout, no pedido, no pagamento e nos eventos.
+    public let clientReferenceID: String
     /// O segredo que o navegador do comprador usa para ler, atualizar e pagar a sessão, sem chave de API. Só esta resposta o traz; entregue-o à página que monta os campos seguros. Vem vazio na repetição de uma criação idempotente.
     public let clientSecret: String
     /// Quando a sessão e o client_secret deixam de valer.
@@ -534,8 +562,12 @@ public struct CheckoutCreated: Codable, Sendable, Hashable {
     public let expiresAt: String?
     /// O ID do link do checkout, o que GET e PATCH /checkouts/{id} recebem.
     public let id: String
+    /// As linhas do valor fixado, na ordem em que foram enviadas; vazio sem elas.
+    public let items: [CheckoutLine]
     /// Como o lojista chama o checkout nas próprias telas; o comprador não vê.
     public let label: String
+    /// Os pares que o seu servidor enviou; voltam no pedido, no pagamento e nos eventos da venda (checkout.*, order.*, checkout_payment.* e refund.*).
+    public let metadata: [String: JSONValue]
     public let priceID: String
     public let productID: String
     public let quantity: Int
@@ -550,14 +582,18 @@ public struct CheckoutCreated: Codable, Sendable, Hashable {
     /// O endereço hospedado desta sessão: redirecione o comprador para cá, ou abra-o no modal, e ele paga na página da Peráta exatamente a sessão que esta resposta abriu, que aparece no status_key, no GET da sessão e nos webhooks com o mesmo checkout_id. Quem abre o endereço depois do pagamento vê a confirmação e nada é cobrado de novo. Na repetição de uma criação idempotente o segredo não existe mais e o endereço volta a ser o do link, que abre uma sessão nova a cada visita.
     public let url: String
 
-    public init(cancelURL: String, clientSecret: String, clientSecretExpiresAt: String, createdAt: String, expiresAt: String?, id: String, label: String, priceID: String, productID: String, quantity: Int, sessionID: String, status: CheckoutCreatedStatus, statusKey: String, successURL: String, url: String) {
+    public init(amountCents: Int?, cancelURL: String, clientReferenceID: String, clientSecret: String, clientSecretExpiresAt: String, createdAt: String, expiresAt: String?, id: String, items: [CheckoutLine], label: String, metadata: [String: JSONValue], priceID: String, productID: String, quantity: Int, sessionID: String, status: CheckoutCreatedStatus, statusKey: String, successURL: String, url: String) {
+        self.amountCents = amountCents
         self.cancelURL = cancelURL
+        self.clientReferenceID = clientReferenceID
         self.clientSecret = clientSecret
         self.clientSecretExpiresAt = clientSecretExpiresAt
         self.createdAt = createdAt
         self.expiresAt = expiresAt
         self.id = id
+        self.items = items
         self.label = label
+        self.metadata = metadata
         self.priceID = priceID
         self.productID = productID
         self.quantity = quantity
@@ -569,13 +605,17 @@ public struct CheckoutCreated: Codable, Sendable, Hashable {
     }
 
     enum CodingKeys: String, CodingKey {
+        case amountCents = "amount_cents"
         case cancelURL = "cancel_url"
+        case clientReferenceID = "client_reference_id"
         case clientSecret = "client_secret"
         case clientSecretExpiresAt = "client_secret_expires_at"
         case createdAt = "created_at"
         case expiresAt = "expires_at"
         case id
+        case items
         case label
+        case metadata
         case priceID = "price_id"
         case productID = "product_id"
         case quantity
@@ -609,6 +649,26 @@ public struct CheckoutInstallment: Codable, Sendable, Hashable {
         case installmentCents = "installment_cents"
         case interestCents = "interest_cents"
         case totalCents = "total_cents"
+    }
+}
+
+/// CheckoutLine is a resource of Peráta's API.
+public struct CheckoutLine: Codable, Sendable, Hashable {
+    public let name: String
+    public let quantity: Int
+    /// O valor de uma unidade, em centavos; negativo é desconto.
+    public let unitAmountCents: Int
+
+    public init(name: String, quantity: Int, unitAmountCents: Int) {
+        self.name = name
+        self.quantity = quantity
+        self.unitAmountCents = unitAmountCents
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case name
+        case quantity
+        case unitAmountCents = "unit_amount_cents"
     }
 }
 
@@ -1228,6 +1288,8 @@ public struct MeterUnit: Codable, Sendable, Hashable {
 /// Order is a resource of Peráta's API.
 public struct Order: Codable, Sendable, Hashable {
     public let amountCents: Int
+    /// O id do pedido no seu sistema, enviado ao criar o checkout; vazio sem ele.
+    public let clientReferenceID: String
     public let currency: OrderCurrency
     public let customerID: String
     public let id: String
@@ -1235,18 +1297,25 @@ public struct Order: Codable, Sendable, Hashable {
     public let installmentInterestCents: Int
     /// Em quantas parcelas o cartão de crédito foi cobrado; 1 à vista.
     public let installments: Int
+    /// As linhas do pedido, quando o seu servidor as enviou ao criar o checkout; vazio sem elas.
+    public let items: [CheckoutLine]
+    /// Os pares que o seu servidor enviou ao criar o checkout.
+    public let metadata: [String: JSONValue]
     public let paidAt: String?
     public let priceID: String
     public let productID: String
     public let status: OrderStatus
 
-    public init(amountCents: Int, currency: OrderCurrency, customerID: String, id: String, installmentInterestCents: Int, installments: Int, paidAt: String?, priceID: String, productID: String, status: OrderStatus) {
+    public init(amountCents: Int, clientReferenceID: String, currency: OrderCurrency, customerID: String, id: String, installmentInterestCents: Int, installments: Int, items: [CheckoutLine], metadata: [String: JSONValue], paidAt: String?, priceID: String, productID: String, status: OrderStatus) {
         self.amountCents = amountCents
+        self.clientReferenceID = clientReferenceID
         self.currency = currency
         self.customerID = customerID
         self.id = id
         self.installmentInterestCents = installmentInterestCents
         self.installments = installments
+        self.items = items
+        self.metadata = metadata
         self.paidAt = paidAt
         self.priceID = priceID
         self.productID = productID
@@ -1255,11 +1324,14 @@ public struct Order: Codable, Sendable, Hashable {
 
     enum CodingKeys: String, CodingKey {
         case amountCents = "amount_cents"
+        case clientReferenceID = "client_reference_id"
         case currency
         case customerID = "customer_id"
         case id
         case installmentInterestCents = "installment_interest_cents"
         case installments
+        case items
+        case metadata
         case paidAt = "paid_at"
         case priceID = "price_id"
         case productID = "product_id"
@@ -1275,6 +1347,8 @@ public struct OrderInvoice: Codable, Sendable, Hashable {
     public let currency: OrderInvoiceCurrency
     public let discountCents: Int
     public let generatedAt: String
+    /// As linhas do pedido, quando o lojista as enviou; vazio sem elas.
+    public let items: [CheckoutLine]
     /// Número da fatura, na série da organização (PREFIXO-0001).
     public let number: String
     public let orderID: String
@@ -1285,13 +1359,14 @@ public struct OrderInvoice: Codable, Sendable, Hashable {
     public let taxIDKind: String
     public let totalCents: Int
 
-    public init(address: BillingAddress, amountCents: Int, billingName: String, currency: OrderInvoiceCurrency, discountCents: Int, generatedAt: String, number: String, orderID: String, productName: String, taxID: String, taxIDKind: String, totalCents: Int) {
+    public init(address: BillingAddress, amountCents: Int, billingName: String, currency: OrderInvoiceCurrency, discountCents: Int, generatedAt: String, items: [CheckoutLine], number: String, orderID: String, productName: String, taxID: String, taxIDKind: String, totalCents: Int) {
         self.address = address
         self.amountCents = amountCents
         self.billingName = billingName
         self.currency = currency
         self.discountCents = discountCents
         self.generatedAt = generatedAt
+        self.items = items
         self.number = number
         self.orderID = orderID
         self.productName = productName
@@ -1307,6 +1382,7 @@ public struct OrderInvoice: Codable, Sendable, Hashable {
         case currency
         case discountCents = "discount_cents"
         case generatedAt = "generated_at"
+        case items
         case number
         case orderID = "order_id"
         case productName = "product_name"
@@ -1326,6 +1402,8 @@ public struct OrderReceipt: Codable, Sendable, Hashable {
     public let installmentInterestCents: Int
     /// Em quantas parcelas o cartão de crédito foi cobrado; 1 à vista.
     public let installments: Int
+    /// As linhas do pedido, quando o lojista as enviou; vazio sem elas.
+    public let items: [CheckoutLine]
     /// Número do pedido na série da organização; vazio antes de ter um.
     public let number: String
     public let orderID: String
@@ -1336,7 +1414,7 @@ public struct OrderReceipt: Codable, Sendable, Hashable {
     public let refundedCents: Int
     public let totalCents: Int
 
-    public init(amountCents: Int, currency: OrderReceiptCurrency, customerEmail: String, customerName: String, discountCents: Int, installmentInterestCents: Int, installments: Int, number: String, orderID: String, paidAt: String?, paymentMethod: String, productName: String, refundedCents: Int, totalCents: Int) {
+    public init(amountCents: Int, currency: OrderReceiptCurrency, customerEmail: String, customerName: String, discountCents: Int, installmentInterestCents: Int, installments: Int, items: [CheckoutLine], number: String, orderID: String, paidAt: String?, paymentMethod: String, productName: String, refundedCents: Int, totalCents: Int) {
         self.amountCents = amountCents
         self.currency = currency
         self.customerEmail = customerEmail
@@ -1344,6 +1422,7 @@ public struct OrderReceipt: Codable, Sendable, Hashable {
         self.discountCents = discountCents
         self.installmentInterestCents = installmentInterestCents
         self.installments = installments
+        self.items = items
         self.number = number
         self.orderID = orderID
         self.paidAt = paidAt
@@ -1361,6 +1440,7 @@ public struct OrderReceipt: Codable, Sendable, Hashable {
         case discountCents = "discount_cents"
         case installmentInterestCents = "installment_interest_cents"
         case installments
+        case items
         case number
         case orderID = "order_id"
         case paidAt = "paid_at"
@@ -1392,6 +1472,8 @@ public struct Payment: Codable, Sendable, Hashable {
     public let amountCents: Int
     public let capturedCents: Int
     public let checkoutID: String
+    /// O id do pedido no seu sistema, enviado ao criar o checkout; vazio sem ele.
+    public let clientReferenceID: String
     public let createdAt: String
     public let currency: PaymentCurrency
     public let customerID: String
@@ -1402,14 +1484,17 @@ public struct Payment: Codable, Sendable, Hashable {
     public let installmentInterestCents: Int
     /// Em quantas parcelas o cartão de crédito foi cobrado; 1 à vista.
     public let installments: Int
+    /// Os pares que o seu servidor enviou ao criar o checkout.
+    public let metadata: [String: JSONValue]
     public let method: PaymentMethodKind
     public let refundedCents: Int
     public let state: PaymentState
 
-    public init(amountCents: Int, capturedCents: Int, checkoutID: String, createdAt: String, currency: PaymentCurrency, customerID: String, id: String, installmentAmountCents: Int, installmentInterestCents: Int, installments: Int, method: PaymentMethodKind, refundedCents: Int, state: PaymentState) {
+    public init(amountCents: Int, capturedCents: Int, checkoutID: String, clientReferenceID: String, createdAt: String, currency: PaymentCurrency, customerID: String, id: String, installmentAmountCents: Int, installmentInterestCents: Int, installments: Int, metadata: [String: JSONValue], method: PaymentMethodKind, refundedCents: Int, state: PaymentState) {
         self.amountCents = amountCents
         self.capturedCents = capturedCents
         self.checkoutID = checkoutID
+        self.clientReferenceID = clientReferenceID
         self.createdAt = createdAt
         self.currency = currency
         self.customerID = customerID
@@ -1417,6 +1502,7 @@ public struct Payment: Codable, Sendable, Hashable {
         self.installmentAmountCents = installmentAmountCents
         self.installmentInterestCents = installmentInterestCents
         self.installments = installments
+        self.metadata = metadata
         self.method = method
         self.refundedCents = refundedCents
         self.state = state
@@ -1426,6 +1512,7 @@ public struct Payment: Codable, Sendable, Hashable {
         case amountCents = "amount_cents"
         case capturedCents = "captured_cents"
         case checkoutID = "checkout_id"
+        case clientReferenceID = "client_reference_id"
         case createdAt = "created_at"
         case currency
         case customerID = "customer_id"
@@ -1433,6 +1520,7 @@ public struct Payment: Codable, Sendable, Hashable {
         case installmentAmountCents = "installment_amount_cents"
         case installmentInterestCents = "installment_interest_cents"
         case installments
+        case metadata
         case method
         case refundedCents = "refunded_cents"
         case state
@@ -1676,6 +1764,8 @@ public struct WebhookBenefit: Codable, Sendable, Hashable {
 public struct WebhookCheckout: Codable, Sendable, Hashable {
     public let amountCents: Int
     public let checkoutLinkID: String?
+    /// O id do pedido no sistema do lojista; vazio sem ele.
+    public let clientReferenceID: String?
     public let createdAt: String
     public let currency: WebhookCheckoutCurrency
     /// Nulo até o comprador confirmar.
@@ -1683,20 +1773,27 @@ public struct WebhookCheckout: Codable, Sendable, Hashable {
     public let discountCents: Int
     public let expiresAt: String
     public let id: String
+    /// As linhas do valor que o servidor do lojista fixou; vazio sem elas.
+    public let items: [CheckoutLine]?
+    /// Os pares que o servidor do lojista enviou ao criar o checkout; vazio sem eles.
+    public let metadata: [String: JSONValue]?
     public let priceID: String
     public let productID: String
     public let status: WebhookCheckoutStatus
     public let totalCents: Int
 
-    public init(amountCents: Int, checkoutLinkID: String?, createdAt: String, currency: WebhookCheckoutCurrency, customerID: String?, discountCents: Int, expiresAt: String, id: String, priceID: String, productID: String, status: WebhookCheckoutStatus, totalCents: Int) {
+    public init(amountCents: Int, checkoutLinkID: String?, createdAt: String, currency: WebhookCheckoutCurrency, customerID: String?, discountCents: Int, expiresAt: String, id: String, priceID: String, productID: String, status: WebhookCheckoutStatus, totalCents: Int, clientReferenceID: String? = nil, items: [CheckoutLine]? = nil, metadata: [String: JSONValue]? = nil) {
         self.amountCents = amountCents
         self.checkoutLinkID = checkoutLinkID
+        self.clientReferenceID = clientReferenceID
         self.createdAt = createdAt
         self.currency = currency
         self.customerID = customerID
         self.discountCents = discountCents
         self.expiresAt = expiresAt
         self.id = id
+        self.items = items
+        self.metadata = metadata
         self.priceID = priceID
         self.productID = productID
         self.status = status
@@ -1706,12 +1803,15 @@ public struct WebhookCheckout: Codable, Sendable, Hashable {
     enum CodingKeys: String, CodingKey {
         case amountCents = "amount_cents"
         case checkoutLinkID = "checkout_link_id"
+        case clientReferenceID = "client_reference_id"
         case createdAt = "created_at"
         case currency
         case customerID = "customer_id"
         case discountCents = "discount_cents"
         case expiresAt = "expires_at"
         case id
+        case items
+        case metadata
         case priceID = "price_id"
         case productID = "product_id"
         case status
@@ -1961,6 +2061,92 @@ public struct WebhookEndpointCreated: Codable, Sendable, Hashable {
     }
 }
 
+/// WebhookRefund is a resource of Peráta's API.
+public struct WebhookRefund: Codable, Sendable, Hashable {
+    public let amountCents: Int
+    /// O checkout (o pedido) que o reembolso devolve, quando se sabe.
+    public let checkoutID: String?
+    /// O id do pedido no sistema do lojista; vazio sem ele.
+    public let clientReferenceID: String?
+    public let id: String
+    /// Os pares que o servidor do lojista enviou ao criar o checkout; vazio sem eles.
+    public let metadata: [String: JSONValue]
+    public let paymentID: String
+    public let status: WebhookRefundStatus
+
+    public init(amountCents: Int, id: String, metadata: [String: JSONValue], paymentID: String, status: WebhookRefundStatus, checkoutID: String? = nil, clientReferenceID: String? = nil) {
+        self.amountCents = amountCents
+        self.checkoutID = checkoutID
+        self.clientReferenceID = clientReferenceID
+        self.id = id
+        self.metadata = metadata
+        self.paymentID = paymentID
+        self.status = status
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case amountCents = "amount_cents"
+        case checkoutID = "checkout_id"
+        case clientReferenceID = "client_reference_id"
+        case id
+        case metadata
+        case paymentID = "payment_id"
+        case status
+    }
+}
+
+/// Os eventos da venda (checkout_payment.* e refund.*): os identificadores de sempre e, além deles, o checkout, o valor e o que o servidor do lojista enviou ao criar o checkout.
+public struct WebhookSale: Codable, Sendable, Hashable {
+    public let aggregate: String
+    public let aggregateID: String
+    /// O valor do pagamento (com os juros do parcelamento, quando há) ou o valor reembolsado, em centavos.
+    public let amountCents: Int?
+    /// O checkout (o pedido) do pagamento ou do reembolso.
+    public let checkoutID: String?
+    /// O id do pedido no sistema do lojista; vazio sem ele.
+    public let clientReferenceID: String?
+    public let currency: WebhookSaleCurrency?
+    public let environment: String
+    public let eventID: String
+    public let merchantID: String
+    /// Os pares que o servidor do lojista enviou ao criar o checkout; vazio sem eles.
+    public let metadata: [String: JSONValue]?
+    /// O meio do pagamento, nos eventos checkout_payment.*.
+    public let method: WebhookSaleMethod?
+    /// O pagamento que o reembolso devolve, nos eventos refund.*.
+    public let paymentID: String?
+
+    public init(aggregate: String, aggregateID: String, environment: String, eventID: String, merchantID: String, amountCents: Int? = nil, checkoutID: String? = nil, clientReferenceID: String? = nil, currency: WebhookSaleCurrency? = nil, metadata: [String: JSONValue]? = nil, method: WebhookSaleMethod? = nil, paymentID: String? = nil) {
+        self.aggregate = aggregate
+        self.aggregateID = aggregateID
+        self.amountCents = amountCents
+        self.checkoutID = checkoutID
+        self.clientReferenceID = clientReferenceID
+        self.currency = currency
+        self.environment = environment
+        self.eventID = eventID
+        self.merchantID = merchantID
+        self.metadata = metadata
+        self.method = method
+        self.paymentID = paymentID
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case aggregate
+        case aggregateID = "aggregate_id"
+        case amountCents = "amount_cents"
+        case checkoutID = "checkout_id"
+        case clientReferenceID = "client_reference_id"
+        case currency
+        case environment
+        case eventID = "event_id"
+        case merchantID = "merchant_id"
+        case metadata
+        case method
+        case paymentID = "payment_id"
+    }
+}
+
 /// What usage.ingest answers.
 public struct UsageIngestReceipt: Codable, Sendable, Hashable {
     public let created: Int
@@ -2193,22 +2379,29 @@ public struct CheckoutLinksUpdateParams: Encodable, Sendable, Hashable {
 public struct CheckoutsCreateParams: Encodable, Sendable, Hashable {
     /// Deixa o comprador digitar um código de desconto; desligado quando fica de fora.
     public var allowDiscountCodes: Bool?
+    /// O valor do pedido todo, em centavos, que o seu servidor fixa. Só vale em um preço de valor livre (custom); em outro preço é recusado com 422. Respeita o mínimo e o máximo do preço, também com 422. O comprador vê o valor e não pode mudá-lo, na página, no modal, nos componentes e no checkout transparente; vale para cartão de crédito, débito e Pix, e é o valor que volta em pedidos, pagamentos, recibo e eventos. Repetir a criação com a mesma Idempotency-Key e outro valor dá 409.
+    public var amountCents: Int?
     public var cancelURL: String?
+    /// O id do pedido no seu sistema, de até 255 caracteres. Volta no checkout, no pedido, no pagamento e nos eventos checkout.*, order.*, checkout_payment.* e refund.*, para você achar de qual pedido veio cada pagamento.
+    public var clientReferenceID: String?
     /// O e-mail do comprador, quando você o conhece; senão o navegador do comprador o pede.
     public var customerEmail: String?
     /// Um cliente seu: o checkout abre com o nome, o e-mail e os dados de cobrança dele. Não junto com external_customer_id, customer_email ou customer_name.
     public var customerID: String?
     /// O nome do comprador, quando você o conhece.
     public var customerName: String?
-    /// Segundos em que a sessão e o client_secret continuam valendo; 1800 quando fica de fora.
+    /// Segundos em que a sessão e o client_secret continuam valendo, de um minuto a três dias; 1800 (30 minutos) quando fica de fora. Uma sessão paga com Pix pode ser aberta até esse prazo e, aberta, o Pix gerado vale 24 horas.
     public var expiresIn: Int?
     /// O mesmo cliente, pelo ID que você deu a ele.
     public var externalCustomerID: String?
+    /// As linhas do pedido, até 50, para o comprador ler o detalhe: aparecem no checkout (página, modal, componentes e transparente), no pedido, no recibo, no portal do cliente e nos eventos. A soma de quantity vezes unit_amount_cents precisa ser igual a amount_cents, ou a resposta é 422; enviadas sem amount_cents, a soma é o valor.
+    public var items: [CheckoutsCreateItem]?
     public var label: String?
     /// Até 50 pares guardados no link do checkout; valor em texto, número ou booleano.
     public var metadata: [String: JSONValue]?
     public var priceID: String
     public var productID: String
+    /// Quantas unidades. Com amount_cents é sempre 1: envie 1 ou omita; qualquer outro valor é recusado com 422.
     public var quantity: Int?
     /// Pede o endereço de cobrança completo de todo comprador, não só no boleto; desligado quando fica de fora.
     public var requireBillingAddress: Bool?
@@ -2216,14 +2409,17 @@ public struct CheckoutsCreateParams: Encodable, Sendable, Hashable {
     public var returnURL: String?
     public var successURL: String?
 
-    public init(priceID: String, productID: String, allowDiscountCodes: Bool? = nil, cancelURL: String? = nil, customerEmail: String? = nil, customerID: String? = nil, customerName: String? = nil, expiresIn: Int? = nil, externalCustomerID: String? = nil, label: String? = nil, metadata: [String: JSONValue]? = nil, quantity: Int? = nil, requireBillingAddress: Bool? = nil, returnURL: String? = nil, successURL: String? = nil) {
+    public init(priceID: String, productID: String, allowDiscountCodes: Bool? = nil, amountCents: Int? = nil, cancelURL: String? = nil, clientReferenceID: String? = nil, customerEmail: String? = nil, customerID: String? = nil, customerName: String? = nil, expiresIn: Int? = nil, externalCustomerID: String? = nil, items: [CheckoutsCreateItem]? = nil, label: String? = nil, metadata: [String: JSONValue]? = nil, quantity: Int? = nil, requireBillingAddress: Bool? = nil, returnURL: String? = nil, successURL: String? = nil) {
         self.allowDiscountCodes = allowDiscountCodes
+        self.amountCents = amountCents
         self.cancelURL = cancelURL
+        self.clientReferenceID = clientReferenceID
         self.customerEmail = customerEmail
         self.customerID = customerID
         self.customerName = customerName
         self.expiresIn = expiresIn
         self.externalCustomerID = externalCustomerID
+        self.items = items
         self.label = label
         self.metadata = metadata
         self.priceID = priceID
@@ -2236,12 +2432,15 @@ public struct CheckoutsCreateParams: Encodable, Sendable, Hashable {
 
     enum CodingKeys: String, CodingKey {
         case allowDiscountCodes = "allow_discount_codes"
+        case amountCents = "amount_cents"
         case cancelURL = "cancel_url"
+        case clientReferenceID = "client_reference_id"
         case customerEmail = "customer_email"
         case customerID = "customer_id"
         case customerName = "customer_name"
         case expiresIn = "expires_in"
         case externalCustomerID = "external_customer_id"
+        case items
         case label
         case metadata
         case priceID = "price_id"
@@ -2255,12 +2454,15 @@ public struct CheckoutsCreateParams: Encodable, Sendable, Hashable {
     public func encode(to encoder: any Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encodeIfPresent(allowDiscountCodes, forKey: .allowDiscountCodes)
+        try container.encodeIfPresent(amountCents, forKey: .amountCents)
         try container.encodeIfPresent(cancelURL, forKey: .cancelURL)
+        try container.encodeIfPresent(clientReferenceID, forKey: .clientReferenceID)
         try container.encodeIfPresent(customerEmail, forKey: .customerEmail)
         try container.encodeIfPresent(customerID, forKey: .customerID)
         try container.encodeIfPresent(customerName, forKey: .customerName)
         try container.encodeIfPresent(expiresIn, forKey: .expiresIn)
         try container.encodeIfPresent(externalCustomerID, forKey: .externalCustomerID)
+        try container.encodeIfPresent(items, forKey: .items)
         try container.encodeIfPresent(label, forKey: .label)
         try container.encodeIfPresent(metadata, forKey: .metadata)
         try container.encode(priceID, forKey: .priceID)
@@ -2269,6 +2471,38 @@ public struct CheckoutsCreateParams: Encodable, Sendable, Hashable {
         try container.encodeIfPresent(requireBillingAddress, forKey: .requireBillingAddress)
         try container.encodeIfPresent(returnURL, forKey: .returnURL)
         try container.encodeIfPresent(successURL, forKey: .successURL)
+    }
+}
+
+/// One item of items in CheckoutsCreateParams.
+///
+/// The initializer takes the required fields first; an optional field left
+/// nil is not sent.
+public struct CheckoutsCreateItem: Encodable, Sendable, Hashable {
+    /// O nome da linha, de até 200 caracteres.
+    public var name: String
+    /// Quantas unidades da linha; 1 quando fica de fora.
+    public var quantity: Int?
+    /// O valor de uma unidade, em centavos. Negativo é desconto ou cupom, desde que a soma continue maior que zero.
+    public var unitAmountCents: Int
+
+    public init(name: String, unitAmountCents: Int, quantity: Int? = nil) {
+        self.name = name
+        self.quantity = quantity
+        self.unitAmountCents = unitAmountCents
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case name
+        case quantity
+        case unitAmountCents = "unit_amount_cents"
+    }
+
+    public func encode(to encoder: any Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(name, forKey: .name)
+        try container.encodeIfPresent(quantity, forKey: .quantity)
+        try container.encode(unitAmountCents, forKey: .unitAmountCents)
     }
 }
 
@@ -4294,6 +4528,74 @@ public struct WebhookEndpointCreatedStatus: RawRepresentable, Codable, Sendable,
     public static let active = WebhookEndpointCreatedStatus(rawValue: "active")
     /// `disabled`
     public static let disabled = WebhookEndpointCreatedStatus(rawValue: "disabled")
+}
+
+/// The values of `WebhookRefund.status`.
+///
+/// A value this SDK does not know yet is kept as it came, in `rawValue`.
+public struct WebhookRefundStatus: RawRepresentable, Codable, Sendable, Hashable, ExpressibleByStringLiteral {
+    public let rawValue: String
+
+    public init(rawValue: String) {
+        self.rawValue = rawValue
+    }
+
+    public init(stringLiteral value: String) {
+        self.rawValue = value
+    }
+
+    /// `requested`
+    public static let requested = WebhookRefundStatus(rawValue: "requested")
+    /// `pending`
+    public static let pending = WebhookRefundStatus(rawValue: "pending")
+    /// `unknown`
+    public static let unknown = WebhookRefundStatus(rawValue: "unknown")
+    /// `succeeded`
+    public static let succeeded = WebhookRefundStatus(rawValue: "succeeded")
+    /// `failed`
+    public static let failed = WebhookRefundStatus(rawValue: "failed")
+    /// `canceled`
+    public static let canceled = WebhookRefundStatus(rawValue: "canceled")
+}
+
+/// The values of `WebhookSale.currency`.
+///
+/// A value this SDK does not know yet is kept as it came, in `rawValue`.
+public struct WebhookSaleCurrency: RawRepresentable, Codable, Sendable, Hashable, ExpressibleByStringLiteral {
+    public let rawValue: String
+
+    public init(rawValue: String) {
+        self.rawValue = rawValue
+    }
+
+    public init(stringLiteral value: String) {
+        self.rawValue = value
+    }
+
+    /// `BRL`
+    public static let brl = WebhookSaleCurrency(rawValue: "BRL")
+}
+
+/// The values of `WebhookSale.method`. O meio do pagamento, nos eventos checkout_payment.*.
+///
+/// A value this SDK does not know yet is kept as it came, in `rawValue`.
+public struct WebhookSaleMethod: RawRepresentable, Codable, Sendable, Hashable, ExpressibleByStringLiteral {
+    public let rawValue: String
+
+    public init(rawValue: String) {
+        self.rawValue = rawValue
+    }
+
+    public init(stringLiteral value: String) {
+        self.rawValue = value
+    }
+
+    /// `card`
+    public static let card = WebhookSaleMethod(rawValue: "card")
+    /// `pix`
+    public static let pix = WebhookSaleMethod(rawValue: "pix")
+    /// `boleto`
+    public static let boleto = WebhookSaleMethod(rawValue: "boleto")
 }
 
 /// The values of `BenefitsCreateParams.type`.

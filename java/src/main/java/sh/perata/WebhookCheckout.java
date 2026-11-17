@@ -22,26 +22,32 @@ public final class WebhookCheckout {
 
     private final long amountCents;
     private final String checkoutLinkId;
+    private final String clientReferenceId;
     private final String createdAt;
     private final String currency;
     private final String customerId;
     private final long discountCents;
     private final String expiresAt;
     private final String id;
+    private final List<CheckoutLine> items;
+    private final Map<String, Object> metadata;
     private final String priceId;
     private final String productId;
     private final String status;
     private final long totalCents;
 
-    WebhookCheckout(long amountCents, String checkoutLinkId, String createdAt, String currency, String customerId, long discountCents, String expiresAt, String id, String priceId, String productId, String status, long totalCents) {
+    WebhookCheckout(long amountCents, String checkoutLinkId, String clientReferenceId, String createdAt, String currency, String customerId, long discountCents, String expiresAt, String id, List<CheckoutLine> items, Map<String, Object> metadata, String priceId, String productId, String status, long totalCents) {
         this.amountCents = amountCents;
         this.checkoutLinkId = checkoutLinkId;
+        this.clientReferenceId = clientReferenceId;
         this.createdAt = createdAt;
         this.currency = currency;
         this.customerId = customerId;
         this.discountCents = discountCents;
         this.expiresAt = expiresAt;
         this.id = id;
+        this.items = items;
+        this.metadata = metadata;
         this.priceId = priceId;
         this.productId = productId;
         this.status = status;
@@ -52,12 +58,15 @@ public final class WebhookCheckout {
         return new WebhookCheckout(
                 Json.required(data, "amount_cents", Json::asLong),
                 Json.optional(data, "checkout_link_id", Json::asString),
+                Json.optional(data, "client_reference_id", Json::asString),
                 Json.required(data, "created_at", Json::asString),
                 Json.required(data, "currency", Json::asString),
                 Json.optional(data, "customer_id", Json::asString),
                 Json.required(data, "discount_cents", Json::asLong),
                 Json.required(data, "expires_at", Json::asString),
                 Json.required(data, "id", Json::asString),
+                Json.optional(data, "items", Json.list(Json.model(CheckoutLine::fromJson))),
+                Json.optional(data, "metadata", Json.map(Json::any)),
                 Json.required(data, "price_id", Json::asString),
                 Json.required(data, "product_id", Json::asString),
                 Json.required(data, "status", Json::asString),
@@ -72,6 +81,11 @@ public final class WebhookCheckout {
     /** @return the API's {@code checkout_link_id} (null when the API sends none) */
     public String getCheckoutLinkId() {
         return checkoutLinkId;
+    }
+
+    /** @return O id do pedido no sistema do lojista; vazio sem ele. (null when the API sends none) */
+    public String getClientReferenceId() {
+        return clientReferenceId;
     }
 
     /** @return the API's {@code created_at} */
@@ -104,6 +118,16 @@ public final class WebhookCheckout {
         return id;
     }
 
+    /** @return As linhas do valor que o servidor do lojista fixou; vazio sem elas. (null when the API sends none) */
+    public List<CheckoutLine> getItems() {
+        return items;
+    }
+
+    /** @return Os pares que o servidor do lojista enviou ao criar o checkout; vazio sem eles. (null when the API sends none) */
+    public Map<String, Object> getMetadata() {
+        return metadata;
+    }
+
     /** @return the API's {@code price_id} */
     public String getPriceId() {
         return priceId;
@@ -126,6 +150,6 @@ public final class WebhookCheckout {
 
     @Override
     public String toString() {
-        return "WebhookCheckout{" + "amountCents=" + amountCents + ", checkoutLinkId=" + checkoutLinkId + ", createdAt=" + createdAt + ", currency=" + currency + ", customerId=" + customerId + ", discountCents=" + discountCents + ", expiresAt=" + expiresAt + ", id=" + id + ", priceId=" + priceId + ", productId=" + productId + ", status=" + status + ", totalCents=" + totalCents + "}";
+        return "WebhookCheckout{" + "amountCents=" + amountCents + ", checkoutLinkId=" + checkoutLinkId + ", clientReferenceId=" + clientReferenceId + ", createdAt=" + createdAt + ", currency=" + currency + ", customerId=" + customerId + ", discountCents=" + discountCents + ", expiresAt=" + expiresAt + ", id=" + id + ", items=" + items + ", metadata=" + metadata + ", priceId=" + priceId + ", productId=" + productId + ", status=" + status + ", totalCents=" + totalCents + "}";
     }
 }

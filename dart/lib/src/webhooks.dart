@@ -162,12 +162,6 @@ final class IdentifiersWebhookEvent extends WebhookEvent {
     'benefit_product_link.unlinked',
     'checkout_link.archived',
     'checkout_link.created',
-    'checkout_payment.authorized',
-    'checkout_payment.canceled',
-    'checkout_payment.captured',
-    'checkout_payment.partially_refunded',
-    'checkout_payment.refunded',
-    'checkout_payment.refused',
     'checkout_session.confirmed',
     'checkout_session.expired',
     'checkout_session.failed',
@@ -187,10 +181,6 @@ final class IdentifiersWebhookEvent extends WebhookEvent {
     'price.archived',
     'price.created',
     'product.archived',
-    'refund.canceled',
-    'refund.failed',
-    'refund.requested',
-    'refund.succeeded',
     'seat_allocation.opened',
     'seat_allocation.resized',
     'seat_assignment.claimed',
@@ -246,7 +236,7 @@ final class ProductWebhookEvent extends WebhookEvent {
   final Product data;
 }
 
-/// The events that carry a Refund.
+/// The events that carry a WebhookRefund.
 final class RefundWebhookEvent extends WebhookEvent {
   const RefundWebhookEvent({
     required super.id,
@@ -262,7 +252,34 @@ final class RefundWebhookEvent extends WebhookEvent {
   };
 
   /// What the event carries.
-  final Refund data;
+  final WebhookRefund data;
+}
+
+/// The events that carry a WebhookSale.
+final class SaleWebhookEvent extends WebhookEvent {
+  const SaleWebhookEvent({
+    required super.id,
+    required super.type,
+    required super.timestamp,
+    required this.data,
+  });
+
+  /// The event types this class carries.
+  static const types = {
+    'checkout_payment.authorized',
+    'checkout_payment.canceled',
+    'checkout_payment.captured',
+    'checkout_payment.partially_refunded',
+    'checkout_payment.refunded',
+    'checkout_payment.refused',
+    'refund.canceled',
+    'refund.failed',
+    'refund.requested',
+    'refund.succeeded',
+  };
+
+  /// What the event carries.
+  final WebhookSale data;
 }
 
 /// The events that carry a Subscription.
@@ -493,7 +510,15 @@ WebhookEvent _event(List<int> raw) {
         id: id,
         type: type,
         timestamp: timestamp,
-        data: Refund.fromJson(data),
+        data: WebhookRefund.fromJson(data),
+      );
+    }
+    if (SaleWebhookEvent.types.contains(type)) {
+      return SaleWebhookEvent(
+        id: id,
+        type: type,
+        timestamp: timestamp,
+        data: WebhookSale.fromJson(data),
       );
     }
     if (SubscriptionWebhookEvent.types.contains(type)) {

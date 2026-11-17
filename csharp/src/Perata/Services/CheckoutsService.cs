@@ -62,9 +62,17 @@ public sealed record CheckoutsCreateParams
     [JsonPropertyName("allow_discount_codes")]
     public bool? AllowDiscountCodes { get; init; }
 
+    /// <summary>O valor do pedido todo, em centavos, que o seu servidor fixa. Só vale em um preço de valor livre (custom); em outro preço é recusado com 422. Respeita o mínimo e o máximo do preço, também com 422. O comprador vê o valor e não pode mudá-lo, na página, no modal, nos componentes e no checkout transparente; vale para cartão de crédito, débito e Pix, e é o valor que volta em pedidos, pagamentos, recibo e eventos. Repetir a criação com a mesma Idempotency-Key e outro valor dá 409. Left out of the request when null.</summary>
+    [JsonPropertyName("amount_cents")]
+    public long? AmountCents { get; init; }
+
     /// <summary>The <c>cancel_url</c> to send. Left out of the request when null.</summary>
     [JsonPropertyName("cancel_url")]
     public string? CancelUrl { get; init; }
+
+    /// <summary>O id do pedido no seu sistema, de até 255 caracteres. Volta no checkout, no pedido, no pagamento e nos eventos checkout.*, order.*, checkout_payment.* e refund.*, para você achar de qual pedido veio cada pagamento. Left out of the request when null.</summary>
+    [JsonPropertyName("client_reference_id")]
+    public string? ClientReferenceId { get; init; }
 
     /// <summary>O e-mail do comprador, quando você o conhece; senão o navegador do comprador o pede. Left out of the request when null.</summary>
     [JsonPropertyName("customer_email")]
@@ -78,13 +86,17 @@ public sealed record CheckoutsCreateParams
     [JsonPropertyName("customer_name")]
     public string? CustomerName { get; init; }
 
-    /// <summary>Segundos em que a sessão e o client_secret continuam valendo; 1800 quando fica de fora. Left out of the request when null.</summary>
+    /// <summary>Segundos em que a sessão e o client_secret continuam valendo, de um minuto a três dias; 1800 (30 minutos) quando fica de fora. Uma sessão paga com Pix pode ser aberta até esse prazo e, aberta, o Pix gerado vale 24 horas. Left out of the request when null.</summary>
     [JsonPropertyName("expires_in")]
     public long? ExpiresIn { get; init; }
 
     /// <summary>O mesmo cliente, pelo ID que você deu a ele. Left out of the request when null.</summary>
     [JsonPropertyName("external_customer_id")]
     public string? ExternalCustomerId { get; init; }
+
+    /// <summary>As linhas do pedido, até 50, para o comprador ler o detalhe: aparecem no checkout (página, modal, componentes e transparente), no pedido, no recibo, no portal do cliente e nos eventos. A soma de quantity vezes unit_amount_cents precisa ser igual a amount_cents, ou a resposta é 422; enviadas sem amount_cents, a soma é o valor. Left out of the request when null.</summary>
+    [JsonPropertyName("items")]
+    public IReadOnlyList<CheckoutsCreateItem>? Items { get; init; }
 
     /// <summary>The <c>label</c> to send. Left out of the request when null.</summary>
     [JsonPropertyName("label")]
@@ -102,7 +114,7 @@ public sealed record CheckoutsCreateParams
     [JsonPropertyName("product_id")]
     public required string ProductId { get; init; }
 
-    /// <summary>The <c>quantity</c> to send. Left out of the request when null.</summary>
+    /// <summary>Quantas unidades. Com amount_cents é sempre 1: envie 1 ou omita; qualquer outro valor é recusado com 422. Left out of the request when null.</summary>
     [JsonPropertyName("quantity")]
     public long? Quantity { get; init; }
 
@@ -117,6 +129,23 @@ public sealed record CheckoutsCreateParams
     /// <summary>The <c>success_url</c> to send. Left out of the request when null.</summary>
     [JsonPropertyName("success_url")]
     public string? SuccessUrl { get; init; }
+}
+
+
+/// <summary>One item of items in CheckoutsCreateParams.</summary>
+public sealed record CheckoutsCreateItem
+{
+    /// <summary>O nome da linha, de até 200 caracteres.</summary>
+    [JsonPropertyName("name")]
+    public required string Name { get; init; }
+
+    /// <summary>Quantas unidades da linha; 1 quando fica de fora. Left out of the request when null.</summary>
+    [JsonPropertyName("quantity")]
+    public long? Quantity { get; init; }
+
+    /// <summary>O valor de uma unidade, em centavos. Negativo é desconto ou cupom, desde que a soma continue maior que zero.</summary>
+    [JsonPropertyName("unit_amount_cents")]
+    public required long UnitAmountCents { get; init; }
 }
 
 

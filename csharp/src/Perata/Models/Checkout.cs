@@ -15,9 +15,17 @@ public sealed record Checkout
     /// <summary>A value of <see cref="Status"/>.</summary>
     public const string StatusArchived = "archived";
 
+    /// <summary>O valor, em centavos, que o seu servidor fixou na criação; nulo quando é o comprador quem digita o valor. Null when the API sends none.</summary>
+    [JsonPropertyName("amount_cents")]
+    public long? AmountCents { get; init; }
+
     /// <summary>Endereço https para onde o comprador volta se desistir; vazio sem ele.</summary>
     [JsonPropertyName("cancel_url")]
     public required string CancelUrl { get; init; }
+
+    /// <summary>O id do pedido no seu sistema, como o seu servidor o enviou na criação; vazio sem ele. Volta no checkout, no pedido, no pagamento e nos eventos.</summary>
+    [JsonPropertyName("client_reference_id")]
+    public required string ClientReferenceId { get; init; }
 
     /// <summary>The API's <c>created_at</c>.</summary>
     [JsonPropertyName("created_at")]
@@ -31,9 +39,17 @@ public sealed record Checkout
     [JsonPropertyName("id")]
     public required string Id { get; init; }
 
+    /// <summary>As linhas do valor fixado, na ordem em que foram enviadas; vazio sem elas.</summary>
+    [JsonPropertyName("items")]
+    public required IReadOnlyList<CheckoutLine> Items { get; init; }
+
     /// <summary>Como o lojista chama o checkout nas próprias telas; o comprador não vê.</summary>
     [JsonPropertyName("label")]
     public required string Label { get; init; }
+
+    /// <summary>Os pares que o seu servidor guardou na criação; voltam nos eventos da venda.</summary>
+    [JsonPropertyName("metadata")]
+    public required IReadOnlyDictionary<string, JsonElement> Metadata { get; init; }
 
     /// <summary>The API's <c>price_id</c>.</summary>
     [JsonPropertyName("price_id")]

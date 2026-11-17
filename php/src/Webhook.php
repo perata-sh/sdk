@@ -76,7 +76,8 @@ final class Webhook
             in_array($type, IdentifiersWebhookEvent::TYPES, true) => new IdentifiersWebhookEvent($id, $type, $timestamp, array_map(static fn (mixed $value): string => is_scalar($value) ? (string) $value : '', $data)),
             in_array($type, OrderWebhookEvent::TYPES, true) => new OrderWebhookEvent($id, $type, $timestamp, Models\Order::fromArray($data)),
             in_array($type, ProductWebhookEvent::TYPES, true) => new ProductWebhookEvent($id, $type, $timestamp, Models\Product::fromArray($data)),
-            in_array($type, RefundWebhookEvent::TYPES, true) => new RefundWebhookEvent($id, $type, $timestamp, Models\Refund::fromArray($data)),
+            in_array($type, RefundWebhookEvent::TYPES, true) => new RefundWebhookEvent($id, $type, $timestamp, Models\WebhookRefund::fromArray($data)),
+            in_array($type, SaleWebhookEvent::TYPES, true) => new SaleWebhookEvent($id, $type, $timestamp, Models\WebhookSale::fromArray($data)),
             in_array($type, SubscriptionWebhookEvent::TYPES, true) => new SubscriptionWebhookEvent($id, $type, $timestamp, Models\Subscription::fromArray($data)),
             default => new UnknownWebhookEvent($id, $type, $timestamp, $data),
         };

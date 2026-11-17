@@ -21,23 +21,29 @@ public final class Order {
     public static final String STATUS_EXPIRED = "expired";
 
     private final long amountCents;
+    private final String clientReferenceId;
     private final String currency;
     private final String customerId;
     private final String id;
     private final long installmentInterestCents;
     private final long installments;
+    private final List<CheckoutLine> items;
+    private final Map<String, Object> metadata;
     private final String paidAt;
     private final String priceId;
     private final String productId;
     private final String status;
 
-    Order(long amountCents, String currency, String customerId, String id, long installmentInterestCents, long installments, String paidAt, String priceId, String productId, String status) {
+    Order(long amountCents, String clientReferenceId, String currency, String customerId, String id, long installmentInterestCents, long installments, List<CheckoutLine> items, Map<String, Object> metadata, String paidAt, String priceId, String productId, String status) {
         this.amountCents = amountCents;
+        this.clientReferenceId = clientReferenceId;
         this.currency = currency;
         this.customerId = customerId;
         this.id = id;
         this.installmentInterestCents = installmentInterestCents;
         this.installments = installments;
+        this.items = items;
+        this.metadata = metadata;
         this.paidAt = paidAt;
         this.priceId = priceId;
         this.productId = productId;
@@ -47,11 +53,14 @@ public final class Order {
     static Order fromJson(Map<String, Object> data) {
         return new Order(
                 Json.required(data, "amount_cents", Json::asLong),
+                Json.required(data, "client_reference_id", Json::asString),
                 Json.required(data, "currency", Json::asString),
                 Json.required(data, "customer_id", Json::asString),
                 Json.required(data, "id", Json::asString),
                 Json.required(data, "installment_interest_cents", Json::asLong),
                 Json.required(data, "installments", Json::asLong),
+                Json.required(data, "items", Json.list(Json.model(CheckoutLine::fromJson))),
+                Json.required(data, "metadata", Json.map(Json::any)),
                 Json.optional(data, "paid_at", Json::asString),
                 Json.required(data, "price_id", Json::asString),
                 Json.required(data, "product_id", Json::asString),
@@ -61,6 +70,11 @@ public final class Order {
     /** @return the API's {@code amount_cents} */
     public long getAmountCents() {
         return amountCents;
+    }
+
+    /** @return O id do pedido no seu sistema, enviado ao criar o checkout; vazio sem ele. */
+    public String getClientReferenceId() {
+        return clientReferenceId;
     }
 
     /** @return the API's {@code currency} */
@@ -88,6 +102,16 @@ public final class Order {
         return installments;
     }
 
+    /** @return As linhas do pedido, quando o seu servidor as enviou ao criar o checkout; vazio sem elas. */
+    public List<CheckoutLine> getItems() {
+        return items;
+    }
+
+    /** @return Os pares que o seu servidor enviou ao criar o checkout. */
+    public Map<String, Object> getMetadata() {
+        return metadata;
+    }
+
     /** @return the API's {@code paid_at} (null when the API sends none) */
     public String getPaidAt() {
         return paidAt;
@@ -110,6 +134,6 @@ public final class Order {
 
     @Override
     public String toString() {
-        return "Order{" + "amountCents=" + amountCents + ", currency=" + currency + ", customerId=" + customerId + ", id=" + id + ", installmentInterestCents=" + installmentInterestCents + ", installments=" + installments + ", paidAt=" + paidAt + ", priceId=" + priceId + ", productId=" + productId + ", status=" + status + "}";
+        return "Order{" + "amountCents=" + amountCents + ", clientReferenceId=" + clientReferenceId + ", currency=" + currency + ", customerId=" + customerId + ", id=" + id + ", installmentInterestCents=" + installmentInterestCents + ", installments=" + installments + ", items=" + items + ", metadata=" + metadata + ", paidAt=" + paidAt + ", priceId=" + priceId + ", productId=" + productId + ", status=" + status + "}";
     }
 }

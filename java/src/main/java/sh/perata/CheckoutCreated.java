@@ -12,13 +12,17 @@ public final class CheckoutCreated {
     /** A value of {@link #getStatus()}. */
     public static final String STATUS_ARCHIVED = "archived";
 
+    private final Long amountCents;
     private final String cancelUrl;
+    private final String clientReferenceId;
     private final String clientSecret;
     private final String clientSecretExpiresAt;
     private final String createdAt;
     private final String expiresAt;
     private final String id;
+    private final List<CheckoutLine> items;
     private final String label;
+    private final Map<String, Object> metadata;
     private final String priceId;
     private final String productId;
     private final long quantity;
@@ -28,14 +32,18 @@ public final class CheckoutCreated {
     private final String successUrl;
     private final String url;
 
-    CheckoutCreated(String cancelUrl, String clientSecret, String clientSecretExpiresAt, String createdAt, String expiresAt, String id, String label, String priceId, String productId, long quantity, String sessionId, String status, String statusKey, String successUrl, String url) {
+    CheckoutCreated(Long amountCents, String cancelUrl, String clientReferenceId, String clientSecret, String clientSecretExpiresAt, String createdAt, String expiresAt, String id, List<CheckoutLine> items, String label, Map<String, Object> metadata, String priceId, String productId, long quantity, String sessionId, String status, String statusKey, String successUrl, String url) {
+        this.amountCents = amountCents;
         this.cancelUrl = cancelUrl;
+        this.clientReferenceId = clientReferenceId;
         this.clientSecret = clientSecret;
         this.clientSecretExpiresAt = clientSecretExpiresAt;
         this.createdAt = createdAt;
         this.expiresAt = expiresAt;
         this.id = id;
+        this.items = items;
         this.label = label;
+        this.metadata = metadata;
         this.priceId = priceId;
         this.productId = productId;
         this.quantity = quantity;
@@ -48,13 +56,17 @@ public final class CheckoutCreated {
 
     static CheckoutCreated fromJson(Map<String, Object> data) {
         return new CheckoutCreated(
+                Json.optional(data, "amount_cents", Json::asLong),
                 Json.required(data, "cancel_url", Json::asString),
+                Json.required(data, "client_reference_id", Json::asString),
                 Json.required(data, "client_secret", Json::asString),
                 Json.required(data, "client_secret_expires_at", Json::asString),
                 Json.required(data, "created_at", Json::asString),
                 Json.optional(data, "expires_at", Json::asString),
                 Json.required(data, "id", Json::asString),
+                Json.required(data, "items", Json.list(Json.model(CheckoutLine::fromJson))),
                 Json.required(data, "label", Json::asString),
+                Json.required(data, "metadata", Json.map(Json::any)),
                 Json.required(data, "price_id", Json::asString),
                 Json.required(data, "product_id", Json::asString),
                 Json.required(data, "quantity", Json::asLong),
@@ -65,9 +77,19 @@ public final class CheckoutCreated {
                 Json.required(data, "url", Json::asString));
     }
 
+    /** @return O valor, em centavos, que o seu servidor fixou; o comprador o vê e não pode mudá-lo. Nulo quando é o comprador quem digita o valor. (null when the API sends none) */
+    public Long getAmountCents() {
+        return amountCents;
+    }
+
     /** @return Endereço https para onde o comprador volta se desistir; vazio sem ele. */
     public String getCancelUrl() {
         return cancelUrl;
+    }
+
+    /** @return O id do pedido no seu sistema, como o seu servidor o enviou; vazio sem ele. Volta no checkout, no pedido, no pagamento e nos eventos. */
+    public String getClientReferenceId() {
+        return clientReferenceId;
     }
 
     /** @return O segredo que o navegador do comprador usa para ler, atualizar e pagar a sessão, sem chave de API. Só esta resposta o traz; entregue-o à página que monta os campos seguros. Vem vazio na repetição de uma criação idempotente. */
@@ -95,9 +117,19 @@ public final class CheckoutCreated {
         return id;
     }
 
+    /** @return As linhas do valor fixado, na ordem em que foram enviadas; vazio sem elas. */
+    public List<CheckoutLine> getItems() {
+        return items;
+    }
+
     /** @return Como o lojista chama o checkout nas próprias telas; o comprador não vê. */
     public String getLabel() {
         return label;
+    }
+
+    /** @return Os pares que o seu servidor enviou; voltam no pedido, no pagamento e nos eventos da venda (checkout.*, order.*, checkout_payment.* e refund.*). */
+    public Map<String, Object> getMetadata() {
+        return metadata;
     }
 
     /** @return the API's {@code price_id} */
@@ -142,6 +174,6 @@ public final class CheckoutCreated {
 
     @Override
     public String toString() {
-        return "CheckoutCreated{" + "cancelUrl=" + cancelUrl + ", clientSecret=" + clientSecret + ", clientSecretExpiresAt=" + clientSecretExpiresAt + ", createdAt=" + createdAt + ", expiresAt=" + expiresAt + ", id=" + id + ", label=" + label + ", priceId=" + priceId + ", productId=" + productId + ", quantity=" + quantity + ", sessionId=" + sessionId + ", status=" + status + ", statusKey=" + statusKey + ", successUrl=" + successUrl + ", url=" + url + "}";
+        return "CheckoutCreated{" + "amountCents=" + amountCents + ", cancelUrl=" + cancelUrl + ", clientReferenceId=" + clientReferenceId + ", clientSecret=" + clientSecret + ", clientSecretExpiresAt=" + clientSecretExpiresAt + ", createdAt=" + createdAt + ", expiresAt=" + expiresAt + ", id=" + id + ", items=" + items + ", label=" + label + ", metadata=" + metadata + ", priceId=" + priceId + ", productId=" + productId + ", quantity=" + quantity + ", sessionId=" + sessionId + ", status=" + status + ", statusKey=" + statusKey + ", successUrl=" + successUrl + ", url=" + url + "}";
     }
 }

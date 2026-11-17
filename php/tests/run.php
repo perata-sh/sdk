@@ -70,6 +70,7 @@ $tests['a checkout session hands back the client secret for the browser'] = stat
         'status' => 'active', 'label' => '', 'quantity' => 1, 'success_url' => 'https://loja.example/obrigado', 'cancel_url' => '',
         'expires_at' => null, 'created_at' => '2026-11-16T12:00:00Z', 'session_id' => 'cs_1', 'client_secret' => $secret,
         'client_secret_expires_at' => '2026-11-16T12:30:00Z', 'status_key' => 'sk_1',
+        'amount_cents' => null, 'items' => [], 'metadata' => [], 'client_reference_id' => '',
     ];
     $calls = 0;
     [$perata, $seen] = client(static function () use ($session, &$calls): array {
@@ -244,7 +245,7 @@ $tests['a refusal is a typed error'] = static function (): void {
 const REFERENCE_SECRET = 'whsec_MfKQ9r8GKYqrTwjUPD8ILPZIo2LaLaSw';
 const OLD_SECRET = 'whsec_cGVyYXRhLXNkay1vbGQta2V5LTAxMjM0NTY3ODlhYmM=';
 const NEW_SECRET = 'whsec_cGVyYXRhLXNkay1uZXcta2V5LTAxMjM0NTY3ODlhYmM=';
-const ORDER_PAID = '{"id":"msg_2","type":"order.paid","timestamp":"2026-10-22T12:00:00Z","data":{"id":"ord_1","customer_id":"cus_1","product_id":"prod_1","price_id":"price_1","amount_cents":12000,"currency":"BRL","status":"succeeded","paid_at":"2026-10-22T12:00:00Z","installments":3,"installment_interest_cents":360}}';
+const ORDER_PAID = '{"id":"msg_2","type":"order.paid","timestamp":"2026-10-22T12:00:00Z","data":{"id":"ord_1","customer_id":"cus_1","product_id":"prod_1","price_id":"price_1","amount_cents":12000,"currency":"BRL","status":"succeeded","paid_at":"2026-10-22T12:00:00Z","installments":3,"installment_interest_cents":360,"items":[],"metadata":{},"client_reference_id":""}}';
 const USAGE_RECORDED = '{"id":"msg_3","type":"usage_event.recorded","timestamp":"2026-10-22T12:00:00Z","data":{"event_id":"ue_1","aggregate":"usage_event","aggregate_id":"ue_1","merchant_id":"mer_1","environment":"test"}}';
 const PAYOUT_SENT = '{"id":"msg_4","type":"payout.sent","timestamp":"2026-10-22T12:00:00Z","data":{"payout_id":"po_1","amount_cents":5000}}';
 const SIGNED_AT = 1792670400;
@@ -285,7 +286,7 @@ $tests['a timestamp that is not plain digits is refused'] = static function (): 
 
 $tests['a webhook answers its typed event'] = static function (): void {
     $now = SIGNED_AT + 120;
-    $headers = webhookHeaders('msg_2', SIGNED_AT, 'v1,wYfYi9j4EexjSjLLsUssBYbtAFSwF9KVQBJ2o+qD6Jw= v1,0rD3K6HM83kGY+mZMPVidXSW2zXHHDvy3bMt2QzM8Ak=');
+    $headers = webhookHeaders('msg_2', SIGNED_AT, 'v1,MW5FnOPf5xZdiHRmDImEy+x3spgWmDCUEuwjHOZ7a2Y= v1,rWmUsQveS0J9yTlnQfb7Olszghg8xf7DJHLHG0a7YZo=');
     foreach ([NEW_SECRET, OLD_SECRET] as $secret) {
         $event = Webhook::verify($secret, $headers, ORDER_PAID, $now);
         check($event instanceof OrderWebhookEvent && $event->type === 'order.paid' && $event->data->id === 'ord_1'

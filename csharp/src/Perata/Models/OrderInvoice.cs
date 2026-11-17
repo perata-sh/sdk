@@ -36,6 +36,10 @@ public sealed record OrderInvoice
     [JsonPropertyName("generated_at")]
     public required string GeneratedAt { get; init; }
 
+    /// <summary>As linhas do pedido, quando o lojista as enviou; vazio sem elas.</summary>
+    [JsonPropertyName("items")]
+    public required IReadOnlyList<CheckoutLine> Items { get; init; }
+
     /// <summary>Número da fatura, na série da organização (PREFIXO-0001).</summary>
     [JsonPropertyName("number")]
     public required string Number { get; init; }
