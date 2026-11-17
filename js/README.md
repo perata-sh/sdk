@@ -18,8 +18,9 @@ O seu **servidor** cria a sessão de pagamento com o [SDK de servidor](../typesc
 |---|---|---|
 | Redirecionamento | O mais simples: a página inteira vai para o checkout da Peráta | `perata.redirectToCheckout({ url })` |
 | Modal | O checkout abre sobre a sua página, sem o comprador sair dela | `perata.openCheckout({ url, onSuccess })` |
-| Componentes prontos | O formulário da Peráta dentro da sua página (cartão, Pix e boleto), que confirma sozinho | `perata.components.payment({ clientSecret })` |
+| Componentes prontos | O formulário da Peráta dentro da sua página (cartão, débito, Pix, boleto, cartões salvos e a carteira do aparelho), que confirma sozinho | `perata.components.payment({ clientSecret })` |
 | Transparente | Você desenha o formulário; só os campos do cartão ficam num quadro seguro da Peráta | `perata.components.card(...)` e `perata.confirmPayment(...)` |
+| Transparente, só a carteira | O botão do Google Pay ou do Apple Pay no seu layout, num quadro da Peráta | `perata.components.wallet({ clientSecret })` |
 
 ### No servidor (Node)
 
@@ -98,7 +99,25 @@ payment.mount("#pagamento"); // um seletor ou um elemento
 // payment.destroy(); // tira da página e esquece os ouvintes (unmount() só tira)
 ```
 
+O formulário mostra as mesmas formas de pagamento da página hospedada: a carteira do aparelho primeiro (Google Pay no Chrome e no Android, Apple Pay no Safari), depois cartão de crédito, débito (onde estiver ligado), Pix, boleto (se a conta o aceita) e os cartões que o comprador já salvou, liberados por um código no e-mail dele. A carteira só aparece se estiver ligada para o seu site, cadastrada na Google e na Apple pela equipe da Peráta (em produção) e o navegador do comprador puder pagar com ela.
+
 `appearance` aceita `theme` (`"light"`, `"dark"` ou `"auto"`) e quatro variáveis: `colorPrimary` (`#rrggbb`), `borderRadius` (de 0 a 24, em texto: `"8"`), `fontFamily` (`"display"` ou `"system"`) e `fontSize` (`"sm"`, `"md"` ou `"lg"`). Também vale escrever `primaryColor`, `borderRadius`, `fontFamily` e `size` soltos, sem `variables`. Valor desconhecido é ignorado.
+
+**3b. Só o botão da carteira, no seu layout**
+
+```ts
+const carteira = perata.components.wallet({
+  clientSecret,
+  customer: { email: "maria@exemplo.com", document: "529.982.247-25" }, // quem paga; carteira.update({ customer }) muda depois
+  onReady: (state) => console.log(state.available), // ["google_pay"], ["apple_pay"] ou []: sem carteira, nada aparece
+  onSuccess: (result) => {}, // result.status: "succeeded" ou "confirmed"
+  onCancel: () => {},        // o comprador fechou a janela da carteira
+  onError: (error) => console.error(error.code, error.message), // customer_incomplete, wallet_unavailable, payment_declined…
+});
+carteira.mount("#carteira");
+```
+
+O botão é do Google ou da Apple e paga sozinho: o cartão nunca passa pela sua página e `confirmPayment` não confirma carteira (rejeita com `wallet_element_required`). O quadro abre dentro de um `iframe` da Peráta com `allow="payment"`, e o Google e a Apple conferem o domínio da sua página, não o da Peráta: em produção o seu site precisa estar cadastrado nas duas carteiras pela equipe da Peráta.
 
 **4. Transparente**: o número do cartão é digitado em um `iframe` da Peráta e nunca passa pela sua página; o resto do formulário é seu.
 

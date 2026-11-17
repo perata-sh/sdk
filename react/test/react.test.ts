@@ -7,7 +7,7 @@ import type { PerataInstance } from "@perata-sh/js";
 import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { createElement as h, createRef, StrictMode } from "react";
 
-import { CardField, CheckoutButton, PaymentComponent, PerataProvider, useConfirmPayment, usePaymentStatus, usePerata, usePerataStatus } from "../src/index.ts";
+import { CardField, CheckoutButton, PaymentComponent, PerataProvider, WalletComponent, useConfirmPayment, usePaymentStatus, usePerata, usePerataStatus } from "../src/index.ts";
 import type { CardFieldHandle, PaymentComponentHandle, PaymentStatusState } from "../src/index.ts";
 import { OPTIONS, PAID, STATE, stub } from "./stub.ts";
 
@@ -361,4 +361,33 @@ test("usePaymentStatus stops polling when the component leaves, and refresh asks
   const asked = state.statusAsked.length;
   await sleep(60);
   assert.equal(state.statusAsked.length, asked, "no ask after unmount");
+});
+
+test("WalletComponent draws once Peráta.js is ready, says who pays and follows the latest customer without remounting", async () => {
+  const state = stub();
+  const events: string[] = [];
+  const tree = (email: string) =>
+    h(PerataProvider, { instance: Promise.resolve<PerataInstance | null>(state.perata) },
+      h(WalletComponent, { clientSecret: "cs_1", customer: { email }, className: "slot", onReady: (s) => events.push(`ready:${s.available?.join(",") ?? ""}`), onSuccess: (r) => events.push(`success:${r.orderId}`), onCancel: () => events.push("cancel"), onError: (e) => events.push(`error:${e.code}`) }));
+  const view = render(tree("a@exemplo.com"));
+  assert.equal(state.wallets.length, 0, "nothing before the script is there");
+  await waitFor(() => assert.equal(state.wallets.length, 1));
+
+  const [wallet] = state.wallets;
+  assert.equal(wallet?.options.clientSecret, "cs_1");
+  assert.deepEqual(wallet?.options.customer, { email: "a@exemplo.com" });
+  assert.equal(wallet?.mounted, view.container.querySelector("div.slot"));
+  wallet?.options.onReady?.({ ...STATE, available: ["google_pay"] });
+  wallet?.options.onSuccess?.(PAID);
+  wallet?.options.onCancel?.(STATE);
+  wallet?.options.onError?.({ code: "customer_incomplete", message: "Faltam dados" });
+  assert.deepEqual(events, ["ready:google_pay", "success:ord_1", "cancel", "error:customer_incomplete"]);
+
+  view.rerender(tree("b@exemplo.com"));
+  await waitFor(() => assert.equal(wallet?.updates.length, 1));
+  assert.deepEqual((wallet?.updates[0] as { customer?: unknown }).customer, { email: "b@exemplo.com" });
+  assert.equal(state.wallets.length, 1, "a new customer does not remount the buttons");
+
+  view.unmount();
+  assert.equal(wallet?.destroys, 1);
 });

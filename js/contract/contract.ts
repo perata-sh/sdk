@@ -35,6 +35,7 @@ void [nested, flat, badTheme, badFont];
 perata.components.payment({ clientSecret: "cs_12345678", locale: "pt-BR" });
 // @ts-expect-error no other language yet
 perata.components.payment({ clientSecret: "cs_12345678", locale: "en" });
+perata.components.wallet({ clientSecret: "cs_12345678", customer: { email: "a@exemplo.com", document: "52998224725" }, onReady: (state) => state.available?.includes("google_pay"), onCancel: () => {}, onSuccess: (result) => result.status }).update({ customer: { email: "b@exemplo.com" } });
 
 // customer: no phone
 const customer: CustomerInput = { name: "Ana", email: "ana@exemplo.com", document: "529.982.247-25", address: { street: "Rua A", number: "1", district: "Centro", city: "Recife", state: "PE", postalCode: "50000-000" } };

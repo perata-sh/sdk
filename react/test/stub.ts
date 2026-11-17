@@ -1,4 +1,4 @@
-import type { CardComponentOptions, ChangeEvent, ConfirmPaymentParams, InstallmentOption, OpenCheckoutOptions, PaymentComponentOptions, PaymentResult, PerataInstance } from "@perata-sh/js";
+import type { CardComponentOptions, ChangeEvent, ConfirmPaymentParams, InstallmentOption, OpenCheckoutOptions, PaymentComponentOptions, PaymentResult, PerataInstance, WalletComponentOptions } from "@perata-sh/js";
 
 // A stand-in for what Peráta.js returns: it records every call, and the test
 // triggers the script's events by hand.
@@ -59,6 +59,7 @@ export interface Stub {
   perata: PerataInstance;
   payments: Array<StubComponent<PaymentComponentOptions>>;
   cards: Array<StubComponent<CardComponentOptions>>;
+  wallets: Array<StubComponent<WalletComponentOptions>>;
   redirects: string[];
   modals: OpenCheckoutOptions[];
   confirmed: ConfirmPaymentParams[];
@@ -75,7 +76,7 @@ export const OPTIONS: InstallmentOption[] = [
 ];
 
 export function stub(): Stub {
-  const state: Stub = { perata: undefined as unknown as PerataInstance, payments: [], cards: [], redirects: [], modals: [], confirmed: [], installmentsAsked: [], statusAsked: [], statuses: [] };
+  const state: Stub = { perata: undefined as unknown as PerataInstance, payments: [], cards: [], wallets: [], redirects: [], modals: [], confirmed: [], installmentsAsked: [], statusAsked: [], statuses: [] };
   state.perata = {
     version: "v1",
     redirectToCheckout: ({ url }) => {
@@ -95,6 +96,11 @@ export function stub(): Stub {
         const component = new StubComponent(options);
         state.cards.push(component);
         return component as unknown as ReturnType<PerataInstance["components"]["card"]>;
+      },
+      wallet: (options) => {
+        const component = new StubComponent(options);
+        state.wallets.push(component);
+        return component as unknown as ReturnType<PerataInstance["components"]["wallet"]>;
       },
     },
     confirmPayment: async (params) => {

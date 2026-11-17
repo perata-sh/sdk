@@ -2,6 +2,13 @@
 
 Todos os SDKs da Peráta saem com a mesma versão (`VERSION`). O histórico de cada versão anterior, com os nomes de cada linguagem, está em [`dart/CHANGELOG.md`](dart/CHANGELOG.md) e nas [releases](https://github.com/perata-sh/sdk/releases).
 
+## Não lançado
+
+### Pacotes de navegador (escritos à mão, ainda não publicados)
+
+- `js/`: `perata.components.wallet` (o botão do Google Pay e do Apple Pay no layout do lojista), os tipos `WalletComponent`, `WalletComponentOptions`, `WalletComponentEvents` e `WalletKind`, `ChangeEvent.available`, `update({ customer })` e os códigos de erro `wallet_element_required`, `customer_incomplete` e `wallet_unavailable`. `components.payment` passa a trazer a carteira do aparelho e os cartões salvos. Seguem o `perata.js` do perata.sh e valem depois do deploy dele.
+- `react/`: `WalletComponent`.
+
 ## 0.5.0 (16/11/2026)
 
 Gerado a partir do contrato da API 0.1.0, com o checkout por `client_secret`.

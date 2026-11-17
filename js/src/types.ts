@@ -5,6 +5,9 @@
 /** The ways a buyer can pay. */
 export type PaymentMethodKind = "card" | "pix" | "boleto";
 
+/** The digital wallets a buyer can pay with: the device's own sheet, opened by the wallet's own button. */
+export type WalletKind = "google_pay" | "apple_pay";
+
 /** The look of the hosted checkout opened by `openCheckout`. */
 export type Theme = "light" | "dark";
 
@@ -55,11 +58,15 @@ export type Locale = "pt-BR";
  *   did not reach Peráta);
  * - the call: `invalid_client_secret`, `invalid_checkout_url`,
  *   `invalid_status_key`, `invalid_method`, `invalid_element`,
- *   `invalid_options`, `card_element_required` and `mount_target_not_found`;
+ *   `invalid_options`, `card_element_required`, `wallet_element_required` (a
+ *   wallet is paid by its own button, `components.wallet`, never by
+ *   `confirmPayment`) and `mount_target_not_found`;
  * - the fields: `element_unavailable`, `element_not_mounted` and
  *   `element_unmounted`;
  * - the payment: `payment_declined`, `checkout_expired`, `payment_failed` and
- *   `timeout` (check the status before trying again);
+ *   `timeout` (check the status before trying again); with a wallet,
+ *   `customer_incomplete` (the session still lacks who pays: give it in
+ *   `customer`) and `wallet_unavailable` (the sheet could not open);
  * - the session's route: `http_<status>`, such as `http_404`.
  */
 export type PerataErrorCode =
@@ -74,6 +81,9 @@ export type PerataErrorCode =
   | "invalid_element"
   | "invalid_options"
   | "card_element_required"
+  | "wallet_element_required"
+  | "customer_incomplete"
+  | "wallet_unavailable"
   | "mount_target_not_found"
   | "element_unavailable"
   | "element_not_mounted"
@@ -119,8 +129,10 @@ export interface ChangeEvent {
   empty: boolean;
   /** True when what was typed is valid. */
   valid: boolean;
-  /** The method the buyer picked: `card` in the card field, any of the methods in the payment component. */
-  method: PaymentMethodKind | (string & {});
+  /** The method the buyer picked: `card` in the card field, any of the methods (or a wallet, `google_pay`, `apple_pay`) in the payment component. */
+  method: PaymentMethodKind | WalletKind | (string & {});
+  /** The wallets this browser can pay with and this site may offer, which the wallet component draws a button for; empty when none. */
+  available?: WalletKind[];
 }
 
 /** The Pix charge: show the QR code, or offer the copy-and-paste code. */
@@ -226,8 +238,8 @@ export interface PerataComponent<Events> {
   unmount(): void;
   /** Unmounts it and forgets every listener; the component is not used again. */
   destroy(): void;
-  /** Changes the look without losing what the buyer typed. */
-  update(options: { appearance?: Appearance }): this;
+  /** Changes the look without losing what the buyer typed; the wallet component also takes `customer`. */
+  update(options: { appearance?: Appearance; customer?: CustomerInput }): this;
   /** Puts the cursor in the first field. */
   focus(): this;
   /** Listens to an event; answers itself, so calls chain. */
@@ -243,6 +255,15 @@ export interface PaymentComponentEvents {
   ready: ChangeEvent;
   change: ChangeEvent;
   success: PaymentResult;
+  error: PerataErrorInfo;
+}
+
+export interface WalletComponentEvents {
+  /** The frame knows which wallets this browser can pay with: `state.available`, empty when none (and nothing is drawn). */
+  ready: ChangeEvent;
+  success: PaymentResult;
+  /** The buyer closed the wallet's sheet without paying. */
+  cancel: ChangeEvent;
   error: PerataErrorInfo;
 }
 
@@ -263,6 +284,18 @@ export interface PaymentComponentOptions {
   onError?: (error: PerataErrorInfo) => void;
 }
 
+export interface WalletComponentOptions {
+  clientSecret: string;
+  /** Who pays, when the session does not know yet (e-mail, CPF or CNPJ, and the address if the seller asks for it); `update({ customer })` changes it. */
+  customer?: CustomerInput;
+  appearance?: Appearance;
+  locale?: Locale;
+  onReady?: (state: ChangeEvent) => void;
+  onSuccess?: (result: PaymentResult) => void;
+  onCancel?: (state: ChangeEvent) => void;
+  onError?: (error: PerataErrorInfo) => void;
+}
+
 export interface CardComponentOptions {
   clientSecret: string;
   appearance?: Appearance;
@@ -273,6 +306,13 @@ export interface CardComponentOptions {
 
 /** The ready-made component: payment methods, card, Pix and boleto in one, with its own button, confirming by itself. */
 export type PaymentComponent = PerataComponent<PaymentComponentEvents>;
+
+/**
+ * The wallets' buttons alone (Google Pay, Apple Pay), for your own layout, in a
+ * frame of Peráta's origin: nothing is drawn where the browser cannot pay with a
+ * wallet. The button pays by itself; `confirmPayment` does not confirm it.
+ */
+export type WalletComponent = PerataComponent<WalletComponentEvents>;
 
 /** The card fields, drawn in a secure frame; you confirm with `confirmPayment({ card })`. */
 export type CardComponent = PerataComponent<CardComponentEvents>;
@@ -341,6 +381,7 @@ export interface OpenedCheckout {
 export interface PerataComponents {
   payment(options: PaymentComponentOptions): PaymentComponent;
   card(options: CardComponentOptions): CardComponent;
+  wallet(options: WalletComponentOptions): WalletComponent;
 }
 
 /** What `Perata()` returns: the four ways of taking a payment. */

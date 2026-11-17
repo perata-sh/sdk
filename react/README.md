@@ -69,7 +69,7 @@ import { CheckoutButton } from "@perata-sh/react";
 
 Aceita as propriedades de um `<button>` (`className`, `onClick`…); `mode` é `"redirect"` por padrão. `onError` recebe o erro quando o `url` não é um link de checkout da Peráta (`invalid_checkout_url`) ou o modal não abre; sem `onError`, o erro sobe. No modal, `onSuccess` pode devolver `false` para você mesmo levar o comprador ao `success_url`.
 
-**3. Componentes prontos**: `PaymentComponent` desenha cartão, Pix e boleto e confirma sozinho.
+**3. Componentes prontos**: `PaymentComponent` desenha as formas de pagamento da página da Peráta (carteira do aparelho, cartão, débito, Pix, boleto e cartões salvos) e confirma sozinho.
 
 ```tsx
 import { PaymentComponent } from "@perata-sh/react";
@@ -84,6 +84,24 @@ import { PaymentComponent } from "@perata-sh/react";
 ```
 
 Um `clientSecret` novo remonta o componente; mudar `appearance` só atualiza o visual, sem perder o que o comprador digitou. As funções `onReady`, `onChange`, `onSuccess` e `onError` podem mudar a cada renderização sem remontar nada. `appearance` é `{ theme: "light" | "dark" | "auto", variables: { colorPrimary: "#rrggbb", borderRadius: "8", fontFamily: "display" | "system", fontSize: "sm" | "md" | "lg" } }`; `locale` por enquanto só aceita `"pt-BR"`. Um `ref` (`PaymentComponentHandle`) dá `focus()`, `getState()` e `component`.
+
+
+**3b. Só a carteira, no seu layout**: `WalletComponent` desenha o botão do Google Pay ou do Apple Pay onde o navegador puder pagar com a carteira, e nada onde não puder.
+
+```tsx
+import { WalletComponent } from "@perata-sh/react";
+
+<WalletComponent
+  clientSecret={clientSecret}
+  customer={{ email, document }}   // quem paga; mudar não remonta o botão
+  onReady={(state) => console.log(state.available)} // ["google_pay"], ["apple_pay"] ou []
+  onSuccess={(result) => {}}
+  onCancel={() => {}}              // o comprador fechou a janela da carteira
+  onError={(error) => console.error(error.code)} // customer_incomplete, wallet_unavailable, payment_declined…
+/>
+```
+
+A carteira é paga pelo próprio botão; `useConfirmPayment` não confirma carteira.
 
 **4. Transparente**: `CardField` desenha só os campos do cartão, num quadro seguro da Peráta (os números não passam pela sua página). O resto do formulário é seu, e você confirma com um `ref`.
 
