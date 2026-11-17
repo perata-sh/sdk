@@ -70,7 +70,7 @@ func TestACheckoutSessionHandsBackTheClientSecretForTheBrowser(t *testing.T) {
 			secret = ""
 		}
 		w.WriteHeader(http.StatusCreated)
-		fmt.Fprintf(w, `{"data":{"id":"pcl_1","url":"https://perata.sh/pagamento/pcl_1","product_id":"prod_1","price_id":"price_1","status":"active","label":"","quantity":1,"success_url":"https://loja.example/obrigado","cancel_url":"","expires_at":null,"created_at":"2026-11-16T12:00:00Z","session_id":"cs_1","client_secret":%q,"client_secret_expires_at":"2026-11-16T12:30:00Z","status_key":"sk_1"}}`, secret)
+		fmt.Fprintf(w, `{"data":{"id":"pcl_1","url":"https://perata.sh/pagamento/pcl_1","product_id":"prod_1","price_id":"price_1","status":"active","label":"","quantity":1,"success_url":"https://loja.example/obrigado","cancel_url":"","expires_at":null,"created_at":"2026-11-16T12:00:00Z","session_id":"cs_1","client_secret":%q,"client_secret_expires_at":"2026-11-16T12:30:00Z","status_key":"sk_1","amount_cents":null,"items":[],"metadata":{},"client_reference_id":""}}`, secret)
 	})
 	ctx := context.Background()
 	successURL := "https://loja.example/obrigado"
@@ -367,7 +367,7 @@ const (
 	referenceSignature = "v1,g0hM9SsE+OTPJTGt/tmIKtSyZlE3uFJELVlNIOLJ1OE="
 	oldSecret          = "whsec_cGVyYXRhLXNkay1vbGQta2V5LTAxMjM0NTY3ODlhYmM="
 	newSecret          = "whsec_cGVyYXRhLXNkay1uZXcta2V5LTAxMjM0NTY3ODlhYmM="
-	orderPaid          = `{"id":"msg_2","type":"order.paid","timestamp":"2026-10-22T12:00:00Z","data":{"id":"ord_1","customer_id":"cus_1","product_id":"prod_1","price_id":"price_1","amount_cents":12000,"currency":"BRL","status":"succeeded","paid_at":"2026-10-22T12:00:00Z","installments":3,"installment_interest_cents":360}}`
+	orderPaid          = `{"id":"msg_2","type":"order.paid","timestamp":"2026-10-22T12:00:00Z","data":{"id":"ord_1","customer_id":"cus_1","product_id":"prod_1","price_id":"price_1","amount_cents":12000,"currency":"BRL","status":"succeeded","paid_at":"2026-10-22T12:00:00Z","installments":3,"installment_interest_cents":360,"items":[],"metadata":{},"client_reference_id":""}}`
 	usageRecorded      = `{"id":"msg_3","type":"usage_event.recorded","timestamp":"2026-10-22T12:00:00Z","data":{"event_id":"ue_1","aggregate":"usage_event","aggregate_id":"ue_1","merchant_id":"mer_1","environment":"test"}}`
 	payoutSent         = `{"id":"msg_4","type":"payout.sent","timestamp":"2026-10-22T12:00:00Z","data":{"payout_id":"po_1","amount_cents":5000}}`
 	signedAt           = 1792670400
@@ -413,7 +413,7 @@ func TestATimestampThatIsNotPlainDigitsIsRefused(t *testing.T) {
 
 func TestAWebhookAnswersItsTypedEvent(t *testing.T) {
 	now := time.Unix(signedAt+120, 0)
-	header := webhookHeader("msg_2", signedAt, "v1,wYfYi9j4EexjSjLLsUssBYbtAFSwF9KVQBJ2o+qD6Jw= v1,0rD3K6HM83kGY+mZMPVidXSW2zXHHDvy3bMt2QzM8Ak=")
+	header := webhookHeader("msg_2", signedAt, "v1,MW5FnOPf5xZdiHRmDImEy+x3spgWmDCUEuwjHOZ7a2Y= v1,rWmUsQveS0J9yTlnQfb7Olszghg8xf7DJHLHG0a7YZo=")
 	for _, secret := range []string{newSecret, oldSecret} {
 		event, err := verifyWebhookAt(secret, header, []byte(orderPaid), now)
 		order, ok := event.(*OrderWebhookEvent)

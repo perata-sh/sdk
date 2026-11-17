@@ -9,7 +9,7 @@ Todos os SDKs da Peráta saem com a mesma versão (`VERSION`). O histórico de c
 - `js/`: `perata.components.wallet` (o botão do Google Pay e do Apple Pay no layout do lojista), os tipos `WalletComponent`, `WalletComponentOptions`, `WalletComponentEvents` e `WalletKind`, `ChangeEvent.available`, `update({ customer })` e os códigos de erro `wallet_element_required`, `customer_incomplete` e `wallet_unavailable`. `components.payment` passa a trazer a carteira do aparelho e os cartões salvos. Seguem o `perata.js` do perata.sh e valem depois do deploy dele.
 - `react/`: `WalletComponent`.
 
-## 0.5.0 (16/11/2026)
+## 0.5.0 (17/11/2026)
 
 Gerado a partir do contrato da API 0.1.0, com o checkout por `client_secret`.
 
@@ -21,6 +21,12 @@ Gerado a partir do contrato da API 0.1.0, com o checkout por `client_secret`.
 - Um campo que pode ser nulo e aponta para um modelo (`customer`, `discount` e `payment` de `CheckoutClient`; `pix` e `boleto` de `CheckoutClientPayment`) é agora tipado como o modelo ou nulo, e não mais um valor livre (`any`). O gerador lê o `anyOf` de "modelo ou nulo" do OpenAPI 3.1.
 - **Swift: `urL` passa a ser `url`.** O nome de uma propriedade que é só `url` saía com o último `L` maiúsculo (`checkout.urL`) por um defeito do gerador. **Mudança incompatível para quem lia `urL`.**
 - O README de cada SDK ganhou o fluxo do checkout transparente e embutido: o servidor cria a sessão e entrega o `client_secret` ao navegador. Cada SDK ganhou o teste desse fluxo (a criação, o segredo vazio na repetição idempotente) e o de um modelo que pode ser nulo.
+
+- **O servidor do lojista define o valor do checkout.** `CheckoutsCreateParams` ganha `amount_cents` (Go: `AmountCents`), o valor do pedido todo em centavos, que vale num preço de valor livre (`custom`): o comprador vê o valor e não pode mudá-lo, na página, no modal, nos componentes e no checkout transparente, e é ele que o cartão e o Pix cobram. Abaixo do mínimo do preço, acima do máximo, num preço que não é de valor livre ou com `quantity` diferente de 1 a API responde 422; repetir a `Idempotency-Key` com outro valor, 409.
+- **Linhas do pedido.** `items`, uma lista de `{name, quantity, unit_amount_cents}` (`CheckoutsCreateItem` no pedido; `CheckoutItem`, `CheckoutCreatedItem` e `OrderItem` nas respostas), cuja soma de `quantity` vezes `unit_amount_cents` é igual a `amount_cents` (422 se não for; uma linha negativa é um desconto, e a soma continua maior que zero). Aparecem no checkout, no pedido, no recibo e nos eventos.
+- **Referência do pedido e metadata.** `client_reference_id` (até 255 caracteres) e `metadata` voltam em `Checkout`, `CheckoutCreated`, `Order`, `Payment`, na sessão do cliente (`CheckoutClient`) e nos eventos `checkout.*`, `order.*`, `checkout_payment.*` e `refund.*`, para achar de qual pedido veio cada pagamento. `Order` e `Payment` ganham `items`, `metadata` e `client_reference_id`; `Checkout` e `CheckoutCreated` ganham `amount_cents`, `items`, `metadata` e `client_reference_id`; `CheckoutClient` ganha `amount_locked` e `client_reference_id`; o recibo e a fatura do pedido ganham `items`.
+- **Validade.** `expires_in` vai a 259200 segundos (72 horas; antes 86400). O Pix gerado vale 24 horas.
+- Os eventos `checkout_payment.*` e `refund.*` passam a trazer, além dos identificadores, `checkout_id`, `amount_cents`, `currency`, `client_reference_id` e `metadata` (e `method` ou `payment_id`); o objeto do evento `refund.*` do Polar ganha `checkout_id`, `client_reference_id` e `metadata`.
 
 ### Pacotes de navegador (escritos à mão, ainda não publicados)
 

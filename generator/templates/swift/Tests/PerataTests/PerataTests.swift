@@ -80,6 +80,7 @@ final class PerataTests: XCTestCase {
                 "status": "active", "label": "", "quantity": 1, "success_url": "https://loja.example/obrigado", "cancel_url": "",
                 "expires_at": NSNull(), "created_at": "2026-11-16T12:00:00Z", "session_id": "cs_1", "client_secret": clientSecret,
                 "client_secret_expires_at": "2026-11-16T12:30:00Z", "status_key": "sk_1",
+                "amount_cents": NSNull(), "items": [], "metadata": [String: Any](), "client_reference_id": "",
             ]
         }
         let (perata, recorder) = client { _ in (201, [:], ["data": session("cs_secret_1")]) }
@@ -311,7 +312,7 @@ final class PerataTests: XCTestCase {
         static let referenceSecret = "whsec_MfKQ9r8GKYqrTwjUPD8ILPZIo2LaLaSw"
         static let oldSecret = "whsec_cGVyYXRhLXNkay1vbGQta2V5LTAxMjM0NTY3ODlhYmM="
         static let newSecret = "whsec_cGVyYXRhLXNkay1uZXcta2V5LTAxMjM0NTY3ODlhYmM="
-        static let orderPaid = Data(#"{"id":"msg_2","type":"order.paid","timestamp":"2026-10-22T12:00:00Z","data":{"id":"ord_1","customer_id":"cus_1","product_id":"prod_1","price_id":"price_1","amount_cents":12000,"currency":"BRL","status":"succeeded","paid_at":"2026-10-22T12:00:00Z","installments":3,"installment_interest_cents":360}}"#.utf8)
+        static let orderPaid = Data(#"{"id":"msg_2","type":"order.paid","timestamp":"2026-10-22T12:00:00Z","data":{"id":"ord_1","customer_id":"cus_1","product_id":"prod_1","price_id":"price_1","amount_cents":12000,"currency":"BRL","status":"succeeded","paid_at":"2026-10-22T12:00:00Z","installments":3,"installment_interest_cents":360,"items":[],"metadata":{},"client_reference_id":""}}"#.utf8)
         static let usageRecorded = Data(#"{"id":"msg_3","type":"usage_event.recorded","timestamp":"2026-10-22T12:00:00Z","data":{"event_id":"ue_1","aggregate":"usage_event","aggregate_id":"ue_1","merchant_id":"mer_1","environment":"test"}}"#.utf8)
         static let payoutSent = Data(#"{"id":"msg_4","type":"payout.sent","timestamp":"2026-10-22T12:00:00Z","data":{"payout_id":"po_1","amount_cents":5000}}"#.utf8)
         static let signedAt = 1_792_670_400
@@ -348,7 +349,7 @@ final class PerataTests: XCTestCase {
 
         func testAWebhookAnswersItsTypedEvent() throws {
             let now = Date(timeIntervalSince1970: TimeInterval(Self.signedAt + 120))
-            let headers = webhookHeaders("msg_2", Self.signedAt, "v1,wYfYi9j4EexjSjLLsUssBYbtAFSwF9KVQBJ2o+qD6Jw= v1,0rD3K6HM83kGY+mZMPVidXSW2zXHHDvy3bMt2QzM8Ak=")
+            let headers = webhookHeaders("msg_2", Self.signedAt, "v1,MW5FnOPf5xZdiHRmDImEy+x3spgWmDCUEuwjHOZ7a2Y= v1,rWmUsQveS0J9yTlnQfb7Olszghg8xf7DJHLHG0a7YZo=")
             for secret in [Self.newSecret, Self.oldSecret] {
                 guard case let .order(order) = try verifyWebhook(secret: secret, headers: headers, body: Self.orderPaid, now: now) else {
                     return XCTFail("not an order event")

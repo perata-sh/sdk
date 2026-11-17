@@ -87,7 +87,8 @@ fn a_checkout_session_hands_back_the_client_secret_for_the_browser() {
             "id": "pcl_1", "url": "https://perata.sh/pagamento/pcl_1", "product_id": "prod_1", "price_id": "price_1",
             "status": "active", "label": "", "quantity": 1, "success_url": "https://loja.example/obrigado", "cancel_url": "",
             "expires_at": null, "created_at": "2026-11-16T12:00:00Z", "session_id": "cs_1", "client_secret": secret,
-            "client_secret_expires_at": "2026-11-16T12:30:00Z", "status_key": "sk_1"
+            "client_secret_expires_at": "2026-11-16T12:30:00Z", "status_key": "sk_1",
+            "amount_cents": null, "items": [], "metadata": {}, "client_reference_id": ""
         }})
     };
     let calls = std::sync::atomic::AtomicUsize::new(0);
@@ -494,7 +495,7 @@ fn a_refusal_is_a_typed_error() {
 const REFERENCE_SECRET: &str = "whsec_MfKQ9r8GKYqrTwjUPD8ILPZIo2LaLaSw";
 const OLD_SECRET: &str = "whsec_cGVyYXRhLXNkay1vbGQta2V5LTAxMjM0NTY3ODlhYmM=";
 const NEW_SECRET: &str = "whsec_cGVyYXRhLXNkay1uZXcta2V5LTAxMjM0NTY3ODlhYmM=";
-const ORDER_PAID: &[u8] = br#"{"id":"msg_2","type":"order.paid","timestamp":"2026-10-22T12:00:00Z","data":{"id":"ord_1","customer_id":"cus_1","product_id":"prod_1","price_id":"price_1","amount_cents":12000,"currency":"BRL","status":"succeeded","paid_at":"2026-10-22T12:00:00Z","installments":3,"installment_interest_cents":360}}"#;
+const ORDER_PAID: &[u8] = br#"{"id":"msg_2","type":"order.paid","timestamp":"2026-10-22T12:00:00Z","data":{"id":"ord_1","customer_id":"cus_1","product_id":"prod_1","price_id":"price_1","amount_cents":12000,"currency":"BRL","status":"succeeded","paid_at":"2026-10-22T12:00:00Z","installments":3,"installment_interest_cents":360,"items":[],"metadata":{},"client_reference_id":""}}"#;
 const USAGE_RECORDED: &[u8] = br#"{"id":"msg_3","type":"usage_event.recorded","timestamp":"2026-10-22T12:00:00Z","data":{"event_id":"ue_1","aggregate":"usage_event","aggregate_id":"ue_1","merchant_id":"mer_1","environment":"test"}}"#;
 const PAYOUT_SENT: &[u8] = br#"{"id":"msg_4","type":"payout.sent","timestamp":"2026-10-22T12:00:00Z","data":{"payout_id":"po_1","amount_cents":5000}}"#;
 const SIGNED_AT: u64 = 1_792_670_400;
@@ -567,7 +568,7 @@ fn a_webhook_answers_its_typed_event() {
     let headers = webhook_headers(
         "msg_2",
         SIGNED_AT,
-        "v1,wYfYi9j4EexjSjLLsUssBYbtAFSwF9KVQBJ2o+qD6Jw= v1,0rD3K6HM83kGY+mZMPVidXSW2zXHHDvy3bMt2QzM8Ak=",
+        "v1,MW5FnOPf5xZdiHRmDImEy+x3spgWmDCUEuwjHOZ7a2Y= v1,rWmUsQveS0J9yTlnQfb7Olszghg8xf7DJHLHG0a7YZo=",
     );
     for secret in [NEW_SECRET, OLD_SECRET] {
         let WebhookEvent::Order(order) =

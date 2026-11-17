@@ -87,17 +87,25 @@ type CardTokenization struct {
 
 // Checkout is a resource of Peráta's API.
 type Checkout struct {
+	// O valor, em centavos, que o seu servidor fixou na criação; nulo quando é o comprador quem digita o valor.
+	AmountCents *int64 `json:"amount_cents"`
 	// Endereço https para onde o comprador volta se desistir; vazio sem ele.
 	CancelURL string `json:"cancel_url"`
-	CreatedAt string `json:"created_at"`
+	// O id do pedido no seu sistema, como o seu servidor o enviou na criação; vazio sem ele. Volta no checkout, no pedido, no pagamento e nos eventos.
+	ClientReferenceID string `json:"client_reference_id"`
+	CreatedAt         string `json:"created_at"`
 	// Quando o checkout deixa de abrir sessões; nulo sem prazo.
 	ExpiresAt *string `json:"expires_at"`
 	ID        string  `json:"id"`
+	// As linhas do valor fixado, na ordem em que foram enviadas; vazio sem elas.
+	Items []CheckoutLine `json:"items"`
 	// Como o lojista chama o checkout nas próprias telas; o comprador não vê.
-	Label     string `json:"label"`
-	PriceID   string `json:"price_id"`
-	ProductID string `json:"product_id"`
-	Quantity  int64  `json:"quantity"`
+	Label string `json:"label"`
+	// Os pares que o seu servidor guardou na criação; voltam nos eventos da venda.
+	Metadata  map[string]any `json:"metadata"`
+	PriceID   string         `json:"price_id"`
+	ProductID string         `json:"product_id"`
+	Quantity  int64          `json:"quantity"`
 	// active abre sessões de compra; archived saiu de circulação.
 	Status string `json:"status"`
 	// Endereço https para onde o comprador volta depois de pagar; vazio sem ele.
@@ -110,14 +118,18 @@ type Checkout struct {
 type CheckoutClient struct {
 	// Antes do desconto.
 	AmountCents int64 `json:"amount_cents"`
+	// Verdadeiro quando o servidor do lojista fixou o valor (amount_cents na criação do checkout): mostre-o ao comprador sem campo para mudá-lo. Nenhuma rota de cliente aceita outro valor.
+	AmountLocked bool `json:"amount_locked"`
 	// Para onde o comprador volta sem pagar.
 	CancelURL string `json:"cancel_url"`
 	// credit, e debit onde a autenticação do adquirente está ligada.
-	CardKinds     []string                `json:"card_kinds"`
-	Currency      string                  `json:"currency"`
-	Customer      *CheckoutClientCustomer `json:"customer"`
-	Discount      *CheckoutClientDiscount `json:"discount"`
-	DiscountCents int64                   `json:"discount_cents"`
+	CardKinds []string `json:"card_kinds"`
+	// O id do pedido no seu sistema, quando o seu servidor o enviou; vazio sem ele.
+	ClientReferenceID string                  `json:"client_reference_id"`
+	Currency          string                  `json:"currency"`
+	Customer          *CheckoutClientCustomer `json:"customer"`
+	Discount          *CheckoutClientDiscount `json:"discount"`
+	DiscountCents     int64                   `json:"discount_cents"`
 	// A sessão está aberta e ainda aceita atualizações e um pagamento.
 	Editable    bool   `json:"editable"`
 	Environment string `json:"environment"`
@@ -219,8 +231,12 @@ type CheckoutClientPix struct {
 
 // CheckoutCreated is a resource of Peráta's API.
 type CheckoutCreated struct {
+	// O valor, em centavos, que o seu servidor fixou; o comprador o vê e não pode mudá-lo. Nulo quando é o comprador quem digita o valor.
+	AmountCents *int64 `json:"amount_cents"`
 	// Endereço https para onde o comprador volta se desistir; vazio sem ele.
 	CancelURL string `json:"cancel_url"`
+	// O id do pedido no seu sistema, como o seu servidor o enviou; vazio sem ele. Volta no checkout, no pedido, no pagamento e nos eventos.
+	ClientReferenceID string `json:"client_reference_id"`
 	// O segredo que o navegador do comprador usa para ler, atualizar e pagar a sessão, sem chave de API. Só esta resposta o traz; entregue-o à página que monta os campos seguros. Vem vazio na repetição de uma criação idempotente.
 	ClientSecret string `json:"client_secret"`
 	// Quando a sessão e o client_secret deixam de valer.
@@ -230,11 +246,15 @@ type CheckoutCreated struct {
 	ExpiresAt *string `json:"expires_at"`
 	// O ID do link do checkout, o que GET e PATCH /checkouts/{id} recebem.
 	ID string `json:"id"`
+	// As linhas do valor fixado, na ordem em que foram enviadas; vazio sem elas.
+	Items []CheckoutLine `json:"items"`
 	// Como o lojista chama o checkout nas próprias telas; o comprador não vê.
-	Label     string `json:"label"`
-	PriceID   string `json:"price_id"`
-	ProductID string `json:"product_id"`
-	Quantity  int64  `json:"quantity"`
+	Label string `json:"label"`
+	// Os pares que o seu servidor enviou; voltam no pedido, no pagamento e nos eventos da venda (checkout.*, order.*, checkout_payment.* e refund.*).
+	Metadata  map[string]any `json:"metadata"`
+	PriceID   string         `json:"price_id"`
+	ProductID string         `json:"product_id"`
+	Quantity  int64          `json:"quantity"`
 	// O ID da sessão de checkout; as rotas de cliente dela são /checkouts/client/{client_secret}.
 	SessionID string `json:"session_id"`
 	// active abre sessões de compra; archived saiu de circulação.
@@ -256,6 +276,14 @@ type CheckoutInstallment struct {
 	InterestCents int64 `json:"interest_cents"`
 	// Quanto o comprador paga no total: o total da sessão, mais os juros quando o plano os tem.
 	TotalCents int64 `json:"total_cents"`
+}
+
+// CheckoutLine is a resource of Peráta's API.
+type CheckoutLine struct {
+	Name     string `json:"name"`
+	Quantity int64  `json:"quantity"`
+	// O valor de uma unidade, em centavos; negativo é desconto.
+	UnitAmountCents int64 `json:"unit_amount_cents"`
 }
 
 // CheckoutLink is a resource of Peráta's API.
@@ -513,18 +541,24 @@ type MeterUnit struct {
 
 // Order is a resource of Peráta's API.
 type Order struct {
-	AmountCents int64  `json:"amount_cents"`
-	Currency    string `json:"currency"`
-	CustomerID  string `json:"customer_id"`
-	ID          string `json:"id"`
+	AmountCents int64 `json:"amount_cents"`
+	// O id do pedido no seu sistema, enviado ao criar o checkout; vazio sem ele.
+	ClientReferenceID string `json:"client_reference_id"`
+	Currency          string `json:"currency"`
+	CustomerID        string `json:"customer_id"`
+	ID                string `json:"id"`
 	// Juros do parcelamento pagos pelo comprador, cobrados além de amount_cents.
 	InstallmentInterestCents int64 `json:"installment_interest_cents"`
 	// Em quantas parcelas o cartão de crédito foi cobrado; 1 à vista.
-	Installments int64   `json:"installments"`
-	PaidAt       *string `json:"paid_at"`
-	PriceID      string  `json:"price_id"`
-	ProductID    string  `json:"product_id"`
-	Status       string  `json:"status"`
+	Installments int64 `json:"installments"`
+	// As linhas do pedido, quando o seu servidor as enviou ao criar o checkout; vazio sem elas.
+	Items []CheckoutLine `json:"items"`
+	// Os pares que o seu servidor enviou ao criar o checkout.
+	Metadata  map[string]any `json:"metadata"`
+	PaidAt    *string        `json:"paid_at"`
+	PriceID   string         `json:"price_id"`
+	ProductID string         `json:"product_id"`
+	Status    string         `json:"status"`
 }
 
 // OrderInvoice is a resource of Peráta's API.
@@ -535,6 +569,8 @@ type OrderInvoice struct {
 	Currency      string         `json:"currency"`
 	DiscountCents int64          `json:"discount_cents"`
 	GeneratedAt   string         `json:"generated_at"`
+	// As linhas do pedido, quando o lojista as enviou; vazio sem elas.
+	Items []CheckoutLine `json:"items"`
 	// Número da fatura, na série da organização (PREFIXO-0001).
 	Number      string `json:"number"`
 	OrderID     string `json:"order_id"`
@@ -556,6 +592,8 @@ type OrderReceipt struct {
 	InstallmentInterestCents int64  `json:"installment_interest_cents"`
 	// Em quantas parcelas o cartão de crédito foi cobrado; 1 à vista.
 	Installments int64 `json:"installments"`
+	// As linhas do pedido, quando o lojista as enviou; vazio sem elas.
+	Items []CheckoutLine `json:"items"`
 	// Número do pedido na série da organização; vazio antes de ter um.
 	Number  string  `json:"number"`
 	OrderID string  `json:"order_id"`
@@ -578,19 +616,23 @@ type Payment struct {
 	AmountCents   int64  `json:"amount_cents"`
 	CapturedCents int64  `json:"captured_cents"`
 	CheckoutID    string `json:"checkout_id"`
-	CreatedAt     string `json:"created_at"`
-	Currency      string `json:"currency"`
-	CustomerID    string `json:"customer_id"`
-	ID            string `json:"id"`
+	// O id do pedido no seu sistema, enviado ao criar o checkout; vazio sem ele.
+	ClientReferenceID string `json:"client_reference_id"`
+	CreatedAt         string `json:"created_at"`
+	Currency          string `json:"currency"`
+	CustomerID        string `json:"customer_id"`
+	ID                string `json:"id"`
 	// Valor de uma parcela; 0 à vista.
 	InstallmentAmountCents int64 `json:"installment_amount_cents"`
 	// Juros do parcelamento dentro de amount_cents.
 	InstallmentInterestCents int64 `json:"installment_interest_cents"`
 	// Em quantas parcelas o cartão de crédito foi cobrado; 1 à vista.
-	Installments  int64  `json:"installments"`
-	Method        string `json:"method"`
-	RefundedCents int64  `json:"refunded_cents"`
-	State         string `json:"state"`
+	Installments int64 `json:"installments"`
+	// Os pares que o seu servidor enviou ao criar o checkout.
+	Metadata      map[string]any `json:"metadata"`
+	Method        string         `json:"method"`
+	RefundedCents int64          `json:"refunded_cents"`
+	State         string         `json:"state"`
 }
 
 // PaymentMethod is a resource of Peráta's API.
@@ -684,17 +726,23 @@ type WebhookBenefit struct {
 type WebhookCheckout struct {
 	AmountCents    int64   `json:"amount_cents"`
 	CheckoutLinkID *string `json:"checkout_link_id"`
-	CreatedAt      string  `json:"created_at"`
-	Currency       string  `json:"currency"`
+	// O id do pedido no sistema do lojista; vazio sem ele.
+	ClientReferenceID string `json:"client_reference_id,omitempty"`
+	CreatedAt         string `json:"created_at"`
+	Currency          string `json:"currency"`
 	// Nulo até o comprador confirmar.
 	CustomerID    *string `json:"customer_id"`
 	DiscountCents int64   `json:"discount_cents"`
 	ExpiresAt     string  `json:"expires_at"`
 	ID            string  `json:"id"`
-	PriceID       string  `json:"price_id"`
-	ProductID     string  `json:"product_id"`
-	Status        string  `json:"status"`
-	TotalCents    int64   `json:"total_cents"`
+	// As linhas do valor que o servidor do lojista fixou; vazio sem elas.
+	Items []WebhookCheckoutItem `json:"items,omitempty"`
+	// Os pares que o servidor do lojista enviou ao criar o checkout; vazio sem eles.
+	Metadata   map[string]any `json:"metadata,omitempty"`
+	PriceID    string         `json:"price_id"`
+	ProductID  string         `json:"product_id"`
+	Status     string         `json:"status"`
+	TotalCents int64          `json:"total_cents"`
 }
 
 // WebhookDelivery is a resource of Peráta's API.
@@ -791,6 +839,50 @@ type WebhookEndpointCreated struct {
 	URL    string `json:"url"`
 }
 
+// WebhookRefund is a resource of Peráta's API.
+type WebhookRefund struct {
+	AmountCents int64 `json:"amount_cents"`
+	// O checkout (o pedido) que o reembolso devolve, quando se sabe.
+	CheckoutID string `json:"checkout_id,omitempty"`
+	// O id do pedido no sistema do lojista; vazio sem ele.
+	ClientReferenceID string `json:"client_reference_id,omitempty"`
+	ID                string `json:"id"`
+	// Os pares que o servidor do lojista enviou ao criar o checkout; vazio sem eles.
+	Metadata  map[string]any `json:"metadata"`
+	PaymentID string         `json:"payment_id"`
+	Status    string         `json:"status"`
+}
+
+// Os eventos da venda (checkout_payment.* e refund.*): os identificadores de sempre e, além deles, o checkout, o valor e o que o servidor do lojista enviou ao criar o checkout.
+type WebhookSale struct {
+	Aggregate   string `json:"aggregate"`
+	AggregateID string `json:"aggregate_id"`
+	// O valor do pagamento (com os juros do parcelamento, quando há) ou o valor reembolsado, em centavos.
+	AmountCents int64 `json:"amount_cents,omitempty"`
+	// O checkout (o pedido) do pagamento ou do reembolso.
+	CheckoutID string `json:"checkout_id,omitempty"`
+	// O id do pedido no sistema do lojista; vazio sem ele.
+	ClientReferenceID string `json:"client_reference_id,omitempty"`
+	Currency          string `json:"currency,omitempty"`
+	Environment       string `json:"environment"`
+	EventID           string `json:"event_id"`
+	MerchantID        string `json:"merchant_id"`
+	// Os pares que o servidor do lojista enviou ao criar o checkout; vazio sem eles.
+	Metadata map[string]any `json:"metadata,omitempty"`
+	// O meio do pagamento, nos eventos checkout_payment.*.
+	Method string `json:"method,omitempty"`
+	// O pagamento que o reembolso devolve, nos eventos refund.*.
+	PaymentID string `json:"payment_id,omitempty"`
+}
+
+// One item of items in WebhookCheckout.
+type WebhookCheckoutItem struct {
+	Name     string `json:"name,omitempty"`
+	Quantity int64  `json:"quantity,omitempty"`
+	// O valor de uma unidade; negativo é desconto.
+	UnitAmountCents int64 `json:"unit_amount_cents,omitempty"`
+}
+
 // The body of benefits:create.
 type BenefitsCreateParams struct {
 	Description *string `json:"description,omitempty"`
@@ -855,29 +947,46 @@ type CheckoutLinksUpdateParams struct {
 // The body of checkouts:create.
 type CheckoutsCreateParams struct {
 	// Deixa o comprador digitar um código de desconto; desligado quando fica de fora.
-	AllowDiscountCodes *bool   `json:"allow_discount_codes,omitempty"`
-	CancelURL          *string `json:"cancel_url,omitempty"`
+	AllowDiscountCodes *bool `json:"allow_discount_codes,omitempty"`
+	// O valor do pedido todo, em centavos, que o seu servidor fixa. Só vale em um preço de valor livre (custom); em outro preço é recusado com 422. Respeita o mínimo e o máximo do preço, também com 422. O comprador vê o valor e não pode mudá-lo, na página, no modal, nos componentes e no checkout transparente; vale para cartão de crédito, débito e Pix, e é o valor que volta em pedidos, pagamentos, recibo e eventos. Repetir a criação com a mesma Idempotency-Key e outro valor dá 409.
+	AmountCents *int64  `json:"amount_cents,omitempty"`
+	CancelURL   *string `json:"cancel_url,omitempty"`
+	// O id do pedido no seu sistema, de até 255 caracteres. Volta no checkout, no pedido, no pagamento e nos eventos checkout.*, order.*, checkout_payment.* e refund.*, para você achar de qual pedido veio cada pagamento.
+	ClientReferenceID *string `json:"client_reference_id,omitempty"`
 	// O e-mail do comprador, quando você o conhece; senão o navegador do comprador o pede.
 	CustomerEmail *string `json:"customer_email,omitempty"`
 	// Um cliente seu: o checkout abre com o nome, o e-mail e os dados de cobrança dele. Não junto com external_customer_id, customer_email ou customer_name.
 	CustomerID *string `json:"customer_id,omitempty"`
 	// O nome do comprador, quando você o conhece.
 	CustomerName *string `json:"customer_name,omitempty"`
-	// Segundos em que a sessão e o client_secret continuam valendo; 1800 quando fica de fora.
+	// Segundos em que a sessão e o client_secret continuam valendo, de um minuto a três dias; 1800 (30 minutos) quando fica de fora. Uma sessão paga com Pix pode ser aberta até esse prazo e, aberta, o Pix gerado vale 24 horas.
 	ExpiresIn *int64 `json:"expires_in,omitempty"`
 	// O mesmo cliente, pelo ID que você deu a ele.
 	ExternalCustomerID *string `json:"external_customer_id,omitempty"`
-	Label              *string `json:"label,omitempty"`
+	// As linhas do pedido, até 50, para o comprador ler o detalhe: aparecem no checkout (página, modal, componentes e transparente), no pedido, no recibo, no portal do cliente e nos eventos. A soma de quantity vezes unit_amount_cents precisa ser igual a amount_cents, ou a resposta é 422; enviadas sem amount_cents, a soma é o valor.
+	Items []CheckoutsCreateItem `json:"items,omitempty"`
+	Label *string               `json:"label,omitempty"`
 	// Até 50 pares guardados no link do checkout; valor em texto, número ou booleano.
 	Metadata  map[string]any `json:"metadata,omitempty"`
 	PriceID   string         `json:"price_id"`
 	ProductID string         `json:"product_id"`
-	Quantity  *int64         `json:"quantity,omitempty"`
+	// Quantas unidades. Com amount_cents é sempre 1: envie 1 ou omita; qualquer outro valor é recusado com 422.
+	Quantity *int64 `json:"quantity,omitempty"`
 	// Pede o endereço de cobrança completo de todo comprador, não só no boleto; desligado quando fica de fora.
 	RequireBillingAddress *bool `json:"require_billing_address,omitempty"`
 	// Outro nome de cancel_url: a página https a que o comprador volta sem pagar. Enviada com um cancel_url diferente, é recusada.
 	ReturnURL  *string `json:"return_url,omitempty"`
 	SuccessURL *string `json:"success_url,omitempty"`
+}
+
+// One item of items in CheckoutsCreateParams.
+type CheckoutsCreateItem struct {
+	// O nome da linha, de até 200 caracteres.
+	Name string `json:"name"`
+	// Quantas unidades da linha; 1 quando fica de fora.
+	Quantity *int64 `json:"quantity,omitempty"`
+	// O valor de uma unidade, em centavos. Negativo é desconto ou cupom, desde que a soma continue maior que zero.
+	UnitAmountCents int64 `json:"unit_amount_cents"`
 }
 
 // The body of checkouts:update.
@@ -1260,4 +1369,14 @@ const (
 	WebhookEndpointCreatedFormatSlack                    = "slack"
 	WebhookEndpointCreatedStatusActive                   = "active"
 	WebhookEndpointCreatedStatusDisabled                 = "disabled"
+	WebhookRefundStatusRequested                         = "requested"
+	WebhookRefundStatusPending                           = "pending"
+	WebhookRefundStatusUnknown                           = "unknown"
+	WebhookRefundStatusSucceeded                         = "succeeded"
+	WebhookRefundStatusFailed                            = "failed"
+	WebhookRefundStatusCanceled                          = "canceled"
+	WebhookSaleCurrencyBRL                               = "BRL"
+	WebhookSaleMethodCard                                = "card"
+	WebhookSaleMethodPix                                 = "pix"
+	WebhookSaleMethodBoleto                              = "boleto"
 )

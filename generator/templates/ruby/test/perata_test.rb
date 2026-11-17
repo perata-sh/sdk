@@ -65,7 +65,8 @@ class PerataTest < Minitest::Test
       "id" => "pcl_1", "url" => "https://perata.sh/pagamento/pcl_1", "product_id" => "prod_1", "price_id" => "price_1",
       "status" => "active", "label" => "", "quantity" => 1, "success_url" => "https://loja.example/obrigado", "cancel_url" => "",
       "expires_at" => nil, "created_at" => "2026-11-16T12:00:00Z", "session_id" => "cs_1", "client_secret" => client_secret,
-      "client_secret_expires_at" => "2026-11-16T12:30:00Z", "status_key" => "sk_1"
+      "client_secret_expires_at" => "2026-11-16T12:30:00Z", "status_key" => "sk_1",
+      "amount_cents" => nil, "items" => [], "metadata" => {}, "client_reference_id" => ""
     }
   end
 
@@ -235,7 +236,7 @@ class PerataTest < Minitest::Test
   REFERENCE_SECRET = "whsec_MfKQ9r8GKYqrTwjUPD8ILPZIo2LaLaSw"
   OLD_SECRET = "whsec_cGVyYXRhLXNkay1vbGQta2V5LTAxMjM0NTY3ODlhYmM="
   NEW_SECRET = "whsec_cGVyYXRhLXNkay1uZXcta2V5LTAxMjM0NTY3ODlhYmM="
-  ORDER_PAID = '{"id":"msg_2","type":"order.paid","timestamp":"2026-10-22T12:00:00Z","data":{"id":"ord_1","customer_id":"cus_1","product_id":"prod_1","price_id":"price_1","amount_cents":12000,"currency":"BRL","status":"succeeded","paid_at":"2026-10-22T12:00:00Z","installments":3,"installment_interest_cents":360}}'
+  ORDER_PAID = '{"id":"msg_2","type":"order.paid","timestamp":"2026-10-22T12:00:00Z","data":{"id":"ord_1","customer_id":"cus_1","product_id":"prod_1","price_id":"price_1","amount_cents":12000,"currency":"BRL","status":"succeeded","paid_at":"2026-10-22T12:00:00Z","installments":3,"installment_interest_cents":360,"items":[],"metadata":{},"client_reference_id":""}}'
   USAGE_RECORDED = '{"id":"msg_3","type":"usage_event.recorded","timestamp":"2026-10-22T12:00:00Z","data":{"event_id":"ue_1","aggregate":"usage_event","aggregate_id":"ue_1","merchant_id":"mer_1","environment":"test"}}'
   PAYOUT_SENT = '{"id":"msg_4","type":"payout.sent","timestamp":"2026-10-22T12:00:00Z","data":{"payout_id":"po_1","amount_cents":5000}}'
   SIGNED_AT = 1_792_670_400
@@ -264,7 +265,7 @@ class PerataTest < Minitest::Test
 
   def test_a_webhook_answers_its_typed_event
     now = Time.at(SIGNED_AT + 120)
-    headers = webhook_headers("msg_2", SIGNED_AT, "v1,wYfYi9j4EexjSjLLsUssBYbtAFSwF9KVQBJ2o+qD6Jw= v1,0rD3K6HM83kGY+mZMPVidXSW2zXHHDvy3bMt2QzM8Ak=")
+    headers = webhook_headers("msg_2", SIGNED_AT, "v1,MW5FnOPf5xZdiHRmDImEy+x3spgWmDCUEuwjHOZ7a2Y= v1,rWmUsQveS0J9yTlnQfb7Olszghg8xf7DJHLHG0a7YZo=")
     [NEW_SECRET, OLD_SECRET].each do |secret|
       event = Perata.verify_webhook(secret, headers, ORDER_PAID, now: now)
       assert_instance_of Perata::OrderWebhookEvent, event
