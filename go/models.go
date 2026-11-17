@@ -736,7 +736,7 @@ type WebhookCheckout struct {
 	ExpiresAt     string  `json:"expires_at"`
 	ID            string  `json:"id"`
 	// As linhas do valor que o servidor do lojista fixou; vazio sem elas.
-	Items []WebhookCheckoutItem `json:"items,omitempty"`
+	Items []CheckoutLine `json:"items,omitempty"`
 	// Os pares que o servidor do lojista enviou ao criar o checkout; vazio sem eles.
 	Metadata   map[string]any `json:"metadata,omitempty"`
 	PriceID    string         `json:"price_id"`
@@ -873,14 +873,6 @@ type WebhookSale struct {
 	Method string `json:"method,omitempty"`
 	// O pagamento que o reembolso devolve, nos eventos refund.*.
 	PaymentID string `json:"payment_id,omitempty"`
-}
-
-// One item of items in WebhookCheckout.
-type WebhookCheckoutItem struct {
-	Name     string `json:"name,omitempty"`
-	Quantity int64  `json:"quantity,omitempty"`
-	// O valor de uma unidade; negativo é desconto.
-	UnitAmountCents int64 `json:"unit_amount_cents,omitempty"`
 }
 
 // The body of benefits:create.
