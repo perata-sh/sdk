@@ -58,7 +58,10 @@ public struct PerataError: Error, Sendable, Hashable, CustomStringConvertible, L
     }
 
     public var description: String {
-        message.isEmpty ? "perata: \(status) \(code)" : "perata: \(status) \(code): \(message)"
+        let detail = message.isEmpty
+            ? fields.keys.sorted().compactMap { key in fields[key]?.first.map { "\(key): \($0)" } }.joined(separator: "; ")
+            : message
+        return detail.isEmpty ? "perata: \(status) \(code)" : "perata: \(status) \(code): \(detail)"
     }
 
     public var errorDescription: String? { description }

@@ -25,7 +25,19 @@ final class PerataException extends \RuntimeException
         public readonly ?int $retryAfter = null,
         public readonly int $record = 0,
     ) {
-        parent::__construct($message !== '' ? "perata: {$status} {$errorCode}: {$message}" : "perata: {$status} {$errorCode}", $status);
+        $detail = $message;
+        if ($detail === '') {
+            $keys = array_keys($fields);
+            sort($keys, SORT_STRING);
+            $parts = [];
+            foreach ($keys as $key) {
+                if (isset($fields[$key][0])) {
+                    $parts[] = "{$key}: {$fields[$key][0]}";
+                }
+            }
+            $detail = implode('; ', $parts);
+        }
+        parent::__construct($detail !== '' ? "perata: {$status} {$errorCode}: {$detail}" : "perata: {$status} {$errorCode}", $status);
     }
 
     /**

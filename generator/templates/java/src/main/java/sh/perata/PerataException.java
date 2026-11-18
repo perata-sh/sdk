@@ -42,8 +42,23 @@ public class PerataException extends RuntimeException {
      * @param retryAfter seconds to wait before trying again, or null
      * @param record the event of a batch the API refused, from 1, or 0
      */
+    private static String describe(int status, String code, String apiMessage, Map<String, List<String>> fields) {
+        String detail = apiMessage;
+        if (detail.isEmpty()) {
+            List<String> parts = new ArrayList<>();
+            fields.keySet().stream().sorted().forEach(key -> {
+                List<String> messages = fields.get(key);
+                if (messages != null && !messages.isEmpty()) {
+                    parts.add(key + ": " + messages.get(0));
+                }
+            });
+            detail = String.join("; ", parts);
+        }
+        return detail.isEmpty() ? "perata: " + status + " " + code : "perata: " + status + " " + code + ": " + detail;
+    }
+
     public PerataException(int status, String code, String apiMessage, Map<String, List<String>> fields, Integer retryAfter, int record) {
-        super(apiMessage.isEmpty() ? "perata: " + status + " " + code : "perata: " + status + " " + code + ": " + apiMessage);
+        super(describe(status, code, apiMessage, fields));
         this.status = status;
         this.code = code;
         this.apiMessage = apiMessage;

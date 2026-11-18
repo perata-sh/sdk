@@ -435,3 +435,22 @@ func TestAWebhookAnswersItsTypedEvent(t *testing.T) {
 		t.Fatalf("event %#v, %v", event, err)
 	}
 }
+
+func TestAnErrorWithoutAMessageSaysItsFields(t *testing.T) {
+	err := &Error{StatusCode: 422, Code: "invalid_request", Fields: map[string][]string{
+		"customer_email": {"Envie um cliente já cadastrado ou o e-mail e o nome dele, não os dois."},
+		"amount_cents":   {"O valor mínimo deste preço é R$ 1,00 (100 centavos)."},
+		"empty":          {},
+	}}
+	want := "perata: 422 invalid_request: amount_cents: O valor mínimo deste preço é R$ 1,00 (100 centavos).; customer_email: Envie um cliente já cadastrado ou o e-mail e o nome dele, não os dois."
+	if got := err.Error(); got != want {
+		t.Fatalf("Error() = %q, want %q", got, want)
+	}
+	withMessage := &Error{StatusCode: 422, Code: "invalid_request", Message: "customer_email: Envie um cliente.", Fields: map[string][]string{"customer_email": {"Envie um cliente."}}}
+	if got := withMessage.Error(); got != "perata: 422 invalid_request: customer_email: Envie um cliente." {
+		t.Fatalf("a message was not used as it came: %q", got)
+	}
+	if got := (&Error{StatusCode: 404, Code: "not_found"}).Error(); got != "perata: 404 not_found" {
+		t.Fatalf("Error() = %q", got)
+	}
+}

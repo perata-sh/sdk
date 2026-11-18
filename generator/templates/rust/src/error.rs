@@ -90,10 +90,25 @@ impl ApiError {
 
 impl fmt::Display for ApiError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        if self.message.is_empty() {
+        let detail = if self.message.is_empty() {
+            let mut keys: Vec<&String> = self
+                .fields
+                .iter()
+                .filter(|(_, v)| !v.is_empty())
+                .map(|(k, _)| k)
+                .collect();
+            keys.sort();
+            keys.iter()
+                .map(|k| format!("{}: {}", k, self.fields[*k][0]))
+                .collect::<Vec<_>>()
+                .join("; ")
+        } else {
+            self.message.clone()
+        };
+        if detail.is_empty() {
             write!(f, "perata: {} {}", self.status, self.code)
         } else {
-            write!(f, "perata: {} {}: {}", self.status, self.code, self.message)
+            write!(f, "perata: {} {}: {}", self.status, self.code, detail)
         }
     }
 }

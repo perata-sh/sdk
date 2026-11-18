@@ -80,9 +80,17 @@ class PerataException implements Exception {
   final int record;
 
   @override
-  String toString() => message.isEmpty
-      ? 'perata: $status $code'
-      : 'perata: $status $code: $message';
+  String toString() {
+    var detail = message;
+    if (detail.isEmpty) {
+      final keys = fields.keys.where((k) => fields[k]!.isNotEmpty).toList()
+        ..sort();
+      detail = keys.map((k) => '$k: ${fields[k]!.first}').join('; ');
+    }
+    return detail.isEmpty
+        ? 'perata: $status $code'
+        : 'perata: $status $code: $detail';
+  }
 }
 
 String _header(Map<String, String> headers, String name) {

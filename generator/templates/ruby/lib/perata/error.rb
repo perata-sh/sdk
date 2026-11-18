@@ -22,7 +22,8 @@ module Perata
       @fields = fields
       @retry_after = retry_after
       @record = record
-      super(message.empty? ? "perata: #{status} #{code}" : "perata: #{status} #{code}: #{message}")
+      detail = message.empty? ? fields.sort.filter_map { |key, list| "#{key}: #{list.first}" unless list.nil? || list.empty? }.join("; ") : message
+      super(detail.empty? ? "perata: #{status} #{code}" : "perata: #{status} #{code}: #{detail}")
     end
 
     # What Ruby prints for an error nobody rescued: the status and code too.

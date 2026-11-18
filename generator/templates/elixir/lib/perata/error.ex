@@ -25,11 +25,27 @@ defmodule Perata.Error do
         }
 
   @impl true
-  def message(%__MODULE__{status: status, code: code, message: ""}),
-    do: "perata: #{status} #{code}"
+  def message(%__MODULE__{status: status, code: code, message: "", fields: fields}) do
+    case fields_summary(fields) do
+      "" -> "perata: #{status} #{code}"
+      detail -> "perata: #{status} #{code}: #{detail}"
+    end
+  end
 
   def message(%__MODULE__{status: status, code: code, message: message}),
     do: "perata: #{status} #{code}: #{message}"
+
+  defp fields_summary(fields) when is_map(fields) do
+    fields
+    |> Enum.sort_by(fn {key, _} -> key end)
+    |> Enum.flat_map(fn
+      {key, [first | _]} -> ["#{key}: #{first}"]
+      _ -> []
+    end)
+    |> Enum.join("; ")
+  end
+
+  defp fields_summary(_), do: ""
 
   @doc "The error a response with a status of 300 or more is."
   @spec from_response(non_neg_integer(), [{String.t(), String.t()}], binary()) :: t()

@@ -14,7 +14,11 @@ export class PerataError extends Error {
   readonly record: number;
 
   constructor(status: number, code: string, message: string, fields: Record<string, string[]> = {}, retryAfter?: number, record = 0) {
-    super(message ? `perata: ${status} ${code}: ${message}` : `perata: ${status} ${code}`);
+    const detail = message || Object.keys(fields).sort().flatMap((k) => {
+      const first = fields[k]?.[0];
+      return first === undefined ? [] : [`${k}: ${first}`];
+    }).join("; ");
+    super(detail ? `perata: ${status} ${code}: ${detail}` : `perata: ${status} ${code}`);
     this.name = "PerataError";
     this.status = status;
     this.code = code;

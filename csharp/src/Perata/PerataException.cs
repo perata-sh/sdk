@@ -18,6 +18,26 @@ public sealed class PerataException : Exception
 {
     private static readonly IReadOnlyDictionary<string, IReadOnlyList<string>> NoFields = new Dictionary<string, IReadOnlyList<string>>();
 
+    private static string Describe(int status, string code, string apiMessage, IReadOnlyDictionary<string, IReadOnlyList<string>>? fields)
+    {
+        var detail = apiMessage;
+        if (detail.Length == 0 && fields is not null)
+        {
+            var keys = new List<string>(fields.Keys);
+            keys.Sort(StringComparer.Ordinal);
+            var parts = new List<string>();
+            foreach (var key in keys)
+            {
+                if (fields[key].Count > 0)
+                {
+                    parts.Add($"{key}: {fields[key][0]}");
+                }
+            }
+            detail = string.Join("; ", parts);
+        }
+        return detail.Length > 0 ? $"perata: {status} {code}: {detail}" : $"perata: {status} {code}";
+    }
+
     /// <summary>A refusal.</summary>
     /// <param name="status">The HTTP status.</param>
     /// <param name="code">The API's error code, empty when it sent none.</param>
@@ -26,7 +46,7 @@ public sealed class PerataException : Exception
     /// <param name="retryAfter">Seconds to wait before trying again, or null.</param>
     /// <param name="record">The event of a batch the API refused, from 1, or 0.</param>
     public PerataException(int status, string code, string apiMessage, IReadOnlyDictionary<string, IReadOnlyList<string>>? fields = null, int? retryAfter = null, int record = 0)
-        : base(apiMessage.Length > 0 ? $"perata: {status} {code}: {apiMessage}" : $"perata: {status} {code}")
+        : base(Describe(status, code, apiMessage, fields))
     {
         Status = status;
         Code = code;

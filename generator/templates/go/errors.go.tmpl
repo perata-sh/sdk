@@ -2,6 +2,8 @@ package perata
 
 import (
 	"fmt"
+	"sort"
+	"strings"
 	"time"
 )
 
@@ -20,9 +22,32 @@ type Error struct {
 	RetryAfter time.Duration
 }
 
+// Error says the status, the code and why: the API's message, or, when it
+// sent none, each field with its first message, so a log line carries the
+// reason without the body.
 func (e *Error) Error() string {
-	if e.Message != "" {
-		return fmt.Sprintf("perata: %d %s: %s", e.StatusCode, e.Code, e.Message)
+	detail := e.Message
+	if detail == "" {
+		detail = fieldsSummary(e.Fields)
+	}
+	if detail != "" {
+		return fmt.Sprintf("perata: %d %s: %s", e.StatusCode, e.Code, detail)
 	}
 	return fmt.Sprintf("perata: %d %s", e.StatusCode, e.Code)
+}
+
+// fieldsSummary is "field: message; field: message", in the fields' order.
+func fieldsSummary(fields map[string][]string) string {
+	keys := make([]string, 0, len(fields))
+	for k, messages := range fields {
+		if len(messages) > 0 {
+			keys = append(keys, k)
+		}
+	}
+	sort.Strings(keys)
+	parts := make([]string, 0, len(keys))
+	for _, k := range keys {
+		parts = append(parts, k+": "+fields[k][0])
+	}
+	return strings.Join(parts, "; ")
 }

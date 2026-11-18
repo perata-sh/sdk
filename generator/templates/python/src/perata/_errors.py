@@ -18,7 +18,8 @@ class PerataError(Exception):
     """
 
     def __init__(self, status: int, code: str, message: str = "", fields: dict[str, list[str]] | None = None, retry_after: int | None = None, record: int = 0) -> None:
-        super().__init__(f"perata: {status} {code}: {message}" if message else f"perata: {status} {code}")
+        detail = message or "; ".join(f"{k}: {v[0]}" for k, v in sorted((fields or {}).items()) if v)
+        super().__init__(f"perata: {status} {code}: {detail}" if detail else f"perata: {status} {code}")
         self.status = status
         self.code = code
         self.message = message
