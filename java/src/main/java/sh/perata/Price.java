@@ -28,15 +28,17 @@ public final class Price {
     private final String currency;
     private final String id;
     private final String interval;
+    private final long intervalCount;
     private final String productId;
     private final String status;
     private final String type;
 
-    Price(long amountCents, String currency, String id, String interval, String productId, String status, String type) {
+    Price(long amountCents, String currency, String id, String interval, long intervalCount, String productId, String status, String type) {
         this.amountCents = amountCents;
         this.currency = currency;
         this.id = id;
         this.interval = interval;
+        this.intervalCount = intervalCount;
         this.productId = productId;
         this.status = status;
         this.type = type;
@@ -48,6 +50,7 @@ public final class Price {
                 Json.required(data, "currency", Json::asString),
                 Json.required(data, "id", Json::asString),
                 Json.required(data, "interval", Json::asString),
+                Json.required(data, "interval_count", Json::asLong),
                 Json.required(data, "product_id", Json::asString),
                 Json.required(data, "status", Json::asString),
                 Json.required(data, "type", Json::asString));
@@ -73,6 +76,11 @@ public final class Price {
         return interval;
     }
 
+    /** @return De quantos em quantos intervalos o preço renova: 3 com month é trimestral, 6 semestral. 1 no preço one_time. */
+    public long getIntervalCount() {
+        return intervalCount;
+    }
+
     /** @return the API's {@code product_id} */
     public String getProductId() {
         return productId;
@@ -90,6 +98,6 @@ public final class Price {
 
     @Override
     public String toString() {
-        return "Price{" + "amountCents=" + amountCents + ", currency=" + currency + ", id=" + id + ", interval=" + interval + ", productId=" + productId + ", status=" + status + ", type=" + type + "}";
+        return "Price{" + "amountCents=" + amountCents + ", currency=" + currency + ", id=" + id + ", interval=" + interval + ", intervalCount=" + intervalCount + ", productId=" + productId + ", status=" + status + ", type=" + type + "}";
     }
 }

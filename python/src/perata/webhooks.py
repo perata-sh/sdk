@@ -13,7 +13,7 @@ from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import Any, Literal, TypeAlias, cast, get_args
 
-from .models import BenefitGrant, Customer, Product, Subscription, WebhookBenefit, WebhookCheckout, WebhookDiscount, WebhookDispute, WebhookOrder, WebhookRefund, WebhookSale
+from .models import BenefitGrant, Customer, Product, WebhookBenefit, WebhookCheckout, WebhookDiscount, WebhookDispute, WebhookOrder, WebhookRefund, WebhookSale, WebhookSubscription
 
 WEBHOOK_TOLERANCE_SECONDS = 300
 """How far from now a webhook's timestamp may be."""
@@ -213,12 +213,12 @@ class SaleWebhookEvent:
     data: WebhookSale
 
 
-SubscriptionWebhookEventType: TypeAlias = Literal["subscription.active", "subscription.canceled", "subscription.created", "subscription.cycled", "subscription.past_due", "subscription.paused", "subscription.resumed", "subscription.revoked", "subscription.uncanceled", "subscription.updated"]
+SubscriptionWebhookEventType: TypeAlias = Literal["subscription.active", "subscription.canceled", "subscription.created", "subscription.cycled", "subscription.past_due", "subscription.paused", "subscription.resumed", "subscription.revoked", "subscription.suspended", "subscription.uncanceled", "subscription.updated"]
 
 
 @dataclass(frozen=True)
 class SubscriptionWebhookEvent:
-    """The events that carry a Subscription."""
+    """The events that carry a WebhookSubscription."""
 
     id: str
     """The message's id, the same as the webhook-id header."""
@@ -227,7 +227,7 @@ class SubscriptionWebhookEvent:
     """When it happened, in RFC 3339."""
     environment: str
     """The environment it happened in, ``"test"`` or ``"live"``; empty when an older server did not send it."""
-    data: Subscription
+    data: WebhookSubscription
 
 
 @dataclass(frozen=True)
@@ -363,7 +363,7 @@ def _event(raw: bytes) -> WebhookEvent:
             type=cast(SubscriptionWebhookEventType, kind),
             timestamp=event["timestamp"],
             environment=environment,
-            data=Subscription.from_dict(data),
+            data=WebhookSubscription.from_dict(data),
         )
     return UnknownWebhookEvent(id=event["id"], type=kind, timestamp=event["timestamp"], environment=environment, data=data)
 

@@ -9,7 +9,7 @@ use hmac::{Hmac, KeyInit, Mac};
 use serde::{Deserialize, Serialize};
 use sha2::Sha256;
 
-use crate::models::{BenefitGrant, Customer, Product, Subscription, WebhookBenefit, WebhookCheckout, WebhookDiscount, WebhookDispute, WebhookOrder, WebhookRefund, WebhookSale};
+use crate::models::{BenefitGrant, Customer, Product, WebhookBenefit, WebhookCheckout, WebhookDiscount, WebhookDispute, WebhookOrder, WebhookRefund, WebhookSale, WebhookSubscription};
 
 /// How far from now a webhook's timestamp may be.
 pub const WEBHOOK_TOLERANCE: Duration = Duration::from_secs(300);
@@ -68,8 +68,8 @@ pub type RefundWebhookEvent = WebhookMessage<WebhookRefund>;
 /// The events that carry a WebhookSale: `checkout_payment.authorized`, `checkout_payment.canceled`, `checkout_payment.captured`, `checkout_payment.partially_refunded`, `checkout_payment.refunded`, `checkout_payment.refused`, `refund.canceled`, `refund.failed`, `refund.requested`, `refund.succeeded`.
 pub type SaleWebhookEvent = WebhookMessage<WebhookSale>;
 
-/// The events that carry a Subscription: `subscription.active`, `subscription.canceled`, `subscription.created`, `subscription.cycled`, `subscription.past_due`, `subscription.paused`, `subscription.resumed`, `subscription.revoked`, `subscription.uncanceled`, `subscription.updated`.
-pub type SubscriptionWebhookEvent = WebhookMessage<Subscription>;
+/// The events that carry a WebhookSubscription: `subscription.active`, `subscription.canceled`, `subscription.created`, `subscription.cycled`, `subscription.past_due`, `subscription.paused`, `subscription.resumed`, `subscription.revoked`, `subscription.suspended`, `subscription.uncanceled`, `subscription.updated`.
+pub type SubscriptionWebhookEvent = WebhookMessage<WebhookSubscription>;
 
 /// An event of a type this SDK does not know yet, its data as it was sent.
 pub type UnknownWebhookEvent = WebhookMessage<serde_json::Value>;
@@ -102,7 +102,7 @@ pub enum WebhookEvent {
     Refund(RefundWebhookEvent),
     /// `checkout_payment.authorized`, `checkout_payment.canceled`, `checkout_payment.captured`, `checkout_payment.partially_refunded`, `checkout_payment.refunded`, `checkout_payment.refused`, `refund.canceled`, `refund.failed`, `refund.requested`, `refund.succeeded`.
     Sale(SaleWebhookEvent),
-    /// `subscription.active`, `subscription.canceled`, `subscription.created`, `subscription.cycled`, `subscription.past_due`, `subscription.paused`, `subscription.resumed`, `subscription.revoked`, `subscription.uncanceled`, `subscription.updated`.
+    /// `subscription.active`, `subscription.canceled`, `subscription.created`, `subscription.cycled`, `subscription.past_due`, `subscription.paused`, `subscription.resumed`, `subscription.revoked`, `subscription.suspended`, `subscription.uncanceled`, `subscription.updated`.
     Subscription(SubscriptionWebhookEvent),
     /// A type this SDK does not know yet.
     Unknown(UnknownWebhookEvent),
@@ -223,7 +223,7 @@ impl WebhookEvent {
             "checkout_payment.authorized" | "checkout_payment.canceled" | "checkout_payment.captured" | "checkout_payment.partially_refunded" | "checkout_payment.refunded" | "checkout_payment.refused" | "refund.canceled" | "refund.failed" | "refund.requested" | "refund.succeeded" => {
                 serde_json::from_slice(body).map(WebhookEvent::Sale)
             }
-            "subscription.active" | "subscription.canceled" | "subscription.created" | "subscription.cycled" | "subscription.past_due" | "subscription.paused" | "subscription.resumed" | "subscription.revoked" | "subscription.uncanceled" | "subscription.updated" => {
+            "subscription.active" | "subscription.canceled" | "subscription.created" | "subscription.cycled" | "subscription.past_due" | "subscription.paused" | "subscription.resumed" | "subscription.revoked" | "subscription.suspended" | "subscription.uncanceled" | "subscription.updated" => {
                 serde_json::from_slice(body).map(WebhookEvent::Subscription)
             }
             _ => Ok(WebhookEvent::Unknown(message)),

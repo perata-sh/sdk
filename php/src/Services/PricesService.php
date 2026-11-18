@@ -20,7 +20,7 @@ final class PricesService
     /**
      * Criar um preço em reais, avulso ou recorrente.
      *
-     * @param array{amount_cents: int, interval?: 'month'|'year', product_id: string, type: 'one_time'|'recurring'} $params
+     * @param array{amount_cents: int, interval?: 'month'|'year', interval_count?: int, product_id: string, type: 'one_time'|'recurring'} $params
      */
     public function create(array $params, ?string $idempotencyKey = null, ?string $apiKey = null): Models\Price
     {

@@ -458,15 +458,17 @@ end
 defmodule Perata.CheckoutClientCustomer do
   @moduledoc "CheckoutClientCustomer is a resource of Peráta's API."
 
-  defstruct [:address, :billing_name, :email, :name, :tax_id, :tax_id_kind]
+  defstruct [:address, :billing_name, :email, :locked, :name, :tax_id, :tax_id_kind]
 
   @typedoc """
+  * `locked`: Verdadeiro quando o servidor do lojista abriu o checkout para um cliente que ele informou (customer_id ou external_customer_id): o e-mail não muda, os campos já vêm preenchidos para o comprador conferir e nenhum código é pedido para provar o e-mail.
   * `tax_id`: O CPF ou CNPJ do comprador, só dígitos; vazio enquanto não for informado.
   """
   @type t :: %__MODULE__{
           address: Perata.BillingAddress.t(),
           billing_name: String.t(),
           email: String.t(),
+          locked: boolean(),
           name: String.t(),
           tax_id: String.t(),
           tax_id_kind: String.t()
@@ -479,6 +481,7 @@ defmodule Perata.CheckoutClientCustomer do
       address: Perata.BillingAddress.from_map(Map.fetch!(data, "address")),
       billing_name: Map.fetch!(data, "billing_name"),
       email: Map.fetch!(data, "email"),
+      locked: Map.fetch!(data, "locked"),
       name: Map.fetch!(data, "name"),
       tax_id: Map.fetch!(data, "tax_id"),
       tax_id_kind: Map.fetch!(data, "tax_id_kind")
@@ -1059,8 +1062,8 @@ defmodule Perata.CheckoutSavedDataSent do
   defstruct [:channel, :fresh, :sent]
 
   @typedoc """
-  * `fresh`: Sempre falso, pelo mesmo motivo.
-  * `sent`: Sempre verdadeiro: a resposta não diz se há algo guardado para o e-mail.
+  * `fresh`: Sempre falso: o servidor não diz se este código é novo ou o de um pedido anterior.
+  * `sent`: Verdadeiro quando há algo guardado para o e-mail e um código foi enviado a ele; falso quando não há, e o comprador segue sem o campo do código. O pedido é limitado a 30 por hora por endereço e a 10 por e-mail.
   """
   @type t :: %__MODULE__{
           channel: String.t(),
@@ -1379,50 +1382,71 @@ defmodule Perata.Dispute do
 
   defstruct [
     :amount_cents,
+    :checkout_id,
+    :client_reference_id,
     :currency,
     :customer_id,
     :decided_at,
     :due_by,
+    :external_customer_id,
     :id,
     :invoice_id,
+    :kind,
+    :metadata,
     :opened_at,
     :order_id,
     :payment_id,
+    :payment_method,
     :provider_dispute_id,
     :provider_reason,
     :reason,
     :source,
-    :status
+    :status,
+    :subscription_id
   ]
 
   @typedoc """
   * `amount_cents`: Valor contestado, em centavos.
+  * `checkout_id`: O checkout (o pedido) da venda contestada; nulo quando não é de um checkout. É o mesmo valor de order_id.
+  * `client_reference_id`: O id do pedido no seu sistema, enviado ao criar o checkout; vazio sem ele.
   * `currency` (one of `"BRL"`)
   * `due_by`: Prazo da defesa.
+  * `external_customer_id`: O id do cliente no seu sistema; nulo sem ele.
+  * `kind` (one of `"chargeback"`, `"med"`): chargeback é a contestação de um cartão na bandeira; med é a devolução que o banco do pagador pede num Pix (Mecanismo Especial de Devolução).
+  * `metadata`: Os pares que o seu servidor enviou ao criar o checkout; na renovação de uma assinatura, os da assinatura.
   * `order_id`: O pedido que a venda contestada pagou; nulo quando não é de um checkout.
   * `payment_id`: O PaymentId da venda contestada na Cielo.
+  * `payment_method`: Como a venda contestada foi paga: card ou pix.
   * `provider_dispute_id`: O número do caso na Cielo.
   * `provider_reason`: O motivo nas palavras da Cielo.
   * `reason`: Motivo, do conjunto fechado; unknown quando a adquirente não informou.
   * `source` (one of `"operator"`, `"cielo_chargeback"`)
   * `status` (one of `"opened"`, `"needs_evidence"`, `"submitted"`, `"under_review"`, `"won"`, `"lost"`, `"closed"`)
+  * `subscription_id`: A assinatura de que a venda contestada era um ciclo; nulo quando não é de uma assinatura. A assinatura fica suspensa (suspension_reason dispute).
   """
   @type t :: %__MODULE__{
           amount_cents: integer(),
+          checkout_id: String.t() | nil,
+          client_reference_id: String.t(),
           currency: String.t(),
           customer_id: String.t() | nil,
           decided_at: String.t() | nil,
           due_by: String.t() | nil,
+          external_customer_id: String.t() | nil,
           id: String.t(),
           invoice_id: String.t() | nil,
+          kind: String.t(),
+          metadata: %{optional(String.t()) => term()},
           opened_at: String.t(),
           order_id: String.t() | nil,
           payment_id: String.t(),
+          payment_method: String.t(),
           provider_dispute_id: String.t(),
           provider_reason: String.t(),
           reason: String.t(),
           source: String.t(),
-          status: String.t()
+          status: String.t(),
+          subscription_id: String.t() | nil
         }
 
   @doc "Builds a Dispute from the API's JSON."
@@ -1430,20 +1454,27 @@ defmodule Perata.Dispute do
   def from_map(%{} = data) do
     %__MODULE__{
       amount_cents: Map.fetch!(data, "amount_cents"),
+      checkout_id: data["checkout_id"],
+      client_reference_id: Map.fetch!(data, "client_reference_id"),
       currency: Map.fetch!(data, "currency"),
       customer_id: data["customer_id"],
       decided_at: data["decided_at"],
       due_by: data["due_by"],
+      external_customer_id: data["external_customer_id"],
       id: Map.fetch!(data, "id"),
       invoice_id: data["invoice_id"],
+      kind: Map.fetch!(data, "kind"),
+      metadata: Map.fetch!(data, "metadata"),
       opened_at: Map.fetch!(data, "opened_at"),
       order_id: data["order_id"],
       payment_id: Map.fetch!(data, "payment_id"),
+      payment_method: Map.fetch!(data, "payment_method"),
       provider_dispute_id: Map.fetch!(data, "provider_dispute_id"),
       provider_reason: Map.fetch!(data, "provider_reason"),
       reason: Map.fetch!(data, "reason"),
       source: Map.fetch!(data, "source"),
-      status: Map.fetch!(data, "status")
+      status: Map.fetch!(data, "status"),
+      subscription_id: data["subscription_id"]
     }
   end
 end
@@ -1953,12 +1984,22 @@ end
 defmodule Perata.Price do
   @moduledoc "Price is a resource of Peráta's API."
 
-  defstruct [:amount_cents, :currency, :id, :interval, :product_id, :status, :type]
+  defstruct [
+    :amount_cents,
+    :currency,
+    :id,
+    :interval,
+    :interval_count,
+    :product_id,
+    :status,
+    :type
+  ]
 
   @typedoc """
   * `amount_cents`: Valor em centavos.
   * `currency` (one of `"BRL"`)
   * `interval` (one of `"none"`, `"month"`, `"year"`)
+  * `interval_count`: De quantos em quantos intervalos o preço renova: 3 com month é trimestral, 6 semestral. 1 no preço one_time.
   * `status` (one of `"active"`, `"archived"`)
   * `type` (one of `"one_time"`, `"recurring"`)
   """
@@ -1967,6 +2008,7 @@ defmodule Perata.Price do
           currency: String.t(),
           id: String.t(),
           interval: String.t(),
+          interval_count: integer(),
           product_id: String.t(),
           status: String.t(),
           type: String.t()
@@ -1980,6 +2022,7 @@ defmodule Perata.Price do
       currency: Map.fetch!(data, "currency"),
       id: Map.fetch!(data, "id"),
       interval: Map.fetch!(data, "interval"),
+      interval_count: Map.fetch!(data, "interval_count"),
       product_id: Map.fetch!(data, "product_id"),
       status: Map.fetch!(data, "status"),
       type: Map.fetch!(data, "type")
@@ -2059,6 +2102,8 @@ defmodule Perata.Subscription do
     :price_id,
     :product_id,
     :status,
+    :suspended_at,
+    :suspension_reason,
     :trial_end,
     :trial_start
   ]
@@ -2066,7 +2111,9 @@ defmodule Perata.Subscription do
   @typedoc """
   * `currency` (one of `"BRL"`)
   * `metadata`: Metadados do lojista: pares chave e valor (texto, número ou booleano); objeto vazio quando não há.
-  * `status` (one of `"trialing"`, `"active"`, `"past_due"`, `"paused"`, `"canceled"`)
+  * `status` (one of `"trialing"`, `"active"`, `"past_due"`, `"suspended"`, `"paused"`, `"canceled"`)
+  * `suspended_at`: Quando a assinatura foi suspensa; nulo enquanto não está suspensa.
+  * `suspension_reason` (one of `"retries_exhausted"`, `"declined_not_retryable"`, `"dispute"`): Por que foi suspensa: retries_exhausted (o cartão foi recusado em todas as tentativas), declined_not_retryable (o emissor recusou sem permitir nova tentativa) ou dispute (o comprador contestou o pagamento); nulo enquanto não está suspensa.
   """
   @type t :: %__MODULE__{
           amount_cents: integer(),
@@ -2081,6 +2128,8 @@ defmodule Perata.Subscription do
           price_id: String.t(),
           product_id: String.t(),
           status: String.t(),
+          suspended_at: String.t() | nil,
+          suspension_reason: String.t() | nil,
           trial_end: String.t() | nil,
           trial_start: String.t() | nil
         }
@@ -2101,6 +2150,8 @@ defmodule Perata.Subscription do
       price_id: Map.fetch!(data, "price_id"),
       product_id: Map.fetch!(data, "product_id"),
       status: Map.fetch!(data, "status"),
+      suspended_at: data["suspended_at"],
+      suspension_reason: data["suspension_reason"],
       trial_end: data["trial_end"],
       trial_start: data["trial_start"]
     }
@@ -2183,14 +2234,18 @@ defmodule Perata.WebhookCheckout do
     :created_at,
     :currency,
     :customer_id,
+    :cycle_sequence,
     :discount_cents,
     :expires_at,
     :id,
     :items,
     :metadata,
+    :period_end,
+    :period_start,
     :price_id,
     :product_id,
     :status,
+    :subscription_id,
     :total_cents
   ]
 
@@ -2198,9 +2253,13 @@ defmodule Perata.WebhookCheckout do
   * `client_reference_id`: O id do pedido no sistema do lojista; vazio sem ele.
   * `currency` (one of `"BRL"`)
   * `customer_id`: Nulo até o comprador confirmar.
+  * `cycle_sequence`: O ciclo da assinatura que o pagamento cobra: 1 é o primeiro, 2 é a primeira renovação.
   * `items`: As linhas do valor que o servidor do lojista fixou; vazio sem elas.
-  * `metadata`: Os pares que o servidor do lojista enviou ao criar o checkout; vazio sem eles.
+  * `metadata`: Os pares que o servidor do lojista enviou ao criar o checkout; vazio sem eles. Na renovação de uma assinatura são os da assinatura.
+  * `period_end`: O fim do período do ciclo que o pagamento cobra.
+  * `period_start`: O início do período do ciclo que o pagamento cobra.
   * `status` (one of `"open"`, `"confirmed"`, `"succeeded"`, `"failed"`, `"expired"`)
+  * `subscription_id`: A assinatura que este pagamento cobra; nulo quando a venda não é de uma assinatura.
   """
   @type t :: %__MODULE__{
           amount_cents: integer(),
@@ -2209,14 +2268,18 @@ defmodule Perata.WebhookCheckout do
           created_at: String.t(),
           currency: String.t(),
           customer_id: String.t() | nil,
+          cycle_sequence: integer() | nil,
           discount_cents: integer(),
           expires_at: String.t(),
           id: String.t(),
           items: [Perata.CheckoutLine.t()] | nil,
           metadata: %{optional(String.t()) => term()} | nil,
+          period_end: String.t() | nil,
+          period_start: String.t() | nil,
           price_id: String.t(),
           product_id: String.t(),
           status: String.t(),
+          subscription_id: String.t() | nil,
           total_cents: integer()
         }
 
@@ -2230,14 +2293,18 @@ defmodule Perata.WebhookCheckout do
       created_at: Map.fetch!(data, "created_at"),
       currency: Map.fetch!(data, "currency"),
       customer_id: data["customer_id"],
+      cycle_sequence: data["cycle_sequence"],
       discount_cents: Map.fetch!(data, "discount_cents"),
       expires_at: Map.fetch!(data, "expires_at"),
       id: Map.fetch!(data, "id"),
       items: with(value when not is_nil(value) <- data["items"], do: Enum.map(value, &Perata.CheckoutLine.from_map/1)),
       metadata: data["metadata"],
+      period_end: data["period_end"],
+      period_start: data["period_start"],
       price_id: Map.fetch!(data, "price_id"),
       product_id: Map.fetch!(data, "product_id"),
       status: Map.fetch!(data, "status"),
+      subscription_id: data["subscription_id"],
       total_cents: Map.fetch!(data, "total_cents")
     }
   end
@@ -2377,47 +2444,68 @@ defmodule Perata.WebhookDispute do
 
   defstruct [
     :amount_cents,
+    :checkout_id,
+    :client_reference_id,
     :currency,
     :customer_id,
     :decided_at,
     :due_by,
+    :external_customer_id,
     :id,
     :invoice_id,
+    :kind,
+    :metadata,
     :opened_at,
     :payment_id,
+    :payment_method,
     :provider_dispute_id,
     :provider_reason,
     :reason,
     :source,
-    :status
+    :status,
+    :subscription_id
   ]
 
   @typedoc """
   * `amount_cents`: Valor contestado, em centavos.
+  * `checkout_id`: O checkout (o pedido) da venda contestada; nulo quando não é de um checkout.
+  * `client_reference_id`: O id do pedido no seu sistema, enviado ao criar o checkout; vazio sem ele.
   * `currency` (one of `"BRL"`)
   * `due_by`: Prazo da defesa.
+  * `external_customer_id`: O id do cliente no seu sistema; nulo sem ele.
+  * `kind` (one of `"chargeback"`, `"med"`): chargeback é a contestação de um cartão na bandeira; med é a devolução que o banco do pagador pede num Pix (Mecanismo Especial de Devolução).
+  * `metadata`: Os pares que o seu servidor enviou ao criar o checkout; na renovação de uma assinatura, os da assinatura.
   * `payment_id`: O PaymentId da venda contestada na Cielo.
+  * `payment_method`: Como a venda contestada foi paga: card ou pix.
   * `provider_dispute_id`: O número do caso na Cielo.
   * `provider_reason`: O motivo nas palavras da Cielo.
   * `reason`: Motivo, do conjunto fechado; unknown quando a adquirente não informou.
   * `source` (one of `"operator"`, `"cielo_chargeback"`)
   * `status` (one of `"opened"`, `"needs_evidence"`, `"submitted"`, `"under_review"`, `"won"`, `"lost"`, `"closed"`)
+  * `subscription_id`: A assinatura de que a venda contestada era um ciclo; nulo quando não é de uma assinatura. A assinatura fica suspensa (suspension_reason dispute).
   """
   @type t :: %__MODULE__{
           amount_cents: integer(),
+          checkout_id: String.t() | nil,
+          client_reference_id: String.t() | nil,
           currency: String.t(),
           customer_id: String.t() | nil,
           decided_at: String.t() | nil,
           due_by: String.t() | nil,
+          external_customer_id: String.t() | nil,
           id: String.t(),
           invoice_id: String.t() | nil,
+          kind: String.t() | nil,
+          metadata: %{optional(String.t()) => term()} | nil,
           opened_at: String.t(),
           payment_id: String.t(),
+          payment_method: String.t() | nil,
           provider_dispute_id: String.t(),
           provider_reason: String.t(),
           reason: String.t(),
           source: String.t(),
-          status: String.t()
+          status: String.t(),
+          subscription_id: String.t() | nil
         }
 
   @doc "Builds a WebhookDispute from the API's JSON."
@@ -2425,19 +2513,26 @@ defmodule Perata.WebhookDispute do
   def from_map(%{} = data) do
     %__MODULE__{
       amount_cents: Map.fetch!(data, "amount_cents"),
+      checkout_id: data["checkout_id"],
+      client_reference_id: data["client_reference_id"],
       currency: Map.fetch!(data, "currency"),
       customer_id: data["customer_id"],
       decided_at: data["decided_at"],
       due_by: data["due_by"],
+      external_customer_id: data["external_customer_id"],
       id: Map.fetch!(data, "id"),
       invoice_id: data["invoice_id"],
+      kind: data["kind"],
+      metadata: data["metadata"],
       opened_at: Map.fetch!(data, "opened_at"),
       payment_id: Map.fetch!(data, "payment_id"),
+      payment_method: data["payment_method"],
       provider_dispute_id: Map.fetch!(data, "provider_dispute_id"),
       provider_reason: Map.fetch!(data, "provider_reason"),
       reason: Map.fetch!(data, "reason"),
       source: Map.fetch!(data, "source"),
-      status: Map.fetch!(data, "status")
+      status: Map.fetch!(data, "status"),
+      subscription_id: data["subscription_id"]
     }
   end
 end
@@ -2547,6 +2642,7 @@ defmodule Perata.WebhookOrder do
     :client_reference_id,
     :currency,
     :customer_id,
+    :cycle_sequence,
     :id,
     :installment_interest_cents,
     :installments,
@@ -2554,32 +2650,40 @@ defmodule Perata.WebhookOrder do
     :metadata,
     :order_status,
     :paid_at,
+    :period_end,
+    :period_start,
     :price_id,
     :product_id,
     :refund_amount_cents,
     :refund_id,
     :refunded_amount_cents,
-    :status
+    :status,
+    :subscription_id
   ]
 
   @typedoc """
   * `client_reference_id`: O id do pedido no seu sistema, enviado ao criar o checkout; vazio sem ele.
   * `currency` (one of `"BRL"`)
+  * `cycle_sequence`: O ciclo da assinatura que o pagamento cobra: 1 é o primeiro, 2 é a primeira renovação.
   * `installment_interest_cents`: Juros do parcelamento pagos pelo comprador, cobrados além de amount_cents.
   * `installments`: Em quantas parcelas o cartão de crédito foi cobrado; 1 à vista.
   * `items`: As linhas do pedido, quando o seu servidor as enviou ao criar o checkout; vazio sem elas.
-  * `metadata`: Os pares que o seu servidor enviou ao criar o checkout.
+  * `metadata`: Os pares que o seu servidor enviou ao criar o checkout. Na renovação de uma assinatura são os metadados da assinatura (o id da câmera, por exemplo).
   * `order_status` (one of `"pending"`, `"paid"`, `"partially_refunded"`, `"refunded"`): Onde o pedido está; status é o do checkout e continua succeeded depois de um reembolso, e este vira partially_refunded ou refunded.
+  * `period_end`: O fim do período do ciclo que o pagamento cobra.
+  * `period_start`: O início do período do ciclo que o pagamento cobra.
   * `refund_amount_cents`: O valor só deste reembolso, em centavos; nulo como refund_id. O acumulado do pedido é refunded_amount_cents.
   * `refund_id`: O reembolso que causou este evento; nulo nos eventos que nenhum reembolso causou.
   * `refunded_amount_cents`: Quanto do pedido já foi devolvido, somando todos os reembolsos que deram certo, em centavos.
   * `status` (one of `"open"`, `"confirmed"`, `"succeeded"`, `"failed"`, `"expired"`)
+  * `subscription_id`: A assinatura que este pagamento cobra; nulo quando a venda não é de uma assinatura.
   """
   @type t :: %__MODULE__{
           amount_cents: integer(),
           client_reference_id: String.t(),
           currency: String.t(),
           customer_id: String.t(),
+          cycle_sequence: integer() | nil,
           id: String.t(),
           installment_interest_cents: integer(),
           installments: integer(),
@@ -2587,12 +2691,15 @@ defmodule Perata.WebhookOrder do
           metadata: %{optional(String.t()) => term()},
           order_status: String.t() | nil,
           paid_at: String.t() | nil,
+          period_end: String.t() | nil,
+          period_start: String.t() | nil,
           price_id: String.t(),
           product_id: String.t(),
           refund_amount_cents: integer() | nil,
           refund_id: String.t() | nil,
           refunded_amount_cents: integer(),
-          status: String.t()
+          status: String.t(),
+          subscription_id: String.t() | nil
         }
 
   @doc "Builds a WebhookOrder from the API's JSON."
@@ -2603,6 +2710,7 @@ defmodule Perata.WebhookOrder do
       client_reference_id: Map.fetch!(data, "client_reference_id"),
       currency: Map.fetch!(data, "currency"),
       customer_id: Map.fetch!(data, "customer_id"),
+      cycle_sequence: data["cycle_sequence"],
       id: Map.fetch!(data, "id"),
       installment_interest_cents: Map.fetch!(data, "installment_interest_cents"),
       installments: Map.fetch!(data, "installments"),
@@ -2610,12 +2718,15 @@ defmodule Perata.WebhookOrder do
       metadata: Map.fetch!(data, "metadata"),
       order_status: data["order_status"],
       paid_at: data["paid_at"],
+      period_end: data["period_end"],
+      period_start: data["period_start"],
       price_id: Map.fetch!(data, "price_id"),
       product_id: Map.fetch!(data, "product_id"),
       refund_amount_cents: data["refund_amount_cents"],
       refund_id: data["refund_id"],
       refunded_amount_cents: Map.fetch!(data, "refunded_amount_cents"),
-      status: Map.fetch!(data, "status")
+      status: Map.fetch!(data, "status"),
+      subscription_id: data["subscription_id"]
     }
   end
 end
@@ -2674,15 +2785,19 @@ defmodule Perata.WebhookSale do
     :checkout_id,
     :client_reference_id,
     :currency,
+    :cycle_sequence,
     :environment,
     :event_id,
     :merchant_id,
     :metadata,
     :method,
     :payment_id,
+    :period_end,
+    :period_start,
     :refund_amount_cents,
     :refund_id,
-    :refunded_amount_cents
+    :refunded_amount_cents,
+    :subscription_id
   ]
 
   @typedoc """
@@ -2690,12 +2805,16 @@ defmodule Perata.WebhookSale do
   * `checkout_id`: O checkout (o pedido) do pagamento ou do reembolso.
   * `client_reference_id`: O id do pedido no sistema do lojista; vazio sem ele.
   * `currency` (one of `"BRL"`)
-  * `metadata`: Os pares que o servidor do lojista enviou ao criar o checkout; vazio sem eles.
+  * `cycle_sequence`: O ciclo da assinatura que o pagamento cobra: 1 é o primeiro, 2 é a primeira renovação.
+  * `metadata`: Os pares que o servidor do lojista enviou ao criar o checkout; vazio sem eles. Na renovação de uma assinatura são os da assinatura.
   * `method` (one of `"card"`, `"pix"`, `"boleto"`): O meio do pagamento, nos eventos checkout_payment.*.
   * `payment_id`: O pagamento que o reembolso devolve, nos eventos refund.*.
+  * `period_end`: O fim do período do ciclo que o pagamento cobra.
+  * `period_start`: O início do período do ciclo que o pagamento cobra.
   * `refund_amount_cents`: O valor só do reembolso que moveu o pagamento, em centavos; em checkout_payment.refunded e checkout_payment.partially_refunded.
   * `refund_id`: O reembolso: nos eventos refund.*, o próprio; em checkout_payment.refunded e checkout_payment.partially_refunded, o que moveu o pagamento.
   * `refunded_amount_cents`: Quanto do pagamento já foi devolvido, somando os reembolsos que deram certo, nos eventos checkout_payment.*.
+  * `subscription_id`: A assinatura que este pagamento cobra; nulo quando a venda não é de uma assinatura.
   """
   @type t :: %__MODULE__{
           aggregate: String.t(),
@@ -2704,15 +2823,19 @@ defmodule Perata.WebhookSale do
           checkout_id: String.t() | nil,
           client_reference_id: String.t() | nil,
           currency: String.t() | nil,
+          cycle_sequence: integer() | nil,
           environment: String.t(),
           event_id: String.t(),
           merchant_id: String.t(),
           metadata: %{optional(String.t()) => term()} | nil,
           method: String.t() | nil,
           payment_id: String.t() | nil,
+          period_end: String.t() | nil,
+          period_start: String.t() | nil,
           refund_amount_cents: integer() | nil,
           refund_id: String.t() | nil,
-          refunded_amount_cents: integer() | nil
+          refunded_amount_cents: integer() | nil,
+          subscription_id: String.t() | nil
         }
 
   @doc "Builds a WebhookSale from the API's JSON."
@@ -2725,15 +2848,152 @@ defmodule Perata.WebhookSale do
       checkout_id: data["checkout_id"],
       client_reference_id: data["client_reference_id"],
       currency: data["currency"],
+      cycle_sequence: data["cycle_sequence"],
       environment: Map.fetch!(data, "environment"),
       event_id: Map.fetch!(data, "event_id"),
       merchant_id: Map.fetch!(data, "merchant_id"),
       metadata: data["metadata"],
       method: data["method"],
       payment_id: data["payment_id"],
+      period_end: data["period_end"],
+      period_start: data["period_start"],
       refund_amount_cents: data["refund_amount_cents"],
       refund_id: data["refund_id"],
-      refunded_amount_cents: data["refunded_amount_cents"]
+      refunded_amount_cents: data["refunded_amount_cents"],
+      subscription_id: data["subscription_id"]
+    }
+  end
+end
+
+defmodule Perata.WebhookSubscription do
+  @moduledoc "A assinatura como a API a devolve (Subscription) e, nos eventos que uma cobrança recusada causou (subscription.past_due, subscription.suspended e o subscription.updated que os acompanha), a cobrança recusada em payment_failure."
+
+  defstruct [
+    :amount_cents,
+    :cancel_at_period_end,
+    :currency,
+    :current_period_end,
+    :current_period_start,
+    :customer_id,
+    :id,
+    :interval,
+    :metadata,
+    :payment_failure,
+    :price_id,
+    :product_id,
+    :status,
+    :suspended_at,
+    :suspension_reason,
+    :trial_end,
+    :trial_start
+  ]
+
+  @typedoc """
+  * `currency` (one of `"BRL"`)
+  * `metadata`: Metadados do lojista: pares chave e valor (texto, número ou booleano); objeto vazio quando não há.
+  * `payment_failure`: A cobrança recusada que causou o evento; só nos eventos de cobrança recusada.
+  * `status` (one of `"trialing"`, `"active"`, `"past_due"`, `"suspended"`, `"paused"`, `"canceled"`)
+  * `suspended_at`: Quando a assinatura foi suspensa; nulo enquanto não está suspensa.
+  * `suspension_reason` (one of `"retries_exhausted"`, `"declined_not_retryable"`, `"dispute"`): Por que foi suspensa; nulo enquanto não está suspensa.
+  """
+  @type t :: %__MODULE__{
+          amount_cents: integer(),
+          cancel_at_period_end: boolean(),
+          currency: String.t(),
+          current_period_end: String.t(),
+          current_period_start: String.t(),
+          customer_id: String.t(),
+          id: String.t(),
+          interval: String.t(),
+          metadata: %{optional(String.t()) => term()},
+          payment_failure: Perata.WebhookSubscriptionPaymentFailure.t() | nil,
+          price_id: String.t(),
+          product_id: String.t(),
+          status: String.t(),
+          suspended_at: String.t() | nil,
+          suspension_reason: String.t() | nil,
+          trial_end: String.t() | nil,
+          trial_start: String.t() | nil
+        }
+
+  @doc "Builds a WebhookSubscription from the API's JSON."
+  @spec from_map(map()) :: t()
+  def from_map(%{} = data) do
+    %__MODULE__{
+      amount_cents: Map.fetch!(data, "amount_cents"),
+      cancel_at_period_end: Map.fetch!(data, "cancel_at_period_end"),
+      currency: Map.fetch!(data, "currency"),
+      current_period_end: Map.fetch!(data, "current_period_end"),
+      current_period_start: Map.fetch!(data, "current_period_start"),
+      customer_id: Map.fetch!(data, "customer_id"),
+      id: Map.fetch!(data, "id"),
+      interval: Map.fetch!(data, "interval"),
+      metadata: Map.fetch!(data, "metadata"),
+      payment_failure: with(value when not is_nil(value) <- data["payment_failure"], do: Perata.WebhookSubscriptionPaymentFailure.from_map(value)),
+      price_id: Map.fetch!(data, "price_id"),
+      product_id: Map.fetch!(data, "product_id"),
+      status: Map.fetch!(data, "status"),
+      suspended_at: data["suspended_at"],
+      suspension_reason: data["suspension_reason"],
+      trial_end: data["trial_end"],
+      trial_start: data["trial_start"]
+    }
+  end
+end
+
+defmodule Perata.WebhookSubscriptionPaymentFailure do
+  @moduledoc "A cobrança recusada que causou o evento; só nos eventos de cobrança recusada."
+
+  defstruct [
+    :amount_cents,
+    :attempt,
+    :cycle_sequence,
+    :decline_code,
+    :max_attempts,
+    :next_attempt_at,
+    :period_end,
+    :period_start,
+    :reason,
+    :retryable
+  ]
+
+  @typedoc """
+  * `amount_cents`: O valor cobrado, em centavos.
+  * `attempt`: O número da cobrança recusada neste ciclo: 1 é a do vencimento, 2 é a primeira nova tentativa.
+  * `cycle_sequence`: O ciclo cobrado: 2 é a primeira renovação.
+  * `decline_code`: O código da recusa, como o emissor devolveu; vazio quando não informou.
+  * `max_attempts`: Quantas cobranças o cartão recebe neste ciclo: a do vencimento mais uma por dia de nova tentativa que a organização configurou.
+  * `next_attempt_at`: Quando o cartão será cobrado de novo; nulo quando não haverá nova tentativa.
+  * `reason`: O motivo da recusa, nas palavras do emissor.
+  * `retryable`: Verdadeiro quando o emissor permite tentar o mesmo cartão de novo; falso é recusa definitiva.
+  """
+  @type t :: %__MODULE__{
+          amount_cents: integer(),
+          attempt: integer(),
+          cycle_sequence: integer(),
+          decline_code: String.t(),
+          max_attempts: integer(),
+          next_attempt_at: String.t() | nil,
+          period_end: String.t(),
+          period_start: String.t(),
+          reason: String.t(),
+          retryable: boolean()
+        }
+
+  @doc "Builds a WebhookSubscriptionPaymentFailure from the API's JSON."
+  @spec from_map(map()) :: t()
+  def from_map(%{} = data) do
+    %__MODULE__{
+      amount_cents: Map.fetch!(data, "amount_cents"),
+      attempt: Map.fetch!(data, "attempt"),
+      cycle_sequence: Map.fetch!(data, "cycle_sequence"),
+      decline_code: Map.fetch!(data, "decline_code"),
+      max_attempts: Map.fetch!(data, "max_attempts"),
+      next_attempt_at: data["next_attempt_at"],
+      period_end: Map.fetch!(data, "period_end"),
+      period_start: Map.fetch!(data, "period_start"),
+      reason: Map.fetch!(data, "reason"),
+      retryable: Map.fetch!(data, "retryable")
     }
   end
 end

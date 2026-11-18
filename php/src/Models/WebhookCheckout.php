@@ -19,6 +19,8 @@ final class WebhookCheckout
         public readonly string $currency,
         /** Nulo até o comprador confirmar. */
         public readonly ?string $customerId,
+        /** O ciclo da assinatura que o pagamento cobra: 1 é o primeiro, 2 é a primeira renovação. */
+        public readonly ?int $cycleSequence,
         public readonly int $discountCents,
         public readonly string $expiresAt,
         public readonly string $id,
@@ -28,14 +30,20 @@ final class WebhookCheckout
          */
         public readonly ?array $items,
         /**
-         * Os pares que o servidor do lojista enviou ao criar o checkout; vazio sem eles.
+         * Os pares que o servidor do lojista enviou ao criar o checkout; vazio sem eles. Na renovação de uma assinatura são os da assinatura.
          * @var array<string, mixed>|null
          */
         public readonly ?array $metadata,
+        /** O fim do período do ciclo que o pagamento cobra. */
+        public readonly ?string $periodEnd,
+        /** O início do período do ciclo que o pagamento cobra. */
+        public readonly ?string $periodStart,
         public readonly string $priceId,
         public readonly string $productId,
         /** @var 'open'|'confirmed'|'succeeded'|'failed'|'expired' */
         public readonly string $status,
+        /** A assinatura que este pagamento cobra; nulo quando a venda não é de uma assinatura. */
+        public readonly ?string $subscriptionId,
         public readonly int $totalCents,
     ) {
     }
@@ -52,14 +60,18 @@ final class WebhookCheckout
             createdAt: $data['created_at'],
             currency: $data['currency'],
             customerId: $data['customer_id'] ?? null,
+            cycleSequence: $data['cycle_sequence'] ?? null,
             discountCents: $data['discount_cents'],
             expiresAt: $data['expires_at'],
             id: $data['id'],
             items: isset($data['items']) ? array_values(array_map(static fn (array $item) => CheckoutLine::fromArray($item), $data['items'])) : null,
             metadata: $data['metadata'] ?? null,
+            periodEnd: $data['period_end'] ?? null,
+            periodStart: $data['period_start'] ?? null,
             priceId: $data['price_id'],
             productId: $data['product_id'],
             status: $data['status'],
+            subscriptionId: $data['subscription_id'] ?? null,
             totalCents: $data['total_cents'],
         );
     }

@@ -83,7 +83,6 @@ namespace Perata;
 [JsonSerializable(typeof(BenefitGrant))]
 [JsonSerializable(typeof(Customer))]
 [JsonSerializable(typeof(Product))]
-[JsonSerializable(typeof(Subscription))]
 [JsonSerializable(typeof(WebhookBenefit))]
 [JsonSerializable(typeof(WebhookCheckout))]
 [JsonSerializable(typeof(WebhookDiscount))]
@@ -91,6 +90,7 @@ namespace Perata;
 [JsonSerializable(typeof(WebhookOrder))]
 [JsonSerializable(typeof(WebhookRefund))]
 [JsonSerializable(typeof(WebhookSale))]
+[JsonSerializable(typeof(WebhookSubscription))]
 [JsonSerializable(typeof(Dictionary<string, string>))]
 [JsonSerializable(typeof(JsonElement))]
 internal sealed partial class PerataJson : JsonSerializerContext

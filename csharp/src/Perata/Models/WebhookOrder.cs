@@ -55,6 +55,10 @@ public sealed record WebhookOrder
     [JsonPropertyName("customer_id")]
     public required string CustomerId { get; init; }
 
+    /// <summary>O ciclo da assinatura que o pagamento cobra: 1 é o primeiro, 2 é a primeira renovação. Null when the API sends none.</summary>
+    [JsonPropertyName("cycle_sequence")]
+    public long? CycleSequence { get; init; }
+
     /// <summary>The API's <c>id</c>.</summary>
     [JsonPropertyName("id")]
     public required string Id { get; init; }
@@ -71,7 +75,7 @@ public sealed record WebhookOrder
     [JsonPropertyName("items")]
     public required IReadOnlyList<CheckoutLine> Items { get; init; }
 
-    /// <summary>Os pares que o seu servidor enviou ao criar o checkout.</summary>
+    /// <summary>Os pares que o seu servidor enviou ao criar o checkout. Na renovação de uma assinatura são os metadados da assinatura (o id da câmera, por exemplo).</summary>
     [JsonPropertyName("metadata")]
     public required IReadOnlyDictionary<string, JsonElement> Metadata { get; init; }
 
@@ -82,6 +86,14 @@ public sealed record WebhookOrder
     /// <summary>The API's <c>paid_at</c>. Null when the API sends none.</summary>
     [JsonPropertyName("paid_at")]
     public string? PaidAt { get; init; }
+
+    /// <summary>O fim do período do ciclo que o pagamento cobra. Null when the API sends none.</summary>
+    [JsonPropertyName("period_end")]
+    public string? PeriodEnd { get; init; }
+
+    /// <summary>O início do período do ciclo que o pagamento cobra. Null when the API sends none.</summary>
+    [JsonPropertyName("period_start")]
+    public string? PeriodStart { get; init; }
 
     /// <summary>The API's <c>price_id</c>.</summary>
     [JsonPropertyName("price_id")]
@@ -106,4 +118,8 @@ public sealed record WebhookOrder
     /// <summary>The API's <c>status</c>.</summary>
     [JsonPropertyName("status")]
     public required string Status { get; init; }
+
+    /// <summary>A assinatura que este pagamento cobra; nulo quando a venda não é de uma assinatura. Null when the API sends none.</summary>
+    [JsonPropertyName("subscription_id")]
+    public string? SubscriptionId { get; init; }
 }

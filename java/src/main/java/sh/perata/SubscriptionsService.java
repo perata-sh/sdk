@@ -380,6 +380,28 @@ public final class SubscriptionsService {
     }
 
     /**
+     * Reativar uma assinatura suspensa, que volta a ser cobrada (a cobrança do ciclo em aberto recomeça), ou retomar uma pausada; qualquer outra recebe 409.
+     * @param subscription the subscription
+     * @param options an idempotency key or another organization's key for this call, or null
+     * @return the subscription
+     * @throws PerataException when the API refuses the call
+     */
+    public Subscription resume(String subscription, RequestOptions options) {
+        Object data = client.request("POST", "/api/v1/subscriptions/" + Perata.segment(subscription) + "/resume", null, null, options == null ? null : options.getIdempotencyKey(), options);
+        return Subscription.fromJson(Json.asObject(data));
+    }
+
+    /**
+     * Reativar uma assinatura suspensa, que volta a ser cobrada (a cobrança do ciclo em aberto recomeça), ou retomar uma pausada; qualquer outra recebe 409.
+     * @param subscription the subscription
+     * @return the subscription
+     * @throws PerataException when the API refuses the call
+     */
+    public Subscription resume(String subscription) {
+        return resume(subscription, null);
+    }
+
+    /**
      * Trocar o plano de uma assinatura: outro preço e, se quiser, outra quantidade, com a forma de ratear a diferença (proration_behavior).
      * @param subscription the subscription
      * @param params the request

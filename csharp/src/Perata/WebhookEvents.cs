@@ -238,13 +238,13 @@ public sealed record SaleWebhookEvent(string Id, string Type, string Timestamp, 
     };
 }
 
-/// <summary>The events that carry a Subscription: <c>subscription.active</c>, <c>subscription.canceled</c>, <c>subscription.created</c>, <c>subscription.cycled</c>, <c>subscription.past_due</c>, <c>subscription.paused</c>, <c>subscription.resumed</c>, <c>subscription.revoked</c>, <c>subscription.uncanceled</c>, <c>subscription.updated</c>.</summary>
+/// <summary>The events that carry a WebhookSubscription: <c>subscription.active</c>, <c>subscription.canceled</c>, <c>subscription.created</c>, <c>subscription.cycled</c>, <c>subscription.past_due</c>, <c>subscription.paused</c>, <c>subscription.resumed</c>, <c>subscription.revoked</c>, <c>subscription.suspended</c>, <c>subscription.uncanceled</c>, <c>subscription.updated</c>.</summary>
 /// <param name="Id">The message's id.</param>
 /// <param name="Type">What happened.</param>
 /// <param name="Timestamp">When it happened, RFC 3339.</param>
 /// <param name="Environment">The environment it happened in, <c>test</c> or <c>live</c>.</param>
 /// <param name="Data">What the event carries.</param>
-public sealed record SubscriptionWebhookEvent(string Id, string Type, string Timestamp, string Environment, Subscription Data)
+public sealed record SubscriptionWebhookEvent(string Id, string Type, string Timestamp, string Environment, WebhookSubscription Data)
     : WebhookEvent(Id, Type, Timestamp, Environment)
 {
     /// <summary>The event types this record carries.</summary>
@@ -258,6 +258,7 @@ public sealed record SubscriptionWebhookEvent(string Id, string Type, string Tim
         "subscription.paused",
         "subscription.resumed",
         "subscription.revoked",
+        "subscription.suspended",
         "subscription.uncanceled",
         "subscription.updated",
     };

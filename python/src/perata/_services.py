@@ -455,6 +455,11 @@ class SubscriptionsService:
         """Walks every page of subscriptions:list, item by item."""
         return iterate(lambda at: self.list(page=at, limit=limit, status=status, customer_id=customer_id, external_customer_id=external_customer_id, created_after=created_after, created_before=created_before, sorting=sorting, api_key=api_key), page)
 
+    def resume(self, subscription: str, *, idempotency_key: str | None = None, api_key: str | None = None) -> models.Subscription:
+        """Reativar uma assinatura suspensa, que volta a ser cobrada (a cobrança do ciclo em aberto recomeça), ou retomar uma pausada; qualquer outra recebe 409."""
+        data = self._client.request("POST", f"/api/v1/subscriptions/{segment(subscription)}/resume", idempotency_key=idempotency_key, api_key=api_key)
+        return models.Subscription.from_dict(data)
+
     def update(self, subscription: str, params: models.SubscriptionsUpdateParams, *, idempotency_key: str | None = None, api_key: str | None = None) -> models.Subscription:
         """Trocar o plano de uma assinatura: outro preço e, se quiser, outra quantidade, com a forma de ratear a diferença (proration_behavior)."""
         data = self._client.request("PATCH", f"/api/v1/subscriptions/{segment(subscription)}", body=params, idempotency_key=idempotency_key, api_key=api_key)

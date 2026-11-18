@@ -26,31 +26,39 @@ public final class WebhookCheckout {
     private final String createdAt;
     private final String currency;
     private final String customerId;
+    private final Long cycleSequence;
     private final long discountCents;
     private final String expiresAt;
     private final String id;
     private final List<CheckoutLine> items;
     private final Map<String, Object> metadata;
+    private final String periodEnd;
+    private final String periodStart;
     private final String priceId;
     private final String productId;
     private final String status;
+    private final String subscriptionId;
     private final long totalCents;
 
-    WebhookCheckout(long amountCents, String checkoutLinkId, String clientReferenceId, String createdAt, String currency, String customerId, long discountCents, String expiresAt, String id, List<CheckoutLine> items, Map<String, Object> metadata, String priceId, String productId, String status, long totalCents) {
+    WebhookCheckout(long amountCents, String checkoutLinkId, String clientReferenceId, String createdAt, String currency, String customerId, Long cycleSequence, long discountCents, String expiresAt, String id, List<CheckoutLine> items, Map<String, Object> metadata, String periodEnd, String periodStart, String priceId, String productId, String status, String subscriptionId, long totalCents) {
         this.amountCents = amountCents;
         this.checkoutLinkId = checkoutLinkId;
         this.clientReferenceId = clientReferenceId;
         this.createdAt = createdAt;
         this.currency = currency;
         this.customerId = customerId;
+        this.cycleSequence = cycleSequence;
         this.discountCents = discountCents;
         this.expiresAt = expiresAt;
         this.id = id;
         this.items = items;
         this.metadata = metadata;
+        this.periodEnd = periodEnd;
+        this.periodStart = periodStart;
         this.priceId = priceId;
         this.productId = productId;
         this.status = status;
+        this.subscriptionId = subscriptionId;
         this.totalCents = totalCents;
     }
 
@@ -62,14 +70,18 @@ public final class WebhookCheckout {
                 Json.required(data, "created_at", Json::asString),
                 Json.required(data, "currency", Json::asString),
                 Json.optional(data, "customer_id", Json::asString),
+                Json.optional(data, "cycle_sequence", Json::asLong),
                 Json.required(data, "discount_cents", Json::asLong),
                 Json.required(data, "expires_at", Json::asString),
                 Json.required(data, "id", Json::asString),
                 Json.optional(data, "items", Json.list(Json.model(CheckoutLine::fromJson))),
                 Json.optional(data, "metadata", Json.map(Json::any)),
+                Json.optional(data, "period_end", Json::asString),
+                Json.optional(data, "period_start", Json::asString),
                 Json.required(data, "price_id", Json::asString),
                 Json.required(data, "product_id", Json::asString),
                 Json.required(data, "status", Json::asString),
+                Json.optional(data, "subscription_id", Json::asString),
                 Json.required(data, "total_cents", Json::asLong));
     }
 
@@ -103,6 +115,11 @@ public final class WebhookCheckout {
         return customerId;
     }
 
+    /** @return O ciclo da assinatura que o pagamento cobra: 1 é o primeiro, 2 é a primeira renovação. (null when the API sends none) */
+    public Long getCycleSequence() {
+        return cycleSequence;
+    }
+
     /** @return the API's {@code discount_cents} */
     public long getDiscountCents() {
         return discountCents;
@@ -123,9 +140,19 @@ public final class WebhookCheckout {
         return items;
     }
 
-    /** @return Os pares que o servidor do lojista enviou ao criar o checkout; vazio sem eles. (null when the API sends none) */
+    /** @return Os pares que o servidor do lojista enviou ao criar o checkout; vazio sem eles. Na renovação de uma assinatura são os da assinatura. (null when the API sends none) */
     public Map<String, Object> getMetadata() {
         return metadata;
+    }
+
+    /** @return O fim do período do ciclo que o pagamento cobra. (null when the API sends none) */
+    public String getPeriodEnd() {
+        return periodEnd;
+    }
+
+    /** @return O início do período do ciclo que o pagamento cobra. (null when the API sends none) */
+    public String getPeriodStart() {
+        return periodStart;
     }
 
     /** @return the API's {@code price_id} */
@@ -143,6 +170,11 @@ public final class WebhookCheckout {
         return status;
     }
 
+    /** @return A assinatura que este pagamento cobra; nulo quando a venda não é de uma assinatura. (null when the API sends none) */
+    public String getSubscriptionId() {
+        return subscriptionId;
+    }
+
     /** @return the API's {@code total_cents} */
     public long getTotalCents() {
         return totalCents;
@@ -150,6 +182,6 @@ public final class WebhookCheckout {
 
     @Override
     public String toString() {
-        return "WebhookCheckout{" + "amountCents=" + amountCents + ", checkoutLinkId=" + checkoutLinkId + ", clientReferenceId=" + clientReferenceId + ", createdAt=" + createdAt + ", currency=" + currency + ", customerId=" + customerId + ", discountCents=" + discountCents + ", expiresAt=" + expiresAt + ", id=" + id + ", items=" + items + ", metadata=" + metadata + ", priceId=" + priceId + ", productId=" + productId + ", status=" + status + ", totalCents=" + totalCents + "}";
+        return "WebhookCheckout{" + "amountCents=" + amountCents + ", checkoutLinkId=" + checkoutLinkId + ", clientReferenceId=" + clientReferenceId + ", createdAt=" + createdAt + ", currency=" + currency + ", customerId=" + customerId + ", cycleSequence=" + cycleSequence + ", discountCents=" + discountCents + ", expiresAt=" + expiresAt + ", id=" + id + ", items=" + items + ", metadata=" + metadata + ", periodEnd=" + periodEnd + ", periodStart=" + periodStart + ", priceId=" + priceId + ", productId=" + productId + ", status=" + status + ", subscriptionId=" + subscriptionId + ", totalCents=" + totalCents + "}";
     }
 }

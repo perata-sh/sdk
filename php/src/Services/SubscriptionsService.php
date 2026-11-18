@@ -61,6 +61,15 @@ final class SubscriptionsService
     }
 
     /**
+     * Reativar uma assinatura suspensa, que volta a ser cobrada (a cobrança do ciclo em aberto recomeça), ou retomar uma pausada; qualquer outra recebe 409.
+     */
+    public function resume(string $subscription, ?string $idempotencyKey = null, ?string $apiKey = null): Models\Subscription
+    {
+        $data = $this->client->request('POST', '/api/v1/subscriptions/' . rawurlencode($subscription) . '/resume', idempotencyKey: $idempotencyKey, apiKey: $apiKey);
+        return Models\Subscription::fromArray($data);
+    }
+
+    /**
      * Trocar o plano de uma assinatura: outro preço e, se quiser, outra quantidade, com a forma de ratear a diferença (proration_behavior).
      *
      * @param array{price_id: string, proration_behavior?: 'prorate'|'invoice'|'next_period'|'reset', quantity?: int} $params

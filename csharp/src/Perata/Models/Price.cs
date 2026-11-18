@@ -49,6 +49,10 @@ public sealed record Price
     [JsonPropertyName("interval")]
     public required string Interval { get; init; }
 
+    /// <summary>De quantos em quantos intervalos o preço renova: 3 com month é trimestral, 6 semestral. 1 no preço one_time.</summary>
+    [JsonPropertyName("interval_count")]
+    public required long IntervalCount { get; init; }
+
     /// <summary>The API's <c>product_id</c>.</summary>
     [JsonPropertyName("product_id")]
     public required string ProductId { get; init; }

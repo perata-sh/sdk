@@ -405,15 +405,18 @@ public struct CheckoutClientCustomer: Codable, Sendable, Hashable {
     public let address: BillingAddress
     public let billingName: String
     public let email: String
+    /// Verdadeiro quando o servidor do lojista abriu o checkout para um cliente que ele informou (customer_id ou external_customer_id): o e-mail não muda, os campos já vêm preenchidos para o comprador conferir e nenhum código é pedido para provar o e-mail.
+    public let locked: Bool
     public let name: String
     /// O CPF ou CNPJ do comprador, só dígitos; vazio enquanto não for informado.
     public let taxID: String
     public let taxIDKind: String
 
-    public init(address: BillingAddress, billingName: String, email: String, name: String, taxID: String, taxIDKind: String) {
+    public init(address: BillingAddress, billingName: String, email: String, locked: Bool, name: String, taxID: String, taxIDKind: String) {
         self.address = address
         self.billingName = billingName
         self.email = email
+        self.locked = locked
         self.name = name
         self.taxID = taxID
         self.taxIDKind = taxIDKind
@@ -423,6 +426,7 @@ public struct CheckoutClientCustomer: Codable, Sendable, Hashable {
         case address
         case billingName = "billing_name"
         case email
+        case locked
         case name
         case taxID = "tax_id"
         case taxIDKind = "tax_id_kind"
@@ -908,9 +912,9 @@ public struct CheckoutSavedData: Codable, Sendable, Hashable {
 /// CheckoutSavedDataSent is a resource of Peráta's API.
 public struct CheckoutSavedDataSent: Codable, Sendable, Hashable {
     public let channel: String
-    /// Sempre falso, pelo mesmo motivo.
+    /// Sempre falso: o servidor não diz se este código é novo ou o de um pedido anterior.
     public let fresh: Bool
-    /// Sempre verdadeiro: a resposta não diz se há algo guardado para o e-mail.
+    /// Verdadeiro quando há algo guardado para o e-mail e um código foi enviado a ele; falso quando não há, e o comprador segue sem o campo do código. O pedido é limitado a 30 por hora por endereço e a 10 por e-mail.
     public let sent: Bool
 
     public init(channel: String, fresh: Bool, sent: Bool) {
@@ -1178,18 +1182,30 @@ public struct Discount: Codable, Sendable, Hashable {
 public struct Dispute: Codable, Sendable, Hashable {
     /// Valor contestado, em centavos.
     public let amountCents: Int
+    /// O checkout (o pedido) da venda contestada; nulo quando não é de um checkout. É o mesmo valor de order_id.
+    public let checkoutID: String?
+    /// O id do pedido no seu sistema, enviado ao criar o checkout; vazio sem ele.
+    public let clientReferenceID: String
     public let currency: DisputeCurrency
     public let customerID: String?
     public let decidedAt: String?
     /// Prazo da defesa.
     public let dueBy: String?
+    /// O id do cliente no seu sistema; nulo sem ele.
+    public let externalCustomerID: String?
     public let id: String
     public let invoiceID: String?
+    /// chargeback é a contestação de um cartão na bandeira; med é a devolução que o banco do pagador pede num Pix (Mecanismo Especial de Devolução).
+    public let kind: DisputeKind
+    /// Os pares que o seu servidor enviou ao criar o checkout; na renovação de uma assinatura, os da assinatura.
+    public let metadata: [String: JSONValue]
     public let openedAt: String
     /// O pedido que a venda contestada pagou; nulo quando não é de um checkout.
     public let orderID: String?
     /// O PaymentId da venda contestada na Cielo.
     public let paymentID: String
+    /// Como a venda contestada foi paga: card ou pix.
+    public let paymentMethod: String
     /// O número do caso na Cielo.
     public let providerDisputeID: String
     /// O motivo nas palavras da Cielo.
@@ -1198,41 +1214,57 @@ public struct Dispute: Codable, Sendable, Hashable {
     public let reason: String
     public let source: DisputeSource
     public let status: DisputeStatus
+    /// A assinatura de que a venda contestada era um ciclo; nulo quando não é de uma assinatura. A assinatura fica suspensa (suspension_reason dispute).
+    public let subscriptionID: String?
 
-    public init(amountCents: Int, currency: DisputeCurrency, customerID: String?, decidedAt: String?, dueBy: String?, id: String, invoiceID: String?, openedAt: String, orderID: String?, paymentID: String, providerDisputeID: String, providerReason: String, reason: String, source: DisputeSource, status: DisputeStatus) {
+    public init(amountCents: Int, checkoutID: String?, clientReferenceID: String, currency: DisputeCurrency, customerID: String?, decidedAt: String?, dueBy: String?, externalCustomerID: String?, id: String, invoiceID: String?, kind: DisputeKind, metadata: [String: JSONValue], openedAt: String, orderID: String?, paymentID: String, paymentMethod: String, providerDisputeID: String, providerReason: String, reason: String, source: DisputeSource, status: DisputeStatus, subscriptionID: String?) {
         self.amountCents = amountCents
+        self.checkoutID = checkoutID
+        self.clientReferenceID = clientReferenceID
         self.currency = currency
         self.customerID = customerID
         self.decidedAt = decidedAt
         self.dueBy = dueBy
+        self.externalCustomerID = externalCustomerID
         self.id = id
         self.invoiceID = invoiceID
+        self.kind = kind
+        self.metadata = metadata
         self.openedAt = openedAt
         self.orderID = orderID
         self.paymentID = paymentID
+        self.paymentMethod = paymentMethod
         self.providerDisputeID = providerDisputeID
         self.providerReason = providerReason
         self.reason = reason
         self.source = source
         self.status = status
+        self.subscriptionID = subscriptionID
     }
 
     enum CodingKeys: String, CodingKey {
         case amountCents = "amount_cents"
+        case checkoutID = "checkout_id"
+        case clientReferenceID = "client_reference_id"
         case currency
         case customerID = "customer_id"
         case decidedAt = "decided_at"
         case dueBy = "due_by"
+        case externalCustomerID = "external_customer_id"
         case id
         case invoiceID = "invoice_id"
+        case kind
+        case metadata
         case openedAt = "opened_at"
         case orderID = "order_id"
         case paymentID = "payment_id"
+        case paymentMethod = "payment_method"
         case providerDisputeID = "provider_dispute_id"
         case providerReason = "provider_reason"
         case reason
         case source
         case status
+        case subscriptionID = "subscription_id"
     }
 }
 
@@ -1667,15 +1699,18 @@ public struct Price: Codable, Sendable, Hashable {
     public let currency: PriceCurrency
     public let id: String
     public let interval: PriceInterval
+    /// De quantos em quantos intervalos o preço renova: 3 com month é trimestral, 6 semestral. 1 no preço one_time.
+    public let intervalCount: Int
     public let productID: String
     public let status: PriceStatus
     public let type: PriceType
 
-    public init(amountCents: Int, currency: PriceCurrency, id: String, interval: PriceInterval, productID: String, status: PriceStatus, type: PriceType) {
+    public init(amountCents: Int, currency: PriceCurrency, id: String, interval: PriceInterval, intervalCount: Int, productID: String, status: PriceStatus, type: PriceType) {
         self.amountCents = amountCents
         self.currency = currency
         self.id = id
         self.interval = interval
+        self.intervalCount = intervalCount
         self.productID = productID
         self.status = status
         self.type = type
@@ -1686,6 +1721,7 @@ public struct Price: Codable, Sendable, Hashable {
         case currency
         case id
         case interval
+        case intervalCount = "interval_count"
         case productID = "product_id"
         case status
         case type
@@ -1754,10 +1790,14 @@ public struct Subscription: Codable, Sendable, Hashable {
     public let priceID: String
     public let productID: String
     public let status: SubscriptionStatus
+    /// Quando a assinatura foi suspensa; nulo enquanto não está suspensa.
+    public let suspendedAt: String?
+    /// Por que foi suspensa: retries_exhausted (o cartão foi recusado em todas as tentativas), declined_not_retryable (o emissor recusou sem permitir nova tentativa) ou dispute (o comprador contestou o pagamento); nulo enquanto não está suspensa.
+    public let suspensionReason: SubscriptionSuspensionReason?
     public let trialEnd: String?
     public let trialStart: String?
 
-    public init(amountCents: Int, cancelAtPeriodEnd: Bool, currency: SubscriptionCurrency, currentPeriodEnd: String, currentPeriodStart: String, customerID: String, id: String, interval: String, metadata: [String: JSONValue], priceID: String, productID: String, status: SubscriptionStatus, trialEnd: String?, trialStart: String?) {
+    public init(amountCents: Int, cancelAtPeriodEnd: Bool, currency: SubscriptionCurrency, currentPeriodEnd: String, currentPeriodStart: String, customerID: String, id: String, interval: String, metadata: [String: JSONValue], priceID: String, productID: String, status: SubscriptionStatus, suspendedAt: String?, suspensionReason: SubscriptionSuspensionReason?, trialEnd: String?, trialStart: String?) {
         self.amountCents = amountCents
         self.cancelAtPeriodEnd = cancelAtPeriodEnd
         self.currency = currency
@@ -1770,6 +1810,8 @@ public struct Subscription: Codable, Sendable, Hashable {
         self.priceID = priceID
         self.productID = productID
         self.status = status
+        self.suspendedAt = suspendedAt
+        self.suspensionReason = suspensionReason
         self.trialEnd = trialEnd
         self.trialStart = trialStart
     }
@@ -1787,6 +1829,8 @@ public struct Subscription: Codable, Sendable, Hashable {
         case priceID = "price_id"
         case productID = "product_id"
         case status
+        case suspendedAt = "suspended_at"
+        case suspensionReason = "suspension_reason"
         case trialEnd = "trial_end"
         case trialStart = "trial_start"
     }
@@ -1862,33 +1906,45 @@ public struct WebhookCheckout: Codable, Sendable, Hashable {
     public let currency: WebhookCheckoutCurrency
     /// Nulo até o comprador confirmar.
     public let customerID: String?
+    /// O ciclo da assinatura que o pagamento cobra: 1 é o primeiro, 2 é a primeira renovação.
+    public let cycleSequence: Int?
     public let discountCents: Int
     public let expiresAt: String
     public let id: String
     /// As linhas do valor que o servidor do lojista fixou; vazio sem elas.
     public let items: [CheckoutLine]?
-    /// Os pares que o servidor do lojista enviou ao criar o checkout; vazio sem eles.
+    /// Os pares que o servidor do lojista enviou ao criar o checkout; vazio sem eles. Na renovação de uma assinatura são os da assinatura.
     public let metadata: [String: JSONValue]?
+    /// O fim do período do ciclo que o pagamento cobra.
+    public let periodEnd: String?
+    /// O início do período do ciclo que o pagamento cobra.
+    public let periodStart: String?
     public let priceID: String
     public let productID: String
     public let status: WebhookCheckoutStatus
+    /// A assinatura que este pagamento cobra; nulo quando a venda não é de uma assinatura.
+    public let subscriptionID: String?
     public let totalCents: Int
 
-    public init(amountCents: Int, checkoutLinkID: String?, createdAt: String, currency: WebhookCheckoutCurrency, customerID: String?, discountCents: Int, expiresAt: String, id: String, priceID: String, productID: String, status: WebhookCheckoutStatus, totalCents: Int, clientReferenceID: String? = nil, items: [CheckoutLine]? = nil, metadata: [String: JSONValue]? = nil) {
+    public init(amountCents: Int, checkoutLinkID: String?, createdAt: String, currency: WebhookCheckoutCurrency, customerID: String?, discountCents: Int, expiresAt: String, id: String, priceID: String, productID: String, status: WebhookCheckoutStatus, totalCents: Int, clientReferenceID: String? = nil, cycleSequence: Int? = nil, items: [CheckoutLine]? = nil, metadata: [String: JSONValue]? = nil, periodEnd: String? = nil, periodStart: String? = nil, subscriptionID: String? = nil) {
         self.amountCents = amountCents
         self.checkoutLinkID = checkoutLinkID
         self.clientReferenceID = clientReferenceID
         self.createdAt = createdAt
         self.currency = currency
         self.customerID = customerID
+        self.cycleSequence = cycleSequence
         self.discountCents = discountCents
         self.expiresAt = expiresAt
         self.id = id
         self.items = items
         self.metadata = metadata
+        self.periodEnd = periodEnd
+        self.periodStart = periodStart
         self.priceID = priceID
         self.productID = productID
         self.status = status
+        self.subscriptionID = subscriptionID
         self.totalCents = totalCents
     }
 
@@ -1899,14 +1955,18 @@ public struct WebhookCheckout: Codable, Sendable, Hashable {
         case createdAt = "created_at"
         case currency
         case customerID = "customer_id"
+        case cycleSequence = "cycle_sequence"
         case discountCents = "discount_cents"
         case expiresAt = "expires_at"
         case id
         case items
         case metadata
+        case periodEnd = "period_end"
+        case periodStart = "period_start"
         case priceID = "price_id"
         case productID = "product_id"
         case status
+        case subscriptionID = "subscription_id"
         case totalCents = "total_cents"
     }
 }
@@ -2023,16 +2083,28 @@ public struct WebhookDiscount: Codable, Sendable, Hashable {
 public struct WebhookDispute: Codable, Sendable, Hashable {
     /// Valor contestado, em centavos.
     public let amountCents: Int
+    /// O checkout (o pedido) da venda contestada; nulo quando não é de um checkout.
+    public let checkoutID: String?
+    /// O id do pedido no seu sistema, enviado ao criar o checkout; vazio sem ele.
+    public let clientReferenceID: String?
     public let currency: WebhookDisputeCurrency
     public let customerID: String?
     public let decidedAt: String?
     /// Prazo da defesa.
     public let dueBy: String?
+    /// O id do cliente no seu sistema; nulo sem ele.
+    public let externalCustomerID: String?
     public let id: String
     public let invoiceID: String?
+    /// chargeback é a contestação de um cartão na bandeira; med é a devolução que o banco do pagador pede num Pix (Mecanismo Especial de Devolução).
+    public let kind: WebhookDisputeKind?
+    /// Os pares que o seu servidor enviou ao criar o checkout; na renovação de uma assinatura, os da assinatura.
+    public let metadata: [String: JSONValue]?
     public let openedAt: String
     /// O PaymentId da venda contestada na Cielo.
     public let paymentID: String
+    /// Como a venda contestada foi paga: card ou pix.
+    public let paymentMethod: String?
     /// O número do caso na Cielo.
     public let providerDisputeID: String
     /// O motivo nas palavras da Cielo.
@@ -2041,39 +2113,55 @@ public struct WebhookDispute: Codable, Sendable, Hashable {
     public let reason: String
     public let source: WebhookDisputeSource
     public let status: WebhookDisputeStatus
+    /// A assinatura de que a venda contestada era um ciclo; nulo quando não é de uma assinatura. A assinatura fica suspensa (suspension_reason dispute).
+    public let subscriptionID: String?
 
-    public init(amountCents: Int, currency: WebhookDisputeCurrency, customerID: String?, decidedAt: String?, dueBy: String?, id: String, invoiceID: String?, openedAt: String, paymentID: String, providerDisputeID: String, providerReason: String, reason: String, source: WebhookDisputeSource, status: WebhookDisputeStatus) {
+    public init(amountCents: Int, currency: WebhookDisputeCurrency, customerID: String?, decidedAt: String?, dueBy: String?, id: String, invoiceID: String?, openedAt: String, paymentID: String, providerDisputeID: String, providerReason: String, reason: String, source: WebhookDisputeSource, status: WebhookDisputeStatus, checkoutID: String? = nil, clientReferenceID: String? = nil, externalCustomerID: String? = nil, kind: WebhookDisputeKind? = nil, metadata: [String: JSONValue]? = nil, paymentMethod: String? = nil, subscriptionID: String? = nil) {
         self.amountCents = amountCents
+        self.checkoutID = checkoutID
+        self.clientReferenceID = clientReferenceID
         self.currency = currency
         self.customerID = customerID
         self.decidedAt = decidedAt
         self.dueBy = dueBy
+        self.externalCustomerID = externalCustomerID
         self.id = id
         self.invoiceID = invoiceID
+        self.kind = kind
+        self.metadata = metadata
         self.openedAt = openedAt
         self.paymentID = paymentID
+        self.paymentMethod = paymentMethod
         self.providerDisputeID = providerDisputeID
         self.providerReason = providerReason
         self.reason = reason
         self.source = source
         self.status = status
+        self.subscriptionID = subscriptionID
     }
 
     enum CodingKeys: String, CodingKey {
         case amountCents = "amount_cents"
+        case checkoutID = "checkout_id"
+        case clientReferenceID = "client_reference_id"
         case currency
         case customerID = "customer_id"
         case decidedAt = "decided_at"
         case dueBy = "due_by"
+        case externalCustomerID = "external_customer_id"
         case id
         case invoiceID = "invoice_id"
+        case kind
+        case metadata
         case openedAt = "opened_at"
         case paymentID = "payment_id"
+        case paymentMethod = "payment_method"
         case providerDisputeID = "provider_dispute_id"
         case providerReason = "provider_reason"
         case reason
         case source
         case status
+        case subscriptionID = "subscription_id"
     }
 }
 
@@ -2160,6 +2248,8 @@ public struct WebhookOrder: Codable, Sendable, Hashable {
     public let clientReferenceID: String
     public let currency: WebhookOrderCurrency
     public let customerID: String
+    /// O ciclo da assinatura que o pagamento cobra: 1 é o primeiro, 2 é a primeira renovação.
+    public let cycleSequence: Int?
     public let id: String
     /// Juros do parcelamento pagos pelo comprador, cobrados além de amount_cents.
     public let installmentInterestCents: Int
@@ -2167,11 +2257,15 @@ public struct WebhookOrder: Codable, Sendable, Hashable {
     public let installments: Int
     /// As linhas do pedido, quando o seu servidor as enviou ao criar o checkout; vazio sem elas.
     public let items: [CheckoutLine]
-    /// Os pares que o seu servidor enviou ao criar o checkout.
+    /// Os pares que o seu servidor enviou ao criar o checkout. Na renovação de uma assinatura são os metadados da assinatura (o id da câmera, por exemplo).
     public let metadata: [String: JSONValue]
     /// Onde o pedido está; status é o do checkout e continua succeeded depois de um reembolso, e este vira partially_refunded ou refunded.
     public let orderStatus: WebhookOrderOrderStatus?
     public let paidAt: String?
+    /// O fim do período do ciclo que o pagamento cobra.
+    public let periodEnd: String?
+    /// O início do período do ciclo que o pagamento cobra.
+    public let periodStart: String?
     public let priceID: String
     public let productID: String
     /// O valor só deste reembolso, em centavos; nulo como refund_id. O acumulado do pedido é refunded_amount_cents.
@@ -2181,12 +2275,15 @@ public struct WebhookOrder: Codable, Sendable, Hashable {
     /// Quanto do pedido já foi devolvido, somando todos os reembolsos que deram certo, em centavos.
     public let refundedAmountCents: Int
     public let status: WebhookOrderStatus
+    /// A assinatura que este pagamento cobra; nulo quando a venda não é de uma assinatura.
+    public let subscriptionID: String?
 
-    public init(amountCents: Int, clientReferenceID: String, currency: WebhookOrderCurrency, customerID: String, id: String, installmentInterestCents: Int, installments: Int, items: [CheckoutLine], metadata: [String: JSONValue], orderStatus: WebhookOrderOrderStatus?, paidAt: String?, priceID: String, productID: String, refundAmountCents: Int?, refundID: String?, refundedAmountCents: Int, status: WebhookOrderStatus) {
+    public init(amountCents: Int, clientReferenceID: String, currency: WebhookOrderCurrency, customerID: String, id: String, installmentInterestCents: Int, installments: Int, items: [CheckoutLine], metadata: [String: JSONValue], orderStatus: WebhookOrderOrderStatus?, paidAt: String?, priceID: String, productID: String, refundAmountCents: Int?, refundID: String?, refundedAmountCents: Int, status: WebhookOrderStatus, cycleSequence: Int? = nil, periodEnd: String? = nil, periodStart: String? = nil, subscriptionID: String? = nil) {
         self.amountCents = amountCents
         self.clientReferenceID = clientReferenceID
         self.currency = currency
         self.customerID = customerID
+        self.cycleSequence = cycleSequence
         self.id = id
         self.installmentInterestCents = installmentInterestCents
         self.installments = installments
@@ -2194,12 +2291,15 @@ public struct WebhookOrder: Codable, Sendable, Hashable {
         self.metadata = metadata
         self.orderStatus = orderStatus
         self.paidAt = paidAt
+        self.periodEnd = periodEnd
+        self.periodStart = periodStart
         self.priceID = priceID
         self.productID = productID
         self.refundAmountCents = refundAmountCents
         self.refundID = refundID
         self.refundedAmountCents = refundedAmountCents
         self.status = status
+        self.subscriptionID = subscriptionID
     }
 
     enum CodingKeys: String, CodingKey {
@@ -2207,6 +2307,7 @@ public struct WebhookOrder: Codable, Sendable, Hashable {
         case clientReferenceID = "client_reference_id"
         case currency
         case customerID = "customer_id"
+        case cycleSequence = "cycle_sequence"
         case id
         case installmentInterestCents = "installment_interest_cents"
         case installments
@@ -2214,12 +2315,15 @@ public struct WebhookOrder: Codable, Sendable, Hashable {
         case metadata
         case orderStatus = "order_status"
         case paidAt = "paid_at"
+        case periodEnd = "period_end"
+        case periodStart = "period_start"
         case priceID = "price_id"
         case productID = "product_id"
         case refundAmountCents = "refund_amount_cents"
         case refundID = "refund_id"
         case refundedAmountCents = "refunded_amount_cents"
         case status
+        case subscriptionID = "subscription_id"
     }
 }
 
@@ -2268,38 +2372,50 @@ public struct WebhookSale: Codable, Sendable, Hashable {
     /// O id do pedido no sistema do lojista; vazio sem ele.
     public let clientReferenceID: String?
     public let currency: WebhookSaleCurrency?
+    /// O ciclo da assinatura que o pagamento cobra: 1 é o primeiro, 2 é a primeira renovação.
+    public let cycleSequence: Int?
     public let environment: String
     public let eventID: String
     public let merchantID: String
-    /// Os pares que o servidor do lojista enviou ao criar o checkout; vazio sem eles.
+    /// Os pares que o servidor do lojista enviou ao criar o checkout; vazio sem eles. Na renovação de uma assinatura são os da assinatura.
     public let metadata: [String: JSONValue]?
     /// O meio do pagamento, nos eventos checkout_payment.*.
     public let method: WebhookSaleMethod?
     /// O pagamento que o reembolso devolve, nos eventos refund.*.
     public let paymentID: String?
+    /// O fim do período do ciclo que o pagamento cobra.
+    public let periodEnd: String?
+    /// O início do período do ciclo que o pagamento cobra.
+    public let periodStart: String?
     /// O valor só do reembolso que moveu o pagamento, em centavos; em checkout_payment.refunded e checkout_payment.partially_refunded.
     public let refundAmountCents: Int?
     /// O reembolso: nos eventos refund.*, o próprio; em checkout_payment.refunded e checkout_payment.partially_refunded, o que moveu o pagamento.
     public let refundID: String?
     /// Quanto do pagamento já foi devolvido, somando os reembolsos que deram certo, nos eventos checkout_payment.*.
     public let refundedAmountCents: Int?
+    /// A assinatura que este pagamento cobra; nulo quando a venda não é de uma assinatura.
+    public let subscriptionID: String?
 
-    public init(aggregate: String, aggregateID: String, environment: String, eventID: String, merchantID: String, amountCents: Int? = nil, checkoutID: String? = nil, clientReferenceID: String? = nil, currency: WebhookSaleCurrency? = nil, metadata: [String: JSONValue]? = nil, method: WebhookSaleMethod? = nil, paymentID: String? = nil, refundAmountCents: Int? = nil, refundID: String? = nil, refundedAmountCents: Int? = nil) {
+    public init(aggregate: String, aggregateID: String, environment: String, eventID: String, merchantID: String, amountCents: Int? = nil, checkoutID: String? = nil, clientReferenceID: String? = nil, currency: WebhookSaleCurrency? = nil, cycleSequence: Int? = nil, metadata: [String: JSONValue]? = nil, method: WebhookSaleMethod? = nil, paymentID: String? = nil, periodEnd: String? = nil, periodStart: String? = nil, refundAmountCents: Int? = nil, refundID: String? = nil, refundedAmountCents: Int? = nil, subscriptionID: String? = nil) {
         self.aggregate = aggregate
         self.aggregateID = aggregateID
         self.amountCents = amountCents
         self.checkoutID = checkoutID
         self.clientReferenceID = clientReferenceID
         self.currency = currency
+        self.cycleSequence = cycleSequence
         self.environment = environment
         self.eventID = eventID
         self.merchantID = merchantID
         self.metadata = metadata
         self.method = method
         self.paymentID = paymentID
+        self.periodEnd = periodEnd
+        self.periodStart = periodStart
         self.refundAmountCents = refundAmountCents
         self.refundID = refundID
         self.refundedAmountCents = refundedAmountCents
+        self.subscriptionID = subscriptionID
     }
 
     enum CodingKeys: String, CodingKey {
@@ -2309,15 +2425,132 @@ public struct WebhookSale: Codable, Sendable, Hashable {
         case checkoutID = "checkout_id"
         case clientReferenceID = "client_reference_id"
         case currency
+        case cycleSequence = "cycle_sequence"
         case environment
         case eventID = "event_id"
         case merchantID = "merchant_id"
         case metadata
         case method
         case paymentID = "payment_id"
+        case periodEnd = "period_end"
+        case periodStart = "period_start"
         case refundAmountCents = "refund_amount_cents"
         case refundID = "refund_id"
         case refundedAmountCents = "refunded_amount_cents"
+        case subscriptionID = "subscription_id"
+    }
+}
+
+/// A assinatura como a API a devolve (Subscription) e, nos eventos que uma cobrança recusada causou (subscription.past_due, subscription.suspended e o subscription.updated que os acompanha), a cobrança recusada em payment_failure.
+public struct WebhookSubscription: Codable, Sendable, Hashable {
+    public let amountCents: Int
+    public let cancelAtPeriodEnd: Bool
+    public let currency: WebhookSubscriptionCurrency
+    public let currentPeriodEnd: String
+    public let currentPeriodStart: String
+    public let customerID: String
+    public let id: String
+    public let interval: String
+    /// Metadados do lojista: pares chave e valor (texto, número ou booleano); objeto vazio quando não há.
+    public let metadata: [String: JSONValue]
+    /// A cobrança recusada que causou o evento; só nos eventos de cobrança recusada.
+    public let paymentFailure: WebhookSubscriptionPaymentFailure?
+    public let priceID: String
+    public let productID: String
+    public let status: WebhookSubscriptionStatus
+    /// Quando a assinatura foi suspensa; nulo enquanto não está suspensa.
+    public let suspendedAt: String?
+    /// Por que foi suspensa; nulo enquanto não está suspensa.
+    public let suspensionReason: WebhookSubscriptionSuspensionReason?
+    public let trialEnd: String?
+    public let trialStart: String?
+
+    public init(amountCents: Int, cancelAtPeriodEnd: Bool, currency: WebhookSubscriptionCurrency, currentPeriodEnd: String, currentPeriodStart: String, customerID: String, id: String, interval: String, metadata: [String: JSONValue], priceID: String, productID: String, status: WebhookSubscriptionStatus, suspendedAt: String?, suspensionReason: WebhookSubscriptionSuspensionReason?, trialEnd: String?, trialStart: String?, paymentFailure: WebhookSubscriptionPaymentFailure? = nil) {
+        self.amountCents = amountCents
+        self.cancelAtPeriodEnd = cancelAtPeriodEnd
+        self.currency = currency
+        self.currentPeriodEnd = currentPeriodEnd
+        self.currentPeriodStart = currentPeriodStart
+        self.customerID = customerID
+        self.id = id
+        self.interval = interval
+        self.metadata = metadata
+        self.paymentFailure = paymentFailure
+        self.priceID = priceID
+        self.productID = productID
+        self.status = status
+        self.suspendedAt = suspendedAt
+        self.suspensionReason = suspensionReason
+        self.trialEnd = trialEnd
+        self.trialStart = trialStart
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case amountCents = "amount_cents"
+        case cancelAtPeriodEnd = "cancel_at_period_end"
+        case currency
+        case currentPeriodEnd = "current_period_end"
+        case currentPeriodStart = "current_period_start"
+        case customerID = "customer_id"
+        case id
+        case interval
+        case metadata
+        case paymentFailure = "payment_failure"
+        case priceID = "price_id"
+        case productID = "product_id"
+        case status
+        case suspendedAt = "suspended_at"
+        case suspensionReason = "suspension_reason"
+        case trialEnd = "trial_end"
+        case trialStart = "trial_start"
+    }
+}
+
+/// A cobrança recusada que causou o evento; só nos eventos de cobrança recusada.
+public struct WebhookSubscriptionPaymentFailure: Codable, Sendable, Hashable {
+    /// O valor cobrado, em centavos.
+    public let amountCents: Int
+    /// O número da cobrança recusada neste ciclo: 1 é a do vencimento, 2 é a primeira nova tentativa.
+    public let attempt: Int
+    /// O ciclo cobrado: 2 é a primeira renovação.
+    public let cycleSequence: Int
+    /// O código da recusa, como o emissor devolveu; vazio quando não informou.
+    public let declineCode: String
+    /// Quantas cobranças o cartão recebe neste ciclo: a do vencimento mais uma por dia de nova tentativa que a organização configurou.
+    public let maxAttempts: Int
+    /// Quando o cartão será cobrado de novo; nulo quando não haverá nova tentativa.
+    public let nextAttemptAt: String?
+    public let periodEnd: String
+    public let periodStart: String
+    /// O motivo da recusa, nas palavras do emissor.
+    public let reason: String
+    /// Verdadeiro quando o emissor permite tentar o mesmo cartão de novo; falso é recusa definitiva.
+    public let retryable: Bool
+
+    public init(amountCents: Int, attempt: Int, cycleSequence: Int, declineCode: String, maxAttempts: Int, nextAttemptAt: String?, periodEnd: String, periodStart: String, reason: String, retryable: Bool) {
+        self.amountCents = amountCents
+        self.attempt = attempt
+        self.cycleSequence = cycleSequence
+        self.declineCode = declineCode
+        self.maxAttempts = maxAttempts
+        self.nextAttemptAt = nextAttemptAt
+        self.periodEnd = periodEnd
+        self.periodStart = periodStart
+        self.reason = reason
+        self.retryable = retryable
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case amountCents = "amount_cents"
+        case attempt
+        case cycleSequence = "cycle_sequence"
+        case declineCode = "decline_code"
+        case maxAttempts = "max_attempts"
+        case nextAttemptAt = "next_attempt_at"
+        case periodEnd = "period_end"
+        case periodStart = "period_start"
+        case reason
+        case retryable
     }
 }
 
@@ -3182,12 +3415,15 @@ public struct PricesCreateParams: Encodable, Sendable, Hashable {
     public var amountCents: Int
     /// Obrigatório no preço recorrente; o preço one_time não tem intervalo.
     public var interval: PricesCreateParamsInterval?
+    /// De quantos em quantos intervalos o preço renova; 1 se omitido. Com month vai de 1 a 12 (3 é trimestral, 6 semestral); com year só 1. O preço one_time não tem.
+    public var intervalCount: Int?
     public var productID: String
     public var type: PricesCreateParamsType
 
-    public init(amountCents: Int, productID: String, type: PricesCreateParamsType, interval: PricesCreateParamsInterval? = nil) {
+    public init(amountCents: Int, productID: String, type: PricesCreateParamsType, interval: PricesCreateParamsInterval? = nil, intervalCount: Int? = nil) {
         self.amountCents = amountCents
         self.interval = interval
+        self.intervalCount = intervalCount
         self.productID = productID
         self.type = type
     }
@@ -3195,6 +3431,7 @@ public struct PricesCreateParams: Encodable, Sendable, Hashable {
     enum CodingKeys: String, CodingKey {
         case amountCents = "amount_cents"
         case interval
+        case intervalCount = "interval_count"
         case productID = "product_id"
         case type
     }
@@ -3203,6 +3440,7 @@ public struct PricesCreateParams: Encodable, Sendable, Hashable {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(amountCents, forKey: .amountCents)
         try container.encodeIfPresent(interval, forKey: .interval)
+        try container.encodeIfPresent(intervalCount, forKey: .intervalCount)
         try container.encode(productID, forKey: .productID)
         try container.encode(type, forKey: .type)
     }
@@ -4213,6 +4451,26 @@ public struct DisputeCurrency: RawRepresentable, Codable, Sendable, Hashable, Ex
     public static let brl = DisputeCurrency(rawValue: "BRL")
 }
 
+/// The values of `Dispute.kind`. chargeback é a contestação de um cartão na bandeira; med é a devolução que o banco do pagador pede num Pix (Mecanismo Especial de Devolução).
+///
+/// A value this SDK does not know yet is kept as it came, in `rawValue`.
+public struct DisputeKind: RawRepresentable, Codable, Sendable, Hashable, ExpressibleByStringLiteral {
+    public let rawValue: String
+
+    public init(rawValue: String) {
+        self.rawValue = rawValue
+    }
+
+    public init(stringLiteral value: String) {
+        self.rawValue = value
+    }
+
+    /// `chargeback`
+    public static let chargeback = DisputeKind(rawValue: "chargeback")
+    /// `med`
+    public static let med = DisputeKind(rawValue: "med")
+}
+
 /// The values of `Dispute.source`.
 ///
 /// A value this SDK does not know yet is kept as it came, in `rawValue`.
@@ -4691,10 +4949,34 @@ public struct SubscriptionStatus: RawRepresentable, Codable, Sendable, Hashable,
     public static let active = SubscriptionStatus(rawValue: "active")
     /// `past_due`
     public static let pastDue = SubscriptionStatus(rawValue: "past_due")
+    /// `suspended`
+    public static let suspended = SubscriptionStatus(rawValue: "suspended")
     /// `paused`
     public static let paused = SubscriptionStatus(rawValue: "paused")
     /// `canceled`
     public static let canceled = SubscriptionStatus(rawValue: "canceled")
+}
+
+/// The values of `Subscription.suspension_reason`. Por que foi suspensa: retries_exhausted (o cartão foi recusado em todas as tentativas), declined_not_retryable (o emissor recusou sem permitir nova tentativa) ou dispute (o comprador contestou o pagamento); nulo enquanto não está suspensa.
+///
+/// A value this SDK does not know yet is kept as it came, in `rawValue`.
+public struct SubscriptionSuspensionReason: RawRepresentable, Codable, Sendable, Hashable, ExpressibleByStringLiteral {
+    public let rawValue: String
+
+    public init(rawValue: String) {
+        self.rawValue = rawValue
+    }
+
+    public init(stringLiteral value: String) {
+        self.rawValue = value
+    }
+
+    /// `retries_exhausted`
+    public static let retriesExhausted = SubscriptionSuspensionReason(rawValue: "retries_exhausted")
+    /// `declined_not_retryable`
+    public static let declinedNotRetryable = SubscriptionSuspensionReason(rawValue: "declined_not_retryable")
+    /// `dispute`
+    public static let dispute = SubscriptionSuspensionReason(rawValue: "dispute")
 }
 
 /// The values of `WebhookBenefit.status`.
@@ -4885,6 +5167,26 @@ public struct WebhookDisputeCurrency: RawRepresentable, Codable, Sendable, Hasha
 
     /// `BRL`
     public static let brl = WebhookDisputeCurrency(rawValue: "BRL")
+}
+
+/// The values of `WebhookDispute.kind`. chargeback é a contestação de um cartão na bandeira; med é a devolução que o banco do pagador pede num Pix (Mecanismo Especial de Devolução).
+///
+/// A value this SDK does not know yet is kept as it came, in `rawValue`.
+public struct WebhookDisputeKind: RawRepresentable, Codable, Sendable, Hashable, ExpressibleByStringLiteral {
+    public let rawValue: String
+
+    public init(rawValue: String) {
+        self.rawValue = rawValue
+    }
+
+    public init(stringLiteral value: String) {
+        self.rawValue = value
+    }
+
+    /// `chargeback`
+    public static let chargeback = WebhookDisputeKind(rawValue: "chargeback")
+    /// `med`
+    public static let med = WebhookDisputeKind(rawValue: "med")
 }
 
 /// The values of `WebhookDispute.source`.
@@ -5155,6 +5457,74 @@ public struct WebhookSaleMethod: RawRepresentable, Codable, Sendable, Hashable, 
     public static let pix = WebhookSaleMethod(rawValue: "pix")
     /// `boleto`
     public static let boleto = WebhookSaleMethod(rawValue: "boleto")
+}
+
+/// The values of `WebhookSubscription.currency`.
+///
+/// A value this SDK does not know yet is kept as it came, in `rawValue`.
+public struct WebhookSubscriptionCurrency: RawRepresentable, Codable, Sendable, Hashable, ExpressibleByStringLiteral {
+    public let rawValue: String
+
+    public init(rawValue: String) {
+        self.rawValue = rawValue
+    }
+
+    public init(stringLiteral value: String) {
+        self.rawValue = value
+    }
+
+    /// `BRL`
+    public static let brl = WebhookSubscriptionCurrency(rawValue: "BRL")
+}
+
+/// The values of `WebhookSubscription.status`.
+///
+/// A value this SDK does not know yet is kept as it came, in `rawValue`.
+public struct WebhookSubscriptionStatus: RawRepresentable, Codable, Sendable, Hashable, ExpressibleByStringLiteral {
+    public let rawValue: String
+
+    public init(rawValue: String) {
+        self.rawValue = rawValue
+    }
+
+    public init(stringLiteral value: String) {
+        self.rawValue = value
+    }
+
+    /// `trialing`
+    public static let trialing = WebhookSubscriptionStatus(rawValue: "trialing")
+    /// `active`
+    public static let active = WebhookSubscriptionStatus(rawValue: "active")
+    /// `past_due`
+    public static let pastDue = WebhookSubscriptionStatus(rawValue: "past_due")
+    /// `suspended`
+    public static let suspended = WebhookSubscriptionStatus(rawValue: "suspended")
+    /// `paused`
+    public static let paused = WebhookSubscriptionStatus(rawValue: "paused")
+    /// `canceled`
+    public static let canceled = WebhookSubscriptionStatus(rawValue: "canceled")
+}
+
+/// The values of `WebhookSubscription.suspension_reason`. Por que foi suspensa; nulo enquanto não está suspensa.
+///
+/// A value this SDK does not know yet is kept as it came, in `rawValue`.
+public struct WebhookSubscriptionSuspensionReason: RawRepresentable, Codable, Sendable, Hashable, ExpressibleByStringLiteral {
+    public let rawValue: String
+
+    public init(rawValue: String) {
+        self.rawValue = rawValue
+    }
+
+    public init(stringLiteral value: String) {
+        self.rawValue = value
+    }
+
+    /// `retries_exhausted`
+    public static let retriesExhausted = WebhookSubscriptionSuspensionReason(rawValue: "retries_exhausted")
+    /// `declined_not_retryable`
+    public static let declinedNotRetryable = WebhookSubscriptionSuspensionReason(rawValue: "declined_not_retryable")
+    /// `dispute`
+    public static let dispute = WebhookSubscriptionSuspensionReason(rawValue: "dispute")
 }
 
 /// The values of `BenefitsCreateParams.type`.

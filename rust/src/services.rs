@@ -2215,6 +2215,11 @@ impl<'a> SubscriptionsService<'a> {
         })
     }
 
+    /// Reativar uma assinatura suspensa, que volta a ser cobrada (a cobrança do ciclo em aberto recomeça), ou retomar uma pausada; qualquer outra recebe 409.
+    pub fn resume(&self, subscription: &str) -> Result<Subscription, Error> {
+        self.client.request("POST", &format!("/api/v1/subscriptions/{}/resume", crate::client::escape(subscription)), &[], None::<&()>, &self.options)
+    }
+
     /// Trocar o plano de uma assinatura: outro preço e, se quiser, outra quantidade, com a forma de ratear a diferença (proration_behavior).
     pub fn update(&self, subscription: &str, params: &SubscriptionsUpdateParams) -> Result<Subscription, Error> {
         self.client.request("PATCH", &format!("/api/v1/subscriptions/{}", crate::client::escape(subscription)), &[], Some(params), &self.options)

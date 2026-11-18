@@ -266,10 +266,10 @@ end
 
 defmodule Perata.SubscriptionWebhookEvent do
   @moduledoc """
-  The events that carry a Subscription: `subscription.active`, `subscription.canceled`, `subscription.created`, `subscription.cycled`, `subscription.past_due`, `subscription.paused`, `subscription.resumed`, `subscription.revoked`, `subscription.uncanceled`, `subscription.updated`.
+  The events that carry a WebhookSubscription: `subscription.active`, `subscription.canceled`, `subscription.created`, `subscription.cycled`, `subscription.past_due`, `subscription.paused`, `subscription.resumed`, `subscription.revoked`, `subscription.suspended`, `subscription.uncanceled`, `subscription.updated`.
   """
 
-  @types ~w(subscription.active subscription.canceled subscription.created subscription.cycled subscription.past_due subscription.paused subscription.resumed subscription.revoked subscription.uncanceled subscription.updated)
+  @types ~w(subscription.active subscription.canceled subscription.created subscription.cycled subscription.past_due subscription.paused subscription.resumed subscription.revoked subscription.suspended subscription.uncanceled subscription.updated)
 
   @enforce_keys [:id, :type, :timestamp, :data]
   defstruct [:id, :type, :timestamp, :data, environment: ""]
@@ -280,7 +280,7 @@ defmodule Perata.SubscriptionWebhookEvent do
           type: String.t(),
           timestamp: String.t(),
           environment: String.t(),
-          data: Perata.Subscription.t()
+          data: Perata.WebhookSubscription.t()
         }
 
   @doc "The event types this struct carries."
@@ -441,7 +441,7 @@ defmodule Perata.WebhookEvent do
           type: type,
           timestamp: timestamp,
           environment: environment,
-          data: Perata.Subscription.from_map(data)
+          data: Perata.WebhookSubscription.from_map(data)
         }
 
       true ->

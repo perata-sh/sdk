@@ -21,6 +21,10 @@ public sealed record CheckoutClientCustomer
     [JsonPropertyName("email")]
     public required string Email { get; init; }
 
+    /// <summary>Verdadeiro quando o servidor do lojista abriu o checkout para um cliente que ele informou (customer_id ou external_customer_id): o e-mail não muda, os campos já vêm preenchidos para o comprador conferir e nenhum código é pedido para provar o e-mail.</summary>
+    [JsonPropertyName("locked")]
+    public required bool Locked { get; init; }
+
     /// <summary>The API's <c>name</c>.</summary>
     [JsonPropertyName("name")]
     public required string Name { get; init; }

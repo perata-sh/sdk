@@ -16,6 +16,8 @@ final class WebhookOrder
         /** @var 'BRL' */
         public readonly string $currency,
         public readonly string $customerId,
+        /** O ciclo da assinatura que o pagamento cobra: 1 é o primeiro, 2 é a primeira renovação. */
+        public readonly ?int $cycleSequence,
         public readonly string $id,
         /** Juros do parcelamento pagos pelo comprador, cobrados além de amount_cents. */
         public readonly int $installmentInterestCents,
@@ -27,7 +29,7 @@ final class WebhookOrder
          */
         public readonly array $items,
         /**
-         * Os pares que o seu servidor enviou ao criar o checkout.
+         * Os pares que o seu servidor enviou ao criar o checkout. Na renovação de uma assinatura são os metadados da assinatura (o id da câmera, por exemplo).
          * @var array<string, mixed>
          */
         public readonly array $metadata,
@@ -37,6 +39,10 @@ final class WebhookOrder
          */
         public readonly ?string $orderStatus,
         public readonly ?string $paidAt,
+        /** O fim do período do ciclo que o pagamento cobra. */
+        public readonly ?string $periodEnd,
+        /** O início do período do ciclo que o pagamento cobra. */
+        public readonly ?string $periodStart,
         public readonly string $priceId,
         public readonly string $productId,
         /** O valor só deste reembolso, em centavos; nulo como refund_id. O acumulado do pedido é refunded_amount_cents. */
@@ -47,6 +53,8 @@ final class WebhookOrder
         public readonly int $refundedAmountCents,
         /** @var 'open'|'confirmed'|'succeeded'|'failed'|'expired' */
         public readonly string $status,
+        /** A assinatura que este pagamento cobra; nulo quando a venda não é de uma assinatura. */
+        public readonly ?string $subscriptionId,
     ) {
     }
 
@@ -60,6 +68,7 @@ final class WebhookOrder
             clientReferenceId: $data['client_reference_id'],
             currency: $data['currency'],
             customerId: $data['customer_id'],
+            cycleSequence: $data['cycle_sequence'] ?? null,
             id: $data['id'],
             installmentInterestCents: $data['installment_interest_cents'],
             installments: $data['installments'],
@@ -67,12 +76,15 @@ final class WebhookOrder
             metadata: $data['metadata'],
             orderStatus: $data['order_status'] ?? null,
             paidAt: $data['paid_at'] ?? null,
+            periodEnd: $data['period_end'] ?? null,
+            periodStart: $data['period_start'] ?? null,
             priceId: $data['price_id'],
             productId: $data['product_id'],
             refundAmountCents: $data['refund_amount_cents'] ?? null,
             refundId: $data['refund_id'] ?? null,
             refundedAmountCents: $data['refunded_amount_cents'],
             status: $data['status'],
+            subscriptionId: $data['subscription_id'] ?? null,
         );
     }
 }

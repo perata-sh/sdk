@@ -80,8 +80,8 @@ public typealias RefundWebhookEvent = WebhookMessage<WebhookRefund>
 /// The events that carry a WebhookSale: `checkout_payment.authorized`, `checkout_payment.canceled`, `checkout_payment.captured`, `checkout_payment.partially_refunded`, `checkout_payment.refunded`, `checkout_payment.refused`, `refund.canceled`, `refund.failed`, `refund.requested`, `refund.succeeded`.
 public typealias SaleWebhookEvent = WebhookMessage<WebhookSale>
 
-/// The events that carry a Subscription: `subscription.active`, `subscription.canceled`, `subscription.created`, `subscription.cycled`, `subscription.past_due`, `subscription.paused`, `subscription.resumed`, `subscription.revoked`, `subscription.uncanceled`, `subscription.updated`.
-public typealias SubscriptionWebhookEvent = WebhookMessage<Subscription>
+/// The events that carry a WebhookSubscription: `subscription.active`, `subscription.canceled`, `subscription.created`, `subscription.cycled`, `subscription.past_due`, `subscription.paused`, `subscription.resumed`, `subscription.revoked`, `subscription.suspended`, `subscription.uncanceled`, `subscription.updated`.
+public typealias SubscriptionWebhookEvent = WebhookMessage<WebhookSubscription>
 
 /// An event of a type this SDK does not know yet: its id, type, timestamp and
 /// environment, and the body as it was sent.
@@ -120,7 +120,7 @@ public enum WebhookEvent: Sendable, Hashable {
     case refund(RefundWebhookEvent)
     /// `checkout_payment.authorized`, `checkout_payment.canceled`, `checkout_payment.captured`, `checkout_payment.partially_refunded`, `checkout_payment.refunded`, `checkout_payment.refused`, `refund.canceled`, `refund.failed`, `refund.requested`, `refund.succeeded`.
     case sale(SaleWebhookEvent)
-    /// `subscription.active`, `subscription.canceled`, `subscription.created`, `subscription.cycled`, `subscription.past_due`, `subscription.paused`, `subscription.resumed`, `subscription.revoked`, `subscription.uncanceled`, `subscription.updated`.
+    /// `subscription.active`, `subscription.canceled`, `subscription.created`, `subscription.cycled`, `subscription.past_due`, `subscription.paused`, `subscription.resumed`, `subscription.revoked`, `subscription.suspended`, `subscription.uncanceled`, `subscription.updated`.
     case subscription(SubscriptionWebhookEvent)
     /// A type this SDK does not know yet.
     case unknown(UnknownWebhookEvent)
@@ -236,7 +236,7 @@ public enum WebhookEvent: Sendable, Hashable {
             return try .refund(decoder.decode(RefundWebhookEvent.self, from: body))
         case "checkout_payment.authorized", "checkout_payment.canceled", "checkout_payment.captured", "checkout_payment.partially_refunded", "checkout_payment.refunded", "checkout_payment.refused", "refund.canceled", "refund.failed", "refund.requested", "refund.succeeded":
             return try .sale(decoder.decode(SaleWebhookEvent.self, from: body))
-        case "subscription.active", "subscription.canceled", "subscription.created", "subscription.cycled", "subscription.past_due", "subscription.paused", "subscription.resumed", "subscription.revoked", "subscription.uncanceled", "subscription.updated":
+        case "subscription.active", "subscription.canceled", "subscription.created", "subscription.cycled", "subscription.past_due", "subscription.paused", "subscription.resumed", "subscription.revoked", "subscription.suspended", "subscription.uncanceled", "subscription.updated":
             return try .subscription(decoder.decode(SubscriptionWebhookEvent.self, from: body))
         default:
             return .unknown(UnknownWebhookEvent(id: header.id, type: header.type, timestamp: header.timestamp, environment: header.environment ?? "", body: body))

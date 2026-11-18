@@ -51,6 +51,10 @@ public sealed record WebhookCheckout
     [JsonPropertyName("customer_id")]
     public string? CustomerId { get; init; }
 
+    /// <summary>O ciclo da assinatura que o pagamento cobra: 1 é o primeiro, 2 é a primeira renovação. Null when the API sends none.</summary>
+    [JsonPropertyName("cycle_sequence")]
+    public long? CycleSequence { get; init; }
+
     /// <summary>The API's <c>discount_cents</c>.</summary>
     [JsonPropertyName("discount_cents")]
     public required long DiscountCents { get; init; }
@@ -67,9 +71,17 @@ public sealed record WebhookCheckout
     [JsonPropertyName("items")]
     public IReadOnlyList<CheckoutLine>? Items { get; init; }
 
-    /// <summary>Os pares que o servidor do lojista enviou ao criar o checkout; vazio sem eles. Null when the API sends none.</summary>
+    /// <summary>Os pares que o servidor do lojista enviou ao criar o checkout; vazio sem eles. Na renovação de uma assinatura são os da assinatura. Null when the API sends none.</summary>
     [JsonPropertyName("metadata")]
     public IReadOnlyDictionary<string, JsonElement>? Metadata { get; init; }
+
+    /// <summary>O fim do período do ciclo que o pagamento cobra. Null when the API sends none.</summary>
+    [JsonPropertyName("period_end")]
+    public string? PeriodEnd { get; init; }
+
+    /// <summary>O início do período do ciclo que o pagamento cobra. Null when the API sends none.</summary>
+    [JsonPropertyName("period_start")]
+    public string? PeriodStart { get; init; }
 
     /// <summary>The API's <c>price_id</c>.</summary>
     [JsonPropertyName("price_id")]
@@ -82,6 +94,10 @@ public sealed record WebhookCheckout
     /// <summary>The API's <c>status</c>.</summary>
     [JsonPropertyName("status")]
     public required string Status { get; init; }
+
+    /// <summary>A assinatura que este pagamento cobra; nulo quando a venda não é de uma assinatura. Null when the API sends none.</summary>
+    [JsonPropertyName("subscription_id")]
+    public string? SubscriptionId { get; init; }
 
     /// <summary>The API's <c>total_cents</c>.</summary>
     [JsonPropertyName("total_cents")]

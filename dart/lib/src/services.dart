@@ -1453,6 +1453,21 @@ class SubscriptionsService {
     );
   }
 
+  /// Reativar uma assinatura suspensa, que volta a ser cobrada (a cobrança do ciclo em aberto recomeça), ou retomar uma pausada; qualquer outra recebe 409.
+  Future<Subscription> resume(
+    String subscription, {
+    String? idempotencyKey,
+    String? apiKey,
+  }) async {
+    final data = await _client.request(
+      'POST',
+      '/api/v1/subscriptions/${Uri.encodeComponent(subscription)}/resume',
+      idempotencyKey: idempotencyKey,
+      apiKey: apiKey,
+    );
+    return Subscription.fromJson(data);
+  }
+
   /// Trocar o plano de uma assinatura: outro preço e, se quiser, outra quantidade, com a forma de ratear a diferença (proration_behavior).
   Future<Subscription> update(
     String subscription,

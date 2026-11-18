@@ -13,11 +13,11 @@ public sealed record CheckoutSavedDataSent
     [JsonPropertyName("channel")]
     public required string Channel { get; init; }
 
-    /// <summary>Sempre falso, pelo mesmo motivo.</summary>
+    /// <summary>Sempre falso: o servidor não diz se este código é novo ou o de um pedido anterior.</summary>
     [JsonPropertyName("fresh")]
     public required bool Fresh { get; init; }
 
-    /// <summary>Sempre verdadeiro: a resposta não diz se há algo guardado para o e-mail.</summary>
+    /// <summary>Verdadeiro quando há algo guardado para o e-mail e um código foi enviado a ele; falso quando não há, e o comprador segue sem o campo do código. O pedido é limitado a 30 por hora por endereço e a 10 por e-mail.</summary>
     [JsonPropertyName("sent")]
     public required bool Sent { get; init; }
 }

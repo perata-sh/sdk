@@ -691,6 +691,7 @@ final class CheckoutClientCustomer {
     required this.address,
     required this.billingName,
     required this.email,
+    required this.locked,
     required this.name,
     required this.taxId,
     required this.taxIdKind,
@@ -702,6 +703,7 @@ final class CheckoutClientCustomer {
       address: BillingAddress.fromJson(readObject(json['address'])),
       billingName: json['billing_name'] as String,
       email: json['email'] as String,
+      locked: json['locked'] as bool,
       name: json['name'] as String,
       taxId: json['tax_id'] as String,
       taxIdKind: json['tax_id_kind'] as String,
@@ -713,6 +715,12 @@ final class CheckoutClientCustomer {
   final String billingName;
 
   final String email;
+
+  /// Verdadeiro quando o servidor do lojista abriu o checkout para um cliente
+  /// que ele informou (customer_id ou external_customer_id): o e-mail não muda,
+  /// os campos já vêm preenchidos para o comprador conferir e nenhum código é
+  /// pedido para provar o e-mail.
+  final bool locked;
 
   final String name;
 
@@ -726,6 +734,7 @@ final class CheckoutClientCustomer {
     'address': address.toJson(),
     'billing_name': billingName,
     'email': email,
+    'locked': locked,
     'name': name,
     'tax_id': taxId,
     'tax_id_kind': taxIdKind,
@@ -1558,10 +1567,13 @@ final class CheckoutSavedDataSent {
 
   final String channel;
 
-  /// Sempre falso, pelo mesmo motivo.
+  /// Sempre falso: o servidor não diz se este código é novo ou o de um pedido
+  /// anterior.
   final bool fresh;
 
-  /// Sempre verdadeiro: a resposta não diz se há algo guardado para o e-mail.
+  /// Verdadeiro quando há algo guardado para o e-mail e um código foi enviado a
+  /// ele; falso quando não há, e o comprador segue sem o campo do código. O
+  /// pedido é limitado a 30 por hora por endereço e a 10 por e-mail.
   final bool sent;
 
   /// The JSON the API answers.
@@ -1997,45 +2009,66 @@ final class Discount {
 final class Dispute {
   const Dispute({
     required this.amountCents,
+    this.checkoutId,
+    required this.clientReferenceId,
     required this.currency,
     this.customerId,
     this.decidedAt,
     this.dueBy,
+    this.externalCustomerId,
     required this.id,
     this.invoiceId,
+    required this.kind,
+    required this.metadata,
     required this.openedAt,
     this.orderId,
     required this.paymentId,
+    required this.paymentMethod,
     required this.providerDisputeId,
     required this.providerReason,
     required this.reason,
     required this.source,
     required this.status,
+    this.subscriptionId,
   });
 
   /// A Dispute out of the API's JSON.
   factory Dispute.fromJson(Map<String, Object?> json) {
     return Dispute(
       amountCents: json['amount_cents'] as int,
+      checkoutId: json['checkout_id'] as String?,
+      clientReferenceId: json['client_reference_id'] as String,
       currency: json['currency'] as String,
       customerId: json['customer_id'] as String?,
       decidedAt: json['decided_at'] as String?,
       dueBy: json['due_by'] as String?,
+      externalCustomerId: json['external_customer_id'] as String?,
       id: json['id'] as String,
       invoiceId: json['invoice_id'] as String?,
+      kind: json['kind'] as String,
+      metadata: readMap(json['metadata'], (value) => value),
       openedAt: json['opened_at'] as String,
       orderId: json['order_id'] as String?,
       paymentId: json['payment_id'] as String,
+      paymentMethod: json['payment_method'] as String,
       providerDisputeId: json['provider_dispute_id'] as String,
       providerReason: json['provider_reason'] as String,
       reason: json['reason'] as String,
       source: json['source'] as String,
       status: json['status'] as String,
+      subscriptionId: json['subscription_id'] as String?,
     );
   }
 
   /// Valor contestado, em centavos.
   final int amountCents;
+
+  /// O checkout (o pedido) da venda contestada; nulo quando não é de um
+  /// checkout. É o mesmo valor de order_id.
+  final String? checkoutId;
+
+  /// O id do pedido no seu sistema, enviado ao criar o checkout; vazio sem ele.
+  final String clientReferenceId;
 
   /// One of `BRL`.
   final String currency;
@@ -2047,9 +2080,22 @@ final class Dispute {
   /// Prazo da defesa.
   final String? dueBy;
 
+  /// O id do cliente no seu sistema; nulo sem ele.
+  final String? externalCustomerId;
+
   final String id;
 
   final String? invoiceId;
+
+  /// chargeback é a contestação de um cartão na bandeira; med é a devolução que
+  /// o banco do pagador pede num Pix (Mecanismo Especial de Devolução).
+  ///
+  /// One of `chargeback`, `med`.
+  final String kind;
+
+  /// Os pares que o seu servidor enviou ao criar o checkout; na renovação de
+  /// uma assinatura, os da assinatura.
+  final Map<String, Object?> metadata;
 
   final String openedAt;
 
@@ -2058,6 +2104,9 @@ final class Dispute {
 
   /// O PaymentId da venda contestada na Cielo.
   final String paymentId;
+
+  /// Como a venda contestada foi paga: card ou pix.
+  final String paymentMethod;
 
   /// O número do caso na Cielo.
   final String providerDisputeId;
@@ -2075,23 +2124,34 @@ final class Dispute {
   /// `lost`, `closed`.
   final String status;
 
+  /// A assinatura de que a venda contestada era um ciclo; nulo quando não é de
+  /// uma assinatura. A assinatura fica suspensa (suspension_reason dispute).
+  final String? subscriptionId;
+
   /// The JSON the API answers.
   Map<String, Object?> toJson() => {
     'amount_cents': amountCents,
+    'checkout_id': checkoutId,
+    'client_reference_id': clientReferenceId,
     'currency': currency,
     'customer_id': customerId,
     'decided_at': decidedAt,
     'due_by': dueBy,
+    'external_customer_id': externalCustomerId,
     'id': id,
     'invoice_id': invoiceId,
+    'kind': kind,
+    'metadata': metadata,
     'opened_at': openedAt,
     'order_id': orderId,
     'payment_id': paymentId,
+    'payment_method': paymentMethod,
     'provider_dispute_id': providerDisputeId,
     'provider_reason': providerReason,
     'reason': reason,
     'source': source,
     'status': status,
+    'subscription_id': subscriptionId,
   };
 }
 
@@ -2810,6 +2870,7 @@ final class Price {
     required this.currency,
     required this.id,
     required this.interval,
+    required this.intervalCount,
     required this.productId,
     required this.status,
     required this.type,
@@ -2822,6 +2883,7 @@ final class Price {
       currency: json['currency'] as String,
       id: json['id'] as String,
       interval: json['interval'] as String,
+      intervalCount: json['interval_count'] as int,
       productId: json['product_id'] as String,
       status: json['status'] as String,
       type: json['type'] as String,
@@ -2839,6 +2901,10 @@ final class Price {
   /// One of `none`, `month`, `year`.
   final String interval;
 
+  /// De quantos em quantos intervalos o preço renova: 3 com month é trimestral,
+  /// 6 semestral. 1 no preço one_time.
+  final int intervalCount;
+
   final String productId;
 
   /// One of `active`, `archived`.
@@ -2853,6 +2919,7 @@ final class Price {
     'currency': currency,
     'id': id,
     'interval': interval,
+    'interval_count': intervalCount,
     'product_id': productId,
     'status': status,
     'type': type,
@@ -2954,6 +3021,8 @@ final class Subscription {
     required this.priceId,
     required this.productId,
     required this.status,
+    this.suspendedAt,
+    this.suspensionReason,
     this.trialEnd,
     this.trialStart,
   });
@@ -2973,6 +3042,8 @@ final class Subscription {
       priceId: json['price_id'] as String,
       productId: json['product_id'] as String,
       status: json['status'] as String,
+      suspendedAt: json['suspended_at'] as String?,
+      suspensionReason: json['suspension_reason'] as String?,
       trialEnd: json['trial_end'] as String?,
       trialStart: json['trial_start'] as String?,
     );
@@ -3003,8 +3074,20 @@ final class Subscription {
 
   final String productId;
 
-  /// One of `trialing`, `active`, `past_due`, `paused`, `canceled`.
+  /// One of `trialing`, `active`, `past_due`, `suspended`, `paused`,
+  /// `canceled`.
   final String status;
+
+  /// Quando a assinatura foi suspensa; nulo enquanto não está suspensa.
+  final String? suspendedAt;
+
+  /// Por que foi suspensa: retries_exhausted (o cartão foi recusado em todas as
+  /// tentativas), declined_not_retryable (o emissor recusou sem permitir nova
+  /// tentativa) ou dispute (o comprador contestou o pagamento); nulo enquanto
+  /// não está suspensa.
+  ///
+  /// One of `retries_exhausted`, `declined_not_retryable`, `dispute`.
+  final String? suspensionReason;
 
   final String? trialEnd;
 
@@ -3024,6 +3107,8 @@ final class Subscription {
     'price_id': priceId,
     'product_id': productId,
     'status': status,
+    'suspended_at': suspendedAt,
+    'suspension_reason': suspensionReason,
     'trial_end': trialEnd,
     'trial_start': trialStart,
   };
@@ -3141,14 +3226,18 @@ final class WebhookCheckout {
     required this.createdAt,
     required this.currency,
     this.customerId,
+    this.cycleSequence,
     required this.discountCents,
     required this.expiresAt,
     required this.id,
     this.items,
     this.metadata,
+    this.periodEnd,
+    this.periodStart,
     required this.priceId,
     required this.productId,
     required this.status,
+    this.subscriptionId,
     required this.totalCents,
   });
 
@@ -3161,6 +3250,7 @@ final class WebhookCheckout {
       createdAt: json['created_at'] as String,
       currency: json['currency'] as String,
       customerId: json['customer_id'] as String?,
+      cycleSequence: json['cycle_sequence'] as int?,
       discountCents: json['discount_cents'] as int,
       expiresAt: json['expires_at'] as String,
       id: json['id'] as String,
@@ -3175,9 +3265,12 @@ final class WebhookCheckout {
         json['metadata'],
         (value) => readMap(value, (value) => value),
       ),
+      periodEnd: json['period_end'] as String?,
+      periodStart: json['period_start'] as String?,
       priceId: json['price_id'] as String,
       productId: json['product_id'] as String,
       status: json['status'] as String,
+      subscriptionId: json['subscription_id'] as String?,
       totalCents: json['total_cents'] as int,
     );
   }
@@ -3197,6 +3290,10 @@ final class WebhookCheckout {
   /// Nulo até o comprador confirmar.
   final String? customerId;
 
+  /// O ciclo da assinatura que o pagamento cobra: 1 é o primeiro, 2 é a
+  /// primeira renovação.
+  final int? cycleSequence;
+
   final int discountCents;
 
   final String expiresAt;
@@ -3207,8 +3304,14 @@ final class WebhookCheckout {
   final List<CheckoutLine>? items;
 
   /// Os pares que o servidor do lojista enviou ao criar o checkout; vazio sem
-  /// eles.
+  /// eles. Na renovação de uma assinatura são os da assinatura.
   final Map<String, Object?>? metadata;
+
+  /// O fim do período do ciclo que o pagamento cobra.
+  final String? periodEnd;
+
+  /// O início do período do ciclo que o pagamento cobra.
+  final String? periodStart;
 
   final String priceId;
 
@@ -3216,6 +3319,10 @@ final class WebhookCheckout {
 
   /// One of `open`, `confirmed`, `succeeded`, `failed`, `expired`.
   final String status;
+
+  /// A assinatura que este pagamento cobra; nulo quando a venda não é de uma
+  /// assinatura.
+  final String? subscriptionId;
 
   final int totalCents;
 
@@ -3227,14 +3334,18 @@ final class WebhookCheckout {
     'created_at': createdAt,
     'currency': currency,
     'customer_id': customerId,
+    'cycle_sequence': ?cycleSequence,
     'discount_cents': discountCents,
     'expires_at': expiresAt,
     'id': id,
     'items': ?items?.map((item) => item.toJson()).toList(),
     'metadata': ?metadata,
+    'period_end': ?periodEnd,
+    'period_start': ?periodStart,
     'price_id': priceId,
     'product_id': productId,
     'status': status,
+    'subscription_id': ?subscriptionId,
     'total_cents': totalCents,
   };
 }
@@ -3425,43 +3536,67 @@ final class WebhookDiscount {
 final class WebhookDispute {
   const WebhookDispute({
     required this.amountCents,
+    this.checkoutId,
+    this.clientReferenceId,
     required this.currency,
     this.customerId,
     this.decidedAt,
     this.dueBy,
+    this.externalCustomerId,
     required this.id,
     this.invoiceId,
+    this.kind,
+    this.metadata,
     required this.openedAt,
     required this.paymentId,
+    this.paymentMethod,
     required this.providerDisputeId,
     required this.providerReason,
     required this.reason,
     required this.source,
     required this.status,
+    this.subscriptionId,
   });
 
   /// A WebhookDispute out of the API's JSON.
   factory WebhookDispute.fromJson(Map<String, Object?> json) {
     return WebhookDispute(
       amountCents: json['amount_cents'] as int,
+      checkoutId: json['checkout_id'] as String?,
+      clientReferenceId: json['client_reference_id'] as String?,
       currency: json['currency'] as String,
       customerId: json['customer_id'] as String?,
       decidedAt: json['decided_at'] as String?,
       dueBy: json['due_by'] as String?,
+      externalCustomerId: json['external_customer_id'] as String?,
       id: json['id'] as String,
       invoiceId: json['invoice_id'] as String?,
+      kind: json['kind'] as String?,
+      metadata: readOptional(
+        json['metadata'],
+        (value) => readMap(value, (value) => value),
+      ),
       openedAt: json['opened_at'] as String,
       paymentId: json['payment_id'] as String,
+      paymentMethod: json['payment_method'] as String?,
       providerDisputeId: json['provider_dispute_id'] as String,
       providerReason: json['provider_reason'] as String,
       reason: json['reason'] as String,
       source: json['source'] as String,
       status: json['status'] as String,
+      subscriptionId: json['subscription_id'] as String?,
     );
   }
 
   /// Valor contestado, em centavos.
   final int amountCents;
+
+  /// O checkout (o pedido) da venda contestada; nulo quando não é de um
+  /// checkout.
+  final String? checkoutId;
+
+  /// O id do pedido no seu sistema, enviado ao criar o checkout; vazio sem ele.
+  final String? clientReferenceId;
 
   /// One of `BRL`.
   final String currency;
@@ -3473,14 +3608,30 @@ final class WebhookDispute {
   /// Prazo da defesa.
   final String? dueBy;
 
+  /// O id do cliente no seu sistema; nulo sem ele.
+  final String? externalCustomerId;
+
   final String id;
 
   final String? invoiceId;
+
+  /// chargeback é a contestação de um cartão na bandeira; med é a devolução que
+  /// o banco do pagador pede num Pix (Mecanismo Especial de Devolução).
+  ///
+  /// One of `chargeback`, `med`.
+  final String? kind;
+
+  /// Os pares que o seu servidor enviou ao criar o checkout; na renovação de
+  /// uma assinatura, os da assinatura.
+  final Map<String, Object?>? metadata;
 
   final String openedAt;
 
   /// O PaymentId da venda contestada na Cielo.
   final String paymentId;
+
+  /// Como a venda contestada foi paga: card ou pix.
+  final String? paymentMethod;
 
   /// O número do caso na Cielo.
   final String providerDisputeId;
@@ -3498,22 +3649,33 @@ final class WebhookDispute {
   /// `lost`, `closed`.
   final String status;
 
+  /// A assinatura de que a venda contestada era um ciclo; nulo quando não é de
+  /// uma assinatura. A assinatura fica suspensa (suspension_reason dispute).
+  final String? subscriptionId;
+
   /// The JSON the API answers.
   Map<String, Object?> toJson() => {
     'amount_cents': amountCents,
+    'checkout_id': ?checkoutId,
+    'client_reference_id': ?clientReferenceId,
     'currency': currency,
     'customer_id': customerId,
     'decided_at': decidedAt,
     'due_by': dueBy,
+    'external_customer_id': ?externalCustomerId,
     'id': id,
     'invoice_id': invoiceId,
+    'kind': ?kind,
+    'metadata': ?metadata,
     'opened_at': openedAt,
     'payment_id': paymentId,
+    'payment_method': ?paymentMethod,
     'provider_dispute_id': providerDisputeId,
     'provider_reason': providerReason,
     'reason': reason,
     'source': source,
     'status': status,
+    'subscription_id': ?subscriptionId,
   };
 }
 
@@ -3655,6 +3817,7 @@ final class WebhookOrder {
     required this.clientReferenceId,
     required this.currency,
     required this.customerId,
+    this.cycleSequence,
     required this.id,
     required this.installmentInterestCents,
     required this.installments,
@@ -3662,12 +3825,15 @@ final class WebhookOrder {
     required this.metadata,
     this.orderStatus,
     this.paidAt,
+    this.periodEnd,
+    this.periodStart,
     required this.priceId,
     required this.productId,
     this.refundAmountCents,
     this.refundId,
     required this.refundedAmountCents,
     required this.status,
+    this.subscriptionId,
   });
 
   /// A WebhookOrder out of the API's JSON.
@@ -3677,6 +3843,7 @@ final class WebhookOrder {
       clientReferenceId: json['client_reference_id'] as String,
       currency: json['currency'] as String,
       customerId: json['customer_id'] as String,
+      cycleSequence: json['cycle_sequence'] as int?,
       id: json['id'] as String,
       installmentInterestCents: json['installment_interest_cents'] as int,
       installments: json['installments'] as int,
@@ -3687,12 +3854,15 @@ final class WebhookOrder {
       metadata: readMap(json['metadata'], (value) => value),
       orderStatus: json['order_status'] as String?,
       paidAt: json['paid_at'] as String?,
+      periodEnd: json['period_end'] as String?,
+      periodStart: json['period_start'] as String?,
       priceId: json['price_id'] as String,
       productId: json['product_id'] as String,
       refundAmountCents: json['refund_amount_cents'] as int?,
       refundId: json['refund_id'] as String?,
       refundedAmountCents: json['refunded_amount_cents'] as int,
       status: json['status'] as String,
+      subscriptionId: json['subscription_id'] as String?,
     );
   }
 
@@ -3706,6 +3876,10 @@ final class WebhookOrder {
 
   final String customerId;
 
+  /// O ciclo da assinatura que o pagamento cobra: 1 é o primeiro, 2 é a
+  /// primeira renovação.
+  final int? cycleSequence;
+
   final String id;
 
   /// Juros do parcelamento pagos pelo comprador, cobrados além de amount_cents.
@@ -3718,7 +3892,9 @@ final class WebhookOrder {
   /// vazio sem elas.
   final List<CheckoutLine> items;
 
-  /// Os pares que o seu servidor enviou ao criar o checkout.
+  /// Os pares que o seu servidor enviou ao criar o checkout. Na renovação de
+  /// uma assinatura são os metadados da assinatura (o id da câmera, por
+  /// exemplo).
   final Map<String, Object?> metadata;
 
   /// Onde o pedido está; status é o do checkout e continua succeeded depois de
@@ -3728,6 +3904,12 @@ final class WebhookOrder {
   final String? orderStatus;
 
   final String? paidAt;
+
+  /// O fim do período do ciclo que o pagamento cobra.
+  final String? periodEnd;
+
+  /// O início do período do ciclo que o pagamento cobra.
+  final String? periodStart;
 
   final String priceId;
 
@@ -3748,12 +3930,17 @@ final class WebhookOrder {
   /// One of `open`, `confirmed`, `succeeded`, `failed`, `expired`.
   final String status;
 
+  /// A assinatura que este pagamento cobra; nulo quando a venda não é de uma
+  /// assinatura.
+  final String? subscriptionId;
+
   /// The JSON the API answers.
   Map<String, Object?> toJson() => {
     'amount_cents': amountCents,
     'client_reference_id': clientReferenceId,
     'currency': currency,
     'customer_id': customerId,
+    'cycle_sequence': ?cycleSequence,
     'id': id,
     'installment_interest_cents': installmentInterestCents,
     'installments': installments,
@@ -3761,12 +3948,15 @@ final class WebhookOrder {
     'metadata': metadata,
     'order_status': orderStatus,
     'paid_at': paidAt,
+    'period_end': ?periodEnd,
+    'period_start': ?periodStart,
     'price_id': priceId,
     'product_id': productId,
     'refund_amount_cents': refundAmountCents,
     'refund_id': refundId,
     'refunded_amount_cents': refundedAmountCents,
     'status': status,
+    'subscription_id': ?subscriptionId,
   };
 }
 
@@ -3838,15 +4028,19 @@ final class WebhookSale {
     this.checkoutId,
     this.clientReferenceId,
     this.currency,
+    this.cycleSequence,
     required this.environment,
     required this.eventId,
     required this.merchantId,
     this.metadata,
     this.method,
     this.paymentId,
+    this.periodEnd,
+    this.periodStart,
     this.refundAmountCents,
     this.refundId,
     this.refundedAmountCents,
+    this.subscriptionId,
   });
 
   /// A WebhookSale out of the API's JSON.
@@ -3858,6 +4052,7 @@ final class WebhookSale {
       checkoutId: json['checkout_id'] as String?,
       clientReferenceId: json['client_reference_id'] as String?,
       currency: json['currency'] as String?,
+      cycleSequence: json['cycle_sequence'] as int?,
       environment: json['environment'] as String,
       eventId: json['event_id'] as String,
       merchantId: json['merchant_id'] as String,
@@ -3867,9 +4062,12 @@ final class WebhookSale {
       ),
       method: json['method'] as String?,
       paymentId: json['payment_id'] as String?,
+      periodEnd: json['period_end'] as String?,
+      periodStart: json['period_start'] as String?,
       refundAmountCents: json['refund_amount_cents'] as int?,
       refundId: json['refund_id'] as String?,
       refundedAmountCents: json['refunded_amount_cents'] as int?,
+      subscriptionId: json['subscription_id'] as String?,
     );
   }
 
@@ -3890,6 +4088,10 @@ final class WebhookSale {
   /// One of `BRL`.
   final String? currency;
 
+  /// O ciclo da assinatura que o pagamento cobra: 1 é o primeiro, 2 é a
+  /// primeira renovação.
+  final int? cycleSequence;
+
   final String environment;
 
   final String eventId;
@@ -3897,7 +4099,7 @@ final class WebhookSale {
   final String merchantId;
 
   /// Os pares que o servidor do lojista enviou ao criar o checkout; vazio sem
-  /// eles.
+  /// eles. Na renovação de uma assinatura são os da assinatura.
   final Map<String, Object?>? metadata;
 
   /// O meio do pagamento, nos eventos checkout_payment.*.
@@ -3907,6 +4109,12 @@ final class WebhookSale {
 
   /// O pagamento que o reembolso devolve, nos eventos refund.*.
   final String? paymentId;
+
+  /// O fim do período do ciclo que o pagamento cobra.
+  final String? periodEnd;
+
+  /// O início do período do ciclo que o pagamento cobra.
+  final String? periodStart;
 
   /// O valor só do reembolso que moveu o pagamento, em centavos; em
   /// checkout_payment.refunded e checkout_payment.partially_refunded.
@@ -3920,6 +4128,10 @@ final class WebhookSale {
   /// certo, nos eventos checkout_payment.*.
   final int? refundedAmountCents;
 
+  /// A assinatura que este pagamento cobra; nulo quando a venda não é de uma
+  /// assinatura.
+  final String? subscriptionId;
+
   /// The JSON the API answers.
   Map<String, Object?> toJson() => {
     'aggregate': aggregate,
@@ -3928,15 +4140,220 @@ final class WebhookSale {
     'checkout_id': ?checkoutId,
     'client_reference_id': ?clientReferenceId,
     'currency': ?currency,
+    'cycle_sequence': ?cycleSequence,
     'environment': environment,
     'event_id': eventId,
     'merchant_id': merchantId,
     'metadata': ?metadata,
     'method': ?method,
     'payment_id': ?paymentId,
+    'period_end': ?periodEnd,
+    'period_start': ?periodStart,
     'refund_amount_cents': ?refundAmountCents,
     'refund_id': ?refundId,
     'refunded_amount_cents': ?refundedAmountCents,
+    'subscription_id': ?subscriptionId,
+  };
+}
+
+/// A assinatura como a API a devolve (Subscription) e, nos eventos que uma
+/// cobrança recusada causou (subscription.past_due, subscription.suspended e o
+/// subscription.updated que os acompanha), a cobrança recusada em
+/// payment_failure.
+final class WebhookSubscription {
+  const WebhookSubscription({
+    required this.amountCents,
+    required this.cancelAtPeriodEnd,
+    required this.currency,
+    required this.currentPeriodEnd,
+    required this.currentPeriodStart,
+    required this.customerId,
+    required this.id,
+    required this.interval,
+    required this.metadata,
+    this.paymentFailure,
+    required this.priceId,
+    required this.productId,
+    required this.status,
+    this.suspendedAt,
+    this.suspensionReason,
+    this.trialEnd,
+    this.trialStart,
+  });
+
+  /// A WebhookSubscription out of the API's JSON.
+  factory WebhookSubscription.fromJson(Map<String, Object?> json) {
+    return WebhookSubscription(
+      amountCents: json['amount_cents'] as int,
+      cancelAtPeriodEnd: json['cancel_at_period_end'] as bool,
+      currency: json['currency'] as String,
+      currentPeriodEnd: json['current_period_end'] as String,
+      currentPeriodStart: json['current_period_start'] as String,
+      customerId: json['customer_id'] as String,
+      id: json['id'] as String,
+      interval: json['interval'] as String,
+      metadata: readMap(json['metadata'], (value) => value),
+      paymentFailure: readOptional(
+        json['payment_failure'],
+        (value) => WebhookSubscriptionPaymentFailure.fromJson(
+          readObject(value),
+        ),
+      ),
+      priceId: json['price_id'] as String,
+      productId: json['product_id'] as String,
+      status: json['status'] as String,
+      suspendedAt: json['suspended_at'] as String?,
+      suspensionReason: json['suspension_reason'] as String?,
+      trialEnd: json['trial_end'] as String?,
+      trialStart: json['trial_start'] as String?,
+    );
+  }
+
+  final int amountCents;
+
+  final bool cancelAtPeriodEnd;
+
+  /// One of `BRL`.
+  final String currency;
+
+  final String currentPeriodEnd;
+
+  final String currentPeriodStart;
+
+  final String customerId;
+
+  final String id;
+
+  final String interval;
+
+  /// Metadados do lojista: pares chave e valor (texto, número ou booleano);
+  /// objeto vazio quando não há.
+  final Map<String, Object?> metadata;
+
+  /// A cobrança recusada que causou o evento; só nos eventos de cobrança
+  /// recusada.
+  final WebhookSubscriptionPaymentFailure? paymentFailure;
+
+  final String priceId;
+
+  final String productId;
+
+  /// One of `trialing`, `active`, `past_due`, `suspended`, `paused`,
+  /// `canceled`.
+  final String status;
+
+  /// Quando a assinatura foi suspensa; nulo enquanto não está suspensa.
+  final String? suspendedAt;
+
+  /// Por que foi suspensa; nulo enquanto não está suspensa.
+  ///
+  /// One of `retries_exhausted`, `declined_not_retryable`, `dispute`.
+  final String? suspensionReason;
+
+  final String? trialEnd;
+
+  final String? trialStart;
+
+  /// The JSON the API answers.
+  Map<String, Object?> toJson() => {
+    'amount_cents': amountCents,
+    'cancel_at_period_end': cancelAtPeriodEnd,
+    'currency': currency,
+    'current_period_end': currentPeriodEnd,
+    'current_period_start': currentPeriodStart,
+    'customer_id': customerId,
+    'id': id,
+    'interval': interval,
+    'metadata': metadata,
+    'payment_failure': ?paymentFailure?.toJson(),
+    'price_id': priceId,
+    'product_id': productId,
+    'status': status,
+    'suspended_at': suspendedAt,
+    'suspension_reason': suspensionReason,
+    'trial_end': trialEnd,
+    'trial_start': trialStart,
+  };
+}
+
+/// A cobrança recusada que causou o evento; só nos eventos de cobrança
+/// recusada.
+final class WebhookSubscriptionPaymentFailure {
+  const WebhookSubscriptionPaymentFailure({
+    required this.amountCents,
+    required this.attempt,
+    required this.cycleSequence,
+    required this.declineCode,
+    required this.maxAttempts,
+    this.nextAttemptAt,
+    required this.periodEnd,
+    required this.periodStart,
+    required this.reason,
+    required this.retryable,
+  });
+
+  /// A WebhookSubscriptionPaymentFailure out of the API's JSON.
+  factory WebhookSubscriptionPaymentFailure.fromJson(
+    Map<String, Object?> json,
+  ) {
+    return WebhookSubscriptionPaymentFailure(
+      amountCents: json['amount_cents'] as int,
+      attempt: json['attempt'] as int,
+      cycleSequence: json['cycle_sequence'] as int,
+      declineCode: json['decline_code'] as String,
+      maxAttempts: json['max_attempts'] as int,
+      nextAttemptAt: json['next_attempt_at'] as String?,
+      periodEnd: json['period_end'] as String,
+      periodStart: json['period_start'] as String,
+      reason: json['reason'] as String,
+      retryable: json['retryable'] as bool,
+    );
+  }
+
+  /// O valor cobrado, em centavos.
+  final int amountCents;
+
+  /// O número da cobrança recusada neste ciclo: 1 é a do vencimento, 2 é a
+  /// primeira nova tentativa.
+  final int attempt;
+
+  /// O ciclo cobrado: 2 é a primeira renovação.
+  final int cycleSequence;
+
+  /// O código da recusa, como o emissor devolveu; vazio quando não informou.
+  final String declineCode;
+
+  /// Quantas cobranças o cartão recebe neste ciclo: a do vencimento mais uma
+  /// por dia de nova tentativa que a organização configurou.
+  final int maxAttempts;
+
+  /// Quando o cartão será cobrado de novo; nulo quando não haverá nova
+  /// tentativa.
+  final String? nextAttemptAt;
+
+  final String periodEnd;
+
+  final String periodStart;
+
+  /// O motivo da recusa, nas palavras do emissor.
+  final String reason;
+
+  /// Verdadeiro quando o emissor permite tentar o mesmo cartão de novo; falso é
+  /// recusa definitiva.
+  final bool retryable;
+
+  /// The JSON the API answers.
+  Map<String, Object?> toJson() => {
+    'amount_cents': amountCents,
+    'attempt': attempt,
+    'cycle_sequence': cycleSequence,
+    'decline_code': declineCode,
+    'max_attempts': maxAttempts,
+    'next_attempt_at': nextAttemptAt,
+    'period_end': periodEnd,
+    'period_start': periodStart,
+    'reason': reason,
+    'retryable': retryable,
   };
 }
 
@@ -4733,6 +5150,7 @@ final class PricesCreateParams {
   const PricesCreateParams({
     required this.amountCents,
     this.interval,
+    this.intervalCount,
     required this.productId,
     required this.type,
   });
@@ -4744,6 +5162,11 @@ final class PricesCreateParams {
   /// One of `month`, `year`.
   final String? interval;
 
+  /// De quantos em quantos intervalos o preço renova; 1 se omitido. Com month
+  /// vai de 1 a 12 (3 é trimestral, 6 semestral); com year só 1. O preço
+  /// one_time não tem.
+  final int? intervalCount;
+
   final String productId;
 
   /// One of `one_time`, `recurring`.
@@ -4753,6 +5176,7 @@ final class PricesCreateParams {
   Map<String, Object?> toJson() => {
     'amount_cents': amountCents,
     'interval': ?interval,
+    'interval_count': ?intervalCount,
     'product_id': productId,
     'type': type,
   };

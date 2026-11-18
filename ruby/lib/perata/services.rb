@@ -747,6 +747,14 @@ module Perata
       block ? items.each(&block) : items
     end
 
+    # Reativar uma assinatura suspensa, que volta a ser cobrada (a cobrança do ciclo em aberto recomeça), ou retomar uma pausada; qualquer outra recebe 409.
+    #
+    # @return [Subscription]
+    def resume(subscription, idempotency_key: nil, api_key: nil)
+      data = @client.request("POST", "/api/v1/subscriptions/#{Perata.segment(subscription)}/resume", idempotency_key: idempotency_key, api_key: api_key)
+      Subscription.from_hash(data)
+    end
+
     # Trocar o plano de uma assinatura: outro preço e, se quiser, outra quantidade, com a forma de ratear a diferença (proration_behavior).
     #
     # @param params [SubscriptionsUpdateParams, Hash]

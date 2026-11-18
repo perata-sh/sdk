@@ -1332,6 +1332,16 @@ func (s *SubscriptionsService) ListIter(ctx context.Context, params *Subscriptio
 	}, walk.Page)
 }
 
+// Resume: Reativar uma assinatura suspensa, que volta a ser cobrada (a cobrança do ciclo em aberto recomeça), ou retomar uma pausada; qualquer outra recebe 409.
+func (s *SubscriptionsService) Resume(ctx context.Context, subscription string, opts ...RequestOption) (*Subscription, error) {
+	var out Subscription
+	err := s.client.do(ctx, http.MethodPost, "/api/v1/subscriptions/"+url.PathEscape(subscription)+"/resume", nil, nil, &out, opts)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
 // Update: Trocar o plano de uma assinatura: outro preço e, se quiser, outra quantidade, com a forma de ratear a diferença (proration_behavior).
 func (s *SubscriptionsService) Update(ctx context.Context, subscription string, params SubscriptionsUpdateParams, opts ...RequestOption) (*Subscription, error) {
 	var out Subscription

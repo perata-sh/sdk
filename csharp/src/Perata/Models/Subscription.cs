@@ -22,10 +22,22 @@ public sealed record Subscription
     public const string StatusPastDue = "past_due";
 
     /// <summary>A value of <see cref="Status"/>.</summary>
+    public const string StatusSuspended = "suspended";
+
+    /// <summary>A value of <see cref="Status"/>.</summary>
     public const string StatusPaused = "paused";
 
     /// <summary>A value of <see cref="Status"/>.</summary>
     public const string StatusCanceled = "canceled";
+
+    /// <summary>A value of <see cref="SuspensionReason"/>.</summary>
+    public const string SuspensionReasonRetriesExhausted = "retries_exhausted";
+
+    /// <summary>A value of <see cref="SuspensionReason"/>.</summary>
+    public const string SuspensionReasonDeclinedNotRetryable = "declined_not_retryable";
+
+    /// <summary>A value of <see cref="SuspensionReason"/>.</summary>
+    public const string SuspensionReasonDispute = "dispute";
 
     /// <summary>The API's <c>amount_cents</c>.</summary>
     [JsonPropertyName("amount_cents")]
@@ -74,6 +86,14 @@ public sealed record Subscription
     /// <summary>The API's <c>status</c>.</summary>
     [JsonPropertyName("status")]
     public required string Status { get; init; }
+
+    /// <summary>Quando a assinatura foi suspensa; nulo enquanto não está suspensa. Null when the API sends none.</summary>
+    [JsonPropertyName("suspended_at")]
+    public string? SuspendedAt { get; init; }
+
+    /// <summary>Por que foi suspensa: retries_exhausted (o cartão foi recusado em todas as tentativas), declined_not_retryable (o emissor recusou sem permitir nova tentativa) ou dispute (o comprador contestou o pagamento); nulo enquanto não está suspensa. Null when the API sends none.</summary>
+    [JsonPropertyName("suspension_reason")]
+    public string? SuspensionReason { get; init; }
 
     /// <summary>The API's <c>trial_end</c>. Null when the API sends none.</summary>
     [JsonPropertyName("trial_end")]

@@ -45,6 +45,10 @@ public sealed record WebhookSale
     [JsonPropertyName("currency")]
     public string? Currency { get; init; }
 
+    /// <summary>O ciclo da assinatura que o pagamento cobra: 1 é o primeiro, 2 é a primeira renovação. Null when the API sends none.</summary>
+    [JsonPropertyName("cycle_sequence")]
+    public long? CycleSequence { get; init; }
+
     /// <summary>The API's <c>environment</c>.</summary>
     [JsonPropertyName("environment")]
     public required string Environment { get; init; }
@@ -57,7 +61,7 @@ public sealed record WebhookSale
     [JsonPropertyName("merchant_id")]
     public required string MerchantId { get; init; }
 
-    /// <summary>Os pares que o servidor do lojista enviou ao criar o checkout; vazio sem eles. Null when the API sends none.</summary>
+    /// <summary>Os pares que o servidor do lojista enviou ao criar o checkout; vazio sem eles. Na renovação de uma assinatura são os da assinatura. Null when the API sends none.</summary>
     [JsonPropertyName("metadata")]
     public IReadOnlyDictionary<string, JsonElement>? Metadata { get; init; }
 
@@ -68,6 +72,14 @@ public sealed record WebhookSale
     /// <summary>O pagamento que o reembolso devolve, nos eventos refund.*. Null when the API sends none.</summary>
     [JsonPropertyName("payment_id")]
     public string? PaymentId { get; init; }
+
+    /// <summary>O fim do período do ciclo que o pagamento cobra. Null when the API sends none.</summary>
+    [JsonPropertyName("period_end")]
+    public string? PeriodEnd { get; init; }
+
+    /// <summary>O início do período do ciclo que o pagamento cobra. Null when the API sends none.</summary>
+    [JsonPropertyName("period_start")]
+    public string? PeriodStart { get; init; }
 
     /// <summary>O valor só do reembolso que moveu o pagamento, em centavos; em checkout_payment.refunded e checkout_payment.partially_refunded. Null when the API sends none.</summary>
     [JsonPropertyName("refund_amount_cents")]
@@ -80,4 +92,8 @@ public sealed record WebhookSale
     /// <summary>Quanto do pagamento já foi devolvido, somando os reembolsos que deram certo, nos eventos checkout_payment.*. Null when the API sends none.</summary>
     [JsonPropertyName("refunded_amount_cents")]
     public long? RefundedAmountCents { get; init; }
+
+    /// <summary>A assinatura que este pagamento cobra; nulo quando a venda não é de uma assinatura. Null when the API sends none.</summary>
+    [JsonPropertyName("subscription_id")]
+    public string? SubscriptionId { get; init; }
 }

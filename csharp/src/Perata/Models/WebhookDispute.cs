@@ -12,6 +12,12 @@ public sealed record WebhookDispute
     /// <summary>A value of <see cref="Currency"/>.</summary>
     public const string CurrencyBRL = "BRL";
 
+    /// <summary>A value of <see cref="Kind"/>.</summary>
+    public const string KindChargeback = "chargeback";
+
+    /// <summary>A value of <see cref="Kind"/>.</summary>
+    public const string KindMed = "med";
+
     /// <summary>A value of <see cref="Source"/>.</summary>
     public const string SourceOperator = "operator";
 
@@ -43,6 +49,14 @@ public sealed record WebhookDispute
     [JsonPropertyName("amount_cents")]
     public required long AmountCents { get; init; }
 
+    /// <summary>O checkout (o pedido) da venda contestada; nulo quando não é de um checkout. Null when the API sends none.</summary>
+    [JsonPropertyName("checkout_id")]
+    public string? CheckoutId { get; init; }
+
+    /// <summary>O id do pedido no seu sistema, enviado ao criar o checkout; vazio sem ele. Null when the API sends none.</summary>
+    [JsonPropertyName("client_reference_id")]
+    public string? ClientReferenceId { get; init; }
+
     /// <summary>The API's <c>currency</c>.</summary>
     [JsonPropertyName("currency")]
     public required string Currency { get; init; }
@@ -59,6 +73,10 @@ public sealed record WebhookDispute
     [JsonPropertyName("due_by")]
     public string? DueBy { get; init; }
 
+    /// <summary>O id do cliente no seu sistema; nulo sem ele. Null when the API sends none.</summary>
+    [JsonPropertyName("external_customer_id")]
+    public string? ExternalCustomerId { get; init; }
+
     /// <summary>The API's <c>id</c>.</summary>
     [JsonPropertyName("id")]
     public required string Id { get; init; }
@@ -67,6 +85,14 @@ public sealed record WebhookDispute
     [JsonPropertyName("invoice_id")]
     public string? InvoiceId { get; init; }
 
+    /// <summary>chargeback é a contestação de um cartão na bandeira; med é a devolução que o banco do pagador pede num Pix (Mecanismo Especial de Devolução). Null when the API sends none.</summary>
+    [JsonPropertyName("kind")]
+    public string? Kind { get; init; }
+
+    /// <summary>Os pares que o seu servidor enviou ao criar o checkout; na renovação de uma assinatura, os da assinatura. Null when the API sends none.</summary>
+    [JsonPropertyName("metadata")]
+    public IReadOnlyDictionary<string, JsonElement>? Metadata { get; init; }
+
     /// <summary>The API's <c>opened_at</c>.</summary>
     [JsonPropertyName("opened_at")]
     public required string OpenedAt { get; init; }
@@ -74,6 +100,10 @@ public sealed record WebhookDispute
     /// <summary>O PaymentId da venda contestada na Cielo.</summary>
     [JsonPropertyName("payment_id")]
     public required string PaymentId { get; init; }
+
+    /// <summary>Como a venda contestada foi paga: card ou pix. Null when the API sends none.</summary>
+    [JsonPropertyName("payment_method")]
+    public string? PaymentMethod { get; init; }
 
     /// <summary>O número do caso na Cielo.</summary>
     [JsonPropertyName("provider_dispute_id")]
@@ -94,4 +124,8 @@ public sealed record WebhookDispute
     /// <summary>The API's <c>status</c>.</summary>
     [JsonPropertyName("status")]
     public required string Status { get; init; }
+
+    /// <summary>A assinatura de que a venda contestada era um ciclo; nulo quando não é de uma assinatura. A assinatura fica suspensa (suspension_reason dispute). Null when the API sends none.</summary>
+    [JsonPropertyName("subscription_id")]
+    public string? SubscriptionId { get; init; }
 }

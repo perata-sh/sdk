@@ -175,7 +175,9 @@ type CheckoutClientCustomer struct {
 	Address     BillingAddress `json:"address"`
 	BillingName string         `json:"billing_name"`
 	Email       string         `json:"email"`
-	Name        string         `json:"name"`
+	// Verdadeiro quando o servidor do lojista abriu o checkout para um cliente que ele informou (customer_id ou external_customer_id): o e-mail não muda, os campos já vêm preenchidos para o comprador conferir e nenhum código é pedido para provar o e-mail.
+	Locked bool   `json:"locked"`
+	Name   string `json:"name"`
 	// O CPF ou CNPJ do comprador, só dígitos; vazio enquanto não for informado.
 	TaxID     string `json:"tax_id"`
 	TaxIDKind string `json:"tax_id_kind"`
@@ -392,9 +394,9 @@ type CheckoutSavedData struct {
 // CheckoutSavedDataSent is a resource of Peráta's API.
 type CheckoutSavedDataSent struct {
 	Channel string `json:"channel"`
-	// Sempre falso, pelo mesmo motivo.
+	// Sempre falso: o servidor não diz se este código é novo ou o de um pedido anterior.
 	Fresh bool `json:"fresh"`
-	// Sempre verdadeiro: a resposta não diz se há algo guardado para o e-mail.
+	// Verdadeiro quando há algo guardado para o e-mail e um código foi enviado a ele; falso quando não há, e o comprador segue sem o campo do código. O pedido é limitado a 30 por hora por endereço e a 10 por e-mail.
 	Sent bool `json:"sent"`
 }
 
@@ -503,19 +505,31 @@ type Discount struct {
 // Dispute is a resource of Peráta's API.
 type Dispute struct {
 	// Valor contestado, em centavos.
-	AmountCents int64   `json:"amount_cents"`
-	Currency    string  `json:"currency"`
-	CustomerID  *string `json:"customer_id"`
-	DecidedAt   *string `json:"decided_at"`
+	AmountCents int64 `json:"amount_cents"`
+	// O checkout (o pedido) da venda contestada; nulo quando não é de um checkout. É o mesmo valor de order_id.
+	CheckoutID *string `json:"checkout_id"`
+	// O id do pedido no seu sistema, enviado ao criar o checkout; vazio sem ele.
+	ClientReferenceID string  `json:"client_reference_id"`
+	Currency          string  `json:"currency"`
+	CustomerID        *string `json:"customer_id"`
+	DecidedAt         *string `json:"decided_at"`
 	// Prazo da defesa.
-	DueBy     *string `json:"due_by"`
-	ID        string  `json:"id"`
-	InvoiceID *string `json:"invoice_id"`
-	OpenedAt  string  `json:"opened_at"`
+	DueBy *string `json:"due_by"`
+	// O id do cliente no seu sistema; nulo sem ele.
+	ExternalCustomerID *string `json:"external_customer_id"`
+	ID                 string  `json:"id"`
+	InvoiceID          *string `json:"invoice_id"`
+	// chargeback é a contestação de um cartão na bandeira; med é a devolução que o banco do pagador pede num Pix (Mecanismo Especial de Devolução).
+	Kind string `json:"kind"`
+	// Os pares que o seu servidor enviou ao criar o checkout; na renovação de uma assinatura, os da assinatura.
+	Metadata map[string]any `json:"metadata"`
+	OpenedAt string         `json:"opened_at"`
 	// O pedido que a venda contestada pagou; nulo quando não é de um checkout.
 	OrderID *string `json:"order_id"`
 	// O PaymentId da venda contestada na Cielo.
 	PaymentID string `json:"payment_id"`
+	// Como a venda contestada foi paga: card ou pix.
+	PaymentMethod string `json:"payment_method"`
 	// O número do caso na Cielo.
 	ProviderDisputeID string `json:"provider_dispute_id"`
 	// O motivo nas palavras da Cielo.
@@ -524,6 +538,8 @@ type Dispute struct {
 	Reason string `json:"reason"`
 	Source string `json:"source"`
 	Status string `json:"status"`
+	// A assinatura de que a venda contestada era um ciclo; nulo quando não é de uma assinatura. A assinatura fica suspensa (suspension_reason dispute).
+	SubscriptionID *string `json:"subscription_id"`
 }
 
 // Event is a resource of Peráta's API.
@@ -701,9 +717,11 @@ type Price struct {
 	Currency    string `json:"currency"`
 	ID          string `json:"id"`
 	Interval    string `json:"interval"`
-	ProductID   string `json:"product_id"`
-	Status      string `json:"status"`
-	Type        string `json:"type"`
+	// De quantos em quantos intervalos o preço renova: 3 com month é trimestral, 6 semestral. 1 no preço one_time.
+	IntervalCount int64  `json:"interval_count"`
+	ProductID     string `json:"product_id"`
+	Status        string `json:"status"`
+	Type          string `json:"type"`
 }
 
 // Product is a resource of Peráta's API.
@@ -734,12 +752,16 @@ type Subscription struct {
 	ID                 string `json:"id"`
 	Interval           string `json:"interval"`
 	// Metadados do lojista: pares chave e valor (texto, número ou booleano); objeto vazio quando não há.
-	Metadata   map[string]any `json:"metadata"`
-	PriceID    string         `json:"price_id"`
-	ProductID  string         `json:"product_id"`
-	Status     string         `json:"status"`
-	TrialEnd   *string        `json:"trial_end"`
-	TrialStart *string        `json:"trial_start"`
+	Metadata  map[string]any `json:"metadata"`
+	PriceID   string         `json:"price_id"`
+	ProductID string         `json:"product_id"`
+	Status    string         `json:"status"`
+	// Quando a assinatura foi suspensa; nulo enquanto não está suspensa.
+	SuspendedAt *string `json:"suspended_at"`
+	// Por que foi suspensa: retries_exhausted (o cartão foi recusado em todas as tentativas), declined_not_retryable (o emissor recusou sem permitir nova tentativa) ou dispute (o comprador contestou o pagamento); nulo enquanto não está suspensa.
+	SuspensionReason *string `json:"suspension_reason"`
+	TrialEnd         *string `json:"trial_end"`
+	TrialStart       *string `json:"trial_start"`
 }
 
 // UsageError is a resource of Peráta's API.
@@ -775,18 +797,26 @@ type WebhookCheckout struct {
 	CreatedAt         string `json:"created_at"`
 	Currency          string `json:"currency"`
 	// Nulo até o comprador confirmar.
-	CustomerID    *string `json:"customer_id"`
-	DiscountCents int64   `json:"discount_cents"`
-	ExpiresAt     string  `json:"expires_at"`
-	ID            string  `json:"id"`
+	CustomerID *string `json:"customer_id"`
+	// O ciclo da assinatura que o pagamento cobra: 1 é o primeiro, 2 é a primeira renovação.
+	CycleSequence *int64 `json:"cycle_sequence,omitempty"`
+	DiscountCents int64  `json:"discount_cents"`
+	ExpiresAt     string `json:"expires_at"`
+	ID            string `json:"id"`
 	// As linhas do valor que o servidor do lojista fixou; vazio sem elas.
 	Items []CheckoutLine `json:"items,omitempty"`
-	// Os pares que o servidor do lojista enviou ao criar o checkout; vazio sem eles.
-	Metadata   map[string]any `json:"metadata,omitempty"`
-	PriceID    string         `json:"price_id"`
-	ProductID  string         `json:"product_id"`
-	Status     string         `json:"status"`
-	TotalCents int64          `json:"total_cents"`
+	// Os pares que o servidor do lojista enviou ao criar o checkout; vazio sem eles. Na renovação de uma assinatura são os da assinatura.
+	Metadata map[string]any `json:"metadata,omitempty"`
+	// O fim do período do ciclo que o pagamento cobra.
+	PeriodEnd *string `json:"period_end,omitempty"`
+	// O início do período do ciclo que o pagamento cobra.
+	PeriodStart *string `json:"period_start,omitempty"`
+	PriceID     string  `json:"price_id"`
+	ProductID   string  `json:"product_id"`
+	Status      string  `json:"status"`
+	// A assinatura que este pagamento cobra; nulo quando a venda não é de uma assinatura.
+	SubscriptionID *string `json:"subscription_id,omitempty"`
+	TotalCents     int64   `json:"total_cents"`
 }
 
 // WebhookDelivery is a resource of Peráta's API.
@@ -832,17 +862,29 @@ type WebhookDiscount struct {
 // WebhookDispute is a resource of Peráta's API.
 type WebhookDispute struct {
 	// Valor contestado, em centavos.
-	AmountCents int64   `json:"amount_cents"`
-	Currency    string  `json:"currency"`
-	CustomerID  *string `json:"customer_id"`
-	DecidedAt   *string `json:"decided_at"`
+	AmountCents int64 `json:"amount_cents"`
+	// O checkout (o pedido) da venda contestada; nulo quando não é de um checkout.
+	CheckoutID *string `json:"checkout_id,omitempty"`
+	// O id do pedido no seu sistema, enviado ao criar o checkout; vazio sem ele.
+	ClientReferenceID string  `json:"client_reference_id,omitempty"`
+	Currency          string  `json:"currency"`
+	CustomerID        *string `json:"customer_id"`
+	DecidedAt         *string `json:"decided_at"`
 	// Prazo da defesa.
-	DueBy     *string `json:"due_by"`
-	ID        string  `json:"id"`
-	InvoiceID *string `json:"invoice_id"`
-	OpenedAt  string  `json:"opened_at"`
+	DueBy *string `json:"due_by"`
+	// O id do cliente no seu sistema; nulo sem ele.
+	ExternalCustomerID *string `json:"external_customer_id,omitempty"`
+	ID                 string  `json:"id"`
+	InvoiceID          *string `json:"invoice_id"`
+	// chargeback é a contestação de um cartão na bandeira; med é a devolução que o banco do pagador pede num Pix (Mecanismo Especial de Devolução).
+	Kind string `json:"kind,omitempty"`
+	// Os pares que o seu servidor enviou ao criar o checkout; na renovação de uma assinatura, os da assinatura.
+	Metadata map[string]any `json:"metadata,omitempty"`
+	OpenedAt string         `json:"opened_at"`
 	// O PaymentId da venda contestada na Cielo.
 	PaymentID string `json:"payment_id"`
+	// Como a venda contestada foi paga: card ou pix.
+	PaymentMethod string `json:"payment_method,omitempty"`
 	// O número do caso na Cielo.
 	ProviderDisputeID string `json:"provider_dispute_id"`
 	// O motivo nas palavras da Cielo.
@@ -851,6 +893,8 @@ type WebhookDispute struct {
 	Reason string `json:"reason"`
 	Source string `json:"source"`
 	Status string `json:"status"`
+	// A assinatura de que a venda contestada era um ciclo; nulo quando não é de uma assinatura. A assinatura fica suspensa (suspension_reason dispute).
+	SubscriptionID *string `json:"subscription_id,omitempty"`
 }
 
 // WebhookEndpoint is a resource of Peráta's API.
@@ -890,18 +934,24 @@ type WebhookOrder struct {
 	ClientReferenceID string `json:"client_reference_id"`
 	Currency          string `json:"currency"`
 	CustomerID        string `json:"customer_id"`
-	ID                string `json:"id"`
+	// O ciclo da assinatura que o pagamento cobra: 1 é o primeiro, 2 é a primeira renovação.
+	CycleSequence *int64 `json:"cycle_sequence,omitempty"`
+	ID            string `json:"id"`
 	// Juros do parcelamento pagos pelo comprador, cobrados além de amount_cents.
 	InstallmentInterestCents int64 `json:"installment_interest_cents"`
 	// Em quantas parcelas o cartão de crédito foi cobrado; 1 à vista.
 	Installments int64 `json:"installments"`
 	// As linhas do pedido, quando o seu servidor as enviou ao criar o checkout; vazio sem elas.
 	Items []CheckoutLine `json:"items"`
-	// Os pares que o seu servidor enviou ao criar o checkout.
+	// Os pares que o seu servidor enviou ao criar o checkout. Na renovação de uma assinatura são os metadados da assinatura (o id da câmera, por exemplo).
 	Metadata map[string]any `json:"metadata"`
 	// Onde o pedido está; status é o do checkout e continua succeeded depois de um reembolso, e este vira partially_refunded ou refunded.
 	OrderStatus *string `json:"order_status"`
 	PaidAt      *string `json:"paid_at"`
+	// O fim do período do ciclo que o pagamento cobra.
+	PeriodEnd *string `json:"period_end,omitempty"`
+	// O início do período do ciclo que o pagamento cobra.
+	PeriodStart *string `json:"period_start,omitempty"`
 	PriceID     string  `json:"price_id"`
 	ProductID   string  `json:"product_id"`
 	// O valor só deste reembolso, em centavos; nulo como refund_id. O acumulado do pedido é refunded_amount_cents.
@@ -911,6 +961,8 @@ type WebhookOrder struct {
 	// Quanto do pedido já foi devolvido, somando todos os reembolsos que deram certo, em centavos.
 	RefundedAmountCents int64  `json:"refunded_amount_cents"`
 	Status              string `json:"status"`
+	// A assinatura que este pagamento cobra; nulo quando a venda não é de uma assinatura.
+	SubscriptionID *string `json:"subscription_id,omitempty"`
 }
 
 // WebhookRefund is a resource of Peráta's API.
@@ -938,21 +990,76 @@ type WebhookSale struct {
 	// O id do pedido no sistema do lojista; vazio sem ele.
 	ClientReferenceID string `json:"client_reference_id,omitempty"`
 	Currency          string `json:"currency,omitempty"`
-	Environment       string `json:"environment"`
-	EventID           string `json:"event_id"`
-	MerchantID        string `json:"merchant_id"`
-	// Os pares que o servidor do lojista enviou ao criar o checkout; vazio sem eles.
+	// O ciclo da assinatura que o pagamento cobra: 1 é o primeiro, 2 é a primeira renovação.
+	CycleSequence *int64 `json:"cycle_sequence,omitempty"`
+	Environment   string `json:"environment"`
+	EventID       string `json:"event_id"`
+	MerchantID    string `json:"merchant_id"`
+	// Os pares que o servidor do lojista enviou ao criar o checkout; vazio sem eles. Na renovação de uma assinatura são os da assinatura.
 	Metadata map[string]any `json:"metadata,omitempty"`
 	// O meio do pagamento, nos eventos checkout_payment.*.
 	Method string `json:"method,omitempty"`
 	// O pagamento que o reembolso devolve, nos eventos refund.*.
 	PaymentID string `json:"payment_id,omitempty"`
+	// O fim do período do ciclo que o pagamento cobra.
+	PeriodEnd *string `json:"period_end,omitempty"`
+	// O início do período do ciclo que o pagamento cobra.
+	PeriodStart *string `json:"period_start,omitempty"`
 	// O valor só do reembolso que moveu o pagamento, em centavos; em checkout_payment.refunded e checkout_payment.partially_refunded.
 	RefundAmountCents int64 `json:"refund_amount_cents,omitempty"`
 	// O reembolso: nos eventos refund.*, o próprio; em checkout_payment.refunded e checkout_payment.partially_refunded, o que moveu o pagamento.
 	RefundID string `json:"refund_id,omitempty"`
 	// Quanto do pagamento já foi devolvido, somando os reembolsos que deram certo, nos eventos checkout_payment.*.
 	RefundedAmountCents int64 `json:"refunded_amount_cents,omitempty"`
+	// A assinatura que este pagamento cobra; nulo quando a venda não é de uma assinatura.
+	SubscriptionID *string `json:"subscription_id,omitempty"`
+}
+
+// A assinatura como a API a devolve (Subscription) e, nos eventos que uma cobrança recusada causou (subscription.past_due, subscription.suspended e o subscription.updated que os acompanha), a cobrança recusada em payment_failure.
+type WebhookSubscription struct {
+	AmountCents        int64  `json:"amount_cents"`
+	CancelAtPeriodEnd  bool   `json:"cancel_at_period_end"`
+	Currency           string `json:"currency"`
+	CurrentPeriodEnd   string `json:"current_period_end"`
+	CurrentPeriodStart string `json:"current_period_start"`
+	CustomerID         string `json:"customer_id"`
+	ID                 string `json:"id"`
+	Interval           string `json:"interval"`
+	// Metadados do lojista: pares chave e valor (texto, número ou booleano); objeto vazio quando não há.
+	Metadata map[string]any `json:"metadata"`
+	// A cobrança recusada que causou o evento; só nos eventos de cobrança recusada.
+	PaymentFailure WebhookSubscriptionPaymentFailure `json:"payment_failure,omitempty"`
+	PriceID        string                            `json:"price_id"`
+	ProductID      string                            `json:"product_id"`
+	Status         string                            `json:"status"`
+	// Quando a assinatura foi suspensa; nulo enquanto não está suspensa.
+	SuspendedAt *string `json:"suspended_at"`
+	// Por que foi suspensa; nulo enquanto não está suspensa.
+	SuspensionReason *string `json:"suspension_reason"`
+	TrialEnd         *string `json:"trial_end"`
+	TrialStart       *string `json:"trial_start"`
+}
+
+// A cobrança recusada que causou o evento; só nos eventos de cobrança recusada.
+type WebhookSubscriptionPaymentFailure struct {
+	// O valor cobrado, em centavos.
+	AmountCents int64 `json:"amount_cents"`
+	// O número da cobrança recusada neste ciclo: 1 é a do vencimento, 2 é a primeira nova tentativa.
+	Attempt int64 `json:"attempt"`
+	// O ciclo cobrado: 2 é a primeira renovação.
+	CycleSequence int64 `json:"cycle_sequence"`
+	// O código da recusa, como o emissor devolveu; vazio quando não informou.
+	DeclineCode string `json:"decline_code"`
+	// Quantas cobranças o cartão recebe neste ciclo: a do vencimento mais uma por dia de nova tentativa que a organização configurou.
+	MaxAttempts int64 `json:"max_attempts"`
+	// Quando o cartão será cobrado de novo; nulo quando não haverá nova tentativa.
+	NextAttemptAt *string `json:"next_attempt_at"`
+	PeriodEnd     string  `json:"period_end"`
+	PeriodStart   string  `json:"period_start"`
+	// O motivo da recusa, nas palavras do emissor.
+	Reason string `json:"reason"`
+	// Verdadeiro quando o emissor permite tentar o mesmo cartão de novo; falso é recusa definitiva.
+	Retryable bool `json:"retryable"`
 }
 
 // The body of benefits:create.
@@ -1222,9 +1329,11 @@ type CustomersUpdateExternalBillingAddress struct {
 type PricesCreateParams struct {
 	AmountCents int64 `json:"amount_cents"`
 	// Obrigatório no preço recorrente; o preço one_time não tem intervalo.
-	Interval  *string `json:"interval,omitempty"`
-	ProductID string  `json:"product_id"`
-	Type      string  `json:"type"`
+	Interval *string `json:"interval,omitempty"`
+	// De quantos em quantos intervalos o preço renova; 1 se omitido. Com month vai de 1 a 12 (3 é trimestral, 6 semestral); com year só 1. O preço one_time não tem.
+	IntervalCount *int64 `json:"interval_count,omitempty"`
+	ProductID     string `json:"product_id"`
+	Type          string `json:"type"`
 }
 
 // The body of products:create.
@@ -1331,221 +1440,239 @@ type WebhooksUpdateEndpointParams struct {
 
 // The values the API answers in an enumerated field.
 const (
-	BenefitStatusActive                                  = "active"
-	BenefitStatusArchived                                = "archived"
-	BenefitTypeCustom                                    = "custom"
-	BenefitTypeLicenseKey                                = "license_key"
-	BenefitTypeDownloadable                              = "downloadable"
-	BenefitTypeFeatureFlag                               = "feature_flag"
-	BenefitTypeMeterCredit                               = "meter_credit"
-	BenefitTypeDiscord                                   = "discord"
-	BenefitTypeGithubRepository                          = "github_repository"
-	BenefitVisibilityPublic                              = "public"
-	BenefitVisibilityPrivate                             = "private"
-	BenefitGrantBenefitTypeCustom                        = "custom"
-	BenefitGrantBenefitTypeLicenseKey                    = "license_key"
-	BenefitGrantBenefitTypeDownloadable                  = "downloadable"
-	BenefitGrantBenefitTypeFeatureFlag                   = "feature_flag"
-	BenefitGrantBenefitTypeMeterCredit                   = "meter_credit"
-	BenefitGrantBenefitTypeDiscord                       = "discord"
-	BenefitGrantBenefitTypeGithubRepository              = "github_repository"
-	BenefitGrantStatusGranted                            = "granted"
-	BenefitGrantStatusRevoked                            = "revoked"
-	CardAuthenticationEnvironmentTest                    = "test"
-	CardAuthenticationEnvironmentLive                    = "live"
-	CardTokenizationEnvironmentTest                      = "test"
-	CardTokenizationEnvironmentLive                      = "live"
-	CheckoutStatusActive                                 = "active"
-	CheckoutStatusArchived                               = "archived"
-	CheckoutClientCurrencyBRL                            = "BRL"
-	CheckoutClientEnvironmentTest                        = "test"
-	CheckoutClientEnvironmentLive                        = "live"
-	CheckoutClientStatusOpen                             = "open"
-	CheckoutClientStatusConfirmed                        = "confirmed"
-	CheckoutClientStatusSucceeded                        = "succeeded"
-	CheckoutClientStatusFailed                           = "failed"
-	CheckoutClientStatusExpired                          = "expired"
-	CheckoutClientPaymentMethodCard                      = "card"
-	CheckoutClientPaymentMethodPix                       = "pix"
-	CheckoutClientPaymentMethodBoleto                    = "boleto"
-	CheckoutClientPaymentStateUnknown                    = "unknown"
-	CheckoutClientPaymentStatePending                    = "pending"
-	CheckoutClientPaymentStateAuthorized                 = "authorized"
-	CheckoutClientPaymentStateCaptured                   = "captured"
-	CheckoutClientPaymentStateRefused                    = "refused"
-	CheckoutClientPaymentStateCanceled                   = "canceled"
-	CheckoutClientPaymentStateRefunded                   = "refunded"
-	CheckoutClientPaymentStatePartiallyRefunded          = "partially_refunded"
-	CheckoutCreatedStatusActive                          = "active"
-	CheckoutCreatedStatusArchived                        = "archived"
-	CheckoutExpiredStatusExpired                         = "expired"
-	CheckoutExpiredSessionMethodCard                     = "card"
-	CheckoutExpiredSessionMethodPix                      = "pix"
-	CheckoutExpiredSessionMethodBoleto                   = "boleto"
-	CheckoutExpiredSessionStatusExpired                  = "expired"
-	CheckoutExpiredSessionStatusFailed                   = "failed"
-	CheckoutLinkCaptureModeAutomatic                     = "automatic"
-	CheckoutLinkCaptureModeManual                        = "manual"
-	CheckoutLinkStatusActive                             = "active"
-	CheckoutLinkStatusArchived                           = "archived"
-	CheckoutLinkTrialIntervalDay                         = "day"
-	CheckoutLinkTrialIntervalWeek                        = "week"
-	CheckoutLinkTrialIntervalMonth                       = "month"
-	CheckoutLinkTrialIntervalYear                        = "year"
-	CheckoutNextActionTypeNone                           = "none"
-	CheckoutNextActionTypeWait                           = "wait"
-	CheckoutNextActionTypeShowPix                        = "show_pix"
-	CheckoutNextActionTypeShowBoleto                     = "show_boleto"
-	CheckoutNextActionTypeRedirect                       = "redirect"
-	CustomerStatusActive                                 = "active"
-	CustomerStatusArchived                               = "archived"
-	CustomerTaxIDKindCpf                                 = "cpf"
-	CustomerTaxIDKindCnpj                                = "cnpj"
-	CustomerStateStatusActive                            = "active"
-	CustomerStateStatusArchived                          = "archived"
-	CustomerStateBenefitGrantBenefitTypeCustom           = "custom"
-	CustomerStateBenefitGrantBenefitTypeLicenseKey       = "license_key"
-	CustomerStateBenefitGrantBenefitTypeDownloadable     = "downloadable"
-	CustomerStateBenefitGrantBenefitTypeFeatureFlag      = "feature_flag"
-	CustomerStateBenefitGrantBenefitTypeMeterCredit      = "meter_credit"
-	CustomerStateBenefitGrantBenefitTypeDiscord          = "discord"
-	CustomerStateBenefitGrantBenefitTypeGithubRepository = "github_repository"
-	DiscountCurrencyBRL                                  = "BRL"
-	DiscountDurationOnce                                 = "once"
-	DiscountDurationRepeating                            = "repeating"
-	DiscountDurationForever                              = "forever"
-	DiscountStatusActive                                 = "active"
-	DiscountStatusExpired                                = "expired"
-	DiscountStatusExhausted                              = "exhausted"
-	DiscountTypePercentage                               = "percentage"
-	DiscountTypeFixed                                    = "fixed"
-	DisputeCurrencyBRL                                   = "BRL"
-	DisputeSourceOperator                                = "operator"
-	DisputeSourceCieloChargeback                         = "cielo_chargeback"
-	DisputeStatusOpened                                  = "opened"
-	DisputeStatusNeedsEvidence                           = "needs_evidence"
-	DisputeStatusSubmitted                               = "submitted"
-	DisputeStatusUnderReview                             = "under_review"
-	DisputeStatusWon                                     = "won"
-	DisputeStatusLost                                    = "lost"
-	DisputeStatusClosed                                  = "closed"
-	EventNameTokenUsage                                  = "token_usage"
-	MeterAggregationFuncCount                            = "count"
-	MeterAggregationFuncSum                              = "sum"
-	MeterAggregationFuncAvg                              = "avg"
-	MeterAggregationFuncMin                              = "min"
-	MeterAggregationFuncMax                              = "max"
-	MeterAggregationFuncUnique                           = "unique"
-	MeterUnitTypeScalar                                  = "scalar"
-	MeterUnitTypeToken                                   = "token"
-	MeterUnitTypeCustom                                  = "custom"
-	OrderCurrencyBRL                                     = "BRL"
-	OrderOrderStatusPending                              = "pending"
-	OrderOrderStatusPaid                                 = "paid"
-	OrderOrderStatusPartiallyRefunded                    = "partially_refunded"
-	OrderOrderStatusRefunded                             = "refunded"
-	OrderStatusOpen                                      = "open"
-	OrderStatusConfirmed                                 = "confirmed"
-	OrderStatusSucceeded                                 = "succeeded"
-	OrderStatusFailed                                    = "failed"
-	OrderStatusExpired                                   = "expired"
-	OrderInvoiceCurrencyBRL                              = "BRL"
-	OrderReceiptCurrencyBRL                              = "BRL"
-	PaymentCurrencyBRL                                   = "BRL"
-	PaymentMethodCard                                    = "card"
-	PaymentMethodPix                                     = "pix"
-	PaymentMethodBoleto                                  = "boleto"
-	PaymentStateUnknown                                  = "unknown"
-	PaymentStatePending                                  = "pending"
-	PaymentStateAuthorized                               = "authorized"
-	PaymentStateCaptured                                 = "captured"
-	PaymentStateRefused                                  = "refused"
-	PaymentStateCanceled                                 = "canceled"
-	PaymentStateRefunded                                 = "refunded"
-	PaymentStatePartiallyRefunded                        = "partially_refunded"
-	PaymentMethodTypeCard                                = "card"
-	PriceCurrencyBRL                                     = "BRL"
-	PriceIntervalNone                                    = "none"
-	PriceIntervalMonth                                   = "month"
-	PriceIntervalYear                                    = "year"
-	PriceStatusActive                                    = "active"
-	PriceStatusArchived                                  = "archived"
-	PriceTypeOneTime                                     = "one_time"
-	PriceTypeRecurring                                   = "recurring"
-	ProductStatusActive                                  = "active"
-	ProductStatusArchived                                = "archived"
-	RefundStatusRequested                                = "requested"
-	RefundStatusPending                                  = "pending"
-	RefundStatusUnknown                                  = "unknown"
-	RefundStatusSucceeded                                = "succeeded"
-	RefundStatusFailed                                   = "failed"
-	RefundStatusCanceled                                 = "canceled"
-	SubscriptionCurrencyBRL                              = "BRL"
-	SubscriptionStatusTrialing                           = "trialing"
-	SubscriptionStatusActive                             = "active"
-	SubscriptionStatusPastDue                            = "past_due"
-	SubscriptionStatusPaused                             = "paused"
-	SubscriptionStatusCanceled                           = "canceled"
-	WebhookBenefitStatusActive                           = "active"
-	WebhookBenefitStatusArchived                         = "archived"
-	WebhookBenefitVisibilityPublic                       = "public"
-	WebhookBenefitVisibilityPrivate                      = "private"
-	WebhookCheckoutCurrencyBRL                           = "BRL"
-	WebhookCheckoutStatusOpen                            = "open"
-	WebhookCheckoutStatusConfirmed                       = "confirmed"
-	WebhookCheckoutStatusSucceeded                       = "succeeded"
-	WebhookCheckoutStatusFailed                          = "failed"
-	WebhookCheckoutStatusExpired                         = "expired"
-	WebhookDeliveryStatusPending                         = "pending"
-	WebhookDeliveryStatusSucceeded                       = "succeeded"
-	WebhookDeliveryStatusExhausted                       = "exhausted"
-	WebhookDiscountDurationOnce                          = "once"
-	WebhookDiscountDurationForever                       = "forever"
-	WebhookDiscountDurationRepeating                     = "repeating"
-	WebhookDiscountStatusActive                          = "active"
-	WebhookDiscountStatusExpired                         = "expired"
-	WebhookDiscountStatusExhausted                       = "exhausted"
-	WebhookDiscountStatusArchived                        = "archived"
-	WebhookDiscountTypePercentage                        = "percentage"
-	WebhookDiscountTypeFixed                             = "fixed"
-	WebhookDisputeCurrencyBRL                            = "BRL"
-	WebhookDisputeSourceOperator                         = "operator"
-	WebhookDisputeSourceCieloChargeback                  = "cielo_chargeback"
-	WebhookDisputeStatusOpened                           = "opened"
-	WebhookDisputeStatusNeedsEvidence                    = "needs_evidence"
-	WebhookDisputeStatusSubmitted                        = "submitted"
-	WebhookDisputeStatusUnderReview                      = "under_review"
-	WebhookDisputeStatusWon                              = "won"
-	WebhookDisputeStatusLost                             = "lost"
-	WebhookDisputeStatusClosed                           = "closed"
-	WebhookEndpointFormatRaw                             = "raw"
-	WebhookEndpointFormatDiscord                         = "discord"
-	WebhookEndpointFormatSlack                           = "slack"
-	WebhookEndpointStatusActive                          = "active"
-	WebhookEndpointStatusDisabled                        = "disabled"
-	WebhookEndpointCreatedFormatRaw                      = "raw"
-	WebhookEndpointCreatedFormatDiscord                  = "discord"
-	WebhookEndpointCreatedFormatSlack                    = "slack"
-	WebhookEndpointCreatedStatusActive                   = "active"
-	WebhookEndpointCreatedStatusDisabled                 = "disabled"
-	WebhookOrderCurrencyBRL                              = "BRL"
-	WebhookOrderOrderStatusPending                       = "pending"
-	WebhookOrderOrderStatusPaid                          = "paid"
-	WebhookOrderOrderStatusPartiallyRefunded             = "partially_refunded"
-	WebhookOrderOrderStatusRefunded                      = "refunded"
-	WebhookOrderStatusOpen                               = "open"
-	WebhookOrderStatusConfirmed                          = "confirmed"
-	WebhookOrderStatusSucceeded                          = "succeeded"
-	WebhookOrderStatusFailed                             = "failed"
-	WebhookOrderStatusExpired                            = "expired"
-	WebhookRefundStatusRequested                         = "requested"
-	WebhookRefundStatusPending                           = "pending"
-	WebhookRefundStatusUnknown                           = "unknown"
-	WebhookRefundStatusSucceeded                         = "succeeded"
-	WebhookRefundStatusFailed                            = "failed"
-	WebhookRefundStatusCanceled                          = "canceled"
-	WebhookSaleCurrencyBRL                               = "BRL"
-	WebhookSaleMethodCard                                = "card"
-	WebhookSaleMethodPix                                 = "pix"
-	WebhookSaleMethodBoleto                              = "boleto"
+	BenefitStatusActive                                     = "active"
+	BenefitStatusArchived                                   = "archived"
+	BenefitTypeCustom                                       = "custom"
+	BenefitTypeLicenseKey                                   = "license_key"
+	BenefitTypeDownloadable                                 = "downloadable"
+	BenefitTypeFeatureFlag                                  = "feature_flag"
+	BenefitTypeMeterCredit                                  = "meter_credit"
+	BenefitTypeDiscord                                      = "discord"
+	BenefitTypeGithubRepository                             = "github_repository"
+	BenefitVisibilityPublic                                 = "public"
+	BenefitVisibilityPrivate                                = "private"
+	BenefitGrantBenefitTypeCustom                           = "custom"
+	BenefitGrantBenefitTypeLicenseKey                       = "license_key"
+	BenefitGrantBenefitTypeDownloadable                     = "downloadable"
+	BenefitGrantBenefitTypeFeatureFlag                      = "feature_flag"
+	BenefitGrantBenefitTypeMeterCredit                      = "meter_credit"
+	BenefitGrantBenefitTypeDiscord                          = "discord"
+	BenefitGrantBenefitTypeGithubRepository                 = "github_repository"
+	BenefitGrantStatusGranted                               = "granted"
+	BenefitGrantStatusRevoked                               = "revoked"
+	CardAuthenticationEnvironmentTest                       = "test"
+	CardAuthenticationEnvironmentLive                       = "live"
+	CardTokenizationEnvironmentTest                         = "test"
+	CardTokenizationEnvironmentLive                         = "live"
+	CheckoutStatusActive                                    = "active"
+	CheckoutStatusArchived                                  = "archived"
+	CheckoutClientCurrencyBRL                               = "BRL"
+	CheckoutClientEnvironmentTest                           = "test"
+	CheckoutClientEnvironmentLive                           = "live"
+	CheckoutClientStatusOpen                                = "open"
+	CheckoutClientStatusConfirmed                           = "confirmed"
+	CheckoutClientStatusSucceeded                           = "succeeded"
+	CheckoutClientStatusFailed                              = "failed"
+	CheckoutClientStatusExpired                             = "expired"
+	CheckoutClientPaymentMethodCard                         = "card"
+	CheckoutClientPaymentMethodPix                          = "pix"
+	CheckoutClientPaymentMethodBoleto                       = "boleto"
+	CheckoutClientPaymentStateUnknown                       = "unknown"
+	CheckoutClientPaymentStatePending                       = "pending"
+	CheckoutClientPaymentStateAuthorized                    = "authorized"
+	CheckoutClientPaymentStateCaptured                      = "captured"
+	CheckoutClientPaymentStateRefused                       = "refused"
+	CheckoutClientPaymentStateCanceled                      = "canceled"
+	CheckoutClientPaymentStateRefunded                      = "refunded"
+	CheckoutClientPaymentStatePartiallyRefunded             = "partially_refunded"
+	CheckoutCreatedStatusActive                             = "active"
+	CheckoutCreatedStatusArchived                           = "archived"
+	CheckoutExpiredStatusExpired                            = "expired"
+	CheckoutExpiredSessionMethodCard                        = "card"
+	CheckoutExpiredSessionMethodPix                         = "pix"
+	CheckoutExpiredSessionMethodBoleto                      = "boleto"
+	CheckoutExpiredSessionStatusExpired                     = "expired"
+	CheckoutExpiredSessionStatusFailed                      = "failed"
+	CheckoutLinkCaptureModeAutomatic                        = "automatic"
+	CheckoutLinkCaptureModeManual                           = "manual"
+	CheckoutLinkStatusActive                                = "active"
+	CheckoutLinkStatusArchived                              = "archived"
+	CheckoutLinkTrialIntervalDay                            = "day"
+	CheckoutLinkTrialIntervalWeek                           = "week"
+	CheckoutLinkTrialIntervalMonth                          = "month"
+	CheckoutLinkTrialIntervalYear                           = "year"
+	CheckoutNextActionTypeNone                              = "none"
+	CheckoutNextActionTypeWait                              = "wait"
+	CheckoutNextActionTypeShowPix                           = "show_pix"
+	CheckoutNextActionTypeShowBoleto                        = "show_boleto"
+	CheckoutNextActionTypeRedirect                          = "redirect"
+	CustomerStatusActive                                    = "active"
+	CustomerStatusArchived                                  = "archived"
+	CustomerTaxIDKindCpf                                    = "cpf"
+	CustomerTaxIDKindCnpj                                   = "cnpj"
+	CustomerStateStatusActive                               = "active"
+	CustomerStateStatusArchived                             = "archived"
+	CustomerStateBenefitGrantBenefitTypeCustom              = "custom"
+	CustomerStateBenefitGrantBenefitTypeLicenseKey          = "license_key"
+	CustomerStateBenefitGrantBenefitTypeDownloadable        = "downloadable"
+	CustomerStateBenefitGrantBenefitTypeFeatureFlag         = "feature_flag"
+	CustomerStateBenefitGrantBenefitTypeMeterCredit         = "meter_credit"
+	CustomerStateBenefitGrantBenefitTypeDiscord             = "discord"
+	CustomerStateBenefitGrantBenefitTypeGithubRepository    = "github_repository"
+	DiscountCurrencyBRL                                     = "BRL"
+	DiscountDurationOnce                                    = "once"
+	DiscountDurationRepeating                               = "repeating"
+	DiscountDurationForever                                 = "forever"
+	DiscountStatusActive                                    = "active"
+	DiscountStatusExpired                                   = "expired"
+	DiscountStatusExhausted                                 = "exhausted"
+	DiscountTypePercentage                                  = "percentage"
+	DiscountTypeFixed                                       = "fixed"
+	DisputeCurrencyBRL                                      = "BRL"
+	DisputeKindChargeback                                   = "chargeback"
+	DisputeKindMed                                          = "med"
+	DisputeSourceOperator                                   = "operator"
+	DisputeSourceCieloChargeback                            = "cielo_chargeback"
+	DisputeStatusOpened                                     = "opened"
+	DisputeStatusNeedsEvidence                              = "needs_evidence"
+	DisputeStatusSubmitted                                  = "submitted"
+	DisputeStatusUnderReview                                = "under_review"
+	DisputeStatusWon                                        = "won"
+	DisputeStatusLost                                       = "lost"
+	DisputeStatusClosed                                     = "closed"
+	EventNameTokenUsage                                     = "token_usage"
+	MeterAggregationFuncCount                               = "count"
+	MeterAggregationFuncSum                                 = "sum"
+	MeterAggregationFuncAvg                                 = "avg"
+	MeterAggregationFuncMin                                 = "min"
+	MeterAggregationFuncMax                                 = "max"
+	MeterAggregationFuncUnique                              = "unique"
+	MeterUnitTypeScalar                                     = "scalar"
+	MeterUnitTypeToken                                      = "token"
+	MeterUnitTypeCustom                                     = "custom"
+	OrderCurrencyBRL                                        = "BRL"
+	OrderOrderStatusPending                                 = "pending"
+	OrderOrderStatusPaid                                    = "paid"
+	OrderOrderStatusPartiallyRefunded                       = "partially_refunded"
+	OrderOrderStatusRefunded                                = "refunded"
+	OrderStatusOpen                                         = "open"
+	OrderStatusConfirmed                                    = "confirmed"
+	OrderStatusSucceeded                                    = "succeeded"
+	OrderStatusFailed                                       = "failed"
+	OrderStatusExpired                                      = "expired"
+	OrderInvoiceCurrencyBRL                                 = "BRL"
+	OrderReceiptCurrencyBRL                                 = "BRL"
+	PaymentCurrencyBRL                                      = "BRL"
+	PaymentMethodCard                                       = "card"
+	PaymentMethodPix                                        = "pix"
+	PaymentMethodBoleto                                     = "boleto"
+	PaymentStateUnknown                                     = "unknown"
+	PaymentStatePending                                     = "pending"
+	PaymentStateAuthorized                                  = "authorized"
+	PaymentStateCaptured                                    = "captured"
+	PaymentStateRefused                                     = "refused"
+	PaymentStateCanceled                                    = "canceled"
+	PaymentStateRefunded                                    = "refunded"
+	PaymentStatePartiallyRefunded                           = "partially_refunded"
+	PaymentMethodTypeCard                                   = "card"
+	PriceCurrencyBRL                                        = "BRL"
+	PriceIntervalNone                                       = "none"
+	PriceIntervalMonth                                      = "month"
+	PriceIntervalYear                                       = "year"
+	PriceStatusActive                                       = "active"
+	PriceStatusArchived                                     = "archived"
+	PriceTypeOneTime                                        = "one_time"
+	PriceTypeRecurring                                      = "recurring"
+	ProductStatusActive                                     = "active"
+	ProductStatusArchived                                   = "archived"
+	RefundStatusRequested                                   = "requested"
+	RefundStatusPending                                     = "pending"
+	RefundStatusUnknown                                     = "unknown"
+	RefundStatusSucceeded                                   = "succeeded"
+	RefundStatusFailed                                      = "failed"
+	RefundStatusCanceled                                    = "canceled"
+	SubscriptionCurrencyBRL                                 = "BRL"
+	SubscriptionStatusTrialing                              = "trialing"
+	SubscriptionStatusActive                                = "active"
+	SubscriptionStatusPastDue                               = "past_due"
+	SubscriptionStatusSuspended                             = "suspended"
+	SubscriptionStatusPaused                                = "paused"
+	SubscriptionStatusCanceled                              = "canceled"
+	SubscriptionSuspensionReasonRetriesExhausted            = "retries_exhausted"
+	SubscriptionSuspensionReasonDeclinedNotRetryable        = "declined_not_retryable"
+	SubscriptionSuspensionReasonDispute                     = "dispute"
+	WebhookBenefitStatusActive                              = "active"
+	WebhookBenefitStatusArchived                            = "archived"
+	WebhookBenefitVisibilityPublic                          = "public"
+	WebhookBenefitVisibilityPrivate                         = "private"
+	WebhookCheckoutCurrencyBRL                              = "BRL"
+	WebhookCheckoutStatusOpen                               = "open"
+	WebhookCheckoutStatusConfirmed                          = "confirmed"
+	WebhookCheckoutStatusSucceeded                          = "succeeded"
+	WebhookCheckoutStatusFailed                             = "failed"
+	WebhookCheckoutStatusExpired                            = "expired"
+	WebhookDeliveryStatusPending                            = "pending"
+	WebhookDeliveryStatusSucceeded                          = "succeeded"
+	WebhookDeliveryStatusExhausted                          = "exhausted"
+	WebhookDiscountDurationOnce                             = "once"
+	WebhookDiscountDurationForever                          = "forever"
+	WebhookDiscountDurationRepeating                        = "repeating"
+	WebhookDiscountStatusActive                             = "active"
+	WebhookDiscountStatusExpired                            = "expired"
+	WebhookDiscountStatusExhausted                          = "exhausted"
+	WebhookDiscountStatusArchived                           = "archived"
+	WebhookDiscountTypePercentage                           = "percentage"
+	WebhookDiscountTypeFixed                                = "fixed"
+	WebhookDisputeCurrencyBRL                               = "BRL"
+	WebhookDisputeKindChargeback                            = "chargeback"
+	WebhookDisputeKindMed                                   = "med"
+	WebhookDisputeSourceOperator                            = "operator"
+	WebhookDisputeSourceCieloChargeback                     = "cielo_chargeback"
+	WebhookDisputeStatusOpened                              = "opened"
+	WebhookDisputeStatusNeedsEvidence                       = "needs_evidence"
+	WebhookDisputeStatusSubmitted                           = "submitted"
+	WebhookDisputeStatusUnderReview                         = "under_review"
+	WebhookDisputeStatusWon                                 = "won"
+	WebhookDisputeStatusLost                                = "lost"
+	WebhookDisputeStatusClosed                              = "closed"
+	WebhookEndpointFormatRaw                                = "raw"
+	WebhookEndpointFormatDiscord                            = "discord"
+	WebhookEndpointFormatSlack                              = "slack"
+	WebhookEndpointStatusActive                             = "active"
+	WebhookEndpointStatusDisabled                           = "disabled"
+	WebhookEndpointCreatedFormatRaw                         = "raw"
+	WebhookEndpointCreatedFormatDiscord                     = "discord"
+	WebhookEndpointCreatedFormatSlack                       = "slack"
+	WebhookEndpointCreatedStatusActive                      = "active"
+	WebhookEndpointCreatedStatusDisabled                    = "disabled"
+	WebhookOrderCurrencyBRL                                 = "BRL"
+	WebhookOrderOrderStatusPending                          = "pending"
+	WebhookOrderOrderStatusPaid                             = "paid"
+	WebhookOrderOrderStatusPartiallyRefunded                = "partially_refunded"
+	WebhookOrderOrderStatusRefunded                         = "refunded"
+	WebhookOrderStatusOpen                                  = "open"
+	WebhookOrderStatusConfirmed                             = "confirmed"
+	WebhookOrderStatusSucceeded                             = "succeeded"
+	WebhookOrderStatusFailed                                = "failed"
+	WebhookOrderStatusExpired                               = "expired"
+	WebhookRefundStatusRequested                            = "requested"
+	WebhookRefundStatusPending                              = "pending"
+	WebhookRefundStatusUnknown                              = "unknown"
+	WebhookRefundStatusSucceeded                            = "succeeded"
+	WebhookRefundStatusFailed                               = "failed"
+	WebhookRefundStatusCanceled                             = "canceled"
+	WebhookSaleCurrencyBRL                                  = "BRL"
+	WebhookSaleMethodCard                                   = "card"
+	WebhookSaleMethodPix                                    = "pix"
+	WebhookSaleMethodBoleto                                 = "boleto"
+	WebhookSubscriptionCurrencyBRL                          = "BRL"
+	WebhookSubscriptionStatusTrialing                       = "trialing"
+	WebhookSubscriptionStatusActive                         = "active"
+	WebhookSubscriptionStatusPastDue                        = "past_due"
+	WebhookSubscriptionStatusSuspended                      = "suspended"
+	WebhookSubscriptionStatusPaused                         = "paused"
+	WebhookSubscriptionStatusCanceled                       = "canceled"
+	WebhookSubscriptionSuspensionReasonRetriesExhausted     = "retries_exhausted"
+	WebhookSubscriptionSuspensionReasonDeclinedNotRetryable = "declined_not_retryable"
+	WebhookSubscriptionSuspensionReasonDispute              = "dispute"
 )

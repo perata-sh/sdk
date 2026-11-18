@@ -298,7 +298,7 @@ final class SaleWebhookEvent extends WebhookEvent {
   final WebhookSale data;
 }
 
-/// The events that carry a Subscription.
+/// The events that carry a WebhookSubscription.
 final class SubscriptionWebhookEvent extends WebhookEvent {
   const SubscriptionWebhookEvent({
     required super.id,
@@ -318,12 +318,13 @@ final class SubscriptionWebhookEvent extends WebhookEvent {
     'subscription.paused',
     'subscription.resumed',
     'subscription.revoked',
+    'subscription.suspended',
     'subscription.uncanceled',
     'subscription.updated',
   };
 
   /// What the event carries.
-  final Subscription data;
+  final WebhookSubscription data;
 }
 
 /// An event of a type this SDK does not know yet, its data as it was sent.
@@ -560,7 +561,7 @@ WebhookEvent _event(List<int> raw) {
         type: type,
         timestamp: timestamp,
         environment: environment,
-        data: Subscription.fromJson(data),
+        data: WebhookSubscription.fromJson(data),
       );
     }
     return UnknownWebhookEvent(

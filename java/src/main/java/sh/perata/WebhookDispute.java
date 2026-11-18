@@ -9,6 +9,10 @@ import java.util.Map;
 public final class WebhookDispute {
     /** A value of {@link #getCurrency()}. */
     public static final String CURRENCY_BRL = "BRL";
+    /** A value of {@link #getKind()}. */
+    public static final String KIND_CHARGEBACK = "chargeback";
+    /** A value of {@link #getKind()}. */
+    public static final String KIND_MED = "med";
     /** A value of {@link #getSource()}. */
     public static final String SOURCE_OPERATOR = "operator";
     /** A value of {@link #getSource()}. */
@@ -29,58 +33,89 @@ public final class WebhookDispute {
     public static final String STATUS_CLOSED = "closed";
 
     private final long amountCents;
+    private final String checkoutId;
+    private final String clientReferenceId;
     private final String currency;
     private final String customerId;
     private final String decidedAt;
     private final String dueBy;
+    private final String externalCustomerId;
     private final String id;
     private final String invoiceId;
+    private final String kind;
+    private final Map<String, Object> metadata;
     private final String openedAt;
     private final String paymentId;
+    private final String paymentMethod;
     private final String providerDisputeId;
     private final String providerReason;
     private final String reason;
     private final String source;
     private final String status;
+    private final String subscriptionId;
 
-    WebhookDispute(long amountCents, String currency, String customerId, String decidedAt, String dueBy, String id, String invoiceId, String openedAt, String paymentId, String providerDisputeId, String providerReason, String reason, String source, String status) {
+    WebhookDispute(long amountCents, String checkoutId, String clientReferenceId, String currency, String customerId, String decidedAt, String dueBy, String externalCustomerId, String id, String invoiceId, String kind, Map<String, Object> metadata, String openedAt, String paymentId, String paymentMethod, String providerDisputeId, String providerReason, String reason, String source, String status, String subscriptionId) {
         this.amountCents = amountCents;
+        this.checkoutId = checkoutId;
+        this.clientReferenceId = clientReferenceId;
         this.currency = currency;
         this.customerId = customerId;
         this.decidedAt = decidedAt;
         this.dueBy = dueBy;
+        this.externalCustomerId = externalCustomerId;
         this.id = id;
         this.invoiceId = invoiceId;
+        this.kind = kind;
+        this.metadata = metadata;
         this.openedAt = openedAt;
         this.paymentId = paymentId;
+        this.paymentMethod = paymentMethod;
         this.providerDisputeId = providerDisputeId;
         this.providerReason = providerReason;
         this.reason = reason;
         this.source = source;
         this.status = status;
+        this.subscriptionId = subscriptionId;
     }
 
     static WebhookDispute fromJson(Map<String, Object> data) {
         return new WebhookDispute(
                 Json.required(data, "amount_cents", Json::asLong),
+                Json.optional(data, "checkout_id", Json::asString),
+                Json.optional(data, "client_reference_id", Json::asString),
                 Json.required(data, "currency", Json::asString),
                 Json.optional(data, "customer_id", Json::asString),
                 Json.optional(data, "decided_at", Json::asString),
                 Json.optional(data, "due_by", Json::asString),
+                Json.optional(data, "external_customer_id", Json::asString),
                 Json.required(data, "id", Json::asString),
                 Json.optional(data, "invoice_id", Json::asString),
+                Json.optional(data, "kind", Json::asString),
+                Json.optional(data, "metadata", Json.map(Json::any)),
                 Json.required(data, "opened_at", Json::asString),
                 Json.required(data, "payment_id", Json::asString),
+                Json.optional(data, "payment_method", Json::asString),
                 Json.required(data, "provider_dispute_id", Json::asString),
                 Json.required(data, "provider_reason", Json::asString),
                 Json.required(data, "reason", Json::asString),
                 Json.required(data, "source", Json::asString),
-                Json.required(data, "status", Json::asString));
+                Json.required(data, "status", Json::asString),
+                Json.optional(data, "subscription_id", Json::asString));
     }
 
     /** @return Valor contestado, em centavos. */
     public long getAmountCents() {
         return amountCents;
+    }
+
+    /** @return O checkout (o pedido) da venda contestada; nulo quando não é de um checkout. (null when the API sends none) */
+    public String getCheckoutId() {
+        return checkoutId;
+    }
+
+    /** @return O id do pedido no seu sistema, enviado ao criar o checkout; vazio sem ele. (null when the API sends none) */
+    public String getClientReferenceId() {
+        return clientReferenceId;
     }
 
     /** @return the API's {@code currency} */
@@ -103,6 +138,11 @@ public final class WebhookDispute {
         return dueBy;
     }
 
+    /** @return O id do cliente no seu sistema; nulo sem ele. (null when the API sends none) */
+    public String getExternalCustomerId() {
+        return externalCustomerId;
+    }
+
     /** @return the API's {@code id} */
     public String getId() {
         return id;
@@ -113,6 +153,16 @@ public final class WebhookDispute {
         return invoiceId;
     }
 
+    /** @return chargeback é a contestação de um cartão na bandeira; med é a devolução que o banco do pagador pede num Pix (Mecanismo Especial de Devolução). (null when the API sends none) */
+    public String getKind() {
+        return kind;
+    }
+
+    /** @return Os pares que o seu servidor enviou ao criar o checkout; na renovação de uma assinatura, os da assinatura. (null when the API sends none) */
+    public Map<String, Object> getMetadata() {
+        return metadata;
+    }
+
     /** @return the API's {@code opened_at} */
     public String getOpenedAt() {
         return openedAt;
@@ -121,6 +171,11 @@ public final class WebhookDispute {
     /** @return O PaymentId da venda contestada na Cielo. */
     public String getPaymentId() {
         return paymentId;
+    }
+
+    /** @return Como a venda contestada foi paga: card ou pix. (null when the API sends none) */
+    public String getPaymentMethod() {
+        return paymentMethod;
     }
 
     /** @return O número do caso na Cielo. */
@@ -148,8 +203,13 @@ public final class WebhookDispute {
         return status;
     }
 
+    /** @return A assinatura de que a venda contestada era um ciclo; nulo quando não é de uma assinatura. A assinatura fica suspensa (suspension_reason dispute). (null when the API sends none) */
+    public String getSubscriptionId() {
+        return subscriptionId;
+    }
+
     @Override
     public String toString() {
-        return "WebhookDispute{" + "amountCents=" + amountCents + ", currency=" + currency + ", customerId=" + customerId + ", decidedAt=" + decidedAt + ", dueBy=" + dueBy + ", id=" + id + ", invoiceId=" + invoiceId + ", openedAt=" + openedAt + ", paymentId=" + paymentId + ", providerDisputeId=" + providerDisputeId + ", providerReason=" + providerReason + ", reason=" + reason + ", source=" + source + ", status=" + status + "}";
+        return "WebhookDispute{" + "amountCents=" + amountCents + ", checkoutId=" + checkoutId + ", clientReferenceId=" + clientReferenceId + ", currency=" + currency + ", customerId=" + customerId + ", decidedAt=" + decidedAt + ", dueBy=" + dueBy + ", externalCustomerId=" + externalCustomerId + ", id=" + id + ", invoiceId=" + invoiceId + ", kind=" + kind + ", metadata=" + metadata + ", openedAt=" + openedAt + ", paymentId=" + paymentId + ", paymentMethod=" + paymentMethod + ", providerDisputeId=" + providerDisputeId + ", providerReason=" + providerReason + ", reason=" + reason + ", source=" + source + ", status=" + status + ", subscriptionId=" + subscriptionId + "}";
     }
 }

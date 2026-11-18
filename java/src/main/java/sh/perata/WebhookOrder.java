@@ -32,6 +32,7 @@ public final class WebhookOrder {
     private final String clientReferenceId;
     private final String currency;
     private final String customerId;
+    private final Long cycleSequence;
     private final String id;
     private final long installmentInterestCents;
     private final long installments;
@@ -39,18 +40,22 @@ public final class WebhookOrder {
     private final Map<String, Object> metadata;
     private final String orderStatus;
     private final String paidAt;
+    private final String periodEnd;
+    private final String periodStart;
     private final String priceId;
     private final String productId;
     private final Long refundAmountCents;
     private final String refundId;
     private final long refundedAmountCents;
     private final String status;
+    private final String subscriptionId;
 
-    WebhookOrder(long amountCents, String clientReferenceId, String currency, String customerId, String id, long installmentInterestCents, long installments, List<CheckoutLine> items, Map<String, Object> metadata, String orderStatus, String paidAt, String priceId, String productId, Long refundAmountCents, String refundId, long refundedAmountCents, String status) {
+    WebhookOrder(long amountCents, String clientReferenceId, String currency, String customerId, Long cycleSequence, String id, long installmentInterestCents, long installments, List<CheckoutLine> items, Map<String, Object> metadata, String orderStatus, String paidAt, String periodEnd, String periodStart, String priceId, String productId, Long refundAmountCents, String refundId, long refundedAmountCents, String status, String subscriptionId) {
         this.amountCents = amountCents;
         this.clientReferenceId = clientReferenceId;
         this.currency = currency;
         this.customerId = customerId;
+        this.cycleSequence = cycleSequence;
         this.id = id;
         this.installmentInterestCents = installmentInterestCents;
         this.installments = installments;
@@ -58,12 +63,15 @@ public final class WebhookOrder {
         this.metadata = metadata;
         this.orderStatus = orderStatus;
         this.paidAt = paidAt;
+        this.periodEnd = periodEnd;
+        this.periodStart = periodStart;
         this.priceId = priceId;
         this.productId = productId;
         this.refundAmountCents = refundAmountCents;
         this.refundId = refundId;
         this.refundedAmountCents = refundedAmountCents;
         this.status = status;
+        this.subscriptionId = subscriptionId;
     }
 
     static WebhookOrder fromJson(Map<String, Object> data) {
@@ -72,6 +80,7 @@ public final class WebhookOrder {
                 Json.required(data, "client_reference_id", Json::asString),
                 Json.required(data, "currency", Json::asString),
                 Json.required(data, "customer_id", Json::asString),
+                Json.optional(data, "cycle_sequence", Json::asLong),
                 Json.required(data, "id", Json::asString),
                 Json.required(data, "installment_interest_cents", Json::asLong),
                 Json.required(data, "installments", Json::asLong),
@@ -79,12 +88,15 @@ public final class WebhookOrder {
                 Json.required(data, "metadata", Json.map(Json::any)),
                 Json.optional(data, "order_status", Json::asString),
                 Json.optional(data, "paid_at", Json::asString),
+                Json.optional(data, "period_end", Json::asString),
+                Json.optional(data, "period_start", Json::asString),
                 Json.required(data, "price_id", Json::asString),
                 Json.required(data, "product_id", Json::asString),
                 Json.optional(data, "refund_amount_cents", Json::asLong),
                 Json.optional(data, "refund_id", Json::asString),
                 Json.required(data, "refunded_amount_cents", Json::asLong),
-                Json.required(data, "status", Json::asString));
+                Json.required(data, "status", Json::asString),
+                Json.optional(data, "subscription_id", Json::asString));
     }
 
     /** @return the API's {@code amount_cents} */
@@ -107,6 +119,11 @@ public final class WebhookOrder {
         return customerId;
     }
 
+    /** @return O ciclo da assinatura que o pagamento cobra: 1 é o primeiro, 2 é a primeira renovação. (null when the API sends none) */
+    public Long getCycleSequence() {
+        return cycleSequence;
+    }
+
     /** @return the API's {@code id} */
     public String getId() {
         return id;
@@ -127,7 +144,7 @@ public final class WebhookOrder {
         return items;
     }
 
-    /** @return Os pares que o seu servidor enviou ao criar o checkout. */
+    /** @return Os pares que o seu servidor enviou ao criar o checkout. Na renovação de uma assinatura são os metadados da assinatura (o id da câmera, por exemplo). */
     public Map<String, Object> getMetadata() {
         return metadata;
     }
@@ -140,6 +157,16 @@ public final class WebhookOrder {
     /** @return the API's {@code paid_at} (null when the API sends none) */
     public String getPaidAt() {
         return paidAt;
+    }
+
+    /** @return O fim do período do ciclo que o pagamento cobra. (null when the API sends none) */
+    public String getPeriodEnd() {
+        return periodEnd;
+    }
+
+    /** @return O início do período do ciclo que o pagamento cobra. (null when the API sends none) */
+    public String getPeriodStart() {
+        return periodStart;
     }
 
     /** @return the API's {@code price_id} */
@@ -172,8 +199,13 @@ public final class WebhookOrder {
         return status;
     }
 
+    /** @return A assinatura que este pagamento cobra; nulo quando a venda não é de uma assinatura. (null when the API sends none) */
+    public String getSubscriptionId() {
+        return subscriptionId;
+    }
+
     @Override
     public String toString() {
-        return "WebhookOrder{" + "amountCents=" + amountCents + ", clientReferenceId=" + clientReferenceId + ", currency=" + currency + ", customerId=" + customerId + ", id=" + id + ", installmentInterestCents=" + installmentInterestCents + ", installments=" + installments + ", items=" + items + ", metadata=" + metadata + ", orderStatus=" + orderStatus + ", paidAt=" + paidAt + ", priceId=" + priceId + ", productId=" + productId + ", refundAmountCents=" + refundAmountCents + ", refundId=" + refundId + ", refundedAmountCents=" + refundedAmountCents + ", status=" + status + "}";
+        return "WebhookOrder{" + "amountCents=" + amountCents + ", clientReferenceId=" + clientReferenceId + ", currency=" + currency + ", customerId=" + customerId + ", cycleSequence=" + cycleSequence + ", id=" + id + ", installmentInterestCents=" + installmentInterestCents + ", installments=" + installments + ", items=" + items + ", metadata=" + metadata + ", orderStatus=" + orderStatus + ", paidAt=" + paidAt + ", periodEnd=" + periodEnd + ", periodStart=" + periodStart + ", priceId=" + priceId + ", productId=" + productId + ", refundAmountCents=" + refundAmountCents + ", refundId=" + refundId + ", refundedAmountCents=" + refundedAmountCents + ", status=" + status + ", subscriptionId=" + subscriptionId + "}";
     }
 }

@@ -12,19 +12,37 @@ final class Dispute
     public function __construct(
         /** Valor contestado, em centavos. */
         public readonly int $amountCents,
+        /** O checkout (o pedido) da venda contestada; nulo quando não é de um checkout. É o mesmo valor de order_id. */
+        public readonly ?string $checkoutId,
+        /** O id do pedido no seu sistema, enviado ao criar o checkout; vazio sem ele. */
+        public readonly string $clientReferenceId,
         /** @var 'BRL' */
         public readonly string $currency,
         public readonly ?string $customerId,
         public readonly ?string $decidedAt,
         /** Prazo da defesa. */
         public readonly ?string $dueBy,
+        /** O id do cliente no seu sistema; nulo sem ele. */
+        public readonly ?string $externalCustomerId,
         public readonly string $id,
         public readonly ?string $invoiceId,
+        /**
+         * chargeback é a contestação de um cartão na bandeira; med é a devolução que o banco do pagador pede num Pix (Mecanismo Especial de Devolução).
+         * @var 'chargeback'|'med'
+         */
+        public readonly string $kind,
+        /**
+         * Os pares que o seu servidor enviou ao criar o checkout; na renovação de uma assinatura, os da assinatura.
+         * @var array<string, mixed>
+         */
+        public readonly array $metadata,
         public readonly string $openedAt,
         /** O pedido que a venda contestada pagou; nulo quando não é de um checkout. */
         public readonly ?string $orderId,
         /** O PaymentId da venda contestada na Cielo. */
         public readonly string $paymentId,
+        /** Como a venda contestada foi paga: card ou pix. */
+        public readonly string $paymentMethod,
         /** O número do caso na Cielo. */
         public readonly string $providerDisputeId,
         /** O motivo nas palavras da Cielo. */
@@ -35,6 +53,8 @@ final class Dispute
         public readonly string $source,
         /** @var 'opened'|'needs_evidence'|'submitted'|'under_review'|'won'|'lost'|'closed' */
         public readonly string $status,
+        /** A assinatura de que a venda contestada era um ciclo; nulo quando não é de uma assinatura. A assinatura fica suspensa (suspension_reason dispute). */
+        public readonly ?string $subscriptionId,
     ) {
     }
 
@@ -45,20 +65,27 @@ final class Dispute
     {
         return new self(
             amountCents: $data['amount_cents'],
+            checkoutId: $data['checkout_id'] ?? null,
+            clientReferenceId: $data['client_reference_id'],
             currency: $data['currency'],
             customerId: $data['customer_id'] ?? null,
             decidedAt: $data['decided_at'] ?? null,
             dueBy: $data['due_by'] ?? null,
+            externalCustomerId: $data['external_customer_id'] ?? null,
             id: $data['id'],
             invoiceId: $data['invoice_id'] ?? null,
+            kind: $data['kind'],
+            metadata: $data['metadata'],
             openedAt: $data['opened_at'],
             orderId: $data['order_id'] ?? null,
             paymentId: $data['payment_id'],
+            paymentMethod: $data['payment_method'],
             providerDisputeId: $data['provider_dispute_id'],
             providerReason: $data['provider_reason'],
             reason: $data['reason'],
             source: $data['source'],
             status: $data['status'],
+            subscriptionId: $data['subscription_id'] ?? null,
         );
     }
 }

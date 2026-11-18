@@ -6,12 +6,12 @@ SDK oficial da API da Peráta para Java 11+, sem dependências: só `java.net.ht
 <dependency>
     <groupId>sh.perata</groupId>
     <artifactId>sdk</artifactId>
-    <version>0.5.3</version>
+    <version>0.5.4</version>
 </dependency>
 ```
 
 ```kotlin
-implementation("sh.perata:sdk:0.5.3") // Gradle
+implementation("sh.perata:sdk:0.5.4") // Gradle
 ```
 
 ```java
@@ -52,7 +52,7 @@ for (Product each : perata.products().listIter()) {
 | `perata.prices()` | `create`, `list`, `listIter` |
 | `perata.products()` | `archive`, `create`, `get`, `list`, `listIter`, `update` |
 | `perata.refunds()` | `create`, `list`, `listIter` |
-| `perata.subscriptions()` | `cancel`, `get`, `list`, `listIter`, `update` |
+| `perata.subscriptions()` | `cancel`, `get`, `list`, `listIter`, `resume`, `update` |
 | `perata.usage()` | `ingest` |
 | `perata.webhooks()` | `createEndpoint`, `deleteEndpoint`, `getEndpoint`, `listDeliveries`, `listDeliveriesIter`, `listEndpoints`, `listEndpointsIter`, `updateEndpoint` |
 
@@ -127,4 +127,4 @@ O evento é tipado: um tipo para cada dado que o webhook carrega (`OrderWebhookE
 
 Todo evento traz o ambiente em que aconteceu, em `getEnvironment()`: `"test"` ou `"live"` (vazio se um servidor antigo não mandou). Recuse o evento do ambiente errado: um endpoint de produção deve responder 400 a um evento `"test"`, para que um teste não dê baixa em um pedido real.
 
-Versão do SDK: 0.5.3 · contrato da API: 0.1.0
+Versão do SDK: 0.5.4 · contrato da API: 0.1.0

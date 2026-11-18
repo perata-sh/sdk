@@ -712,6 +712,11 @@ export class SubscriptionsService {
     return iterate((page) => this.list({ ...params, page }, options), params.page);
   }
 
+  /** Reativar uma assinatura suspensa, que volta a ser cobrada (a cobrança do ciclo em aberto recomeça), ou retomar uma pausada; qualquer outra recebe 409. */
+  resume(subscription: string, options?: RequestOptions): Promise<models.Subscription> {
+    return this.#client.request("POST", `/api/v1/subscriptions/${encodeURIComponent(subscription)}/resume`, { options });
+  }
+
   /** Trocar o plano de uma assinatura: outro preço e, se quiser, outra quantidade, com a forma de ratear a diferença (proration_behavior). */
   update(subscription: string, params: models.SubscriptionsUpdateParams, options?: RequestOptions): Promise<models.Subscription> {
     return this.#client.request("PATCH", `/api/v1/subscriptions/${encodeURIComponent(subscription)}`, { body: params, options });

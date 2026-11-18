@@ -6,26 +6,26 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * The events that carry a Subscription: {@code subscription.active}, {@code subscription.canceled}, {@code subscription.created}, {@code subscription.cycled}, {@code subscription.past_due}, {@code subscription.paused}, {@code subscription.resumed}, {@code subscription.revoked}, {@code subscription.uncanceled}, {@code subscription.updated}.
+ * The events that carry a WebhookSubscription: {@code subscription.active}, {@code subscription.canceled}, {@code subscription.created}, {@code subscription.cycled}, {@code subscription.past_due}, {@code subscription.paused}, {@code subscription.resumed}, {@code subscription.revoked}, {@code subscription.suspended}, {@code subscription.uncanceled}, {@code subscription.updated}.
  */
 public final class SubscriptionWebhookEvent extends WebhookEvent {
     /** The event types this class carries. */
-    public static final List<String> TYPES = List.of("subscription.active", "subscription.canceled", "subscription.created", "subscription.cycled", "subscription.past_due", "subscription.paused", "subscription.resumed", "subscription.revoked", "subscription.uncanceled", "subscription.updated");
+    public static final List<String> TYPES = List.of("subscription.active", "subscription.canceled", "subscription.created", "subscription.cycled", "subscription.past_due", "subscription.paused", "subscription.resumed", "subscription.revoked", "subscription.suspended", "subscription.uncanceled", "subscription.updated");
 
-    private final Subscription data;
+    private final WebhookSubscription data;
 
-    SubscriptionWebhookEvent(String id, String type, String timestamp, String environment, Subscription data) {
+    SubscriptionWebhookEvent(String id, String type, String timestamp, String environment, WebhookSubscription data) {
         super(id, type, timestamp, environment);
         this.data = data;
     }
 
     static SubscriptionWebhookEvent fromJson(String id, String type, String timestamp, String environment, Map<String, Object> data) {
-        return new SubscriptionWebhookEvent(id, type, timestamp, environment, Subscription.fromJson(data));
+        return new SubscriptionWebhookEvent(id, type, timestamp, environment, WebhookSubscription.fromJson(data));
     }
 
     /** @return what the event carries */
     @Override
-    public Subscription getData() {
+    public WebhookSubscription getData() {
         return data;
     }
 }

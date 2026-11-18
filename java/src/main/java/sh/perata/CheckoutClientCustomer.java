@@ -11,14 +11,16 @@ public final class CheckoutClientCustomer {
     private final BillingAddress address;
     private final String billingName;
     private final String email;
+    private final boolean locked;
     private final String name;
     private final String taxId;
     private final String taxIdKind;
 
-    CheckoutClientCustomer(BillingAddress address, String billingName, String email, String name, String taxId, String taxIdKind) {
+    CheckoutClientCustomer(BillingAddress address, String billingName, String email, boolean locked, String name, String taxId, String taxIdKind) {
         this.address = address;
         this.billingName = billingName;
         this.email = email;
+        this.locked = locked;
         this.name = name;
         this.taxId = taxId;
         this.taxIdKind = taxIdKind;
@@ -29,6 +31,7 @@ public final class CheckoutClientCustomer {
                 Json.required(data, "address", Json.model(BillingAddress::fromJson)),
                 Json.required(data, "billing_name", Json::asString),
                 Json.required(data, "email", Json::asString),
+                Json.required(data, "locked", Json::asBoolean),
                 Json.required(data, "name", Json::asString),
                 Json.required(data, "tax_id", Json::asString),
                 Json.required(data, "tax_id_kind", Json::asString));
@@ -49,6 +52,11 @@ public final class CheckoutClientCustomer {
         return email;
     }
 
+    /** @return Verdadeiro quando o servidor do lojista abriu o checkout para um cliente que ele informou (customer_id ou external_customer_id): o e-mail não muda, os campos já vêm preenchidos para o comprador conferir e nenhum código é pedido para provar o e-mail. */
+    public boolean getLocked() {
+        return locked;
+    }
+
     /** @return the API's {@code name} */
     public String getName() {
         return name;
@@ -66,6 +74,6 @@ public final class CheckoutClientCustomer {
 
     @Override
     public String toString() {
-        return "CheckoutClientCustomer{" + "address=" + address + ", billingName=" + billingName + ", email=" + email + ", name=" + name + ", taxId=" + taxId + ", taxIdKind=" + taxIdKind + "}";
+        return "CheckoutClientCustomer{" + "address=" + address + ", billingName=" + billingName + ", email=" + email + ", locked=" + locked + ", name=" + name + ", taxId=" + taxId + ", taxIdKind=" + taxIdKind + "}";
     }
 }

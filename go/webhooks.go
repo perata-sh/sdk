@@ -177,7 +177,7 @@ type SaleWebhookEvent struct {
 	Data WebhookSale `json:"data"`
 }
 
-// SubscriptionWebhookEvent carries a Subscription, for the types
+// SubscriptionWebhookEvent carries a WebhookSubscription, for the types
 //   - subscription.active
 //   - subscription.canceled
 //   - subscription.created
@@ -186,11 +186,12 @@ type SaleWebhookEvent struct {
 //   - subscription.paused
 //   - subscription.resumed
 //   - subscription.revoked
+//   - subscription.suspended
 //   - subscription.uncanceled
 //   - subscription.updated
 type SubscriptionWebhookEvent struct {
 	WebhookMessage
-	Data Subscription `json:"data"`
+	Data WebhookSubscription `json:"data"`
 }
 
 // UnknownWebhookEvent is an event of a type this SDK does not know yet; its
@@ -291,7 +292,7 @@ func parseWebhookEvent(body []byte) (WebhookEvent, error) {
 		event = &RefundWebhookEvent{}
 	case "checkout_payment.authorized", "checkout_payment.canceled", "checkout_payment.captured", "checkout_payment.partially_refunded", "checkout_payment.refunded", "checkout_payment.refused", "refund.canceled", "refund.failed", "refund.requested", "refund.succeeded":
 		event = &SaleWebhookEvent{}
-	case "subscription.active", "subscription.canceled", "subscription.created", "subscription.cycled", "subscription.past_due", "subscription.paused", "subscription.resumed", "subscription.revoked", "subscription.uncanceled", "subscription.updated":
+	case "subscription.active", "subscription.canceled", "subscription.created", "subscription.cycled", "subscription.past_due", "subscription.paused", "subscription.resumed", "subscription.revoked", "subscription.suspended", "subscription.uncanceled", "subscription.updated":
 		event = &SubscriptionWebhookEvent{}
 	default:
 		event = &UnknownWebhookEvent{}

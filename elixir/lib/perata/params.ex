@@ -914,15 +914,17 @@ defmodule Perata.PricesCreateParams do
   """
 
   @enforce_keys [:amount_cents, :product_id, :type]
-  defstruct [:amount_cents, :interval, :product_id, :type]
+  defstruct [:amount_cents, :interval, :interval_count, :product_id, :type]
 
   @typedoc """
   * `interval` (optional; one of `"month"`, `"year"`): Obrigatório no preço recorrente; o preço one_time não tem intervalo.
+  * `interval_count` (optional): De quantos em quantos intervalos o preço renova; 1 se omitido. Com month vai de 1 a 12 (3 é trimestral, 6 semestral); com year só 1. O preço one_time não tem.
   * `type` (one of `"one_time"`, `"recurring"`)
   """
   @type t :: %__MODULE__{
           amount_cents: integer(),
           interval: String.t() | nil,
+          interval_count: integer() | nil,
           product_id: String.t(),
           type: String.t()
         }
@@ -943,6 +945,7 @@ defmodule Perata.PricesCreateParams do
       "type" => params.type
     }
     |> Perata.Encode.put_optional("interval", params.interval)
+    |> Perata.Encode.put_optional("interval_count", params.interval_count)
   end
 end
 

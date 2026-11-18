@@ -74,6 +74,10 @@ public sealed record PricesCreateParams
     [JsonPropertyName("interval")]
     public string? Interval { get; init; }
 
+    /// <summary>De quantos em quantos intervalos o preço renova; 1 se omitido. Com month vai de 1 a 12 (3 é trimestral, 6 semestral); com year só 1. O preço one_time não tem. Left out of the request when null.</summary>
+    [JsonPropertyName("interval_count")]
+    public long? IntervalCount { get; init; }
+
     /// <summary>The <c>product_id</c> to send.</summary>
     [JsonPropertyName("product_id")]
     public required string ProductId { get; init; }

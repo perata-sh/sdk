@@ -13,6 +13,8 @@ final class CheckoutClientCustomer
         public readonly BillingAddress $address,
         public readonly string $billingName,
         public readonly string $email,
+        /** Verdadeiro quando o servidor do lojista abriu o checkout para um cliente que ele informou (customer_id ou external_customer_id): o e-mail não muda, os campos já vêm preenchidos para o comprador conferir e nenhum código é pedido para provar o e-mail. */
+        public readonly bool $locked,
         public readonly string $name,
         /** O CPF ou CNPJ do comprador, só dígitos; vazio enquanto não for informado. */
         public readonly string $taxId,
@@ -29,6 +31,7 @@ final class CheckoutClientCustomer
             address: BillingAddress::fromArray($data['address']),
             billingName: $data['billing_name'],
             email: $data['email'],
+            locked: $data['locked'],
             name: $data['name'],
             taxId: $data['tax_id'],
             taxIdKind: $data['tax_id_kind'],

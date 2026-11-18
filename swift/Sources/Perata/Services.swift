@@ -688,6 +688,13 @@ public struct SubscriptionsService: Sendable {
         }
     }
 
+    /// Reativar uma assinatura suspensa, que volta a ser cobrada (a cobrança do ciclo em aberto recomeça), ou retomar uma pausada; qualquer outra recebe 409.
+    public func resume(_ subscription: String, idempotencyKey: String? = nil, apiKey: String? = nil) async throws -> Subscription {
+        try await requester.request(
+            "POST", "/api/v1/subscriptions/\(escape(subscription))/resume", idempotencyKey: idempotencyKey, apiKey: apiKey
+        )
+    }
+
     /// Trocar o plano de uma assinatura: outro preço e, se quiser, outra quantidade, com a forma de ratear a diferença (proration_behavior).
     public func update(_ subscription: String, _ params: SubscriptionsUpdateParams, idempotencyKey: String? = nil, apiKey: String? = nil) async throws -> Subscription {
         try await requester.request(

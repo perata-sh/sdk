@@ -4,7 +4,7 @@ SDK oficial da API da Peráta para Swift 6 (macOS 12+, iOS 15+, tvOS 15+, watchO
 
 ```swift
 // Package.swift
-.package(url: "https://github.com/perata-sh/sdk", from: "0.5.3"),
+.package(url: "https://github.com/perata-sh/sdk", from: "0.5.4"),
 // e, no target:
 .product(name: "Perata", package: "sdk"),
 ```
@@ -40,7 +40,7 @@ for try await product in perata.products.listIter() {
 | `perata.prices` | `create`, `list`, `listIter` |
 | `perata.products` | `archive`, `create`, `get`, `list`, `listIter`, `update` |
 | `perata.refunds` | `create`, `list`, `listIter` |
-| `perata.subscriptions` | `cancel`, `get`, `list`, `listIter`, `update` |
+| `perata.subscriptions` | `cancel`, `get`, `list`, `listIter`, `resume`, `update` |
 | `perata.usage` | `ingest` |
 | `perata.webhooks` | `createEndpoint`, `deleteEndpoint`, `getEndpoint`, `listDeliveries`, `listDeliveriesIter`, `listEndpoints`, `listEndpointsIter`, `updateEndpoint` |
 
@@ -117,4 +117,4 @@ O evento é tipado: um caso para cada dado que o webhook carrega (`.order` traz 
 
 Todo evento traz o ambiente em que aconteceu, em `event.environment`: `"test"` ou `"live"` (vazio se um servidor antigo não mandou). Recuse o evento do ambiente errado: um endpoint de produção deve responder 400 a um evento `"test"`, para que um teste não dê baixa em um pedido real.
 
-Versão do SDK: 0.5.3 · contrato da API: 0.1.0
+Versão do SDK: 0.5.4 · contrato da API: 0.1.0

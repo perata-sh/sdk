@@ -100,9 +100,9 @@ module Perata
     TYPES = %w[checkout_payment.authorized checkout_payment.canceled checkout_payment.captured checkout_payment.partially_refunded checkout_payment.refunded checkout_payment.refused refund.canceled refund.failed refund.requested refund.succeeded].freeze
   end
 
-  # The events that carry a Subscription; +data+ is Subscription.
+  # The events that carry a WebhookSubscription; +data+ is WebhookSubscription.
   class SubscriptionWebhookEvent < WebhookEvent
-    TYPES = %w[subscription.active subscription.canceled subscription.created subscription.cycled subscription.past_due subscription.paused subscription.resumed subscription.revoked subscription.uncanceled subscription.updated].freeze
+    TYPES = %w[subscription.active subscription.canceled subscription.created subscription.cycled subscription.past_due subscription.paused subscription.resumed subscription.revoked subscription.suspended subscription.uncanceled subscription.updated].freeze
   end
 
   # An event of a type this SDK does not know yet, its data as it was sent.
@@ -176,7 +176,7 @@ module Perata
     when *ProductWebhookEvent::TYPES then ProductWebhookEvent.new(**message, data: Product.from_hash(data))
     when *RefundWebhookEvent::TYPES then RefundWebhookEvent.new(**message, data: WebhookRefund.from_hash(data))
     when *SaleWebhookEvent::TYPES then SaleWebhookEvent.new(**message, data: WebhookSale.from_hash(data))
-    when *SubscriptionWebhookEvent::TYPES then SubscriptionWebhookEvent.new(**message, data: Subscription.from_hash(data))
+    when *SubscriptionWebhookEvent::TYPES then SubscriptionWebhookEvent.new(**message, data: WebhookSubscription.from_hash(data))
     else UnknownWebhookEvent.new(**message, data: data)
     end
   end

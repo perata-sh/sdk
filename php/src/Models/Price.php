@@ -17,6 +17,8 @@ final class Price
         public readonly string $id,
         /** @var 'none'|'month'|'year' */
         public readonly string $interval,
+        /** De quantos em quantos intervalos o preço renova: 3 com month é trimestral, 6 semestral. 1 no preço one_time. */
+        public readonly int $intervalCount,
         public readonly string $productId,
         /** @var 'active'|'archived' */
         public readonly string $status,
@@ -35,6 +37,7 @@ final class Price
             currency: $data['currency'],
             id: $data['id'],
             interval: $data['interval'],
+            intervalCount: $data['interval_count'],
             productId: $data['product_id'],
             status: $data['status'],
             type: $data['type'],

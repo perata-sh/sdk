@@ -198,7 +198,7 @@ public static class Webhook
         }
         if (SubscriptionWebhookEvent.Types.Contains(type))
         {
-            return new SubscriptionWebhookEvent(id, type, timestamp, environment, data.Deserialize(PerataJson.Default.Subscription)
+            return new SubscriptionWebhookEvent(id, type, timestamp, environment, data.Deserialize(PerataJson.Default.WebhookSubscription)
                 ?? throw new JsonException("perata: the webhook has no data"));
         }
         return new UnknownWebhookEvent(id, type, timestamp, environment, data);

@@ -50,12 +50,14 @@ public final class PricesService {
 
         private final long amountCents;
         private final String interval;
+        private final Long intervalCount;
         private final String productId;
         private final String type;
 
         private CreateParams(Builder builder) {
             this.amountCents = builder.amountCents;
             this.interval = builder.interval;
+            this.intervalCount = builder.intervalCount;
             this.productId = builder.productId;
             this.type = builder.type;
         }
@@ -75,6 +77,11 @@ public final class PricesService {
             return interval;
         }
 
+        /** @return De quantos em quantos intervalos o preço renova; 1 se omitido. Com month vai de 1 a 12 (3 é trimestral, 6 semestral); com year só 1. O preço one_time não tem. (null when left out) */
+        public Long getIntervalCount() {
+            return intervalCount;
+        }
+
         /** @return the {@code product_id} sent */
         public String getProductId() {
             return productId;
@@ -91,6 +98,9 @@ public final class PricesService {
             if (interval != null) {
                 body.put("interval", interval);
             }
+            if (intervalCount != null) {
+                body.put("interval_count", intervalCount);
+            }
             body.put("product_id", productId);
             body.put("type", type);
             return body;
@@ -100,6 +110,7 @@ public final class PricesService {
         public static final class Builder {
             private Long amountCents;
             private String interval;
+            private Long intervalCount;
             private String productId;
             private String type;
 
@@ -121,6 +132,15 @@ public final class PricesService {
              */
             public Builder interval(String interval) {
                 this.interval = interval;
+                return this;
+            }
+
+            /**
+             * @param intervalCount De quantos em quantos intervalos o preço renova; 1 se omitido. Com month vai de 1 a 12 (3 é trimestral, 6 semestral); com year só 1. O preço one_time não tem.
+             * @return this builder
+             */
+            public Builder intervalCount(Long intervalCount) {
+                this.intervalCount = intervalCount;
                 return this;
             }
 

@@ -4,7 +4,7 @@ SDK oficial da API da Peráta para Elixir 1.18+, sem dependências: só `:httpc`
 
 ```elixir
 # mix.exs
-{:perata_sdk, "~> 0.5.3"}
+{:perata_sdk, "~> 0.5.4"}
 ```
 
 ```elixir
@@ -36,7 +36,7 @@ client
 | `Perata.Prices` | `create`, `list`, `list_stream` |
 | `Perata.Products` | `archive`, `create`, `get`, `list`, `list_stream`, `update` |
 | `Perata.Refunds` | `create`, `list`, `list_stream` |
-| `Perata.Subscriptions` | `cancel`, `get`, `list`, `list_stream`, `update` |
+| `Perata.Subscriptions` | `cancel`, `get`, `list`, `list_stream`, `resume`, `update` |
 | `Perata.Usage` | `ingest` |
 | `Perata.Webhooks` | `create_endpoint`, `delete_endpoint`, `get_endpoint`, `list_deliveries`, `list_deliveries_stream`, `list_endpoints`, `list_endpoints_stream`, `update_endpoint` |
 
@@ -117,4 +117,4 @@ O evento é tipado: um tipo para cada dado que o webhook carrega (`OrderWebhookE
 
 Todo evento traz o ambiente em que aconteceu, em `event.environment`: `"test"` ou `"live"` (vazio se um servidor antigo não mandou). Recuse o evento do ambiente errado: um endpoint de produção deve responder 400 a um evento `"test"`, para que um teste não dê baixa em um pedido real.
 
-Versão do SDK: 0.5.3 · contrato da API: 0.1.0
+Versão do SDK: 0.5.4 · contrato da API: 0.1.0

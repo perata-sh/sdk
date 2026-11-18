@@ -20,11 +20,13 @@ final class WebhookSale
         public readonly ?string $clientReferenceId,
         /** @var 'BRL'|null */
         public readonly ?string $currency,
+        /** O ciclo da assinatura que o pagamento cobra: 1 é o primeiro, 2 é a primeira renovação. */
+        public readonly ?int $cycleSequence,
         public readonly string $environment,
         public readonly string $eventId,
         public readonly string $merchantId,
         /**
-         * Os pares que o servidor do lojista enviou ao criar o checkout; vazio sem eles.
+         * Os pares que o servidor do lojista enviou ao criar o checkout; vazio sem eles. Na renovação de uma assinatura são os da assinatura.
          * @var array<string, mixed>|null
          */
         public readonly ?array $metadata,
@@ -35,12 +37,18 @@ final class WebhookSale
         public readonly ?string $method,
         /** O pagamento que o reembolso devolve, nos eventos refund.*. */
         public readonly ?string $paymentId,
+        /** O fim do período do ciclo que o pagamento cobra. */
+        public readonly ?string $periodEnd,
+        /** O início do período do ciclo que o pagamento cobra. */
+        public readonly ?string $periodStart,
         /** O valor só do reembolso que moveu o pagamento, em centavos; em checkout_payment.refunded e checkout_payment.partially_refunded. */
         public readonly ?int $refundAmountCents,
         /** O reembolso: nos eventos refund.*, o próprio; em checkout_payment.refunded e checkout_payment.partially_refunded, o que moveu o pagamento. */
         public readonly ?string $refundId,
         /** Quanto do pagamento já foi devolvido, somando os reembolsos que deram certo, nos eventos checkout_payment.*. */
         public readonly ?int $refundedAmountCents,
+        /** A assinatura que este pagamento cobra; nulo quando a venda não é de uma assinatura. */
+        public readonly ?string $subscriptionId,
     ) {
     }
 
@@ -56,15 +64,19 @@ final class WebhookSale
             checkoutId: $data['checkout_id'] ?? null,
             clientReferenceId: $data['client_reference_id'] ?? null,
             currency: $data['currency'] ?? null,
+            cycleSequence: $data['cycle_sequence'] ?? null,
             environment: $data['environment'],
             eventId: $data['event_id'],
             merchantId: $data['merchant_id'],
             metadata: $data['metadata'] ?? null,
             method: $data['method'] ?? null,
             paymentId: $data['payment_id'] ?? null,
+            periodEnd: $data['period_end'] ?? null,
+            periodStart: $data['period_start'] ?? null,
             refundAmountCents: $data['refund_amount_cents'] ?? null,
             refundId: $data['refund_id'] ?? null,
             refundedAmountCents: $data['refunded_amount_cents'] ?? null,
+            subscriptionId: $data['subscription_id'] ?? null,
         );
     }
 }

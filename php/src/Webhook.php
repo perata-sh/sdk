@@ -79,7 +79,7 @@ final class Webhook
             in_array($type, ProductWebhookEvent::TYPES, true) => new ProductWebhookEvent($id, $type, $timestamp, $environment, Models\Product::fromArray($data)),
             in_array($type, RefundWebhookEvent::TYPES, true) => new RefundWebhookEvent($id, $type, $timestamp, $environment, Models\WebhookRefund::fromArray($data)),
             in_array($type, SaleWebhookEvent::TYPES, true) => new SaleWebhookEvent($id, $type, $timestamp, $environment, Models\WebhookSale::fromArray($data)),
-            in_array($type, SubscriptionWebhookEvent::TYPES, true) => new SubscriptionWebhookEvent($id, $type, $timestamp, $environment, Models\Subscription::fromArray($data)),
+            in_array($type, SubscriptionWebhookEvent::TYPES, true) => new SubscriptionWebhookEvent($id, $type, $timestamp, $environment, Models\WebhookSubscription::fromArray($data)),
             default => new UnknownWebhookEvent($id, $type, $timestamp, $environment, $data),
         };
     }

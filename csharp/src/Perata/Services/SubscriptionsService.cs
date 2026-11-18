@@ -62,6 +62,17 @@ public sealed class SubscriptionsService
         return Pages.IterateAsync((page, token) => ListAsync(walk with { Page = page }, options, token), walk.Page, cancellationToken);
     }
 
+    /// <summary>Reativar uma assinatura suspensa, que volta a ser cobrada (a cobrança do ciclo em aberto recomeça), ou retomar uma pausada; qualquer outra recebe 409.</summary>
+    /// <param name="subscription">The subscription.</param>
+    /// <param name="options">An idempotency key, or another organization's key for this call.</param>
+    /// <param name="cancellationToken">Cancels the call.</param>
+    /// <returns>The subscription.</returns>
+    /// <exception cref="PerataException">The API refused the call.</exception>
+    public Task<Subscription> ResumeAsync(string subscription, RequestOptions? options = null, CancellationToken cancellationToken = default)
+    {
+        return client.RequestAsync(HttpMethod.Post, "/api/v1/subscriptions/" + PerataClient.Segment(subscription) + "/resume", null, null, PerataJson.Default.SubscriptionEnvelope, options?.IdempotencyKey, options, cancellationToken);
+    }
+
     /// <summary>Trocar o plano de uma assinatura: outro preço e, se quiser, outra quantidade, com a forma de ratear a diferença (proration_behavior).</summary>
     /// <param name="subscription">The subscription.</param>
     /// <param name="parameters">The request.</param>

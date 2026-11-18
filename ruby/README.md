@@ -37,7 +37,7 @@ end
 | `perata.prices` | `create`, `list`, `list_iter` |
 | `perata.products` | `archive`, `create`, `get`, `list`, `list_iter`, `update` |
 | `perata.refunds` | `create`, `list`, `list_iter` |
-| `perata.subscriptions` | `cancel`, `get`, `list`, `list_iter`, `update` |
+| `perata.subscriptions` | `cancel`, `get`, `list`, `list_iter`, `resume`, `update` |
 | `perata.usage` | `ingest` |
 | `perata.webhooks` | `create_endpoint`, `delete_endpoint`, `get_endpoint`, `list_deliveries`, `list_deliveries_iter`, `list_endpoints`, `list_endpoints_iter`, `update_endpoint` |
 
@@ -111,4 +111,4 @@ O evento é tipado: um tipo para cada dado que o webhook carrega (`OrderWebhookE
 
 Todo evento traz o ambiente em que aconteceu, em `event.environment`: `"test"` ou `"live"` (vazio se um servidor antigo não mandou). Recuse o evento do ambiente errado: um endpoint de produção deve responder 400 a um evento `"test"`, para que um teste não dê baixa em um pedido real.
 
-Versão do SDK: 0.5.3 · contrato da API: 0.1.0
+Versão do SDK: 0.5.4 · contrato da API: 0.1.0

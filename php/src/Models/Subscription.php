@@ -26,8 +26,15 @@ final class Subscription
         public readonly array $metadata,
         public readonly string $priceId,
         public readonly string $productId,
-        /** @var 'trialing'|'active'|'past_due'|'paused'|'canceled' */
+        /** @var 'trialing'|'active'|'past_due'|'suspended'|'paused'|'canceled' */
         public readonly string $status,
+        /** Quando a assinatura foi suspensa; nulo enquanto não está suspensa. */
+        public readonly ?string $suspendedAt,
+        /**
+         * Por que foi suspensa: retries_exhausted (o cartão foi recusado em todas as tentativas), declined_not_retryable (o emissor recusou sem permitir nova tentativa) ou dispute (o comprador contestou o pagamento); nulo enquanto não está suspensa.
+         * @var 'retries_exhausted'|'declined_not_retryable'|'dispute'|null
+         */
+        public readonly ?string $suspensionReason,
         public readonly ?string $trialEnd,
         public readonly ?string $trialStart,
     ) {
@@ -51,6 +58,8 @@ final class Subscription
             priceId: $data['price_id'],
             productId: $data['product_id'],
             status: $data['status'],
+            suspendedAt: $data['suspended_at'] ?? null,
+            suspensionReason: $data['suspension_reason'] ?? null,
             trialEnd: $data['trial_end'] ?? null,
             trialStart: $data['trial_start'] ?? null,
         );

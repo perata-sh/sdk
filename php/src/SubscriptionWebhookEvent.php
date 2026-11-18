@@ -7,7 +7,7 @@ declare(strict_types=1);
 namespace Perata;
 
 /**
- * The events that carry a Subscription:
+ * The events that carry a WebhookSubscription:
  * subscription.active
  * subscription.canceled
  * subscription.created
@@ -16,15 +16,16 @@ namespace Perata;
  * subscription.paused
  * subscription.resumed
  * subscription.revoked
+ * subscription.suspended
  * subscription.uncanceled
  * subscription.updated
  */
 final class SubscriptionWebhookEvent extends WebhookEvent
 {
     /** The event types this class carries. */
-    public const TYPES = ['subscription.active', 'subscription.canceled', 'subscription.created', 'subscription.cycled', 'subscription.past_due', 'subscription.paused', 'subscription.resumed', 'subscription.revoked', 'subscription.uncanceled', 'subscription.updated'];
+    public const TYPES = ['subscription.active', 'subscription.canceled', 'subscription.created', 'subscription.cycled', 'subscription.past_due', 'subscription.paused', 'subscription.resumed', 'subscription.revoked', 'subscription.suspended', 'subscription.uncanceled', 'subscription.updated'];
 
-    public function __construct(string $id, string $type, string $timestamp, string $environment, public readonly Models\Subscription $data)
+    public function __construct(string $id, string $type, string $timestamp, string $environment, public readonly Models\WebhookSubscription $data)
     {
         parent::__construct($id, $type, $timestamp, $environment);
     }

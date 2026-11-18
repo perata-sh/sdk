@@ -40,7 +40,7 @@ for product in client.products().list_iter(ProductsListParams::new()) {
 | `client.prices()` | `create`, `list`, `list_iter` |
 | `client.products()` | `archive`, `create`, `get`, `list`, `list_iter`, `update` |
 | `client.refunds()` | `create`, `list`, `list_iter` |
-| `client.subscriptions()` | `cancel`, `get`, `list`, `list_iter`, `update` |
+| `client.subscriptions()` | `cancel`, `get`, `list`, `list_iter`, `resume`, `update` |
 | `client.usage()` | `ingest` |
 | `client.webhooks()` | `create_endpoint`, `delete_endpoint`, `get_endpoint`, `list_deliveries`, `list_deliveries_iter`, `list_endpoints`, `list_endpoints_iter`, `update_endpoint` |
 
@@ -121,4 +121,4 @@ O evento é tipado: uma variante para cada dado que o webhook carrega (`WebhookE
 
 Todo evento traz o ambiente em que aconteceu, em `event.environment()`: `"test"` ou `"live"` (vazio se um servidor antigo não mandou). Recuse o evento do ambiente errado: um endpoint de produção deve responder 400 a um evento `"test"`, para que um teste não dê baixa em um pedido real.
 
-Versão do SDK: 0.5.3 · contrato da API: 0.1.0
+Versão do SDK: 0.5.4 · contrato da API: 0.1.0

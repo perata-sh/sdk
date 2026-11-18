@@ -9,6 +9,18 @@ Todos os SDKs da Peráta saem com a mesma versão (`VERSION`). O histórico de c
 - `js/`: `perata.components.wallet` (o botão do Google Pay e do Apple Pay no layout do lojista), os tipos `WalletComponent`, `WalletComponentOptions`, `WalletComponentEvents` e `WalletKind`, `ChangeEvent.available`, `update({ customer })` e os códigos de erro `wallet_element_required`, `customer_incomplete` e `wallet_unavailable`. `components.payment` passa a trazer a carteira do aparelho e os cartões salvos. Seguem o `perata.js` do perata.sh e valem depois do deploy dele.
 - `react/`: `WalletComponent`.
 
+## 0.5.4 (18/11/2026)
+
+Gerado a partir do contrato da API 0.1.0 (perata.sh 3bc5068b).
+
+### Os 11 SDKs de servidor
+
+- **Planos de 3 e 6 meses.** `prices.create` aceita `interval_count` (com `month`, de 1 a 12; com `year`, 1), e todo `Price` devolve `interval_count`.
+- **Assinatura suspensa.** O status `suspended` é novo, com `suspended_at` e `suspension_reason` (`retries_exhausted`, `declined_not_retryable` ou `dispute`). `subscriptions.resume` (`POST /api/v1/subscriptions/{id}/resume`) reativa uma assinatura suspensa ou retoma uma pausada. Uma cobrança recusada no cartão emite `subscription.past_due` a cada tentativa, e a última, `subscription.suspended`. Os dois trazem `payment_failure`: tentativa, total de tentativas, código e motivo da recusa, se pode repetir e quando é a próxima.
+- **Ciclo da assinatura nos eventos de venda.** `order.*`, `checkout.*`, `checkout_payment.*` e `refund.*` trazem `subscription_id`, `cycle_sequence`, `period_start` e `period_end` (nulos fora de assinatura), e a renovação leva o `metadata` da assinatura.
+- **Disputas.** `Dispute` e os eventos `dispute.*` ganham `payment_method`, `kind` (`chargeback` ou `med`), `checkout_id`, `client_reference_id`, `metadata`, `external_customer_id` e `subscription_id`. A assinatura de quem contestou é suspensa (`suspension_reason: dispute`) e só volta com `resume`.
+- **Idempotency-Key.** Uma escrita recusada (4xx) não guarda mais a resposta sob a chave: a mesma chave com o corpo corrigido passa. Só uma resposta 2xx fica guardada.
+
 ## 0.5.3 (18/11/2026)
 
 Gerado a partir do contrato da API 0.1.0.

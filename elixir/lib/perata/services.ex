@@ -1290,6 +1290,22 @@ defmodule Perata.Subscriptions do
   end
 
   @doc """
+  Reativar uma assinatura suspensa, que volta a ser cobrada (a cobrança do ciclo em aberto recomeça), ou retomar uma pausada; qualquer outra recebe 409.
+
+  Options: `:idempotency_key` and `:api_key`.
+  """
+  @spec resume(Client.t(), String.t(), keyword()) ::
+          {:ok, Perata.Subscription.t()} | {:error, Perata.Error.t()}
+  def resume(%Client{} = client, subscription, opts \\ []) do
+    path = "/api/v1/subscriptions/#{Client.segment(subscription)}/resume"
+    request = [idempotency_key: opts[:idempotency_key], api_key: opts[:api_key]]
+
+    with {:ok, data} <- Client.request(client, "POST", path, request) do
+      {:ok, Perata.Subscription.from_map(data)}
+    end
+  end
+
+  @doc """
   Trocar o plano de uma assinatura: outro preço e, se quiser, outra quantidade, com a forma de ratear a diferença (proration_behavior).
 
   Options: `:idempotency_key` and `:api_key`.

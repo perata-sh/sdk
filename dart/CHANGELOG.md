@@ -2,6 +2,16 @@
 
 Todos os SDKs da Peráta saem com a mesma versão; as mudanças de cada uma estão também nas [releases de perata-sh/sdk](https://github.com/perata-sh/sdk/releases).
 
+## 0.5.4 (18/11/2026)
+
+Gerado a partir do contrato da API 0.1.0.
+
+- Preços: `intervalCount` na criação e na leitura (planos de 3 e 6 meses com `interval: "month"`).
+- Assinaturas: status `suspended`, com `suspendedAt` e `suspensionReason` (`retries_exhausted`, `declined_not_retryable` ou `dispute`); `subscriptions.resume` reativa uma suspensa ou retoma uma pausada. Os eventos `subscription.past_due` e `subscription.suspended` trazem `paymentFailure` (tentativa, código e motivo da recusa, próxima tentativa).
+- Eventos de venda: `subscriptionId`, `cycleSequence`, `periodStart` e `periodEnd` (nulos fora de assinatura); a renovação leva o `metadata` da assinatura.
+- Disputas: `paymentMethod`, `kind` (`chargeback` ou `med`), `checkoutId`, `clientReferenceId`, `metadata`, `externalCustomerId` e `subscriptionId`.
+- A API libera a `Idempotency-Key` depois de uma recusa (4xx): a mesma chave com o corpo corrigido passa.
+
 ## 0.5.3 (18/11/2026)
 
 Gerado a partir do contrato da API 0.1.0.

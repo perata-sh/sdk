@@ -333,6 +333,8 @@ class CheckoutClientCustomer:
     address: BillingAddress
     billing_name: str
     email: str
+    locked: bool
+    """Verdadeiro quando o servidor do lojista abriu o checkout para um cliente que ele informou (customer_id ou external_customer_id): o e-mail não muda, os campos já vêm preenchidos para o comprador conferir e nenhum código é pedido para provar o e-mail."""
     name: str
     tax_id: str
     """O CPF ou CNPJ do comprador, só dígitos; vazio enquanto não for informado."""
@@ -344,6 +346,7 @@ class CheckoutClientCustomer:
             address=BillingAddress.from_dict(data["address"]),
             billing_name=data["billing_name"],
             email=data["email"],
+            locked=data["locked"],
             name=data["name"],
             tax_id=data["tax_id"],
             tax_id_kind=data["tax_id_kind"],
@@ -754,9 +757,9 @@ class CheckoutSavedDataSent:
 
     channel: str
     fresh: bool
-    """Sempre falso, pelo mesmo motivo."""
+    """Sempre falso: o servidor não diz se este código é novo ou o de um pedido anterior."""
     sent: bool
-    """Sempre verdadeiro: a resposta não diz se há algo guardado para o e-mail."""
+    """Verdadeiro quando há algo guardado para o e-mail e um código foi enviado a ele; falso quando não há, e o comprador segue sem o campo do código. O pedido é limitado a 30 por hora por endereço e a 10 por e-mail."""
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> CheckoutSavedDataSent:
@@ -972,18 +975,30 @@ class Dispute:
 
     amount_cents: int
     """Valor contestado, em centavos."""
+    checkout_id: str | None
+    """O checkout (o pedido) da venda contestada; nulo quando não é de um checkout. É o mesmo valor de order_id."""
+    client_reference_id: str
+    """O id do pedido no seu sistema, enviado ao criar o checkout; vazio sem ele."""
     currency: Literal["BRL"]
     customer_id: str | None
     decided_at: str | None
     due_by: str | None
     """Prazo da defesa."""
+    external_customer_id: str | None
+    """O id do cliente no seu sistema; nulo sem ele."""
     id: str
     invoice_id: str | None
+    kind: Literal["chargeback", "med"]
+    """chargeback é a contestação de um cartão na bandeira; med é a devolução que o banco do pagador pede num Pix (Mecanismo Especial de Devolução)."""
+    metadata: dict[str, Any]
+    """Os pares que o seu servidor enviou ao criar o checkout; na renovação de uma assinatura, os da assinatura."""
     opened_at: str
     order_id: str | None
     """O pedido que a venda contestada pagou; nulo quando não é de um checkout."""
     payment_id: str
     """O PaymentId da venda contestada na Cielo."""
+    payment_method: str
+    """Como a venda contestada foi paga: card ou pix."""
     provider_dispute_id: str
     """O número do caso na Cielo."""
     provider_reason: str
@@ -992,25 +1007,34 @@ class Dispute:
     """Motivo, do conjunto fechado; unknown quando a adquirente não informou."""
     source: Literal["operator", "cielo_chargeback"]
     status: Literal["opened", "needs_evidence", "submitted", "under_review", "won", "lost", "closed"]
+    subscription_id: str | None
+    """A assinatura de que a venda contestada era um ciclo; nulo quando não é de uma assinatura. A assinatura fica suspensa (suspension_reason dispute)."""
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> Dispute:
         return cls(
             amount_cents=data["amount_cents"],
+            checkout_id=data.get("checkout_id"),
+            client_reference_id=data["client_reference_id"],
             currency=data["currency"],
             customer_id=data.get("customer_id"),
             decided_at=data.get("decided_at"),
             due_by=data.get("due_by"),
+            external_customer_id=data.get("external_customer_id"),
             id=data["id"],
             invoice_id=data.get("invoice_id"),
+            kind=data["kind"],
+            metadata=data["metadata"],
             opened_at=data["opened_at"],
             order_id=data.get("order_id"),
             payment_id=data["payment_id"],
+            payment_method=data["payment_method"],
             provider_dispute_id=data["provider_dispute_id"],
             provider_reason=data["provider_reason"],
             reason=data["reason"],
             source=data["source"],
             status=data["status"],
+            subscription_id=data.get("subscription_id"),
         )
 
 
@@ -1363,6 +1387,8 @@ class Price:
     currency: Literal["BRL"]
     id: str
     interval: Literal["none", "month", "year"]
+    interval_count: int
+    """De quantos em quantos intervalos o preço renova: 3 com month é trimestral, 6 semestral. 1 no preço one_time."""
     product_id: str
     status: Literal["active", "archived"]
     type: Literal["one_time", "recurring"]
@@ -1374,6 +1400,7 @@ class Price:
             currency=data["currency"],
             id=data["id"],
             interval=data["interval"],
+            interval_count=data["interval_count"],
             product_id=data["product_id"],
             status=data["status"],
             type=data["type"],
@@ -1436,7 +1463,11 @@ class Subscription:
     """Metadados do lojista: pares chave e valor (texto, número ou booleano); objeto vazio quando não há."""
     price_id: str
     product_id: str
-    status: Literal["trialing", "active", "past_due", "paused", "canceled"]
+    status: Literal["trialing", "active", "past_due", "suspended", "paused", "canceled"]
+    suspended_at: str | None
+    """Quando a assinatura foi suspensa; nulo enquanto não está suspensa."""
+    suspension_reason: Literal["retries_exhausted", "declined_not_retryable", "dispute"] | None
+    """Por que foi suspensa: retries_exhausted (o cartão foi recusado em todas as tentativas), declined_not_retryable (o emissor recusou sem permitir nova tentativa) ou dispute (o comprador contestou o pagamento); nulo enquanto não está suspensa."""
     trial_end: str | None
     trial_start: str | None
 
@@ -1455,6 +1486,8 @@ class Subscription:
             price_id=data["price_id"],
             product_id=data["product_id"],
             status=data["status"],
+            suspended_at=data.get("suspended_at"),
+            suspension_reason=data.get("suspension_reason"),
             trial_end=data.get("trial_end"),
             trial_start=data.get("trial_start"),
         )
@@ -1522,16 +1555,24 @@ class WebhookCheckout:
     currency: Literal["BRL"]
     customer_id: str | None
     """Nulo até o comprador confirmar."""
+    cycle_sequence: int | None
+    """O ciclo da assinatura que o pagamento cobra: 1 é o primeiro, 2 é a primeira renovação."""
     discount_cents: int
     expires_at: str
     id: str
     items: list[CheckoutLine] | None
     """As linhas do valor que o servidor do lojista fixou; vazio sem elas."""
     metadata: dict[str, Any] | None
-    """Os pares que o servidor do lojista enviou ao criar o checkout; vazio sem eles."""
+    """Os pares que o servidor do lojista enviou ao criar o checkout; vazio sem eles. Na renovação de uma assinatura são os da assinatura."""
+    period_end: str | None
+    """O fim do período do ciclo que o pagamento cobra."""
+    period_start: str | None
+    """O início do período do ciclo que o pagamento cobra."""
     price_id: str
     product_id: str
     status: Literal["open", "confirmed", "succeeded", "failed", "expired"]
+    subscription_id: str | None
+    """A assinatura que este pagamento cobra; nulo quando a venda não é de uma assinatura."""
     total_cents: int
 
     @classmethod
@@ -1543,14 +1584,18 @@ class WebhookCheckout:
             created_at=data["created_at"],
             currency=data["currency"],
             customer_id=data.get("customer_id"),
+            cycle_sequence=data.get("cycle_sequence"),
             discount_cents=data["discount_cents"],
             expires_at=data["expires_at"],
             id=data["id"],
             items=None if data.get("items") is None else [CheckoutLine.from_dict(item) for item in data["items"]],
             metadata=data.get("metadata"),
+            period_end=data.get("period_end"),
+            period_start=data.get("period_start"),
             price_id=data["price_id"],
             product_id=data["product_id"],
             status=data["status"],
+            subscription_id=data.get("subscription_id"),
             total_cents=data["total_cents"],
         )
 
@@ -1643,16 +1688,28 @@ class WebhookDispute:
 
     amount_cents: int
     """Valor contestado, em centavos."""
+    checkout_id: str | None
+    """O checkout (o pedido) da venda contestada; nulo quando não é de um checkout."""
+    client_reference_id: str | None
+    """O id do pedido no seu sistema, enviado ao criar o checkout; vazio sem ele."""
     currency: Literal["BRL"]
     customer_id: str | None
     decided_at: str | None
     due_by: str | None
     """Prazo da defesa."""
+    external_customer_id: str | None
+    """O id do cliente no seu sistema; nulo sem ele."""
     id: str
     invoice_id: str | None
+    kind: Literal["chargeback", "med"] | None
+    """chargeback é a contestação de um cartão na bandeira; med é a devolução que o banco do pagador pede num Pix (Mecanismo Especial de Devolução)."""
+    metadata: dict[str, Any] | None
+    """Os pares que o seu servidor enviou ao criar o checkout; na renovação de uma assinatura, os da assinatura."""
     opened_at: str
     payment_id: str
     """O PaymentId da venda contestada na Cielo."""
+    payment_method: str | None
+    """Como a venda contestada foi paga: card ou pix."""
     provider_dispute_id: str
     """O número do caso na Cielo."""
     provider_reason: str
@@ -1661,24 +1718,33 @@ class WebhookDispute:
     """Motivo, do conjunto fechado; unknown quando a adquirente não informou."""
     source: Literal["operator", "cielo_chargeback"]
     status: Literal["opened", "needs_evidence", "submitted", "under_review", "won", "lost", "closed"]
+    subscription_id: str | None
+    """A assinatura de que a venda contestada era um ciclo; nulo quando não é de uma assinatura. A assinatura fica suspensa (suspension_reason dispute)."""
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> WebhookDispute:
         return cls(
             amount_cents=data["amount_cents"],
+            checkout_id=data.get("checkout_id"),
+            client_reference_id=data.get("client_reference_id"),
             currency=data["currency"],
             customer_id=data.get("customer_id"),
             decided_at=data.get("decided_at"),
             due_by=data.get("due_by"),
+            external_customer_id=data.get("external_customer_id"),
             id=data["id"],
             invoice_id=data.get("invoice_id"),
+            kind=data.get("kind"),
+            metadata=data.get("metadata"),
             opened_at=data["opened_at"],
             payment_id=data["payment_id"],
+            payment_method=data.get("payment_method"),
             provider_dispute_id=data["provider_dispute_id"],
             provider_reason=data["provider_reason"],
             reason=data["reason"],
             source=data["source"],
             status=data["status"],
+            subscription_id=data.get("subscription_id"),
         )
 
 
@@ -1752,6 +1818,8 @@ class WebhookOrder:
     """O id do pedido no seu sistema, enviado ao criar o checkout; vazio sem ele."""
     currency: Literal["BRL"]
     customer_id: str
+    cycle_sequence: int | None
+    """O ciclo da assinatura que o pagamento cobra: 1 é o primeiro, 2 é a primeira renovação."""
     id: str
     installment_interest_cents: int
     """Juros do parcelamento pagos pelo comprador, cobrados além de amount_cents."""
@@ -1760,10 +1828,14 @@ class WebhookOrder:
     items: list[CheckoutLine]
     """As linhas do pedido, quando o seu servidor as enviou ao criar o checkout; vazio sem elas."""
     metadata: dict[str, Any]
-    """Os pares que o seu servidor enviou ao criar o checkout."""
+    """Os pares que o seu servidor enviou ao criar o checkout. Na renovação de uma assinatura são os metadados da assinatura (o id da câmera, por exemplo)."""
     order_status: Literal["pending", "paid", "partially_refunded", "refunded"] | None
     """Onde o pedido está; status é o do checkout e continua succeeded depois de um reembolso, e este vira partially_refunded ou refunded."""
     paid_at: str | None
+    period_end: str | None
+    """O fim do período do ciclo que o pagamento cobra."""
+    period_start: str | None
+    """O início do período do ciclo que o pagamento cobra."""
     price_id: str
     product_id: str
     refund_amount_cents: int | None
@@ -1773,6 +1845,8 @@ class WebhookOrder:
     refunded_amount_cents: int
     """Quanto do pedido já foi devolvido, somando todos os reembolsos que deram certo, em centavos."""
     status: Literal["open", "confirmed", "succeeded", "failed", "expired"]
+    subscription_id: str | None
+    """A assinatura que este pagamento cobra; nulo quando a venda não é de uma assinatura."""
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> WebhookOrder:
@@ -1781,6 +1855,7 @@ class WebhookOrder:
             client_reference_id=data["client_reference_id"],
             currency=data["currency"],
             customer_id=data["customer_id"],
+            cycle_sequence=data.get("cycle_sequence"),
             id=data["id"],
             installment_interest_cents=data["installment_interest_cents"],
             installments=data["installments"],
@@ -1788,12 +1863,15 @@ class WebhookOrder:
             metadata=data["metadata"],
             order_status=data.get("order_status"),
             paid_at=data.get("paid_at"),
+            period_end=data.get("period_end"),
+            period_start=data.get("period_start"),
             price_id=data["price_id"],
             product_id=data["product_id"],
             refund_amount_cents=data.get("refund_amount_cents"),
             refund_id=data.get("refund_id"),
             refunded_amount_cents=data["refunded_amount_cents"],
             status=data["status"],
+            subscription_id=data.get("subscription_id"),
         )
 
 
@@ -1838,21 +1916,29 @@ class WebhookSale:
     client_reference_id: str | None
     """O id do pedido no sistema do lojista; vazio sem ele."""
     currency: Literal["BRL"] | None
+    cycle_sequence: int | None
+    """O ciclo da assinatura que o pagamento cobra: 1 é o primeiro, 2 é a primeira renovação."""
     environment: str
     event_id: str
     merchant_id: str
     metadata: dict[str, Any] | None
-    """Os pares que o servidor do lojista enviou ao criar o checkout; vazio sem eles."""
+    """Os pares que o servidor do lojista enviou ao criar o checkout; vazio sem eles. Na renovação de uma assinatura são os da assinatura."""
     method: Literal["card", "pix", "boleto"] | None
     """O meio do pagamento, nos eventos checkout_payment.*."""
     payment_id: str | None
     """O pagamento que o reembolso devolve, nos eventos refund.*."""
+    period_end: str | None
+    """O fim do período do ciclo que o pagamento cobra."""
+    period_start: str | None
+    """O início do período do ciclo que o pagamento cobra."""
     refund_amount_cents: int | None
     """O valor só do reembolso que moveu o pagamento, em centavos; em checkout_payment.refunded e checkout_payment.partially_refunded."""
     refund_id: str | None
     """O reembolso: nos eventos refund.*, o próprio; em checkout_payment.refunded e checkout_payment.partially_refunded, o que moveu o pagamento."""
     refunded_amount_cents: int | None
     """Quanto do pagamento já foi devolvido, somando os reembolsos que deram certo, nos eventos checkout_payment.*."""
+    subscription_id: str | None
+    """A assinatura que este pagamento cobra; nulo quando a venda não é de uma assinatura."""
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> WebhookSale:
@@ -1863,15 +1949,107 @@ class WebhookSale:
             checkout_id=data.get("checkout_id"),
             client_reference_id=data.get("client_reference_id"),
             currency=data.get("currency"),
+            cycle_sequence=data.get("cycle_sequence"),
             environment=data["environment"],
             event_id=data["event_id"],
             merchant_id=data["merchant_id"],
             metadata=data.get("metadata"),
             method=data.get("method"),
             payment_id=data.get("payment_id"),
+            period_end=data.get("period_end"),
+            period_start=data.get("period_start"),
             refund_amount_cents=data.get("refund_amount_cents"),
             refund_id=data.get("refund_id"),
             refunded_amount_cents=data.get("refunded_amount_cents"),
+            subscription_id=data.get("subscription_id"),
+        )
+
+
+@dataclass(frozen=True)
+class WebhookSubscription:
+    """A assinatura como a API a devolve (Subscription) e, nos eventos que uma cobrança recusada causou (subscription.past_due, subscription.suspended e o subscription.updated que os acompanha), a cobrança recusada em payment_failure."""
+
+    amount_cents: int
+    cancel_at_period_end: bool
+    currency: Literal["BRL"]
+    current_period_end: str
+    current_period_start: str
+    customer_id: str
+    id: str
+    interval: str
+    metadata: dict[str, Any]
+    """Metadados do lojista: pares chave e valor (texto, número ou booleano); objeto vazio quando não há."""
+    payment_failure: WebhookSubscriptionPaymentFailure | None
+    """A cobrança recusada que causou o evento; só nos eventos de cobrança recusada."""
+    price_id: str
+    product_id: str
+    status: Literal["trialing", "active", "past_due", "suspended", "paused", "canceled"]
+    suspended_at: str | None
+    """Quando a assinatura foi suspensa; nulo enquanto não está suspensa."""
+    suspension_reason: Literal["retries_exhausted", "declined_not_retryable", "dispute"] | None
+    """Por que foi suspensa; nulo enquanto não está suspensa."""
+    trial_end: str | None
+    trial_start: str | None
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> WebhookSubscription:
+        return cls(
+            amount_cents=data["amount_cents"],
+            cancel_at_period_end=data["cancel_at_period_end"],
+            currency=data["currency"],
+            current_period_end=data["current_period_end"],
+            current_period_start=data["current_period_start"],
+            customer_id=data["customer_id"],
+            id=data["id"],
+            interval=data["interval"],
+            metadata=data["metadata"],
+            payment_failure=None if data.get("payment_failure") is None else WebhookSubscriptionPaymentFailure.from_dict(data["payment_failure"]),
+            price_id=data["price_id"],
+            product_id=data["product_id"],
+            status=data["status"],
+            suspended_at=data.get("suspended_at"),
+            suspension_reason=data.get("suspension_reason"),
+            trial_end=data.get("trial_end"),
+            trial_start=data.get("trial_start"),
+        )
+
+
+@dataclass(frozen=True)
+class WebhookSubscriptionPaymentFailure:
+    """A cobrança recusada que causou o evento; só nos eventos de cobrança recusada."""
+
+    amount_cents: int
+    """O valor cobrado, em centavos."""
+    attempt: int
+    """O número da cobrança recusada neste ciclo: 1 é a do vencimento, 2 é a primeira nova tentativa."""
+    cycle_sequence: int
+    """O ciclo cobrado: 2 é a primeira renovação."""
+    decline_code: str
+    """O código da recusa, como o emissor devolveu; vazio quando não informou."""
+    max_attempts: int
+    """Quantas cobranças o cartão recebe neste ciclo: a do vencimento mais uma por dia de nova tentativa que a organização configurou."""
+    next_attempt_at: str | None
+    """Quando o cartão será cobrado de novo; nulo quando não haverá nova tentativa."""
+    period_end: str
+    period_start: str
+    reason: str
+    """O motivo da recusa, nas palavras do emissor."""
+    retryable: bool
+    """Verdadeiro quando o emissor permite tentar o mesmo cartão de novo; falso é recusa definitiva."""
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> WebhookSubscriptionPaymentFailure:
+        return cls(
+            amount_cents=data["amount_cents"],
+            attempt=data["attempt"],
+            cycle_sequence=data["cycle_sequence"],
+            decline_code=data["decline_code"],
+            max_attempts=data["max_attempts"],
+            next_attempt_at=data.get("next_attempt_at"),
+            period_end=data["period_end"],
+            period_start=data["period_start"],
+            reason=data["reason"],
+            retryable=data["retryable"],
         )
 
 
@@ -2175,6 +2353,8 @@ class PricesCreateParams(TypedDict):
     amount_cents: int
     interval: NotRequired[Literal["month", "year"]]
     """Obrigatório no preço recorrente; o preço one_time não tem intervalo."""
+    interval_count: NotRequired[int]
+    """De quantos em quantos intervalos o preço renova; 1 se omitido. Com month vai de 1 a 12 (3 é trimestral, 6 semestral); com year só 1. O preço one_time não tem."""
     product_id: str
     type: Literal["one_time", "recurring"]
 

@@ -16,9 +16,17 @@ public final class Subscription {
     /** A value of {@link #getStatus()}. */
     public static final String STATUS_PAST_DUE = "past_due";
     /** A value of {@link #getStatus()}. */
+    public static final String STATUS_SUSPENDED = "suspended";
+    /** A value of {@link #getStatus()}. */
     public static final String STATUS_PAUSED = "paused";
     /** A value of {@link #getStatus()}. */
     public static final String STATUS_CANCELED = "canceled";
+    /** A value of {@link #getSuspensionReason()}. */
+    public static final String SUSPENSION_REASON_RETRIES_EXHAUSTED = "retries_exhausted";
+    /** A value of {@link #getSuspensionReason()}. */
+    public static final String SUSPENSION_REASON_DECLINED_NOT_RETRYABLE = "declined_not_retryable";
+    /** A value of {@link #getSuspensionReason()}. */
+    public static final String SUSPENSION_REASON_DISPUTE = "dispute";
 
     private final long amountCents;
     private final boolean cancelAtPeriodEnd;
@@ -32,10 +40,12 @@ public final class Subscription {
     private final String priceId;
     private final String productId;
     private final String status;
+    private final String suspendedAt;
+    private final String suspensionReason;
     private final String trialEnd;
     private final String trialStart;
 
-    Subscription(long amountCents, boolean cancelAtPeriodEnd, String currency, String currentPeriodEnd, String currentPeriodStart, String customerId, String id, String interval, Map<String, Object> metadata, String priceId, String productId, String status, String trialEnd, String trialStart) {
+    Subscription(long amountCents, boolean cancelAtPeriodEnd, String currency, String currentPeriodEnd, String currentPeriodStart, String customerId, String id, String interval, Map<String, Object> metadata, String priceId, String productId, String status, String suspendedAt, String suspensionReason, String trialEnd, String trialStart) {
         this.amountCents = amountCents;
         this.cancelAtPeriodEnd = cancelAtPeriodEnd;
         this.currency = currency;
@@ -48,6 +58,8 @@ public final class Subscription {
         this.priceId = priceId;
         this.productId = productId;
         this.status = status;
+        this.suspendedAt = suspendedAt;
+        this.suspensionReason = suspensionReason;
         this.trialEnd = trialEnd;
         this.trialStart = trialStart;
     }
@@ -66,6 +78,8 @@ public final class Subscription {
                 Json.required(data, "price_id", Json::asString),
                 Json.required(data, "product_id", Json::asString),
                 Json.required(data, "status", Json::asString),
+                Json.optional(data, "suspended_at", Json::asString),
+                Json.optional(data, "suspension_reason", Json::asString),
                 Json.optional(data, "trial_end", Json::asString),
                 Json.optional(data, "trial_start", Json::asString));
     }
@@ -130,6 +144,16 @@ public final class Subscription {
         return status;
     }
 
+    /** @return Quando a assinatura foi suspensa; nulo enquanto não está suspensa. (null when the API sends none) */
+    public String getSuspendedAt() {
+        return suspendedAt;
+    }
+
+    /** @return Por que foi suspensa: retries_exhausted (o cartão foi recusado em todas as tentativas), declined_not_retryable (o emissor recusou sem permitir nova tentativa) ou dispute (o comprador contestou o pagamento); nulo enquanto não está suspensa. (null when the API sends none) */
+    public String getSuspensionReason() {
+        return suspensionReason;
+    }
+
     /** @return the API's {@code trial_end} (null when the API sends none) */
     public String getTrialEnd() {
         return trialEnd;
@@ -142,6 +166,6 @@ public final class Subscription {
 
     @Override
     public String toString() {
-        return "Subscription{" + "amountCents=" + amountCents + ", cancelAtPeriodEnd=" + cancelAtPeriodEnd + ", currency=" + currency + ", currentPeriodEnd=" + currentPeriodEnd + ", currentPeriodStart=" + currentPeriodStart + ", customerId=" + customerId + ", id=" + id + ", interval=" + interval + ", metadata=" + metadata + ", priceId=" + priceId + ", productId=" + productId + ", status=" + status + ", trialEnd=" + trialEnd + ", trialStart=" + trialStart + "}";
+        return "Subscription{" + "amountCents=" + amountCents + ", cancelAtPeriodEnd=" + cancelAtPeriodEnd + ", currency=" + currency + ", currentPeriodEnd=" + currentPeriodEnd + ", currentPeriodStart=" + currentPeriodStart + ", customerId=" + customerId + ", id=" + id + ", interval=" + interval + ", metadata=" + metadata + ", priceId=" + priceId + ", productId=" + productId + ", status=" + status + ", suspendedAt=" + suspendedAt + ", suspensionReason=" + suspensionReason + ", trialEnd=" + trialEnd + ", trialStart=" + trialStart + "}";
     }
 }

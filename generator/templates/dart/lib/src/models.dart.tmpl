@@ -17,7 +17,13 @@ import 'json.dart';
 
   /// A {{.Name}} out of the API's JSON.
 {{- if .Fields}}
+{{- if gt (len .Name) 32}}
+  factory {{.Name}}.fromJson(
+    Map<String, Object?> json,
+  ) {
+{{- else}}
   factory {{.Name}}.fromJson(Map<String, Object?> json) {
+{{- end}}
     return {{.Name}}(
 {{- range .Fields}}
       {{dartReadEntry .}},

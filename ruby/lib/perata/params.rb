@@ -932,7 +932,7 @@ module Perata
 
   # The body of prices:create.
   class PricesCreateParams < Params
-    MEMBERS = %i[amount_cents interval product_id type].freeze
+    MEMBERS = %i[amount_cents interval interval_count product_id type].freeze
 
     # @return [Integer]
     attr_reader :amount_cents
@@ -941,15 +941,20 @@ module Perata
     # @return [String ("month", "year"), nil]
     attr_reader :interval
 
+    # De quantos em quantos intervalos o preço renova; 1 se omitido. Com month vai de 1 a 12 (3 é trimestral, 6 semestral); com year só 1. O preço one_time não tem.
+    # @return [Integer, nil]
+    attr_reader :interval_count
+
     # @return [String]
     attr_reader :product_id
 
     # @return [String ("one_time", "recurring")]
     attr_reader :type
 
-    def initialize(amount_cents:, interval: nil, product_id:, type:)
+    def initialize(amount_cents:, interval: nil, interval_count: nil, product_id:, type:)
       @amount_cents = amount_cents
       @interval = interval
+      @interval_count = interval_count
       @product_id = product_id
       @type = type
       freeze
@@ -960,6 +965,7 @@ module Perata
       wire = {}
       wire["amount_cents"] = @amount_cents
       wire["interval"] = @interval unless @interval.nil?
+      wire["interval_count"] = @interval_count unless @interval_count.nil?
       wire["product_id"] = @product_id
       wire["type"] = @type
       wire

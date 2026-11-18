@@ -11,9 +11,9 @@ final class CheckoutSavedDataSent
 {
     public function __construct(
         public readonly string $channel,
-        /** Sempre falso, pelo mesmo motivo. */
+        /** Sempre falso: o servidor não diz se este código é novo ou o de um pedido anterior. */
         public readonly bool $fresh,
-        /** Sempre verdadeiro: a resposta não diz se há algo guardado para o e-mail. */
+        /** Verdadeiro quando há algo guardado para o e-mail e um código foi enviado a ele; falso quando não há, e o comprador segue sem o campo do código. O pedido é limitado a 30 por hora por endereço e a 10 por e-mail. */
         public readonly bool $sent,
     ) {
     }

@@ -203,6 +203,8 @@ pub struct CheckoutClientCustomer {
     pub address: BillingAddress,
     pub billing_name: String,
     pub email: String,
+    /// Verdadeiro quando o servidor do lojista abriu o checkout para um cliente que ele informou (customer_id ou external_customer_id): o e-mail não muda, os campos já vêm preenchidos para o comprador conferir e nenhum código é pedido para provar o e-mail.
+    pub locked: bool,
     pub name: String,
     /// O CPF ou CNPJ do comprador, só dígitos; vazio enquanto não for informado.
     pub tax_id: String,
@@ -451,9 +453,9 @@ pub struct CheckoutSavedData {
 #[non_exhaustive]
 pub struct CheckoutSavedDataSent {
     pub channel: String,
-    /// Sempre falso, pelo mesmo motivo.
+    /// Sempre falso: o servidor não diz se este código é novo ou o de um pedido anterior.
     pub fresh: bool,
-    /// Sempre verdadeiro: a resposta não diz se há algo guardado para o e-mail.
+    /// Verdadeiro quando há algo guardado para o e-mail e um código foi enviado a ele; falso quando não há, e o comprador segue sem o campo do código. O pedido é limitado a 30 por hora por endereço e a 10 por e-mail.
     pub sent: bool,
 }
 
@@ -583,18 +585,30 @@ pub struct Discount {
 pub struct Dispute {
     /// Valor contestado, em centavos.
     pub amount_cents: i64,
+    /// O checkout (o pedido) da venda contestada; nulo quando não é de um checkout. É o mesmo valor de order_id.
+    pub checkout_id: Option<String>,
+    /// O id do pedido no seu sistema, enviado ao criar o checkout; vazio sem ele.
+    pub client_reference_id: String,
     pub currency: DisputeCurrency,
     pub customer_id: Option<String>,
     pub decided_at: Option<String>,
     /// Prazo da defesa.
     pub due_by: Option<String>,
+    /// O id do cliente no seu sistema; nulo sem ele.
+    pub external_customer_id: Option<String>,
     pub id: String,
     pub invoice_id: Option<String>,
+    /// chargeback é a contestação de um cartão na bandeira; med é a devolução que o banco do pagador pede num Pix (Mecanismo Especial de Devolução).
+    pub kind: DisputeKind,
+    /// Os pares que o seu servidor enviou ao criar o checkout; na renovação de uma assinatura, os da assinatura.
+    pub metadata: std::collections::HashMap<String, serde_json::Value>,
     pub opened_at: String,
     /// O pedido que a venda contestada pagou; nulo quando não é de um checkout.
     pub order_id: Option<String>,
     /// O PaymentId da venda contestada na Cielo.
     pub payment_id: String,
+    /// Como a venda contestada foi paga: card ou pix.
+    pub payment_method: String,
     /// O número do caso na Cielo.
     pub provider_dispute_id: String,
     /// O motivo nas palavras da Cielo.
@@ -603,6 +617,8 @@ pub struct Dispute {
     pub reason: String,
     pub source: DisputeSource,
     pub status: DisputeStatus,
+    /// A assinatura de que a venda contestada era um ciclo; nulo quando não é de uma assinatura. A assinatura fica suspensa (suspension_reason dispute).
+    pub subscription_id: Option<String>,
 }
 
 /// Event is a resource of Peráta's API.
@@ -806,6 +822,8 @@ pub struct Price {
     pub currency: PriceCurrency,
     pub id: String,
     pub interval: PriceInterval,
+    /// De quantos em quantos intervalos o preço renova: 3 com month é trimestral, 6 semestral. 1 no preço one_time.
+    pub interval_count: i64,
     pub product_id: String,
     pub status: PriceStatus,
     #[serde(rename = "type")]
@@ -850,6 +868,10 @@ pub struct Subscription {
     pub price_id: String,
     pub product_id: String,
     pub status: SubscriptionStatus,
+    /// Quando a assinatura foi suspensa; nulo enquanto não está suspensa.
+    pub suspended_at: Option<String>,
+    /// Por que foi suspensa: retries_exhausted (o cartão foi recusado em todas as tentativas), declined_not_retryable (o emissor recusou sem permitir nova tentativa) ou dispute (o comprador contestou o pagamento); nulo enquanto não está suspensa.
+    pub suspension_reason: Option<SubscriptionSuspensionReason>,
     pub trial_end: Option<String>,
     pub trial_start: Option<String>,
 }
@@ -899,18 +921,30 @@ pub struct WebhookCheckout {
     pub currency: WebhookCheckoutCurrency,
     /// Nulo até o comprador confirmar.
     pub customer_id: Option<String>,
+    /// O ciclo da assinatura que o pagamento cobra: 1 é o primeiro, 2 é a primeira renovação.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub cycle_sequence: Option<i64>,
     pub discount_cents: i64,
     pub expires_at: String,
     pub id: String,
     /// As linhas do valor que o servidor do lojista fixou; vazio sem elas.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub items: Option<Vec<CheckoutLine>>,
-    /// Os pares que o servidor do lojista enviou ao criar o checkout; vazio sem eles.
+    /// Os pares que o servidor do lojista enviou ao criar o checkout; vazio sem eles. Na renovação de uma assinatura são os da assinatura.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub metadata: Option<std::collections::HashMap<String, serde_json::Value>>,
+    /// O fim do período do ciclo que o pagamento cobra.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub period_end: Option<String>,
+    /// O início do período do ciclo que o pagamento cobra.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub period_start: Option<String>,
     pub price_id: String,
     pub product_id: String,
     pub status: WebhookCheckoutStatus,
+    /// A assinatura que este pagamento cobra; nulo quando a venda não é de uma assinatura.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub subscription_id: Option<String>,
     pub total_cents: i64,
 }
 
@@ -965,16 +999,34 @@ pub struct WebhookDiscount {
 pub struct WebhookDispute {
     /// Valor contestado, em centavos.
     pub amount_cents: i64,
+    /// O checkout (o pedido) da venda contestada; nulo quando não é de um checkout.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub checkout_id: Option<String>,
+    /// O id do pedido no seu sistema, enviado ao criar o checkout; vazio sem ele.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub client_reference_id: Option<String>,
     pub currency: WebhookDisputeCurrency,
     pub customer_id: Option<String>,
     pub decided_at: Option<String>,
     /// Prazo da defesa.
     pub due_by: Option<String>,
+    /// O id do cliente no seu sistema; nulo sem ele.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub external_customer_id: Option<String>,
     pub id: String,
     pub invoice_id: Option<String>,
+    /// chargeback é a contestação de um cartão na bandeira; med é a devolução que o banco do pagador pede num Pix (Mecanismo Especial de Devolução).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub kind: Option<WebhookDisputeKind>,
+    /// Os pares que o seu servidor enviou ao criar o checkout; na renovação de uma assinatura, os da assinatura.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub metadata: Option<std::collections::HashMap<String, serde_json::Value>>,
     pub opened_at: String,
     /// O PaymentId da venda contestada na Cielo.
     pub payment_id: String,
+    /// Como a venda contestada foi paga: card ou pix.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub payment_method: Option<String>,
     /// O número do caso na Cielo.
     pub provider_dispute_id: String,
     /// O motivo nas palavras da Cielo.
@@ -983,6 +1035,9 @@ pub struct WebhookDispute {
     pub reason: String,
     pub source: WebhookDisputeSource,
     pub status: WebhookDisputeStatus,
+    /// A assinatura de que a venda contestada era um ciclo; nulo quando não é de uma assinatura. A assinatura fica suspensa (suspension_reason dispute).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub subscription_id: Option<String>,
 }
 
 /// WebhookEndpoint is a resource of Peráta's API.
@@ -1028,6 +1083,9 @@ pub struct WebhookOrder {
     pub client_reference_id: String,
     pub currency: WebhookOrderCurrency,
     pub customer_id: String,
+    /// O ciclo da assinatura que o pagamento cobra: 1 é o primeiro, 2 é a primeira renovação.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub cycle_sequence: Option<i64>,
     pub id: String,
     /// Juros do parcelamento pagos pelo comprador, cobrados além de amount_cents.
     pub installment_interest_cents: i64,
@@ -1035,11 +1093,17 @@ pub struct WebhookOrder {
     pub installments: i64,
     /// As linhas do pedido, quando o seu servidor as enviou ao criar o checkout; vazio sem elas.
     pub items: Vec<CheckoutLine>,
-    /// Os pares que o seu servidor enviou ao criar o checkout.
+    /// Os pares que o seu servidor enviou ao criar o checkout. Na renovação de uma assinatura são os metadados da assinatura (o id da câmera, por exemplo).
     pub metadata: std::collections::HashMap<String, serde_json::Value>,
     /// Onde o pedido está; status é o do checkout e continua succeeded depois de um reembolso, e este vira partially_refunded ou refunded.
     pub order_status: Option<WebhookOrderOrderStatus>,
     pub paid_at: Option<String>,
+    /// O fim do período do ciclo que o pagamento cobra.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub period_end: Option<String>,
+    /// O início do período do ciclo que o pagamento cobra.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub period_start: Option<String>,
     pub price_id: String,
     pub product_id: String,
     /// O valor só deste reembolso, em centavos; nulo como refund_id. O acumulado do pedido é refunded_amount_cents.
@@ -1049,6 +1113,9 @@ pub struct WebhookOrder {
     /// Quanto do pedido já foi devolvido, somando todos os reembolsos que deram certo, em centavos.
     pub refunded_amount_cents: i64,
     pub status: WebhookOrderStatus,
+    /// A assinatura que este pagamento cobra; nulo quando a venda não é de uma assinatura.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub subscription_id: Option<String>,
 }
 
 /// WebhookRefund is a resource of Peráta's API.
@@ -1086,10 +1153,13 @@ pub struct WebhookSale {
     pub client_reference_id: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub currency: Option<WebhookSaleCurrency>,
+    /// O ciclo da assinatura que o pagamento cobra: 1 é o primeiro, 2 é a primeira renovação.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub cycle_sequence: Option<i64>,
     pub environment: String,
     pub event_id: String,
     pub merchant_id: String,
-    /// Os pares que o servidor do lojista enviou ao criar o checkout; vazio sem eles.
+    /// Os pares que o servidor do lojista enviou ao criar o checkout; vazio sem eles. Na renovação de uma assinatura são os da assinatura.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub metadata: Option<std::collections::HashMap<String, serde_json::Value>>,
     /// O meio do pagamento, nos eventos checkout_payment.*.
@@ -1098,6 +1168,12 @@ pub struct WebhookSale {
     /// O pagamento que o reembolso devolve, nos eventos refund.*.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub payment_id: Option<String>,
+    /// O fim do período do ciclo que o pagamento cobra.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub period_end: Option<String>,
+    /// O início do período do ciclo que o pagamento cobra.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub period_start: Option<String>,
     /// O valor só do reembolso que moveu o pagamento, em centavos; em checkout_payment.refunded e checkout_payment.partially_refunded.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub refund_amount_cents: Option<i64>,
@@ -1107,6 +1183,61 @@ pub struct WebhookSale {
     /// Quanto do pagamento já foi devolvido, somando os reembolsos que deram certo, nos eventos checkout_payment.*.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub refunded_amount_cents: Option<i64>,
+    /// A assinatura que este pagamento cobra; nulo quando a venda não é de uma assinatura.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub subscription_id: Option<String>,
+}
+
+/// A assinatura como a API a devolve (Subscription) e, nos eventos que uma cobrança recusada causou (subscription.past_due, subscription.suspended e o subscription.updated que os acompanha), a cobrança recusada em payment_failure.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct WebhookSubscription {
+    pub amount_cents: i64,
+    pub cancel_at_period_end: bool,
+    pub currency: WebhookSubscriptionCurrency,
+    pub current_period_end: String,
+    pub current_period_start: String,
+    pub customer_id: String,
+    pub id: String,
+    pub interval: String,
+    /// Metadados do lojista: pares chave e valor (texto, número ou booleano); objeto vazio quando não há.
+    pub metadata: std::collections::HashMap<String, serde_json::Value>,
+    /// A cobrança recusada que causou o evento; só nos eventos de cobrança recusada.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub payment_failure: Option<WebhookSubscriptionPaymentFailure>,
+    pub price_id: String,
+    pub product_id: String,
+    pub status: WebhookSubscriptionStatus,
+    /// Quando a assinatura foi suspensa; nulo enquanto não está suspensa.
+    pub suspended_at: Option<String>,
+    /// Por que foi suspensa; nulo enquanto não está suspensa.
+    pub suspension_reason: Option<WebhookSubscriptionSuspensionReason>,
+    pub trial_end: Option<String>,
+    pub trial_start: Option<String>,
+}
+
+/// A cobrança recusada que causou o evento; só nos eventos de cobrança recusada.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct WebhookSubscriptionPaymentFailure {
+    /// O valor cobrado, em centavos.
+    pub amount_cents: i64,
+    /// O número da cobrança recusada neste ciclo: 1 é a do vencimento, 2 é a primeira nova tentativa.
+    pub attempt: i64,
+    /// O ciclo cobrado: 2 é a primeira renovação.
+    pub cycle_sequence: i64,
+    /// O código da recusa, como o emissor devolveu; vazio quando não informou.
+    pub decline_code: String,
+    /// Quantas cobranças o cartão recebe neste ciclo: a do vencimento mais uma por dia de nova tentativa que a organização configurou.
+    pub max_attempts: i64,
+    /// Quando o cartão será cobrado de novo; nulo quando não haverá nova tentativa.
+    pub next_attempt_at: Option<String>,
+    pub period_end: String,
+    pub period_start: String,
+    /// O motivo da recusa, nas palavras do emissor.
+    pub reason: String,
+    /// Verdadeiro quando o emissor permite tentar o mesmo cartão de novo; falso é recusa definitiva.
+    pub retryable: bool,
 }
 
 /// What usage.ingest answers.
@@ -2493,6 +2624,9 @@ pub struct PricesCreateParams {
     /// Obrigatório no preço recorrente; o preço one_time não tem intervalo.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub interval: Option<PricesCreateParamsInterval>,
+    /// De quantos em quantos intervalos o preço renova; 1 se omitido. Com month vai de 1 a 12 (3 é trimestral, 6 semestral); com year só 1. O preço one_time não tem.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub interval_count: Option<i64>,
     pub product_id: String,
     #[serde(rename = "type")]
     pub type_: PricesCreateParamsType,
@@ -2504,6 +2638,7 @@ impl PricesCreateParams {
         Self {
             amount_cents,
             interval: None,
+            interval_count: None,
             product_id: product_id.into(),
             type_: type_.into(),
         }
@@ -2512,6 +2647,12 @@ impl PricesCreateParams {
     /// Obrigatório no preço recorrente; o preço one_time não tem intervalo.
     pub fn interval(mut self, interval: impl Into<PricesCreateParamsInterval>) -> Self {
         self.interval = Some(interval.into());
+        self
+    }
+
+    /// De quantos em quantos intervalos o preço renova; 1 se omitido. Com month vai de 1 a 12 (3 é trimestral, 6 semestral); com year só 1. O preço one_time não tem.
+    pub fn interval_count(mut self, interval_count: i64) -> Self {
+        self.interval_count = Some(interval_count);
         self
     }
 }
@@ -4840,6 +4981,66 @@ impl<'de> Deserialize<'de> for DisputeCurrency {
     }
 }
 
+/// The values of `Dispute.kind`. chargeback é a contestação de um cartão na bandeira; med é a devolução que o banco do pagador pede num Pix (Mecanismo Especial de Devolução).
+///
+/// A value this SDK does not know yet is kept, as it came, in
+/// [`DisputeKind::Unrecognized`].
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[non_exhaustive]
+pub enum DisputeKind {
+    /// `chargeback`
+    Chargeback,
+    /// `med`
+    Med,
+    /// A value this SDK does not know yet.
+    Unrecognized(String),
+}
+
+impl DisputeKind {
+    /// The value as the API writes it.
+    pub fn as_str(&self) -> &str {
+        match self {
+            DisputeKind::Chargeback => "chargeback",
+            DisputeKind::Med => "med",
+            DisputeKind::Unrecognized(value) => value,
+        }
+    }
+}
+
+impl From<&str> for DisputeKind {
+    fn from(value: &str) -> Self {
+        match value {
+            "chargeback" => DisputeKind::Chargeback,
+            "med" => DisputeKind::Med,
+            other => DisputeKind::Unrecognized(other.to_owned()),
+        }
+    }
+}
+
+impl From<String> for DisputeKind {
+    fn from(value: String) -> Self {
+        Self::from(value.as_str())
+    }
+}
+
+impl fmt::Display for DisputeKind {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
+impl Serialize for DisputeKind {
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        serializer.serialize_str(self.as_str())
+    }
+}
+
+impl<'de> Deserialize<'de> for DisputeKind {
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        String::deserialize(deserializer).map(Self::from)
+    }
+}
+
 /// The values of `Dispute.source`.
 ///
 /// A value this SDK does not know yet is kept, as it came, in
@@ -6189,6 +6390,8 @@ pub enum SubscriptionStatus {
     Active,
     /// `past_due`
     PastDue,
+    /// `suspended`
+    Suspended,
     /// `paused`
     Paused,
     /// `canceled`
@@ -6204,6 +6407,7 @@ impl SubscriptionStatus {
             SubscriptionStatus::Trialing => "trialing",
             SubscriptionStatus::Active => "active",
             SubscriptionStatus::PastDue => "past_due",
+            SubscriptionStatus::Suspended => "suspended",
             SubscriptionStatus::Paused => "paused",
             SubscriptionStatus::Canceled => "canceled",
             SubscriptionStatus::Unrecognized(value) => value,
@@ -6217,6 +6421,7 @@ impl From<&str> for SubscriptionStatus {
             "trialing" => SubscriptionStatus::Trialing,
             "active" => SubscriptionStatus::Active,
             "past_due" => SubscriptionStatus::PastDue,
+            "suspended" => SubscriptionStatus::Suspended,
             "paused" => SubscriptionStatus::Paused,
             "canceled" => SubscriptionStatus::Canceled,
             other => SubscriptionStatus::Unrecognized(other.to_owned()),
@@ -6243,6 +6448,70 @@ impl Serialize for SubscriptionStatus {
 }
 
 impl<'de> Deserialize<'de> for SubscriptionStatus {
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        String::deserialize(deserializer).map(Self::from)
+    }
+}
+
+/// The values of `Subscription.suspension_reason`. Por que foi suspensa: retries_exhausted (o cartão foi recusado em todas as tentativas), declined_not_retryable (o emissor recusou sem permitir nova tentativa) ou dispute (o comprador contestou o pagamento); nulo enquanto não está suspensa.
+///
+/// A value this SDK does not know yet is kept, as it came, in
+/// [`SubscriptionSuspensionReason::Unrecognized`].
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[non_exhaustive]
+pub enum SubscriptionSuspensionReason {
+    /// `retries_exhausted`
+    RetriesExhausted,
+    /// `declined_not_retryable`
+    DeclinedNotRetryable,
+    /// `dispute`
+    Dispute,
+    /// A value this SDK does not know yet.
+    Unrecognized(String),
+}
+
+impl SubscriptionSuspensionReason {
+    /// The value as the API writes it.
+    pub fn as_str(&self) -> &str {
+        match self {
+            SubscriptionSuspensionReason::RetriesExhausted => "retries_exhausted",
+            SubscriptionSuspensionReason::DeclinedNotRetryable => "declined_not_retryable",
+            SubscriptionSuspensionReason::Dispute => "dispute",
+            SubscriptionSuspensionReason::Unrecognized(value) => value,
+        }
+    }
+}
+
+impl From<&str> for SubscriptionSuspensionReason {
+    fn from(value: &str) -> Self {
+        match value {
+            "retries_exhausted" => SubscriptionSuspensionReason::RetriesExhausted,
+            "declined_not_retryable" => SubscriptionSuspensionReason::DeclinedNotRetryable,
+            "dispute" => SubscriptionSuspensionReason::Dispute,
+            other => SubscriptionSuspensionReason::Unrecognized(other.to_owned()),
+        }
+    }
+}
+
+impl From<String> for SubscriptionSuspensionReason {
+    fn from(value: String) -> Self {
+        Self::from(value.as_str())
+    }
+}
+
+impl fmt::Display for SubscriptionSuspensionReason {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
+impl Serialize for SubscriptionSuspensionReason {
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        serializer.serialize_str(self.as_str())
+    }
+}
+
+impl<'de> Deserialize<'de> for SubscriptionSuspensionReason {
     fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
         String::deserialize(deserializer).map(Self::from)
     }
@@ -6803,6 +7072,66 @@ impl Serialize for WebhookDisputeCurrency {
 }
 
 impl<'de> Deserialize<'de> for WebhookDisputeCurrency {
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        String::deserialize(deserializer).map(Self::from)
+    }
+}
+
+/// The values of `WebhookDispute.kind`. chargeback é a contestação de um cartão na bandeira; med é a devolução que o banco do pagador pede num Pix (Mecanismo Especial de Devolução).
+///
+/// A value this SDK does not know yet is kept, as it came, in
+/// [`WebhookDisputeKind::Unrecognized`].
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[non_exhaustive]
+pub enum WebhookDisputeKind {
+    /// `chargeback`
+    Chargeback,
+    /// `med`
+    Med,
+    /// A value this SDK does not know yet.
+    Unrecognized(String),
+}
+
+impl WebhookDisputeKind {
+    /// The value as the API writes it.
+    pub fn as_str(&self) -> &str {
+        match self {
+            WebhookDisputeKind::Chargeback => "chargeback",
+            WebhookDisputeKind::Med => "med",
+            WebhookDisputeKind::Unrecognized(value) => value,
+        }
+    }
+}
+
+impl From<&str> for WebhookDisputeKind {
+    fn from(value: &str) -> Self {
+        match value {
+            "chargeback" => WebhookDisputeKind::Chargeback,
+            "med" => WebhookDisputeKind::Med,
+            other => WebhookDisputeKind::Unrecognized(other.to_owned()),
+        }
+    }
+}
+
+impl From<String> for WebhookDisputeKind {
+    fn from(value: String) -> Self {
+        Self::from(value.as_str())
+    }
+}
+
+impl fmt::Display for WebhookDisputeKind {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
+impl Serialize for WebhookDisputeKind {
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        serializer.serialize_str(self.as_str())
+    }
+}
+
+impl<'de> Deserialize<'de> for WebhookDisputeKind {
     fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
         String::deserialize(deserializer).map(Self::from)
     }
@@ -7583,6 +7912,202 @@ impl Serialize for WebhookSaleMethod {
 }
 
 impl<'de> Deserialize<'de> for WebhookSaleMethod {
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        String::deserialize(deserializer).map(Self::from)
+    }
+}
+
+/// The values of `WebhookSubscription.currency`.
+///
+/// A value this SDK does not know yet is kept, as it came, in
+/// [`WebhookSubscriptionCurrency::Unrecognized`].
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[non_exhaustive]
+pub enum WebhookSubscriptionCurrency {
+    /// `BRL`
+    Brl,
+    /// A value this SDK does not know yet.
+    Unrecognized(String),
+}
+
+impl WebhookSubscriptionCurrency {
+    /// The value as the API writes it.
+    pub fn as_str(&self) -> &str {
+        match self {
+            WebhookSubscriptionCurrency::Brl => "BRL",
+            WebhookSubscriptionCurrency::Unrecognized(value) => value,
+        }
+    }
+}
+
+impl From<&str> for WebhookSubscriptionCurrency {
+    fn from(value: &str) -> Self {
+        match value {
+            "BRL" => WebhookSubscriptionCurrency::Brl,
+            other => WebhookSubscriptionCurrency::Unrecognized(other.to_owned()),
+        }
+    }
+}
+
+impl From<String> for WebhookSubscriptionCurrency {
+    fn from(value: String) -> Self {
+        Self::from(value.as_str())
+    }
+}
+
+impl fmt::Display for WebhookSubscriptionCurrency {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
+impl Serialize for WebhookSubscriptionCurrency {
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        serializer.serialize_str(self.as_str())
+    }
+}
+
+impl<'de> Deserialize<'de> for WebhookSubscriptionCurrency {
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        String::deserialize(deserializer).map(Self::from)
+    }
+}
+
+/// The values of `WebhookSubscription.status`.
+///
+/// A value this SDK does not know yet is kept, as it came, in
+/// [`WebhookSubscriptionStatus::Unrecognized`].
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[non_exhaustive]
+pub enum WebhookSubscriptionStatus {
+    /// `trialing`
+    Trialing,
+    /// `active`
+    Active,
+    /// `past_due`
+    PastDue,
+    /// `suspended`
+    Suspended,
+    /// `paused`
+    Paused,
+    /// `canceled`
+    Canceled,
+    /// A value this SDK does not know yet.
+    Unrecognized(String),
+}
+
+impl WebhookSubscriptionStatus {
+    /// The value as the API writes it.
+    pub fn as_str(&self) -> &str {
+        match self {
+            WebhookSubscriptionStatus::Trialing => "trialing",
+            WebhookSubscriptionStatus::Active => "active",
+            WebhookSubscriptionStatus::PastDue => "past_due",
+            WebhookSubscriptionStatus::Suspended => "suspended",
+            WebhookSubscriptionStatus::Paused => "paused",
+            WebhookSubscriptionStatus::Canceled => "canceled",
+            WebhookSubscriptionStatus::Unrecognized(value) => value,
+        }
+    }
+}
+
+impl From<&str> for WebhookSubscriptionStatus {
+    fn from(value: &str) -> Self {
+        match value {
+            "trialing" => WebhookSubscriptionStatus::Trialing,
+            "active" => WebhookSubscriptionStatus::Active,
+            "past_due" => WebhookSubscriptionStatus::PastDue,
+            "suspended" => WebhookSubscriptionStatus::Suspended,
+            "paused" => WebhookSubscriptionStatus::Paused,
+            "canceled" => WebhookSubscriptionStatus::Canceled,
+            other => WebhookSubscriptionStatus::Unrecognized(other.to_owned()),
+        }
+    }
+}
+
+impl From<String> for WebhookSubscriptionStatus {
+    fn from(value: String) -> Self {
+        Self::from(value.as_str())
+    }
+}
+
+impl fmt::Display for WebhookSubscriptionStatus {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
+impl Serialize for WebhookSubscriptionStatus {
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        serializer.serialize_str(self.as_str())
+    }
+}
+
+impl<'de> Deserialize<'de> for WebhookSubscriptionStatus {
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        String::deserialize(deserializer).map(Self::from)
+    }
+}
+
+/// The values of `WebhookSubscription.suspension_reason`. Por que foi suspensa; nulo enquanto não está suspensa.
+///
+/// A value this SDK does not know yet is kept, as it came, in
+/// [`WebhookSubscriptionSuspensionReason::Unrecognized`].
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[non_exhaustive]
+pub enum WebhookSubscriptionSuspensionReason {
+    /// `retries_exhausted`
+    RetriesExhausted,
+    /// `declined_not_retryable`
+    DeclinedNotRetryable,
+    /// `dispute`
+    Dispute,
+    /// A value this SDK does not know yet.
+    Unrecognized(String),
+}
+
+impl WebhookSubscriptionSuspensionReason {
+    /// The value as the API writes it.
+    pub fn as_str(&self) -> &str {
+        match self {
+            WebhookSubscriptionSuspensionReason::RetriesExhausted => "retries_exhausted",
+            WebhookSubscriptionSuspensionReason::DeclinedNotRetryable => "declined_not_retryable",
+            WebhookSubscriptionSuspensionReason::Dispute => "dispute",
+            WebhookSubscriptionSuspensionReason::Unrecognized(value) => value,
+        }
+    }
+}
+
+impl From<&str> for WebhookSubscriptionSuspensionReason {
+    fn from(value: &str) -> Self {
+        match value {
+            "retries_exhausted" => WebhookSubscriptionSuspensionReason::RetriesExhausted,
+            "declined_not_retryable" => WebhookSubscriptionSuspensionReason::DeclinedNotRetryable,
+            "dispute" => WebhookSubscriptionSuspensionReason::Dispute,
+            other => WebhookSubscriptionSuspensionReason::Unrecognized(other.to_owned()),
+        }
+    }
+}
+
+impl From<String> for WebhookSubscriptionSuspensionReason {
+    fn from(value: String) -> Self {
+        Self::from(value.as_str())
+    }
+}
+
+impl fmt::Display for WebhookSubscriptionSuspensionReason {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
+impl Serialize for WebhookSubscriptionSuspensionReason {
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        serializer.serialize_str(self.as_str())
+    }
+}
+
+impl<'de> Deserialize<'de> for WebhookSubscriptionSuspensionReason {
     fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
         String::deserialize(deserializer).map(Self::from)
     }

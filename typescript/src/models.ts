@@ -173,6 +173,8 @@ export interface CheckoutClientCustomer {
   address: BillingAddress;
   billing_name: string;
   email: string;
+  /** Verdadeiro quando o servidor do lojista abriu o checkout para um cliente que ele informou (customer_id ou external_customer_id): o e-mail não muda, os campos já vêm preenchidos para o comprador conferir e nenhum código é pedido para provar o e-mail. */
+  locked: boolean;
   name: string;
   /** O CPF ou CNPJ do comprador, só dígitos; vazio enquanto não for informado. */
   tax_id: string;
@@ -390,9 +392,9 @@ export interface CheckoutSavedData {
 /** CheckoutSavedDataSent is a resource of Peráta's API. */
 export interface CheckoutSavedDataSent {
   channel: string;
-  /** Sempre falso, pelo mesmo motivo. */
+  /** Sempre falso: o servidor não diz se este código é novo ou o de um pedido anterior. */
   fresh: boolean;
-  /** Sempre verdadeiro: a resposta não diz se há algo guardado para o e-mail. */
+  /** Verdadeiro quando há algo guardado para o e-mail e um código foi enviado a ele; falso quando não há, e o comprador segue sem o campo do código. O pedido é limitado a 30 por hora por endereço e a 10 por e-mail. */
   sent: boolean;
 }
 
@@ -502,18 +504,30 @@ export interface Discount {
 export interface Dispute {
   /** Valor contestado, em centavos. */
   amount_cents: number;
+  /** O checkout (o pedido) da venda contestada; nulo quando não é de um checkout. É o mesmo valor de order_id. */
+  checkout_id: string | null;
+  /** O id do pedido no seu sistema, enviado ao criar o checkout; vazio sem ele. */
+  client_reference_id: string;
   currency: "BRL";
   customer_id: string | null;
   decided_at: string | null;
   /** Prazo da defesa. */
   due_by: string | null;
+  /** O id do cliente no seu sistema; nulo sem ele. */
+  external_customer_id: string | null;
   id: string;
   invoice_id: string | null;
+  /** chargeback é a contestação de um cartão na bandeira; med é a devolução que o banco do pagador pede num Pix (Mecanismo Especial de Devolução). */
+  kind: "chargeback" | "med";
+  /** Os pares que o seu servidor enviou ao criar o checkout; na renovação de uma assinatura, os da assinatura. */
+  metadata: Record<string, unknown>;
   opened_at: string;
   /** O pedido que a venda contestada pagou; nulo quando não é de um checkout. */
   order_id: string | null;
   /** O PaymentId da venda contestada na Cielo. */
   payment_id: string;
+  /** Como a venda contestada foi paga: card ou pix. */
+  payment_method: string;
   /** O número do caso na Cielo. */
   provider_dispute_id: string;
   /** O motivo nas palavras da Cielo. */
@@ -522,6 +536,8 @@ export interface Dispute {
   reason: string;
   source: "operator" | "cielo_chargeback";
   status: "opened" | "needs_evidence" | "submitted" | "under_review" | "won" | "lost" | "closed";
+  /** A assinatura de que a venda contestada era um ciclo; nulo quando não é de uma assinatura. A assinatura fica suspensa (suspension_reason dispute). */
+  subscription_id: string | null;
 }
 
 /** Event is a resource of Peráta's API. */
@@ -699,6 +715,8 @@ export interface Price {
   currency: "BRL";
   id: string;
   interval: "none" | "month" | "year";
+  /** De quantos em quantos intervalos o preço renova: 3 com month é trimestral, 6 semestral. 1 no preço one_time. */
+  interval_count: number;
   product_id: string;
   status: "active" | "archived";
   type: "one_time" | "recurring";
@@ -735,7 +753,11 @@ export interface Subscription {
   metadata: Record<string, unknown>;
   price_id: string;
   product_id: string;
-  status: "trialing" | "active" | "past_due" | "paused" | "canceled";
+  status: "trialing" | "active" | "past_due" | "suspended" | "paused" | "canceled";
+  /** Quando a assinatura foi suspensa; nulo enquanto não está suspensa. */
+  suspended_at: string | null;
+  /** Por que foi suspensa: retries_exhausted (o cartão foi recusado em todas as tentativas), declined_not_retryable (o emissor recusou sem permitir nova tentativa) ou dispute (o comprador contestou o pagamento); nulo enquanto não está suspensa. */
+  suspension_reason: "retries_exhausted" | "declined_not_retryable" | "dispute" | null;
   trial_end: string | null;
   trial_start: string | null;
 }
@@ -774,16 +796,24 @@ export interface WebhookCheckout {
   currency: "BRL";
   /** Nulo até o comprador confirmar. */
   customer_id: string | null;
+  /** O ciclo da assinatura que o pagamento cobra: 1 é o primeiro, 2 é a primeira renovação. */
+  cycle_sequence?: number | null;
   discount_cents: number;
   expires_at: string;
   id: string;
   /** As linhas do valor que o servidor do lojista fixou; vazio sem elas. */
   items?: CheckoutLine[];
-  /** Os pares que o servidor do lojista enviou ao criar o checkout; vazio sem eles. */
+  /** Os pares que o servidor do lojista enviou ao criar o checkout; vazio sem eles. Na renovação de uma assinatura são os da assinatura. */
   metadata?: Record<string, unknown>;
+  /** O fim do período do ciclo que o pagamento cobra. */
+  period_end?: string | null;
+  /** O início do período do ciclo que o pagamento cobra. */
+  period_start?: string | null;
   price_id: string;
   product_id: string;
   status: "open" | "confirmed" | "succeeded" | "failed" | "expired";
+  /** A assinatura que este pagamento cobra; nulo quando a venda não é de uma assinatura. */
+  subscription_id?: string | null;
   total_cents: number;
 }
 
@@ -831,16 +861,28 @@ export interface WebhookDiscount {
 export interface WebhookDispute {
   /** Valor contestado, em centavos. */
   amount_cents: number;
+  /** O checkout (o pedido) da venda contestada; nulo quando não é de um checkout. */
+  checkout_id?: string | null;
+  /** O id do pedido no seu sistema, enviado ao criar o checkout; vazio sem ele. */
+  client_reference_id?: string;
   currency: "BRL";
   customer_id: string | null;
   decided_at: string | null;
   /** Prazo da defesa. */
   due_by: string | null;
+  /** O id do cliente no seu sistema; nulo sem ele. */
+  external_customer_id?: string | null;
   id: string;
   invoice_id: string | null;
+  /** chargeback é a contestação de um cartão na bandeira; med é a devolução que o banco do pagador pede num Pix (Mecanismo Especial de Devolução). */
+  kind?: "chargeback" | "med";
+  /** Os pares que o seu servidor enviou ao criar o checkout; na renovação de uma assinatura, os da assinatura. */
+  metadata?: Record<string, unknown>;
   opened_at: string;
   /** O PaymentId da venda contestada na Cielo. */
   payment_id: string;
+  /** Como a venda contestada foi paga: card ou pix. */
+  payment_method?: string;
   /** O número do caso na Cielo. */
   provider_dispute_id: string;
   /** O motivo nas palavras da Cielo. */
@@ -849,6 +891,8 @@ export interface WebhookDispute {
   reason: string;
   source: "operator" | "cielo_chargeback";
   status: "opened" | "needs_evidence" | "submitted" | "under_review" | "won" | "lost" | "closed";
+  /** A assinatura de que a venda contestada era um ciclo; nulo quando não é de uma assinatura. A assinatura fica suspensa (suspension_reason dispute). */
+  subscription_id?: string | null;
 }
 
 /** WebhookEndpoint is a resource of Peráta's API. */
@@ -888,6 +932,8 @@ export interface WebhookOrder {
   client_reference_id: string;
   currency: "BRL";
   customer_id: string;
+  /** O ciclo da assinatura que o pagamento cobra: 1 é o primeiro, 2 é a primeira renovação. */
+  cycle_sequence?: number | null;
   id: string;
   /** Juros do parcelamento pagos pelo comprador, cobrados além de amount_cents. */
   installment_interest_cents: number;
@@ -895,11 +941,15 @@ export interface WebhookOrder {
   installments: number;
   /** As linhas do pedido, quando o seu servidor as enviou ao criar o checkout; vazio sem elas. */
   items: CheckoutLine[];
-  /** Os pares que o seu servidor enviou ao criar o checkout. */
+  /** Os pares que o seu servidor enviou ao criar o checkout. Na renovação de uma assinatura são os metadados da assinatura (o id da câmera, por exemplo). */
   metadata: Record<string, unknown>;
   /** Onde o pedido está; status é o do checkout e continua succeeded depois de um reembolso, e este vira partially_refunded ou refunded. */
   order_status: "pending" | "paid" | "partially_refunded" | "refunded" | null;
   paid_at: string | null;
+  /** O fim do período do ciclo que o pagamento cobra. */
+  period_end?: string | null;
+  /** O início do período do ciclo que o pagamento cobra. */
+  period_start?: string | null;
   price_id: string;
   product_id: string;
   /** O valor só deste reembolso, em centavos; nulo como refund_id. O acumulado do pedido é refunded_amount_cents. */
@@ -909,6 +959,8 @@ export interface WebhookOrder {
   /** Quanto do pedido já foi devolvido, somando todos os reembolsos que deram certo, em centavos. */
   refunded_amount_cents: number;
   status: "open" | "confirmed" | "succeeded" | "failed" | "expired";
+  /** A assinatura que este pagamento cobra; nulo quando a venda não é de uma assinatura. */
+  subscription_id?: string | null;
 }
 
 /** WebhookRefund is a resource of Peráta's API. */
@@ -936,21 +988,76 @@ export interface WebhookSale {
   /** O id do pedido no sistema do lojista; vazio sem ele. */
   client_reference_id?: string;
   currency?: "BRL";
+  /** O ciclo da assinatura que o pagamento cobra: 1 é o primeiro, 2 é a primeira renovação. */
+  cycle_sequence?: number | null;
   environment: string;
   event_id: string;
   merchant_id: string;
-  /** Os pares que o servidor do lojista enviou ao criar o checkout; vazio sem eles. */
+  /** Os pares que o servidor do lojista enviou ao criar o checkout; vazio sem eles. Na renovação de uma assinatura são os da assinatura. */
   metadata?: Record<string, unknown>;
   /** O meio do pagamento, nos eventos checkout_payment.*. */
   method?: "card" | "pix" | "boleto";
   /** O pagamento que o reembolso devolve, nos eventos refund.*. */
   payment_id?: string;
+  /** O fim do período do ciclo que o pagamento cobra. */
+  period_end?: string | null;
+  /** O início do período do ciclo que o pagamento cobra. */
+  period_start?: string | null;
   /** O valor só do reembolso que moveu o pagamento, em centavos; em checkout_payment.refunded e checkout_payment.partially_refunded. */
   refund_amount_cents?: number;
   /** O reembolso: nos eventos refund.*, o próprio; em checkout_payment.refunded e checkout_payment.partially_refunded, o que moveu o pagamento. */
   refund_id?: string;
   /** Quanto do pagamento já foi devolvido, somando os reembolsos que deram certo, nos eventos checkout_payment.*. */
   refunded_amount_cents?: number;
+  /** A assinatura que este pagamento cobra; nulo quando a venda não é de uma assinatura. */
+  subscription_id?: string | null;
+}
+
+/** A assinatura como a API a devolve (Subscription) e, nos eventos que uma cobrança recusada causou (subscription.past_due, subscription.suspended e o subscription.updated que os acompanha), a cobrança recusada em payment_failure. */
+export interface WebhookSubscription {
+  amount_cents: number;
+  cancel_at_period_end: boolean;
+  currency: "BRL";
+  current_period_end: string;
+  current_period_start: string;
+  customer_id: string;
+  id: string;
+  interval: string;
+  /** Metadados do lojista: pares chave e valor (texto, número ou booleano); objeto vazio quando não há. */
+  metadata: Record<string, unknown>;
+  /** A cobrança recusada que causou o evento; só nos eventos de cobrança recusada. */
+  payment_failure?: WebhookSubscriptionPaymentFailure;
+  price_id: string;
+  product_id: string;
+  status: "trialing" | "active" | "past_due" | "suspended" | "paused" | "canceled";
+  /** Quando a assinatura foi suspensa; nulo enquanto não está suspensa. */
+  suspended_at: string | null;
+  /** Por que foi suspensa; nulo enquanto não está suspensa. */
+  suspension_reason: "retries_exhausted" | "declined_not_retryable" | "dispute" | null;
+  trial_end: string | null;
+  trial_start: string | null;
+}
+
+/** A cobrança recusada que causou o evento; só nos eventos de cobrança recusada. */
+export interface WebhookSubscriptionPaymentFailure {
+  /** O valor cobrado, em centavos. */
+  amount_cents: number;
+  /** O número da cobrança recusada neste ciclo: 1 é a do vencimento, 2 é a primeira nova tentativa. */
+  attempt: number;
+  /** O ciclo cobrado: 2 é a primeira renovação. */
+  cycle_sequence: number;
+  /** O código da recusa, como o emissor devolveu; vazio quando não informou. */
+  decline_code: string;
+  /** Quantas cobranças o cartão recebe neste ciclo: a do vencimento mais uma por dia de nova tentativa que a organização configurou. */
+  max_attempts: number;
+  /** Quando o cartão será cobrado de novo; nulo quando não haverá nova tentativa. */
+  next_attempt_at: string | null;
+  period_end: string;
+  period_start: string;
+  /** O motivo da recusa, nas palavras do emissor. */
+  reason: string;
+  /** Verdadeiro quando o emissor permite tentar o mesmo cartão de novo; falso é recusa definitiva. */
+  retryable: boolean;
 }
 
 /** The body of benefits:create. */
@@ -1221,6 +1328,8 @@ export interface PricesCreateParams {
   amount_cents: number;
   /** Obrigatório no preço recorrente; o preço one_time não tem intervalo. */
   interval?: "month" | "year";
+  /** De quantos em quantos intervalos o preço renova; 1 se omitido. Com month vai de 1 a 12 (3 é trimestral, 6 semestral); com year só 1. O preço one_time não tem. */
+  interval_count?: number;
   product_id: string;
   type: "one_time" | "recurring";
 }

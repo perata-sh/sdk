@@ -42,7 +42,7 @@ await foreach (var each in perata.Products.ListIterAsync())
 | `perata.Prices` | `CreateAsync`, `ListAsync`, `ListIterAsync` |
 | `perata.Products` | `ArchiveAsync`, `CreateAsync`, `GetAsync`, `ListAsync`, `ListIterAsync`, `UpdateAsync` |
 | `perata.Refunds` | `CreateAsync`, `ListAsync`, `ListIterAsync` |
-| `perata.Subscriptions` | `CancelAsync`, `GetAsync`, `ListAsync`, `ListIterAsync`, `UpdateAsync` |
+| `perata.Subscriptions` | `CancelAsync`, `GetAsync`, `ListAsync`, `ListIterAsync`, `ResumeAsync`, `UpdateAsync` |
 | `perata.Usage` | `IngestAsync` |
 | `perata.Webhooks` | `CreateEndpointAsync`, `DeleteEndpointAsync`, `GetEndpointAsync`, `ListDeliveriesAsync`, `ListDeliveriesIterAsync`, `ListEndpointsAsync`, `ListEndpointsIterAsync`, `UpdateEndpointAsync` |
 
@@ -126,4 +126,4 @@ O evento é tipado: um tipo para cada dado que o webhook carrega (`OrderWebhookE
 
 Todo evento traz o ambiente em que aconteceu, em `Environment`: `"test"` ou `"live"` (vazio se um servidor antigo não mandou). Recuse o evento do ambiente errado: um endpoint de produção deve responder 400 a um evento `"test"`, para que um teste não dê baixa em um pedido real.
 
-Versão do SDK: 0.5.3 · contrato da API: 0.1.0
+Versão do SDK: 0.5.4 · contrato da API: 0.1.0

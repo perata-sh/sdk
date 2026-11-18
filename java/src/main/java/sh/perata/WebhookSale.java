@@ -22,32 +22,40 @@ public final class WebhookSale {
     private final String checkoutId;
     private final String clientReferenceId;
     private final String currency;
+    private final Long cycleSequence;
     private final String environment;
     private final String eventId;
     private final String merchantId;
     private final Map<String, Object> metadata;
     private final String method;
     private final String paymentId;
+    private final String periodEnd;
+    private final String periodStart;
     private final Long refundAmountCents;
     private final String refundId;
     private final Long refundedAmountCents;
+    private final String subscriptionId;
 
-    WebhookSale(String aggregate, String aggregateId, Long amountCents, String checkoutId, String clientReferenceId, String currency, String environment, String eventId, String merchantId, Map<String, Object> metadata, String method, String paymentId, Long refundAmountCents, String refundId, Long refundedAmountCents) {
+    WebhookSale(String aggregate, String aggregateId, Long amountCents, String checkoutId, String clientReferenceId, String currency, Long cycleSequence, String environment, String eventId, String merchantId, Map<String, Object> metadata, String method, String paymentId, String periodEnd, String periodStart, Long refundAmountCents, String refundId, Long refundedAmountCents, String subscriptionId) {
         this.aggregate = aggregate;
         this.aggregateId = aggregateId;
         this.amountCents = amountCents;
         this.checkoutId = checkoutId;
         this.clientReferenceId = clientReferenceId;
         this.currency = currency;
+        this.cycleSequence = cycleSequence;
         this.environment = environment;
         this.eventId = eventId;
         this.merchantId = merchantId;
         this.metadata = metadata;
         this.method = method;
         this.paymentId = paymentId;
+        this.periodEnd = periodEnd;
+        this.periodStart = periodStart;
         this.refundAmountCents = refundAmountCents;
         this.refundId = refundId;
         this.refundedAmountCents = refundedAmountCents;
+        this.subscriptionId = subscriptionId;
     }
 
     static WebhookSale fromJson(Map<String, Object> data) {
@@ -58,15 +66,19 @@ public final class WebhookSale {
                 Json.optional(data, "checkout_id", Json::asString),
                 Json.optional(data, "client_reference_id", Json::asString),
                 Json.optional(data, "currency", Json::asString),
+                Json.optional(data, "cycle_sequence", Json::asLong),
                 Json.required(data, "environment", Json::asString),
                 Json.required(data, "event_id", Json::asString),
                 Json.required(data, "merchant_id", Json::asString),
                 Json.optional(data, "metadata", Json.map(Json::any)),
                 Json.optional(data, "method", Json::asString),
                 Json.optional(data, "payment_id", Json::asString),
+                Json.optional(data, "period_end", Json::asString),
+                Json.optional(data, "period_start", Json::asString),
                 Json.optional(data, "refund_amount_cents", Json::asLong),
                 Json.optional(data, "refund_id", Json::asString),
-                Json.optional(data, "refunded_amount_cents", Json::asLong));
+                Json.optional(data, "refunded_amount_cents", Json::asLong),
+                Json.optional(data, "subscription_id", Json::asString));
     }
 
     /** @return the API's {@code aggregate} */
@@ -99,6 +111,11 @@ public final class WebhookSale {
         return currency;
     }
 
+    /** @return O ciclo da assinatura que o pagamento cobra: 1 é o primeiro, 2 é a primeira renovação. (null when the API sends none) */
+    public Long getCycleSequence() {
+        return cycleSequence;
+    }
+
     /** @return the API's {@code environment} */
     public String getEnvironment() {
         return environment;
@@ -114,7 +131,7 @@ public final class WebhookSale {
         return merchantId;
     }
 
-    /** @return Os pares que o servidor do lojista enviou ao criar o checkout; vazio sem eles. (null when the API sends none) */
+    /** @return Os pares que o servidor do lojista enviou ao criar o checkout; vazio sem eles. Na renovação de uma assinatura são os da assinatura. (null when the API sends none) */
     public Map<String, Object> getMetadata() {
         return metadata;
     }
@@ -127,6 +144,16 @@ public final class WebhookSale {
     /** @return O pagamento que o reembolso devolve, nos eventos refund.*. (null when the API sends none) */
     public String getPaymentId() {
         return paymentId;
+    }
+
+    /** @return O fim do período do ciclo que o pagamento cobra. (null when the API sends none) */
+    public String getPeriodEnd() {
+        return periodEnd;
+    }
+
+    /** @return O início do período do ciclo que o pagamento cobra. (null when the API sends none) */
+    public String getPeriodStart() {
+        return periodStart;
     }
 
     /** @return O valor só do reembolso que moveu o pagamento, em centavos; em checkout_payment.refunded e checkout_payment.partially_refunded. (null when the API sends none) */
@@ -144,8 +171,13 @@ public final class WebhookSale {
         return refundedAmountCents;
     }
 
+    /** @return A assinatura que este pagamento cobra; nulo quando a venda não é de uma assinatura. (null when the API sends none) */
+    public String getSubscriptionId() {
+        return subscriptionId;
+    }
+
     @Override
     public String toString() {
-        return "WebhookSale{" + "aggregate=" + aggregate + ", aggregateId=" + aggregateId + ", amountCents=" + amountCents + ", checkoutId=" + checkoutId + ", clientReferenceId=" + clientReferenceId + ", currency=" + currency + ", environment=" + environment + ", eventId=" + eventId + ", merchantId=" + merchantId + ", metadata=" + metadata + ", method=" + method + ", paymentId=" + paymentId + ", refundAmountCents=" + refundAmountCents + ", refundId=" + refundId + ", refundedAmountCents=" + refundedAmountCents + "}";
+        return "WebhookSale{" + "aggregate=" + aggregate + ", aggregateId=" + aggregateId + ", amountCents=" + amountCents + ", checkoutId=" + checkoutId + ", clientReferenceId=" + clientReferenceId + ", currency=" + currency + ", cycleSequence=" + cycleSequence + ", environment=" + environment + ", eventId=" + eventId + ", merchantId=" + merchantId + ", metadata=" + metadata + ", method=" + method + ", paymentId=" + paymentId + ", periodEnd=" + periodEnd + ", periodStart=" + periodStart + ", refundAmountCents=" + refundAmountCents + ", refundId=" + refundId + ", refundedAmountCents=" + refundedAmountCents + ", subscriptionId=" + subscriptionId + "}";
     }
 }
