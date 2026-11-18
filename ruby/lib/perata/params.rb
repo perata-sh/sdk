@@ -447,7 +447,15 @@ module Perata
 
   # The body of customers:create.
   class CustomersCreateParams < Params
-    MEMBERS = %i[email external_id name].freeze
+    MEMBERS = %i[billing_address billing_name email external_id name phone tax_id tax_id_kind].freeze
+
+    # Endereço de cobrança: rua e número, bairro, cidade, UF e CEP vêm juntos (o complemento é opcional).
+    # @return [CustomersCreateBillingAddress, nil]
+    attr_reader :billing_address
+
+    # Nome ou razão social de quem paga, quando difere de name.
+    # @return [String, nil]
+    attr_reader :billing_name
 
     # @return [String]
     attr_reader :email
@@ -459,26 +467,106 @@ module Perata
     # @return [String]
     attr_reader :name
 
-    def initialize(email:, external_id: nil, name:)
+    # Telefone ou celular com DDD, com ou sem pontuação.
+    # @return [String, nil]
+    attr_reader :phone
+
+    # CPF ou CNPJ, com ou sem pontuação, com os dígitos verificadores corretos.
+    # @return [String, nil]
+    attr_reader :tax_id
+
+    # Qual documento tax_id é; sem ele, o número diz.
+    # @return [String ("cpf", "cnpj"), nil]
+    attr_reader :tax_id_kind
+
+    def initialize(billing_address: nil, billing_name: nil, email:, external_id: nil, name:, phone: nil, tax_id: nil, tax_id_kind: nil)
+      @billing_address = billing_address
+      @billing_name = billing_name
       @email = email
       @external_id = external_id
       @name = name
+      @phone = phone
+      @tax_id = tax_id
+      @tax_id_kind = tax_id_kind
       freeze
     end
 
     # The body as the API reads it.
     def to_wire
       wire = {}
+      wire["billing_address"] = Perata.wire(@billing_address) unless @billing_address.nil?
+      wire["billing_name"] = @billing_name unless @billing_name.nil?
       wire["email"] = @email
       wire["external_id"] = @external_id unless @external_id.nil?
       wire["name"] = @name
+      wire["phone"] = @phone unless @phone.nil?
+      wire["tax_id"] = @tax_id unless @tax_id.nil?
+      wire["tax_id_kind"] = @tax_id_kind unless @tax_id_kind.nil?
+      wire
+    end
+  end
+
+  # Endereço de cobrança: rua e número, bairro, cidade, UF e CEP vêm juntos (o complemento é opcional).
+  class CustomersCreateBillingAddress < Params
+    MEMBERS = %i[city district line1 line2 postal_code state].freeze
+
+    # @return [String, nil]
+    attr_reader :city
+
+    # Bairro.
+    # @return [String, nil]
+    attr_reader :district
+
+    # Rua e número.
+    # @return [String, nil]
+    attr_reader :line1
+
+    # Complemento.
+    # @return [String, nil]
+    attr_reader :line2
+
+    # CEP, com ou sem hífen.
+    # @return [String, nil]
+    attr_reader :postal_code
+
+    # UF, duas letras.
+    # @return [String, nil]
+    attr_reader :state
+
+    def initialize(city: nil, district: nil, line1: nil, line2: nil, postal_code: nil, state: nil)
+      @city = city
+      @district = district
+      @line1 = line1
+      @line2 = line2
+      @postal_code = postal_code
+      @state = state
+      freeze
+    end
+
+    # The body as the API reads it.
+    def to_wire
+      wire = {}
+      wire["city"] = @city unless @city.nil?
+      wire["district"] = @district unless @district.nil?
+      wire["line1"] = @line1 unless @line1.nil?
+      wire["line2"] = @line2 unless @line2.nil?
+      wire["postal_code"] = @postal_code unless @postal_code.nil?
+      wire["state"] = @state unless @state.nil?
       wire
     end
   end
 
   # The body of customers:update.
   class CustomersUpdateParams < Params
-    MEMBERS = %i[email external_id name].freeze
+    MEMBERS = %i[billing_address billing_name email external_id name phone tax_id tax_id_kind].freeze
+
+    # Endereço de cobrança: rua e número, bairro, cidade, UF e CEP vêm juntos (o complemento é opcional). Cada parte enviada substitui a guardada, e o endereço que resulta precisa estar inteiro; envie as partes vazias para apagar o endereço.
+    # @return [CustomersUpdateBillingAddress, nil]
+    attr_reader :billing_address
+
+    # Nome ou razão social de quem paga, quando difere de name.
+    # @return [String, nil]
+    attr_reader :billing_name
 
     # @return [String, nil]
     attr_reader :email
@@ -490,19 +578,91 @@ module Perata
     # @return [String, nil]
     attr_reader :name
 
-    def initialize(email: nil, external_id: nil, name: nil)
+    # Telefone ou celular com DDD, com ou sem pontuação.
+    # @return [String, nil]
+    attr_reader :phone
+
+    # CPF ou CNPJ, com ou sem pontuação, com os dígitos verificadores corretos. Só a chave de um dono ou administrador da organização o altera; as demais recebem 403. Texto vazio apaga.
+    # @return [String, nil]
+    attr_reader :tax_id
+
+    # Qual documento tax_id é; sem ele, o número diz.
+    # @return [String ("cpf", "cnpj"), nil]
+    attr_reader :tax_id_kind
+
+    def initialize(billing_address: nil, billing_name: nil, email: nil, external_id: nil, name: nil, phone: nil, tax_id: nil, tax_id_kind: nil)
+      @billing_address = billing_address
+      @billing_name = billing_name
       @email = email
       @external_id = external_id
       @name = name
+      @phone = phone
+      @tax_id = tax_id
+      @tax_id_kind = tax_id_kind
       freeze
     end
 
     # The body as the API reads it.
     def to_wire
       wire = {}
+      wire["billing_address"] = Perata.wire(@billing_address) unless @billing_address.nil?
+      wire["billing_name"] = @billing_name unless @billing_name.nil?
       wire["email"] = @email unless @email.nil?
       wire["external_id"] = @external_id unless @external_id.nil?
       wire["name"] = @name unless @name.nil?
+      wire["phone"] = @phone unless @phone.nil?
+      wire["tax_id"] = @tax_id unless @tax_id.nil?
+      wire["tax_id_kind"] = @tax_id_kind unless @tax_id_kind.nil?
+      wire
+    end
+  end
+
+  # Endereço de cobrança: rua e número, bairro, cidade, UF e CEP vêm juntos (o complemento é opcional). Cada parte enviada substitui a guardada, e o endereço que resulta precisa estar inteiro; envie as partes vazias para apagar o endereço.
+  class CustomersUpdateBillingAddress < Params
+    MEMBERS = %i[city district line1 line2 postal_code state].freeze
+
+    # @return [String, nil]
+    attr_reader :city
+
+    # Bairro.
+    # @return [String, nil]
+    attr_reader :district
+
+    # Rua e número.
+    # @return [String, nil]
+    attr_reader :line1
+
+    # Complemento.
+    # @return [String, nil]
+    attr_reader :line2
+
+    # CEP, com ou sem hífen.
+    # @return [String, nil]
+    attr_reader :postal_code
+
+    # UF, duas letras.
+    # @return [String, nil]
+    attr_reader :state
+
+    def initialize(city: nil, district: nil, line1: nil, line2: nil, postal_code: nil, state: nil)
+      @city = city
+      @district = district
+      @line1 = line1
+      @line2 = line2
+      @postal_code = postal_code
+      @state = state
+      freeze
+    end
+
+    # The body as the API reads it.
+    def to_wire
+      wire = {}
+      wire["city"] = @city unless @city.nil?
+      wire["district"] = @district unless @district.nil?
+      wire["line1"] = @line1 unless @line1.nil?
+      wire["line2"] = @line2 unless @line2.nil?
+      wire["postal_code"] = @postal_code unless @postal_code.nil?
+      wire["state"] = @state unless @state.nil?
       wire
     end
   end
@@ -661,7 +821,15 @@ module Perata
 
   # The body of customers:update_external.
   class CustomersUpdateExternalParams < Params
-    MEMBERS = %i[email external_id name].freeze
+    MEMBERS = %i[billing_address billing_name email external_id name phone tax_id tax_id_kind].freeze
+
+    # Endereço de cobrança: rua e número, bairro, cidade, UF e CEP vêm juntos (o complemento é opcional). Cada parte enviada substitui a guardada, e o endereço que resulta precisa estar inteiro; envie as partes vazias para apagar o endereço.
+    # @return [CustomersUpdateExternalBillingAddress, nil]
+    attr_reader :billing_address
+
+    # Nome ou razão social de quem paga, quando difere de name.
+    # @return [String, nil]
+    attr_reader :billing_name
 
     # @return [String, nil]
     attr_reader :email
@@ -673,19 +841,91 @@ module Perata
     # @return [String, nil]
     attr_reader :name
 
-    def initialize(email: nil, external_id: nil, name: nil)
+    # Telefone ou celular com DDD, com ou sem pontuação.
+    # @return [String, nil]
+    attr_reader :phone
+
+    # CPF ou CNPJ, com ou sem pontuação, com os dígitos verificadores corretos. Só a chave de um dono ou administrador da organização o altera; as demais recebem 403. Texto vazio apaga.
+    # @return [String, nil]
+    attr_reader :tax_id
+
+    # Qual documento tax_id é; sem ele, o número diz.
+    # @return [String ("cpf", "cnpj"), nil]
+    attr_reader :tax_id_kind
+
+    def initialize(billing_address: nil, billing_name: nil, email: nil, external_id: nil, name: nil, phone: nil, tax_id: nil, tax_id_kind: nil)
+      @billing_address = billing_address
+      @billing_name = billing_name
       @email = email
       @external_id = external_id
       @name = name
+      @phone = phone
+      @tax_id = tax_id
+      @tax_id_kind = tax_id_kind
       freeze
     end
 
     # The body as the API reads it.
     def to_wire
       wire = {}
+      wire["billing_address"] = Perata.wire(@billing_address) unless @billing_address.nil?
+      wire["billing_name"] = @billing_name unless @billing_name.nil?
       wire["email"] = @email unless @email.nil?
       wire["external_id"] = @external_id unless @external_id.nil?
       wire["name"] = @name unless @name.nil?
+      wire["phone"] = @phone unless @phone.nil?
+      wire["tax_id"] = @tax_id unless @tax_id.nil?
+      wire["tax_id_kind"] = @tax_id_kind unless @tax_id_kind.nil?
+      wire
+    end
+  end
+
+  # Endereço de cobrança: rua e número, bairro, cidade, UF e CEP vêm juntos (o complemento é opcional). Cada parte enviada substitui a guardada, e o endereço que resulta precisa estar inteiro; envie as partes vazias para apagar o endereço.
+  class CustomersUpdateExternalBillingAddress < Params
+    MEMBERS = %i[city district line1 line2 postal_code state].freeze
+
+    # @return [String, nil]
+    attr_reader :city
+
+    # Bairro.
+    # @return [String, nil]
+    attr_reader :district
+
+    # Rua e número.
+    # @return [String, nil]
+    attr_reader :line1
+
+    # Complemento.
+    # @return [String, nil]
+    attr_reader :line2
+
+    # CEP, com ou sem hífen.
+    # @return [String, nil]
+    attr_reader :postal_code
+
+    # UF, duas letras.
+    # @return [String, nil]
+    attr_reader :state
+
+    def initialize(city: nil, district: nil, line1: nil, line2: nil, postal_code: nil, state: nil)
+      @city = city
+      @district = district
+      @line1 = line1
+      @line2 = line2
+      @postal_code = postal_code
+      @state = state
+      freeze
+    end
+
+    # The body as the API reads it.
+    def to_wire
+      wire = {}
+      wire["city"] = @city unless @city.nil?
+      wire["district"] = @district unless @district.nil?
+      wire["line1"] = @line1 unless @line1.nil?
+      wire["line2"] = @line2 unless @line2.nil?
+      wire["postal_code"] = @postal_code unless @postal_code.nil?
+      wire["state"] = @state unless @state.nil?
       wire
     end
   end

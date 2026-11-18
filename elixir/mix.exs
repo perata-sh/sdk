@@ -3,7 +3,7 @@
 defmodule Perata.MixProject do
   use Mix.Project
 
-  @version "0.5.0"
+  @version "0.5.2"
   @source_url "https://github.com/perata-sh/sdk"
 
   def project do

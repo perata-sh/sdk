@@ -24,7 +24,7 @@ Um POST sem chave de idempotência é enviado com uma `Idempotency-Key` própria
 |---|---|
 | `$perata->benefits` | `create`, `delete`, `get`, `list`, `listIter`, `listGrants`, `listGrantsIter`, `update` |
 | `$perata->checkoutLinks` | `create`, `delete`, `get`, `list`, `listIter`, `update` |
-| `$perata->checkouts` | `create`, `get`, `update` |
+| `$perata->checkouts` | `create`, `expire`, `get`, `list`, `listIter`, `update` |
 | `$perata->customerSessions` | `create` |
 | `$perata->customers` | `create`, `delete`, `get`, `getExternal`, `getState`, `list`, `listIter`, `update`, `updateExternal` |
 | `$perata->discounts` | `create`, `delete`, `get`, `list`, `listIter`, `update` |
@@ -108,4 +108,4 @@ A assinatura é a do Standard Webhooks (`webhook-id`, `webhook-timestamp`, `webh
 
 O evento é tipado: um tipo para cada dado que o webhook carrega (`OrderWebhookEvent` traz um `Order`, `DisputeWebhookEvent` a disputa, `IdentifiersWebhookEvent` os identificadores…), e o `type` diz o que aconteceu; um tipo que esta versão do SDK ainda não conhece chega como `UnknownWebhookEvent`, com os dados como vieram. Durante a rotação do segredo o cabeçalho traz mais de uma assinatura, e basta uma conferir. `Webhook::verifySignature` só confere a assinatura.
 
-Versão do SDK: 0.5.0 · contrato da API: 0.1.0
+Versão do SDK: 0.5.2 · contrato da API: 0.1.0

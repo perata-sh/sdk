@@ -45,9 +45,9 @@ final class OrdersService
     }
 
     /**
-     * Listar pedidos: checkouts pagos. One page; listIter() walks every page.
+     * Listar pedidos (checkouts pagos), opcionalmente de um client_reference_id, de um cliente, de um período ou de metadados. One page; listIter() walks every page.
      *
-     * @param array{page?: int, limit?: int} $params
+     * @param array{page?: int, limit?: int, client_reference_id?: string, status?: string, customer_id?: string, external_customer_id?: string, created_after?: string, created_before?: string, sorting?: string} $params
      * @return Page<Models\Order>
      */
     public function list(array $params = [], ?string $apiKey = null): Page
@@ -59,7 +59,7 @@ final class OrdersService
     /**
      * Walks every page of orders:list, item by item.
      *
-     * @param array{page?: int, limit?: int} $params
+     * @param array{page?: int, limit?: int, client_reference_id?: string, status?: string, customer_id?: string, external_customer_id?: string, created_after?: string, created_before?: string, sorting?: string} $params
      * @return \Generator<int, Models\Order>
      */
     public function listIter(array $params = [], ?string $apiKey = null): \Generator

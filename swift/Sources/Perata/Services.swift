@@ -140,11 +140,39 @@ public struct CheckoutsService: Sendable {
         )
     }
 
+    /// Encerrar um checkout que não deve mais ser pago: a página, o client_secret e o QR do Pix deixam de valer (o Pix já gerado é cancelado na Cielo), e o evento checkout.expired é enviado; 409 se já foi pago ou se emitiu boleto.
+    public func expire(_ checkout: String, idempotencyKey: String? = nil, apiKey: String? = nil) async throws -> CheckoutExpired {
+        try await requester.request(
+            "POST", "/api/v1/checkouts/\(escape(checkout))/expire", idempotencyKey: idempotencyKey, apiKey: apiKey
+        )
+    }
+
     /// Ler um checkout: o endereço, o estado e as páginas de retorno.
     public func get(_ checkout: String, apiKey: String? = nil) async throws -> Checkout {
         try await requester.request(
             "GET", "/api/v1/checkouts/\(escape(checkout))", apiKey: apiKey
         )
+    }
+
+    /// Listar checkouts, opcionalmente de um client_reference_id, de um status, de um período ou de metadados. One page; `listIter` walks every page.
+    ///
+    /// - Parameters:
+    ///   - page: the page, from 1.
+    ///   - limit: items a page, 1 to 100 (10 by default).
+    public func list(page: Int? = nil, limit: Int? = nil, clientReferenceID: String? = nil, status: String? = nil, createdAfter: String? = nil, createdBefore: String? = nil, sorting: String? = nil, apiKey: String? = nil) async throws -> Page<Checkout> {
+        try await requester.request(
+            "GET", "/api/v1/checkouts",
+            query: [("page", page.map(String.init)), ("limit", limit.map(String.init)), ("client_reference_id", clientReferenceID), ("status", status), ("created_after", createdAfter), ("created_before", createdBefore), ("sorting", sorting)],
+            apiKey: apiKey
+        )
+    }
+
+    /// Walks every page of checkouts:list, from `page`, item by item:
+    /// `for try await item in …`.
+    public func listIter(page: Int? = nil, limit: Int? = nil, clientReferenceID: String? = nil, status: String? = nil, createdAfter: String? = nil, createdBefore: String? = nil, sorting: String? = nil, apiKey: String? = nil) -> AsyncThrowingStream<Checkout, any Error> {
+        iterate(from: page) { page in
+            try await self.list(page: page, limit: limit, clientReferenceID: clientReferenceID, status: status, createdAfter: createdAfter, createdBefore: createdBefore, sorting: sorting, apiKey: apiKey)
+        }
     }
 
     /// Atualizar o rótulo e as páginas de retorno de um checkout ativo.
@@ -171,7 +199,7 @@ public struct CustomerSessionsService: Sendable {
 public struct CustomersService: Sendable {
     let requester: Requester
 
-    /// Criar um cliente.
+    /// Criar um cliente, com CPF ou CNPJ, telefone e endereço de cobrança se você os tem.
     public func create(_ params: CustomersCreateParams, idempotencyKey: String? = nil, apiKey: String? = nil) async throws -> Customer {
         try await requester.request(
             "POST", "/api/v1/customers", body: params, idempotencyKey: idempotencyKey, apiKey: apiKey
@@ -227,7 +255,7 @@ public struct CustomersService: Sendable {
         }
     }
 
-    /// Atualizar o nome, o e-mail ou o ID externo de um cliente; o ID externo não muda depois de definido.
+    /// Atualizar o nome, o e-mail, o ID externo, o CPF ou CNPJ, o telefone ou o endereço de cobrança de um cliente; o ID externo não muda depois de definido.
     public func update(_ customer: String, _ params: CustomersUpdateParams, idempotencyKey: String? = nil, apiKey: String? = nil) async throws -> Customer {
         try await requester.request(
             "PATCH", "/api/v1/customers/\(escape(customer))", body: params, idempotencyKey: idempotencyKey, apiKey: apiKey
@@ -413,24 +441,24 @@ public struct OrdersService: Sendable {
         )
     }
 
-    /// Listar pedidos: checkouts pagos. One page; `listIter` walks every page.
+    /// Listar pedidos (checkouts pagos), opcionalmente de um client_reference_id, de um cliente, de um período ou de metadados. One page; `listIter` walks every page.
     ///
     /// - Parameters:
     ///   - page: the page, from 1.
     ///   - limit: items a page, 1 to 100 (10 by default).
-    public func list(page: Int? = nil, limit: Int? = nil, apiKey: String? = nil) async throws -> Page<Order> {
+    public func list(page: Int? = nil, limit: Int? = nil, clientReferenceID: String? = nil, status: String? = nil, customerID: String? = nil, externalCustomerID: String? = nil, createdAfter: String? = nil, createdBefore: String? = nil, sorting: String? = nil, apiKey: String? = nil) async throws -> Page<Order> {
         try await requester.request(
             "GET", "/api/v1/orders",
-            query: [("page", page.map(String.init)), ("limit", limit.map(String.init))],
+            query: [("page", page.map(String.init)), ("limit", limit.map(String.init)), ("client_reference_id", clientReferenceID), ("status", status), ("customer_id", customerID), ("external_customer_id", externalCustomerID), ("created_after", createdAfter), ("created_before", createdBefore), ("sorting", sorting)],
             apiKey: apiKey
         )
     }
 
     /// Walks every page of orders:list, from `page`, item by item:
     /// `for try await item in …`.
-    public func listIter(page: Int? = nil, limit: Int? = nil, apiKey: String? = nil) -> AsyncThrowingStream<Order, any Error> {
+    public func listIter(page: Int? = nil, limit: Int? = nil, clientReferenceID: String? = nil, status: String? = nil, customerID: String? = nil, externalCustomerID: String? = nil, createdAfter: String? = nil, createdBefore: String? = nil, sorting: String? = nil, apiKey: String? = nil) -> AsyncThrowingStream<Order, any Error> {
         iterate(from: page) { page in
-            try await self.list(page: page, limit: limit, apiKey: apiKey)
+            try await self.list(page: page, limit: limit, clientReferenceID: clientReferenceID, status: status, customerID: customerID, externalCustomerID: externalCustomerID, createdAfter: createdAfter, createdBefore: createdBefore, sorting: sorting, apiKey: apiKey)
         }
     }
 }
@@ -479,24 +507,24 @@ public struct PaymentsService: Sendable {
         )
     }
 
-    /// Listar pagamentos. One page; `listIter` walks every page.
+    /// Listar pagamentos, opcionalmente de um client_reference_id, de um estado, de um cliente, de um período ou de metadados. One page; `listIter` walks every page.
     ///
     /// - Parameters:
     ///   - page: the page, from 1.
     ///   - limit: items a page, 1 to 100 (10 by default).
-    public func list(page: Int? = nil, limit: Int? = nil, apiKey: String? = nil) async throws -> Page<Payment> {
+    public func list(page: Int? = nil, limit: Int? = nil, clientReferenceID: String? = nil, status: String? = nil, customerID: String? = nil, externalCustomerID: String? = nil, createdAfter: String? = nil, createdBefore: String? = nil, sorting: String? = nil, apiKey: String? = nil) async throws -> Page<Payment> {
         try await requester.request(
             "GET", "/api/v1/payments",
-            query: [("page", page.map(String.init)), ("limit", limit.map(String.init))],
+            query: [("page", page.map(String.init)), ("limit", limit.map(String.init)), ("client_reference_id", clientReferenceID), ("status", status), ("customer_id", customerID), ("external_customer_id", externalCustomerID), ("created_after", createdAfter), ("created_before", createdBefore), ("sorting", sorting)],
             apiKey: apiKey
         )
     }
 
     /// Walks every page of payments:list, from `page`, item by item:
     /// `for try await item in …`.
-    public func listIter(page: Int? = nil, limit: Int? = nil, apiKey: String? = nil) -> AsyncThrowingStream<Payment, any Error> {
+    public func listIter(page: Int? = nil, limit: Int? = nil, clientReferenceID: String? = nil, status: String? = nil, customerID: String? = nil, externalCustomerID: String? = nil, createdAfter: String? = nil, createdBefore: String? = nil, sorting: String? = nil, apiKey: String? = nil) -> AsyncThrowingStream<Payment, any Error> {
         iterate(from: page) { page in
-            try await self.list(page: page, limit: limit, apiKey: apiKey)
+            try await self.list(page: page, limit: limit, clientReferenceID: clientReferenceID, status: status, customerID: customerID, externalCustomerID: externalCustomerID, createdAfter: createdAfter, createdBefore: createdBefore, sorting: sorting, apiKey: apiKey)
         }
     }
 }
@@ -599,24 +627,24 @@ public struct RefundsService: Sendable {
         )
     }
 
-    /// Listar reembolsos, opcionalmente de um pagamento (payment_id). One page; `listIter` walks every page.
+    /// Listar reembolsos, opcionalmente de um pagamento (payment_id), de um status, de um cliente ou de um período. One page; `listIter` walks every page.
     ///
     /// - Parameters:
     ///   - page: the page, from 1.
     ///   - limit: items a page, 1 to 100 (10 by default).
-    public func list(page: Int? = nil, limit: Int? = nil, paymentID: String? = nil, apiKey: String? = nil) async throws -> Page<Refund> {
+    public func list(page: Int? = nil, limit: Int? = nil, paymentID: String? = nil, status: String? = nil, customerID: String? = nil, externalCustomerID: String? = nil, createdAfter: String? = nil, createdBefore: String? = nil, sorting: String? = nil, apiKey: String? = nil) async throws -> Page<Refund> {
         try await requester.request(
             "GET", "/api/v1/refunds",
-            query: [("page", page.map(String.init)), ("limit", limit.map(String.init)), ("payment_id", paymentID)],
+            query: [("page", page.map(String.init)), ("limit", limit.map(String.init)), ("payment_id", paymentID), ("status", status), ("customer_id", customerID), ("external_customer_id", externalCustomerID), ("created_after", createdAfter), ("created_before", createdBefore), ("sorting", sorting)],
             apiKey: apiKey
         )
     }
 
     /// Walks every page of refunds:list, from `page`, item by item:
     /// `for try await item in …`.
-    public func listIter(page: Int? = nil, limit: Int? = nil, paymentID: String? = nil, apiKey: String? = nil) -> AsyncThrowingStream<Refund, any Error> {
+    public func listIter(page: Int? = nil, limit: Int? = nil, paymentID: String? = nil, status: String? = nil, customerID: String? = nil, externalCustomerID: String? = nil, createdAfter: String? = nil, createdBefore: String? = nil, sorting: String? = nil, apiKey: String? = nil) -> AsyncThrowingStream<Refund, any Error> {
         iterate(from: page) { page in
-            try await self.list(page: page, limit: limit, paymentID: paymentID, apiKey: apiKey)
+            try await self.list(page: page, limit: limit, paymentID: paymentID, status: status, customerID: customerID, externalCustomerID: externalCustomerID, createdAfter: createdAfter, createdBefore: createdBefore, sorting: sorting, apiKey: apiKey)
         }
     }
 }
@@ -639,24 +667,24 @@ public struct SubscriptionsService: Sendable {
         )
     }
 
-    /// Listar assinaturas, opcionalmente de um cliente (customer_id). One page; `listIter` walks every page.
+    /// Listar assinaturas, opcionalmente de um cliente (customer_id ou external_customer_id), de um status, de um período ou de metadados. One page; `listIter` walks every page.
     ///
     /// - Parameters:
     ///   - page: the page, from 1.
     ///   - limit: items a page, 1 to 100 (10 by default).
-    public func list(page: Int? = nil, limit: Int? = nil, customerID: String? = nil, apiKey: String? = nil) async throws -> Page<Subscription> {
+    public func list(page: Int? = nil, limit: Int? = nil, status: String? = nil, customerID: String? = nil, externalCustomerID: String? = nil, createdAfter: String? = nil, createdBefore: String? = nil, sorting: String? = nil, apiKey: String? = nil) async throws -> Page<Subscription> {
         try await requester.request(
             "GET", "/api/v1/subscriptions",
-            query: [("page", page.map(String.init)), ("limit", limit.map(String.init)), ("customer_id", customerID)],
+            query: [("page", page.map(String.init)), ("limit", limit.map(String.init)), ("status", status), ("customer_id", customerID), ("external_customer_id", externalCustomerID), ("created_after", createdAfter), ("created_before", createdBefore), ("sorting", sorting)],
             apiKey: apiKey
         )
     }
 
     /// Walks every page of subscriptions:list, from `page`, item by item:
     /// `for try await item in …`.
-    public func listIter(page: Int? = nil, limit: Int? = nil, customerID: String? = nil, apiKey: String? = nil) -> AsyncThrowingStream<Subscription, any Error> {
+    public func listIter(page: Int? = nil, limit: Int? = nil, status: String? = nil, customerID: String? = nil, externalCustomerID: String? = nil, createdAfter: String? = nil, createdBefore: String? = nil, sorting: String? = nil, apiKey: String? = nil) -> AsyncThrowingStream<Subscription, any Error> {
         iterate(from: page) { page in
-            try await self.list(page: page, limit: limit, customerID: customerID, apiKey: apiKey)
+            try await self.list(page: page, limit: limit, status: status, customerID: customerID, externalCustomerID: externalCustomerID, createdAfter: createdAfter, createdBefore: createdBefore, sorting: sorting, apiKey: apiKey)
         }
     }
 

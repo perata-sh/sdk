@@ -513,6 +513,61 @@ class CheckoutCreated:
 
 
 @dataclass(frozen=True)
+class CheckoutExpired:
+    """CheckoutExpired is a resource of Peráta's API."""
+
+    id: str
+    """O que a chamada nomeou: o id do checkout ou o de uma sessão."""
+    sessions: list[CheckoutExpiredSession]
+    """As sessões encerradas por esta chamada ou que já estavam encerradas."""
+    status: Literal["expired"]
+    """Sempre expired: nada mais deste checkout pode ser pago."""
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> CheckoutExpired:
+        return cls(
+            id=data["id"],
+            sessions=[CheckoutExpiredSession.from_dict(item) for item in data["sessions"]],
+            status=data["status"],
+        )
+
+
+@dataclass(frozen=True)
+class CheckoutExpiredSession:
+    """CheckoutExpiredSession is a resource of Peráta's API."""
+
+    already_closed: bool
+    """true quando a sessão já estava encerrada antes: a chamada foi repetida."""
+    canceled: bool
+    """true quando a Cielo cancelou o Pix ou a reserva nesta chamada."""
+    expired_at: str | None
+    """Quando a sessão foi encerrada; nulo se ela já tinha falhado."""
+    method: Literal["card", "pix", "boleto"] | None
+    """O meio escolhido; nulo se o comprador não escolheu um."""
+    payment_id: str
+    """O pagamento que a sessão tinha, vazio se o comprador não escolheu um meio."""
+    payment_state: str
+    """Como o pagamento ficou: canceled quando a Cielo retirou o QR do Pix ou liberou a reserva do cartão; vazio sem pagamento."""
+    session_id: str
+    """O id da sessão, o mesmo checkout_id dos webhooks."""
+    status: Literal["expired", "failed"]
+    """expired: encerrada pelo lojista; failed: já tinha falhado antes."""
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> CheckoutExpiredSession:
+        return cls(
+            already_closed=data["already_closed"],
+            canceled=data["canceled"],
+            expired_at=data.get("expired_at"),
+            method=data.get("method"),
+            payment_id=data["payment_id"],
+            payment_state=data["payment_state"],
+            session_id=data["session_id"],
+            status=data["status"],
+        )
+
+
+@dataclass(frozen=True)
 class CheckoutInstallment:
     """CheckoutInstallment is a resource of Peráta's API."""
 
@@ -745,22 +800,37 @@ class CheckoutSavedProfile:
 class Customer:
     """Customer is a resource of Peráta's API."""
 
+    billing_address: BillingAddress | None
+    """Endereço de cobrança; fica de fora quando o cliente não tem."""
+    billing_name: str | None
+    """Nome ou razão social de quem paga, quando difere de name."""
     created_at: str
     email: str
     external_id: str
     id: str
     name: str
+    phone: str | None
+    """Telefone ou celular com DDD, só dígitos."""
     status: Literal["active", "archived"]
+    tax_id: str | None
+    """CPF ou CNPJ, só dígitos. O CPF vem inteiro para a chave de um dono ou administrador da organização e mascarado (***.***.789-00) para as demais; o CNPJ vem sempre inteiro."""
+    tax_id_kind: Literal["cpf", "cnpj"] | None
+    """Qual documento tax_id é."""
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> Customer:
         return cls(
+            billing_address=None if data.get("billing_address") is None else BillingAddress.from_dict(data["billing_address"]),
+            billing_name=data.get("billing_name"),
             created_at=data["created_at"],
             email=data["email"],
             external_id=data["external_id"],
             id=data["id"],
             name=data["name"],
+            phone=data.get("phone"),
             status=data["status"],
+            tax_id=data.get("tax_id"),
+            tax_id_kind=data.get("tax_id_kind"),
         )
 
 
@@ -1884,19 +1954,71 @@ class CustomerSessionsCreateParams(TypedDict):
 class CustomersCreateParams(TypedDict):
     """The body of customers:create."""
 
+    billing_address: NotRequired[CustomersCreateBillingAddress]
+    """Endereço de cobrança: rua e número, bairro, cidade, UF e CEP vêm juntos (o complemento é opcional)."""
+    billing_name: NotRequired[str]
+    """Nome ou razão social de quem paga, quando difere de name."""
     email: str
     external_id: NotRequired[str]
     """Até 120 caracteres, sem barra (/) nem caracteres de controle."""
     name: str
+    phone: NotRequired[str]
+    """Telefone ou celular com DDD, com ou sem pontuação."""
+    tax_id: NotRequired[str]
+    """CPF ou CNPJ, com ou sem pontuação, com os dígitos verificadores corretos."""
+    tax_id_kind: NotRequired[Literal["cpf", "cnpj"]]
+    """Qual documento tax_id é; sem ele, o número diz."""
+
+
+class CustomersCreateBillingAddress(TypedDict):
+    """Endereço de cobrança: rua e número, bairro, cidade, UF e CEP vêm juntos (o complemento é opcional)."""
+
+    city: NotRequired[str]
+    district: NotRequired[str]
+    """Bairro."""
+    line1: NotRequired[str]
+    """Rua e número."""
+    line2: NotRequired[str]
+    """Complemento."""
+    postal_code: NotRequired[str]
+    """CEP, com ou sem hífen."""
+    state: NotRequired[str]
+    """UF, duas letras."""
 
 
 class CustomersUpdateParams(TypedDict):
     """The body of customers:update."""
 
+    billing_address: NotRequired[CustomersUpdateBillingAddress]
+    """Endereço de cobrança: rua e número, bairro, cidade, UF e CEP vêm juntos (o complemento é opcional). Cada parte enviada substitui a guardada, e o endereço que resulta precisa estar inteiro; envie as partes vazias para apagar o endereço."""
+    billing_name: NotRequired[str]
+    """Nome ou razão social de quem paga, quando difere de name."""
     email: NotRequired[str]
     external_id: NotRequired[str]
     """Só pode ser definido uma vez. Até 120 caracteres, sem barra (/) nem caracteres de controle."""
     name: NotRequired[str]
+    phone: NotRequired[str]
+    """Telefone ou celular com DDD, com ou sem pontuação."""
+    tax_id: NotRequired[str]
+    """CPF ou CNPJ, com ou sem pontuação, com os dígitos verificadores corretos. Só a chave de um dono ou administrador da organização o altera; as demais recebem 403. Texto vazio apaga."""
+    tax_id_kind: NotRequired[Literal["cpf", "cnpj"]]
+    """Qual documento tax_id é; sem ele, o número diz."""
+
+
+class CustomersUpdateBillingAddress(TypedDict):
+    """Endereço de cobrança: rua e número, bairro, cidade, UF e CEP vêm juntos (o complemento é opcional). Cada parte enviada substitui a guardada, e o endereço que resulta precisa estar inteiro; envie as partes vazias para apagar o endereço."""
+
+    city: NotRequired[str]
+    district: NotRequired[str]
+    """Bairro."""
+    line1: NotRequired[str]
+    """Rua e número."""
+    line2: NotRequired[str]
+    """Complemento."""
+    postal_code: NotRequired[str]
+    """CEP, com ou sem hífen."""
+    state: NotRequired[str]
+    """UF, duas letras."""
 
 
 class DiscountsCreateParams(TypedDict):
@@ -1946,10 +2068,36 @@ class DiscountsUpdateParams(TypedDict):
 class CustomersUpdateExternalParams(TypedDict):
     """The body of customers:update_external."""
 
+    billing_address: NotRequired[CustomersUpdateExternalBillingAddress]
+    """Endereço de cobrança: rua e número, bairro, cidade, UF e CEP vêm juntos (o complemento é opcional). Cada parte enviada substitui a guardada, e o endereço que resulta precisa estar inteiro; envie as partes vazias para apagar o endereço."""
+    billing_name: NotRequired[str]
+    """Nome ou razão social de quem paga, quando difere de name."""
     email: NotRequired[str]
     external_id: NotRequired[str]
     """Só pode ser definido uma vez. Até 120 caracteres, sem barra (/) nem caracteres de controle."""
     name: NotRequired[str]
+    phone: NotRequired[str]
+    """Telefone ou celular com DDD, com ou sem pontuação."""
+    tax_id: NotRequired[str]
+    """CPF ou CNPJ, com ou sem pontuação, com os dígitos verificadores corretos. Só a chave de um dono ou administrador da organização o altera; as demais recebem 403. Texto vazio apaga."""
+    tax_id_kind: NotRequired[Literal["cpf", "cnpj"]]
+    """Qual documento tax_id é; sem ele, o número diz."""
+
+
+class CustomersUpdateExternalBillingAddress(TypedDict):
+    """Endereço de cobrança: rua e número, bairro, cidade, UF e CEP vêm juntos (o complemento é opcional). Cada parte enviada substitui a guardada, e o endereço que resulta precisa estar inteiro; envie as partes vazias para apagar o endereço."""
+
+    city: NotRequired[str]
+    district: NotRequired[str]
+    """Bairro."""
+    line1: NotRequired[str]
+    """Rua e número."""
+    line2: NotRequired[str]
+    """Complemento."""
+    postal_code: NotRequired[str]
+    """CEP, com ou sem hífen."""
+    state: NotRequired[str]
+    """UF, duas letras."""
 
 
 class PricesCreateParams(TypedDict):

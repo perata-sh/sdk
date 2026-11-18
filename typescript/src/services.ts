@@ -122,6 +122,24 @@ export class CheckoutLinksService {
   }
 }
 
+/** The page and filters of checkouts:list. */
+export interface CheckoutsListParams {
+  /** The page, from 1. */
+  page?: number;
+  /** Items a page, 1 to 100 (10 by default). */
+  limit?: number;
+  /** Só os registros com este client_reference_id: o ID do pedido no seu sistema, que você enviou ao criar o checkout. */
+  client_reference_id?: string;
+  /** Só os checkouts neste status: active ou archived. */
+  status?: string;
+  /** Só os criados a partir deste instante, inclusive (RFC 3339, como 2026-11-17T00:00:00-03:00). */
+  created_after?: string;
+  /** Só os criados antes deste instante (RFC 3339); com created_after, o período é [created_after, created_before). */
+  created_before?: string;
+  /** Ordem da lista: created_at, e com um - na frente é decrescente (-created_at, o mais novo primeiro, é o padrão). */
+  sorting?: string;
+}
+
 /** The API's checkouts. */
 export class CheckoutsService {
   readonly #client: Requester;
@@ -135,9 +153,24 @@ export class CheckoutsService {
     return this.#client.request("POST", `/api/v1/checkouts`, { body: params, options });
   }
 
+  /** Encerrar um checkout que não deve mais ser pago: a página, o client_secret e o QR do Pix deixam de valer (o Pix já gerado é cancelado na Cielo), e o evento checkout.expired é enviado; 409 se já foi pago ou se emitiu boleto. */
+  expire(checkout: string, options?: RequestOptions): Promise<models.CheckoutExpired> {
+    return this.#client.request("POST", `/api/v1/checkouts/${encodeURIComponent(checkout)}/expire`, { options });
+  }
+
   /** Ler um checkout: o endereço, o estado e as páginas de retorno. */
   get(checkout: string, options?: RequestOptions): Promise<models.Checkout> {
     return this.#client.request("GET", `/api/v1/checkouts/${encodeURIComponent(checkout)}`, { options });
+  }
+
+  /** Listar checkouts, opcionalmente de um client_reference_id, de um status, de um período ou de metadados. One page; `listIter` walks every page. */
+  list(params: CheckoutsListParams = {}, options?: RequestOptions): Promise<Page<models.Checkout>> {
+    return this.#client.request("GET", `/api/v1/checkouts`, { query: { ...params }, options });
+  }
+
+  /** Walks every page of checkouts:list, item by item: `for await (const item of …)`. */
+  listIter(params: CheckoutsListParams = {}, options?: RequestOptions): AsyncGenerator<models.Checkout, void, undefined> {
+    return iterate((page) => this.list({ ...params, page }, options), params.page);
   }
 
   /** Atualizar o rótulo e as páginas de retorno de um checkout ativo. */
@@ -176,7 +209,7 @@ export class CustomersService {
     this.#client = client;
   }
 
-  /** Criar um cliente. */
+  /** Criar um cliente, com CPF ou CNPJ, telefone e endereço de cobrança se você os tem. */
   create(params: models.CustomersCreateParams, options?: RequestOptions): Promise<models.Customer> {
     return this.#client.request("POST", `/api/v1/customers`, { body: params, options });
   }
@@ -211,7 +244,7 @@ export class CustomersService {
     return iterate((page) => this.list({ ...params, page }, options), params.page);
   }
 
-  /** Atualizar o nome, o e-mail ou o ID externo de um cliente; o ID externo não muda depois de definido. */
+  /** Atualizar o nome, o e-mail, o ID externo, o CPF ou CNPJ, o telefone ou o endereço de cobrança de um cliente; o ID externo não muda depois de definido. */
   update(customer: string, params: models.CustomersUpdateParams, options?: RequestOptions): Promise<models.Customer> {
     return this.#client.request("PATCH", `/api/v1/customers/${encodeURIComponent(customer)}`, { body: params, options });
   }
@@ -376,6 +409,20 @@ export interface OrdersListParams {
   page?: number;
   /** Items a page, 1 to 100 (10 by default). */
   limit?: number;
+  /** Só os registros com este client_reference_id: o ID do pedido no seu sistema, que você enviou ao criar o checkout. */
+  client_reference_id?: string;
+  /** Pedidos são os checkouts pagos: só succeeded. */
+  status?: string;
+  /** Só os deste cliente. */
+  customer_id?: string;
+  /** Só os do cliente que você identifica por este ID externo; um ID que não existe não acha nada. */
+  external_customer_id?: string;
+  /** Só os criados a partir deste instante, inclusive (RFC 3339, como 2026-11-17T00:00:00-03:00). */
+  created_after?: string;
+  /** Só os criados antes deste instante (RFC 3339); com created_after, o período é [created_after, created_before). */
+  created_before?: string;
+  /** Ordem da lista: created_at ou amount, e com um - na frente é decrescente (-created_at, o mais novo primeiro, é o padrão). */
+  sorting?: string;
 }
 
 /** The API's orders. */
@@ -401,7 +448,7 @@ export class OrdersService {
     return this.#client.request("GET", `/api/v1/orders/${encodeURIComponent(order)}/receipt`, { options });
   }
 
-  /** Listar pedidos: checkouts pagos. One page; `listIter` walks every page. */
+  /** Listar pedidos (checkouts pagos), opcionalmente de um client_reference_id, de um cliente, de um período ou de metadados. One page; `listIter` walks every page. */
   list(params: OrdersListParams = {}, options?: RequestOptions): Promise<Page<models.Order>> {
     return this.#client.request("GET", `/api/v1/orders`, { query: { ...params }, options });
   }
@@ -450,6 +497,20 @@ export interface PaymentsListParams {
   page?: number;
   /** Items a page, 1 to 100 (10 by default). */
   limit?: number;
+  /** Só os registros com este client_reference_id: o ID do pedido no seu sistema, que você enviou ao criar o checkout. */
+  client_reference_id?: string;
+  /** Só os pagamentos neste estado: unknown, pending, authorized, captured, refused, canceled, refunded ou partially_refunded. */
+  status?: string;
+  /** Só os deste cliente. */
+  customer_id?: string;
+  /** Só os do cliente que você identifica por este ID externo; um ID que não existe não acha nada. */
+  external_customer_id?: string;
+  /** Só os criados a partir deste instante, inclusive (RFC 3339, como 2026-11-17T00:00:00-03:00). */
+  created_after?: string;
+  /** Só os criados antes deste instante (RFC 3339); com created_after, o período é [created_after, created_before). */
+  created_before?: string;
+  /** Ordem da lista: created_at ou amount, e com um - na frente é decrescente (-created_at, o mais novo primeiro, é o padrão). */
+  sorting?: string;
 }
 
 /** The API's payments. */
@@ -465,7 +526,7 @@ export class PaymentsService {
     return this.#client.request("GET", `/api/v1/payments/${encodeURIComponent(payment)}`, { options });
   }
 
-  /** Listar pagamentos. One page; `listIter` walks every page. */
+  /** Listar pagamentos, opcionalmente de um client_reference_id, de um estado, de um cliente, de um período ou de metadados. One page; `listIter` walks every page. */
   list(params: PaymentsListParams = {}, options?: RequestOptions): Promise<Page<models.Payment>> {
     return this.#client.request("GET", `/api/v1/payments`, { query: { ...params }, options });
   }
@@ -565,6 +626,18 @@ export interface RefundsListParams {
   limit?: number;
   /** Só os reembolsos deste pagamento. */
   payment_id?: string;
+  /** Só os reembolsos neste status: requested, pending, unknown, succeeded, failed ou canceled. */
+  status?: string;
+  /** Só os deste cliente. */
+  customer_id?: string;
+  /** Só os do cliente que você identifica por este ID externo; um ID que não existe não acha nada. */
+  external_customer_id?: string;
+  /** Só os criados a partir deste instante, inclusive (RFC 3339, como 2026-11-17T00:00:00-03:00). */
+  created_after?: string;
+  /** Só os criados antes deste instante (RFC 3339); com created_after, o período é [created_after, created_before). */
+  created_before?: string;
+  /** Ordem da lista: created_at ou amount, e com um - na frente é decrescente (-created_at, o mais novo primeiro, é o padrão). */
+  sorting?: string;
 }
 
 /** The API's refunds. */
@@ -580,7 +653,7 @@ export class RefundsService {
     return this.#client.request("POST", `/api/v1/refunds`, { body: params, options });
   }
 
-  /** Listar reembolsos, opcionalmente de um pagamento (payment_id). One page; `listIter` walks every page. */
+  /** Listar reembolsos, opcionalmente de um pagamento (payment_id), de um status, de um cliente ou de um período. One page; `listIter` walks every page. */
   list(params: RefundsListParams = {}, options?: RequestOptions): Promise<Page<models.Refund>> {
     return this.#client.request("GET", `/api/v1/refunds`, { query: { ...params }, options });
   }
@@ -597,8 +670,18 @@ export interface SubscriptionsListParams {
   page?: number;
   /** Items a page, 1 to 100 (10 by default). */
   limit?: number;
-  /** Só as assinaturas deste cliente. */
+  /** Só as assinaturas neste status: trialing, active, past_due, paused, canceled e os demais do ciclo de vida. */
+  status?: string;
+  /** Só os deste cliente. */
   customer_id?: string;
+  /** Só os do cliente que você identifica por este ID externo; um ID que não existe não acha nada. */
+  external_customer_id?: string;
+  /** Só os criados a partir deste instante, inclusive (RFC 3339, como 2026-11-17T00:00:00-03:00). */
+  created_after?: string;
+  /** Só os criados antes deste instante (RFC 3339); com created_after, o período é [created_after, created_before). */
+  created_before?: string;
+  /** Ordem da lista: created_at ou amount, e com um - na frente é decrescente (-created_at, o mais novo primeiro, é o padrão). */
+  sorting?: string;
 }
 
 /** The API's subscriptions. */
@@ -619,7 +702,7 @@ export class SubscriptionsService {
     return this.#client.request("GET", `/api/v1/subscriptions/${encodeURIComponent(subscription)}`, { options });
   }
 
-  /** Listar assinaturas, opcionalmente de um cliente (customer_id). One page; `listIter` walks every page. */
+  /** Listar assinaturas, opcionalmente de um cliente (customer_id ou external_customer_id), de um status, de um período ou de metadados. One page; `listIter` walks every page. */
   list(params: SubscriptionsListParams = {}, options?: RequestOptions): Promise<Page<models.Subscription>> {
     return this.#client.request("GET", `/api/v1/subscriptions`, { query: { ...params }, options });
   }

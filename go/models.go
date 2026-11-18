@@ -267,6 +267,36 @@ type CheckoutCreated struct {
 	URL string `json:"url"`
 }
 
+// CheckoutExpired is a resource of Peráta's API.
+type CheckoutExpired struct {
+	// O que a chamada nomeou: o id do checkout ou o de uma sessão.
+	ID string `json:"id"`
+	// As sessões encerradas por esta chamada ou que já estavam encerradas.
+	Sessions []CheckoutExpiredSession `json:"sessions"`
+	// Sempre expired: nada mais deste checkout pode ser pago.
+	Status string `json:"status"`
+}
+
+// CheckoutExpiredSession is a resource of Peráta's API.
+type CheckoutExpiredSession struct {
+	// true quando a sessão já estava encerrada antes: a chamada foi repetida.
+	AlreadyClosed bool `json:"already_closed"`
+	// true quando a Cielo cancelou o Pix ou a reserva nesta chamada.
+	Canceled bool `json:"canceled"`
+	// Quando a sessão foi encerrada; nulo se ela já tinha falhado.
+	ExpiredAt *string `json:"expired_at"`
+	// O meio escolhido; nulo se o comprador não escolheu um.
+	Method *string `json:"method"`
+	// O pagamento que a sessão tinha, vazio se o comprador não escolheu um meio.
+	PaymentID string `json:"payment_id"`
+	// Como o pagamento ficou: canceled quando a Cielo retirou o QR do Pix ou liberou a reserva do cartão; vazio sem pagamento.
+	PaymentState string `json:"payment_state"`
+	// O id da sessão, o mesmo checkout_id dos webhooks.
+	SessionID string `json:"session_id"`
+	// expired: encerrada pelo lojista; failed: já tinha falhado antes.
+	Status string `json:"status"`
+}
+
 // CheckoutInstallment is a resource of Peráta's API.
 type CheckoutInstallment struct {
 	// O número de parcelas; 1 é à vista.
@@ -383,12 +413,22 @@ type CheckoutSavedProfile struct {
 
 // Customer is a resource of Peráta's API.
 type Customer struct {
-	CreatedAt  string `json:"created_at"`
-	Email      string `json:"email"`
-	ExternalID string `json:"external_id"`
-	ID         string `json:"id"`
-	Name       string `json:"name"`
-	Status     string `json:"status"`
+	// Endereço de cobrança; fica de fora quando o cliente não tem.
+	BillingAddress *BillingAddress `json:"billing_address,omitempty"`
+	// Nome ou razão social de quem paga, quando difere de name.
+	BillingName *string `json:"billing_name,omitempty"`
+	CreatedAt   string  `json:"created_at"`
+	Email       string  `json:"email"`
+	ExternalID  string  `json:"external_id"`
+	ID          string  `json:"id"`
+	Name        string  `json:"name"`
+	// Telefone ou celular com DDD, só dígitos.
+	Phone  *string `json:"phone,omitempty"`
+	Status string  `json:"status"`
+	// CPF ou CNPJ, só dígitos. O CPF vem inteiro para a chave de um dono ou administrador da organização e mascarado (***.***.789-00) para as demais; o CNPJ vem sempre inteiro.
+	TaxID *string `json:"tax_id,omitempty"`
+	// Qual documento tax_id é.
+	TaxIDKind *string `json:"tax_id_kind,omitempty"`
 }
 
 // CustomerSession is a resource of Peráta's API.
@@ -999,18 +1039,68 @@ type CustomerSessionsCreateParams struct {
 
 // The body of customers:create.
 type CustomersCreateParams struct {
-	Email string `json:"email"`
+	// Endereço de cobrança: rua e número, bairro, cidade, UF e CEP vêm juntos (o complemento é opcional).
+	BillingAddress *CustomersCreateBillingAddress `json:"billing_address,omitempty"`
+	// Nome ou razão social de quem paga, quando difere de name.
+	BillingName *string `json:"billing_name,omitempty"`
+	Email       string  `json:"email"`
 	// Até 120 caracteres, sem barra (/) nem caracteres de controle.
 	ExternalID *string `json:"external_id,omitempty"`
 	Name       string  `json:"name"`
+	// Telefone ou celular com DDD, com ou sem pontuação.
+	Phone *string `json:"phone,omitempty"`
+	// CPF ou CNPJ, com ou sem pontuação, com os dígitos verificadores corretos.
+	TaxID *string `json:"tax_id,omitempty"`
+	// Qual documento tax_id é; sem ele, o número diz.
+	TaxIDKind *string `json:"tax_id_kind,omitempty"`
+}
+
+// Endereço de cobrança: rua e número, bairro, cidade, UF e CEP vêm juntos (o complemento é opcional).
+type CustomersCreateBillingAddress struct {
+	City *string `json:"city,omitempty"`
+	// Bairro.
+	District *string `json:"district,omitempty"`
+	// Rua e número.
+	Line1 *string `json:"line1,omitempty"`
+	// Complemento.
+	Line2 *string `json:"line2,omitempty"`
+	// CEP, com ou sem hífen.
+	PostalCode *string `json:"postal_code,omitempty"`
+	// UF, duas letras.
+	State *string `json:"state,omitempty"`
 }
 
 // The body of customers:update.
 type CustomersUpdateParams struct {
-	Email *string `json:"email,omitempty"`
+	// Endereço de cobrança: rua e número, bairro, cidade, UF e CEP vêm juntos (o complemento é opcional). Cada parte enviada substitui a guardada, e o endereço que resulta precisa estar inteiro; envie as partes vazias para apagar o endereço.
+	BillingAddress *CustomersUpdateBillingAddress `json:"billing_address,omitempty"`
+	// Nome ou razão social de quem paga, quando difere de name.
+	BillingName *string `json:"billing_name,omitempty"`
+	Email       *string `json:"email,omitempty"`
 	// Só pode ser definido uma vez. Até 120 caracteres, sem barra (/) nem caracteres de controle.
 	ExternalID *string `json:"external_id,omitempty"`
 	Name       *string `json:"name,omitempty"`
+	// Telefone ou celular com DDD, com ou sem pontuação.
+	Phone *string `json:"phone,omitempty"`
+	// CPF ou CNPJ, com ou sem pontuação, com os dígitos verificadores corretos. Só a chave de um dono ou administrador da organização o altera; as demais recebem 403. Texto vazio apaga.
+	TaxID *string `json:"tax_id,omitempty"`
+	// Qual documento tax_id é; sem ele, o número diz.
+	TaxIDKind *string `json:"tax_id_kind,omitempty"`
+}
+
+// Endereço de cobrança: rua e número, bairro, cidade, UF e CEP vêm juntos (o complemento é opcional). Cada parte enviada substitui a guardada, e o endereço que resulta precisa estar inteiro; envie as partes vazias para apagar o endereço.
+type CustomersUpdateBillingAddress struct {
+	City *string `json:"city,omitempty"`
+	// Bairro.
+	District *string `json:"district,omitempty"`
+	// Rua e número.
+	Line1 *string `json:"line1,omitempty"`
+	// Complemento.
+	Line2 *string `json:"line2,omitempty"`
+	// CEP, com ou sem hífen.
+	PostalCode *string `json:"postal_code,omitempty"`
+	// UF, duas letras.
+	State *string `json:"state,omitempty"`
 }
 
 // The body of discounts:create.
@@ -1057,10 +1147,35 @@ type DiscountsUpdateParams struct {
 
 // The body of customers:update_external.
 type CustomersUpdateExternalParams struct {
-	Email *string `json:"email,omitempty"`
+	// Endereço de cobrança: rua e número, bairro, cidade, UF e CEP vêm juntos (o complemento é opcional). Cada parte enviada substitui a guardada, e o endereço que resulta precisa estar inteiro; envie as partes vazias para apagar o endereço.
+	BillingAddress *CustomersUpdateExternalBillingAddress `json:"billing_address,omitempty"`
+	// Nome ou razão social de quem paga, quando difere de name.
+	BillingName *string `json:"billing_name,omitempty"`
+	Email       *string `json:"email,omitempty"`
 	// Só pode ser definido uma vez. Até 120 caracteres, sem barra (/) nem caracteres de controle.
 	ExternalID *string `json:"external_id,omitempty"`
 	Name       *string `json:"name,omitempty"`
+	// Telefone ou celular com DDD, com ou sem pontuação.
+	Phone *string `json:"phone,omitempty"`
+	// CPF ou CNPJ, com ou sem pontuação, com os dígitos verificadores corretos. Só a chave de um dono ou administrador da organização o altera; as demais recebem 403. Texto vazio apaga.
+	TaxID *string `json:"tax_id,omitempty"`
+	// Qual documento tax_id é; sem ele, o número diz.
+	TaxIDKind *string `json:"tax_id_kind,omitempty"`
+}
+
+// Endereço de cobrança: rua e número, bairro, cidade, UF e CEP vêm juntos (o complemento é opcional). Cada parte enviada substitui a guardada, e o endereço que resulta precisa estar inteiro; envie as partes vazias para apagar o endereço.
+type CustomersUpdateExternalBillingAddress struct {
+	City *string `json:"city,omitempty"`
+	// Bairro.
+	District *string `json:"district,omitempty"`
+	// Rua e número.
+	Line1 *string `json:"line1,omitempty"`
+	// Complemento.
+	Line2 *string `json:"line2,omitempty"`
+	// CEP, com ou sem hífen.
+	PostalCode *string `json:"postal_code,omitempty"`
+	// UF, duas letras.
+	State *string `json:"state,omitempty"`
 }
 
 // The body of prices:create.
@@ -1223,6 +1338,12 @@ const (
 	CheckoutClientPaymentStatePartiallyRefunded          = "partially_refunded"
 	CheckoutCreatedStatusActive                          = "active"
 	CheckoutCreatedStatusArchived                        = "archived"
+	CheckoutExpiredStatusExpired                         = "expired"
+	CheckoutExpiredSessionMethodCard                     = "card"
+	CheckoutExpiredSessionMethodPix                      = "pix"
+	CheckoutExpiredSessionMethodBoleto                   = "boleto"
+	CheckoutExpiredSessionStatusExpired                  = "expired"
+	CheckoutExpiredSessionStatusFailed                   = "failed"
 	CheckoutLinkCaptureModeAutomatic                     = "automatic"
 	CheckoutLinkCaptureModeManual                        = "manual"
 	CheckoutLinkStatusActive                             = "active"
@@ -1238,6 +1359,8 @@ const (
 	CheckoutNextActionTypeRedirect                       = "redirect"
 	CustomerStatusActive                                 = "active"
 	CustomerStatusArchived                               = "archived"
+	CustomerTaxIDKindCpf                                 = "cpf"
+	CustomerTaxIDKindCnpj                                = "cnpj"
 	CustomerStateStatusActive                            = "active"
 	CustomerStateStatusArchived                          = "archived"
 	CustomerStateBenefitGrantBenefitTypeCustom           = "custom"

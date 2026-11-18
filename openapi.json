@@ -1389,6 +1389,146 @@
       }
     },
     "/api/v1/checkouts": {
+      "get": {
+        "tags": [
+          "checkouts"
+        ],
+        "summary": "Listar checkouts, opcionalmente de um client_reference_id, de um status, de um período ou de metadados",
+        "description": "Autenticação: chave de API da organização em Authorization: Bearer (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição. Respostas em JSON no envelope data; erros com error, message e fields. Filtro por metadados: metadata[chave]=valor, uma vez para cada par (até 10); a linha precisa ter todos. Um valor que parece número ou booleano também casa com o número ou o booleano guardado.",
+        "operationId": "checkouts:list",
+        "parameters": [
+          {
+            "name": "client_reference_id",
+            "in": "query",
+            "description": "Só os registros com este client_reference_id: o ID do pedido no seu sistema, que você enviou ao criar o checkout.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "description": "Só os checkouts neste status: active ou archived.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "created_after",
+            "in": "query",
+            "description": "Só os criados a partir deste instante, inclusive (RFC 3339, como 2026-11-17T00:00:00-03:00).",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "created_before",
+            "in": "query",
+            "description": "Só os criados antes deste instante (RFC 3339); com created_after, o período é [created_after, created_before).",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "sorting",
+            "in": "query",
+            "description": "Ordem da lista: created_at, e com um - na frente é decrescente (-created_at, o mais novo primeiro, é o padrão).",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "description": "Página, de 1 a 1000000; além da última a lista vem vazia.",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Itens por página, de 1 a 100; 10 por padrão.",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Uma página da lista no envelope data.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CheckoutListEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Chave ausente, inválida ou revogada.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "A chave é somente leitura ou quem a criou não tem mais acesso.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Recurso inexistente nesta organização e ambiente.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Campos inválidos; fields detalha cada um.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Orçamento de requisições excedido; respeite Retry-After."
+          },
+          "500": {
+            "description": "Indisponível. Nada fica guardado sob a Idempotency-Key: repita com a mesma chave. Se ainda houver uma requisição com a chave em andamento, a resposta é 409 idempotency_in_progress.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "apiKey": []
+          }
+        ],
+        "x-perata-pagination": {
+          "item_schema": "Checkout",
+          "type": "page_limit"
+        }
+      },
       "post": {
         "tags": [
           "checkouts"
@@ -2486,6 +2626,115 @@
         ]
       }
     },
+    "/api/v1/checkouts/{checkout}/expire": {
+      "post": {
+        "tags": [
+          "checkouts"
+        ],
+        "summary": "Encerrar um checkout que não deve mais ser pago: a página, o client_secret e o QR do Pix deixam de valer (o Pix já gerado é cancelado na Cielo), e o evento checkout.expired é enviado; 409 se já foi pago ou se emitiu boleto",
+        "description": "Autenticação: chave de API da organização em Authorization: Bearer (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição. Respostas em JSON no envelope data; erros com error, message e fields.",
+        "operationId": "checkouts:expire",
+        "parameters": [
+          {
+            "name": "checkout",
+            "in": "path",
+            "description": "Identificador do recurso.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "description": "Opcional, até 255 caracteres. A mesma chave com o mesmo corpo repete a resposta original (Idempotent-Replayed: true); com outro corpo, 409.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "O recurso no envelope data.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CheckoutExpiredEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Chave ausente, inválida ou revogada.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "A chave é somente leitura ou quem a criou não tem mais acesso.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Recurso inexistente nesta organização e ambiente.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Idempotency-Key reutilizada com outro corpo, requisição com a mesma chave ainda em andamento (idempotency_in_progress; respeite Retry-After) ou estado que não permite a ação.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Campos inválidos; fields detalha cada um.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Orçamento de requisições excedido; respeite Retry-After."
+          },
+          "500": {
+            "description": "Indisponível. Nada fica guardado sob a Idempotency-Key: repita com a mesma chave. Se ainda houver uma requisição com a chave em andamento, a resposta é 409 idempotency_in_progress.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "apiKey": []
+          }
+        ]
+      }
+    },
     "/api/v1/customer-sessions": {
       "post": {
         "tags": [
@@ -2723,7 +2972,7 @@
         "tags": [
           "customers"
         ],
-        "summary": "Criar um cliente",
+        "summary": "Criar um cliente, com CPF ou CNPJ, telefone e endereço de cobrança se você os tem",
         "description": "Autenticação: chave de API da organização em Authorization: Bearer (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição. Respostas em JSON no envelope data; erros com error, message e fields.",
         "operationId": "customers:create",
         "parameters": [
@@ -2752,6 +3001,56 @@
                   "external_id": {
                     "type": "string",
                     "description": "Até 120 caracteres, sem barra (/) nem caracteres de controle."
+                  },
+                  "tax_id": {
+                    "type": "string",
+                    "description": "CPF ou CNPJ, com ou sem pontuação, com os dígitos verificadores corretos."
+                  },
+                  "tax_id_kind": {
+                    "type": "string",
+                    "description": "Qual documento tax_id é; sem ele, o número diz.",
+                    "enum": [
+                      "cpf",
+                      "cnpj"
+                    ]
+                  },
+                  "phone": {
+                    "type": "string",
+                    "description": "Telefone ou celular com DDD, com ou sem pontuação."
+                  },
+                  "billing_name": {
+                    "type": "string",
+                    "description": "Nome ou razão social de quem paga, quando difere de name."
+                  },
+                  "billing_address": {
+                    "type": "object",
+                    "description": "Endereço de cobrança: rua e número, bairro, cidade, UF e CEP vêm juntos (o complemento é opcional).",
+                    "properties": {
+                      "line1": {
+                        "type": "string",
+                        "description": "Rua e número."
+                      },
+                      "line2": {
+                        "type": "string",
+                        "description": "Complemento."
+                      },
+                      "district": {
+                        "type": "string",
+                        "description": "Bairro."
+                      },
+                      "city": {
+                        "type": "string"
+                      },
+                      "state": {
+                        "type": "string",
+                        "description": "UF, duas letras."
+                      },
+                      "postal_code": {
+                        "type": "string",
+                        "description": "CEP, com ou sem hífen."
+                      }
+                    },
+                    "additionalProperties": false
                   }
                 },
                 "required": [
@@ -3049,7 +3348,7 @@
         "tags": [
           "customers"
         ],
-        "summary": "Atualizar o nome, o e-mail ou o ID externo de um cliente; o ID externo não muda depois de definido",
+        "summary": "Atualizar o nome, o e-mail, o ID externo, o CPF ou CNPJ, o telefone ou o endereço de cobrança de um cliente; o ID externo não muda depois de definido",
         "description": "Autenticação: chave de API da organização em Authorization: Bearer (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição. Respostas em JSON no envelope data; erros com error, message e fields.",
         "operationId": "customers:update",
         "parameters": [
@@ -3087,6 +3386,56 @@
                   "external_id": {
                     "type": "string",
                     "description": "Só pode ser definido uma vez. Até 120 caracteres, sem barra (/) nem caracteres de controle."
+                  },
+                  "tax_id": {
+                    "type": "string",
+                    "description": "CPF ou CNPJ, com ou sem pontuação, com os dígitos verificadores corretos. Só a chave de um dono ou administrador da organização o altera; as demais recebem 403. Texto vazio apaga."
+                  },
+                  "tax_id_kind": {
+                    "type": "string",
+                    "description": "Qual documento tax_id é; sem ele, o número diz.",
+                    "enum": [
+                      "cpf",
+                      "cnpj"
+                    ]
+                  },
+                  "phone": {
+                    "type": "string",
+                    "description": "Telefone ou celular com DDD, com ou sem pontuação."
+                  },
+                  "billing_name": {
+                    "type": "string",
+                    "description": "Nome ou razão social de quem paga, quando difere de name."
+                  },
+                  "billing_address": {
+                    "type": "object",
+                    "description": "Endereço de cobrança: rua e número, bairro, cidade, UF e CEP vêm juntos (o complemento é opcional). Cada parte enviada substitui a guardada, e o endereço que resulta precisa estar inteiro; envie as partes vazias para apagar o endereço.",
+                    "properties": {
+                      "line1": {
+                        "type": "string",
+                        "description": "Rua e número."
+                      },
+                      "line2": {
+                        "type": "string",
+                        "description": "Complemento."
+                      },
+                      "district": {
+                        "type": "string",
+                        "description": "Bairro."
+                      },
+                      "city": {
+                        "type": "string"
+                      },
+                      "state": {
+                        "type": "string",
+                        "description": "UF, duas letras."
+                      },
+                      "postal_code": {
+                        "type": "string",
+                        "description": "CEP, com ou sem hífen."
+                      }
+                    },
+                    "additionalProperties": false
                   }
                 },
                 "additionalProperties": false
@@ -4487,6 +4836,56 @@
                   "external_id": {
                     "type": "string",
                     "description": "Só pode ser definido uma vez. Até 120 caracteres, sem barra (/) nem caracteres de controle."
+                  },
+                  "tax_id": {
+                    "type": "string",
+                    "description": "CPF ou CNPJ, com ou sem pontuação, com os dígitos verificadores corretos. Só a chave de um dono ou administrador da organização o altera; as demais recebem 403. Texto vazio apaga."
+                  },
+                  "tax_id_kind": {
+                    "type": "string",
+                    "description": "Qual documento tax_id é; sem ele, o número diz.",
+                    "enum": [
+                      "cpf",
+                      "cnpj"
+                    ]
+                  },
+                  "phone": {
+                    "type": "string",
+                    "description": "Telefone ou celular com DDD, com ou sem pontuação."
+                  },
+                  "billing_name": {
+                    "type": "string",
+                    "description": "Nome ou razão social de quem paga, quando difere de name."
+                  },
+                  "billing_address": {
+                    "type": "object",
+                    "description": "Endereço de cobrança: rua e número, bairro, cidade, UF e CEP vêm juntos (o complemento é opcional). Cada parte enviada substitui a guardada, e o endereço que resulta precisa estar inteiro; envie as partes vazias para apagar o endereço.",
+                    "properties": {
+                      "line1": {
+                        "type": "string",
+                        "description": "Rua e número."
+                      },
+                      "line2": {
+                        "type": "string",
+                        "description": "Complemento."
+                      },
+                      "district": {
+                        "type": "string",
+                        "description": "Bairro."
+                      },
+                      "city": {
+                        "type": "string"
+                      },
+                      "state": {
+                        "type": "string",
+                        "description": "UF, duas letras."
+                      },
+                      "postal_code": {
+                        "type": "string",
+                        "description": "CEP, com ou sem hífen."
+                      }
+                    },
+                    "additionalProperties": false
                   }
                 },
                 "additionalProperties": false
@@ -4792,10 +5191,66 @@
         "tags": [
           "orders"
         ],
-        "summary": "Listar pedidos: checkouts pagos",
-        "description": "Autenticação: chave de API da organização em Authorization: Bearer (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição. Respostas em JSON no envelope data; erros com error, message e fields.",
+        "summary": "Listar pedidos (checkouts pagos), opcionalmente de um client_reference_id, de um cliente, de um período ou de metadados",
+        "description": "Autenticação: chave de API da organização em Authorization: Bearer (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição. Respostas em JSON no envelope data; erros com error, message e fields. Filtro por metadados: metadata[chave]=valor, uma vez para cada par (até 10); a linha precisa ter todos. Um valor que parece número ou booleano também casa com o número ou o booleano guardado.",
         "operationId": "orders:list",
         "parameters": [
+          {
+            "name": "client_reference_id",
+            "in": "query",
+            "description": "Só os registros com este client_reference_id: o ID do pedido no seu sistema, que você enviou ao criar o checkout.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "description": "Pedidos são os checkouts pagos: só succeeded.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "customer_id",
+            "in": "query",
+            "description": "Só os deste cliente.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "external_customer_id",
+            "in": "query",
+            "description": "Só os do cliente que você identifica por este ID externo; um ID que não existe não acha nada.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "created_after",
+            "in": "query",
+            "description": "Só os criados a partir deste instante, inclusive (RFC 3339, como 2026-11-17T00:00:00-03:00).",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "created_before",
+            "in": "query",
+            "description": "Só os criados antes deste instante (RFC 3339); com created_after, o período é [created_after, created_before).",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "sorting",
+            "in": "query",
+            "description": "Ordem da lista: created_at ou amount, e com um - na frente é decrescente (-created_at, o mais novo primeiro, é o padrão).",
+            "schema": {
+              "type": "string"
+            }
+          },
           {
             "name": "page",
             "in": "query",
@@ -5276,10 +5731,66 @@
         "tags": [
           "payments"
         ],
-        "summary": "Listar pagamentos",
-        "description": "Autenticação: chave de API da organização em Authorization: Bearer (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição. Respostas em JSON no envelope data; erros com error, message e fields.",
+        "summary": "Listar pagamentos, opcionalmente de um client_reference_id, de um estado, de um cliente, de um período ou de metadados",
+        "description": "Autenticação: chave de API da organização em Authorization: Bearer (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição. Respostas em JSON no envelope data; erros com error, message e fields. Filtro por metadados: metadata[chave]=valor, uma vez para cada par (até 10); a linha precisa ter todos. Um valor que parece número ou booleano também casa com o número ou o booleano guardado.",
         "operationId": "payments:list",
         "parameters": [
+          {
+            "name": "client_reference_id",
+            "in": "query",
+            "description": "Só os registros com este client_reference_id: o ID do pedido no seu sistema, que você enviou ao criar o checkout.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "description": "Só os pagamentos neste estado: unknown, pending, authorized, captured, refused, canceled, refunded ou partially_refunded.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "customer_id",
+            "in": "query",
+            "description": "Só os deste cliente.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "external_customer_id",
+            "in": "query",
+            "description": "Só os do cliente que você identifica por este ID externo; um ID que não existe não acha nada.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "created_after",
+            "in": "query",
+            "description": "Só os criados a partir deste instante, inclusive (RFC 3339, como 2026-11-17T00:00:00-03:00).",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "created_before",
+            "in": "query",
+            "description": "Só os criados antes deste instante (RFC 3339); com created_after, o período é [created_after, created_before).",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "sorting",
+            "in": "query",
+            "description": "Ordem da lista: created_at ou amount, e com um - na frente é decrescente (-created_at, o mais novo primeiro, é o padrão).",
+            "schema": {
+              "type": "string"
+            }
+          },
           {
             "name": "page",
             "in": "query",
@@ -6291,7 +6802,7 @@
         "tags": [
           "refunds"
         ],
-        "summary": "Listar reembolsos, opcionalmente de um pagamento (payment_id)",
+        "summary": "Listar reembolsos, opcionalmente de um pagamento (payment_id), de um status, de um cliente ou de um período",
         "description": "Autenticação: chave de API da organização em Authorization: Bearer (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição. Respostas em JSON no envelope data; erros com error, message e fields.",
         "operationId": "refunds:list",
         "parameters": [
@@ -6299,6 +6810,54 @@
             "name": "payment_id",
             "in": "query",
             "description": "Só os reembolsos deste pagamento.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "description": "Só os reembolsos neste status: requested, pending, unknown, succeeded, failed ou canceled.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "customer_id",
+            "in": "query",
+            "description": "Só os deste cliente.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "external_customer_id",
+            "in": "query",
+            "description": "Só os do cliente que você identifica por este ID externo; um ID que não existe não acha nada.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "created_after",
+            "in": "query",
+            "description": "Só os criados a partir deste instante, inclusive (RFC 3339, como 2026-11-17T00:00:00-03:00).",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "created_before",
+            "in": "query",
+            "description": "Só os criados antes deste instante (RFC 3339); com created_after, o período é [created_after, created_before).",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "sorting",
+            "in": "query",
+            "description": "Ordem da lista: created_at ou amount, e com um - na frente é decrescente (-created_at, o mais novo primeiro, é o padrão).",
             "schema": {
               "type": "string"
             }
@@ -6557,14 +7116,54 @@
         "tags": [
           "subscriptions"
         ],
-        "summary": "Listar assinaturas, opcionalmente de um cliente (customer_id)",
-        "description": "Autenticação: chave de API da organização em Authorization: Bearer (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição. Respostas em JSON no envelope data; erros com error, message e fields.",
+        "summary": "Listar assinaturas, opcionalmente de um cliente (customer_id ou external_customer_id), de um status, de um período ou de metadados",
+        "description": "Autenticação: chave de API da organização em Authorization: Bearer (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição. Respostas em JSON no envelope data; erros com error, message e fields. Filtro por metadados: metadata[chave]=valor, uma vez para cada par (até 10); a linha precisa ter todos. Um valor que parece número ou booleano também casa com o número ou o booleano guardado.",
         "operationId": "subscriptions:list",
         "parameters": [
           {
+            "name": "status",
+            "in": "query",
+            "description": "Só as assinaturas neste status: trialing, active, past_due, paused, canceled e os demais do ciclo de vida.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
             "name": "customer_id",
             "in": "query",
-            "description": "Só as assinaturas deste cliente.",
+            "description": "Só os deste cliente.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "external_customer_id",
+            "in": "query",
+            "description": "Só os do cliente que você identifica por este ID externo; um ID que não existe não acha nada.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "created_after",
+            "in": "query",
+            "description": "Só os criados a partir deste instante, inclusive (RFC 3339, como 2026-11-17T00:00:00-03:00).",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "created_before",
+            "in": "query",
+            "description": "Só os criados antes deste instante (RFC 3339); com created_after, o período é [created_after, created_before).",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "sorting",
+            "in": "query",
+            "description": "Ordem da lista: created_at ou amount, e com um - na frente é decrescente (-created_at, o mais novo primeiro, é o padrão).",
             "schema": {
               "type": "string"
             }
@@ -12957,6 +13556,109 @@
           }
         }
       },
+      "CheckoutExpired": {
+        "type": "object",
+        "required": [
+          "id",
+          "status",
+          "sessions"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "O que a chamada nomeou: o id do checkout ou o de uma sessão."
+          },
+          "status": {
+            "type": "string",
+            "description": "Sempre expired: nada mais deste checkout pode ser pago.",
+            "enum": [
+              "expired"
+            ]
+          },
+          "sessions": {
+            "type": "array",
+            "description": "As sessões encerradas por esta chamada ou que já estavam encerradas.",
+            "items": {
+              "$ref": "#/components/schemas/CheckoutExpiredSession"
+            }
+          }
+        }
+      },
+      "CheckoutExpiredEnvelope": {
+        "type": "object",
+        "required": [
+          "data"
+        ],
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/CheckoutExpired"
+          }
+        }
+      },
+      "CheckoutExpiredSession": {
+        "type": "object",
+        "required": [
+          "session_id",
+          "status",
+          "expired_at",
+          "payment_id",
+          "method",
+          "payment_state",
+          "canceled",
+          "already_closed"
+        ],
+        "properties": {
+          "session_id": {
+            "type": "string",
+            "description": "O id da sessão, o mesmo checkout_id dos webhooks."
+          },
+          "status": {
+            "type": "string",
+            "description": "expired: encerrada pelo lojista; failed: já tinha falhado antes.",
+            "enum": [
+              "expired",
+              "failed"
+            ]
+          },
+          "expired_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time",
+            "description": "Quando a sessão foi encerrada; nulo se ela já tinha falhado."
+          },
+          "payment_id": {
+            "type": "string",
+            "description": "O pagamento que a sessão tinha, vazio se o comprador não escolheu um meio."
+          },
+          "method": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "O meio escolhido; nulo se o comprador não escolheu um.",
+            "enum": [
+              "card",
+              "pix",
+              "boleto",
+              null
+            ]
+          },
+          "payment_state": {
+            "type": "string",
+            "description": "Como o pagamento ficou: canceled quando a Cielo retirou o QR do Pix ou liberou a reserva do cartão; vazio sem pagamento."
+          },
+          "canceled": {
+            "type": "boolean",
+            "description": "true quando a Cielo cancelou o Pix ou a reserva nesta chamada."
+          },
+          "already_closed": {
+            "type": "boolean",
+            "description": "true quando a sessão já estava encerrada antes: a chamada foi repetida."
+          }
+        }
+      },
       "CheckoutInstallment": {
         "type": "object",
         "required": [
@@ -13198,6 +13900,35 @@
           }
         }
       },
+      "CheckoutList": {
+        "type": "object",
+        "required": [
+          "items",
+          "pagination"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Checkout"
+            }
+          },
+          "pagination": {
+            "$ref": "#/components/schemas/Pagination"
+          }
+        }
+      },
+      "CheckoutListEnvelope": {
+        "type": "object",
+        "required": [
+          "data"
+        ],
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/CheckoutList"
+          }
+        }
+      },
       "CheckoutNextAction": {
         "type": "object",
         "required": [
@@ -13394,6 +14125,50 @@
           "created_at": {
             "type": "string",
             "format": "date-time"
+          },
+          "tax_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "CPF ou CNPJ, só dígitos. O CPF vem inteiro para a chave de um dono ou administrador da organização e mascarado (***.***.789-00) para as demais; o CNPJ vem sempre inteiro."
+          },
+          "tax_id_kind": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Qual documento tax_id é.",
+            "enum": [
+              "cpf",
+              "cnpj",
+              null
+            ]
+          },
+          "phone": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Telefone ou celular com DDD, só dígitos."
+          },
+          "billing_name": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Nome ou razão social de quem paga, quando difere de name."
+          },
+          "billing_address": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/BillingAddress"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Endereço de cobrança; fica de fora quando o cliente não tem."
           }
         }
       },

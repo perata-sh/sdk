@@ -530,6 +530,28 @@ public final class CheckoutsService {
 
 
     /**
+     * Encerrar um checkout que não deve mais ser pago: a página, o client_secret e o QR do Pix deixam de valer (o Pix já gerado é cancelado na Cielo), e o evento checkout.expired é enviado; 409 se já foi pago ou se emitiu boleto.
+     * @param checkout the checkout
+     * @param options an idempotency key or another organization's key for this call, or null
+     * @return the checkoutexpired
+     * @throws PerataException when the API refuses the call
+     */
+    public CheckoutExpired expire(String checkout, RequestOptions options) {
+        Object data = client.request("POST", "/api/v1/checkouts/" + Perata.segment(checkout) + "/expire", null, null, options == null ? null : options.getIdempotencyKey(), options);
+        return CheckoutExpired.fromJson(Json.asObject(data));
+    }
+
+    /**
+     * Encerrar um checkout que não deve mais ser pago: a página, o client_secret e o QR do Pix deixam de valer (o Pix já gerado é cancelado na Cielo), e o evento checkout.expired é enviado; 409 se já foi pago ou se emitiu boleto.
+     * @param checkout the checkout
+     * @return the checkoutexpired
+     * @throws PerataException when the API refuses the call
+     */
+    public CheckoutExpired expire(String checkout) {
+        return expire(checkout, null);
+    }
+
+    /**
      * Ler um checkout: o endereço, o estado e as páginas de retorno.
      * @param checkout the checkout
      * @param options another organization's key for this call, or null
@@ -549,6 +571,231 @@ public final class CheckoutsService {
      */
     public Checkout get(String checkout) {
         return get(checkout, null);
+    }
+
+    /**
+     * Listar checkouts, opcionalmente de um client_reference_id, de um status, de um período ou de metadados. One page; {@link #listIter} walks every page.
+     * @param params the page, its size and the filters, or null
+     * @param options options for this call, or null
+     * @return the page
+     * @throws PerataException when the API refuses the call
+     */
+    public Page<Checkout> list(ListParams params, RequestOptions options) {
+        Object data = client.request("GET", "/api/v1/checkouts", params == null ? null : params.query(), null, null, options);
+        return Page.fromJson(data, Json.model(Checkout::fromJson));
+    }
+
+    /**
+     * Listar checkouts, opcionalmente de um client_reference_id, de um status, de um período ou de metadados. One page.
+     * @param params the page, its size and the filters, or null
+     * @return the page
+     */
+    public Page<Checkout> list(ListParams params) {
+        return list(params, null);
+    }
+
+    /**
+     * Listar checkouts, opcionalmente de um client_reference_id, de um status, de um período ou de metadados. The first page.
+     * @return the page
+     */
+    public Page<Checkout> list() {
+        return list(null, null);
+    }
+
+    /**
+     * Walks every page of checkouts:list from params' page (the first by
+     * default), item by item, fetching a page only when the previous one is
+     * used up.
+     * @param params the first page, the page size and the filters, or null
+     * @param options options for every call, or null
+     * @return the items, page after page
+     */
+    public Iterable<Checkout> listIter(ListParams params, RequestOptions options) {
+        ListParams walk = params == null ? ListParams.builder().build() : params;
+        return Page.iterate(page -> list(walk.withPage(page), options), walk.getPage());
+    }
+
+    /**
+     * Walks every page of checkouts:list, item by item.
+     * @param params the first page, the page size and the filters, or null
+     * @return the items, page after page
+     */
+    public Iterable<Checkout> listIter(ListParams params) {
+        return listIter(params, null);
+    }
+
+    /**
+     * Walks every page of checkouts:list, item by item.
+     * @return the items, page after page
+     */
+    public Iterable<Checkout> listIter() {
+        return listIter(null, null);
+    }
+
+    /** The page and filters of checkouts:list. */
+    public static final class ListParams {
+        private final Integer page;
+        private final Integer limit;
+        private final String clientReferenceId;
+        private final String status;
+        private final String createdAfter;
+        private final String createdBefore;
+        private final String sorting;
+
+        private ListParams(Builder builder) {
+            this.page = builder.page;
+            this.limit = builder.limit;
+            this.clientReferenceId = builder.clientReferenceId;
+            this.status = builder.status;
+            this.createdAfter = builder.createdAfter;
+            this.createdBefore = builder.createdBefore;
+            this.sorting = builder.sorting;
+        }
+
+        /** @return a builder of the page and filters */
+        public static Builder builder() {
+            return new Builder();
+        }
+
+        /** @return the page, from 1, or null for the first */
+        public Integer getPage() {
+            return page;
+        }
+
+        /** @return the items a page, or null for the API's 10 */
+        public Integer getLimit() {
+            return limit;
+        }
+
+        /** @return Só os registros com este client_reference_id: o ID do pedido no seu sistema, que você enviou ao criar o checkout. (null when not filtered) */
+        public String getClientReferenceId() {
+            return clientReferenceId;
+        }
+
+        /** @return Só os checkouts neste status: active ou archived. (null when not filtered) */
+        public String getStatus() {
+            return status;
+        }
+
+        /** @return Só os criados a partir deste instante, inclusive (RFC 3339, como 2026-11-17T00:00:00-03:00). (null when not filtered) */
+        public String getCreatedAfter() {
+            return createdAfter;
+        }
+
+        /** @return Só os criados antes deste instante (RFC 3339); com created_after, o período é [created_after, created_before). (null when not filtered) */
+        public String getCreatedBefore() {
+            return createdBefore;
+        }
+
+        /** @return Ordem da lista: created_at, e com um - na frente é decrescente (-created_at, o mais novo primeiro, é o padrão). (null when not filtered) */
+        public String getSorting() {
+            return sorting;
+        }
+
+        ListParams withPage(int page) {
+            Builder builder = builder().page(page);
+            builder.limit = limit;
+            builder.clientReferenceId = clientReferenceId;
+            builder.status = status;
+            builder.createdAfter = createdAfter;
+            builder.createdBefore = createdBefore;
+            builder.sorting = sorting;
+            return builder.build();
+        }
+
+        Map<String, String> query() {
+            Map<String, String> query = new LinkedHashMap<>();
+            query.put("page", page == null ? null : page.toString());
+            query.put("limit", limit == null ? null : limit.toString());
+            query.put("client_reference_id", clientReferenceId);
+            query.put("status", status);
+            query.put("created_after", createdAfter);
+            query.put("created_before", createdBefore);
+            query.put("sorting", sorting);
+            return query;
+        }
+
+        /** Builds {@link ListParams}. */
+        public static final class Builder {
+            private Integer page;
+            private Integer limit;
+            private String clientReferenceId;
+            private String status;
+            private String createdAfter;
+            private String createdBefore;
+            private String sorting;
+
+            private Builder() {
+            }
+
+            /**
+             * @param page the page, from 1
+             * @return this builder
+             */
+            public Builder page(int page) {
+                this.page = page;
+                return this;
+            }
+
+            /**
+             * @param limit the items a page, 1 to 100 (10 by default)
+             * @return this builder
+             */
+            public Builder limit(int limit) {
+                this.limit = limit;
+                return this;
+            }
+
+            /**
+             * @param clientReferenceId Só os registros com este client_reference_id: o ID do pedido no seu sistema, que você enviou ao criar o checkout.
+             * @return this builder
+             */
+            public Builder clientReferenceId(String clientReferenceId) {
+                this.clientReferenceId = clientReferenceId;
+                return this;
+            }
+
+            /**
+             * @param status Só os checkouts neste status: active ou archived.
+             * @return this builder
+             */
+            public Builder status(String status) {
+                this.status = status;
+                return this;
+            }
+
+            /**
+             * @param createdAfter Só os criados a partir deste instante, inclusive (RFC 3339, como 2026-11-17T00:00:00-03:00).
+             * @return this builder
+             */
+            public Builder createdAfter(String createdAfter) {
+                this.createdAfter = createdAfter;
+                return this;
+            }
+
+            /**
+             * @param createdBefore Só os criados antes deste instante (RFC 3339); com created_after, o período é [created_after, created_before).
+             * @return this builder
+             */
+            public Builder createdBefore(String createdBefore) {
+                this.createdBefore = createdBefore;
+                return this;
+            }
+
+            /**
+             * @param sorting Ordem da lista: created_at, e com um - na frente é decrescente (-created_at, o mais novo primeiro, é o padrão).
+             * @return this builder
+             */
+            public Builder sorting(String sorting) {
+                this.sorting = sorting;
+                return this;
+            }
+
+            /** @return the page and filters */
+            public ListParams build() {
+                return new ListParams(this);
+            }
+        }
     }
 
     /**

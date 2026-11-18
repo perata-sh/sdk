@@ -9,6 +9,17 @@ Todos os SDKs da Peráta saem com a mesma versão (`VERSION`). O histórico de c
 - `js/`: `perata.components.wallet` (o botão do Google Pay e do Apple Pay no layout do lojista), os tipos `WalletComponent`, `WalletComponentOptions`, `WalletComponentEvents` e `WalletKind`, `ChangeEvent.available`, `update({ customer })` e os códigos de erro `wallet_element_required`, `customer_incomplete` e `wallet_unavailable`. `components.payment` passa a trazer a carteira do aparelho e os cartões salvos. Seguem o `perata.js` do perata.sh e valem depois do deploy dele.
 - `react/`: `WalletComponent`.
 
+## 0.5.2 (17/11/2026)
+
+Gerado a partir do contrato da API 0.1.0. A 0.5.0 e a 0.5.1 saíram só em Go (`go/v0.5.0`, `go/v0.5.1`); esta é a primeira 0.5 publicada nas outras dez linguagens, e traz também tudo o que está na 0.5.0, abaixo.
+
+### Os 11 SDKs de servidor
+
+- **Encerrar um checkout.** `checkouts.expire` (`POST /api/v1/checkouts/{id}/expire`) fecha um checkout que não deve mais ser pago, por exemplo quando o valor do pedido mudou: toda sessão aberta ou à espera do pagamento é encerrada, a Cielo retira o QR do Pix e libera a reserva do cartão. Responde `CheckoutExpired`, com uma `CheckoutExpiredSession` por sessão (`method` é nulo quando o comprador não escolheu um meio). Repetir a chamada é seguro.
+- **Filtros nas listas.** `orders.list`, `payments.list`, `checkouts.list`, `refunds.list` e `subscriptions.list` aceitam, conforme a lista, `client_reference_id`, `status`, `customer_id`, `external_customer_id`, `created_after`, `created_before` e `sorting`. Um filtro que a lista não responde é recusado (422), em vez de ignorado. O filtro por metadata (`metadata[chave]=valor`) já vale na API, chamada direto, mas ainda não está no contrato nem nos SDKs.
+- **Identidade do cliente.** `Customer` e os parâmetros de criação e alteração ganham `tax_id` e `tax_id_kind` (CPF ou CNPJ), `phone`, `billing_name` e `billing_address`. O CPF vem inteiro só para a chave cuja conta pode lê-lo; mascarado para as outras, também na fatura do pedido.
+- **Validação mais estrita na API.** Caracteres de controle e marcas invisíveis de direção do texto são recusados em `client_reference_id`, `label`, nas linhas e no metadata; linhas sem `amount_cents` não podem somar mais de 999999999999 centavos; `created_after` e `created_before` fora de 1970 a 9999 são recusados.
+
 ## 0.5.0 (17/11/2026)
 
 Gerado a partir do contrato da API 0.1.0, com o checkout por `client_secret`.

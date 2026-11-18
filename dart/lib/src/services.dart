@@ -286,6 +286,21 @@ class CheckoutsService {
     return CheckoutCreated.fromJson(data);
   }
 
+  /// Encerrar um checkout que não deve mais ser pago: a página, o client_secret e o QR do Pix deixam de valer (o Pix já gerado é cancelado na Cielo), e o evento checkout.expired é enviado; 409 se já foi pago ou se emitiu boleto.
+  Future<CheckoutExpired> expire(
+    String checkout, {
+    String? idempotencyKey,
+    String? apiKey,
+  }) async {
+    final data = await _client.request(
+      'POST',
+      '/api/v1/checkouts/${Uri.encodeComponent(checkout)}/expire',
+      idempotencyKey: idempotencyKey,
+      apiKey: apiKey,
+    );
+    return CheckoutExpired.fromJson(data);
+  }
+
   /// Ler um checkout: o endereço, o estado e as páginas de retorno.
   Future<Checkout> get(
     String checkout, {
@@ -297,6 +312,63 @@ class CheckoutsService {
       apiKey: apiKey,
     );
     return Checkout.fromJson(data);
+  }
+
+  /// Listar checkouts, opcionalmente de um client_reference_id, de um status, de um período ou de metadados.
+  ///
+  /// One page, from 1, of [limit] items (1 to 100, 10 by default);
+  /// [listIter] walks every page.
+  Future<Page<Checkout>> list({
+    int? page,
+    int? limit,
+    String? clientReferenceId,
+    String? status,
+    String? createdAfter,
+    String? createdBefore,
+    String? sorting,
+    String? apiKey,
+  }) async {
+    final data = await _client.request(
+      'GET',
+      '/api/v1/checkouts',
+      query: {
+        'page': page,
+        'limit': limit,
+        'client_reference_id': clientReferenceId,
+        'status': status,
+        'created_after': createdAfter,
+        'created_before': createdBefore,
+        'sorting': sorting,
+      },
+      apiKey: apiKey,
+    );
+    return Page.fromJson(data, Checkout.fromJson);
+  }
+
+  /// Walks every page of checkouts:list, item by item, from [page].
+  Stream<Checkout> listIter({
+    int page = 1,
+    int? limit,
+    String? clientReferenceId,
+    String? status,
+    String? createdAfter,
+    String? createdBefore,
+    String? sorting,
+    String? apiKey,
+  }) {
+    return iterate(
+      (at) => list(
+        page: at,
+        limit: limit,
+        clientReferenceId: clientReferenceId,
+        status: status,
+        createdAfter: createdAfter,
+        createdBefore: createdBefore,
+        sorting: sorting,
+        apiKey: apiKey,
+      ),
+      page,
+    );
   }
 
   /// Atualizar o rótulo e as páginas de retorno de um checkout ativo.
@@ -346,7 +418,7 @@ class CustomersService {
 
   final Requester _client;
 
-  /// Criar um cliente.
+  /// Criar um cliente, com CPF ou CNPJ, telefone e endereço de cobrança se você os tem.
   Future<Customer> create(
     CustomersCreateParams params, {
     String? idempotencyKey,
@@ -452,7 +524,7 @@ class CustomersService {
     );
   }
 
-  /// Atualizar o nome, o e-mail ou o ID externo de um cliente; o ID externo não muda depois de definido.
+  /// Atualizar o nome, o e-mail, o ID externo, o CPF ou CNPJ, o telefone ou o endereço de cobrança de um cliente; o ID externo não muda depois de definido.
   Future<Customer> update(
     String customer,
     CustomersUpdateParams params, {
@@ -814,13 +886,20 @@ class OrdersService {
     return OrderReceipt.fromJson(data);
   }
 
-  /// Listar pedidos: checkouts pagos.
+  /// Listar pedidos (checkouts pagos), opcionalmente de um client_reference_id, de um cliente, de um período ou de metadados.
   ///
   /// One page, from 1, of [limit] items (1 to 100, 10 by default);
   /// [listIter] walks every page.
   Future<Page<Order>> list({
     int? page,
     int? limit,
+    String? clientReferenceId,
+    String? status,
+    String? customerId,
+    String? externalCustomerId,
+    String? createdAfter,
+    String? createdBefore,
+    String? sorting,
     String? apiKey,
   }) async {
     final data = await _client.request(
@@ -829,6 +908,13 @@ class OrdersService {
       query: {
         'page': page,
         'limit': limit,
+        'client_reference_id': clientReferenceId,
+        'status': status,
+        'customer_id': customerId,
+        'external_customer_id': externalCustomerId,
+        'created_after': createdAfter,
+        'created_before': createdBefore,
+        'sorting': sorting,
       },
       apiKey: apiKey,
     );
@@ -839,12 +925,26 @@ class OrdersService {
   Stream<Order> listIter({
     int page = 1,
     int? limit,
+    String? clientReferenceId,
+    String? status,
+    String? customerId,
+    String? externalCustomerId,
+    String? createdAfter,
+    String? createdBefore,
+    String? sorting,
     String? apiKey,
   }) {
     return iterate(
       (at) => list(
         page: at,
         limit: limit,
+        clientReferenceId: clientReferenceId,
+        status: status,
+        customerId: customerId,
+        externalCustomerId: externalCustomerId,
+        createdAfter: createdAfter,
+        createdBefore: createdBefore,
+        sorting: sorting,
         apiKey: apiKey,
       ),
       page,
@@ -933,13 +1033,20 @@ class PaymentsService {
     return Payment.fromJson(data);
   }
 
-  /// Listar pagamentos.
+  /// Listar pagamentos, opcionalmente de um client_reference_id, de um estado, de um cliente, de um período ou de metadados.
   ///
   /// One page, from 1, of [limit] items (1 to 100, 10 by default);
   /// [listIter] walks every page.
   Future<Page<Payment>> list({
     int? page,
     int? limit,
+    String? clientReferenceId,
+    String? status,
+    String? customerId,
+    String? externalCustomerId,
+    String? createdAfter,
+    String? createdBefore,
+    String? sorting,
     String? apiKey,
   }) async {
     final data = await _client.request(
@@ -948,6 +1055,13 @@ class PaymentsService {
       query: {
         'page': page,
         'limit': limit,
+        'client_reference_id': clientReferenceId,
+        'status': status,
+        'customer_id': customerId,
+        'external_customer_id': externalCustomerId,
+        'created_after': createdAfter,
+        'created_before': createdBefore,
+        'sorting': sorting,
       },
       apiKey: apiKey,
     );
@@ -958,12 +1072,26 @@ class PaymentsService {
   Stream<Payment> listIter({
     int page = 1,
     int? limit,
+    String? clientReferenceId,
+    String? status,
+    String? customerId,
+    String? externalCustomerId,
+    String? createdAfter,
+    String? createdBefore,
+    String? sorting,
     String? apiKey,
   }) {
     return iterate(
       (at) => list(
         page: at,
         limit: limit,
+        clientReferenceId: clientReferenceId,
+        status: status,
+        customerId: customerId,
+        externalCustomerId: externalCustomerId,
+        createdAfter: createdAfter,
+        createdBefore: createdBefore,
+        sorting: sorting,
         apiKey: apiKey,
       ),
       page,
@@ -1162,7 +1290,7 @@ class RefundsService {
     return Refund.fromJson(data);
   }
 
-  /// Listar reembolsos, opcionalmente de um pagamento (payment_id).
+  /// Listar reembolsos, opcionalmente de um pagamento (payment_id), de um status, de um cliente ou de um período.
   ///
   /// One page, from 1, of [limit] items (1 to 100, 10 by default);
   /// [listIter] walks every page.
@@ -1170,6 +1298,12 @@ class RefundsService {
     int? page,
     int? limit,
     String? paymentId,
+    String? status,
+    String? customerId,
+    String? externalCustomerId,
+    String? createdAfter,
+    String? createdBefore,
+    String? sorting,
     String? apiKey,
   }) async {
     final data = await _client.request(
@@ -1179,6 +1313,12 @@ class RefundsService {
         'page': page,
         'limit': limit,
         'payment_id': paymentId,
+        'status': status,
+        'customer_id': customerId,
+        'external_customer_id': externalCustomerId,
+        'created_after': createdAfter,
+        'created_before': createdBefore,
+        'sorting': sorting,
       },
       apiKey: apiKey,
     );
@@ -1190,6 +1330,12 @@ class RefundsService {
     int page = 1,
     int? limit,
     String? paymentId,
+    String? status,
+    String? customerId,
+    String? externalCustomerId,
+    String? createdAfter,
+    String? createdBefore,
+    String? sorting,
     String? apiKey,
   }) {
     return iterate(
@@ -1197,6 +1343,12 @@ class RefundsService {
         page: at,
         limit: limit,
         paymentId: paymentId,
+        status: status,
+        customerId: customerId,
+        externalCustomerId: externalCustomerId,
+        createdAfter: createdAfter,
+        createdBefore: createdBefore,
+        sorting: sorting,
         apiKey: apiKey,
       ),
       page,
@@ -1240,14 +1392,19 @@ class SubscriptionsService {
     return Subscription.fromJson(data);
   }
 
-  /// Listar assinaturas, opcionalmente de um cliente (customer_id).
+  /// Listar assinaturas, opcionalmente de um cliente (customer_id ou external_customer_id), de um status, de um período ou de metadados.
   ///
   /// One page, from 1, of [limit] items (1 to 100, 10 by default);
   /// [listIter] walks every page.
   Future<Page<Subscription>> list({
     int? page,
     int? limit,
+    String? status,
     String? customerId,
+    String? externalCustomerId,
+    String? createdAfter,
+    String? createdBefore,
+    String? sorting,
     String? apiKey,
   }) async {
     final data = await _client.request(
@@ -1256,7 +1413,12 @@ class SubscriptionsService {
       query: {
         'page': page,
         'limit': limit,
+        'status': status,
         'customer_id': customerId,
+        'external_customer_id': externalCustomerId,
+        'created_after': createdAfter,
+        'created_before': createdBefore,
+        'sorting': sorting,
       },
       apiKey: apiKey,
     );
@@ -1267,14 +1429,24 @@ class SubscriptionsService {
   Stream<Subscription> listIter({
     int page = 1,
     int? limit,
+    String? status,
     String? customerId,
+    String? externalCustomerId,
+    String? createdAfter,
+    String? createdBefore,
+    String? sorting,
     String? apiKey,
   }) {
     return iterate(
       (at) => list(
         page: at,
         limit: limit,
+        status: status,
         customerId: customerId,
+        externalCustomerId: externalCustomerId,
+        createdAfter: createdAfter,
+        createdBefore: createdBefore,
+        sorting: sorting,
         apiKey: apiKey,
       ),
       page,

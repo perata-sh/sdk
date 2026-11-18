@@ -305,6 +305,40 @@ pub struct CheckoutCreated {
     pub url: String,
 }
 
+/// CheckoutExpired is a resource of Peráta's API.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct CheckoutExpired {
+    /// O que a chamada nomeou: o id do checkout ou o de uma sessão.
+    pub id: String,
+    /// As sessões encerradas por esta chamada ou que já estavam encerradas.
+    pub sessions: Vec<CheckoutExpiredSession>,
+    /// Sempre expired: nada mais deste checkout pode ser pago.
+    pub status: CheckoutExpiredStatus,
+}
+
+/// CheckoutExpiredSession is a resource of Peráta's API.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct CheckoutExpiredSession {
+    /// true quando a sessão já estava encerrada antes: a chamada foi repetida.
+    pub already_closed: bool,
+    /// true quando a Cielo cancelou o Pix ou a reserva nesta chamada.
+    pub canceled: bool,
+    /// Quando a sessão foi encerrada; nulo se ela já tinha falhado.
+    pub expired_at: Option<String>,
+    /// O meio escolhido; nulo se o comprador não escolheu um.
+    pub method: Option<CheckoutExpiredSessionMethod>,
+    /// O pagamento que a sessão tinha, vazio se o comprador não escolheu um meio.
+    pub payment_id: String,
+    /// Como o pagamento ficou: canceled quando a Cielo retirou o QR do Pix ou liberou a reserva do cartão; vazio sem pagamento.
+    pub payment_state: String,
+    /// O id da sessão, o mesmo checkout_id dos webhooks.
+    pub session_id: String,
+    /// expired: encerrada pelo lojista; failed: já tinha falhado antes.
+    pub status: CheckoutExpiredSessionStatus,
+}
+
 /// CheckoutInstallment is a resource of Peráta's API.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[non_exhaustive]
@@ -442,12 +476,27 @@ pub struct CheckoutSavedProfile {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[non_exhaustive]
 pub struct Customer {
+    /// Endereço de cobrança; fica de fora quando o cliente não tem.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub billing_address: Option<BillingAddress>,
+    /// Nome ou razão social de quem paga, quando difere de name.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub billing_name: Option<String>,
     pub created_at: String,
     pub email: String,
     pub external_id: String,
     pub id: String,
     pub name: String,
+    /// Telefone ou celular com DDD, só dígitos.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub phone: Option<String>,
     pub status: CustomerStatus,
+    /// CPF ou CNPJ, só dígitos. O CPF vem inteiro para a chave de um dono ou administrador da organização e mascarado (***.***.789-00) para as demais; o CNPJ vem sempre inteiro.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub tax_id: Option<String>,
+    /// Qual documento tax_id é.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub tax_id_kind: Option<CustomerTaxIdKind>,
 }
 
 /// CustomerSession is a resource of Peráta's API.
@@ -1672,26 +1721,152 @@ impl CustomerSessionsCreateParams {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[non_exhaustive]
 pub struct CustomersCreateParams {
+    /// Endereço de cobrança: rua e número, bairro, cidade, UF e CEP vêm juntos (o complemento é opcional).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub billing_address: Option<CustomersCreateBillingAddress>,
+    /// Nome ou razão social de quem paga, quando difere de name.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub billing_name: Option<String>,
     pub email: String,
     /// Até 120 caracteres, sem barra (/) nem caracteres de controle.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub external_id: Option<String>,
     pub name: String,
+    /// Telefone ou celular com DDD, com ou sem pontuação.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub phone: Option<String>,
+    /// CPF ou CNPJ, com ou sem pontuação, com os dígitos verificadores corretos.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub tax_id: Option<String>,
+    /// Qual documento tax_id é; sem ele, o número diz.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub tax_id_kind: Option<CustomersCreateParamsTaxIdKind>,
 }
 
 impl CustomersCreateParams {
     /// A body with its required fields.
     pub fn new(email: impl Into<String>, name: impl Into<String>) -> Self {
         Self {
+            billing_address: None,
+            billing_name: None,
             email: email.into(),
             external_id: None,
             name: name.into(),
+            phone: None,
+            tax_id: None,
+            tax_id_kind: None,
         }
+    }
+
+    /// Endereço de cobrança: rua e número, bairro, cidade, UF e CEP vêm juntos (o complemento é opcional).
+    pub fn billing_address(mut self, billing_address: CustomersCreateBillingAddress) -> Self {
+        self.billing_address = Some(billing_address);
+        self
+    }
+
+    /// Nome ou razão social de quem paga, quando difere de name.
+    pub fn billing_name(mut self, billing_name: impl Into<String>) -> Self {
+        self.billing_name = Some(billing_name.into());
+        self
     }
 
     /// Até 120 caracteres, sem barra (/) nem caracteres de controle.
     pub fn external_id(mut self, external_id: impl Into<String>) -> Self {
         self.external_id = Some(external_id.into());
+        self
+    }
+
+    /// Telefone ou celular com DDD, com ou sem pontuação.
+    pub fn phone(mut self, phone: impl Into<String>) -> Self {
+        self.phone = Some(phone.into());
+        self
+    }
+
+    /// CPF ou CNPJ, com ou sem pontuação, com os dígitos verificadores corretos.
+    pub fn tax_id(mut self, tax_id: impl Into<String>) -> Self {
+        self.tax_id = Some(tax_id.into());
+        self
+    }
+
+    /// Qual documento tax_id é; sem ele, o número diz.
+    pub fn tax_id_kind(mut self, tax_id_kind: impl Into<CustomersCreateParamsTaxIdKind>) -> Self {
+        self.tax_id_kind = Some(tax_id_kind.into());
+        self
+    }
+}
+
+/// Endereço de cobrança: rua e número, bairro, cidade, UF e CEP vêm juntos (o complemento é opcional).
+///
+/// [`CustomersCreateBillingAddress::new`] takes the required fields; each optional one is set by
+/// the method of its name.
+#[derive(Debug, Clone, PartialEq, Default, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct CustomersCreateBillingAddress {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub city: Option<String>,
+    /// Bairro.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub district: Option<String>,
+    /// Rua e número.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub line1: Option<String>,
+    /// Complemento.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub line2: Option<String>,
+    /// CEP, com ou sem hífen.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub postal_code: Option<String>,
+    /// UF, duas letras.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub state: Option<String>,
+}
+
+impl CustomersCreateBillingAddress {
+    /// A body with its required fields.
+    pub fn new() -> Self {
+        Self {
+            city: None,
+            district: None,
+            line1: None,
+            line2: None,
+            postal_code: None,
+            state: None,
+        }
+    }
+
+    /// Sets `city`.
+    pub fn city(mut self, city: impl Into<String>) -> Self {
+        self.city = Some(city.into());
+        self
+    }
+
+    /// Bairro.
+    pub fn district(mut self, district: impl Into<String>) -> Self {
+        self.district = Some(district.into());
+        self
+    }
+
+    /// Rua e número.
+    pub fn line1(mut self, line1: impl Into<String>) -> Self {
+        self.line1 = Some(line1.into());
+        self
+    }
+
+    /// Complemento.
+    pub fn line2(mut self, line2: impl Into<String>) -> Self {
+        self.line2 = Some(line2.into());
+        self
+    }
+
+    /// CEP, com ou sem hífen.
+    pub fn postal_code(mut self, postal_code: impl Into<String>) -> Self {
+        self.postal_code = Some(postal_code.into());
+        self
+    }
+
+    /// UF, duas letras.
+    pub fn state(mut self, state: impl Into<String>) -> Self {
+        self.state = Some(state.into());
         self
     }
 }
@@ -1703,6 +1878,12 @@ impl CustomersCreateParams {
 #[derive(Debug, Clone, PartialEq, Default, Serialize, Deserialize)]
 #[non_exhaustive]
 pub struct CustomersUpdateParams {
+    /// Endereço de cobrança: rua e número, bairro, cidade, UF e CEP vêm juntos (o complemento é opcional). Cada parte enviada substitui a guardada, e o endereço que resulta precisa estar inteiro; envie as partes vazias para apagar o endereço.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub billing_address: Option<CustomersUpdateBillingAddress>,
+    /// Nome ou razão social de quem paga, quando difere de name.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub billing_name: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub email: Option<String>,
     /// Só pode ser definido uma vez. Até 120 caracteres, sem barra (/) nem caracteres de controle.
@@ -1710,16 +1891,42 @@ pub struct CustomersUpdateParams {
     pub external_id: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub name: Option<String>,
+    /// Telefone ou celular com DDD, com ou sem pontuação.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub phone: Option<String>,
+    /// CPF ou CNPJ, com ou sem pontuação, com os dígitos verificadores corretos. Só a chave de um dono ou administrador da organização o altera; as demais recebem 403. Texto vazio apaga.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub tax_id: Option<String>,
+    /// Qual documento tax_id é; sem ele, o número diz.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub tax_id_kind: Option<CustomersUpdateParamsTaxIdKind>,
 }
 
 impl CustomersUpdateParams {
     /// A body with its required fields.
     pub fn new() -> Self {
         Self {
+            billing_address: None,
+            billing_name: None,
             email: None,
             external_id: None,
             name: None,
+            phone: None,
+            tax_id: None,
+            tax_id_kind: None,
         }
+    }
+
+    /// Endereço de cobrança: rua e número, bairro, cidade, UF e CEP vêm juntos (o complemento é opcional). Cada parte enviada substitui a guardada, e o endereço que resulta precisa estar inteiro; envie as partes vazias para apagar o endereço.
+    pub fn billing_address(mut self, billing_address: CustomersUpdateBillingAddress) -> Self {
+        self.billing_address = Some(billing_address);
+        self
+    }
+
+    /// Nome ou razão social de quem paga, quando difere de name.
+    pub fn billing_name(mut self, billing_name: impl Into<String>) -> Self {
+        self.billing_name = Some(billing_name.into());
+        self
     }
 
     /// Sets `email`.
@@ -1737,6 +1944,100 @@ impl CustomersUpdateParams {
     /// Sets `name`.
     pub fn name(mut self, name: impl Into<String>) -> Self {
         self.name = Some(name.into());
+        self
+    }
+
+    /// Telefone ou celular com DDD, com ou sem pontuação.
+    pub fn phone(mut self, phone: impl Into<String>) -> Self {
+        self.phone = Some(phone.into());
+        self
+    }
+
+    /// CPF ou CNPJ, com ou sem pontuação, com os dígitos verificadores corretos. Só a chave de um dono ou administrador da organização o altera; as demais recebem 403. Texto vazio apaga.
+    pub fn tax_id(mut self, tax_id: impl Into<String>) -> Self {
+        self.tax_id = Some(tax_id.into());
+        self
+    }
+
+    /// Qual documento tax_id é; sem ele, o número diz.
+    pub fn tax_id_kind(mut self, tax_id_kind: impl Into<CustomersUpdateParamsTaxIdKind>) -> Self {
+        self.tax_id_kind = Some(tax_id_kind.into());
+        self
+    }
+}
+
+/// Endereço de cobrança: rua e número, bairro, cidade, UF e CEP vêm juntos (o complemento é opcional). Cada parte enviada substitui a guardada, e o endereço que resulta precisa estar inteiro; envie as partes vazias para apagar o endereço.
+///
+/// [`CustomersUpdateBillingAddress::new`] takes the required fields; each optional one is set by
+/// the method of its name.
+#[derive(Debug, Clone, PartialEq, Default, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct CustomersUpdateBillingAddress {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub city: Option<String>,
+    /// Bairro.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub district: Option<String>,
+    /// Rua e número.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub line1: Option<String>,
+    /// Complemento.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub line2: Option<String>,
+    /// CEP, com ou sem hífen.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub postal_code: Option<String>,
+    /// UF, duas letras.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub state: Option<String>,
+}
+
+impl CustomersUpdateBillingAddress {
+    /// A body with its required fields.
+    pub fn new() -> Self {
+        Self {
+            city: None,
+            district: None,
+            line1: None,
+            line2: None,
+            postal_code: None,
+            state: None,
+        }
+    }
+
+    /// Sets `city`.
+    pub fn city(mut self, city: impl Into<String>) -> Self {
+        self.city = Some(city.into());
+        self
+    }
+
+    /// Bairro.
+    pub fn district(mut self, district: impl Into<String>) -> Self {
+        self.district = Some(district.into());
+        self
+    }
+
+    /// Rua e número.
+    pub fn line1(mut self, line1: impl Into<String>) -> Self {
+        self.line1 = Some(line1.into());
+        self
+    }
+
+    /// Complemento.
+    pub fn line2(mut self, line2: impl Into<String>) -> Self {
+        self.line2 = Some(line2.into());
+        self
+    }
+
+    /// CEP, com ou sem hífen.
+    pub fn postal_code(mut self, postal_code: impl Into<String>) -> Self {
+        self.postal_code = Some(postal_code.into());
+        self
+    }
+
+    /// UF, duas letras.
+    pub fn state(mut self, state: impl Into<String>) -> Self {
+        self.state = Some(state.into());
         self
     }
 }
@@ -1972,6 +2273,12 @@ impl DiscountsUpdateParams {
 #[derive(Debug, Clone, PartialEq, Default, Serialize, Deserialize)]
 #[non_exhaustive]
 pub struct CustomersUpdateExternalParams {
+    /// Endereço de cobrança: rua e número, bairro, cidade, UF e CEP vêm juntos (o complemento é opcional). Cada parte enviada substitui a guardada, e o endereço que resulta precisa estar inteiro; envie as partes vazias para apagar o endereço.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub billing_address: Option<CustomersUpdateExternalBillingAddress>,
+    /// Nome ou razão social de quem paga, quando difere de name.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub billing_name: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub email: Option<String>,
     /// Só pode ser definido uma vez. Até 120 caracteres, sem barra (/) nem caracteres de controle.
@@ -1979,16 +2286,42 @@ pub struct CustomersUpdateExternalParams {
     pub external_id: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub name: Option<String>,
+    /// Telefone ou celular com DDD, com ou sem pontuação.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub phone: Option<String>,
+    /// CPF ou CNPJ, com ou sem pontuação, com os dígitos verificadores corretos. Só a chave de um dono ou administrador da organização o altera; as demais recebem 403. Texto vazio apaga.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub tax_id: Option<String>,
+    /// Qual documento tax_id é; sem ele, o número diz.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub tax_id_kind: Option<CustomersUpdateExternalParamsTaxIdKind>,
 }
 
 impl CustomersUpdateExternalParams {
     /// A body with its required fields.
     pub fn new() -> Self {
         Self {
+            billing_address: None,
+            billing_name: None,
             email: None,
             external_id: None,
             name: None,
+            phone: None,
+            tax_id: None,
+            tax_id_kind: None,
         }
+    }
+
+    /// Endereço de cobrança: rua e número, bairro, cidade, UF e CEP vêm juntos (o complemento é opcional). Cada parte enviada substitui a guardada, e o endereço que resulta precisa estar inteiro; envie as partes vazias para apagar o endereço.
+    pub fn billing_address(mut self, billing_address: CustomersUpdateExternalBillingAddress) -> Self {
+        self.billing_address = Some(billing_address);
+        self
+    }
+
+    /// Nome ou razão social de quem paga, quando difere de name.
+    pub fn billing_name(mut self, billing_name: impl Into<String>) -> Self {
+        self.billing_name = Some(billing_name.into());
+        self
     }
 
     /// Sets `email`.
@@ -2006,6 +2339,100 @@ impl CustomersUpdateExternalParams {
     /// Sets `name`.
     pub fn name(mut self, name: impl Into<String>) -> Self {
         self.name = Some(name.into());
+        self
+    }
+
+    /// Telefone ou celular com DDD, com ou sem pontuação.
+    pub fn phone(mut self, phone: impl Into<String>) -> Self {
+        self.phone = Some(phone.into());
+        self
+    }
+
+    /// CPF ou CNPJ, com ou sem pontuação, com os dígitos verificadores corretos. Só a chave de um dono ou administrador da organização o altera; as demais recebem 403. Texto vazio apaga.
+    pub fn tax_id(mut self, tax_id: impl Into<String>) -> Self {
+        self.tax_id = Some(tax_id.into());
+        self
+    }
+
+    /// Qual documento tax_id é; sem ele, o número diz.
+    pub fn tax_id_kind(mut self, tax_id_kind: impl Into<CustomersUpdateExternalParamsTaxIdKind>) -> Self {
+        self.tax_id_kind = Some(tax_id_kind.into());
+        self
+    }
+}
+
+/// Endereço de cobrança: rua e número, bairro, cidade, UF e CEP vêm juntos (o complemento é opcional). Cada parte enviada substitui a guardada, e o endereço que resulta precisa estar inteiro; envie as partes vazias para apagar o endereço.
+///
+/// [`CustomersUpdateExternalBillingAddress::new`] takes the required fields; each optional one is set by
+/// the method of its name.
+#[derive(Debug, Clone, PartialEq, Default, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct CustomersUpdateExternalBillingAddress {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub city: Option<String>,
+    /// Bairro.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub district: Option<String>,
+    /// Rua e número.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub line1: Option<String>,
+    /// Complemento.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub line2: Option<String>,
+    /// CEP, com ou sem hífen.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub postal_code: Option<String>,
+    /// UF, duas letras.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub state: Option<String>,
+}
+
+impl CustomersUpdateExternalBillingAddress {
+    /// A body with its required fields.
+    pub fn new() -> Self {
+        Self {
+            city: None,
+            district: None,
+            line1: None,
+            line2: None,
+            postal_code: None,
+            state: None,
+        }
+    }
+
+    /// Sets `city`.
+    pub fn city(mut self, city: impl Into<String>) -> Self {
+        self.city = Some(city.into());
+        self
+    }
+
+    /// Bairro.
+    pub fn district(mut self, district: impl Into<String>) -> Self {
+        self.district = Some(district.into());
+        self
+    }
+
+    /// Rua e número.
+    pub fn line1(mut self, line1: impl Into<String>) -> Self {
+        self.line1 = Some(line1.into());
+        self
+    }
+
+    /// Complemento.
+    pub fn line2(mut self, line2: impl Into<String>) -> Self {
+        self.line2 = Some(line2.into());
+        self
+    }
+
+    /// CEP, com ou sem hífen.
+    pub fn postal_code(mut self, postal_code: impl Into<String>) -> Self {
+        self.postal_code = Some(postal_code.into());
+        self
+    }
+
+    /// UF, duas letras.
+    pub fn state(mut self, state: impl Into<String>) -> Self {
+        self.state = Some(state.into());
         self
     }
 }
@@ -3368,6 +3795,186 @@ impl<'de> Deserialize<'de> for CheckoutCreatedStatus {
     }
 }
 
+/// The values of `CheckoutExpired.status`. Sempre expired: nada mais deste checkout pode ser pago.
+///
+/// A value this SDK does not know yet is kept, as it came, in
+/// [`CheckoutExpiredStatus::Unrecognized`].
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[non_exhaustive]
+pub enum CheckoutExpiredStatus {
+    /// `expired`
+    Expired,
+    /// A value this SDK does not know yet.
+    Unrecognized(String),
+}
+
+impl CheckoutExpiredStatus {
+    /// The value as the API writes it.
+    pub fn as_str(&self) -> &str {
+        match self {
+            CheckoutExpiredStatus::Expired => "expired",
+            CheckoutExpiredStatus::Unrecognized(value) => value,
+        }
+    }
+}
+
+impl From<&str> for CheckoutExpiredStatus {
+    fn from(value: &str) -> Self {
+        match value {
+            "expired" => CheckoutExpiredStatus::Expired,
+            other => CheckoutExpiredStatus::Unrecognized(other.to_owned()),
+        }
+    }
+}
+
+impl From<String> for CheckoutExpiredStatus {
+    fn from(value: String) -> Self {
+        Self::from(value.as_str())
+    }
+}
+
+impl fmt::Display for CheckoutExpiredStatus {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
+impl Serialize for CheckoutExpiredStatus {
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        serializer.serialize_str(self.as_str())
+    }
+}
+
+impl<'de> Deserialize<'de> for CheckoutExpiredStatus {
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        String::deserialize(deserializer).map(Self::from)
+    }
+}
+
+/// The values of `CheckoutExpiredSession.method`. O meio escolhido; nulo se o comprador não escolheu um.
+///
+/// A value this SDK does not know yet is kept, as it came, in
+/// [`CheckoutExpiredSessionMethod::Unrecognized`].
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[non_exhaustive]
+pub enum CheckoutExpiredSessionMethod {
+    /// `card`
+    Card,
+    /// `pix`
+    Pix,
+    /// `boleto`
+    Boleto,
+    /// A value this SDK does not know yet.
+    Unrecognized(String),
+}
+
+impl CheckoutExpiredSessionMethod {
+    /// The value as the API writes it.
+    pub fn as_str(&self) -> &str {
+        match self {
+            CheckoutExpiredSessionMethod::Card => "card",
+            CheckoutExpiredSessionMethod::Pix => "pix",
+            CheckoutExpiredSessionMethod::Boleto => "boleto",
+            CheckoutExpiredSessionMethod::Unrecognized(value) => value,
+        }
+    }
+}
+
+impl From<&str> for CheckoutExpiredSessionMethod {
+    fn from(value: &str) -> Self {
+        match value {
+            "card" => CheckoutExpiredSessionMethod::Card,
+            "pix" => CheckoutExpiredSessionMethod::Pix,
+            "boleto" => CheckoutExpiredSessionMethod::Boleto,
+            other => CheckoutExpiredSessionMethod::Unrecognized(other.to_owned()),
+        }
+    }
+}
+
+impl From<String> for CheckoutExpiredSessionMethod {
+    fn from(value: String) -> Self {
+        Self::from(value.as_str())
+    }
+}
+
+impl fmt::Display for CheckoutExpiredSessionMethod {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
+impl Serialize for CheckoutExpiredSessionMethod {
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        serializer.serialize_str(self.as_str())
+    }
+}
+
+impl<'de> Deserialize<'de> for CheckoutExpiredSessionMethod {
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        String::deserialize(deserializer).map(Self::from)
+    }
+}
+
+/// The values of `CheckoutExpiredSession.status`. expired: encerrada pelo lojista; failed: já tinha falhado antes.
+///
+/// A value this SDK does not know yet is kept, as it came, in
+/// [`CheckoutExpiredSessionStatus::Unrecognized`].
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[non_exhaustive]
+pub enum CheckoutExpiredSessionStatus {
+    /// `expired`
+    Expired,
+    /// `failed`
+    Failed,
+    /// A value this SDK does not know yet.
+    Unrecognized(String),
+}
+
+impl CheckoutExpiredSessionStatus {
+    /// The value as the API writes it.
+    pub fn as_str(&self) -> &str {
+        match self {
+            CheckoutExpiredSessionStatus::Expired => "expired",
+            CheckoutExpiredSessionStatus::Failed => "failed",
+            CheckoutExpiredSessionStatus::Unrecognized(value) => value,
+        }
+    }
+}
+
+impl From<&str> for CheckoutExpiredSessionStatus {
+    fn from(value: &str) -> Self {
+        match value {
+            "expired" => CheckoutExpiredSessionStatus::Expired,
+            "failed" => CheckoutExpiredSessionStatus::Failed,
+            other => CheckoutExpiredSessionStatus::Unrecognized(other.to_owned()),
+        }
+    }
+}
+
+impl From<String> for CheckoutExpiredSessionStatus {
+    fn from(value: String) -> Self {
+        Self::from(value.as_str())
+    }
+}
+
+impl fmt::Display for CheckoutExpiredSessionStatus {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
+impl Serialize for CheckoutExpiredSessionStatus {
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        serializer.serialize_str(self.as_str())
+    }
+}
+
+impl<'de> Deserialize<'de> for CheckoutExpiredSessionStatus {
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        String::deserialize(deserializer).map(Self::from)
+    }
+}
+
 /// The values of `CheckoutLink.capture_mode`. manual segura a venda no cartão para o lojista capturar depois.
 ///
 /// A value this SDK does not know yet is kept, as it came, in
@@ -3683,6 +4290,66 @@ impl Serialize for CustomerStatus {
 }
 
 impl<'de> Deserialize<'de> for CustomerStatus {
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        String::deserialize(deserializer).map(Self::from)
+    }
+}
+
+/// The values of `Customer.tax_id_kind`. Qual documento tax_id é.
+///
+/// A value this SDK does not know yet is kept, as it came, in
+/// [`CustomerTaxIdKind::Unrecognized`].
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[non_exhaustive]
+pub enum CustomerTaxIdKind {
+    /// `cpf`
+    Cpf,
+    /// `cnpj`
+    Cnpj,
+    /// A value this SDK does not know yet.
+    Unrecognized(String),
+}
+
+impl CustomerTaxIdKind {
+    /// The value as the API writes it.
+    pub fn as_str(&self) -> &str {
+        match self {
+            CustomerTaxIdKind::Cpf => "cpf",
+            CustomerTaxIdKind::Cnpj => "cnpj",
+            CustomerTaxIdKind::Unrecognized(value) => value,
+        }
+    }
+}
+
+impl From<&str> for CustomerTaxIdKind {
+    fn from(value: &str) -> Self {
+        match value {
+            "cpf" => CustomerTaxIdKind::Cpf,
+            "cnpj" => CustomerTaxIdKind::Cnpj,
+            other => CustomerTaxIdKind::Unrecognized(other.to_owned()),
+        }
+    }
+}
+
+impl From<String> for CustomerTaxIdKind {
+    fn from(value: String) -> Self {
+        Self::from(value.as_str())
+    }
+}
+
+impl fmt::Display for CustomerTaxIdKind {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
+impl Serialize for CustomerTaxIdKind {
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        serializer.serialize_str(self.as_str())
+    }
+}
+
+impl<'de> Deserialize<'de> for CustomerTaxIdKind {
     fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
         String::deserialize(deserializer).map(Self::from)
     }
@@ -6928,6 +7595,126 @@ impl<'de> Deserialize<'de> for CheckoutLinksCreateParamsTrialInterval {
     }
 }
 
+/// The values of `CustomersCreateParams.tax_id_kind`. Qual documento tax_id é; sem ele, o número diz.
+///
+/// A value this SDK does not know yet is kept, as it came, in
+/// [`CustomersCreateParamsTaxIdKind::Unrecognized`].
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[non_exhaustive]
+pub enum CustomersCreateParamsTaxIdKind {
+    /// `cpf`
+    Cpf,
+    /// `cnpj`
+    Cnpj,
+    /// A value this SDK does not know yet.
+    Unrecognized(String),
+}
+
+impl CustomersCreateParamsTaxIdKind {
+    /// The value as the API writes it.
+    pub fn as_str(&self) -> &str {
+        match self {
+            CustomersCreateParamsTaxIdKind::Cpf => "cpf",
+            CustomersCreateParamsTaxIdKind::Cnpj => "cnpj",
+            CustomersCreateParamsTaxIdKind::Unrecognized(value) => value,
+        }
+    }
+}
+
+impl From<&str> for CustomersCreateParamsTaxIdKind {
+    fn from(value: &str) -> Self {
+        match value {
+            "cpf" => CustomersCreateParamsTaxIdKind::Cpf,
+            "cnpj" => CustomersCreateParamsTaxIdKind::Cnpj,
+            other => CustomersCreateParamsTaxIdKind::Unrecognized(other.to_owned()),
+        }
+    }
+}
+
+impl From<String> for CustomersCreateParamsTaxIdKind {
+    fn from(value: String) -> Self {
+        Self::from(value.as_str())
+    }
+}
+
+impl fmt::Display for CustomersCreateParamsTaxIdKind {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
+impl Serialize for CustomersCreateParamsTaxIdKind {
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        serializer.serialize_str(self.as_str())
+    }
+}
+
+impl<'de> Deserialize<'de> for CustomersCreateParamsTaxIdKind {
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        String::deserialize(deserializer).map(Self::from)
+    }
+}
+
+/// The values of `CustomersUpdateParams.tax_id_kind`. Qual documento tax_id é; sem ele, o número diz.
+///
+/// A value this SDK does not know yet is kept, as it came, in
+/// [`CustomersUpdateParamsTaxIdKind::Unrecognized`].
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[non_exhaustive]
+pub enum CustomersUpdateParamsTaxIdKind {
+    /// `cpf`
+    Cpf,
+    /// `cnpj`
+    Cnpj,
+    /// A value this SDK does not know yet.
+    Unrecognized(String),
+}
+
+impl CustomersUpdateParamsTaxIdKind {
+    /// The value as the API writes it.
+    pub fn as_str(&self) -> &str {
+        match self {
+            CustomersUpdateParamsTaxIdKind::Cpf => "cpf",
+            CustomersUpdateParamsTaxIdKind::Cnpj => "cnpj",
+            CustomersUpdateParamsTaxIdKind::Unrecognized(value) => value,
+        }
+    }
+}
+
+impl From<&str> for CustomersUpdateParamsTaxIdKind {
+    fn from(value: &str) -> Self {
+        match value {
+            "cpf" => CustomersUpdateParamsTaxIdKind::Cpf,
+            "cnpj" => CustomersUpdateParamsTaxIdKind::Cnpj,
+            other => CustomersUpdateParamsTaxIdKind::Unrecognized(other.to_owned()),
+        }
+    }
+}
+
+impl From<String> for CustomersUpdateParamsTaxIdKind {
+    fn from(value: String) -> Self {
+        Self::from(value.as_str())
+    }
+}
+
+impl fmt::Display for CustomersUpdateParamsTaxIdKind {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
+impl Serialize for CustomersUpdateParamsTaxIdKind {
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        serializer.serialize_str(self.as_str())
+    }
+}
+
+impl<'de> Deserialize<'de> for CustomersUpdateParamsTaxIdKind {
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        String::deserialize(deserializer).map(Self::from)
+    }
+}
+
 /// The values of `DiscountsCreateParams.duration`.
 ///
 /// A value this SDK does not know yet is kept, as it came, in
@@ -7047,6 +7834,66 @@ impl Serialize for DiscountsCreateParamsType {
 }
 
 impl<'de> Deserialize<'de> for DiscountsCreateParamsType {
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        String::deserialize(deserializer).map(Self::from)
+    }
+}
+
+/// The values of `CustomersUpdateExternalParams.tax_id_kind`. Qual documento tax_id é; sem ele, o número diz.
+///
+/// A value this SDK does not know yet is kept, as it came, in
+/// [`CustomersUpdateExternalParamsTaxIdKind::Unrecognized`].
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[non_exhaustive]
+pub enum CustomersUpdateExternalParamsTaxIdKind {
+    /// `cpf`
+    Cpf,
+    /// `cnpj`
+    Cnpj,
+    /// A value this SDK does not know yet.
+    Unrecognized(String),
+}
+
+impl CustomersUpdateExternalParamsTaxIdKind {
+    /// The value as the API writes it.
+    pub fn as_str(&self) -> &str {
+        match self {
+            CustomersUpdateExternalParamsTaxIdKind::Cpf => "cpf",
+            CustomersUpdateExternalParamsTaxIdKind::Cnpj => "cnpj",
+            CustomersUpdateExternalParamsTaxIdKind::Unrecognized(value) => value,
+        }
+    }
+}
+
+impl From<&str> for CustomersUpdateExternalParamsTaxIdKind {
+    fn from(value: &str) -> Self {
+        match value {
+            "cpf" => CustomersUpdateExternalParamsTaxIdKind::Cpf,
+            "cnpj" => CustomersUpdateExternalParamsTaxIdKind::Cnpj,
+            other => CustomersUpdateExternalParamsTaxIdKind::Unrecognized(other.to_owned()),
+        }
+    }
+}
+
+impl From<String> for CustomersUpdateExternalParamsTaxIdKind {
+    fn from(value: String) -> Self {
+        Self::from(value.as_str())
+    }
+}
+
+impl fmt::Display for CustomersUpdateExternalParamsTaxIdKind {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
+impl Serialize for CustomersUpdateExternalParamsTaxIdKind {
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        serializer.serialize_str(self.as_str())
+    }
+}
+
+impl<'de> Deserialize<'de> for CustomersUpdateExternalParamsTaxIdKind {
     fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
         String::deserialize(deserializer).map(Self::from)
     }

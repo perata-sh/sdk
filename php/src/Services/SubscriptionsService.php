@@ -38,9 +38,9 @@ final class SubscriptionsService
     }
 
     /**
-     * Listar assinaturas, opcionalmente de um cliente (customer_id). One page; listIter() walks every page.
+     * Listar assinaturas, opcionalmente de um cliente (customer_id ou external_customer_id), de um status, de um período ou de metadados. One page; listIter() walks every page.
      *
-     * @param array{page?: int, limit?: int, customer_id?: string} $params
+     * @param array{page?: int, limit?: int, status?: string, customer_id?: string, external_customer_id?: string, created_after?: string, created_before?: string, sorting?: string} $params
      * @return Page<Models\Subscription>
      */
     public function list(array $params = [], ?string $apiKey = null): Page
@@ -52,7 +52,7 @@ final class SubscriptionsService
     /**
      * Walks every page of subscriptions:list, item by item.
      *
-     * @param array{page?: int, limit?: int, customer_id?: string} $params
+     * @param array{page?: int, limit?: int, status?: string, customer_id?: string, external_customer_id?: string, created_after?: string, created_before?: string, sorting?: string} $params
      * @return \Generator<int, Models\Subscription>
      */
     public function listIter(array $params = [], ?string $apiKey = null): \Generator

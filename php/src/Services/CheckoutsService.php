@@ -29,12 +29,44 @@ final class CheckoutsService
     }
 
     /**
+     * Encerrar um checkout que não deve mais ser pago: a página, o client_secret e o QR do Pix deixam de valer (o Pix já gerado é cancelado na Cielo), e o evento checkout.expired é enviado; 409 se já foi pago ou se emitiu boleto.
+     */
+    public function expire(string $checkout, ?string $idempotencyKey = null, ?string $apiKey = null): Models\CheckoutExpired
+    {
+        $data = $this->client->request('POST', '/api/v1/checkouts/' . rawurlencode($checkout) . '/expire', idempotencyKey: $idempotencyKey, apiKey: $apiKey);
+        return Models\CheckoutExpired::fromArray($data);
+    }
+
+    /**
      * Ler um checkout: o endereço, o estado e as páginas de retorno.
      */
     public function get(string $checkout, ?string $apiKey = null): Models\Checkout
     {
         $data = $this->client->request('GET', '/api/v1/checkouts/' . rawurlencode($checkout), apiKey: $apiKey);
         return Models\Checkout::fromArray($data);
+    }
+
+    /**
+     * Listar checkouts, opcionalmente de um client_reference_id, de um status, de um período ou de metadados. One page; listIter() walks every page.
+     *
+     * @param array{page?: int, limit?: int, client_reference_id?: string, status?: string, created_after?: string, created_before?: string, sorting?: string} $params
+     * @return Page<Models\Checkout>
+     */
+    public function list(array $params = [], ?string $apiKey = null): Page
+    {
+        $data = $this->client->request('GET', '/api/v1/checkouts', query: $params, apiKey: $apiKey);
+        return Page::fromArray($data, Models\Checkout::fromArray(...));
+    }
+
+    /**
+     * Walks every page of checkouts:list, item by item.
+     *
+     * @param array{page?: int, limit?: int, client_reference_id?: string, status?: string, created_after?: string, created_before?: string, sorting?: string} $params
+     * @return \Generator<int, Models\Checkout>
+     */
+    public function listIter(array $params = [], ?string $apiKey = null): \Generator
+    {
+        return Page::iterate(fn (int $page): Page => $this->list(['page' => $page] + $params, $apiKey), $params['page'] ?? 1);
     }
 
     /**

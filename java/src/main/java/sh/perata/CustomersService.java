@@ -16,7 +16,7 @@ public final class CustomersService {
     }
 
     /**
-     * Criar um cliente.
+     * Criar um cliente, com CPF ou CNPJ, telefone e endereço de cobrança se você os tem.
      * @param params the request
      * @param options an idempotency key or another organization's key for this call, or null
      * @return the customer
@@ -28,7 +28,7 @@ public final class CustomersService {
     }
 
     /**
-     * Criar um cliente.
+     * Criar um cliente, com CPF ou CNPJ, telefone e endereço de cobrança se você os tem.
      * @param params the request
      * @return the customer
      * @throws PerataException when the API refuses the call
@@ -39,20 +39,44 @@ public final class CustomersService {
 
     /** The body of customers:create. */
     public static final class CreateParams {
+        /** A value of {@link #getTaxIdKind()}. */
+        public static final String TAX_ID_KIND_CPF = "cpf";
+        /** A value of {@link #getTaxIdKind()}. */
+        public static final String TAX_ID_KIND_CNPJ = "cnpj";
 
+        private final CustomersCreateBillingAddress billingAddress;
+        private final String billingName;
         private final String email;
         private final String externalId;
         private final String name;
+        private final String phone;
+        private final String taxId;
+        private final String taxIdKind;
 
         private CreateParams(Builder builder) {
+            this.billingAddress = builder.billingAddress;
+            this.billingName = builder.billingName;
             this.email = builder.email;
             this.externalId = builder.externalId;
             this.name = builder.name;
+            this.phone = builder.phone;
+            this.taxId = builder.taxId;
+            this.taxIdKind = builder.taxIdKind;
         }
 
         /** @return a builder of the request */
         public static Builder builder() {
             return new Builder();
+        }
+
+        /** @return Endereço de cobrança: rua e número, bairro, cidade, UF e CEP vêm juntos (o complemento é opcional). (null when left out) */
+        public CustomersCreateBillingAddress getBillingAddress() {
+            return billingAddress;
+        }
+
+        /** @return Nome ou razão social de quem paga, quando difere de name. (null when left out) */
+        public String getBillingName() {
+            return billingName;
         }
 
         /** @return the {@code email} sent */
@@ -70,23 +94,76 @@ public final class CustomersService {
             return name;
         }
 
+        /** @return Telefone ou celular com DDD, com ou sem pontuação. (null when left out) */
+        public String getPhone() {
+            return phone;
+        }
+
+        /** @return CPF ou CNPJ, com ou sem pontuação, com os dígitos verificadores corretos. (null when left out) */
+        public String getTaxId() {
+            return taxId;
+        }
+
+        /** @return Qual documento tax_id é; sem ele, o número diz. (null when left out) */
+        public String getTaxIdKind() {
+            return taxIdKind;
+        }
+
         Map<String, Object> toJson() {
             Map<String, Object> body = new LinkedHashMap<>();
+            if (billingAddress != null) {
+                body.put("billing_address", billingAddress.toJson());
+            }
+            if (billingName != null) {
+                body.put("billing_name", billingName);
+            }
             body.put("email", email);
             if (externalId != null) {
                 body.put("external_id", externalId);
             }
             body.put("name", name);
+            if (phone != null) {
+                body.put("phone", phone);
+            }
+            if (taxId != null) {
+                body.put("tax_id", taxId);
+            }
+            if (taxIdKind != null) {
+                body.put("tax_id_kind", taxIdKind);
+            }
             return body;
         }
 
         /** Builds {@link CreateParams}; the fields left unset are left out of the request. */
         public static final class Builder {
+            private CustomersCreateBillingAddress billingAddress;
+            private String billingName;
             private String email;
             private String externalId;
             private String name;
+            private String phone;
+            private String taxId;
+            private String taxIdKind;
 
             private Builder() {
+            }
+
+            /**
+             * @param billingAddress Endereço de cobrança: rua e número, bairro, cidade, UF e CEP vêm juntos (o complemento é opcional).
+             * @return this builder
+             */
+            public Builder billingAddress(CustomersCreateBillingAddress billingAddress) {
+                this.billingAddress = billingAddress;
+                return this;
+            }
+
+            /**
+             * @param billingName Nome ou razão social de quem paga, quando difere de name.
+             * @return this builder
+             */
+            public Builder billingName(String billingName) {
+                this.billingName = billingName;
+                return this;
             }
 
             /**
@@ -117,6 +194,33 @@ public final class CustomersService {
             }
 
             /**
+             * @param phone Telefone ou celular com DDD, com ou sem pontuação.
+             * @return this builder
+             */
+            public Builder phone(String phone) {
+                this.phone = phone;
+                return this;
+            }
+
+            /**
+             * @param taxId CPF ou CNPJ, com ou sem pontuação, com os dígitos verificadores corretos.
+             * @return this builder
+             */
+            public Builder taxId(String taxId) {
+                this.taxId = taxId;
+                return this;
+            }
+
+            /**
+             * @param taxIdKind Qual documento tax_id é; sem ele, o número diz.
+             * @return this builder
+             */
+            public Builder taxIdKind(String taxIdKind) {
+                this.taxIdKind = taxIdKind;
+                return this;
+            }
+
+            /**
              * @return the request
              * @throws IllegalStateException when a required field is unset
              */
@@ -128,6 +232,160 @@ public final class CustomersService {
                     throw new IllegalStateException("perata: CreateParams needs name");
                 }
                 return new CreateParams(this);
+            }
+        }
+    }
+
+
+    /** Endereço de cobrança: rua e número, bairro, cidade, UF e CEP vêm juntos (o complemento é opcional). */
+    public static final class CustomersCreateBillingAddress {
+
+        private final String city;
+        private final String district;
+        private final String line1;
+        private final String line2;
+        private final String postalCode;
+        private final String state;
+
+        private CustomersCreateBillingAddress(Builder builder) {
+            this.city = builder.city;
+            this.district = builder.district;
+            this.line1 = builder.line1;
+            this.line2 = builder.line2;
+            this.postalCode = builder.postalCode;
+            this.state = builder.state;
+        }
+
+        /** @return a builder of the request */
+        public static Builder builder() {
+            return new Builder();
+        }
+
+        /** @return the {@code city} sent (null when left out) */
+        public String getCity() {
+            return city;
+        }
+
+        /** @return Bairro. (null when left out) */
+        public String getDistrict() {
+            return district;
+        }
+
+        /** @return Rua e número. (null when left out) */
+        public String getLine1() {
+            return line1;
+        }
+
+        /** @return Complemento. (null when left out) */
+        public String getLine2() {
+            return line2;
+        }
+
+        /** @return CEP, com ou sem hífen. (null when left out) */
+        public String getPostalCode() {
+            return postalCode;
+        }
+
+        /** @return UF, duas letras. (null when left out) */
+        public String getState() {
+            return state;
+        }
+
+        Map<String, Object> toJson() {
+            Map<String, Object> body = new LinkedHashMap<>();
+            if (city != null) {
+                body.put("city", city);
+            }
+            if (district != null) {
+                body.put("district", district);
+            }
+            if (line1 != null) {
+                body.put("line1", line1);
+            }
+            if (line2 != null) {
+                body.put("line2", line2);
+            }
+            if (postalCode != null) {
+                body.put("postal_code", postalCode);
+            }
+            if (state != null) {
+                body.put("state", state);
+            }
+            return body;
+        }
+
+        /** Builds {@link CustomersCreateBillingAddress}; the fields left unset are left out of the request. */
+        public static final class Builder {
+            private String city;
+            private String district;
+            private String line1;
+            private String line2;
+            private String postalCode;
+            private String state;
+
+            private Builder() {
+            }
+
+            /**
+             * @param city the {@code city} to send
+             * @return this builder
+             */
+            public Builder city(String city) {
+                this.city = city;
+                return this;
+            }
+
+            /**
+             * @param district Bairro.
+             * @return this builder
+             */
+            public Builder district(String district) {
+                this.district = district;
+                return this;
+            }
+
+            /**
+             * @param line1 Rua e número.
+             * @return this builder
+             */
+            public Builder line1(String line1) {
+                this.line1 = line1;
+                return this;
+            }
+
+            /**
+             * @param line2 Complemento.
+             * @return this builder
+             */
+            public Builder line2(String line2) {
+                this.line2 = line2;
+                return this;
+            }
+
+            /**
+             * @param postalCode CEP, com ou sem hífen.
+             * @return this builder
+             */
+            public Builder postalCode(String postalCode) {
+                this.postalCode = postalCode;
+                return this;
+            }
+
+            /**
+             * @param state UF, duas letras.
+             * @return this builder
+             */
+            public Builder state(String state) {
+                this.state = state;
+                return this;
+            }
+
+            /**
+             * @return the request
+             * @throws IllegalStateException when a required field is unset
+             */
+            public CustomersCreateBillingAddress build() {
+                return new CustomersCreateBillingAddress(this);
             }
         }
     }
@@ -349,7 +607,7 @@ public final class CustomersService {
     }
 
     /**
-     * Atualizar o nome, o e-mail ou o ID externo de um cliente; o ID externo não muda depois de definido.
+     * Atualizar o nome, o e-mail, o ID externo, o CPF ou CNPJ, o telefone ou o endereço de cobrança de um cliente; o ID externo não muda depois de definido.
      * @param customer the customer
      * @param params the request
      * @param options an idempotency key or another organization's key for this call, or null
@@ -362,7 +620,7 @@ public final class CustomersService {
     }
 
     /**
-     * Atualizar o nome, o e-mail ou o ID externo de um cliente; o ID externo não muda depois de definido.
+     * Atualizar o nome, o e-mail, o ID externo, o CPF ou CNPJ, o telefone ou o endereço de cobrança de um cliente; o ID externo não muda depois de definido.
      * @param customer the customer
      * @param params the request
      * @return the customer
@@ -374,20 +632,44 @@ public final class CustomersService {
 
     /** The body of customers:update. */
     public static final class UpdateParams {
+        /** A value of {@link #getTaxIdKind()}. */
+        public static final String TAX_ID_KIND_CPF = "cpf";
+        /** A value of {@link #getTaxIdKind()}. */
+        public static final String TAX_ID_KIND_CNPJ = "cnpj";
 
+        private final CustomersUpdateBillingAddress billingAddress;
+        private final String billingName;
         private final String email;
         private final String externalId;
         private final String name;
+        private final String phone;
+        private final String taxId;
+        private final String taxIdKind;
 
         private UpdateParams(Builder builder) {
+            this.billingAddress = builder.billingAddress;
+            this.billingName = builder.billingName;
             this.email = builder.email;
             this.externalId = builder.externalId;
             this.name = builder.name;
+            this.phone = builder.phone;
+            this.taxId = builder.taxId;
+            this.taxIdKind = builder.taxIdKind;
         }
 
         /** @return a builder of the request */
         public static Builder builder() {
             return new Builder();
+        }
+
+        /** @return Endereço de cobrança: rua e número, bairro, cidade, UF e CEP vêm juntos (o complemento é opcional). Cada parte enviada substitui a guardada, e o endereço que resulta precisa estar inteiro; envie as partes vazias para apagar o endereço. (null when left out) */
+        public CustomersUpdateBillingAddress getBillingAddress() {
+            return billingAddress;
+        }
+
+        /** @return Nome ou razão social de quem paga, quando difere de name. (null when left out) */
+        public String getBillingName() {
+            return billingName;
         }
 
         /** @return the {@code email} sent (null when left out) */
@@ -405,8 +687,29 @@ public final class CustomersService {
             return name;
         }
 
+        /** @return Telefone ou celular com DDD, com ou sem pontuação. (null when left out) */
+        public String getPhone() {
+            return phone;
+        }
+
+        /** @return CPF ou CNPJ, com ou sem pontuação, com os dígitos verificadores corretos. Só a chave de um dono ou administrador da organização o altera; as demais recebem 403. Texto vazio apaga. (null when left out) */
+        public String getTaxId() {
+            return taxId;
+        }
+
+        /** @return Qual documento tax_id é; sem ele, o número diz. (null when left out) */
+        public String getTaxIdKind() {
+            return taxIdKind;
+        }
+
         Map<String, Object> toJson() {
             Map<String, Object> body = new LinkedHashMap<>();
+            if (billingAddress != null) {
+                body.put("billing_address", billingAddress.toJson());
+            }
+            if (billingName != null) {
+                body.put("billing_name", billingName);
+            }
             if (email != null) {
                 body.put("email", email);
             }
@@ -416,16 +719,48 @@ public final class CustomersService {
             if (name != null) {
                 body.put("name", name);
             }
+            if (phone != null) {
+                body.put("phone", phone);
+            }
+            if (taxId != null) {
+                body.put("tax_id", taxId);
+            }
+            if (taxIdKind != null) {
+                body.put("tax_id_kind", taxIdKind);
+            }
             return body;
         }
 
         /** Builds {@link UpdateParams}; the fields left unset are left out of the request. */
         public static final class Builder {
+            private CustomersUpdateBillingAddress billingAddress;
+            private String billingName;
             private String email;
             private String externalId;
             private String name;
+            private String phone;
+            private String taxId;
+            private String taxIdKind;
 
             private Builder() {
+            }
+
+            /**
+             * @param billingAddress Endereço de cobrança: rua e número, bairro, cidade, UF e CEP vêm juntos (o complemento é opcional). Cada parte enviada substitui a guardada, e o endereço que resulta precisa estar inteiro; envie as partes vazias para apagar o endereço.
+             * @return this builder
+             */
+            public Builder billingAddress(CustomersUpdateBillingAddress billingAddress) {
+                this.billingAddress = billingAddress;
+                return this;
+            }
+
+            /**
+             * @param billingName Nome ou razão social de quem paga, quando difere de name.
+             * @return this builder
+             */
+            public Builder billingName(String billingName) {
+                this.billingName = billingName;
+                return this;
             }
 
             /**
@@ -456,11 +791,192 @@ public final class CustomersService {
             }
 
             /**
+             * @param phone Telefone ou celular com DDD, com ou sem pontuação.
+             * @return this builder
+             */
+            public Builder phone(String phone) {
+                this.phone = phone;
+                return this;
+            }
+
+            /**
+             * @param taxId CPF ou CNPJ, com ou sem pontuação, com os dígitos verificadores corretos. Só a chave de um dono ou administrador da organização o altera; as demais recebem 403. Texto vazio apaga.
+             * @return this builder
+             */
+            public Builder taxId(String taxId) {
+                this.taxId = taxId;
+                return this;
+            }
+
+            /**
+             * @param taxIdKind Qual documento tax_id é; sem ele, o número diz.
+             * @return this builder
+             */
+            public Builder taxIdKind(String taxIdKind) {
+                this.taxIdKind = taxIdKind;
+                return this;
+            }
+
+            /**
              * @return the request
              * @throws IllegalStateException when a required field is unset
              */
             public UpdateParams build() {
                 return new UpdateParams(this);
+            }
+        }
+    }
+
+
+    /** Endereço de cobrança: rua e número, bairro, cidade, UF e CEP vêm juntos (o complemento é opcional). Cada parte enviada substitui a guardada, e o endereço que resulta precisa estar inteiro; envie as partes vazias para apagar o endereço. */
+    public static final class CustomersUpdateBillingAddress {
+
+        private final String city;
+        private final String district;
+        private final String line1;
+        private final String line2;
+        private final String postalCode;
+        private final String state;
+
+        private CustomersUpdateBillingAddress(Builder builder) {
+            this.city = builder.city;
+            this.district = builder.district;
+            this.line1 = builder.line1;
+            this.line2 = builder.line2;
+            this.postalCode = builder.postalCode;
+            this.state = builder.state;
+        }
+
+        /** @return a builder of the request */
+        public static Builder builder() {
+            return new Builder();
+        }
+
+        /** @return the {@code city} sent (null when left out) */
+        public String getCity() {
+            return city;
+        }
+
+        /** @return Bairro. (null when left out) */
+        public String getDistrict() {
+            return district;
+        }
+
+        /** @return Rua e número. (null when left out) */
+        public String getLine1() {
+            return line1;
+        }
+
+        /** @return Complemento. (null when left out) */
+        public String getLine2() {
+            return line2;
+        }
+
+        /** @return CEP, com ou sem hífen. (null when left out) */
+        public String getPostalCode() {
+            return postalCode;
+        }
+
+        /** @return UF, duas letras. (null when left out) */
+        public String getState() {
+            return state;
+        }
+
+        Map<String, Object> toJson() {
+            Map<String, Object> body = new LinkedHashMap<>();
+            if (city != null) {
+                body.put("city", city);
+            }
+            if (district != null) {
+                body.put("district", district);
+            }
+            if (line1 != null) {
+                body.put("line1", line1);
+            }
+            if (line2 != null) {
+                body.put("line2", line2);
+            }
+            if (postalCode != null) {
+                body.put("postal_code", postalCode);
+            }
+            if (state != null) {
+                body.put("state", state);
+            }
+            return body;
+        }
+
+        /** Builds {@link CustomersUpdateBillingAddress}; the fields left unset are left out of the request. */
+        public static final class Builder {
+            private String city;
+            private String district;
+            private String line1;
+            private String line2;
+            private String postalCode;
+            private String state;
+
+            private Builder() {
+            }
+
+            /**
+             * @param city the {@code city} to send
+             * @return this builder
+             */
+            public Builder city(String city) {
+                this.city = city;
+                return this;
+            }
+
+            /**
+             * @param district Bairro.
+             * @return this builder
+             */
+            public Builder district(String district) {
+                this.district = district;
+                return this;
+            }
+
+            /**
+             * @param line1 Rua e número.
+             * @return this builder
+             */
+            public Builder line1(String line1) {
+                this.line1 = line1;
+                return this;
+            }
+
+            /**
+             * @param line2 Complemento.
+             * @return this builder
+             */
+            public Builder line2(String line2) {
+                this.line2 = line2;
+                return this;
+            }
+
+            /**
+             * @param postalCode CEP, com ou sem hífen.
+             * @return this builder
+             */
+            public Builder postalCode(String postalCode) {
+                this.postalCode = postalCode;
+                return this;
+            }
+
+            /**
+             * @param state UF, duas letras.
+             * @return this builder
+             */
+            public Builder state(String state) {
+                this.state = state;
+                return this;
+            }
+
+            /**
+             * @return the request
+             * @throws IllegalStateException when a required field is unset
+             */
+            public CustomersUpdateBillingAddress build() {
+                return new CustomersUpdateBillingAddress(this);
             }
         }
     }
@@ -492,20 +1008,44 @@ public final class CustomersService {
 
     /** The body of customers:update_external. */
     public static final class UpdateExternalParams {
+        /** A value of {@link #getTaxIdKind()}. */
+        public static final String TAX_ID_KIND_CPF = "cpf";
+        /** A value of {@link #getTaxIdKind()}. */
+        public static final String TAX_ID_KIND_CNPJ = "cnpj";
 
+        private final CustomersUpdateExternalBillingAddress billingAddress;
+        private final String billingName;
         private final String email;
         private final String externalId;
         private final String name;
+        private final String phone;
+        private final String taxId;
+        private final String taxIdKind;
 
         private UpdateExternalParams(Builder builder) {
+            this.billingAddress = builder.billingAddress;
+            this.billingName = builder.billingName;
             this.email = builder.email;
             this.externalId = builder.externalId;
             this.name = builder.name;
+            this.phone = builder.phone;
+            this.taxId = builder.taxId;
+            this.taxIdKind = builder.taxIdKind;
         }
 
         /** @return a builder of the request */
         public static Builder builder() {
             return new Builder();
+        }
+
+        /** @return Endereço de cobrança: rua e número, bairro, cidade, UF e CEP vêm juntos (o complemento é opcional). Cada parte enviada substitui a guardada, e o endereço que resulta precisa estar inteiro; envie as partes vazias para apagar o endereço. (null when left out) */
+        public CustomersUpdateExternalBillingAddress getBillingAddress() {
+            return billingAddress;
+        }
+
+        /** @return Nome ou razão social de quem paga, quando difere de name. (null when left out) */
+        public String getBillingName() {
+            return billingName;
         }
 
         /** @return the {@code email} sent (null when left out) */
@@ -523,8 +1063,29 @@ public final class CustomersService {
             return name;
         }
 
+        /** @return Telefone ou celular com DDD, com ou sem pontuação. (null when left out) */
+        public String getPhone() {
+            return phone;
+        }
+
+        /** @return CPF ou CNPJ, com ou sem pontuação, com os dígitos verificadores corretos. Só a chave de um dono ou administrador da organização o altera; as demais recebem 403. Texto vazio apaga. (null when left out) */
+        public String getTaxId() {
+            return taxId;
+        }
+
+        /** @return Qual documento tax_id é; sem ele, o número diz. (null when left out) */
+        public String getTaxIdKind() {
+            return taxIdKind;
+        }
+
         Map<String, Object> toJson() {
             Map<String, Object> body = new LinkedHashMap<>();
+            if (billingAddress != null) {
+                body.put("billing_address", billingAddress.toJson());
+            }
+            if (billingName != null) {
+                body.put("billing_name", billingName);
+            }
             if (email != null) {
                 body.put("email", email);
             }
@@ -534,16 +1095,48 @@ public final class CustomersService {
             if (name != null) {
                 body.put("name", name);
             }
+            if (phone != null) {
+                body.put("phone", phone);
+            }
+            if (taxId != null) {
+                body.put("tax_id", taxId);
+            }
+            if (taxIdKind != null) {
+                body.put("tax_id_kind", taxIdKind);
+            }
             return body;
         }
 
         /** Builds {@link UpdateExternalParams}; the fields left unset are left out of the request. */
         public static final class Builder {
+            private CustomersUpdateExternalBillingAddress billingAddress;
+            private String billingName;
             private String email;
             private String externalId;
             private String name;
+            private String phone;
+            private String taxId;
+            private String taxIdKind;
 
             private Builder() {
+            }
+
+            /**
+             * @param billingAddress Endereço de cobrança: rua e número, bairro, cidade, UF e CEP vêm juntos (o complemento é opcional). Cada parte enviada substitui a guardada, e o endereço que resulta precisa estar inteiro; envie as partes vazias para apagar o endereço.
+             * @return this builder
+             */
+            public Builder billingAddress(CustomersUpdateExternalBillingAddress billingAddress) {
+                this.billingAddress = billingAddress;
+                return this;
+            }
+
+            /**
+             * @param billingName Nome ou razão social de quem paga, quando difere de name.
+             * @return this builder
+             */
+            public Builder billingName(String billingName) {
+                this.billingName = billingName;
+                return this;
             }
 
             /**
@@ -574,11 +1167,192 @@ public final class CustomersService {
             }
 
             /**
+             * @param phone Telefone ou celular com DDD, com ou sem pontuação.
+             * @return this builder
+             */
+            public Builder phone(String phone) {
+                this.phone = phone;
+                return this;
+            }
+
+            /**
+             * @param taxId CPF ou CNPJ, com ou sem pontuação, com os dígitos verificadores corretos. Só a chave de um dono ou administrador da organização o altera; as demais recebem 403. Texto vazio apaga.
+             * @return this builder
+             */
+            public Builder taxId(String taxId) {
+                this.taxId = taxId;
+                return this;
+            }
+
+            /**
+             * @param taxIdKind Qual documento tax_id é; sem ele, o número diz.
+             * @return this builder
+             */
+            public Builder taxIdKind(String taxIdKind) {
+                this.taxIdKind = taxIdKind;
+                return this;
+            }
+
+            /**
              * @return the request
              * @throws IllegalStateException when a required field is unset
              */
             public UpdateExternalParams build() {
                 return new UpdateExternalParams(this);
+            }
+        }
+    }
+
+
+    /** Endereço de cobrança: rua e número, bairro, cidade, UF e CEP vêm juntos (o complemento é opcional). Cada parte enviada substitui a guardada, e o endereço que resulta precisa estar inteiro; envie as partes vazias para apagar o endereço. */
+    public static final class CustomersUpdateExternalBillingAddress {
+
+        private final String city;
+        private final String district;
+        private final String line1;
+        private final String line2;
+        private final String postalCode;
+        private final String state;
+
+        private CustomersUpdateExternalBillingAddress(Builder builder) {
+            this.city = builder.city;
+            this.district = builder.district;
+            this.line1 = builder.line1;
+            this.line2 = builder.line2;
+            this.postalCode = builder.postalCode;
+            this.state = builder.state;
+        }
+
+        /** @return a builder of the request */
+        public static Builder builder() {
+            return new Builder();
+        }
+
+        /** @return the {@code city} sent (null when left out) */
+        public String getCity() {
+            return city;
+        }
+
+        /** @return Bairro. (null when left out) */
+        public String getDistrict() {
+            return district;
+        }
+
+        /** @return Rua e número. (null when left out) */
+        public String getLine1() {
+            return line1;
+        }
+
+        /** @return Complemento. (null when left out) */
+        public String getLine2() {
+            return line2;
+        }
+
+        /** @return CEP, com ou sem hífen. (null when left out) */
+        public String getPostalCode() {
+            return postalCode;
+        }
+
+        /** @return UF, duas letras. (null when left out) */
+        public String getState() {
+            return state;
+        }
+
+        Map<String, Object> toJson() {
+            Map<String, Object> body = new LinkedHashMap<>();
+            if (city != null) {
+                body.put("city", city);
+            }
+            if (district != null) {
+                body.put("district", district);
+            }
+            if (line1 != null) {
+                body.put("line1", line1);
+            }
+            if (line2 != null) {
+                body.put("line2", line2);
+            }
+            if (postalCode != null) {
+                body.put("postal_code", postalCode);
+            }
+            if (state != null) {
+                body.put("state", state);
+            }
+            return body;
+        }
+
+        /** Builds {@link CustomersUpdateExternalBillingAddress}; the fields left unset are left out of the request. */
+        public static final class Builder {
+            private String city;
+            private String district;
+            private String line1;
+            private String line2;
+            private String postalCode;
+            private String state;
+
+            private Builder() {
+            }
+
+            /**
+             * @param city the {@code city} to send
+             * @return this builder
+             */
+            public Builder city(String city) {
+                this.city = city;
+                return this;
+            }
+
+            /**
+             * @param district Bairro.
+             * @return this builder
+             */
+            public Builder district(String district) {
+                this.district = district;
+                return this;
+            }
+
+            /**
+             * @param line1 Rua e número.
+             * @return this builder
+             */
+            public Builder line1(String line1) {
+                this.line1 = line1;
+                return this;
+            }
+
+            /**
+             * @param line2 Complemento.
+             * @return this builder
+             */
+            public Builder line2(String line2) {
+                this.line2 = line2;
+                return this;
+            }
+
+            /**
+             * @param postalCode CEP, com ou sem hífen.
+             * @return this builder
+             */
+            public Builder postalCode(String postalCode) {
+                this.postalCode = postalCode;
+                return this;
+            }
+
+            /**
+             * @param state UF, duas letras.
+             * @return this builder
+             */
+            public Builder state(String state) {
+                this.state = state;
+                return this;
+            }
+
+            /**
+             * @return the request
+             * @throws IllegalStateException when a required field is unset
+             */
+            public CustomersUpdateExternalBillingAddress build() {
+                return new CustomersUpdateExternalBillingAddress(this);
             }
         }
     }

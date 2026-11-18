@@ -445,15 +445,34 @@ defmodule Perata.CustomersCreateParams do
   """
 
   @enforce_keys [:email, :name]
-  defstruct [:email, :external_id, :name]
+  defstruct [
+    :billing_address,
+    :billing_name,
+    :email,
+    :external_id,
+    :name,
+    :phone,
+    :tax_id,
+    :tax_id_kind
+  ]
 
   @typedoc """
+  * `billing_address` (optional): Endereço de cobrança: rua e número, bairro, cidade, UF e CEP vêm juntos (o complemento é opcional).
+  * `billing_name` (optional): Nome ou razão social de quem paga, quando difere de name.
   * `external_id` (optional): Até 120 caracteres, sem barra (/) nem caracteres de controle.
+  * `phone` (optional): Telefone ou celular com DDD, com ou sem pontuação.
+  * `tax_id` (optional): CPF ou CNPJ, com ou sem pontuação, com os dígitos verificadores corretos.
+  * `tax_id_kind` (optional; one of `"cpf"`, `"cnpj"`): Qual documento tax_id é; sem ele, o número diz.
   """
   @type t :: %__MODULE__{
+          billing_address: Perata.CustomersCreateBillingAddress.t() | nil,
+          billing_name: String.t() | nil,
           email: String.t(),
           external_id: String.t() | nil,
-          name: String.t()
+          name: String.t(),
+          phone: String.t() | nil,
+          tax_id: String.t() | nil,
+          tax_id_kind: String.t() | nil
         }
 
   @doc "The params as they are, or built from a keyword list or a map with atom keys."
@@ -467,29 +486,40 @@ defmodule Perata.CustomersCreateParams do
     params = new(params)
 
     %{"email" => params.email, "name" => params.name}
+    |> Perata.Encode.put_optional("billing_address", Perata.Encode.value(params.billing_address))
+    |> Perata.Encode.put_optional("billing_name", params.billing_name)
     |> Perata.Encode.put_optional("external_id", params.external_id)
+    |> Perata.Encode.put_optional("phone", params.phone)
+    |> Perata.Encode.put_optional("tax_id", params.tax_id)
+    |> Perata.Encode.put_optional("tax_id_kind", params.tax_id_kind)
   end
 end
 
-defmodule Perata.CustomersUpdateParams do
+defmodule Perata.CustomersCreateBillingAddress do
   @moduledoc """
-  The body of customers:update.
+  Endereço de cobrança: rua e número, bairro, cidade, UF e CEP vêm juntos (o complemento é opcional).
 
   Build it with `new/1` from a keyword list or a map; an optional field left
   out is left out of the JSON.
   """
 
-  defstruct [:email, :external_id, :name]
+  defstruct [:city, :district, :line1, :line2, :postal_code, :state]
 
   @typedoc """
-  * `email` (optional)
-  * `external_id` (optional): Só pode ser definido uma vez. Até 120 caracteres, sem barra (/) nem caracteres de controle.
-  * `name` (optional)
+  * `city` (optional)
+  * `district` (optional): Bairro.
+  * `line1` (optional): Rua e número.
+  * `line2` (optional): Complemento.
+  * `postal_code` (optional): CEP, com ou sem hífen.
+  * `state` (optional): UF, duas letras.
   """
   @type t :: %__MODULE__{
-          email: String.t() | nil,
-          external_id: String.t() | nil,
-          name: String.t() | nil
+          city: String.t() | nil,
+          district: String.t() | nil,
+          line1: String.t() | nil,
+          line2: String.t() | nil,
+          postal_code: String.t() | nil,
+          state: String.t() | nil
         }
 
   @doc "The params as they are, or built from a keyword list or a map with atom keys."
@@ -503,9 +533,121 @@ defmodule Perata.CustomersUpdateParams do
     params = new(params)
 
     %{}
+    |> Perata.Encode.put_optional("city", params.city)
+    |> Perata.Encode.put_optional("district", params.district)
+    |> Perata.Encode.put_optional("line1", params.line1)
+    |> Perata.Encode.put_optional("line2", params.line2)
+    |> Perata.Encode.put_optional("postal_code", params.postal_code)
+    |> Perata.Encode.put_optional("state", params.state)
+  end
+end
+
+defmodule Perata.CustomersUpdateParams do
+  @moduledoc """
+  The body of customers:update.
+
+  Build it with `new/1` from a keyword list or a map; an optional field left
+  out is left out of the JSON.
+  """
+
+  defstruct [
+    :billing_address,
+    :billing_name,
+    :email,
+    :external_id,
+    :name,
+    :phone,
+    :tax_id,
+    :tax_id_kind
+  ]
+
+  @typedoc """
+  * `billing_address` (optional): Endereço de cobrança: rua e número, bairro, cidade, UF e CEP vêm juntos (o complemento é opcional). Cada parte enviada substitui a guardada, e o endereço que resulta precisa estar inteiro; envie as partes vazias para apagar o endereço.
+  * `billing_name` (optional): Nome ou razão social de quem paga, quando difere de name.
+  * `email` (optional)
+  * `external_id` (optional): Só pode ser definido uma vez. Até 120 caracteres, sem barra (/) nem caracteres de controle.
+  * `name` (optional)
+  * `phone` (optional): Telefone ou celular com DDD, com ou sem pontuação.
+  * `tax_id` (optional): CPF ou CNPJ, com ou sem pontuação, com os dígitos verificadores corretos. Só a chave de um dono ou administrador da organização o altera; as demais recebem 403. Texto vazio apaga.
+  * `tax_id_kind` (optional; one of `"cpf"`, `"cnpj"`): Qual documento tax_id é; sem ele, o número diz.
+  """
+  @type t :: %__MODULE__{
+          billing_address: Perata.CustomersUpdateBillingAddress.t() | nil,
+          billing_name: String.t() | nil,
+          email: String.t() | nil,
+          external_id: String.t() | nil,
+          name: String.t() | nil,
+          phone: String.t() | nil,
+          tax_id: String.t() | nil,
+          tax_id_kind: String.t() | nil
+        }
+
+  @doc "The params as they are, or built from a keyword list or a map with atom keys."
+  @spec new(t() | keyword() | map()) :: t()
+  def new(%__MODULE__{} = params), do: params
+  def new(fields), do: struct!(__MODULE__, fields)
+
+  @doc "The body as the API reads it, from the params or what `new/1` builds them from."
+  @spec to_map(t() | keyword() | map()) :: %{optional(String.t()) => term()}
+  def to_map(params) do
+    params = new(params)
+
+    %{}
+    |> Perata.Encode.put_optional("billing_address", Perata.Encode.value(params.billing_address))
+    |> Perata.Encode.put_optional("billing_name", params.billing_name)
     |> Perata.Encode.put_optional("email", params.email)
     |> Perata.Encode.put_optional("external_id", params.external_id)
     |> Perata.Encode.put_optional("name", params.name)
+    |> Perata.Encode.put_optional("phone", params.phone)
+    |> Perata.Encode.put_optional("tax_id", params.tax_id)
+    |> Perata.Encode.put_optional("tax_id_kind", params.tax_id_kind)
+  end
+end
+
+defmodule Perata.CustomersUpdateBillingAddress do
+  @moduledoc """
+  Endereço de cobrança: rua e número, bairro, cidade, UF e CEP vêm juntos (o complemento é opcional). Cada parte enviada substitui a guardada, e o endereço que resulta precisa estar inteiro; envie as partes vazias para apagar o endereço.
+
+  Build it with `new/1` from a keyword list or a map; an optional field left
+  out is left out of the JSON.
+  """
+
+  defstruct [:city, :district, :line1, :line2, :postal_code, :state]
+
+  @typedoc """
+  * `city` (optional)
+  * `district` (optional): Bairro.
+  * `line1` (optional): Rua e número.
+  * `line2` (optional): Complemento.
+  * `postal_code` (optional): CEP, com ou sem hífen.
+  * `state` (optional): UF, duas letras.
+  """
+  @type t :: %__MODULE__{
+          city: String.t() | nil,
+          district: String.t() | nil,
+          line1: String.t() | nil,
+          line2: String.t() | nil,
+          postal_code: String.t() | nil,
+          state: String.t() | nil
+        }
+
+  @doc "The params as they are, or built from a keyword list or a map with atom keys."
+  @spec new(t() | keyword() | map()) :: t()
+  def new(%__MODULE__{} = params), do: params
+  def new(fields), do: struct!(__MODULE__, fields)
+
+  @doc "The body as the API reads it, from the params or what `new/1` builds them from."
+  @spec to_map(t() | keyword() | map()) :: %{optional(String.t()) => term()}
+  def to_map(params) do
+    params = new(params)
+
+    %{}
+    |> Perata.Encode.put_optional("city", params.city)
+    |> Perata.Encode.put_optional("district", params.district)
+    |> Perata.Encode.put_optional("line1", params.line1)
+    |> Perata.Encode.put_optional("line2", params.line2)
+    |> Perata.Encode.put_optional("postal_code", params.postal_code)
+    |> Perata.Encode.put_optional("state", params.state)
   end
 end
 
@@ -662,17 +804,36 @@ defmodule Perata.CustomersUpdateExternalParams do
   out is left out of the JSON.
   """
 
-  defstruct [:email, :external_id, :name]
+  defstruct [
+    :billing_address,
+    :billing_name,
+    :email,
+    :external_id,
+    :name,
+    :phone,
+    :tax_id,
+    :tax_id_kind
+  ]
 
   @typedoc """
+  * `billing_address` (optional): Endereço de cobrança: rua e número, bairro, cidade, UF e CEP vêm juntos (o complemento é opcional). Cada parte enviada substitui a guardada, e o endereço que resulta precisa estar inteiro; envie as partes vazias para apagar o endereço.
+  * `billing_name` (optional): Nome ou razão social de quem paga, quando difere de name.
   * `email` (optional)
   * `external_id` (optional): Só pode ser definido uma vez. Até 120 caracteres, sem barra (/) nem caracteres de controle.
   * `name` (optional)
+  * `phone` (optional): Telefone ou celular com DDD, com ou sem pontuação.
+  * `tax_id` (optional): CPF ou CNPJ, com ou sem pontuação, com os dígitos verificadores corretos. Só a chave de um dono ou administrador da organização o altera; as demais recebem 403. Texto vazio apaga.
+  * `tax_id_kind` (optional; one of `"cpf"`, `"cnpj"`): Qual documento tax_id é; sem ele, o número diz.
   """
   @type t :: %__MODULE__{
+          billing_address: Perata.CustomersUpdateExternalBillingAddress.t() | nil,
+          billing_name: String.t() | nil,
           email: String.t() | nil,
           external_id: String.t() | nil,
-          name: String.t() | nil
+          name: String.t() | nil,
+          phone: String.t() | nil,
+          tax_id: String.t() | nil,
+          tax_id_kind: String.t() | nil
         }
 
   @doc "The params as they are, or built from a keyword list or a map with atom keys."
@@ -686,9 +847,61 @@ defmodule Perata.CustomersUpdateExternalParams do
     params = new(params)
 
     %{}
+    |> Perata.Encode.put_optional("billing_address", Perata.Encode.value(params.billing_address))
+    |> Perata.Encode.put_optional("billing_name", params.billing_name)
     |> Perata.Encode.put_optional("email", params.email)
     |> Perata.Encode.put_optional("external_id", params.external_id)
     |> Perata.Encode.put_optional("name", params.name)
+    |> Perata.Encode.put_optional("phone", params.phone)
+    |> Perata.Encode.put_optional("tax_id", params.tax_id)
+    |> Perata.Encode.put_optional("tax_id_kind", params.tax_id_kind)
+  end
+end
+
+defmodule Perata.CustomersUpdateExternalBillingAddress do
+  @moduledoc """
+  Endereço de cobrança: rua e número, bairro, cidade, UF e CEP vêm juntos (o complemento é opcional). Cada parte enviada substitui a guardada, e o endereço que resulta precisa estar inteiro; envie as partes vazias para apagar o endereço.
+
+  Build it with `new/1` from a keyword list or a map; an optional field left
+  out is left out of the JSON.
+  """
+
+  defstruct [:city, :district, :line1, :line2, :postal_code, :state]
+
+  @typedoc """
+  * `city` (optional)
+  * `district` (optional): Bairro.
+  * `line1` (optional): Rua e número.
+  * `line2` (optional): Complemento.
+  * `postal_code` (optional): CEP, com ou sem hífen.
+  * `state` (optional): UF, duas letras.
+  """
+  @type t :: %__MODULE__{
+          city: String.t() | nil,
+          district: String.t() | nil,
+          line1: String.t() | nil,
+          line2: String.t() | nil,
+          postal_code: String.t() | nil,
+          state: String.t() | nil
+        }
+
+  @doc "The params as they are, or built from a keyword list or a map with atom keys."
+  @spec new(t() | keyword() | map()) :: t()
+  def new(%__MODULE__{} = params), do: params
+  def new(fields), do: struct!(__MODULE__, fields)
+
+  @doc "The body as the API reads it, from the params or what `new/1` builds them from."
+  @spec to_map(t() | keyword() | map()) :: %{optional(String.t()) => term()}
+  def to_map(params) do
+    params = new(params)
+
+    %{}
+    |> Perata.Encode.put_optional("city", params.city)
+    |> Perata.Encode.put_optional("district", params.district)
+    |> Perata.Encode.put_optional("line1", params.line1)
+    |> Perata.Encode.put_optional("line2", params.line2)
+    |> Perata.Encode.put_optional("postal_code", params.postal_code)
+    |> Perata.Encode.put_optional("state", params.state)
   end
 end
 

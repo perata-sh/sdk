@@ -2,7 +2,7 @@
 
 Todos os SDKs da Peráta saem com a mesma versão; as mudanças de cada uma estão também nas [releases de perata-sh/sdk](https://github.com/perata-sh/sdk/releases).
 
-## 0.5.0 (16/11/2026)
+## 0.5.2 (16/11/2026)
 
 Gerado a partir do contrato da API 0.1.0.
 
@@ -12,7 +12,7 @@ Gerado a partir do contrato da API 0.1.0.
 - Um campo que pode ser nulo e aponta para um modelo (`customer`, `discount` e `payment` de `CheckoutClient`; `pix` e `boleto` de `CheckoutClientPayment`) é agora tipado como o modelo ou nulo, e não mais um valor livre.
 - O README ganhou o fluxo do checkout transparente e embutido.
 
-## 0.5.0 (14/11/2026)
+## 0.5.2 (14/11/2026)
 
 Gerado a partir do contrato da API 0.1.0.
 

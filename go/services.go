@@ -267,6 +267,16 @@ func (s *CheckoutsService) Create(ctx context.Context, params CheckoutsCreatePar
 	return &out, nil
 }
 
+// Expire: Encerrar um checkout que não deve mais ser pago: a página, o client_secret e o QR do Pix deixam de valer (o Pix já gerado é cancelado na Cielo), e o evento checkout.expired é enviado; 409 se já foi pago ou se emitiu boleto.
+func (s *CheckoutsService) Expire(ctx context.Context, checkout string, opts ...RequestOption) (*CheckoutExpired, error) {
+	var out CheckoutExpired
+	err := s.client.do(ctx, http.MethodPost, "/api/v1/checkouts/"+url.PathEscape(checkout)+"/expire", nil, nil, &out, opts)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
 // Get: Ler um checkout: o endereço, o estado e as páginas de retorno.
 func (s *CheckoutsService) Get(ctx context.Context, checkout string, opts ...RequestOption) (*Checkout, error) {
 	var out Checkout
@@ -275,6 +285,73 @@ func (s *CheckoutsService) Get(ctx context.Context, checkout string, opts ...Req
 		return nil, err
 	}
 	return &out, nil
+}
+
+// CheckoutsListParams are the page and filters of checkouts:list.
+type CheckoutsListParams struct {
+	// Page is the page, from 1; Limit the items a page, 1 to 100 (10 by default).
+	Page, Limit int
+	// Só os registros com este client_reference_id: o ID do pedido no seu sistema, que você enviou ao criar o checkout.
+	ClientReferenceID string
+	// Só os checkouts neste status: active ou archived.
+	Status string
+	// Só os criados a partir deste instante, inclusive (RFC 3339, como 2026-11-17T00:00:00-03:00).
+	CreatedAfter string
+	// Só os criados antes deste instante (RFC 3339); com created_after, o período é [created_after, created_before).
+	CreatedBefore string
+	// Ordem da lista: created_at, e com um - na frente é decrescente (-created_at, o mais novo primeiro, é o padrão).
+	Sorting string
+}
+
+func (p *CheckoutsListParams) query() url.Values {
+	q := url.Values{}
+	if p == nil {
+		return q
+	}
+	if p.Page > 0 {
+		q.Set("page", strconv.Itoa(p.Page))
+	}
+	if p.Limit > 0 {
+		q.Set("limit", strconv.Itoa(p.Limit))
+	}
+	if p.ClientReferenceID != "" {
+		q.Set("client_reference_id", p.ClientReferenceID)
+	}
+	if p.Status != "" {
+		q.Set("status", p.Status)
+	}
+	if p.CreatedAfter != "" {
+		q.Set("created_after", p.CreatedAfter)
+	}
+	if p.CreatedBefore != "" {
+		q.Set("created_before", p.CreatedBefore)
+	}
+	if p.Sorting != "" {
+		q.Set("sorting", p.Sorting)
+	}
+	return q
+}
+
+// List: Listar checkouts, opcionalmente de um client_reference_id, de um status, de um período ou de metadados. It answers one page; ListIter walks every page.
+func (s *CheckoutsService) List(ctx context.Context, params *CheckoutsListParams, opts ...RequestOption) (*Page[Checkout], error) {
+	var page Page[Checkout]
+	err := s.client.do(ctx, http.MethodGet, "/api/v1/checkouts", params.query(), nil, &page, opts)
+	if err != nil {
+		return nil, err
+	}
+	return &page, nil
+}
+
+// ListIter walks every page of checkouts:list, item by item.
+func (s *CheckoutsService) ListIter(ctx context.Context, params *CheckoutsListParams, opts ...RequestOption) iter.Seq2[Checkout, error] {
+	walk := CheckoutsListParams{}
+	if params != nil {
+		walk = *params
+	}
+	return iterate(func(page int) (*Page[Checkout], error) {
+		walk.Page = page
+		return s.List(ctx, &walk, opts...)
+	}, walk.Page)
 }
 
 // Update: Atualizar o rótulo e as páginas de retorno de um checkout ativo.
@@ -303,7 +380,7 @@ func (s *CustomerSessionsService) Create(ctx context.Context, params CustomerSes
 // CustomersService is the API's customers.
 type CustomersService struct{ client *Client }
 
-// Create: Criar um cliente.
+// Create: Criar um cliente, com CPF ou CNPJ, telefone e endereço de cobrança se você os tem.
 func (s *CustomersService) Create(ctx context.Context, params CustomersCreateParams, opts ...RequestOption) (*Customer, error) {
 	var out Customer
 	err := s.client.do(ctx, http.MethodPost, "/api/v1/customers", nil, params, &out, opts)
@@ -390,7 +467,7 @@ func (s *CustomersService) ListIter(ctx context.Context, params *CustomersListPa
 	}, walk.Page)
 }
 
-// Update: Atualizar o nome, o e-mail ou o ID externo de um cliente; o ID externo não muda depois de definido.
+// Update: Atualizar o nome, o e-mail, o ID externo, o CPF ou CNPJ, o telefone ou o endereço de cobrança de um cliente; o ID externo não muda depois de definido.
 func (s *CustomersService) Update(ctx context.Context, customer string, params CustomersUpdateParams, opts ...RequestOption) (*Customer, error) {
 	var out Customer
 	err := s.client.do(ctx, http.MethodPatch, "/api/v1/customers/"+url.PathEscape(customer), nil, params, &out, opts)
@@ -707,6 +784,20 @@ func (s *OrdersService) GetReceipt(ctx context.Context, order string, opts ...Re
 type OrdersListParams struct {
 	// Page is the page, from 1; Limit the items a page, 1 to 100 (10 by default).
 	Page, Limit int
+	// Só os registros com este client_reference_id: o ID do pedido no seu sistema, que você enviou ao criar o checkout.
+	ClientReferenceID string
+	// Pedidos são os checkouts pagos: só succeeded.
+	Status string
+	// Só os deste cliente.
+	CustomerID string
+	// Só os do cliente que você identifica por este ID externo; um ID que não existe não acha nada.
+	ExternalCustomerID string
+	// Só os criados a partir deste instante, inclusive (RFC 3339, como 2026-11-17T00:00:00-03:00).
+	CreatedAfter string
+	// Só os criados antes deste instante (RFC 3339); com created_after, o período é [created_after, created_before).
+	CreatedBefore string
+	// Ordem da lista: created_at ou amount, e com um - na frente é decrescente (-created_at, o mais novo primeiro, é o padrão).
+	Sorting string
 }
 
 func (p *OrdersListParams) query() url.Values {
@@ -720,10 +811,31 @@ func (p *OrdersListParams) query() url.Values {
 	if p.Limit > 0 {
 		q.Set("limit", strconv.Itoa(p.Limit))
 	}
+	if p.ClientReferenceID != "" {
+		q.Set("client_reference_id", p.ClientReferenceID)
+	}
+	if p.Status != "" {
+		q.Set("status", p.Status)
+	}
+	if p.CustomerID != "" {
+		q.Set("customer_id", p.CustomerID)
+	}
+	if p.ExternalCustomerID != "" {
+		q.Set("external_customer_id", p.ExternalCustomerID)
+	}
+	if p.CreatedAfter != "" {
+		q.Set("created_after", p.CreatedAfter)
+	}
+	if p.CreatedBefore != "" {
+		q.Set("created_before", p.CreatedBefore)
+	}
+	if p.Sorting != "" {
+		q.Set("sorting", p.Sorting)
+	}
 	return q
 }
 
-// List: Listar pedidos: checkouts pagos. It answers one page; ListIter walks every page.
+// List: Listar pedidos (checkouts pagos), opcionalmente de um client_reference_id, de um cliente, de um período ou de metadados. It answers one page; ListIter walks every page.
 func (s *OrdersService) List(ctx context.Context, params *OrdersListParams, opts ...RequestOption) (*Page[Order], error) {
 	var page Page[Order]
 	err := s.client.do(ctx, http.MethodGet, "/api/v1/orders", params.query(), nil, &page, opts)
@@ -817,6 +929,20 @@ func (s *PaymentsService) Get(ctx context.Context, payment string, opts ...Reque
 type PaymentsListParams struct {
 	// Page is the page, from 1; Limit the items a page, 1 to 100 (10 by default).
 	Page, Limit int
+	// Só os registros com este client_reference_id: o ID do pedido no seu sistema, que você enviou ao criar o checkout.
+	ClientReferenceID string
+	// Só os pagamentos neste estado: unknown, pending, authorized, captured, refused, canceled, refunded ou partially_refunded.
+	Status string
+	// Só os deste cliente.
+	CustomerID string
+	// Só os do cliente que você identifica por este ID externo; um ID que não existe não acha nada.
+	ExternalCustomerID string
+	// Só os criados a partir deste instante, inclusive (RFC 3339, como 2026-11-17T00:00:00-03:00).
+	CreatedAfter string
+	// Só os criados antes deste instante (RFC 3339); com created_after, o período é [created_after, created_before).
+	CreatedBefore string
+	// Ordem da lista: created_at ou amount, e com um - na frente é decrescente (-created_at, o mais novo primeiro, é o padrão).
+	Sorting string
 }
 
 func (p *PaymentsListParams) query() url.Values {
@@ -830,10 +956,31 @@ func (p *PaymentsListParams) query() url.Values {
 	if p.Limit > 0 {
 		q.Set("limit", strconv.Itoa(p.Limit))
 	}
+	if p.ClientReferenceID != "" {
+		q.Set("client_reference_id", p.ClientReferenceID)
+	}
+	if p.Status != "" {
+		q.Set("status", p.Status)
+	}
+	if p.CustomerID != "" {
+		q.Set("customer_id", p.CustomerID)
+	}
+	if p.ExternalCustomerID != "" {
+		q.Set("external_customer_id", p.ExternalCustomerID)
+	}
+	if p.CreatedAfter != "" {
+		q.Set("created_after", p.CreatedAfter)
+	}
+	if p.CreatedBefore != "" {
+		q.Set("created_before", p.CreatedBefore)
+	}
+	if p.Sorting != "" {
+		q.Set("sorting", p.Sorting)
+	}
 	return q
 }
 
-// List: Listar pagamentos. It answers one page; ListIter walks every page.
+// List: Listar pagamentos, opcionalmente de um client_reference_id, de um estado, de um cliente, de um período ou de metadados. It answers one page; ListIter walks every page.
 func (s *PaymentsService) List(ctx context.Context, params *PaymentsListParams, opts ...RequestOption) (*Page[Payment], error) {
 	var page Page[Payment]
 	err := s.client.do(ctx, http.MethodGet, "/api/v1/payments", params.query(), nil, &page, opts)
@@ -1019,6 +1166,18 @@ type RefundsListParams struct {
 	Page, Limit int
 	// Só os reembolsos deste pagamento.
 	PaymentID string
+	// Só os reembolsos neste status: requested, pending, unknown, succeeded, failed ou canceled.
+	Status string
+	// Só os deste cliente.
+	CustomerID string
+	// Só os do cliente que você identifica por este ID externo; um ID que não existe não acha nada.
+	ExternalCustomerID string
+	// Só os criados a partir deste instante, inclusive (RFC 3339, como 2026-11-17T00:00:00-03:00).
+	CreatedAfter string
+	// Só os criados antes deste instante (RFC 3339); com created_after, o período é [created_after, created_before).
+	CreatedBefore string
+	// Ordem da lista: created_at ou amount, e com um - na frente é decrescente (-created_at, o mais novo primeiro, é o padrão).
+	Sorting string
 }
 
 func (p *RefundsListParams) query() url.Values {
@@ -1035,10 +1194,28 @@ func (p *RefundsListParams) query() url.Values {
 	if p.PaymentID != "" {
 		q.Set("payment_id", p.PaymentID)
 	}
+	if p.Status != "" {
+		q.Set("status", p.Status)
+	}
+	if p.CustomerID != "" {
+		q.Set("customer_id", p.CustomerID)
+	}
+	if p.ExternalCustomerID != "" {
+		q.Set("external_customer_id", p.ExternalCustomerID)
+	}
+	if p.CreatedAfter != "" {
+		q.Set("created_after", p.CreatedAfter)
+	}
+	if p.CreatedBefore != "" {
+		q.Set("created_before", p.CreatedBefore)
+	}
+	if p.Sorting != "" {
+		q.Set("sorting", p.Sorting)
+	}
 	return q
 }
 
-// List: Listar reembolsos, opcionalmente de um pagamento (payment_id). It answers one page; ListIter walks every page.
+// List: Listar reembolsos, opcionalmente de um pagamento (payment_id), de um status, de um cliente ou de um período. It answers one page; ListIter walks every page.
 func (s *RefundsService) List(ctx context.Context, params *RefundsListParams, opts ...RequestOption) (*Page[Refund], error) {
 	var page Page[Refund]
 	err := s.client.do(ctx, http.MethodGet, "/api/v1/refunds", params.query(), nil, &page, opts)
@@ -1087,8 +1264,18 @@ func (s *SubscriptionsService) Get(ctx context.Context, subscription string, opt
 type SubscriptionsListParams struct {
 	// Page is the page, from 1; Limit the items a page, 1 to 100 (10 by default).
 	Page, Limit int
-	// Só as assinaturas deste cliente.
+	// Só as assinaturas neste status: trialing, active, past_due, paused, canceled e os demais do ciclo de vida.
+	Status string
+	// Só os deste cliente.
 	CustomerID string
+	// Só os do cliente que você identifica por este ID externo; um ID que não existe não acha nada.
+	ExternalCustomerID string
+	// Só os criados a partir deste instante, inclusive (RFC 3339, como 2026-11-17T00:00:00-03:00).
+	CreatedAfter string
+	// Só os criados antes deste instante (RFC 3339); com created_after, o período é [created_after, created_before).
+	CreatedBefore string
+	// Ordem da lista: created_at ou amount, e com um - na frente é decrescente (-created_at, o mais novo primeiro, é o padrão).
+	Sorting string
 }
 
 func (p *SubscriptionsListParams) query() url.Values {
@@ -1102,13 +1289,28 @@ func (p *SubscriptionsListParams) query() url.Values {
 	if p.Limit > 0 {
 		q.Set("limit", strconv.Itoa(p.Limit))
 	}
+	if p.Status != "" {
+		q.Set("status", p.Status)
+	}
 	if p.CustomerID != "" {
 		q.Set("customer_id", p.CustomerID)
+	}
+	if p.ExternalCustomerID != "" {
+		q.Set("external_customer_id", p.ExternalCustomerID)
+	}
+	if p.CreatedAfter != "" {
+		q.Set("created_after", p.CreatedAfter)
+	}
+	if p.CreatedBefore != "" {
+		q.Set("created_before", p.CreatedBefore)
+	}
+	if p.Sorting != "" {
+		q.Set("sorting", p.Sorting)
 	}
 	return q
 }
 
-// List: Listar assinaturas, opcionalmente de um cliente (customer_id). It answers one page; ListIter walks every page.
+// List: Listar assinaturas, opcionalmente de um cliente (customer_id ou external_customer_id), de um status, de um período ou de metadados. It answers one page; ListIter walks every page.
 func (s *SubscriptionsService) List(ctx context.Context, params *SubscriptionsListParams, opts ...RequestOption) (*Page[Subscription], error) {
 	var page Page[Subscription]
 	err := s.client.do(ctx, http.MethodGet, "/api/v1/subscriptions", params.query(), nil, &page, opts)

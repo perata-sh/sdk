@@ -18,7 +18,7 @@ public sealed class CustomersService
 
     internal CustomersService(PerataClient client) => this.client = client;
 
-    /// <summary>Criar um cliente.</summary>
+    /// <summary>Criar um cliente, com CPF ou CNPJ, telefone e endereço de cobrança se você os tem.</summary>
     /// <param name="parameters">The request.</param>
     /// <param name="options">An idempotency key, or another organization's key for this call.</param>
     /// <param name="cancellationToken">Cancels the call.</param>
@@ -93,7 +93,7 @@ public sealed class CustomersService
         return Pages.IterateAsync((page, token) => ListAsync(walk with { Page = page }, options, token), walk.Page, cancellationToken);
     }
 
-    /// <summary>Atualizar o nome, o e-mail ou o ID externo de um cliente; o ID externo não muda depois de definido.</summary>
+    /// <summary>Atualizar o nome, o e-mail, o ID externo, o CPF ou CNPJ, o telefone ou o endereço de cobrança de um cliente; o ID externo não muda depois de definido.</summary>
     /// <param name="customer">The customer.</param>
     /// <param name="parameters">The request.</param>
     /// <param name="options">An idempotency key, or another organization's key for this call.</param>
@@ -123,6 +123,20 @@ public sealed class CustomersService
 /// <summary>The body of customers:create.</summary>
 public sealed record CustomersCreateParams
 {
+    /// <summary>A value of <see cref="TaxIdKind"/>.</summary>
+    public const string TaxIdKindCpf = "cpf";
+
+    /// <summary>A value of <see cref="TaxIdKind"/>.</summary>
+    public const string TaxIdKindCnpj = "cnpj";
+
+    /// <summary>Endereço de cobrança: rua e número, bairro, cidade, UF e CEP vêm juntos (o complemento é opcional). Left out of the request when null.</summary>
+    [JsonPropertyName("billing_address")]
+    public CustomersCreateBillingAddress? BillingAddress { get; init; }
+
+    /// <summary>Nome ou razão social de quem paga, quando difere de name. Left out of the request when null.</summary>
+    [JsonPropertyName("billing_name")]
+    public string? BillingName { get; init; }
+
     /// <summary>The <c>email</c> to send.</summary>
     [JsonPropertyName("email")]
     public required string Email { get; init; }
@@ -134,6 +148,47 @@ public sealed record CustomersCreateParams
     /// <summary>The <c>name</c> to send.</summary>
     [JsonPropertyName("name")]
     public required string Name { get; init; }
+
+    /// <summary>Telefone ou celular com DDD, com ou sem pontuação. Left out of the request when null.</summary>
+    [JsonPropertyName("phone")]
+    public string? Phone { get; init; }
+
+    /// <summary>CPF ou CNPJ, com ou sem pontuação, com os dígitos verificadores corretos. Left out of the request when null.</summary>
+    [JsonPropertyName("tax_id")]
+    public string? TaxId { get; init; }
+
+    /// <summary>Qual documento tax_id é; sem ele, o número diz. Left out of the request when null.</summary>
+    [JsonPropertyName("tax_id_kind")]
+    public string? TaxIdKind { get; init; }
+}
+
+
+/// <summary>Endereço de cobrança: rua e número, bairro, cidade, UF e CEP vêm juntos (o complemento é opcional).</summary>
+public sealed record CustomersCreateBillingAddress
+{
+    /// <summary>The <c>city</c> to send. Left out of the request when null.</summary>
+    [JsonPropertyName("city")]
+    public string? City { get; init; }
+
+    /// <summary>Bairro. Left out of the request when null.</summary>
+    [JsonPropertyName("district")]
+    public string? District { get; init; }
+
+    /// <summary>Rua e número. Left out of the request when null.</summary>
+    [JsonPropertyName("line1")]
+    public string? Line1 { get; init; }
+
+    /// <summary>Complemento. Left out of the request when null.</summary>
+    [JsonPropertyName("line2")]
+    public string? Line2 { get; init; }
+
+    /// <summary>CEP, com ou sem hífen. Left out of the request when null.</summary>
+    [JsonPropertyName("postal_code")]
+    public string? PostalCode { get; init; }
+
+    /// <summary>UF, duas letras. Left out of the request when null.</summary>
+    [JsonPropertyName("state")]
+    public string? State { get; init; }
 }
 
 
@@ -156,6 +211,20 @@ public sealed record CustomersListParams
 /// <summary>The body of customers:update.</summary>
 public sealed record CustomersUpdateParams
 {
+    /// <summary>A value of <see cref="TaxIdKind"/>.</summary>
+    public const string TaxIdKindCpf = "cpf";
+
+    /// <summary>A value of <see cref="TaxIdKind"/>.</summary>
+    public const string TaxIdKindCnpj = "cnpj";
+
+    /// <summary>Endereço de cobrança: rua e número, bairro, cidade, UF e CEP vêm juntos (o complemento é opcional). Cada parte enviada substitui a guardada, e o endereço que resulta precisa estar inteiro; envie as partes vazias para apagar o endereço. Left out of the request when null.</summary>
+    [JsonPropertyName("billing_address")]
+    public CustomersUpdateBillingAddress? BillingAddress { get; init; }
+
+    /// <summary>Nome ou razão social de quem paga, quando difere de name. Left out of the request when null.</summary>
+    [JsonPropertyName("billing_name")]
+    public string? BillingName { get; init; }
+
     /// <summary>The <c>email</c> to send. Left out of the request when null.</summary>
     [JsonPropertyName("email")]
     public string? Email { get; init; }
@@ -167,12 +236,67 @@ public sealed record CustomersUpdateParams
     /// <summary>The <c>name</c> to send. Left out of the request when null.</summary>
     [JsonPropertyName("name")]
     public string? Name { get; init; }
+
+    /// <summary>Telefone ou celular com DDD, com ou sem pontuação. Left out of the request when null.</summary>
+    [JsonPropertyName("phone")]
+    public string? Phone { get; init; }
+
+    /// <summary>CPF ou CNPJ, com ou sem pontuação, com os dígitos verificadores corretos. Só a chave de um dono ou administrador da organização o altera; as demais recebem 403. Texto vazio apaga. Left out of the request when null.</summary>
+    [JsonPropertyName("tax_id")]
+    public string? TaxId { get; init; }
+
+    /// <summary>Qual documento tax_id é; sem ele, o número diz. Left out of the request when null.</summary>
+    [JsonPropertyName("tax_id_kind")]
+    public string? TaxIdKind { get; init; }
+}
+
+
+/// <summary>Endereço de cobrança: rua e número, bairro, cidade, UF e CEP vêm juntos (o complemento é opcional). Cada parte enviada substitui a guardada, e o endereço que resulta precisa estar inteiro; envie as partes vazias para apagar o endereço.</summary>
+public sealed record CustomersUpdateBillingAddress
+{
+    /// <summary>The <c>city</c> to send. Left out of the request when null.</summary>
+    [JsonPropertyName("city")]
+    public string? City { get; init; }
+
+    /// <summary>Bairro. Left out of the request when null.</summary>
+    [JsonPropertyName("district")]
+    public string? District { get; init; }
+
+    /// <summary>Rua e número. Left out of the request when null.</summary>
+    [JsonPropertyName("line1")]
+    public string? Line1 { get; init; }
+
+    /// <summary>Complemento. Left out of the request when null.</summary>
+    [JsonPropertyName("line2")]
+    public string? Line2 { get; init; }
+
+    /// <summary>CEP, com ou sem hífen. Left out of the request when null.</summary>
+    [JsonPropertyName("postal_code")]
+    public string? PostalCode { get; init; }
+
+    /// <summary>UF, duas letras. Left out of the request when null.</summary>
+    [JsonPropertyName("state")]
+    public string? State { get; init; }
 }
 
 
 /// <summary>The body of customers:update_external.</summary>
 public sealed record CustomersUpdateExternalParams
 {
+    /// <summary>A value of <see cref="TaxIdKind"/>.</summary>
+    public const string TaxIdKindCpf = "cpf";
+
+    /// <summary>A value of <see cref="TaxIdKind"/>.</summary>
+    public const string TaxIdKindCnpj = "cnpj";
+
+    /// <summary>Endereço de cobrança: rua e número, bairro, cidade, UF e CEP vêm juntos (o complemento é opcional). Cada parte enviada substitui a guardada, e o endereço que resulta precisa estar inteiro; envie as partes vazias para apagar o endereço. Left out of the request when null.</summary>
+    [JsonPropertyName("billing_address")]
+    public CustomersUpdateExternalBillingAddress? BillingAddress { get; init; }
+
+    /// <summary>Nome ou razão social de quem paga, quando difere de name. Left out of the request when null.</summary>
+    [JsonPropertyName("billing_name")]
+    public string? BillingName { get; init; }
+
     /// <summary>The <c>email</c> to send. Left out of the request when null.</summary>
     [JsonPropertyName("email")]
     public string? Email { get; init; }
@@ -184,6 +308,47 @@ public sealed record CustomersUpdateExternalParams
     /// <summary>The <c>name</c> to send. Left out of the request when null.</summary>
     [JsonPropertyName("name")]
     public string? Name { get; init; }
+
+    /// <summary>Telefone ou celular com DDD, com ou sem pontuação. Left out of the request when null.</summary>
+    [JsonPropertyName("phone")]
+    public string? Phone { get; init; }
+
+    /// <summary>CPF ou CNPJ, com ou sem pontuação, com os dígitos verificadores corretos. Só a chave de um dono ou administrador da organização o altera; as demais recebem 403. Texto vazio apaga. Left out of the request when null.</summary>
+    [JsonPropertyName("tax_id")]
+    public string? TaxId { get; init; }
+
+    /// <summary>Qual documento tax_id é; sem ele, o número diz. Left out of the request when null.</summary>
+    [JsonPropertyName("tax_id_kind")]
+    public string? TaxIdKind { get; init; }
+}
+
+
+/// <summary>Endereço de cobrança: rua e número, bairro, cidade, UF e CEP vêm juntos (o complemento é opcional). Cada parte enviada substitui a guardada, e o endereço que resulta precisa estar inteiro; envie as partes vazias para apagar o endereço.</summary>
+public sealed record CustomersUpdateExternalBillingAddress
+{
+    /// <summary>The <c>city</c> to send. Left out of the request when null.</summary>
+    [JsonPropertyName("city")]
+    public string? City { get; init; }
+
+    /// <summary>Bairro. Left out of the request when null.</summary>
+    [JsonPropertyName("district")]
+    public string? District { get; init; }
+
+    /// <summary>Rua e número. Left out of the request when null.</summary>
+    [JsonPropertyName("line1")]
+    public string? Line1 { get; init; }
+
+    /// <summary>Complemento. Left out of the request when null.</summary>
+    [JsonPropertyName("line2")]
+    public string? Line2 { get; init; }
+
+    /// <summary>CEP, com ou sem hífen. Left out of the request when null.</summary>
+    [JsonPropertyName("postal_code")]
+    public string? PostalCode { get; init; }
+
+    /// <summary>UF, duas letras. Left out of the request when null.</summary>
+    [JsonPropertyName("state")]
+    public string? State { get; init; }
 }
 
 

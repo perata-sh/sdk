@@ -30,6 +30,17 @@ public sealed class CheckoutsService
         return client.RequestAsync(HttpMethod.Post, "/api/v1/checkouts", null, JsonSerializer.SerializeToUtf8Bytes(parameters, PerataJson.Default.CheckoutsCreateParams), PerataJson.Default.CheckoutCreatedEnvelope, options?.IdempotencyKey, options, cancellationToken);
     }
 
+    /// <summary>Encerrar um checkout que não deve mais ser pago: a página, o client_secret e o QR do Pix deixam de valer (o Pix já gerado é cancelado na Cielo), e o evento checkout.expired é enviado; 409 se já foi pago ou se emitiu boleto.</summary>
+    /// <param name="checkout">The checkout.</param>
+    /// <param name="options">An idempotency key, or another organization's key for this call.</param>
+    /// <param name="cancellationToken">Cancels the call.</param>
+    /// <returns>The checkoutexpired.</returns>
+    /// <exception cref="PerataException">The API refused the call.</exception>
+    public Task<CheckoutExpired> ExpireAsync(string checkout, RequestOptions? options = null, CancellationToken cancellationToken = default)
+    {
+        return client.RequestAsync(HttpMethod.Post, "/api/v1/checkouts/" + PerataClient.Segment(checkout) + "/expire", null, null, PerataJson.Default.CheckoutExpiredEnvelope, options?.IdempotencyKey, options, cancellationToken);
+    }
+
     /// <summary>Ler um checkout: o endereço, o estado e as páginas de retorno.</summary>
     /// <param name="checkout">The checkout.</param>
     /// <param name="options">Another organization's key for this call.</param>
@@ -39,6 +50,26 @@ public sealed class CheckoutsService
     public Task<Checkout> GetAsync(string checkout, RequestOptions? options = null, CancellationToken cancellationToken = default)
     {
         return client.RequestAsync(HttpMethod.Get, "/api/v1/checkouts/" + PerataClient.Segment(checkout), null, null, PerataJson.Default.CheckoutEnvelope, null, options, cancellationToken);
+    }
+
+    /// <summary>Listar checkouts, opcionalmente de um client_reference_id, de um status, de um período ou de metadados. One page; <see cref="ListIterAsync"/> walks every page.</summary>
+    /// <param name="parameters">The page, its size and the filters; the first page when null.</param>
+    /// <param name="options">Another organization's key for this call.</param>
+    /// <param name="cancellationToken">Cancels the call.</param>
+    /// <returns>The page.</returns>
+    /// <exception cref="PerataException">The API refused the call.</exception>
+    public Task<Page<Checkout>> ListAsync(CheckoutsListParams? parameters = null, RequestOptions? options = null, CancellationToken cancellationToken = default) =>
+        client.RequestAsync(HttpMethod.Get, "/api/v1/checkouts", parameters?.Query(), null, PerataJson.Default.CheckoutPageEnvelope, null, options, cancellationToken);
+
+    /// <summary>Walks every page of checkouts:list from the parameters' page (the first by default), item by item, fetching a page only when the previous one is used up.</summary>
+    /// <param name="parameters">The first page, the page size and the filters.</param>
+    /// <param name="options">Another organization's key for every call.</param>
+    /// <param name="cancellationToken">Cancels the walk.</param>
+    /// <returns>The items, page after page.</returns>
+    public IAsyncEnumerable<Checkout> ListIterAsync(CheckoutsListParams? parameters = null, RequestOptions? options = null, CancellationToken cancellationToken = default)
+    {
+        var walk = parameters ?? new CheckoutsListParams();
+        return Pages.IterateAsync((page, token) => ListAsync(walk with { Page = page }, options, token), walk.Page, cancellationToken);
     }
 
     /// <summary>Atualizar o rótulo e as páginas de retorno de um checkout ativo.</summary>
@@ -148,6 +179,42 @@ public sealed record CheckoutsCreateItem
     public required long UnitAmountCents { get; init; }
 }
 
+
+/// <summary>The page and filters of checkouts:list.</summary>
+public sealed record CheckoutsListParams
+{
+    /// <summary>The page, from 1; the first when null.</summary>
+    public int? Page { get; init; }
+
+    /// <summary>The items a page, 1 to 100; the API's 10 when null.</summary>
+    public int? Limit { get; init; }
+
+    /// <summary>Só os registros com este client_reference_id: o ID do pedido no seu sistema, que você enviou ao criar o checkout.</summary>
+    public string? ClientReferenceId { get; init; }
+
+    /// <summary>Só os checkouts neste status: active ou archived.</summary>
+    public string? Status { get; init; }
+
+    /// <summary>Só os criados a partir deste instante, inclusive (RFC 3339, como 2026-11-17T00:00:00-03:00).</summary>
+    public string? CreatedAfter { get; init; }
+
+    /// <summary>Só os criados antes deste instante (RFC 3339); com created_after, o período é [created_after, created_before).</summary>
+    public string? CreatedBefore { get; init; }
+
+    /// <summary>Ordem da lista: created_at, e com um - na frente é decrescente (-created_at, o mais novo primeiro, é o padrão).</summary>
+    public string? Sorting { get; init; }
+
+    internal IEnumerable<KeyValuePair<string, string?>> Query() =>
+    [
+        new("page", Page?.ToString(CultureInfo.InvariantCulture)),
+        new("limit", Limit?.ToString(CultureInfo.InvariantCulture)),
+        new("client_reference_id", ClientReferenceId),
+        new("status", Status),
+        new("created_after", CreatedAfter),
+        new("created_before", CreatedBefore),
+        new("sorting", Sorting),
+    ];
+}
 
 /// <summary>The body of checkouts:update.</summary>
 public sealed record CheckoutsUpdateParams

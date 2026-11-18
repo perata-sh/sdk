@@ -973,6 +973,102 @@ module Perata
     end
   end
 
+  # CheckoutExpired is a resource of Peráta's API.
+  class CheckoutExpired < Model
+    MEMBERS = %i[id sessions status].freeze
+
+    # O que a chamada nomeou: o id do checkout ou o de uma sessão.
+    # @return [String]
+    attr_reader :id
+
+    # As sessões encerradas por esta chamada ou que já estavam encerradas.
+    # @return [Array<CheckoutExpiredSession>]
+    attr_reader :sessions
+
+    # Sempre expired: nada mais deste checkout pode ser pago.
+    # @return [String ("expired")]
+    attr_reader :status
+
+    def initialize(id:, sessions:, status:)
+      @id = id
+      @sessions = sessions
+      @status = status
+      freeze
+    end
+
+    # Builds a CheckoutExpired from the API's JSON.
+    def self.from_hash(data)
+      new(
+        id: data.fetch("id"),
+        sessions: data.fetch("sessions").map { |item| CheckoutExpiredSession.from_hash(item) },
+        status: data.fetch("status")
+      )
+    end
+  end
+
+  # CheckoutExpiredSession is a resource of Peráta's API.
+  class CheckoutExpiredSession < Model
+    MEMBERS = %i[already_closed canceled expired_at method payment_id payment_state session_id status].freeze
+
+    # true quando a sessão já estava encerrada antes: a chamada foi repetida.
+    # @return [Boolean]
+    attr_reader :already_closed
+
+    # true quando a Cielo cancelou o Pix ou a reserva nesta chamada.
+    # @return [Boolean]
+    attr_reader :canceled
+
+    # Quando a sessão foi encerrada; nulo se ela já tinha falhado.
+    # @return [String, nil]
+    attr_reader :expired_at
+
+    # O meio escolhido; nulo se o comprador não escolheu um.
+    # @return [String ("card", "pix", "boleto"), nil]
+    attr_reader :method
+
+    # O pagamento que a sessão tinha, vazio se o comprador não escolheu um meio.
+    # @return [String]
+    attr_reader :payment_id
+
+    # Como o pagamento ficou: canceled quando a Cielo retirou o QR do Pix ou liberou a reserva do cartão; vazio sem pagamento.
+    # @return [String]
+    attr_reader :payment_state
+
+    # O id da sessão, o mesmo checkout_id dos webhooks.
+    # @return [String]
+    attr_reader :session_id
+
+    # expired: encerrada pelo lojista; failed: já tinha falhado antes.
+    # @return [String ("expired", "failed")]
+    attr_reader :status
+
+    def initialize(already_closed:, canceled:, expired_at:, method:, payment_id:, payment_state:, session_id:, status:)
+      @already_closed = already_closed
+      @canceled = canceled
+      @expired_at = expired_at
+      @method = method
+      @payment_id = payment_id
+      @payment_state = payment_state
+      @session_id = session_id
+      @status = status
+      freeze
+    end
+
+    # Builds a CheckoutExpiredSession from the API's JSON.
+    def self.from_hash(data)
+      new(
+        already_closed: data.fetch("already_closed"),
+        canceled: data.fetch("canceled"),
+        expired_at: data["expired_at"],
+        method: data["method"],
+        payment_id: data.fetch("payment_id"),
+        payment_state: data.fetch("payment_state"),
+        session_id: data.fetch("session_id"),
+        status: data.fetch("status")
+      )
+    end
+  end
+
   # CheckoutInstallment is a resource of Peráta's API.
   class CheckoutInstallment < Model
     MEMBERS = %i[count installment_cents interest_cents total_cents].freeze
@@ -1396,7 +1492,15 @@ module Perata
 
   # Customer is a resource of Peráta's API.
   class Customer < Model
-    MEMBERS = %i[created_at email external_id id name status].freeze
+    MEMBERS = %i[billing_address billing_name created_at email external_id id name phone status tax_id tax_id_kind].freeze
+
+    # Endereço de cobrança; fica de fora quando o cliente não tem.
+    # @return [BillingAddress, nil]
+    attr_reader :billing_address
+
+    # Nome ou razão social de quem paga, quando difere de name.
+    # @return [String, nil]
+    attr_reader :billing_name
 
     # @return [String]
     attr_reader :created_at
@@ -1413,28 +1517,50 @@ module Perata
     # @return [String]
     attr_reader :name
 
+    # Telefone ou celular com DDD, só dígitos.
+    # @return [String, nil]
+    attr_reader :phone
+
     # @return [String ("active", "archived")]
     attr_reader :status
 
-    def initialize(created_at:, email:, external_id:, id:, name:, status:)
+    # CPF ou CNPJ, só dígitos. O CPF vem inteiro para a chave de um dono ou administrador da organização e mascarado (***.***.789-00) para as demais; o CNPJ vem sempre inteiro.
+    # @return [String, nil]
+    attr_reader :tax_id
+
+    # Qual documento tax_id é.
+    # @return [String ("cpf", "cnpj"), nil]
+    attr_reader :tax_id_kind
+
+    def initialize(billing_address: nil, billing_name: nil, created_at:, email:, external_id:, id:, name:, phone: nil, status:, tax_id: nil, tax_id_kind: nil)
+      @billing_address = billing_address
+      @billing_name = billing_name
       @created_at = created_at
       @email = email
       @external_id = external_id
       @id = id
       @name = name
+      @phone = phone
       @status = status
+      @tax_id = tax_id
+      @tax_id_kind = tax_id_kind
       freeze
     end
 
     # Builds a Customer from the API's JSON.
     def self.from_hash(data)
       new(
+        billing_address: data["billing_address"]&.then { |value| BillingAddress.from_hash(value) },
+        billing_name: data["billing_name"],
         created_at: data.fetch("created_at"),
         email: data.fetch("email"),
         external_id: data.fetch("external_id"),
         id: data.fetch("id"),
         name: data.fetch("name"),
-        status: data.fetch("status")
+        phone: data["phone"],
+        status: data.fetch("status"),
+        tax_id: data["tax_id"],
+        tax_id_kind: data["tax_id_kind"]
       )
     end
   end

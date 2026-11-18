@@ -4,7 +4,7 @@
 
 module Perata
   # This SDK's version.
-  VERSION = "0.5.0"
+  VERSION = "0.5.2"
 
   # The contract this SDK was generated from.
   API_VERSION = "0.1.0"

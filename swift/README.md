@@ -4,7 +4,7 @@ SDK oficial da API da Peráta para Swift 6 (macOS 12+, iOS 15+, tvOS 15+, watchO
 
 ```swift
 // Package.swift
-.package(url: "https://github.com/perata-sh/sdk", from: "0.5.0"),
+.package(url: "https://github.com/perata-sh/sdk", from: "0.5.2"),
 // e, no target:
 .product(name: "Perata", package: "sdk"),
 ```
@@ -27,7 +27,7 @@ for try await product in perata.products.listIter() {
 |---|---|
 | `perata.benefits` | `create`, `delete`, `get`, `list`, `listIter`, `listGrants`, `listGrantsIter`, `update` |
 | `perata.checkoutLinks` | `create`, `delete`, `get`, `list`, `listIter`, `update` |
-| `perata.checkouts` | `create`, `get`, `update` |
+| `perata.checkouts` | `create`, `expire`, `get`, `list`, `listIter`, `update` |
 | `perata.customerSessions` | `create` |
 | `perata.customers` | `create`, `delete`, `get`, `getExternal`, `getState`, `list`, `listIter`, `update`, `updateExternal` |
 | `perata.discounts` | `create`, `delete`, `get`, `list`, `listIter`, `update` |
@@ -115,4 +115,4 @@ A assinatura é a do Standard Webhooks (`webhook-id`, `webhook-timestamp`, `webh
 
 O evento é tipado: um caso para cada dado que o webhook carrega (`.order` traz um `Order`, `.dispute` a disputa, `.identifiers` os identificadores…), e o `type` diz o que aconteceu; um tipo que esta versão do SDK ainda não conhece chega como `.unknown`, com o corpo como veio. Durante a rotação do segredo o cabeçalho traz mais de uma assinatura, e basta uma conferir. `verifyWebhookSignature` só confere a assinatura.
 
-Versão do SDK: 0.5.0 · contrato da API: 0.1.0
+Versão do SDK: 0.5.2 · contrato da API: 0.1.0

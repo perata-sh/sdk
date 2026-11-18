@@ -4,7 +4,7 @@ SDK oficial da API da Peráta para Elixir 1.18+, sem dependências: só `:httpc`
 
 ```elixir
 # mix.exs
-{:perata_sdk, "~> 0.5.0"}
+{:perata_sdk, "~> 0.5.2"}
 ```
 
 ```elixir
@@ -23,7 +23,7 @@ client
 |---|---|
 | `Perata.Benefits` | `create`, `delete`, `get`, `list`, `list_stream`, `list_grants`, `list_grants_stream`, `update` |
 | `Perata.CheckoutLinks` | `create`, `delete`, `get`, `list`, `list_stream`, `update` |
-| `Perata.Checkouts` | `create`, `get`, `update` |
+| `Perata.Checkouts` | `create`, `expire`, `get`, `list`, `list_stream`, `update` |
 | `Perata.CustomerSessions` | `create` |
 | `Perata.Customers` | `create`, `delete`, `get`, `get_external`, `get_state`, `list`, `list_stream`, `update`, `update_external` |
 | `Perata.Discounts` | `create`, `delete`, `get`, `list`, `list_stream`, `update` |
@@ -115,4 +115,4 @@ A assinatura é a do Standard Webhooks (`webhook-id`, `webhook-timestamp`, `webh
 
 O evento é tipado: um tipo para cada dado que o webhook carrega (`OrderWebhookEvent` traz um `Order`, `DisputeWebhookEvent` a disputa, `IdentifiersWebhookEvent` os identificadores…), e o `type` diz o que aconteceu; um tipo que esta versão do SDK ainda não conhece chega como `UnknownWebhookEvent`, com os dados como vieram. Durante a rotação do segredo o cabeçalho traz mais de uma assinatura, e basta uma conferir. `Perata.verify_webhook_signature/4` só confere a assinatura.
 
-Versão do SDK: 0.5.0 · contrato da API: 0.1.0
+Versão do SDK: 0.5.2 · contrato da API: 0.1.0

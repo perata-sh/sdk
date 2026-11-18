@@ -265,6 +265,36 @@ export interface CheckoutCreated {
   url: string;
 }
 
+/** CheckoutExpired is a resource of Peráta's API. */
+export interface CheckoutExpired {
+  /** O que a chamada nomeou: o id do checkout ou o de uma sessão. */
+  id: string;
+  /** As sessões encerradas por esta chamada ou que já estavam encerradas. */
+  sessions: CheckoutExpiredSession[];
+  /** Sempre expired: nada mais deste checkout pode ser pago. */
+  status: "expired";
+}
+
+/** CheckoutExpiredSession is a resource of Peráta's API. */
+export interface CheckoutExpiredSession {
+  /** true quando a sessão já estava encerrada antes: a chamada foi repetida. */
+  already_closed: boolean;
+  /** true quando a Cielo cancelou o Pix ou a reserva nesta chamada. */
+  canceled: boolean;
+  /** Quando a sessão foi encerrada; nulo se ela já tinha falhado. */
+  expired_at: string | null;
+  /** O meio escolhido; nulo se o comprador não escolheu um. */
+  method: "card" | "pix" | "boleto" | null;
+  /** O pagamento que a sessão tinha, vazio se o comprador não escolheu um meio. */
+  payment_id: string;
+  /** Como o pagamento ficou: canceled quando a Cielo retirou o QR do Pix ou liberou a reserva do cartão; vazio sem pagamento. */
+  payment_state: string;
+  /** O id da sessão, o mesmo checkout_id dos webhooks. */
+  session_id: string;
+  /** expired: encerrada pelo lojista; failed: já tinha falhado antes. */
+  status: "expired" | "failed";
+}
+
 /** CheckoutInstallment is a resource of Peráta's API. */
 export interface CheckoutInstallment {
   /** O número de parcelas; 1 é à vista. */
@@ -381,12 +411,22 @@ export interface CheckoutSavedProfile {
 
 /** Customer is a resource of Peráta's API. */
 export interface Customer {
+  /** Endereço de cobrança; fica de fora quando o cliente não tem. */
+  billing_address?: BillingAddress | null;
+  /** Nome ou razão social de quem paga, quando difere de name. */
+  billing_name?: string | null;
   created_at: string;
   email: string;
   external_id: string;
   id: string;
   name: string;
+  /** Telefone ou celular com DDD, só dígitos. */
+  phone?: string | null;
   status: "active" | "archived";
+  /** CPF ou CNPJ, só dígitos. O CPF vem inteiro para a chave de um dono ou administrador da organização e mascarado (***.***.789-00) para as demais; o CNPJ vem sempre inteiro. */
+  tax_id?: string | null;
+  /** Qual documento tax_id é. */
+  tax_id_kind?: "cpf" | "cnpj" | null;
 }
 
 /** CustomerSession is a resource of Peráta's API. */
@@ -997,18 +1037,68 @@ export interface CustomerSessionsCreateParams {
 
 /** The body of customers:create. */
 export interface CustomersCreateParams {
+  /** Endereço de cobrança: rua e número, bairro, cidade, UF e CEP vêm juntos (o complemento é opcional). */
+  billing_address?: CustomersCreateBillingAddress;
+  /** Nome ou razão social de quem paga, quando difere de name. */
+  billing_name?: string;
   email: string;
   /** Até 120 caracteres, sem barra (/) nem caracteres de controle. */
   external_id?: string;
   name: string;
+  /** Telefone ou celular com DDD, com ou sem pontuação. */
+  phone?: string;
+  /** CPF ou CNPJ, com ou sem pontuação, com os dígitos verificadores corretos. */
+  tax_id?: string;
+  /** Qual documento tax_id é; sem ele, o número diz. */
+  tax_id_kind?: "cpf" | "cnpj";
+}
+
+/** Endereço de cobrança: rua e número, bairro, cidade, UF e CEP vêm juntos (o complemento é opcional). */
+export interface CustomersCreateBillingAddress {
+  city?: string;
+  /** Bairro. */
+  district?: string;
+  /** Rua e número. */
+  line1?: string;
+  /** Complemento. */
+  line2?: string;
+  /** CEP, com ou sem hífen. */
+  postal_code?: string;
+  /** UF, duas letras. */
+  state?: string;
 }
 
 /** The body of customers:update. */
 export interface CustomersUpdateParams {
+  /** Endereço de cobrança: rua e número, bairro, cidade, UF e CEP vêm juntos (o complemento é opcional). Cada parte enviada substitui a guardada, e o endereço que resulta precisa estar inteiro; envie as partes vazias para apagar o endereço. */
+  billing_address?: CustomersUpdateBillingAddress;
+  /** Nome ou razão social de quem paga, quando difere de name. */
+  billing_name?: string;
   email?: string;
   /** Só pode ser definido uma vez. Até 120 caracteres, sem barra (/) nem caracteres de controle. */
   external_id?: string;
   name?: string;
+  /** Telefone ou celular com DDD, com ou sem pontuação. */
+  phone?: string;
+  /** CPF ou CNPJ, com ou sem pontuação, com os dígitos verificadores corretos. Só a chave de um dono ou administrador da organização o altera; as demais recebem 403. Texto vazio apaga. */
+  tax_id?: string;
+  /** Qual documento tax_id é; sem ele, o número diz. */
+  tax_id_kind?: "cpf" | "cnpj";
+}
+
+/** Endereço de cobrança: rua e número, bairro, cidade, UF e CEP vêm juntos (o complemento é opcional). Cada parte enviada substitui a guardada, e o endereço que resulta precisa estar inteiro; envie as partes vazias para apagar o endereço. */
+export interface CustomersUpdateBillingAddress {
+  city?: string;
+  /** Bairro. */
+  district?: string;
+  /** Rua e número. */
+  line1?: string;
+  /** Complemento. */
+  line2?: string;
+  /** CEP, com ou sem hífen. */
+  postal_code?: string;
+  /** UF, duas letras. */
+  state?: string;
 }
 
 /** The body of discounts:create. */
@@ -1055,10 +1145,35 @@ export interface DiscountsUpdateParams {
 
 /** The body of customers:update_external. */
 export interface CustomersUpdateExternalParams {
+  /** Endereço de cobrança: rua e número, bairro, cidade, UF e CEP vêm juntos (o complemento é opcional). Cada parte enviada substitui a guardada, e o endereço que resulta precisa estar inteiro; envie as partes vazias para apagar o endereço. */
+  billing_address?: CustomersUpdateExternalBillingAddress;
+  /** Nome ou razão social de quem paga, quando difere de name. */
+  billing_name?: string;
   email?: string;
   /** Só pode ser definido uma vez. Até 120 caracteres, sem barra (/) nem caracteres de controle. */
   external_id?: string;
   name?: string;
+  /** Telefone ou celular com DDD, com ou sem pontuação. */
+  phone?: string;
+  /** CPF ou CNPJ, com ou sem pontuação, com os dígitos verificadores corretos. Só a chave de um dono ou administrador da organização o altera; as demais recebem 403. Texto vazio apaga. */
+  tax_id?: string;
+  /** Qual documento tax_id é; sem ele, o número diz. */
+  tax_id_kind?: "cpf" | "cnpj";
+}
+
+/** Endereço de cobrança: rua e número, bairro, cidade, UF e CEP vêm juntos (o complemento é opcional). Cada parte enviada substitui a guardada, e o endereço que resulta precisa estar inteiro; envie as partes vazias para apagar o endereço. */
+export interface CustomersUpdateExternalBillingAddress {
+  city?: string;
+  /** Bairro. */
+  district?: string;
+  /** Rua e número. */
+  line1?: string;
+  /** Complemento. */
+  line2?: string;
+  /** CEP, com ou sem hífen. */
+  postal_code?: string;
+  /** UF, duas letras. */
+  state?: string;
 }
 
 /** The body of prices:create. */

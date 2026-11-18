@@ -29,7 +29,7 @@ await foreach (var each in perata.Products.ListIterAsync())
 |---|---|
 | `perata.Benefits` | `CreateAsync`, `DeleteAsync`, `GetAsync`, `ListAsync`, `ListIterAsync`, `ListGrantsAsync`, `ListGrantsIterAsync`, `UpdateAsync` |
 | `perata.CheckoutLinks` | `CreateAsync`, `DeleteAsync`, `GetAsync`, `ListAsync`, `ListIterAsync`, `UpdateAsync` |
-| `perata.Checkouts` | `CreateAsync`, `GetAsync`, `UpdateAsync` |
+| `perata.Checkouts` | `CreateAsync`, `ExpireAsync`, `GetAsync`, `ListAsync`, `ListIterAsync`, `UpdateAsync` |
 | `perata.CustomerSessions` | `CreateAsync` |
 | `perata.Customers` | `CreateAsync`, `DeleteAsync`, `GetAsync`, `GetExternalAsync`, `GetStateAsync`, `ListAsync`, `ListIterAsync`, `UpdateAsync`, `UpdateExternalAsync` |
 | `perata.Discounts` | `CreateAsync`, `DeleteAsync`, `GetAsync`, `ListAsync`, `ListIterAsync`, `UpdateAsync` |
@@ -124,4 +124,4 @@ A assinatura é a do Standard Webhooks (`webhook-id`, `webhook-timestamp`, `webh
 
 O evento é tipado: um tipo para cada dado que o webhook carrega (`OrderWebhookEvent` traz um `Order`, `DisputeWebhookEvent` a disputa, `IdentifiersWebhookEvent` os identificadores…), e o `type` diz o que aconteceu; um tipo que esta versão do SDK ainda não conhece chega como `UnknownWebhookEvent`, com os dados como vieram. Durante a rotação do segredo o cabeçalho traz mais de uma assinatura, e basta uma conferir. `Webhook.VerifySignature` só confere a assinatura.
 
-Versão do SDK: 0.5.0 · contrato da API: 0.1.0
+Versão do SDK: 0.5.2 · contrato da API: 0.1.0

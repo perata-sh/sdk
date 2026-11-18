@@ -412,6 +412,101 @@ impl<'a> CheckoutLinksService<'a> {
     }
 }
 
+/// The page and filters of checkouts:list.
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+#[non_exhaustive]
+pub struct CheckoutsListParams {
+    /// The page, from 1.
+    pub page: Option<u32>,
+    /// Items a page, 1 to 100 (10 by default).
+    pub limit: Option<u32>,
+    /// Só os registros com este client_reference_id: o ID do pedido no seu sistema, que você enviou ao criar o checkout.
+    pub client_reference_id: Option<String>,
+    /// Só os checkouts neste status: active ou archived.
+    pub status: Option<String>,
+    /// Só os criados a partir deste instante, inclusive (RFC 3339, como 2026-11-17T00:00:00-03:00).
+    pub created_after: Option<String>,
+    /// Só os criados antes deste instante (RFC 3339); com created_after, o período é [created_after, created_before).
+    pub created_before: Option<String>,
+    /// Ordem da lista: created_at, e com um - na frente é decrescente (-created_at, o mais novo primeiro, é o padrão).
+    pub sorting: Option<String>,
+}
+
+impl CheckoutsListParams {
+    /// The first page, with the API's default limit and no filter.
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    /// Sets the page, from 1.
+    pub fn page(mut self, page: u32) -> Self {
+        self.page = Some(page);
+        self
+    }
+
+    /// Sets the items a page, 1 to 100.
+    pub fn limit(mut self, limit: u32) -> Self {
+        self.limit = Some(limit);
+        self
+    }
+
+    /// Só os registros com este client_reference_id: o ID do pedido no seu sistema, que você enviou ao criar o checkout.
+    pub fn client_reference_id(mut self, client_reference_id: impl Into<String>) -> Self {
+        self.client_reference_id = Some(client_reference_id.into());
+        self
+    }
+
+    /// Só os checkouts neste status: active ou archived.
+    pub fn status(mut self, status: impl Into<String>) -> Self {
+        self.status = Some(status.into());
+        self
+    }
+
+    /// Só os criados a partir deste instante, inclusive (RFC 3339, como 2026-11-17T00:00:00-03:00).
+    pub fn created_after(mut self, created_after: impl Into<String>) -> Self {
+        self.created_after = Some(created_after.into());
+        self
+    }
+
+    /// Só os criados antes deste instante (RFC 3339); com created_after, o período é [created_after, created_before).
+    pub fn created_before(mut self, created_before: impl Into<String>) -> Self {
+        self.created_before = Some(created_before.into());
+        self
+    }
+
+    /// Ordem da lista: created_at, e com um - na frente é decrescente (-created_at, o mais novo primeiro, é o padrão).
+    pub fn sorting(mut self, sorting: impl Into<String>) -> Self {
+        self.sorting = Some(sorting.into());
+        self
+    }
+
+    fn query(&self) -> Vec<(&'static str, String)> {
+        let mut query = Vec::new();
+        if let Some(page) = self.page {
+            query.push(("page", page.to_string()));
+        }
+        if let Some(limit) = self.limit {
+            query.push(("limit", limit.to_string()));
+        }
+        if let Some(value) = &self.client_reference_id {
+            query.push(("client_reference_id", value.clone()));
+        }
+        if let Some(value) = &self.status {
+            query.push(("status", value.clone()));
+        }
+        if let Some(value) = &self.created_after {
+            query.push(("created_after", value.clone()));
+        }
+        if let Some(value) = &self.created_before {
+            query.push(("created_before", value.clone()));
+        }
+        if let Some(value) = &self.sorting {
+            query.push(("sorting", value.clone()));
+        }
+        query
+    }
+}
+
 /// The API's checkouts: `client.checkouts()`.
 ///
 /// [`idempotency_key`](Self::idempotency_key) and [`api_key`](Self::api_key)
@@ -451,9 +546,31 @@ impl<'a> CheckoutsService<'a> {
         self.client.request("POST", "/api/v1/checkouts", &[], Some(params), &self.options)
     }
 
+    /// Encerrar um checkout que não deve mais ser pago: a página, o client_secret e o QR do Pix deixam de valer (o Pix já gerado é cancelado na Cielo), e o evento checkout.expired é enviado; 409 se já foi pago ou se emitiu boleto.
+    pub fn expire(&self, checkout: &str) -> Result<CheckoutExpired, Error> {
+        self.client.request("POST", &format!("/api/v1/checkouts/{}/expire", crate::client::escape(checkout)), &[], None::<&()>, &self.options)
+    }
+
     /// Ler um checkout: o endereço, o estado e as páginas de retorno.
     pub fn get(&self, checkout: &str) -> Result<Checkout, Error> {
         self.client.request("GET", &format!("/api/v1/checkouts/{}", crate::client::escape(checkout)), &[], None::<&()>, &self.options)
+    }
+
+    /// Listar checkouts, opcionalmente de um client_reference_id, de um status, de um período ou de metadados. One page; [`list_iter`](Self::list_iter) walks every page.
+    pub fn list(&self, params: &CheckoutsListParams) -> Result<Page<Checkout>, Error> {
+        self.client.request("GET", "/api/v1/checkouts", &params.query(), None::<&()>, &self.options)
+    }
+
+    /// Walks every page of checkouts:list, from `params.page`, item by item.
+    pub fn list_iter(&self, params: CheckoutsListParams) -> impl Iterator<Item = Result<Checkout, Error>> + 'a {
+        let client = self.client;
+        let options = self.options.clone();
+        let path = String::from("/api/v1/checkouts");
+        let first = params.page.unwrap_or(1);
+        iterate(first, move |page| {
+            let query = params.clone().page(page).query();
+            client.request("GET", &path, &query, None::<&()>, &options)
+        })
     }
 
     /// Atualizar o rótulo e as páginas de retorno de um checkout ativo.
@@ -576,7 +693,7 @@ impl<'a> CustomersService<'a> {
         self
     }
 
-    /// Criar um cliente.
+    /// Criar um cliente, com CPF ou CNPJ, telefone e endereço de cobrança se você os tem.
     pub fn create(&self, params: &CustomersCreateParams) -> Result<Customer, Error> {
         self.client.request("POST", "/api/v1/customers", &[], Some(params), &self.options)
     }
@@ -618,7 +735,7 @@ impl<'a> CustomersService<'a> {
         })
     }
 
-    /// Atualizar o nome, o e-mail ou o ID externo de um cliente; o ID externo não muda depois de definido.
+    /// Atualizar o nome, o e-mail, o ID externo, o CPF ou CNPJ, o telefone ou o endereço de cobrança de um cliente; o ID externo não muda depois de definido.
     pub fn update(&self, customer: &str, params: &CustomersUpdateParams) -> Result<Customer, Error> {
         self.client.request("PATCH", &format!("/api/v1/customers/{}", crate::client::escape(customer)), &[], Some(params), &self.options)
     }
@@ -1090,6 +1207,20 @@ pub struct OrdersListParams {
     pub page: Option<u32>,
     /// Items a page, 1 to 100 (10 by default).
     pub limit: Option<u32>,
+    /// Só os registros com este client_reference_id: o ID do pedido no seu sistema, que você enviou ao criar o checkout.
+    pub client_reference_id: Option<String>,
+    /// Pedidos são os checkouts pagos: só succeeded.
+    pub status: Option<String>,
+    /// Só os deste cliente.
+    pub customer_id: Option<String>,
+    /// Só os do cliente que você identifica por este ID externo; um ID que não existe não acha nada.
+    pub external_customer_id: Option<String>,
+    /// Só os criados a partir deste instante, inclusive (RFC 3339, como 2026-11-17T00:00:00-03:00).
+    pub created_after: Option<String>,
+    /// Só os criados antes deste instante (RFC 3339); com created_after, o período é [created_after, created_before).
+    pub created_before: Option<String>,
+    /// Ordem da lista: created_at ou amount, e com um - na frente é decrescente (-created_at, o mais novo primeiro, é o padrão).
+    pub sorting: Option<String>,
 }
 
 impl OrdersListParams {
@@ -1110,6 +1241,48 @@ impl OrdersListParams {
         self
     }
 
+    /// Só os registros com este client_reference_id: o ID do pedido no seu sistema, que você enviou ao criar o checkout.
+    pub fn client_reference_id(mut self, client_reference_id: impl Into<String>) -> Self {
+        self.client_reference_id = Some(client_reference_id.into());
+        self
+    }
+
+    /// Pedidos são os checkouts pagos: só succeeded.
+    pub fn status(mut self, status: impl Into<String>) -> Self {
+        self.status = Some(status.into());
+        self
+    }
+
+    /// Só os deste cliente.
+    pub fn customer_id(mut self, customer_id: impl Into<String>) -> Self {
+        self.customer_id = Some(customer_id.into());
+        self
+    }
+
+    /// Só os do cliente que você identifica por este ID externo; um ID que não existe não acha nada.
+    pub fn external_customer_id(mut self, external_customer_id: impl Into<String>) -> Self {
+        self.external_customer_id = Some(external_customer_id.into());
+        self
+    }
+
+    /// Só os criados a partir deste instante, inclusive (RFC 3339, como 2026-11-17T00:00:00-03:00).
+    pub fn created_after(mut self, created_after: impl Into<String>) -> Self {
+        self.created_after = Some(created_after.into());
+        self
+    }
+
+    /// Só os criados antes deste instante (RFC 3339); com created_after, o período é [created_after, created_before).
+    pub fn created_before(mut self, created_before: impl Into<String>) -> Self {
+        self.created_before = Some(created_before.into());
+        self
+    }
+
+    /// Ordem da lista: created_at ou amount, e com um - na frente é decrescente (-created_at, o mais novo primeiro, é o padrão).
+    pub fn sorting(mut self, sorting: impl Into<String>) -> Self {
+        self.sorting = Some(sorting.into());
+        self
+    }
+
     fn query(&self) -> Vec<(&'static str, String)> {
         let mut query = Vec::new();
         if let Some(page) = self.page {
@@ -1117,6 +1290,27 @@ impl OrdersListParams {
         }
         if let Some(limit) = self.limit {
             query.push(("limit", limit.to_string()));
+        }
+        if let Some(value) = &self.client_reference_id {
+            query.push(("client_reference_id", value.clone()));
+        }
+        if let Some(value) = &self.status {
+            query.push(("status", value.clone()));
+        }
+        if let Some(value) = &self.customer_id {
+            query.push(("customer_id", value.clone()));
+        }
+        if let Some(value) = &self.external_customer_id {
+            query.push(("external_customer_id", value.clone()));
+        }
+        if let Some(value) = &self.created_after {
+            query.push(("created_after", value.clone()));
+        }
+        if let Some(value) = &self.created_before {
+            query.push(("created_before", value.clone()));
+        }
+        if let Some(value) = &self.sorting {
+            query.push(("sorting", value.clone()));
         }
         query
     }
@@ -1171,7 +1365,7 @@ impl<'a> OrdersService<'a> {
         self.client.request("GET", &format!("/api/v1/orders/{}/receipt", crate::client::escape(order)), &[], None::<&()>, &self.options)
     }
 
-    /// Listar pedidos: checkouts pagos. One page; [`list_iter`](Self::list_iter) walks every page.
+    /// Listar pedidos (checkouts pagos), opcionalmente de um client_reference_id, de um cliente, de um período ou de metadados. One page; [`list_iter`](Self::list_iter) walks every page.
     pub fn list(&self, params: &OrdersListParams) -> Result<Page<Order>, Error> {
         self.client.request("GET", "/api/v1/orders", &params.query(), None::<&()>, &self.options)
     }
@@ -1294,6 +1488,20 @@ pub struct PaymentsListParams {
     pub page: Option<u32>,
     /// Items a page, 1 to 100 (10 by default).
     pub limit: Option<u32>,
+    /// Só os registros com este client_reference_id: o ID do pedido no seu sistema, que você enviou ao criar o checkout.
+    pub client_reference_id: Option<String>,
+    /// Só os pagamentos neste estado: unknown, pending, authorized, captured, refused, canceled, refunded ou partially_refunded.
+    pub status: Option<String>,
+    /// Só os deste cliente.
+    pub customer_id: Option<String>,
+    /// Só os do cliente que você identifica por este ID externo; um ID que não existe não acha nada.
+    pub external_customer_id: Option<String>,
+    /// Só os criados a partir deste instante, inclusive (RFC 3339, como 2026-11-17T00:00:00-03:00).
+    pub created_after: Option<String>,
+    /// Só os criados antes deste instante (RFC 3339); com created_after, o período é [created_after, created_before).
+    pub created_before: Option<String>,
+    /// Ordem da lista: created_at ou amount, e com um - na frente é decrescente (-created_at, o mais novo primeiro, é o padrão).
+    pub sorting: Option<String>,
 }
 
 impl PaymentsListParams {
@@ -1314,6 +1522,48 @@ impl PaymentsListParams {
         self
     }
 
+    /// Só os registros com este client_reference_id: o ID do pedido no seu sistema, que você enviou ao criar o checkout.
+    pub fn client_reference_id(mut self, client_reference_id: impl Into<String>) -> Self {
+        self.client_reference_id = Some(client_reference_id.into());
+        self
+    }
+
+    /// Só os pagamentos neste estado: unknown, pending, authorized, captured, refused, canceled, refunded ou partially_refunded.
+    pub fn status(mut self, status: impl Into<String>) -> Self {
+        self.status = Some(status.into());
+        self
+    }
+
+    /// Só os deste cliente.
+    pub fn customer_id(mut self, customer_id: impl Into<String>) -> Self {
+        self.customer_id = Some(customer_id.into());
+        self
+    }
+
+    /// Só os do cliente que você identifica por este ID externo; um ID que não existe não acha nada.
+    pub fn external_customer_id(mut self, external_customer_id: impl Into<String>) -> Self {
+        self.external_customer_id = Some(external_customer_id.into());
+        self
+    }
+
+    /// Só os criados a partir deste instante, inclusive (RFC 3339, como 2026-11-17T00:00:00-03:00).
+    pub fn created_after(mut self, created_after: impl Into<String>) -> Self {
+        self.created_after = Some(created_after.into());
+        self
+    }
+
+    /// Só os criados antes deste instante (RFC 3339); com created_after, o período é [created_after, created_before).
+    pub fn created_before(mut self, created_before: impl Into<String>) -> Self {
+        self.created_before = Some(created_before.into());
+        self
+    }
+
+    /// Ordem da lista: created_at ou amount, e com um - na frente é decrescente (-created_at, o mais novo primeiro, é o padrão).
+    pub fn sorting(mut self, sorting: impl Into<String>) -> Self {
+        self.sorting = Some(sorting.into());
+        self
+    }
+
     fn query(&self) -> Vec<(&'static str, String)> {
         let mut query = Vec::new();
         if let Some(page) = self.page {
@@ -1321,6 +1571,27 @@ impl PaymentsListParams {
         }
         if let Some(limit) = self.limit {
             query.push(("limit", limit.to_string()));
+        }
+        if let Some(value) = &self.client_reference_id {
+            query.push(("client_reference_id", value.clone()));
+        }
+        if let Some(value) = &self.status {
+            query.push(("status", value.clone()));
+        }
+        if let Some(value) = &self.customer_id {
+            query.push(("customer_id", value.clone()));
+        }
+        if let Some(value) = &self.external_customer_id {
+            query.push(("external_customer_id", value.clone()));
+        }
+        if let Some(value) = &self.created_after {
+            query.push(("created_after", value.clone()));
+        }
+        if let Some(value) = &self.created_before {
+            query.push(("created_before", value.clone()));
+        }
+        if let Some(value) = &self.sorting {
+            query.push(("sorting", value.clone()));
         }
         query
     }
@@ -1365,7 +1636,7 @@ impl<'a> PaymentsService<'a> {
         self.client.request("GET", &format!("/api/v1/payments/{}", crate::client::escape(payment)), &[], None::<&()>, &self.options)
     }
 
-    /// Listar pagamentos. One page; [`list_iter`](Self::list_iter) walks every page.
+    /// Listar pagamentos, opcionalmente de um client_reference_id, de um estado, de um cliente, de um período ou de metadados. One page; [`list_iter`](Self::list_iter) walks every page.
     pub fn list(&self, params: &PaymentsListParams) -> Result<Page<Payment>, Error> {
         self.client.request("GET", "/api/v1/payments", &params.query(), None::<&()>, &self.options)
     }
@@ -1613,6 +1884,18 @@ pub struct RefundsListParams {
     pub limit: Option<u32>,
     /// Só os reembolsos deste pagamento.
     pub payment_id: Option<String>,
+    /// Só os reembolsos neste status: requested, pending, unknown, succeeded, failed ou canceled.
+    pub status: Option<String>,
+    /// Só os deste cliente.
+    pub customer_id: Option<String>,
+    /// Só os do cliente que você identifica por este ID externo; um ID que não existe não acha nada.
+    pub external_customer_id: Option<String>,
+    /// Só os criados a partir deste instante, inclusive (RFC 3339, como 2026-11-17T00:00:00-03:00).
+    pub created_after: Option<String>,
+    /// Só os criados antes deste instante (RFC 3339); com created_after, o período é [created_after, created_before).
+    pub created_before: Option<String>,
+    /// Ordem da lista: created_at ou amount, e com um - na frente é decrescente (-created_at, o mais novo primeiro, é o padrão).
+    pub sorting: Option<String>,
 }
 
 impl RefundsListParams {
@@ -1639,6 +1922,42 @@ impl RefundsListParams {
         self
     }
 
+    /// Só os reembolsos neste status: requested, pending, unknown, succeeded, failed ou canceled.
+    pub fn status(mut self, status: impl Into<String>) -> Self {
+        self.status = Some(status.into());
+        self
+    }
+
+    /// Só os deste cliente.
+    pub fn customer_id(mut self, customer_id: impl Into<String>) -> Self {
+        self.customer_id = Some(customer_id.into());
+        self
+    }
+
+    /// Só os do cliente que você identifica por este ID externo; um ID que não existe não acha nada.
+    pub fn external_customer_id(mut self, external_customer_id: impl Into<String>) -> Self {
+        self.external_customer_id = Some(external_customer_id.into());
+        self
+    }
+
+    /// Só os criados a partir deste instante, inclusive (RFC 3339, como 2026-11-17T00:00:00-03:00).
+    pub fn created_after(mut self, created_after: impl Into<String>) -> Self {
+        self.created_after = Some(created_after.into());
+        self
+    }
+
+    /// Só os criados antes deste instante (RFC 3339); com created_after, o período é [created_after, created_before).
+    pub fn created_before(mut self, created_before: impl Into<String>) -> Self {
+        self.created_before = Some(created_before.into());
+        self
+    }
+
+    /// Ordem da lista: created_at ou amount, e com um - na frente é decrescente (-created_at, o mais novo primeiro, é o padrão).
+    pub fn sorting(mut self, sorting: impl Into<String>) -> Self {
+        self.sorting = Some(sorting.into());
+        self
+    }
+
     fn query(&self) -> Vec<(&'static str, String)> {
         let mut query = Vec::new();
         if let Some(page) = self.page {
@@ -1649,6 +1968,24 @@ impl RefundsListParams {
         }
         if let Some(value) = &self.payment_id {
             query.push(("payment_id", value.clone()));
+        }
+        if let Some(value) = &self.status {
+            query.push(("status", value.clone()));
+        }
+        if let Some(value) = &self.customer_id {
+            query.push(("customer_id", value.clone()));
+        }
+        if let Some(value) = &self.external_customer_id {
+            query.push(("external_customer_id", value.clone()));
+        }
+        if let Some(value) = &self.created_after {
+            query.push(("created_after", value.clone()));
+        }
+        if let Some(value) = &self.created_before {
+            query.push(("created_before", value.clone()));
+        }
+        if let Some(value) = &self.sorting {
+            query.push(("sorting", value.clone()));
         }
         query
     }
@@ -1693,7 +2030,7 @@ impl<'a> RefundsService<'a> {
         self.client.request("POST", "/api/v1/refunds", &[], Some(params), &self.options)
     }
 
-    /// Listar reembolsos, opcionalmente de um pagamento (payment_id). One page; [`list_iter`](Self::list_iter) walks every page.
+    /// Listar reembolsos, opcionalmente de um pagamento (payment_id), de um status, de um cliente ou de um período. One page; [`list_iter`](Self::list_iter) walks every page.
     pub fn list(&self, params: &RefundsListParams) -> Result<Page<Refund>, Error> {
         self.client.request("GET", "/api/v1/refunds", &params.query(), None::<&()>, &self.options)
     }
@@ -1719,8 +2056,18 @@ pub struct SubscriptionsListParams {
     pub page: Option<u32>,
     /// Items a page, 1 to 100 (10 by default).
     pub limit: Option<u32>,
-    /// Só as assinaturas deste cliente.
+    /// Só as assinaturas neste status: trialing, active, past_due, paused, canceled e os demais do ciclo de vida.
+    pub status: Option<String>,
+    /// Só os deste cliente.
     pub customer_id: Option<String>,
+    /// Só os do cliente que você identifica por este ID externo; um ID que não existe não acha nada.
+    pub external_customer_id: Option<String>,
+    /// Só os criados a partir deste instante, inclusive (RFC 3339, como 2026-11-17T00:00:00-03:00).
+    pub created_after: Option<String>,
+    /// Só os criados antes deste instante (RFC 3339); com created_after, o período é [created_after, created_before).
+    pub created_before: Option<String>,
+    /// Ordem da lista: created_at ou amount, e com um - na frente é decrescente (-created_at, o mais novo primeiro, é o padrão).
+    pub sorting: Option<String>,
 }
 
 impl SubscriptionsListParams {
@@ -1741,9 +2088,39 @@ impl SubscriptionsListParams {
         self
     }
 
-    /// Só as assinaturas deste cliente.
+    /// Só as assinaturas neste status: trialing, active, past_due, paused, canceled e os demais do ciclo de vida.
+    pub fn status(mut self, status: impl Into<String>) -> Self {
+        self.status = Some(status.into());
+        self
+    }
+
+    /// Só os deste cliente.
     pub fn customer_id(mut self, customer_id: impl Into<String>) -> Self {
         self.customer_id = Some(customer_id.into());
+        self
+    }
+
+    /// Só os do cliente que você identifica por este ID externo; um ID que não existe não acha nada.
+    pub fn external_customer_id(mut self, external_customer_id: impl Into<String>) -> Self {
+        self.external_customer_id = Some(external_customer_id.into());
+        self
+    }
+
+    /// Só os criados a partir deste instante, inclusive (RFC 3339, como 2026-11-17T00:00:00-03:00).
+    pub fn created_after(mut self, created_after: impl Into<String>) -> Self {
+        self.created_after = Some(created_after.into());
+        self
+    }
+
+    /// Só os criados antes deste instante (RFC 3339); com created_after, o período é [created_after, created_before).
+    pub fn created_before(mut self, created_before: impl Into<String>) -> Self {
+        self.created_before = Some(created_before.into());
+        self
+    }
+
+    /// Ordem da lista: created_at ou amount, e com um - na frente é decrescente (-created_at, o mais novo primeiro, é o padrão).
+    pub fn sorting(mut self, sorting: impl Into<String>) -> Self {
+        self.sorting = Some(sorting.into());
         self
     }
 
@@ -1755,8 +2132,23 @@ impl SubscriptionsListParams {
         if let Some(limit) = self.limit {
             query.push(("limit", limit.to_string()));
         }
+        if let Some(value) = &self.status {
+            query.push(("status", value.clone()));
+        }
         if let Some(value) = &self.customer_id {
             query.push(("customer_id", value.clone()));
+        }
+        if let Some(value) = &self.external_customer_id {
+            query.push(("external_customer_id", value.clone()));
+        }
+        if let Some(value) = &self.created_after {
+            query.push(("created_after", value.clone()));
+        }
+        if let Some(value) = &self.created_before {
+            query.push(("created_before", value.clone()));
+        }
+        if let Some(value) = &self.sorting {
+            query.push(("sorting", value.clone()));
         }
         query
     }
@@ -1806,7 +2198,7 @@ impl<'a> SubscriptionsService<'a> {
         self.client.request("GET", &format!("/api/v1/subscriptions/{}", crate::client::escape(subscription)), &[], None::<&()>, &self.options)
     }
 
-    /// Listar assinaturas, opcionalmente de um cliente (customer_id). One page; [`list_iter`](Self::list_iter) walks every page.
+    /// Listar assinaturas, opcionalmente de um cliente (customer_id ou external_customer_id), de um status, de um período ou de metadados. One page; [`list_iter`](Self::list_iter) walks every page.
     pub fn list(&self, params: &SubscriptionsListParams) -> Result<Page<Subscription>, Error> {
         self.client.request("GET", "/api/v1/subscriptions", &params.query(), None::<&()>, &self.options)
     }

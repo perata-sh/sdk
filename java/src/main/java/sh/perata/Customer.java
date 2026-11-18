@@ -11,31 +11,60 @@ public final class Customer {
     public static final String STATUS_ACTIVE = "active";
     /** A value of {@link #getStatus()}. */
     public static final String STATUS_ARCHIVED = "archived";
+    /** A value of {@link #getTaxIdKind()}. */
+    public static final String TAX_ID_KIND_CPF = "cpf";
+    /** A value of {@link #getTaxIdKind()}. */
+    public static final String TAX_ID_KIND_CNPJ = "cnpj";
 
+    private final BillingAddress billingAddress;
+    private final String billingName;
     private final String createdAt;
     private final String email;
     private final String externalId;
     private final String id;
     private final String name;
+    private final String phone;
     private final String status;
+    private final String taxId;
+    private final String taxIdKind;
 
-    Customer(String createdAt, String email, String externalId, String id, String name, String status) {
+    Customer(BillingAddress billingAddress, String billingName, String createdAt, String email, String externalId, String id, String name, String phone, String status, String taxId, String taxIdKind) {
+        this.billingAddress = billingAddress;
+        this.billingName = billingName;
         this.createdAt = createdAt;
         this.email = email;
         this.externalId = externalId;
         this.id = id;
         this.name = name;
+        this.phone = phone;
         this.status = status;
+        this.taxId = taxId;
+        this.taxIdKind = taxIdKind;
     }
 
     static Customer fromJson(Map<String, Object> data) {
         return new Customer(
+                Json.optional(data, "billing_address", Json.model(BillingAddress::fromJson)),
+                Json.optional(data, "billing_name", Json::asString),
                 Json.required(data, "created_at", Json::asString),
                 Json.required(data, "email", Json::asString),
                 Json.required(data, "external_id", Json::asString),
                 Json.required(data, "id", Json::asString),
                 Json.required(data, "name", Json::asString),
-                Json.required(data, "status", Json::asString));
+                Json.optional(data, "phone", Json::asString),
+                Json.required(data, "status", Json::asString),
+                Json.optional(data, "tax_id", Json::asString),
+                Json.optional(data, "tax_id_kind", Json::asString));
+    }
+
+    /** @return Endereço de cobrança; fica de fora quando o cliente não tem. (null when the API sends none) */
+    public BillingAddress getBillingAddress() {
+        return billingAddress;
+    }
+
+    /** @return Nome ou razão social de quem paga, quando difere de name. (null when the API sends none) */
+    public String getBillingName() {
+        return billingName;
     }
 
     /** @return the API's {@code created_at} */
@@ -63,13 +92,28 @@ public final class Customer {
         return name;
     }
 
+    /** @return Telefone ou celular com DDD, só dígitos. (null when the API sends none) */
+    public String getPhone() {
+        return phone;
+    }
+
     /** @return the API's {@code status} */
     public String getStatus() {
         return status;
     }
 
+    /** @return CPF ou CNPJ, só dígitos. O CPF vem inteiro para a chave de um dono ou administrador da organização e mascarado (***.***.789-00) para as demais; o CNPJ vem sempre inteiro. (null when the API sends none) */
+    public String getTaxId() {
+        return taxId;
+    }
+
+    /** @return Qual documento tax_id é. (null when the API sends none) */
+    public String getTaxIdKind() {
+        return taxIdKind;
+    }
+
     @Override
     public String toString() {
-        return "Customer{" + "createdAt=" + createdAt + ", email=" + email + ", externalId=" + externalId + ", id=" + id + ", name=" + name + ", status=" + status + "}";
+        return "Customer{" + "billingAddress=" + billingAddress + ", billingName=" + billingName + ", createdAt=" + createdAt + ", email=" + email + ", externalId=" + externalId + ", id=" + id + ", name=" + name + ", phone=" + phone + ", status=" + status + ", taxId=" + taxId + ", taxIdKind=" + taxIdKind + "}";
     }
 }

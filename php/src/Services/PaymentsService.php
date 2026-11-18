@@ -27,9 +27,9 @@ final class PaymentsService
     }
 
     /**
-     * Listar pagamentos. One page; listIter() walks every page.
+     * Listar pagamentos, opcionalmente de um client_reference_id, de um estado, de um cliente, de um período ou de metadados. One page; listIter() walks every page.
      *
-     * @param array{page?: int, limit?: int} $params
+     * @param array{page?: int, limit?: int, client_reference_id?: string, status?: string, customer_id?: string, external_customer_id?: string, created_after?: string, created_before?: string, sorting?: string} $params
      * @return Page<Models\Payment>
      */
     public function list(array $params = [], ?string $apiKey = null): Page
@@ -41,7 +41,7 @@ final class PaymentsService
     /**
      * Walks every page of payments:list, item by item.
      *
-     * @param array{page?: int, limit?: int} $params
+     * @param array{page?: int, limit?: int, client_reference_id?: string, status?: string, customer_id?: string, external_customer_id?: string, created_after?: string, created_before?: string, sorting?: string} $params
      * @return \Generator<int, Models\Payment>
      */
     public function listIter(array $params = [], ?string $apiKey = null): \Generator

@@ -24,7 +24,7 @@ for product in perata.products.list_iter():
 |---|---|
 | `perata.benefits` | `create`, `delete`, `get`, `list`, `list_iter`, `list_grants`, `list_grants_iter`, `update` |
 | `perata.checkout_links` | `create`, `delete`, `get`, `list`, `list_iter`, `update` |
-| `perata.checkouts` | `create`, `get`, `update` |
+| `perata.checkouts` | `create`, `expire`, `get`, `list`, `list_iter`, `update` |
 | `perata.customer_sessions` | `create` |
 | `perata.customers` | `create`, `delete`, `get`, `get_external`, `get_state`, `list`, `list_iter`, `update`, `update_external` |
 | `perata.discounts` | `create`, `delete`, `get`, `list`, `list_iter`, `update` |
@@ -113,4 +113,4 @@ A assinatura é a do Standard Webhooks (`webhook-id`, `webhook-timestamp`, `webh
 
 O evento é tipado: um tipo para cada dado que o webhook carrega (`OrderWebhookEvent` traz um `Order`, `DisputeWebhookEvent` a disputa, `IdentifiersWebhookEvent` os identificadores…), e o `type` diz o que aconteceu; um tipo que esta versão do SDK ainda não conhece chega como `UnknownWebhookEvent`, com os dados como vieram. Durante a rotação do segredo o cabeçalho traz mais de uma assinatura, e basta uma conferir. `verify_webhook_signature` só confere a assinatura.
 
-Versão do SDK: 0.5.0 · contrato da API: 0.1.0
+Versão do SDK: 0.5.2 · contrato da API: 0.1.0

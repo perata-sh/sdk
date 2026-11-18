@@ -99,10 +99,24 @@ class CheckoutsService:
         data = self._client.request("POST", "/api/v1/checkouts", body=params, idempotency_key=idempotency_key, api_key=api_key)
         return models.CheckoutCreated.from_dict(data)
 
+    def expire(self, checkout: str, *, idempotency_key: str | None = None, api_key: str | None = None) -> models.CheckoutExpired:
+        """Encerrar um checkout que não deve mais ser pago: a página, o client_secret e o QR do Pix deixam de valer (o Pix já gerado é cancelado na Cielo), e o evento checkout.expired é enviado; 409 se já foi pago ou se emitiu boleto."""
+        data = self._client.request("POST", f"/api/v1/checkouts/{segment(checkout)}/expire", idempotency_key=idempotency_key, api_key=api_key)
+        return models.CheckoutExpired.from_dict(data)
+
     def get(self, checkout: str, *, api_key: str | None = None) -> models.Checkout:
         """Ler um checkout: o endereço, o estado e as páginas de retorno."""
         data = self._client.request("GET", f"/api/v1/checkouts/{segment(checkout)}", api_key=api_key)
         return models.Checkout.from_dict(data)
+
+    def list(self, *, page: int | None = None, limit: int | None = None, client_reference_id: str | None = None, status: str | None = None, created_after: str | None = None, created_before: str | None = None, sorting: str | None = None, api_key: str | None = None) -> Page[models.Checkout]:
+        """Listar checkouts, opcionalmente de um client_reference_id, de um status, de um período ou de metadados. One page; ``list_iter`` walks every page."""
+        data = self._client.request("GET", "/api/v1/checkouts", query={"page": page, "limit": limit, "client_reference_id": client_reference_id, "status": status, "created_after": created_after, "created_before": created_before, "sorting": sorting}, api_key=api_key)
+        return Page.from_dict(data, models.Checkout.from_dict)
+
+    def list_iter(self, *, page: int | None = None, limit: int | None = None, client_reference_id: str | None = None, status: str | None = None, created_after: str | None = None, created_before: str | None = None, sorting: str | None = None, api_key: str | None = None) -> Iterator[models.Checkout]:
+        """Walks every page of checkouts:list, item by item."""
+        return iterate(lambda at: self.list(page=at, limit=limit, client_reference_id=client_reference_id, status=status, created_after=created_after, created_before=created_before, sorting=sorting, api_key=api_key), page)
 
     def update(self, checkout: str, params: models.CheckoutsUpdateParams, *, idempotency_key: str | None = None, api_key: str | None = None) -> models.Checkout:
         """Atualizar o rótulo e as páginas de retorno de um checkout ativo."""
@@ -129,7 +143,7 @@ class CustomersService:
         self._client = client
 
     def create(self, params: models.CustomersCreateParams, *, idempotency_key: str | None = None, api_key: str | None = None) -> models.Customer:
-        """Criar um cliente."""
+        """Criar um cliente, com CPF ou CNPJ, telefone e endereço de cobrança se você os tem."""
         data = self._client.request("POST", "/api/v1/customers", body=params, idempotency_key=idempotency_key, api_key=api_key)
         return models.Customer.from_dict(data)
 
@@ -162,7 +176,7 @@ class CustomersService:
         return iterate(lambda at: self.list(page=at, limit=limit, api_key=api_key), page)
 
     def update(self, customer: str, params: models.CustomersUpdateParams, *, idempotency_key: str | None = None, api_key: str | None = None) -> models.Customer:
-        """Atualizar o nome, o e-mail ou o ID externo de um cliente; o ID externo não muda depois de definido."""
+        """Atualizar o nome, o e-mail, o ID externo, o CPF ou CNPJ, o telefone ou o endereço de cobrança de um cliente; o ID externo não muda depois de definido."""
         data = self._client.request("PATCH", f"/api/v1/customers/{segment(customer)}", body=params, idempotency_key=idempotency_key, api_key=api_key)
         return models.Customer.from_dict(data)
 
@@ -286,14 +300,14 @@ class OrdersService:
         data = self._client.request("GET", f"/api/v1/orders/{segment(order)}/receipt", api_key=api_key)
         return models.OrderReceipt.from_dict(data)
 
-    def list(self, *, page: int | None = None, limit: int | None = None, api_key: str | None = None) -> Page[models.Order]:
-        """Listar pedidos: checkouts pagos. One page; ``list_iter`` walks every page."""
-        data = self._client.request("GET", "/api/v1/orders", query={"page": page, "limit": limit}, api_key=api_key)
+    def list(self, *, page: int | None = None, limit: int | None = None, client_reference_id: str | None = None, status: str | None = None, customer_id: str | None = None, external_customer_id: str | None = None, created_after: str | None = None, created_before: str | None = None, sorting: str | None = None, api_key: str | None = None) -> Page[models.Order]:
+        """Listar pedidos (checkouts pagos), opcionalmente de um client_reference_id, de um cliente, de um período ou de metadados. One page; ``list_iter`` walks every page."""
+        data = self._client.request("GET", "/api/v1/orders", query={"page": page, "limit": limit, "client_reference_id": client_reference_id, "status": status, "customer_id": customer_id, "external_customer_id": external_customer_id, "created_after": created_after, "created_before": created_before, "sorting": sorting}, api_key=api_key)
         return Page.from_dict(data, models.Order.from_dict)
 
-    def list_iter(self, *, page: int | None = None, limit: int | None = None, api_key: str | None = None) -> Iterator[models.Order]:
+    def list_iter(self, *, page: int | None = None, limit: int | None = None, client_reference_id: str | None = None, status: str | None = None, customer_id: str | None = None, external_customer_id: str | None = None, created_after: str | None = None, created_before: str | None = None, sorting: str | None = None, api_key: str | None = None) -> Iterator[models.Order]:
         """Walks every page of orders:list, item by item."""
-        return iterate(lambda at: self.list(page=at, limit=limit, api_key=api_key), page)
+        return iterate(lambda at: self.list(page=at, limit=limit, client_reference_id=client_reference_id, status=status, customer_id=customer_id, external_customer_id=external_customer_id, created_after=created_after, created_before=created_before, sorting=sorting, api_key=api_key), page)
 
 
 class PaymentMethodsService:
@@ -328,14 +342,14 @@ class PaymentsService:
         data = self._client.request("GET", f"/api/v1/payments/{segment(payment)}", api_key=api_key)
         return models.Payment.from_dict(data)
 
-    def list(self, *, page: int | None = None, limit: int | None = None, api_key: str | None = None) -> Page[models.Payment]:
-        """Listar pagamentos. One page; ``list_iter`` walks every page."""
-        data = self._client.request("GET", "/api/v1/payments", query={"page": page, "limit": limit}, api_key=api_key)
+    def list(self, *, page: int | None = None, limit: int | None = None, client_reference_id: str | None = None, status: str | None = None, customer_id: str | None = None, external_customer_id: str | None = None, created_after: str | None = None, created_before: str | None = None, sorting: str | None = None, api_key: str | None = None) -> Page[models.Payment]:
+        """Listar pagamentos, opcionalmente de um client_reference_id, de um estado, de um cliente, de um período ou de metadados. One page; ``list_iter`` walks every page."""
+        data = self._client.request("GET", "/api/v1/payments", query={"page": page, "limit": limit, "client_reference_id": client_reference_id, "status": status, "customer_id": customer_id, "external_customer_id": external_customer_id, "created_after": created_after, "created_before": created_before, "sorting": sorting}, api_key=api_key)
         return Page.from_dict(data, models.Payment.from_dict)
 
-    def list_iter(self, *, page: int | None = None, limit: int | None = None, api_key: str | None = None) -> Iterator[models.Payment]:
+    def list_iter(self, *, page: int | None = None, limit: int | None = None, client_reference_id: str | None = None, status: str | None = None, customer_id: str | None = None, external_customer_id: str | None = None, created_after: str | None = None, created_before: str | None = None, sorting: str | None = None, api_key: str | None = None) -> Iterator[models.Payment]:
         """Walks every page of payments:list, item by item."""
-        return iterate(lambda at: self.list(page=at, limit=limit, api_key=api_key), page)
+        return iterate(lambda at: self.list(page=at, limit=limit, client_reference_id=client_reference_id, status=status, customer_id=customer_id, external_customer_id=external_customer_id, created_after=created_after, created_before=created_before, sorting=sorting, api_key=api_key), page)
 
 
 class PricesService:
@@ -406,14 +420,14 @@ class RefundsService:
         data = self._client.request("POST", "/api/v1/refunds", body=params, idempotency_key=idempotency_key, api_key=api_key)
         return models.Refund.from_dict(data)
 
-    def list(self, *, page: int | None = None, limit: int | None = None, payment_id: str | None = None, api_key: str | None = None) -> Page[models.Refund]:
-        """Listar reembolsos, opcionalmente de um pagamento (payment_id). One page; ``list_iter`` walks every page."""
-        data = self._client.request("GET", "/api/v1/refunds", query={"page": page, "limit": limit, "payment_id": payment_id}, api_key=api_key)
+    def list(self, *, page: int | None = None, limit: int | None = None, payment_id: str | None = None, status: str | None = None, customer_id: str | None = None, external_customer_id: str | None = None, created_after: str | None = None, created_before: str | None = None, sorting: str | None = None, api_key: str | None = None) -> Page[models.Refund]:
+        """Listar reembolsos, opcionalmente de um pagamento (payment_id), de um status, de um cliente ou de um período. One page; ``list_iter`` walks every page."""
+        data = self._client.request("GET", "/api/v1/refunds", query={"page": page, "limit": limit, "payment_id": payment_id, "status": status, "customer_id": customer_id, "external_customer_id": external_customer_id, "created_after": created_after, "created_before": created_before, "sorting": sorting}, api_key=api_key)
         return Page.from_dict(data, models.Refund.from_dict)
 
-    def list_iter(self, *, page: int | None = None, limit: int | None = None, payment_id: str | None = None, api_key: str | None = None) -> Iterator[models.Refund]:
+    def list_iter(self, *, page: int | None = None, limit: int | None = None, payment_id: str | None = None, status: str | None = None, customer_id: str | None = None, external_customer_id: str | None = None, created_after: str | None = None, created_before: str | None = None, sorting: str | None = None, api_key: str | None = None) -> Iterator[models.Refund]:
         """Walks every page of refunds:list, item by item."""
-        return iterate(lambda at: self.list(page=at, limit=limit, payment_id=payment_id, api_key=api_key), page)
+        return iterate(lambda at: self.list(page=at, limit=limit, payment_id=payment_id, status=status, customer_id=customer_id, external_customer_id=external_customer_id, created_after=created_after, created_before=created_before, sorting=sorting, api_key=api_key), page)
 
 
 class SubscriptionsService:
@@ -432,14 +446,14 @@ class SubscriptionsService:
         data = self._client.request("GET", f"/api/v1/subscriptions/{segment(subscription)}", api_key=api_key)
         return models.Subscription.from_dict(data)
 
-    def list(self, *, page: int | None = None, limit: int | None = None, customer_id: str | None = None, api_key: str | None = None) -> Page[models.Subscription]:
-        """Listar assinaturas, opcionalmente de um cliente (customer_id). One page; ``list_iter`` walks every page."""
-        data = self._client.request("GET", "/api/v1/subscriptions", query={"page": page, "limit": limit, "customer_id": customer_id}, api_key=api_key)
+    def list(self, *, page: int | None = None, limit: int | None = None, status: str | None = None, customer_id: str | None = None, external_customer_id: str | None = None, created_after: str | None = None, created_before: str | None = None, sorting: str | None = None, api_key: str | None = None) -> Page[models.Subscription]:
+        """Listar assinaturas, opcionalmente de um cliente (customer_id ou external_customer_id), de um status, de um período ou de metadados. One page; ``list_iter`` walks every page."""
+        data = self._client.request("GET", "/api/v1/subscriptions", query={"page": page, "limit": limit, "status": status, "customer_id": customer_id, "external_customer_id": external_customer_id, "created_after": created_after, "created_before": created_before, "sorting": sorting}, api_key=api_key)
         return Page.from_dict(data, models.Subscription.from_dict)
 
-    def list_iter(self, *, page: int | None = None, limit: int | None = None, customer_id: str | None = None, api_key: str | None = None) -> Iterator[models.Subscription]:
+    def list_iter(self, *, page: int | None = None, limit: int | None = None, status: str | None = None, customer_id: str | None = None, external_customer_id: str | None = None, created_after: str | None = None, created_before: str | None = None, sorting: str | None = None, api_key: str | None = None) -> Iterator[models.Subscription]:
         """Walks every page of subscriptions:list, item by item."""
-        return iterate(lambda at: self.list(page=at, limit=limit, customer_id=customer_id, api_key=api_key), page)
+        return iterate(lambda at: self.list(page=at, limit=limit, status=status, customer_id=customer_id, external_customer_id=external_customer_id, created_after=created_after, created_before=created_before, sorting=sorting, api_key=api_key), page)
 
     def update(self, subscription: str, params: models.SubscriptionsUpdateParams, *, idempotency_key: str | None = None, api_key: str | None = None) -> models.Subscription:
         """Trocar o plano de uma assinatura: outro preço e, se quiser, outra quantidade, com a forma de ratear a diferença (proration_behavior)."""

@@ -279,6 +279,22 @@ defmodule Perata.Checkouts do
   end
 
   @doc """
+  Encerrar um checkout que não deve mais ser pago: a página, o client_secret e o QR do Pix deixam de valer (o Pix já gerado é cancelado na Cielo), e o evento checkout.expired é enviado; 409 se já foi pago ou se emitiu boleto.
+
+  Options: `:idempotency_key` and `:api_key`.
+  """
+  @spec expire(Client.t(), String.t(), keyword()) ::
+          {:ok, Perata.CheckoutExpired.t()} | {:error, Perata.Error.t()}
+  def expire(%Client{} = client, checkout, opts \\ []) do
+    path = "/api/v1/checkouts/#{Client.segment(checkout)}/expire"
+    request = [idempotency_key: opts[:idempotency_key], api_key: opts[:api_key]]
+
+    with {:ok, data} <- Client.request(client, "POST", path, request) do
+      {:ok, Perata.CheckoutExpired.from_map(data)}
+    end
+  end
+
+  @doc """
   Ler um checkout: o endereço, o estado e as páginas de retorno.
 
   Options: `:api_key`.
@@ -292,6 +308,35 @@ defmodule Perata.Checkouts do
     with {:ok, data} <- Client.request(client, "GET", path, request) do
       {:ok, Perata.Checkout.from_map(data)}
     end
+  end
+
+  @doc """
+  Listar checkouts, opcionalmente de um client_reference_id, de um status, de um período ou de metadados. One page; `list_stream/2` walks every page.
+
+  Options: `:page`, `:limit`, `:client_reference_id`, `:status`, `:created_after`, `:created_before`, `:sorting` and `:api_key`.
+  """
+  @spec list(Client.t(), keyword()) ::
+          {:ok, Perata.Page.t(Perata.Checkout.t())} | {:error, Perata.Error.t()}
+  def list(%Client{} = client, opts \\ []) do
+    path = "/api/v1/checkouts"
+
+    request = [
+      query: [page: opts[:page], limit: opts[:limit], client_reference_id: opts[:client_reference_id], status: opts[:status], created_after: opts[:created_after], created_before: opts[:created_before], sorting: opts[:sorting]],
+      api_key: opts[:api_key]
+    ]
+
+    with {:ok, data} <- Client.request(client, "GET", path, request) do
+      {:ok, Perata.Page.from_map(data, &Perata.Checkout.from_map/1)}
+    end
+  end
+
+  @doc """
+  Walks every page of checkouts:list from `:page`, item by item, as a lazy
+  `Stream`. A refusal raises `Perata.Error` while it runs.
+  """
+  @spec list_stream(Client.t(), keyword()) :: Enumerable.t(Perata.Checkout.t())
+  def list_stream(%Client{} = client, opts \\ []) do
+    Perata.Page.stream(opts[:page], &list(client, Keyword.put(opts, :page, &1)))
   end
 
   @doc """
@@ -358,7 +403,7 @@ defmodule Perata.Customers do
   alias Perata.Client
 
   @doc """
-  Criar um cliente.
+  Criar um cliente, com CPF ou CNPJ, telefone e endereço de cobrança se você os tem.
 
   Options: `:idempotency_key` and `:api_key`.
   """
@@ -467,7 +512,7 @@ defmodule Perata.Customers do
   end
 
   @doc """
-  Atualizar o nome, o e-mail ou o ID externo de um cliente; o ID externo não muda depois de definido.
+  Atualizar o nome, o e-mail, o ID externo, o CPF ou CNPJ, o telefone ou o endereço de cobrança de um cliente; o ID externo não muda depois de definido.
 
   Options: `:idempotency_key` and `:api_key`.
   """
@@ -819,15 +864,19 @@ defmodule Perata.Orders do
   end
 
   @doc """
-  Listar pedidos: checkouts pagos. One page; `list_stream/2` walks every page.
+  Listar pedidos (checkouts pagos), opcionalmente de um client_reference_id, de um cliente, de um período ou de metadados. One page; `list_stream/2` walks every page.
 
-  Options: `:page`, `:limit` and `:api_key`.
+  Options: `:page`, `:limit`, `:client_reference_id`, `:status`, `:customer_id`, `:external_customer_id`, `:created_after`, `:created_before`, `:sorting` and `:api_key`.
   """
   @spec list(Client.t(), keyword()) ::
           {:ok, Perata.Page.t(Perata.Order.t())} | {:error, Perata.Error.t()}
   def list(%Client{} = client, opts \\ []) do
     path = "/api/v1/orders"
-    request = [query: [page: opts[:page], limit: opts[:limit]], api_key: opts[:api_key]]
+
+    request = [
+      query: [page: opts[:page], limit: opts[:limit], client_reference_id: opts[:client_reference_id], status: opts[:status], customer_id: opts[:customer_id], external_customer_id: opts[:external_customer_id], created_after: opts[:created_after], created_before: opts[:created_before], sorting: opts[:sorting]],
+      api_key: opts[:api_key]
+    ]
 
     with {:ok, data} <- Client.request(client, "GET", path, request) do
       {:ok, Perata.Page.from_map(data, &Perata.Order.from_map/1)}
@@ -913,15 +962,19 @@ defmodule Perata.Payments do
   end
 
   @doc """
-  Listar pagamentos. One page; `list_stream/2` walks every page.
+  Listar pagamentos, opcionalmente de um client_reference_id, de um estado, de um cliente, de um período ou de metadados. One page; `list_stream/2` walks every page.
 
-  Options: `:page`, `:limit` and `:api_key`.
+  Options: `:page`, `:limit`, `:client_reference_id`, `:status`, `:customer_id`, `:external_customer_id`, `:created_after`, `:created_before`, `:sorting` and `:api_key`.
   """
   @spec list(Client.t(), keyword()) ::
           {:ok, Perata.Page.t(Perata.Payment.t())} | {:error, Perata.Error.t()}
   def list(%Client{} = client, opts \\ []) do
     path = "/api/v1/payments"
-    request = [query: [page: opts[:page], limit: opts[:limit]], api_key: opts[:api_key]]
+
+    request = [
+      query: [page: opts[:page], limit: opts[:limit], client_reference_id: opts[:client_reference_id], status: opts[:status], customer_id: opts[:customer_id], external_customer_id: opts[:external_customer_id], created_after: opts[:created_after], created_before: opts[:created_before], sorting: opts[:sorting]],
+      api_key: opts[:api_key]
+    ]
 
     with {:ok, data} <- Client.request(client, "GET", path, request) do
       {:ok, Perata.Page.from_map(data, &Perata.Payment.from_map/1)}
@@ -1131,9 +1184,9 @@ defmodule Perata.Refunds do
   end
 
   @doc """
-  Listar reembolsos, opcionalmente de um pagamento (payment_id). One page; `list_stream/2` walks every page.
+  Listar reembolsos, opcionalmente de um pagamento (payment_id), de um status, de um cliente ou de um período. One page; `list_stream/2` walks every page.
 
-  Options: `:page`, `:limit`, `:payment_id` and `:api_key`.
+  Options: `:page`, `:limit`, `:payment_id`, `:status`, `:customer_id`, `:external_customer_id`, `:created_after`, `:created_before`, `:sorting` and `:api_key`.
   """
   @spec list(Client.t(), keyword()) ::
           {:ok, Perata.Page.t(Perata.Refund.t())} | {:error, Perata.Error.t()}
@@ -1141,7 +1194,7 @@ defmodule Perata.Refunds do
     path = "/api/v1/refunds"
 
     request = [
-      query: [page: opts[:page], limit: opts[:limit], payment_id: opts[:payment_id]],
+      query: [page: opts[:page], limit: opts[:limit], payment_id: opts[:payment_id], status: opts[:status], customer_id: opts[:customer_id], external_customer_id: opts[:external_customer_id], created_after: opts[:created_after], created_before: opts[:created_before], sorting: opts[:sorting]],
       api_key: opts[:api_key]
     ]
 
@@ -1208,9 +1261,9 @@ defmodule Perata.Subscriptions do
   end
 
   @doc """
-  Listar assinaturas, opcionalmente de um cliente (customer_id). One page; `list_stream/2` walks every page.
+  Listar assinaturas, opcionalmente de um cliente (customer_id ou external_customer_id), de um status, de um período ou de metadados. One page; `list_stream/2` walks every page.
 
-  Options: `:page`, `:limit`, `:customer_id` and `:api_key`.
+  Options: `:page`, `:limit`, `:status`, `:customer_id`, `:external_customer_id`, `:created_after`, `:created_before`, `:sorting` and `:api_key`.
   """
   @spec list(Client.t(), keyword()) ::
           {:ok, Perata.Page.t(Perata.Subscription.t())} | {:error, Perata.Error.t()}
@@ -1218,7 +1271,7 @@ defmodule Perata.Subscriptions do
     path = "/api/v1/subscriptions"
 
     request = [
-      query: [page: opts[:page], limit: opts[:limit], customer_id: opts[:customer_id]],
+      query: [page: opts[:page], limit: opts[:limit], status: opts[:status], customer_id: opts[:customer_id], external_customer_id: opts[:external_customer_id], created_after: opts[:created_after], created_before: opts[:created_before], sorting: opts[:sorting]],
       api_key: opts[:api_key]
     ]
 

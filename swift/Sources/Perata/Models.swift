@@ -627,6 +627,70 @@ public struct CheckoutCreated: Codable, Sendable, Hashable {
     }
 }
 
+/// CheckoutExpired is a resource of Peráta's API.
+public struct CheckoutExpired: Codable, Sendable, Hashable {
+    /// O que a chamada nomeou: o id do checkout ou o de uma sessão.
+    public let id: String
+    /// As sessões encerradas por esta chamada ou que já estavam encerradas.
+    public let sessions: [CheckoutExpiredSession]
+    /// Sempre expired: nada mais deste checkout pode ser pago.
+    public let status: CheckoutExpiredStatus
+
+    public init(id: String, sessions: [CheckoutExpiredSession], status: CheckoutExpiredStatus) {
+        self.id = id
+        self.sessions = sessions
+        self.status = status
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case id
+        case sessions
+        case status
+    }
+}
+
+/// CheckoutExpiredSession is a resource of Peráta's API.
+public struct CheckoutExpiredSession: Codable, Sendable, Hashable {
+    /// true quando a sessão já estava encerrada antes: a chamada foi repetida.
+    public let alreadyClosed: Bool
+    /// true quando a Cielo cancelou o Pix ou a reserva nesta chamada.
+    public let canceled: Bool
+    /// Quando a sessão foi encerrada; nulo se ela já tinha falhado.
+    public let expiredAt: String?
+    /// O meio escolhido; nulo se o comprador não escolheu um.
+    public let method: CheckoutExpiredSessionMethod?
+    /// O pagamento que a sessão tinha, vazio se o comprador não escolheu um meio.
+    public let paymentID: String
+    /// Como o pagamento ficou: canceled quando a Cielo retirou o QR do Pix ou liberou a reserva do cartão; vazio sem pagamento.
+    public let paymentState: String
+    /// O id da sessão, o mesmo checkout_id dos webhooks.
+    public let sessionID: String
+    /// expired: encerrada pelo lojista; failed: já tinha falhado antes.
+    public let status: CheckoutExpiredSessionStatus
+
+    public init(alreadyClosed: Bool, canceled: Bool, expiredAt: String?, method: CheckoutExpiredSessionMethod?, paymentID: String, paymentState: String, sessionID: String, status: CheckoutExpiredSessionStatus) {
+        self.alreadyClosed = alreadyClosed
+        self.canceled = canceled
+        self.expiredAt = expiredAt
+        self.method = method
+        self.paymentID = paymentID
+        self.paymentState = paymentState
+        self.sessionID = sessionID
+        self.status = status
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case alreadyClosed = "already_closed"
+        case canceled
+        case expiredAt = "expired_at"
+        case method
+        case paymentID = "payment_id"
+        case paymentState = "payment_state"
+        case sessionID = "session_id"
+        case status
+    }
+}
+
 /// CheckoutInstallment is a resource of Peráta's API.
 public struct CheckoutInstallment: Codable, Sendable, Hashable {
     /// O número de parcelas; 1 é à vista.
@@ -901,29 +965,49 @@ public struct CheckoutSavedProfile: Codable, Sendable, Hashable {
 
 /// Customer is a resource of Peráta's API.
 public struct Customer: Codable, Sendable, Hashable {
+    /// Endereço de cobrança; fica de fora quando o cliente não tem.
+    public let billingAddress: BillingAddress?
+    /// Nome ou razão social de quem paga, quando difere de name.
+    public let billingName: String?
     public let createdAt: String
     public let email: String
     public let externalID: String
     public let id: String
     public let name: String
+    /// Telefone ou celular com DDD, só dígitos.
+    public let phone: String?
     public let status: CustomerStatus
+    /// CPF ou CNPJ, só dígitos. O CPF vem inteiro para a chave de um dono ou administrador da organização e mascarado (***.***.789-00) para as demais; o CNPJ vem sempre inteiro.
+    public let taxID: String?
+    /// Qual documento tax_id é.
+    public let taxIDKind: CustomerTaxIdKind?
 
-    public init(createdAt: String, email: String, externalID: String, id: String, name: String, status: CustomerStatus) {
+    public init(createdAt: String, email: String, externalID: String, id: String, name: String, status: CustomerStatus, billingAddress: BillingAddress? = nil, billingName: String? = nil, phone: String? = nil, taxID: String? = nil, taxIDKind: CustomerTaxIdKind? = nil) {
+        self.billingAddress = billingAddress
+        self.billingName = billingName
         self.createdAt = createdAt
         self.email = email
         self.externalID = externalID
         self.id = id
         self.name = name
+        self.phone = phone
         self.status = status
+        self.taxID = taxID
+        self.taxIDKind = taxIDKind
     }
 
     enum CodingKeys: String, CodingKey {
+        case billingAddress = "billing_address"
+        case billingName = "billing_name"
         case createdAt = "created_at"
         case email
         case externalID = "external_id"
         case id
         case name
+        case phone
         case status
+        case taxID = "tax_id"
+        case taxIDKind = "tax_id_kind"
     }
 }
 
@@ -2568,28 +2652,99 @@ public struct CustomerSessionsCreateParams: Encodable, Sendable, Hashable {
 /// The initializer takes the required fields first; an optional field left
 /// nil is not sent.
 public struct CustomersCreateParams: Encodable, Sendable, Hashable {
+    /// Endereço de cobrança: rua e número, bairro, cidade, UF e CEP vêm juntos (o complemento é opcional).
+    public var billingAddress: CustomersCreateBillingAddress?
+    /// Nome ou razão social de quem paga, quando difere de name.
+    public var billingName: String?
     public var email: String
     /// Até 120 caracteres, sem barra (/) nem caracteres de controle.
     public var externalID: String?
     public var name: String
+    /// Telefone ou celular com DDD, com ou sem pontuação.
+    public var phone: String?
+    /// CPF ou CNPJ, com ou sem pontuação, com os dígitos verificadores corretos.
+    public var taxID: String?
+    /// Qual documento tax_id é; sem ele, o número diz.
+    public var taxIDKind: CustomersCreateParamsTaxIdKind?
 
-    public init(email: String, name: String, externalID: String? = nil) {
+    public init(email: String, name: String, billingAddress: CustomersCreateBillingAddress? = nil, billingName: String? = nil, externalID: String? = nil, phone: String? = nil, taxID: String? = nil, taxIDKind: CustomersCreateParamsTaxIdKind? = nil) {
+        self.billingAddress = billingAddress
+        self.billingName = billingName
         self.email = email
         self.externalID = externalID
         self.name = name
+        self.phone = phone
+        self.taxID = taxID
+        self.taxIDKind = taxIDKind
     }
 
     enum CodingKeys: String, CodingKey {
+        case billingAddress = "billing_address"
+        case billingName = "billing_name"
         case email
         case externalID = "external_id"
         case name
+        case phone
+        case taxID = "tax_id"
+        case taxIDKind = "tax_id_kind"
     }
 
     public func encode(to encoder: any Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encodeIfPresent(billingAddress, forKey: .billingAddress)
+        try container.encodeIfPresent(billingName, forKey: .billingName)
         try container.encode(email, forKey: .email)
         try container.encodeIfPresent(externalID, forKey: .externalID)
         try container.encode(name, forKey: .name)
+        try container.encodeIfPresent(phone, forKey: .phone)
+        try container.encodeIfPresent(taxID, forKey: .taxID)
+        try container.encodeIfPresent(taxIDKind, forKey: .taxIDKind)
+    }
+}
+
+/// Endereço de cobrança: rua e número, bairro, cidade, UF e CEP vêm juntos (o complemento é opcional).
+///
+/// The initializer takes the required fields first; an optional field left
+/// nil is not sent.
+public struct CustomersCreateBillingAddress: Encodable, Sendable, Hashable {
+    public var city: String?
+    /// Bairro.
+    public var district: String?
+    /// Rua e número.
+    public var line1: String?
+    /// Complemento.
+    public var line2: String?
+    /// CEP, com ou sem hífen.
+    public var postalCode: String?
+    /// UF, duas letras.
+    public var state: String?
+
+    public init(city: String? = nil, district: String? = nil, line1: String? = nil, line2: String? = nil, postalCode: String? = nil, state: String? = nil) {
+        self.city = city
+        self.district = district
+        self.line1 = line1
+        self.line2 = line2
+        self.postalCode = postalCode
+        self.state = state
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case city
+        case district
+        case line1
+        case line2
+        case postalCode = "postal_code"
+        case state
+    }
+
+    public func encode(to encoder: any Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encodeIfPresent(city, forKey: .city)
+        try container.encodeIfPresent(district, forKey: .district)
+        try container.encodeIfPresent(line1, forKey: .line1)
+        try container.encodeIfPresent(line2, forKey: .line2)
+        try container.encodeIfPresent(postalCode, forKey: .postalCode)
+        try container.encodeIfPresent(state, forKey: .state)
     }
 }
 
@@ -2598,28 +2753,99 @@ public struct CustomersCreateParams: Encodable, Sendable, Hashable {
 /// The initializer takes the required fields first; an optional field left
 /// nil is not sent.
 public struct CustomersUpdateParams: Encodable, Sendable, Hashable {
+    /// Endereço de cobrança: rua e número, bairro, cidade, UF e CEP vêm juntos (o complemento é opcional). Cada parte enviada substitui a guardada, e o endereço que resulta precisa estar inteiro; envie as partes vazias para apagar o endereço.
+    public var billingAddress: CustomersUpdateBillingAddress?
+    /// Nome ou razão social de quem paga, quando difere de name.
+    public var billingName: String?
     public var email: String?
     /// Só pode ser definido uma vez. Até 120 caracteres, sem barra (/) nem caracteres de controle.
     public var externalID: String?
     public var name: String?
+    /// Telefone ou celular com DDD, com ou sem pontuação.
+    public var phone: String?
+    /// CPF ou CNPJ, com ou sem pontuação, com os dígitos verificadores corretos. Só a chave de um dono ou administrador da organização o altera; as demais recebem 403. Texto vazio apaga.
+    public var taxID: String?
+    /// Qual documento tax_id é; sem ele, o número diz.
+    public var taxIDKind: CustomersUpdateParamsTaxIdKind?
 
-    public init(email: String? = nil, externalID: String? = nil, name: String? = nil) {
+    public init(billingAddress: CustomersUpdateBillingAddress? = nil, billingName: String? = nil, email: String? = nil, externalID: String? = nil, name: String? = nil, phone: String? = nil, taxID: String? = nil, taxIDKind: CustomersUpdateParamsTaxIdKind? = nil) {
+        self.billingAddress = billingAddress
+        self.billingName = billingName
         self.email = email
         self.externalID = externalID
         self.name = name
+        self.phone = phone
+        self.taxID = taxID
+        self.taxIDKind = taxIDKind
     }
 
     enum CodingKeys: String, CodingKey {
+        case billingAddress = "billing_address"
+        case billingName = "billing_name"
         case email
         case externalID = "external_id"
         case name
+        case phone
+        case taxID = "tax_id"
+        case taxIDKind = "tax_id_kind"
     }
 
     public func encode(to encoder: any Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encodeIfPresent(billingAddress, forKey: .billingAddress)
+        try container.encodeIfPresent(billingName, forKey: .billingName)
         try container.encodeIfPresent(email, forKey: .email)
         try container.encodeIfPresent(externalID, forKey: .externalID)
         try container.encodeIfPresent(name, forKey: .name)
+        try container.encodeIfPresent(phone, forKey: .phone)
+        try container.encodeIfPresent(taxID, forKey: .taxID)
+        try container.encodeIfPresent(taxIDKind, forKey: .taxIDKind)
+    }
+}
+
+/// Endereço de cobrança: rua e número, bairro, cidade, UF e CEP vêm juntos (o complemento é opcional). Cada parte enviada substitui a guardada, e o endereço que resulta precisa estar inteiro; envie as partes vazias para apagar o endereço.
+///
+/// The initializer takes the required fields first; an optional field left
+/// nil is not sent.
+public struct CustomersUpdateBillingAddress: Encodable, Sendable, Hashable {
+    public var city: String?
+    /// Bairro.
+    public var district: String?
+    /// Rua e número.
+    public var line1: String?
+    /// Complemento.
+    public var line2: String?
+    /// CEP, com ou sem hífen.
+    public var postalCode: String?
+    /// UF, duas letras.
+    public var state: String?
+
+    public init(city: String? = nil, district: String? = nil, line1: String? = nil, line2: String? = nil, postalCode: String? = nil, state: String? = nil) {
+        self.city = city
+        self.district = district
+        self.line1 = line1
+        self.line2 = line2
+        self.postalCode = postalCode
+        self.state = state
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case city
+        case district
+        case line1
+        case line2
+        case postalCode = "postal_code"
+        case state
+    }
+
+    public func encode(to encoder: any Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encodeIfPresent(city, forKey: .city)
+        try container.encodeIfPresent(district, forKey: .district)
+        try container.encodeIfPresent(line1, forKey: .line1)
+        try container.encodeIfPresent(line2, forKey: .line2)
+        try container.encodeIfPresent(postalCode, forKey: .postalCode)
+        try container.encodeIfPresent(state, forKey: .state)
     }
 }
 
@@ -2762,28 +2988,99 @@ public struct DiscountsUpdateParams: Encodable, Sendable, Hashable {
 /// The initializer takes the required fields first; an optional field left
 /// nil is not sent.
 public struct CustomersUpdateExternalParams: Encodable, Sendable, Hashable {
+    /// Endereço de cobrança: rua e número, bairro, cidade, UF e CEP vêm juntos (o complemento é opcional). Cada parte enviada substitui a guardada, e o endereço que resulta precisa estar inteiro; envie as partes vazias para apagar o endereço.
+    public var billingAddress: CustomersUpdateExternalBillingAddress?
+    /// Nome ou razão social de quem paga, quando difere de name.
+    public var billingName: String?
     public var email: String?
     /// Só pode ser definido uma vez. Até 120 caracteres, sem barra (/) nem caracteres de controle.
     public var externalID: String?
     public var name: String?
+    /// Telefone ou celular com DDD, com ou sem pontuação.
+    public var phone: String?
+    /// CPF ou CNPJ, com ou sem pontuação, com os dígitos verificadores corretos. Só a chave de um dono ou administrador da organização o altera; as demais recebem 403. Texto vazio apaga.
+    public var taxID: String?
+    /// Qual documento tax_id é; sem ele, o número diz.
+    public var taxIDKind: CustomersUpdateExternalParamsTaxIdKind?
 
-    public init(email: String? = nil, externalID: String? = nil, name: String? = nil) {
+    public init(billingAddress: CustomersUpdateExternalBillingAddress? = nil, billingName: String? = nil, email: String? = nil, externalID: String? = nil, name: String? = nil, phone: String? = nil, taxID: String? = nil, taxIDKind: CustomersUpdateExternalParamsTaxIdKind? = nil) {
+        self.billingAddress = billingAddress
+        self.billingName = billingName
         self.email = email
         self.externalID = externalID
         self.name = name
+        self.phone = phone
+        self.taxID = taxID
+        self.taxIDKind = taxIDKind
     }
 
     enum CodingKeys: String, CodingKey {
+        case billingAddress = "billing_address"
+        case billingName = "billing_name"
         case email
         case externalID = "external_id"
         case name
+        case phone
+        case taxID = "tax_id"
+        case taxIDKind = "tax_id_kind"
     }
 
     public func encode(to encoder: any Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encodeIfPresent(billingAddress, forKey: .billingAddress)
+        try container.encodeIfPresent(billingName, forKey: .billingName)
         try container.encodeIfPresent(email, forKey: .email)
         try container.encodeIfPresent(externalID, forKey: .externalID)
         try container.encodeIfPresent(name, forKey: .name)
+        try container.encodeIfPresent(phone, forKey: .phone)
+        try container.encodeIfPresent(taxID, forKey: .taxID)
+        try container.encodeIfPresent(taxIDKind, forKey: .taxIDKind)
+    }
+}
+
+/// Endereço de cobrança: rua e número, bairro, cidade, UF e CEP vêm juntos (o complemento é opcional). Cada parte enviada substitui a guardada, e o endereço que resulta precisa estar inteiro; envie as partes vazias para apagar o endereço.
+///
+/// The initializer takes the required fields first; an optional field left
+/// nil is not sent.
+public struct CustomersUpdateExternalBillingAddress: Encodable, Sendable, Hashable {
+    public var city: String?
+    /// Bairro.
+    public var district: String?
+    /// Rua e número.
+    public var line1: String?
+    /// Complemento.
+    public var line2: String?
+    /// CEP, com ou sem hífen.
+    public var postalCode: String?
+    /// UF, duas letras.
+    public var state: String?
+
+    public init(city: String? = nil, district: String? = nil, line1: String? = nil, line2: String? = nil, postalCode: String? = nil, state: String? = nil) {
+        self.city = city
+        self.district = district
+        self.line1 = line1
+        self.line2 = line2
+        self.postalCode = postalCode
+        self.state = state
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case city
+        case district
+        case line1
+        case line2
+        case postalCode = "postal_code"
+        case state
+    }
+
+    public func encode(to encoder: any Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encodeIfPresent(city, forKey: .city)
+        try container.encodeIfPresent(district, forKey: .district)
+        try container.encodeIfPresent(line1, forKey: .line1)
+        try container.encodeIfPresent(line2, forKey: .line2)
+        try container.encodeIfPresent(postalCode, forKey: .postalCode)
+        try container.encodeIfPresent(state, forKey: .state)
     }
 }
 
@@ -3486,6 +3783,66 @@ public struct CheckoutCreatedStatus: RawRepresentable, Codable, Sendable, Hashab
     public static let archived = CheckoutCreatedStatus(rawValue: "archived")
 }
 
+/// The values of `CheckoutExpired.status`. Sempre expired: nada mais deste checkout pode ser pago.
+///
+/// A value this SDK does not know yet is kept as it came, in `rawValue`.
+public struct CheckoutExpiredStatus: RawRepresentable, Codable, Sendable, Hashable, ExpressibleByStringLiteral {
+    public let rawValue: String
+
+    public init(rawValue: String) {
+        self.rawValue = rawValue
+    }
+
+    public init(stringLiteral value: String) {
+        self.rawValue = value
+    }
+
+    /// `expired`
+    public static let expired = CheckoutExpiredStatus(rawValue: "expired")
+}
+
+/// The values of `CheckoutExpiredSession.method`. O meio escolhido; nulo se o comprador não escolheu um.
+///
+/// A value this SDK does not know yet is kept as it came, in `rawValue`.
+public struct CheckoutExpiredSessionMethod: RawRepresentable, Codable, Sendable, Hashable, ExpressibleByStringLiteral {
+    public let rawValue: String
+
+    public init(rawValue: String) {
+        self.rawValue = rawValue
+    }
+
+    public init(stringLiteral value: String) {
+        self.rawValue = value
+    }
+
+    /// `card`
+    public static let card = CheckoutExpiredSessionMethod(rawValue: "card")
+    /// `pix`
+    public static let pix = CheckoutExpiredSessionMethod(rawValue: "pix")
+    /// `boleto`
+    public static let boleto = CheckoutExpiredSessionMethod(rawValue: "boleto")
+}
+
+/// The values of `CheckoutExpiredSession.status`. expired: encerrada pelo lojista; failed: já tinha falhado antes.
+///
+/// A value this SDK does not know yet is kept as it came, in `rawValue`.
+public struct CheckoutExpiredSessionStatus: RawRepresentable, Codable, Sendable, Hashable, ExpressibleByStringLiteral {
+    public let rawValue: String
+
+    public init(rawValue: String) {
+        self.rawValue = rawValue
+    }
+
+    public init(stringLiteral value: String) {
+        self.rawValue = value
+    }
+
+    /// `expired`
+    public static let expired = CheckoutExpiredSessionStatus(rawValue: "expired")
+    /// `failed`
+    public static let failed = CheckoutExpiredSessionStatus(rawValue: "failed")
+}
+
 /// The values of `CheckoutLink.capture_mode`. manual segura a venda no cartão para o lojista capturar depois.
 ///
 /// A value this SDK does not know yet is kept as it came, in `rawValue`.
@@ -3594,6 +3951,26 @@ public struct CustomerStatus: RawRepresentable, Codable, Sendable, Hashable, Exp
     public static let active = CustomerStatus(rawValue: "active")
     /// `archived`
     public static let archived = CustomerStatus(rawValue: "archived")
+}
+
+/// The values of `Customer.tax_id_kind`. Qual documento tax_id é.
+///
+/// A value this SDK does not know yet is kept as it came, in `rawValue`.
+public struct CustomerTaxIdKind: RawRepresentable, Codable, Sendable, Hashable, ExpressibleByStringLiteral {
+    public let rawValue: String
+
+    public init(rawValue: String) {
+        self.rawValue = rawValue
+    }
+
+    public init(stringLiteral value: String) {
+        self.rawValue = value
+    }
+
+    /// `cpf`
+    public static let cpf = CustomerTaxIdKind(rawValue: "cpf")
+    /// `cnpj`
+    public static let cnpj = CustomerTaxIdKind(rawValue: "cnpj")
 }
 
 /// The values of `CustomerState.status`.
@@ -4706,6 +5083,46 @@ public struct CheckoutLinksCreateParamsTrialInterval: RawRepresentable, Codable,
     public static let year = CheckoutLinksCreateParamsTrialInterval(rawValue: "year")
 }
 
+/// The values of `CustomersCreateParams.tax_id_kind`. Qual documento tax_id é; sem ele, o número diz.
+///
+/// A value this SDK does not know yet is kept as it came, in `rawValue`.
+public struct CustomersCreateParamsTaxIdKind: RawRepresentable, Codable, Sendable, Hashable, ExpressibleByStringLiteral {
+    public let rawValue: String
+
+    public init(rawValue: String) {
+        self.rawValue = rawValue
+    }
+
+    public init(stringLiteral value: String) {
+        self.rawValue = value
+    }
+
+    /// `cpf`
+    public static let cpf = CustomersCreateParamsTaxIdKind(rawValue: "cpf")
+    /// `cnpj`
+    public static let cnpj = CustomersCreateParamsTaxIdKind(rawValue: "cnpj")
+}
+
+/// The values of `CustomersUpdateParams.tax_id_kind`. Qual documento tax_id é; sem ele, o número diz.
+///
+/// A value this SDK does not know yet is kept as it came, in `rawValue`.
+public struct CustomersUpdateParamsTaxIdKind: RawRepresentable, Codable, Sendable, Hashable, ExpressibleByStringLiteral {
+    public let rawValue: String
+
+    public init(rawValue: String) {
+        self.rawValue = rawValue
+    }
+
+    public init(stringLiteral value: String) {
+        self.rawValue = value
+    }
+
+    /// `cpf`
+    public static let cpf = CustomersUpdateParamsTaxIdKind(rawValue: "cpf")
+    /// `cnpj`
+    public static let cnpj = CustomersUpdateParamsTaxIdKind(rawValue: "cnpj")
+}
+
 /// The values of `DiscountsCreateParams.duration`.
 ///
 /// A value this SDK does not know yet is kept as it came, in `rawValue`.
@@ -4746,6 +5163,26 @@ public struct DiscountsCreateParamsType: RawRepresentable, Codable, Sendable, Ha
     public static let percentage = DiscountsCreateParamsType(rawValue: "percentage")
     /// `fixed`
     public static let fixed = DiscountsCreateParamsType(rawValue: "fixed")
+}
+
+/// The values of `CustomersUpdateExternalParams.tax_id_kind`. Qual documento tax_id é; sem ele, o número diz.
+///
+/// A value this SDK does not know yet is kept as it came, in `rawValue`.
+public struct CustomersUpdateExternalParamsTaxIdKind: RawRepresentable, Codable, Sendable, Hashable, ExpressibleByStringLiteral {
+    public let rawValue: String
+
+    public init(rawValue: String) {
+        self.rawValue = rawValue
+    }
+
+    public init(stringLiteral value: String) {
+        self.rawValue = value
+    }
+
+    /// `cpf`
+    public static let cpf = CustomersUpdateExternalParamsTaxIdKind(rawValue: "cpf")
+    /// `cnpj`
+    public static let cnpj = CustomersUpdateExternalParamsTaxIdKind(rawValue: "cnpj")
 }
 
 /// The values of `PricesCreateParams.interval`. Obrigatório no preço recorrente; o preço one_time não tem intervalo.

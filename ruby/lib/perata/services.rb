@@ -157,12 +157,39 @@ module Perata
       CheckoutCreated.from_hash(data)
     end
 
+    # Encerrar um checkout que não deve mais ser pago: a página, o client_secret e o QR do Pix deixam de valer (o Pix já gerado é cancelado na Cielo), e o evento checkout.expired é enviado; 409 se já foi pago ou se emitiu boleto.
+    #
+    # @return [CheckoutExpired]
+    def expire(checkout, idempotency_key: nil, api_key: nil)
+      data = @client.request("POST", "/api/v1/checkouts/#{Perata.segment(checkout)}/expire", idempotency_key: idempotency_key, api_key: api_key)
+      CheckoutExpired.from_hash(data)
+    end
+
     # Ler um checkout: o endereço, o estado e as páginas de retorno.
     #
     # @return [Checkout]
     def get(checkout, api_key: nil)
       data = @client.request("GET", "/api/v1/checkouts/#{Perata.segment(checkout)}", api_key: api_key)
       Checkout.from_hash(data)
+    end
+
+    # Listar checkouts, opcionalmente de um client_reference_id, de um status, de um período ou de metadados. One page; +list_iter+ walks every page.
+    #
+    # @return [Page<Checkout>]
+    def list(page: nil, limit: nil, client_reference_id: nil, status: nil, created_after: nil, created_before: nil, sorting: nil, api_key: nil)
+      query = { "page" => page, "limit" => limit, "client_reference_id" => client_reference_id, "status" => status, "created_after" => created_after, "created_before" => created_before, "sorting" => sorting }
+      data = @client.request("GET", "/api/v1/checkouts", query: query, api_key: api_key)
+      Page.from_hash(data) { |item| Checkout.from_hash(item) }
+    end
+
+    # Walks every page of checkouts:list from +page+, item by item.
+    #
+    # @return [Enumerator<Checkout>]
+    def list_iter(page: nil, limit: nil, client_reference_id: nil, status: nil, created_after: nil, created_before: nil, sorting: nil, api_key: nil, &block)
+      items = Page.iterate(page) do |at|
+        list(page: at, limit: limit, client_reference_id: client_reference_id, status: status, created_after: created_after, created_before: created_before, sorting: sorting, api_key: api_key)
+      end
+      block ? items.each(&block) : items
     end
 
     # Atualizar o rótulo e as páginas de retorno de um checkout ativo.
@@ -197,7 +224,7 @@ module Perata
       @client = client
     end
 
-    # Criar um cliente.
+    # Criar um cliente, com CPF ou CNPJ, telefone e endereço de cobrança se você os tem.
     #
     # @param params [CustomersCreateParams, Hash]
     # @return [Customer]
@@ -257,7 +284,7 @@ module Perata
       block ? items.each(&block) : items
     end
 
-    # Atualizar o nome, o e-mail ou o ID externo de um cliente; o ID externo não muda depois de definido.
+    # Atualizar o nome, o e-mail, o ID externo, o CPF ou CNPJ, o telefone ou o endereço de cobrança de um cliente; o ID externo não muda depois de definido.
     #
     # @param params [CustomersUpdateParams, Hash]
     # @return [Customer]
@@ -460,11 +487,11 @@ module Perata
       OrderReceipt.from_hash(data)
     end
 
-    # Listar pedidos: checkouts pagos. One page; +list_iter+ walks every page.
+    # Listar pedidos (checkouts pagos), opcionalmente de um client_reference_id, de um cliente, de um período ou de metadados. One page; +list_iter+ walks every page.
     #
     # @return [Page<Order>]
-    def list(page: nil, limit: nil, api_key: nil)
-      query = { "page" => page, "limit" => limit }
+    def list(page: nil, limit: nil, client_reference_id: nil, status: nil, customer_id: nil, external_customer_id: nil, created_after: nil, created_before: nil, sorting: nil, api_key: nil)
+      query = { "page" => page, "limit" => limit, "client_reference_id" => client_reference_id, "status" => status, "customer_id" => customer_id, "external_customer_id" => external_customer_id, "created_after" => created_after, "created_before" => created_before, "sorting" => sorting }
       data = @client.request("GET", "/api/v1/orders", query: query, api_key: api_key)
       Page.from_hash(data) { |item| Order.from_hash(item) }
     end
@@ -472,9 +499,9 @@ module Perata
     # Walks every page of orders:list from +page+, item by item.
     #
     # @return [Enumerator<Order>]
-    def list_iter(page: nil, limit: nil, api_key: nil, &block)
+    def list_iter(page: nil, limit: nil, client_reference_id: nil, status: nil, customer_id: nil, external_customer_id: nil, created_after: nil, created_before: nil, sorting: nil, api_key: nil, &block)
       items = Page.iterate(page) do |at|
-        list(page: at, limit: limit, api_key: api_key)
+        list(page: at, limit: limit, client_reference_id: client_reference_id, status: status, customer_id: customer_id, external_customer_id: external_customer_id, created_after: created_after, created_before: created_before, sorting: sorting, api_key: api_key)
       end
       block ? items.each(&block) : items
     end
@@ -528,11 +555,11 @@ module Perata
       Payment.from_hash(data)
     end
 
-    # Listar pagamentos. One page; +list_iter+ walks every page.
+    # Listar pagamentos, opcionalmente de um client_reference_id, de um estado, de um cliente, de um período ou de metadados. One page; +list_iter+ walks every page.
     #
     # @return [Page<Payment>]
-    def list(page: nil, limit: nil, api_key: nil)
-      query = { "page" => page, "limit" => limit }
+    def list(page: nil, limit: nil, client_reference_id: nil, status: nil, customer_id: nil, external_customer_id: nil, created_after: nil, created_before: nil, sorting: nil, api_key: nil)
+      query = { "page" => page, "limit" => limit, "client_reference_id" => client_reference_id, "status" => status, "customer_id" => customer_id, "external_customer_id" => external_customer_id, "created_after" => created_after, "created_before" => created_before, "sorting" => sorting }
       data = @client.request("GET", "/api/v1/payments", query: query, api_key: api_key)
       Page.from_hash(data) { |item| Payment.from_hash(item) }
     end
@@ -540,9 +567,9 @@ module Perata
     # Walks every page of payments:list from +page+, item by item.
     #
     # @return [Enumerator<Payment>]
-    def list_iter(page: nil, limit: nil, api_key: nil, &block)
+    def list_iter(page: nil, limit: nil, client_reference_id: nil, status: nil, customer_id: nil, external_customer_id: nil, created_after: nil, created_before: nil, sorting: nil, api_key: nil, &block)
       items = Page.iterate(page) do |at|
-        list(page: at, limit: limit, api_key: api_key)
+        list(page: at, limit: limit, client_reference_id: client_reference_id, status: status, customer_id: customer_id, external_customer_id: external_customer_id, created_after: created_after, created_before: created_before, sorting: sorting, api_key: api_key)
       end
       block ? items.each(&block) : items
     end
@@ -658,11 +685,11 @@ module Perata
       Refund.from_hash(data)
     end
 
-    # Listar reembolsos, opcionalmente de um pagamento (payment_id). One page; +list_iter+ walks every page.
+    # Listar reembolsos, opcionalmente de um pagamento (payment_id), de um status, de um cliente ou de um período. One page; +list_iter+ walks every page.
     #
     # @return [Page<Refund>]
-    def list(page: nil, limit: nil, payment_id: nil, api_key: nil)
-      query = { "page" => page, "limit" => limit, "payment_id" => payment_id }
+    def list(page: nil, limit: nil, payment_id: nil, status: nil, customer_id: nil, external_customer_id: nil, created_after: nil, created_before: nil, sorting: nil, api_key: nil)
+      query = { "page" => page, "limit" => limit, "payment_id" => payment_id, "status" => status, "customer_id" => customer_id, "external_customer_id" => external_customer_id, "created_after" => created_after, "created_before" => created_before, "sorting" => sorting }
       data = @client.request("GET", "/api/v1/refunds", query: query, api_key: api_key)
       Page.from_hash(data) { |item| Refund.from_hash(item) }
     end
@@ -670,9 +697,9 @@ module Perata
     # Walks every page of refunds:list from +page+, item by item.
     #
     # @return [Enumerator<Refund>]
-    def list_iter(page: nil, limit: nil, payment_id: nil, api_key: nil, &block)
+    def list_iter(page: nil, limit: nil, payment_id: nil, status: nil, customer_id: nil, external_customer_id: nil, created_after: nil, created_before: nil, sorting: nil, api_key: nil, &block)
       items = Page.iterate(page) do |at|
-        list(page: at, limit: limit, payment_id: payment_id, api_key: api_key)
+        list(page: at, limit: limit, payment_id: payment_id, status: status, customer_id: customer_id, external_customer_id: external_customer_id, created_after: created_after, created_before: created_before, sorting: sorting, api_key: api_key)
       end
       block ? items.each(&block) : items
     end
@@ -701,11 +728,11 @@ module Perata
       Subscription.from_hash(data)
     end
 
-    # Listar assinaturas, opcionalmente de um cliente (customer_id). One page; +list_iter+ walks every page.
+    # Listar assinaturas, opcionalmente de um cliente (customer_id ou external_customer_id), de um status, de um período ou de metadados. One page; +list_iter+ walks every page.
     #
     # @return [Page<Subscription>]
-    def list(page: nil, limit: nil, customer_id: nil, api_key: nil)
-      query = { "page" => page, "limit" => limit, "customer_id" => customer_id }
+    def list(page: nil, limit: nil, status: nil, customer_id: nil, external_customer_id: nil, created_after: nil, created_before: nil, sorting: nil, api_key: nil)
+      query = { "page" => page, "limit" => limit, "status" => status, "customer_id" => customer_id, "external_customer_id" => external_customer_id, "created_after" => created_after, "created_before" => created_before, "sorting" => sorting }
       data = @client.request("GET", "/api/v1/subscriptions", query: query, api_key: api_key)
       Page.from_hash(data) { |item| Subscription.from_hash(item) }
     end
@@ -713,9 +740,9 @@ module Perata
     # Walks every page of subscriptions:list from +page+, item by item.
     #
     # @return [Enumerator<Subscription>]
-    def list_iter(page: nil, limit: nil, customer_id: nil, api_key: nil, &block)
+    def list_iter(page: nil, limit: nil, status: nil, customer_id: nil, external_customer_id: nil, created_after: nil, created_before: nil, sorting: nil, api_key: nil, &block)
       items = Page.iterate(page) do |at|
-        list(page: at, limit: limit, customer_id: customer_id, api_key: api_key)
+        list(page: at, limit: limit, status: status, customer_id: customer_id, external_customer_id: external_customer_id, created_after: created_after, created_before: created_before, sorting: sorting, api_key: api_key)
       end
       block ? items.each(&block) : items
     end

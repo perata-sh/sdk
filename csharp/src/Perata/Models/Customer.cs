@@ -15,6 +15,20 @@ public sealed record Customer
     /// <summary>A value of <see cref="Status"/>.</summary>
     public const string StatusArchived = "archived";
 
+    /// <summary>A value of <see cref="TaxIdKind"/>.</summary>
+    public const string TaxIdKindCpf = "cpf";
+
+    /// <summary>A value of <see cref="TaxIdKind"/>.</summary>
+    public const string TaxIdKindCnpj = "cnpj";
+
+    /// <summary>Endereço de cobrança; fica de fora quando o cliente não tem. Null when the API sends none.</summary>
+    [JsonPropertyName("billing_address")]
+    public BillingAddress? BillingAddress { get; init; }
+
+    /// <summary>Nome ou razão social de quem paga, quando difere de name. Null when the API sends none.</summary>
+    [JsonPropertyName("billing_name")]
+    public string? BillingName { get; init; }
+
     /// <summary>The API's <c>created_at</c>.</summary>
     [JsonPropertyName("created_at")]
     public required string CreatedAt { get; init; }
@@ -35,7 +49,19 @@ public sealed record Customer
     [JsonPropertyName("name")]
     public required string Name { get; init; }
 
+    /// <summary>Telefone ou celular com DDD, só dígitos. Null when the API sends none.</summary>
+    [JsonPropertyName("phone")]
+    public string? Phone { get; init; }
+
     /// <summary>The API's <c>status</c>.</summary>
     [JsonPropertyName("status")]
     public required string Status { get; init; }
+
+    /// <summary>CPF ou CNPJ, só dígitos. O CPF vem inteiro para a chave de um dono ou administrador da organização e mascarado (***.***.789-00) para as demais; o CNPJ vem sempre inteiro. Null when the API sends none.</summary>
+    [JsonPropertyName("tax_id")]
+    public string? TaxId { get; init; }
+
+    /// <summary>Qual documento tax_id é. Null when the API sends none.</summary>
+    [JsonPropertyName("tax_id_kind")]
+    public string? TaxIdKind { get; init; }
 }

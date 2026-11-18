@@ -167,7 +167,7 @@ public final class RefundsService {
 
 
     /**
-     * Listar reembolsos, opcionalmente de um pagamento (payment_id). One page; {@link #listIter} walks every page.
+     * Listar reembolsos, opcionalmente de um pagamento (payment_id), de um status, de um cliente ou de um período. One page; {@link #listIter} walks every page.
      * @param params the page, its size and the filters, or null
      * @param options options for this call, or null
      * @return the page
@@ -179,7 +179,7 @@ public final class RefundsService {
     }
 
     /**
-     * Listar reembolsos, opcionalmente de um pagamento (payment_id). One page.
+     * Listar reembolsos, opcionalmente de um pagamento (payment_id), de um status, de um cliente ou de um período. One page.
      * @param params the page, its size and the filters, or null
      * @return the page
      */
@@ -188,7 +188,7 @@ public final class RefundsService {
     }
 
     /**
-     * Listar reembolsos, opcionalmente de um pagamento (payment_id). The first page.
+     * Listar reembolsos, opcionalmente de um pagamento (payment_id), de um status, de um cliente ou de um período. The first page.
      * @return the page
      */
     public Page<Refund> list() {
@@ -230,11 +230,23 @@ public final class RefundsService {
         private final Integer page;
         private final Integer limit;
         private final String paymentId;
+        private final String status;
+        private final String customerId;
+        private final String externalCustomerId;
+        private final String createdAfter;
+        private final String createdBefore;
+        private final String sorting;
 
         private ListParams(Builder builder) {
             this.page = builder.page;
             this.limit = builder.limit;
             this.paymentId = builder.paymentId;
+            this.status = builder.status;
+            this.customerId = builder.customerId;
+            this.externalCustomerId = builder.externalCustomerId;
+            this.createdAfter = builder.createdAfter;
+            this.createdBefore = builder.createdBefore;
+            this.sorting = builder.sorting;
         }
 
         /** @return a builder of the page and filters */
@@ -257,10 +269,46 @@ public final class RefundsService {
             return paymentId;
         }
 
+        /** @return Só os reembolsos neste status: requested, pending, unknown, succeeded, failed ou canceled. (null when not filtered) */
+        public String getStatus() {
+            return status;
+        }
+
+        /** @return Só os deste cliente. (null when not filtered) */
+        public String getCustomerId() {
+            return customerId;
+        }
+
+        /** @return Só os do cliente que você identifica por este ID externo; um ID que não existe não acha nada. (null when not filtered) */
+        public String getExternalCustomerId() {
+            return externalCustomerId;
+        }
+
+        /** @return Só os criados a partir deste instante, inclusive (RFC 3339, como 2026-11-17T00:00:00-03:00). (null when not filtered) */
+        public String getCreatedAfter() {
+            return createdAfter;
+        }
+
+        /** @return Só os criados antes deste instante (RFC 3339); com created_after, o período é [created_after, created_before). (null when not filtered) */
+        public String getCreatedBefore() {
+            return createdBefore;
+        }
+
+        /** @return Ordem da lista: created_at ou amount, e com um - na frente é decrescente (-created_at, o mais novo primeiro, é o padrão). (null when not filtered) */
+        public String getSorting() {
+            return sorting;
+        }
+
         ListParams withPage(int page) {
             Builder builder = builder().page(page);
             builder.limit = limit;
             builder.paymentId = paymentId;
+            builder.status = status;
+            builder.customerId = customerId;
+            builder.externalCustomerId = externalCustomerId;
+            builder.createdAfter = createdAfter;
+            builder.createdBefore = createdBefore;
+            builder.sorting = sorting;
             return builder.build();
         }
 
@@ -269,6 +317,12 @@ public final class RefundsService {
             query.put("page", page == null ? null : page.toString());
             query.put("limit", limit == null ? null : limit.toString());
             query.put("payment_id", paymentId);
+            query.put("status", status);
+            query.put("customer_id", customerId);
+            query.put("external_customer_id", externalCustomerId);
+            query.put("created_after", createdAfter);
+            query.put("created_before", createdBefore);
+            query.put("sorting", sorting);
             return query;
         }
 
@@ -277,6 +331,12 @@ public final class RefundsService {
             private Integer page;
             private Integer limit;
             private String paymentId;
+            private String status;
+            private String customerId;
+            private String externalCustomerId;
+            private String createdAfter;
+            private String createdBefore;
+            private String sorting;
 
             private Builder() {
             }
@@ -305,6 +365,60 @@ public final class RefundsService {
              */
             public Builder paymentId(String paymentId) {
                 this.paymentId = paymentId;
+                return this;
+            }
+
+            /**
+             * @param status Só os reembolsos neste status: requested, pending, unknown, succeeded, failed ou canceled.
+             * @return this builder
+             */
+            public Builder status(String status) {
+                this.status = status;
+                return this;
+            }
+
+            /**
+             * @param customerId Só os deste cliente.
+             * @return this builder
+             */
+            public Builder customerId(String customerId) {
+                this.customerId = customerId;
+                return this;
+            }
+
+            /**
+             * @param externalCustomerId Só os do cliente que você identifica por este ID externo; um ID que não existe não acha nada.
+             * @return this builder
+             */
+            public Builder externalCustomerId(String externalCustomerId) {
+                this.externalCustomerId = externalCustomerId;
+                return this;
+            }
+
+            /**
+             * @param createdAfter Só os criados a partir deste instante, inclusive (RFC 3339, como 2026-11-17T00:00:00-03:00).
+             * @return this builder
+             */
+            public Builder createdAfter(String createdAfter) {
+                this.createdAfter = createdAfter;
+                return this;
+            }
+
+            /**
+             * @param createdBefore Só os criados antes deste instante (RFC 3339); com created_after, o período é [created_after, created_before).
+             * @return this builder
+             */
+            public Builder createdBefore(String createdBefore) {
+                this.createdBefore = createdBefore;
+                return this;
+            }
+
+            /**
+             * @param sorting Ordem da lista: created_at ou amount, e com um - na frente é decrescente (-created_at, o mais novo primeiro, é o padrão).
+             * @return this builder
+             */
+            public Builder sorting(String sorting) {
+                this.sorting = sorting;
                 return this;
             }
 

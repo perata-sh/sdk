@@ -29,7 +29,7 @@ public sealed class PaymentsService
         return client.RequestAsync(HttpMethod.Get, "/api/v1/payments/" + PerataClient.Segment(payment), null, null, PerataJson.Default.PaymentEnvelope, null, options, cancellationToken);
     }
 
-    /// <summary>Listar pagamentos. One page; <see cref="ListIterAsync"/> walks every page.</summary>
+    /// <summary>Listar pagamentos, opcionalmente de um client_reference_id, de um estado, de um cliente, de um período ou de metadados. One page; <see cref="ListIterAsync"/> walks every page.</summary>
     /// <param name="parameters">The page, its size and the filters; the first page when null.</param>
     /// <param name="options">Another organization's key for this call.</param>
     /// <param name="cancellationToken">Cancels the call.</param>
@@ -59,10 +59,38 @@ public sealed record PaymentsListParams
     /// <summary>The items a page, 1 to 100; the API's 10 when null.</summary>
     public int? Limit { get; init; }
 
+    /// <summary>Só os registros com este client_reference_id: o ID do pedido no seu sistema, que você enviou ao criar o checkout.</summary>
+    public string? ClientReferenceId { get; init; }
+
+    /// <summary>Só os pagamentos neste estado: unknown, pending, authorized, captured, refused, canceled, refunded ou partially_refunded.</summary>
+    public string? Status { get; init; }
+
+    /// <summary>Só os deste cliente.</summary>
+    public string? CustomerId { get; init; }
+
+    /// <summary>Só os do cliente que você identifica por este ID externo; um ID que não existe não acha nada.</summary>
+    public string? ExternalCustomerId { get; init; }
+
+    /// <summary>Só os criados a partir deste instante, inclusive (RFC 3339, como 2026-11-17T00:00:00-03:00).</summary>
+    public string? CreatedAfter { get; init; }
+
+    /// <summary>Só os criados antes deste instante (RFC 3339); com created_after, o período é [created_after, created_before).</summary>
+    public string? CreatedBefore { get; init; }
+
+    /// <summary>Ordem da lista: created_at ou amount, e com um - na frente é decrescente (-created_at, o mais novo primeiro, é o padrão).</summary>
+    public string? Sorting { get; init; }
+
     internal IEnumerable<KeyValuePair<string, string?>> Query() =>
     [
         new("page", Page?.ToString(CultureInfo.InvariantCulture)),
         new("limit", Limit?.ToString(CultureInfo.InvariantCulture)),
+        new("client_reference_id", ClientReferenceId),
+        new("status", Status),
+        new("customer_id", CustomerId),
+        new("external_customer_id", ExternalCustomerId),
+        new("created_after", CreatedAfter),
+        new("created_before", CreatedBefore),
+        new("sorting", Sorting),
     ];
 }
 

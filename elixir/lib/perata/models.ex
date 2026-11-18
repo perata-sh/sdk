@@ -724,6 +724,84 @@ defmodule Perata.CheckoutCreated do
   end
 end
 
+defmodule Perata.CheckoutExpired do
+  @moduledoc "CheckoutExpired is a resource of Peráta's API."
+
+  defstruct [:id, :sessions, :status]
+
+  @typedoc """
+  * `id`: O que a chamada nomeou: o id do checkout ou o de uma sessão.
+  * `sessions`: As sessões encerradas por esta chamada ou que já estavam encerradas.
+  * `status` (one of `"expired"`): Sempre expired: nada mais deste checkout pode ser pago.
+  """
+  @type t :: %__MODULE__{
+          id: String.t(),
+          sessions: [Perata.CheckoutExpiredSession.t()],
+          status: String.t()
+        }
+
+  @doc "Builds a CheckoutExpired from the API's JSON."
+  @spec from_map(map()) :: t()
+  def from_map(%{} = data) do
+    %__MODULE__{
+      id: Map.fetch!(data, "id"),
+      sessions: Enum.map(Map.fetch!(data, "sessions"), &Perata.CheckoutExpiredSession.from_map/1),
+      status: Map.fetch!(data, "status")
+    }
+  end
+end
+
+defmodule Perata.CheckoutExpiredSession do
+  @moduledoc "CheckoutExpiredSession is a resource of Peráta's API."
+
+  defstruct [
+    :already_closed,
+    :canceled,
+    :expired_at,
+    :method,
+    :payment_id,
+    :payment_state,
+    :session_id,
+    :status
+  ]
+
+  @typedoc """
+  * `already_closed`: true quando a sessão já estava encerrada antes: a chamada foi repetida.
+  * `canceled`: true quando a Cielo cancelou o Pix ou a reserva nesta chamada.
+  * `expired_at`: Quando a sessão foi encerrada; nulo se ela já tinha falhado.
+  * `method` (one of `"card"`, `"pix"`, `"boleto"`): O meio escolhido; nulo se o comprador não escolheu um.
+  * `payment_id`: O pagamento que a sessão tinha, vazio se o comprador não escolheu um meio.
+  * `payment_state`: Como o pagamento ficou: canceled quando a Cielo retirou o QR do Pix ou liberou a reserva do cartão; vazio sem pagamento.
+  * `session_id`: O id da sessão, o mesmo checkout_id dos webhooks.
+  * `status` (one of `"expired"`, `"failed"`): expired: encerrada pelo lojista; failed: já tinha falhado antes.
+  """
+  @type t :: %__MODULE__{
+          already_closed: boolean(),
+          canceled: boolean(),
+          expired_at: String.t() | nil,
+          method: String.t() | nil,
+          payment_id: String.t(),
+          payment_state: String.t(),
+          session_id: String.t(),
+          status: String.t()
+        }
+
+  @doc "Builds a CheckoutExpiredSession from the API's JSON."
+  @spec from_map(map()) :: t()
+  def from_map(%{} = data) do
+    %__MODULE__{
+      already_closed: Map.fetch!(data, "already_closed"),
+      canceled: Map.fetch!(data, "canceled"),
+      expired_at: data["expired_at"],
+      method: data["method"],
+      payment_id: Map.fetch!(data, "payment_id"),
+      payment_state: Map.fetch!(data, "payment_state"),
+      session_id: Map.fetch!(data, "session_id"),
+      status: Map.fetch!(data, "status")
+    }
+  end
+end
+
 defmodule Perata.CheckoutInstallment do
   @moduledoc "CheckoutInstallment is a resource of Peráta's API."
 
@@ -1048,30 +1126,57 @@ end
 defmodule Perata.Customer do
   @moduledoc "Customer is a resource of Peráta's API."
 
-  defstruct [:created_at, :email, :external_id, :id, :name, :status]
+  defstruct [
+    :billing_address,
+    :billing_name,
+    :created_at,
+    :email,
+    :external_id,
+    :id,
+    :name,
+    :phone,
+    :status,
+    :tax_id,
+    :tax_id_kind
+  ]
 
   @typedoc """
+  * `billing_address`: Endereço de cobrança; fica de fora quando o cliente não tem.
+  * `billing_name`: Nome ou razão social de quem paga, quando difere de name.
+  * `phone`: Telefone ou celular com DDD, só dígitos.
   * `status` (one of `"active"`, `"archived"`)
+  * `tax_id`: CPF ou CNPJ, só dígitos. O CPF vem inteiro para a chave de um dono ou administrador da organização e mascarado (***.***.789-00) para as demais; o CNPJ vem sempre inteiro.
+  * `tax_id_kind` (one of `"cpf"`, `"cnpj"`): Qual documento tax_id é.
   """
   @type t :: %__MODULE__{
+          billing_address: Perata.BillingAddress.t() | nil,
+          billing_name: String.t() | nil,
           created_at: String.t(),
           email: String.t(),
           external_id: String.t(),
           id: String.t(),
           name: String.t(),
-          status: String.t()
+          phone: String.t() | nil,
+          status: String.t(),
+          tax_id: String.t() | nil,
+          tax_id_kind: String.t() | nil
         }
 
   @doc "Builds a Customer from the API's JSON."
   @spec from_map(map()) :: t()
   def from_map(%{} = data) do
     %__MODULE__{
+      billing_address: with(value when not is_nil(value) <- data["billing_address"], do: Perata.BillingAddress.from_map(value)),
+      billing_name: data["billing_name"],
       created_at: Map.fetch!(data, "created_at"),
       email: Map.fetch!(data, "email"),
       external_id: Map.fetch!(data, "external_id"),
       id: Map.fetch!(data, "id"),
       name: Map.fetch!(data, "name"),
-      status: Map.fetch!(data, "status")
+      phone: data["phone"],
+      status: Map.fetch!(data, "status"),
+      tax_id: data["tax_id"],
+      tax_id_kind: data["tax_id_kind"]
     }
   end
 end

@@ -10,13 +10,26 @@ namespace Perata\Models;
 final class Customer
 {
     public function __construct(
+        /** Endereço de cobrança; fica de fora quando o cliente não tem. */
+        public readonly ?BillingAddress $billingAddress,
+        /** Nome ou razão social de quem paga, quando difere de name. */
+        public readonly ?string $billingName,
         public readonly string $createdAt,
         public readonly string $email,
         public readonly string $externalId,
         public readonly string $id,
         public readonly string $name,
+        /** Telefone ou celular com DDD, só dígitos. */
+        public readonly ?string $phone,
         /** @var 'active'|'archived' */
         public readonly string $status,
+        /** CPF ou CNPJ, só dígitos. O CPF vem inteiro para a chave de um dono ou administrador da organização e mascarado (***.***.789-00) para as demais; o CNPJ vem sempre inteiro. */
+        public readonly ?string $taxId,
+        /**
+         * Qual documento tax_id é.
+         * @var 'cpf'|'cnpj'|null
+         */
+        public readonly ?string $taxIdKind,
     ) {
     }
 
@@ -26,12 +39,17 @@ final class Customer
     public static function fromArray(array $data): self
     {
         return new self(
+            billingAddress: isset($data['billing_address']) ? BillingAddress::fromArray($data['billing_address']) : null,
+            billingName: $data['billing_name'] ?? null,
             createdAt: $data['created_at'],
             email: $data['email'],
             externalId: $data['external_id'],
             id: $data['id'],
             name: $data['name'],
+            phone: $data['phone'] ?? null,
             status: $data['status'],
+            taxId: $data['tax_id'] ?? null,
+            taxIdKind: $data['tax_id_kind'] ?? null,
         );
     }
 }

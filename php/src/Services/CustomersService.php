@@ -18,9 +18,9 @@ final class CustomersService
     }
 
     /**
-     * Criar um cliente.
+     * Criar um cliente, com CPF ou CNPJ, telefone e endereço de cobrança se você os tem.
      *
-     * @param array{email: string, external_id?: string, name: string} $params
+     * @param array{billing_address?: array{city?: string, district?: string, line1?: string, line2?: string, postal_code?: string, state?: string}, billing_name?: string, email: string, external_id?: string, name: string, phone?: string, tax_id?: string, tax_id_kind?: 'cpf'|'cnpj'} $params
      */
     public function create(array $params, ?string $idempotencyKey = null, ?string $apiKey = null): Models\Customer
     {
@@ -87,9 +87,9 @@ final class CustomersService
     }
 
     /**
-     * Atualizar o nome, o e-mail ou o ID externo de um cliente; o ID externo não muda depois de definido.
+     * Atualizar o nome, o e-mail, o ID externo, o CPF ou CNPJ, o telefone ou o endereço de cobrança de um cliente; o ID externo não muda depois de definido.
      *
-     * @param array{email?: string, external_id?: string, name?: string} $params
+     * @param array{billing_address?: array{city?: string, district?: string, line1?: string, line2?: string, postal_code?: string, state?: string}, billing_name?: string, email?: string, external_id?: string, name?: string, phone?: string, tax_id?: string, tax_id_kind?: 'cpf'|'cnpj'} $params
      */
     public function update(string $customer, array $params, ?string $idempotencyKey = null, ?string $apiKey = null): Models\Customer
     {
@@ -100,7 +100,7 @@ final class CustomersService
     /**
      * Atualizar um cliente pelo ID dele no sistema do lojista (external_id).
      *
-     * @param array{email?: string, external_id?: string, name?: string} $params
+     * @param array{billing_address?: array{city?: string, district?: string, line1?: string, line2?: string, postal_code?: string, state?: string}, billing_name?: string, email?: string, external_id?: string, name?: string, phone?: string, tax_id?: string, tax_id_kind?: 'cpf'|'cnpj'} $params
      */
     public function updateExternal(string $externalId, array $params, ?string $idempotencyKey = null, ?string $apiKey = null): Models\Customer
     {

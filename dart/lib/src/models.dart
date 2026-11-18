@@ -1074,6 +1074,114 @@ final class CheckoutCreated {
   };
 }
 
+/// CheckoutExpired is a resource of Peráta's API.
+final class CheckoutExpired {
+  const CheckoutExpired({
+    required this.id,
+    required this.sessions,
+    required this.status,
+  });
+
+  /// A CheckoutExpired out of the API's JSON.
+  factory CheckoutExpired.fromJson(Map<String, Object?> json) {
+    return CheckoutExpired(
+      id: json['id'] as String,
+      sessions: readList(
+        json['sessions'],
+        (value) => CheckoutExpiredSession.fromJson(readObject(value)),
+      ),
+      status: json['status'] as String,
+    );
+  }
+
+  /// O que a chamada nomeou: o id do checkout ou o de uma sessão.
+  final String id;
+
+  /// As sessões encerradas por esta chamada ou que já estavam encerradas.
+  final List<CheckoutExpiredSession> sessions;
+
+  /// Sempre expired: nada mais deste checkout pode ser pago.
+  ///
+  /// One of `expired`.
+  final String status;
+
+  /// The JSON the API answers.
+  Map<String, Object?> toJson() => {
+    'id': id,
+    'sessions': sessions.map((item) => item.toJson()).toList(),
+    'status': status,
+  };
+}
+
+/// CheckoutExpiredSession is a resource of Peráta's API.
+final class CheckoutExpiredSession {
+  const CheckoutExpiredSession({
+    required this.alreadyClosed,
+    required this.canceled,
+    this.expiredAt,
+    this.method,
+    required this.paymentId,
+    required this.paymentState,
+    required this.sessionId,
+    required this.status,
+  });
+
+  /// A CheckoutExpiredSession out of the API's JSON.
+  factory CheckoutExpiredSession.fromJson(Map<String, Object?> json) {
+    return CheckoutExpiredSession(
+      alreadyClosed: json['already_closed'] as bool,
+      canceled: json['canceled'] as bool,
+      expiredAt: json['expired_at'] as String?,
+      method: json['method'] as String?,
+      paymentId: json['payment_id'] as String,
+      paymentState: json['payment_state'] as String,
+      sessionId: json['session_id'] as String,
+      status: json['status'] as String,
+    );
+  }
+
+  /// true quando a sessão já estava encerrada antes: a chamada foi repetida.
+  final bool alreadyClosed;
+
+  /// true quando a Cielo cancelou o Pix ou a reserva nesta chamada.
+  final bool canceled;
+
+  /// Quando a sessão foi encerrada; nulo se ela já tinha falhado.
+  final String? expiredAt;
+
+  /// O meio escolhido; nulo se o comprador não escolheu um.
+  ///
+  /// One of `card`, `pix`, `boleto`.
+  final String? method;
+
+  /// O pagamento que a sessão tinha, vazio se o comprador não escolheu um meio.
+  final String paymentId;
+
+  /// Como o pagamento ficou: canceled quando a Cielo retirou o QR do Pix ou
+  /// liberou a reserva do cartão; vazio sem pagamento.
+  final String paymentState;
+
+  /// O id da sessão, o mesmo checkout_id dos webhooks.
+  final String sessionId;
+
+  /// expired: encerrada pelo lojista; failed: já tinha falhado antes.
+  ///
+  /// One of `expired`, `failed`.
+  final String status;
+
+  /// The JSON the API answers.
+  Map<String, Object?> toJson() => {
+    'already_closed': alreadyClosed,
+    'canceled': canceled,
+    'expired_at': expiredAt,
+    'method': method,
+    'payment_id': paymentId,
+    'payment_state': paymentState,
+    'session_id': sessionId,
+    'status': status,
+  };
+}
+
 /// CheckoutInstallment is a resource of Peráta's API.
 final class CheckoutInstallment {
   const CheckoutInstallment({
@@ -1528,25 +1636,44 @@ final class CheckoutSavedProfile {
 /// Customer is a resource of Peráta's API.
 final class Customer {
   const Customer({
+    this.billingAddress,
+    this.billingName,
     required this.createdAt,
     required this.email,
     required this.externalId,
     required this.id,
     required this.name,
+    this.phone,
     required this.status,
+    this.taxId,
+    this.taxIdKind,
   });
 
   /// A Customer out of the API's JSON.
   factory Customer.fromJson(Map<String, Object?> json) {
     return Customer(
+      billingAddress: readOptional(
+        json['billing_address'],
+        (value) => BillingAddress.fromJson(readObject(value)),
+      ),
+      billingName: json['billing_name'] as String?,
       createdAt: json['created_at'] as String,
       email: json['email'] as String,
       externalId: json['external_id'] as String,
       id: json['id'] as String,
       name: json['name'] as String,
+      phone: json['phone'] as String?,
       status: json['status'] as String,
+      taxId: json['tax_id'] as String?,
+      taxIdKind: json['tax_id_kind'] as String?,
     );
   }
+
+  /// Endereço de cobrança; fica de fora quando o cliente não tem.
+  final BillingAddress? billingAddress;
+
+  /// Nome ou razão social de quem paga, quando difere de name.
+  final String? billingName;
 
   final String createdAt;
 
@@ -1558,17 +1685,35 @@ final class Customer {
 
   final String name;
 
+  /// Telefone ou celular com DDD, só dígitos.
+  final String? phone;
+
   /// One of `active`, `archived`.
   final String status;
 
+  /// CPF ou CNPJ, só dígitos. O CPF vem inteiro para a chave de um dono ou
+  /// administrador da organização e mascarado (***.***.789-00) para as demais;
+  /// o CNPJ vem sempre inteiro.
+  final String? taxId;
+
+  /// Qual documento tax_id é.
+  ///
+  /// One of `cpf`, `cnpj`.
+  final String? taxIdKind;
+
   /// The JSON the API answers.
   Map<String, Object?> toJson() => {
+    'billing_address': ?billingAddress?.toJson(),
+    'billing_name': ?billingName,
     'created_at': createdAt,
     'email': email,
     'external_id': externalId,
     'id': id,
     'name': name,
+    'phone': ?phone,
     'status': status,
+    'tax_id': ?taxId,
+    'tax_id_kind': ?taxIdKind,
   };
 }
 
@@ -4013,10 +4158,22 @@ final class CustomerSessionsCreateParams {
 /// The body of customers:create.
 final class CustomersCreateParams {
   const CustomersCreateParams({
+    this.billingAddress,
+    this.billingName,
     required this.email,
     this.externalId,
     required this.name,
+    this.phone,
+    this.taxId,
+    this.taxIdKind,
   });
+
+  /// Endereço de cobrança: rua e número, bairro, cidade, UF e CEP vêm juntos (o
+  /// complemento é opcional).
+  final CustomersCreateBillingAddress? billingAddress;
+
+  /// Nome ou razão social de quem paga, quando difere de name.
+  final String? billingName;
 
   final String email;
 
@@ -4025,21 +4182,91 @@ final class CustomersCreateParams {
 
   final String name;
 
+  /// Telefone ou celular com DDD, com ou sem pontuação.
+  final String? phone;
+
+  /// CPF ou CNPJ, com ou sem pontuação, com os dígitos verificadores corretos.
+  final String? taxId;
+
+  /// Qual documento tax_id é; sem ele, o número diz.
+  ///
+  /// One of `cpf`, `cnpj`.
+  final String? taxIdKind;
+
   /// The JSON the API takes; a field left null is left out.
   Map<String, Object?> toJson() => {
+    'billing_address': ?billingAddress?.toJson(),
+    'billing_name': ?billingName,
     'email': email,
     'external_id': ?externalId,
     'name': name,
+    'phone': ?phone,
+    'tax_id': ?taxId,
+    'tax_id_kind': ?taxIdKind,
+  };
+}
+
+/// Endereço de cobrança: rua e número, bairro, cidade, UF e CEP vêm juntos (o
+/// complemento é opcional).
+final class CustomersCreateBillingAddress {
+  const CustomersCreateBillingAddress({
+    this.city,
+    this.district,
+    this.line1,
+    this.line2,
+    this.postalCode,
+    this.state,
+  });
+
+  final String? city;
+
+  /// Bairro.
+  final String? district;
+
+  /// Rua e número.
+  final String? line1;
+
+  /// Complemento.
+  final String? line2;
+
+  /// CEP, com ou sem hífen.
+  final String? postalCode;
+
+  /// UF, duas letras.
+  final String? state;
+
+  /// The JSON the API takes; a field left null is left out.
+  Map<String, Object?> toJson() => {
+    'city': ?city,
+    'district': ?district,
+    'line1': ?line1,
+    'line2': ?line2,
+    'postal_code': ?postalCode,
+    'state': ?state,
   };
 }
 
 /// The body of customers:update.
 final class CustomersUpdateParams {
   const CustomersUpdateParams({
+    this.billingAddress,
+    this.billingName,
     this.email,
     this.externalId,
     this.name,
+    this.phone,
+    this.taxId,
+    this.taxIdKind,
   });
+
+  /// Endereço de cobrança: rua e número, bairro, cidade, UF e CEP vêm juntos (o
+  /// complemento é opcional). Cada parte enviada substitui a guardada, e o
+  /// endereço que resulta precisa estar inteiro; envie as partes vazias para
+  /// apagar o endereço.
+  final CustomersUpdateBillingAddress? billingAddress;
+
+  /// Nome ou razão social de quem paga, quando difere de name.
+  final String? billingName;
 
   final String? email;
 
@@ -4049,11 +4276,71 @@ final class CustomersUpdateParams {
 
   final String? name;
 
+  /// Telefone ou celular com DDD, com ou sem pontuação.
+  final String? phone;
+
+  /// CPF ou CNPJ, com ou sem pontuação, com os dígitos verificadores corretos.
+  /// Só a chave de um dono ou administrador da organização o altera; as demais
+  /// recebem 403. Texto vazio apaga.
+  final String? taxId;
+
+  /// Qual documento tax_id é; sem ele, o número diz.
+  ///
+  /// One of `cpf`, `cnpj`.
+  final String? taxIdKind;
+
   /// The JSON the API takes; a field left null is left out.
   Map<String, Object?> toJson() => {
+    'billing_address': ?billingAddress?.toJson(),
+    'billing_name': ?billingName,
     'email': ?email,
     'external_id': ?externalId,
     'name': ?name,
+    'phone': ?phone,
+    'tax_id': ?taxId,
+    'tax_id_kind': ?taxIdKind,
+  };
+}
+
+/// Endereço de cobrança: rua e número, bairro, cidade, UF e CEP vêm juntos (o
+/// complemento é opcional). Cada parte enviada substitui a guardada, e o
+/// endereço que resulta precisa estar inteiro; envie as partes vazias para
+/// apagar o endereço.
+final class CustomersUpdateBillingAddress {
+  const CustomersUpdateBillingAddress({
+    this.city,
+    this.district,
+    this.line1,
+    this.line2,
+    this.postalCode,
+    this.state,
+  });
+
+  final String? city;
+
+  /// Bairro.
+  final String? district;
+
+  /// Rua e número.
+  final String? line1;
+
+  /// Complemento.
+  final String? line2;
+
+  /// CEP, com ou sem hífen.
+  final String? postalCode;
+
+  /// UF, duas letras.
+  final String? state;
+
+  /// The JSON the API takes; a field left null is left out.
+  Map<String, Object?> toJson() => {
+    'city': ?city,
+    'district': ?district,
+    'line1': ?line1,
+    'line2': ?line2,
+    'postal_code': ?postalCode,
+    'state': ?state,
   };
 }
 
@@ -4183,10 +4470,24 @@ final class DiscountsUpdateParams {
 /// The body of customers:update_external.
 final class CustomersUpdateExternalParams {
   const CustomersUpdateExternalParams({
+    this.billingAddress,
+    this.billingName,
     this.email,
     this.externalId,
     this.name,
+    this.phone,
+    this.taxId,
+    this.taxIdKind,
   });
+
+  /// Endereço de cobrança: rua e número, bairro, cidade, UF e CEP vêm juntos (o
+  /// complemento é opcional). Cada parte enviada substitui a guardada, e o
+  /// endereço que resulta precisa estar inteiro; envie as partes vazias para
+  /// apagar o endereço.
+  final CustomersUpdateExternalBillingAddress? billingAddress;
+
+  /// Nome ou razão social de quem paga, quando difere de name.
+  final String? billingName;
 
   final String? email;
 
@@ -4196,11 +4497,71 @@ final class CustomersUpdateExternalParams {
 
   final String? name;
 
+  /// Telefone ou celular com DDD, com ou sem pontuação.
+  final String? phone;
+
+  /// CPF ou CNPJ, com ou sem pontuação, com os dígitos verificadores corretos.
+  /// Só a chave de um dono ou administrador da organização o altera; as demais
+  /// recebem 403. Texto vazio apaga.
+  final String? taxId;
+
+  /// Qual documento tax_id é; sem ele, o número diz.
+  ///
+  /// One of `cpf`, `cnpj`.
+  final String? taxIdKind;
+
   /// The JSON the API takes; a field left null is left out.
   Map<String, Object?> toJson() => {
+    'billing_address': ?billingAddress?.toJson(),
+    'billing_name': ?billingName,
     'email': ?email,
     'external_id': ?externalId,
     'name': ?name,
+    'phone': ?phone,
+    'tax_id': ?taxId,
+    'tax_id_kind': ?taxIdKind,
+  };
+}
+
+/// Endereço de cobrança: rua e número, bairro, cidade, UF e CEP vêm juntos (o
+/// complemento é opcional). Cada parte enviada substitui a guardada, e o
+/// endereço que resulta precisa estar inteiro; envie as partes vazias para
+/// apagar o endereço.
+final class CustomersUpdateExternalBillingAddress {
+  const CustomersUpdateExternalBillingAddress({
+    this.city,
+    this.district,
+    this.line1,
+    this.line2,
+    this.postalCode,
+    this.state,
+  });
+
+  final String? city;
+
+  /// Bairro.
+  final String? district;
+
+  /// Rua e número.
+  final String? line1;
+
+  /// Complemento.
+  final String? line2;
+
+  /// CEP, com ou sem hífen.
+  final String? postalCode;
+
+  /// UF, duas letras.
+  final String? state;
+
+  /// The JSON the API takes; a field left null is left out.
+  Map<String, Object?> toJson() => {
+    'city': ?city,
+    'district': ?district,
+    'line1': ?line1,
+    'line2': ?line2,
+    'postal_code': ?postalCode,
+    'state': ?state,
   };
 }
 
