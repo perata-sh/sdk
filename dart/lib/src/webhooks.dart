@@ -7,13 +7,14 @@ import 'package:crypto/crypto.dart';
 import 'models.dart';
 
 /// A webhook Peráta sent, verified: one subclass a kind of data
-/// ([OrderWebhookEvent] carries an [Order]…), or [UnknownWebhookEvent] for a
+/// ([OrderWebhookEvent] carries a [WebhookOrder]…), or [UnknownWebhookEvent] for a
 /// type this SDK does not know yet. Within a class, [type] says what happened.
 sealed class WebhookEvent {
   const WebhookEvent({
     required this.id,
     required this.type,
     required this.timestamp,
+    this.environment = '',
   });
 
   /// The message's id, the same as the `webhook-id` header.
@@ -24,6 +25,10 @@ sealed class WebhookEvent {
 
   /// When it happened, in RFC 3339.
   final String timestamp;
+
+  /// The environment it happened in, `test` or `live`; empty when an older
+  /// server did not send it.
+  final String environment;
 }
 
 /// The events that carry a WebhookBenefit.
@@ -32,6 +37,7 @@ final class BenefitWebhookEvent extends WebhookEvent {
     required super.id,
     required super.type,
     required super.timestamp,
+    super.environment,
     required this.data,
   });
 
@@ -51,6 +57,7 @@ final class BenefitGrantWebhookEvent extends WebhookEvent {
     required super.id,
     required super.type,
     required super.timestamp,
+    super.environment,
     required this.data,
   });
 
@@ -71,6 +78,7 @@ final class CheckoutWebhookEvent extends WebhookEvent {
     required super.id,
     required super.type,
     required super.timestamp,
+    super.environment,
     required this.data,
   });
 
@@ -91,6 +99,7 @@ final class CustomerWebhookEvent extends WebhookEvent {
     required super.id,
     required super.type,
     required super.timestamp,
+    super.environment,
     required this.data,
   });
 
@@ -111,6 +120,7 @@ final class DiscountWebhookEvent extends WebhookEvent {
     required super.id,
     required super.type,
     required super.timestamp,
+    super.environment,
     required this.data,
   });
 
@@ -131,6 +141,7 @@ final class DisputeWebhookEvent extends WebhookEvent {
     required super.id,
     required super.type,
     required super.timestamp,
+    super.environment,
     required this.data,
   });
 
@@ -151,6 +162,7 @@ final class IdentifiersWebhookEvent extends WebhookEvent {
     required super.id,
     required super.type,
     required super.timestamp,
+    super.environment,
     required this.data,
   });
 
@@ -196,12 +208,13 @@ final class IdentifiersWebhookEvent extends WebhookEvent {
   final Map<String, String> data;
 }
 
-/// The events that carry an Order.
+/// The events that carry a WebhookOrder.
 final class OrderWebhookEvent extends WebhookEvent {
   const OrderWebhookEvent({
     required super.id,
     required super.type,
     required super.timestamp,
+    super.environment,
     required this.data,
   });
 
@@ -214,7 +227,7 @@ final class OrderWebhookEvent extends WebhookEvent {
   };
 
   /// What the event carries.
-  final Order data;
+  final WebhookOrder data;
 }
 
 /// The events that carry a Product.
@@ -223,6 +236,7 @@ final class ProductWebhookEvent extends WebhookEvent {
     required super.id,
     required super.type,
     required super.timestamp,
+    super.environment,
     required this.data,
   });
 
@@ -242,6 +256,7 @@ final class RefundWebhookEvent extends WebhookEvent {
     required super.id,
     required super.type,
     required super.timestamp,
+    super.environment,
     required this.data,
   });
 
@@ -261,6 +276,7 @@ final class SaleWebhookEvent extends WebhookEvent {
     required super.id,
     required super.type,
     required super.timestamp,
+    super.environment,
     required this.data,
   });
 
@@ -288,6 +304,7 @@ final class SubscriptionWebhookEvent extends WebhookEvent {
     required super.id,
     required super.type,
     required super.timestamp,
+    super.environment,
     required this.data,
   });
 
@@ -315,6 +332,7 @@ final class UnknownWebhookEvent extends WebhookEvent {
     required super.id,
     required super.type,
     required super.timestamp,
+    super.environment,
     required this.data,
   });
 
@@ -427,6 +445,10 @@ WebhookEvent _event(List<int> raw) {
     'type': final String type,
     'timestamp': final String timestamp,
   }) {
+    final environment = switch (json['environment']) {
+      final String environment => environment,
+      _ => '',
+    };
     final data = switch (json['data']) {
       final Map<String, Object?> data => data,
       _ => const <String, Object?>{},
@@ -436,6 +458,7 @@ WebhookEvent _event(List<int> raw) {
         id: id,
         type: type,
         timestamp: timestamp,
+        environment: environment,
         data: WebhookBenefit.fromJson(data),
       );
     }
@@ -444,6 +467,7 @@ WebhookEvent _event(List<int> raw) {
         id: id,
         type: type,
         timestamp: timestamp,
+        environment: environment,
         data: BenefitGrant.fromJson(data),
       );
     }
@@ -452,6 +476,7 @@ WebhookEvent _event(List<int> raw) {
         id: id,
         type: type,
         timestamp: timestamp,
+        environment: environment,
         data: WebhookCheckout.fromJson(data),
       );
     }
@@ -460,6 +485,7 @@ WebhookEvent _event(List<int> raw) {
         id: id,
         type: type,
         timestamp: timestamp,
+        environment: environment,
         data: Customer.fromJson(data),
       );
     }
@@ -468,6 +494,7 @@ WebhookEvent _event(List<int> raw) {
         id: id,
         type: type,
         timestamp: timestamp,
+        environment: environment,
         data: WebhookDiscount.fromJson(data),
       );
     }
@@ -476,6 +503,7 @@ WebhookEvent _event(List<int> raw) {
         id: id,
         type: type,
         timestamp: timestamp,
+        environment: environment,
         data: WebhookDispute.fromJson(data),
       );
     }
@@ -484,6 +512,7 @@ WebhookEvent _event(List<int> raw) {
         id: id,
         type: type,
         timestamp: timestamp,
+        environment: environment,
         data: Map.unmodifiable(
           data.map((key, value) => MapEntry(key, '$value')),
         ),
@@ -494,7 +523,8 @@ WebhookEvent _event(List<int> raw) {
         id: id,
         type: type,
         timestamp: timestamp,
-        data: Order.fromJson(data),
+        environment: environment,
+        data: WebhookOrder.fromJson(data),
       );
     }
     if (ProductWebhookEvent.types.contains(type)) {
@@ -502,6 +532,7 @@ WebhookEvent _event(List<int> raw) {
         id: id,
         type: type,
         timestamp: timestamp,
+        environment: environment,
         data: Product.fromJson(data),
       );
     }
@@ -510,6 +541,7 @@ WebhookEvent _event(List<int> raw) {
         id: id,
         type: type,
         timestamp: timestamp,
+        environment: environment,
         data: WebhookRefund.fromJson(data),
       );
     }
@@ -518,6 +550,7 @@ WebhookEvent _event(List<int> raw) {
         id: id,
         type: type,
         timestamp: timestamp,
+        environment: environment,
         data: WebhookSale.fromJson(data),
       );
     }
@@ -526,6 +559,7 @@ WebhookEvent _event(List<int> raw) {
         id: id,
         type: type,
         timestamp: timestamp,
+        environment: environment,
         data: Subscription.fromJson(data),
       );
     }
@@ -533,6 +567,7 @@ WebhookEvent _event(List<int> raw) {
       id: id,
       type: type,
       timestamp: timestamp,
+      environment: environment,
       data: data,
     );
   }

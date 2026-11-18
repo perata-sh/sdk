@@ -113,7 +113,7 @@ func TestTheWebhooksReadIntoGroups(t *testing.T) {
 		t.Fatalf("%d webhook events", len(seen))
 	}
 	order := groups["Order"]
-	if order == nil || order.Data.Kind != "model" || order.Data.Model != "Order" || !contains(order.Types, "order.paid") {
+	if order == nil || order.Data.Kind != "model" || order.Data.Model != "WebhookOrder" || !contains(order.Types, "order.paid") {
 		t.Fatalf("Order group = %+v", order)
 	}
 	if dispute := groups["Dispute"]; dispute == nil || dispute.Data.Model != "WebhookDispute" || !contains(dispute.Types, "dispute.opened") {

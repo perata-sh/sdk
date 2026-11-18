@@ -14,13 +14,13 @@ public final class {{.Webhook.Name}}WebhookEvent extends WebhookEvent {
 
     private final {{javaBoxed .Webhook.Data}} data;
 
-    {{.Webhook.Name}}WebhookEvent(String id, String type, String timestamp, {{javaBoxed .Webhook.Data}} data) {
-        super(id, type, timestamp);
+    {{.Webhook.Name}}WebhookEvent(String id, String type, String timestamp, String environment, {{javaBoxed .Webhook.Data}} data) {
+        super(id, type, timestamp, environment);
         this.data = data;
     }
 
-    static {{.Webhook.Name}}WebhookEvent fromJson(String id, String type, String timestamp, Map<String, Object> data) {
-        return new {{.Webhook.Name}}WebhookEvent(id, type, timestamp, {{javaConvertCall .Webhook.Data "data"}});
+    static {{.Webhook.Name}}WebhookEvent fromJson(String id, String type, String timestamp, String environment, Map<String, Object> data) {
+        return new {{.Webhook.Name}}WebhookEvent(id, type, timestamp, environment, {{javaConvertCall .Webhook.Data "data"}});
     }
 
     /** @return what the event carries */

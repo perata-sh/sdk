@@ -68,4 +68,16 @@ public sealed record WebhookSale
     /// <summary>O pagamento que o reembolso devolve, nos eventos refund.*. Null when the API sends none.</summary>
     [JsonPropertyName("payment_id")]
     public string? PaymentId { get; init; }
+
+    /// <summary>O valor só do reembolso que moveu o pagamento, em centavos; em checkout_payment.refunded e checkout_payment.partially_refunded. Null when the API sends none.</summary>
+    [JsonPropertyName("refund_amount_cents")]
+    public long? RefundAmountCents { get; init; }
+
+    /// <summary>O reembolso: nos eventos refund.*, o próprio; em checkout_payment.refunded e checkout_payment.partially_refunded, o que moveu o pagamento. Null when the API sends none.</summary>
+    [JsonPropertyName("refund_id")]
+    public string? RefundId { get; init; }
+
+    /// <summary>Quanto do pagamento já foi devolvido, somando os reembolsos que deram certo, nos eventos checkout_payment.*. Null when the API sends none.</summary>
+    [JsonPropertyName("refunded_amount_cents")]
+    public long? RefundedAmountCents { get; init; }
 }

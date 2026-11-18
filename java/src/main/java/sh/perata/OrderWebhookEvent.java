@@ -6,26 +6,26 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * The events that carry an Order: {@code order.created}, {@code order.paid}, {@code order.refunded}, {@code order.updated}.
+ * The events that carry a WebhookOrder: {@code order.created}, {@code order.paid}, {@code order.refunded}, {@code order.updated}.
  */
 public final class OrderWebhookEvent extends WebhookEvent {
     /** The event types this class carries. */
     public static final List<String> TYPES = List.of("order.created", "order.paid", "order.refunded", "order.updated");
 
-    private final Order data;
+    private final WebhookOrder data;
 
-    OrderWebhookEvent(String id, String type, String timestamp, Order data) {
-        super(id, type, timestamp);
+    OrderWebhookEvent(String id, String type, String timestamp, String environment, WebhookOrder data) {
+        super(id, type, timestamp, environment);
         this.data = data;
     }
 
-    static OrderWebhookEvent fromJson(String id, String type, String timestamp, Map<String, Object> data) {
-        return new OrderWebhookEvent(id, type, timestamp, Order.fromJson(data));
+    static OrderWebhookEvent fromJson(String id, String type, String timestamp, String environment, Map<String, Object> data) {
+        return new OrderWebhookEvent(id, type, timestamp, environment, WebhookOrder.fromJson(data));
     }
 
     /** @return what the event carries */
     @Override
-    public Order getData() {
+    public WebhookOrder getData() {
         return data;
     }
 }

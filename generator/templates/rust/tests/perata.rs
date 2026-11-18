@@ -495,8 +495,10 @@ fn a_refusal_is_a_typed_error() {
 const REFERENCE_SECRET: &str = "whsec_MfKQ9r8GKYqrTwjUPD8ILPZIo2LaLaSw";
 const OLD_SECRET: &str = "whsec_cGVyYXRhLXNkay1vbGQta2V5LTAxMjM0NTY3ODlhYmM=";
 const NEW_SECRET: &str = "whsec_cGVyYXRhLXNkay1uZXcta2V5LTAxMjM0NTY3ODlhYmM=";
-const ORDER_PAID: &[u8] = br#"{"id":"msg_2","type":"order.paid","timestamp":"2026-10-22T12:00:00Z","data":{"id":"ord_1","customer_id":"cus_1","product_id":"prod_1","price_id":"price_1","amount_cents":12000,"currency":"BRL","status":"succeeded","paid_at":"2026-10-22T12:00:00Z","installments":3,"installment_interest_cents":360,"items":[],"metadata":{},"client_reference_id":""}}"#;
+const ORDER_PAID: &[u8] = br#"{"id":"msg_2","type":"order.paid","timestamp":"2026-10-22T12:00:00Z","data":{"id":"ord_1","customer_id":"cus_1","product_id":"prod_1","price_id":"price_1","amount_cents":12000,"currency":"BRL","status":"succeeded","paid_at":"2026-10-22T12:00:00Z","order_status":"paid","refunded_amount_cents":0,"refund_id":null,"refund_amount_cents":null,"installments":3,"installment_interest_cents":360,"items":[],"metadata":{},"client_reference_id":""}}"#;
 const USAGE_RECORDED: &[u8] = br#"{"id":"msg_3","type":"usage_event.recorded","timestamp":"2026-10-22T12:00:00Z","data":{"event_id":"ue_1","aggregate":"usage_event","aggregate_id":"ue_1","merchant_id":"mer_1","environment":"test"}}"#;
+const ORDER_PAID_LIVE: &[u8] = br#"{"id":"msg_5","type":"order.paid","timestamp":"2026-10-22T12:00:00Z","environment":"live","data":{"id":"ord_1","customer_id":"cus_1","product_id":"prod_1","price_id":"price_1","amount_cents":12000,"currency":"BRL","status":"succeeded","paid_at":"2026-10-22T12:00:00Z","order_status":"paid","refunded_amount_cents":0,"refund_id":null,"refund_amount_cents":null,"installments":3,"installment_interest_cents":360,"items":[],"metadata":{},"client_reference_id":""}}"#;
+const PAYOUT_SENT_TEST: &[u8] = br#"{"id":"msg_6","type":"payout.sent","timestamp":"2026-10-22T12:00:00Z","environment":"test","data":{"payout_id":"po_1","amount_cents":5000}}"#;
 const PAYOUT_SENT: &[u8] = br#"{"id":"msg_4","type":"payout.sent","timestamp":"2026-10-22T12:00:00Z","data":{"payout_id":"po_1","amount_cents":5000}}"#;
 const SIGNED_AT: u64 = 1_792_670_400;
 
@@ -563,12 +565,58 @@ fn a_timestamp_that_is_not_plain_digits_is_refused() {
 }
 
 #[test]
+fn a_webhook_carries_the_environment_it_happened_in() {
+    let now = UNIX_EPOCH + Duration::from_secs(SIGNED_AT + 120);
+    let older: [(&str, &str, &[u8]); 3] = [
+        ("msg_2", "v1,XI92+fzspBAwIZD8XhEF5PwZNFrKbyAaykAydn3pPzY= v1,G2ijkhNO0sP+dkoMlsU1sOLmtbpIw9SYOwC2XTqMKdw=", ORDER_PAID),
+        ("msg_3", "v1,Z3E2vTbczigiySfkzakxuZotPn9FlBY1KAET6hPEZoU=", USAGE_RECORDED),
+        ("msg_4", "v1,Sa/yofA3h/58pFR+rIiWdIc8qXfcuqvyJSjxn4oJ1ZY=", PAYOUT_SENT),
+    ];
+    for (id, signature, body) in older {
+        let event = verify_webhook_at(
+            NEW_SECRET,
+            webhook_headers(id, SIGNED_AT, signature),
+            body,
+            now,
+        )
+        .unwrap();
+        assert_eq!(event.environment(), "", "{id}");
+    }
+    let order = verify_webhook_at(
+        NEW_SECRET,
+        webhook_headers(
+            "msg_5",
+            SIGNED_AT,
+            "v1,JECjRi5yt5jEJZSUqpIxpxCJ/OfRgUBipIRj1b2lsUk=",
+        ),
+        ORDER_PAID_LIVE,
+        now,
+    )
+    .unwrap();
+    assert!(matches!(order, WebhookEvent::Order(_)));
+    assert_eq!(order.environment(), "live");
+    let unknown = verify_webhook_at(
+        NEW_SECRET,
+        webhook_headers(
+            "msg_6",
+            SIGNED_AT,
+            "v1,6He63m1rUlB789sgtRAHqex4wyKkzAwdHt6uRsp8YQM=",
+        ),
+        PAYOUT_SENT_TEST,
+        now,
+    )
+    .unwrap();
+    assert!(matches!(unknown, WebhookEvent::Unknown(_)));
+    assert_eq!(unknown.environment(), "test");
+}
+
+#[test]
 fn a_webhook_answers_its_typed_event() {
     let now = UNIX_EPOCH + Duration::from_secs(SIGNED_AT + 120);
     let headers = webhook_headers(
         "msg_2",
         SIGNED_AT,
-        "v1,MW5FnOPf5xZdiHRmDImEy+x3spgWmDCUEuwjHOZ7a2Y= v1,rWmUsQveS0J9yTlnQfb7Olszghg8xf7DJHLHG0a7YZo=",
+        "v1,XI92+fzspBAwIZD8XhEF5PwZNFrKbyAaykAydn3pPzY= v1,G2ijkhNO0sP+dkoMlsU1sOLmtbpIw9SYOwC2XTqMKdw=",
     );
     for secret in [NEW_SECRET, OLD_SECRET] {
         let WebhookEvent::Order(order) =

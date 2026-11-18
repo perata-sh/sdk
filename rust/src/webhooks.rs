@@ -9,13 +9,14 @@ use hmac::{Hmac, KeyInit, Mac};
 use serde::{Deserialize, Serialize};
 use sha2::Sha256;
 
-use crate::models::{BenefitGrant, Customer, Order, Product, Subscription, WebhookBenefit, WebhookCheckout, WebhookDiscount, WebhookDispute, WebhookRefund, WebhookSale};
+use crate::models::{BenefitGrant, Customer, Product, Subscription, WebhookBenefit, WebhookCheckout, WebhookDiscount, WebhookDispute, WebhookOrder, WebhookRefund, WebhookSale};
 
 /// How far from now a webhook's timestamp may be.
 pub const WEBHOOK_TOLERANCE: Duration = Duration::from_secs(300);
 
 /// What every webhook carries: the message's id, the same as the webhook-id
-/// header; the event's type; when it happened, in RFC 3339; and its data.
+/// header; the event's type; when it happened, in RFC 3339; the environment it
+/// happened in, `"test"` or `"live"`; and its data.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[non_exhaustive]
 pub struct WebhookMessage<T> {
@@ -26,6 +27,10 @@ pub struct WebhookMessage<T> {
     pub type_: String,
     /// When it happened.
     pub timestamp: String,
+    /// The environment it happened in, `"test"` or `"live"`; empty when an
+    /// older server did not send it.
+    #[serde(default)]
+    pub environment: String,
     /// What the event carries.
     pub data: T,
 }
@@ -51,8 +56,8 @@ pub type DisputeWebhookEvent = WebhookMessage<WebhookDispute>;
 /// The events that carry the event's identifiers: `benefit.archived`, `benefit.version_created`, `benefit_product_link.linked`, `benefit_product_link.unlinked`, `checkout_link.archived`, `checkout_link.created`, `checkout_session.confirmed`, `checkout_session.expired`, `checkout_session.failed`, `checkout_session.opened`, `checkout_session.succeeded`, `customer.archived`, `discount.exhausted`, `discount.expired`, `discount.reactivated`, `discount.redeemed`, `discount_redemption.released`, `invoice.drafted`, `invoice.issued`, `invoice.settled`, `invoice.uncollectible`, `invoice.voided`, `price.archived`, `price.created`, `product.archived`, `seat_allocation.opened`, `seat_allocation.resized`, `seat_assignment.claimed`, `seat_assignment.invited`, `seat_assignment.revoked`, `usage_event.recorded`, `usage_period.closed`, `usage_period.opened`, `usage_period_adjustment.created`.
 pub type IdentifiersWebhookEvent = WebhookMessage<std::collections::HashMap<String, String>>;
 
-/// The events that carry an Order: `order.created`, `order.paid`, `order.refunded`, `order.updated`.
-pub type OrderWebhookEvent = WebhookMessage<Order>;
+/// The events that carry a WebhookOrder: `order.created`, `order.paid`, `order.refunded`, `order.updated`.
+pub type OrderWebhookEvent = WebhookMessage<WebhookOrder>;
 
 /// The events that carry a Product: `product.created`, `product.updated`.
 pub type ProductWebhookEvent = WebhookMessage<Product>;
@@ -158,6 +163,26 @@ impl WebhookEvent {
             WebhookEvent::Sale(event) => &event.timestamp,
             WebhookEvent::Subscription(event) => &event.timestamp,
             WebhookEvent::Unknown(event) => &event.timestamp,
+        }
+    }
+
+    /// The environment it happened in, `"test"` or `"live"`; empty when an
+    /// older server did not send it.
+    pub fn environment(&self) -> &str {
+        match self {
+            WebhookEvent::Benefit(event) => &event.environment,
+            WebhookEvent::BenefitGrant(event) => &event.environment,
+            WebhookEvent::Checkout(event) => &event.environment,
+            WebhookEvent::Customer(event) => &event.environment,
+            WebhookEvent::Discount(event) => &event.environment,
+            WebhookEvent::Dispute(event) => &event.environment,
+            WebhookEvent::Identifiers(event) => &event.environment,
+            WebhookEvent::Order(event) => &event.environment,
+            WebhookEvent::Product(event) => &event.environment,
+            WebhookEvent::Refund(event) => &event.environment,
+            WebhookEvent::Sale(event) => &event.environment,
+            WebhookEvent::Subscription(event) => &event.environment,
+            WebhookEvent::Unknown(event) => &event.environment,
         }
     }
 

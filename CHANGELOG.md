@@ -9,6 +9,17 @@ Todos os SDKs da Peráta saem com a mesma versão (`VERSION`). O histórico de c
 - `js/`: `perata.components.wallet` (o botão do Google Pay e do Apple Pay no layout do lojista), os tipos `WalletComponent`, `WalletComponentOptions`, `WalletComponentEvents` e `WalletKind`, `ChangeEvent.available`, `update({ customer })` e os códigos de erro `wallet_element_required`, `customer_incomplete` e `wallet_unavailable`. `components.payment` passa a trazer a carteira do aparelho e os cartões salvos. Seguem o `perata.js` do perata.sh e valem depois do deploy dele.
 - `react/`: `WalletComponent`.
 
+## 0.5.3 (18/11/2026)
+
+Gerado a partir do contrato da API 0.1.0.
+
+### Os 11 SDKs de servidor
+
+- **O texto do erro traz os campos recusados.** Quando a API não manda `message`, o texto do erro de cada SDK diz quais campos foram recusados e por quê (`perata: 422 invalid_request: amount_cents: …; customer_email: …`), em vez de só o código. A API passa a mandar a `message`; o SDK a usa como veio quando existe.
+- **`environment` em todo webhook.** O envelope de toda mensagem (ao lado de `id`, `type`, `timestamp` e `data`) traz o ambiente em que o evento aconteceu, `"test"` ou `"live"`. Cada SDK o lê no evento, inclusive em `UnknownWebhookEvent`: Go `Environment`, TypeScript, Python, Ruby, Elixir, Dart, PHP e Swift `environment`, Rust `environment()`, Java `getEnvironment()` e C# `Environment`. Um corpo sem o campo (um servidor mais antigo) continua valendo, com o ambiente vazio. Quem tem um endpoint por ambiente deve recusar o evento do ambiente errado.
+- **Reembolso no pedido.** `Order` ganha `order_status` (`pending`, `paid`, `partially_refunded` ou `refunded`; nulo antes de haver pagamento) e `refunded_amount_cents` (quanto já foi devolvido, em centavos); `status` continua sendo o do checkout, `succeeded`, depois de um reembolso. O evento `order.refunded` (e o `order.updated` que o acompanha) passa a trazer o novo modelo `WebhookOrder`: o `Order` mais `refund_id` e `refund_amount_cents`, o reembolso que causou o evento (nulos nos eventos que nenhum reembolso causou). **Mudança de tipo nas linguagens tipadas: `OrderWebhookEvent.data` passa de `Order` a `WebhookOrder`.**
+- **Reembolso no pagamento.** Os eventos `checkout_payment.*` trazem `refunded_amount_cents` (quanto do pagamento já foi devolvido), `checkout_payment.refunded` e `checkout_payment.partially_refunded` trazem também `refund_id` e `refund_amount_cents`, e os eventos `refund.*` trazem `refund_id`.
+
 ## 0.5.2 (17/11/2026)
 
 Gerado a partir do contrato da API 0.1.0. A 0.5.0 e a 0.5.1 saíram só em Go (`go/v0.5.0`, `go/v0.5.1`); esta é a primeira 0.5 publicada nas outras dez linguagens, e traz também tudo o que está na 0.5.0, abaixo.

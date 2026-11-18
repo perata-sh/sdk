@@ -2324,9 +2324,11 @@ final class Order {
     required this.installments,
     required this.items,
     required this.metadata,
+    this.orderStatus,
     this.paidAt,
     required this.priceId,
     required this.productId,
+    required this.refundedAmountCents,
     required this.status,
   });
 
@@ -2345,9 +2347,11 @@ final class Order {
         (value) => CheckoutLine.fromJson(readObject(value)),
       ),
       metadata: readMap(json['metadata'], (value) => value),
+      orderStatus: json['order_status'] as String?,
       paidAt: json['paid_at'] as String?,
       priceId: json['price_id'] as String,
       productId: json['product_id'] as String,
+      refundedAmountCents: json['refunded_amount_cents'] as int,
       status: json['status'] as String,
     );
   }
@@ -2377,11 +2381,22 @@ final class Order {
   /// Os pares que o seu servidor enviou ao criar o checkout.
   final Map<String, Object?> metadata;
 
+  /// Onde o pedido está; status é o do checkout e continua succeeded depois de
+  /// um reembolso, e este vira partially_refunded ou refunded. Nulo antes de
+  /// haver pagamento.
+  ///
+  /// One of `pending`, `paid`, `partially_refunded`, `refunded`.
+  final String? orderStatus;
+
   final String? paidAt;
 
   final String priceId;
 
   final String productId;
+
+  /// Quanto do pedido já foi devolvido, somando todos os reembolsos que deram
+  /// certo, em centavos.
+  final int refundedAmountCents;
 
   /// One of `open`, `confirmed`, `succeeded`, `failed`, `expired`.
   final String status;
@@ -2397,9 +2412,11 @@ final class Order {
     'installments': installments,
     'items': items.map((item) => item.toJson()).toList(),
     'metadata': metadata,
+    'order_status': orderStatus,
     'paid_at': paidAt,
     'price_id': priceId,
     'product_id': productId,
+    'refunded_amount_cents': refundedAmountCents,
     'status': status,
   };
 }
@@ -3628,6 +3645,131 @@ final class WebhookEndpointCreated {
   };
 }
 
+/// O pedido como a API o devolve (Order) e, nos eventos que um reembolso causou
+/// (order.refunded e o order.updated que o acompanha), o reembolso que o
+/// causou. status continua sendo o do checkout (succeeded) depois de um
+/// reembolso: order_status e refunded_amount_cents dizem onde o dinheiro está.
+final class WebhookOrder {
+  const WebhookOrder({
+    required this.amountCents,
+    required this.clientReferenceId,
+    required this.currency,
+    required this.customerId,
+    required this.id,
+    required this.installmentInterestCents,
+    required this.installments,
+    required this.items,
+    required this.metadata,
+    this.orderStatus,
+    this.paidAt,
+    required this.priceId,
+    required this.productId,
+    this.refundAmountCents,
+    this.refundId,
+    required this.refundedAmountCents,
+    required this.status,
+  });
+
+  /// A WebhookOrder out of the API's JSON.
+  factory WebhookOrder.fromJson(Map<String, Object?> json) {
+    return WebhookOrder(
+      amountCents: json['amount_cents'] as int,
+      clientReferenceId: json['client_reference_id'] as String,
+      currency: json['currency'] as String,
+      customerId: json['customer_id'] as String,
+      id: json['id'] as String,
+      installmentInterestCents: json['installment_interest_cents'] as int,
+      installments: json['installments'] as int,
+      items: readList(
+        json['items'],
+        (value) => CheckoutLine.fromJson(readObject(value)),
+      ),
+      metadata: readMap(json['metadata'], (value) => value),
+      orderStatus: json['order_status'] as String?,
+      paidAt: json['paid_at'] as String?,
+      priceId: json['price_id'] as String,
+      productId: json['product_id'] as String,
+      refundAmountCents: json['refund_amount_cents'] as int?,
+      refundId: json['refund_id'] as String?,
+      refundedAmountCents: json['refunded_amount_cents'] as int,
+      status: json['status'] as String,
+    );
+  }
+
+  final int amountCents;
+
+  /// O id do pedido no seu sistema, enviado ao criar o checkout; vazio sem ele.
+  final String clientReferenceId;
+
+  /// One of `BRL`.
+  final String currency;
+
+  final String customerId;
+
+  final String id;
+
+  /// Juros do parcelamento pagos pelo comprador, cobrados além de amount_cents.
+  final int installmentInterestCents;
+
+  /// Em quantas parcelas o cartão de crédito foi cobrado; 1 à vista.
+  final int installments;
+
+  /// As linhas do pedido, quando o seu servidor as enviou ao criar o checkout;
+  /// vazio sem elas.
+  final List<CheckoutLine> items;
+
+  /// Os pares que o seu servidor enviou ao criar o checkout.
+  final Map<String, Object?> metadata;
+
+  /// Onde o pedido está; status é o do checkout e continua succeeded depois de
+  /// um reembolso, e este vira partially_refunded ou refunded.
+  ///
+  /// One of `pending`, `paid`, `partially_refunded`, `refunded`.
+  final String? orderStatus;
+
+  final String? paidAt;
+
+  final String priceId;
+
+  final String productId;
+
+  /// O valor só deste reembolso, em centavos; nulo como refund_id. O acumulado
+  /// do pedido é refunded_amount_cents.
+  final int? refundAmountCents;
+
+  /// O reembolso que causou este evento; nulo nos eventos que nenhum reembolso
+  /// causou.
+  final String? refundId;
+
+  /// Quanto do pedido já foi devolvido, somando todos os reembolsos que deram
+  /// certo, em centavos.
+  final int refundedAmountCents;
+
+  /// One of `open`, `confirmed`, `succeeded`, `failed`, `expired`.
+  final String status;
+
+  /// The JSON the API answers.
+  Map<String, Object?> toJson() => {
+    'amount_cents': amountCents,
+    'client_reference_id': clientReferenceId,
+    'currency': currency,
+    'customer_id': customerId,
+    'id': id,
+    'installment_interest_cents': installmentInterestCents,
+    'installments': installments,
+    'items': items.map((item) => item.toJson()).toList(),
+    'metadata': metadata,
+    'order_status': orderStatus,
+    'paid_at': paidAt,
+    'price_id': priceId,
+    'product_id': productId,
+    'refund_amount_cents': refundAmountCents,
+    'refund_id': refundId,
+    'refunded_amount_cents': refundedAmountCents,
+    'status': status,
+  };
+}
+
 /// WebhookRefund is a resource of Peráta's API.
 final class WebhookRefund {
   const WebhookRefund({
@@ -3702,6 +3844,9 @@ final class WebhookSale {
     this.metadata,
     this.method,
     this.paymentId,
+    this.refundAmountCents,
+    this.refundId,
+    this.refundedAmountCents,
   });
 
   /// A WebhookSale out of the API's JSON.
@@ -3722,6 +3867,9 @@ final class WebhookSale {
       ),
       method: json['method'] as String?,
       paymentId: json['payment_id'] as String?,
+      refundAmountCents: json['refund_amount_cents'] as int?,
+      refundId: json['refund_id'] as String?,
+      refundedAmountCents: json['refunded_amount_cents'] as int?,
     );
   }
 
@@ -3760,6 +3908,18 @@ final class WebhookSale {
   /// O pagamento que o reembolso devolve, nos eventos refund.*.
   final String? paymentId;
 
+  /// O valor só do reembolso que moveu o pagamento, em centavos; em
+  /// checkout_payment.refunded e checkout_payment.partially_refunded.
+  final int? refundAmountCents;
+
+  /// O reembolso: nos eventos refund.*, o próprio; em checkout_payment.refunded
+  /// e checkout_payment.partially_refunded, o que moveu o pagamento.
+  final String? refundId;
+
+  /// Quanto do pagamento já foi devolvido, somando os reembolsos que deram
+  /// certo, nos eventos checkout_payment.*.
+  final int? refundedAmountCents;
+
   /// The JSON the API answers.
   Map<String, Object?> toJson() => {
     'aggregate': aggregate,
@@ -3774,6 +3934,9 @@ final class WebhookSale {
     'metadata': ?metadata,
     'method': ?method,
     'payment_id': ?paymentId,
+    'refund_amount_cents': ?refundAmountCents,
+    'refund_id': ?refundId,
+    'refunded_amount_cents': ?refundedAmountCents,
   };
 }
 

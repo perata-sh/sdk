@@ -17,8 +17,8 @@ final class DisputeWebhookEvent extends WebhookEvent
     /** The event types this class carries. */
     public const TYPES = ['dispute.lost', 'dispute.opened', 'dispute.won'];
 
-    public function __construct(string $id, string $type, string $timestamp, public readonly Models\WebhookDispute $data)
+    public function __construct(string $id, string $type, string $timestamp, string $environment, public readonly Models\WebhookDispute $data)
     {
-        parent::__construct($id, $type, $timestamp);
+        parent::__construct($id, $type, $timestamp, $environment);
     }
 }

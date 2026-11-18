@@ -24,8 +24,8 @@ final class SaleWebhookEvent extends WebhookEvent
     /** The event types this class carries. */
     public const TYPES = ['checkout_payment.authorized', 'checkout_payment.canceled', 'checkout_payment.captured', 'checkout_payment.partially_refunded', 'checkout_payment.refunded', 'checkout_payment.refused', 'refund.canceled', 'refund.failed', 'refund.requested', 'refund.succeeded'];
 
-    public function __construct(string $id, string $type, string $timestamp, public readonly Models\WebhookSale $data)
+    public function __construct(string $id, string $type, string $timestamp, string $environment, public readonly Models\WebhookSale $data)
     {
-        parent::__construct($id, $type, $timestamp);
+        parent::__construct($id, $type, $timestamp, $environment);
     }
 }

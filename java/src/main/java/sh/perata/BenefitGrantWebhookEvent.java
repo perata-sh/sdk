@@ -14,13 +14,13 @@ public final class BenefitGrantWebhookEvent extends WebhookEvent {
 
     private final BenefitGrant data;
 
-    BenefitGrantWebhookEvent(String id, String type, String timestamp, BenefitGrant data) {
-        super(id, type, timestamp);
+    BenefitGrantWebhookEvent(String id, String type, String timestamp, String environment, BenefitGrant data) {
+        super(id, type, timestamp, environment);
         this.data = data;
     }
 
-    static BenefitGrantWebhookEvent fromJson(String id, String type, String timestamp, Map<String, Object> data) {
-        return new BenefitGrantWebhookEvent(id, type, timestamp, BenefitGrant.fromJson(data));
+    static BenefitGrantWebhookEvent fromJson(String id, String type, String timestamp, String environment, Map<String, Object> data) {
+        return new BenefitGrantWebhookEvent(id, type, timestamp, environment, BenefitGrant.fromJson(data));
     }
 
     /** @return what the event carries */

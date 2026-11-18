@@ -10,7 +10,8 @@ import Foundation
 public let webhookTolerance: TimeInterval = 300
 
 /// What every webhook carries: the message's id, the same as the webhook-id
-/// header; the event's type; when it happened, in RFC 3339; and its data.
+/// header; the event's type; when it happened, in RFC 3339; the environment it
+/// happened in, `test` or `live`; and its data.
 public struct WebhookMessage<Payload: Codable & Sendable & Hashable>: Codable, Sendable, Hashable {
     /// The message's id, the same on every delivery of it.
     public let id: String
@@ -18,14 +19,31 @@ public struct WebhookMessage<Payload: Codable & Sendable & Hashable>: Codable, S
     public let type: String
     /// When it happened.
     public let timestamp: String
+    /// The environment it happened in, `test` or `live`; empty when an older
+    /// server did not send it.
+    public let environment: String
     /// What the event carries.
     public let data: Payload
 
-    public init(id: String, type: String, timestamp: String, data: Payload) {
+    public init(id: String, type: String, timestamp: String, environment: String = "", data: Payload) {
         self.id = id
         self.type = type
         self.timestamp = timestamp
+        self.environment = environment
         self.data = data
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case id, type, timestamp, environment, data
+    }
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decode(String.self, forKey: .id)
+        type = try container.decode(String.self, forKey: .type)
+        timestamp = try container.decode(String.self, forKey: .timestamp)
+        environment = try container.decodeIfPresent(String.self, forKey: .environment) ?? ""
+        data = try container.decode(Payload.self, forKey: .data)
     }
 }
 
@@ -50,8 +68,8 @@ public typealias DisputeWebhookEvent = WebhookMessage<WebhookDispute>
 /// The events that carry the event's identifiers: `benefit.archived`, `benefit.version_created`, `benefit_product_link.linked`, `benefit_product_link.unlinked`, `checkout_link.archived`, `checkout_link.created`, `checkout_session.confirmed`, `checkout_session.expired`, `checkout_session.failed`, `checkout_session.opened`, `checkout_session.succeeded`, `customer.archived`, `discount.exhausted`, `discount.expired`, `discount.reactivated`, `discount.redeemed`, `discount_redemption.released`, `invoice.drafted`, `invoice.issued`, `invoice.settled`, `invoice.uncollectible`, `invoice.voided`, `price.archived`, `price.created`, `product.archived`, `seat_allocation.opened`, `seat_allocation.resized`, `seat_assignment.claimed`, `seat_assignment.invited`, `seat_assignment.revoked`, `usage_event.recorded`, `usage_period.closed`, `usage_period.opened`, `usage_period_adjustment.created`.
 public typealias IdentifiersWebhookEvent = WebhookMessage<[String: String]>
 
-/// The events that carry an Order: `order.created`, `order.paid`, `order.refunded`, `order.updated`.
-public typealias OrderWebhookEvent = WebhookMessage<Order>
+/// The events that carry a WebhookOrder: `order.created`, `order.paid`, `order.refunded`, `order.updated`.
+public typealias OrderWebhookEvent = WebhookMessage<WebhookOrder>
 
 /// The events that carry a Product: `product.created`, `product.updated`.
 public typealias ProductWebhookEvent = WebhookMessage<Product>
@@ -65,12 +83,13 @@ public typealias SaleWebhookEvent = WebhookMessage<WebhookSale>
 /// The events that carry a Subscription: `subscription.active`, `subscription.canceled`, `subscription.created`, `subscription.cycled`, `subscription.past_due`, `subscription.paused`, `subscription.resumed`, `subscription.revoked`, `subscription.uncanceled`, `subscription.updated`.
 public typealias SubscriptionWebhookEvent = WebhookMessage<Subscription>
 
-/// An event of a type this SDK does not know yet: its id, type and timestamp,
-/// and the body as it was sent.
+/// An event of a type this SDK does not know yet: its id, type, timestamp and
+/// environment, and the body as it was sent.
 public struct UnknownWebhookEvent: Sendable, Hashable {
     public let id: String
     public let type: String
     public let timestamp: String
+    public let environment: String
     /// The whole body, as JSON.
     public let body: Data
 }
@@ -163,10 +182,31 @@ public enum WebhookEvent: Sendable, Hashable {
         }
     }
 
+    /// The environment it happened in, `test` or `live`; empty when an older
+    /// server did not send it.
+    public var environment: String {
+        switch self {
+        case let .benefit(event): event.environment
+        case let .benefitGrant(event): event.environment
+        case let .checkout(event): event.environment
+        case let .customer(event): event.environment
+        case let .discount(event): event.environment
+        case let .dispute(event): event.environment
+        case let .identifiers(event): event.environment
+        case let .order(event): event.environment
+        case let .product(event): event.environment
+        case let .refund(event): event.environment
+        case let .sale(event): event.environment
+        case let .subscription(event): event.environment
+        case let .unknown(event): event.environment
+        }
+    }
+
     private struct Header: Decodable {
         let id: String
         let type: String
         let timestamp: String
+        let environment: String?
     }
 
     /// Reads a verified body into the event its type names.
@@ -199,7 +239,7 @@ public enum WebhookEvent: Sendable, Hashable {
         case "subscription.active", "subscription.canceled", "subscription.created", "subscription.cycled", "subscription.past_due", "subscription.paused", "subscription.resumed", "subscription.revoked", "subscription.uncanceled", "subscription.updated":
             return try .subscription(decoder.decode(SubscriptionWebhookEvent.self, from: body))
         default:
-            return .unknown(UnknownWebhookEvent(id: header.id, type: header.type, timestamp: header.timestamp, body: body))
+            return .unknown(UnknownWebhookEvent(id: header.id, type: header.type, timestamp: header.timestamp, environment: header.environment ?? "", body: body))
         }
     }
 }

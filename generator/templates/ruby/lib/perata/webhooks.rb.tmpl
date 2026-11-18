@@ -18,10 +18,10 @@ module Perata
   end
 
   # A webhook Peráta sent, verified: one subclass a kind of data
-  # (OrderWebhookEvent carries an Order…), or UnknownWebhookEvent for a type
+  # (OrderWebhookEvent carries a WebhookOrder…), or UnknownWebhookEvent for a type
   # this SDK does not know yet. Within a class, +type+ says what happened.
   class WebhookEvent < Model
-    MEMBERS = %i[id type timestamp data].freeze
+    MEMBERS = %i[id type timestamp environment data].freeze
 
     # @return [String] the message's id, the same as the webhook-id header
     attr_reader :id
@@ -29,13 +29,17 @@ module Perata
     attr_reader :type
     # @return [String] when it happened, in RFC 3339
     attr_reader :timestamp
+    # @return [String] the environment it happened in, "test" or "live"; empty
+    #   when an older server did not send it
+    attr_reader :environment
     # @return [Object] what the event carries
     attr_reader :data
 
-    def initialize(id:, type:, timestamp:, data:)
+    def initialize(id:, type:, timestamp:, data:, environment: "")
       @id = id
       @type = type
       @timestamp = timestamp
+      @environment = environment
       @data = data
       freeze
     end
@@ -103,7 +107,8 @@ module Perata
   def self.webhook_event(raw)
     event = JSON.parse(raw)
     data = event["data"] || {}
-    message = { id: event.fetch("id"), type: event.fetch("type"), timestamp: event.fetch("timestamp") }
+    environment = event["environment"].is_a?(String) ? event["environment"] : ""
+    message = { id: event.fetch("id"), type: event.fetch("type"), timestamp: event.fetch("timestamp"), environment: environment }
     case message[:type]
 {{- range .Webhooks}}
     when *{{.Name}}WebhookEvent::TYPES then {{.Name}}WebhookEvent.new(**message, data: {{rbBuild .Data "data"}})

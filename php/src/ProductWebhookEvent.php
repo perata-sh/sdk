@@ -16,8 +16,8 @@ final class ProductWebhookEvent extends WebhookEvent
     /** The event types this class carries. */
     public const TYPES = ['product.created', 'product.updated'];
 
-    public function __construct(string $id, string $type, string $timestamp, public readonly Models\Product $data)
+    public function __construct(string $id, string $type, string $timestamp, string $environment, public readonly Models\Product $data)
     {
-        parent::__construct($id, $type, $timestamp);
+        parent::__construct($id, $type, $timestamp, $environment);
     }
 }

@@ -685,9 +685,13 @@ pub struct Order {
     pub items: Vec<CheckoutLine>,
     /// Os pares que o seu servidor enviou ao criar o checkout.
     pub metadata: std::collections::HashMap<String, serde_json::Value>,
+    /// Onde o pedido está; status é o do checkout e continua succeeded depois de um reembolso, e este vira partially_refunded ou refunded. Nulo antes de haver pagamento.
+    pub order_status: Option<OrderOrderStatus>,
     pub paid_at: Option<String>,
     pub price_id: String,
     pub product_id: String,
+    /// Quanto do pedido já foi devolvido, somando todos os reembolsos que deram certo, em centavos.
+    pub refunded_amount_cents: i64,
     pub status: OrderStatus,
 }
 
@@ -1015,6 +1019,38 @@ pub struct WebhookEndpointCreated {
     pub url: String,
 }
 
+/// O pedido como a API o devolve (Order) e, nos eventos que um reembolso causou (order.refunded e o order.updated que o acompanha), o reembolso que o causou. status continua sendo o do checkout (succeeded) depois de um reembolso: order_status e refunded_amount_cents dizem onde o dinheiro está.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct WebhookOrder {
+    pub amount_cents: i64,
+    /// O id do pedido no seu sistema, enviado ao criar o checkout; vazio sem ele.
+    pub client_reference_id: String,
+    pub currency: WebhookOrderCurrency,
+    pub customer_id: String,
+    pub id: String,
+    /// Juros do parcelamento pagos pelo comprador, cobrados além de amount_cents.
+    pub installment_interest_cents: i64,
+    /// Em quantas parcelas o cartão de crédito foi cobrado; 1 à vista.
+    pub installments: i64,
+    /// As linhas do pedido, quando o seu servidor as enviou ao criar o checkout; vazio sem elas.
+    pub items: Vec<CheckoutLine>,
+    /// Os pares que o seu servidor enviou ao criar o checkout.
+    pub metadata: std::collections::HashMap<String, serde_json::Value>,
+    /// Onde o pedido está; status é o do checkout e continua succeeded depois de um reembolso, e este vira partially_refunded ou refunded.
+    pub order_status: Option<WebhookOrderOrderStatus>,
+    pub paid_at: Option<String>,
+    pub price_id: String,
+    pub product_id: String,
+    /// O valor só deste reembolso, em centavos; nulo como refund_id. O acumulado do pedido é refunded_amount_cents.
+    pub refund_amount_cents: Option<i64>,
+    /// O reembolso que causou este evento; nulo nos eventos que nenhum reembolso causou.
+    pub refund_id: Option<String>,
+    /// Quanto do pedido já foi devolvido, somando todos os reembolsos que deram certo, em centavos.
+    pub refunded_amount_cents: i64,
+    pub status: WebhookOrderStatus,
+}
+
 /// WebhookRefund is a resource of Peráta's API.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[non_exhaustive]
@@ -1062,6 +1098,15 @@ pub struct WebhookSale {
     /// O pagamento que o reembolso devolve, nos eventos refund.*.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub payment_id: Option<String>,
+    /// O valor só do reembolso que moveu o pagamento, em centavos; em checkout_payment.refunded e checkout_payment.partially_refunded.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub refund_amount_cents: Option<i64>,
+    /// O reembolso: nos eventos refund.*, o próprio; em checkout_payment.refunded e checkout_payment.partially_refunded, o que moveu o pagamento.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub refund_id: Option<String>,
+    /// Quanto do pagamento já foi devolvido, somando os reembolsos que deram certo, nos eventos checkout_payment.*.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub refunded_amount_cents: Option<i64>,
 }
 
 /// What usage.ingest answers.
@@ -5187,6 +5232,74 @@ impl<'de> Deserialize<'de> for OrderCurrency {
     }
 }
 
+/// The values of `Order.order_status`. Onde o pedido está; status é o do checkout e continua succeeded depois de um reembolso, e este vira partially_refunded ou refunded. Nulo antes de haver pagamento.
+///
+/// A value this SDK does not know yet is kept, as it came, in
+/// [`OrderOrderStatus::Unrecognized`].
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[non_exhaustive]
+pub enum OrderOrderStatus {
+    /// `pending`
+    Pending,
+    /// `paid`
+    Paid,
+    /// `partially_refunded`
+    PartiallyRefunded,
+    /// `refunded`
+    Refunded,
+    /// A value this SDK does not know yet.
+    Unrecognized(String),
+}
+
+impl OrderOrderStatus {
+    /// The value as the API writes it.
+    pub fn as_str(&self) -> &str {
+        match self {
+            OrderOrderStatus::Pending => "pending",
+            OrderOrderStatus::Paid => "paid",
+            OrderOrderStatus::PartiallyRefunded => "partially_refunded",
+            OrderOrderStatus::Refunded => "refunded",
+            OrderOrderStatus::Unrecognized(value) => value,
+        }
+    }
+}
+
+impl From<&str> for OrderOrderStatus {
+    fn from(value: &str) -> Self {
+        match value {
+            "pending" => OrderOrderStatus::Pending,
+            "paid" => OrderOrderStatus::Paid,
+            "partially_refunded" => OrderOrderStatus::PartiallyRefunded,
+            "refunded" => OrderOrderStatus::Refunded,
+            other => OrderOrderStatus::Unrecognized(other.to_owned()),
+        }
+    }
+}
+
+impl From<String> for OrderOrderStatus {
+    fn from(value: String) -> Self {
+        Self::from(value.as_str())
+    }
+}
+
+impl fmt::Display for OrderOrderStatus {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
+impl Serialize for OrderOrderStatus {
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        serializer.serialize_str(self.as_str())
+    }
+}
+
+impl<'de> Deserialize<'de> for OrderOrderStatus {
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        String::deserialize(deserializer).map(Self::from)
+    }
+}
+
 /// The values of `Order.status`.
 ///
 /// A value this SDK does not know yet is kept, as it came, in
@@ -7078,6 +7191,202 @@ impl Serialize for WebhookEndpointCreatedStatus {
 }
 
 impl<'de> Deserialize<'de> for WebhookEndpointCreatedStatus {
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        String::deserialize(deserializer).map(Self::from)
+    }
+}
+
+/// The values of `WebhookOrder.currency`.
+///
+/// A value this SDK does not know yet is kept, as it came, in
+/// [`WebhookOrderCurrency::Unrecognized`].
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[non_exhaustive]
+pub enum WebhookOrderCurrency {
+    /// `BRL`
+    Brl,
+    /// A value this SDK does not know yet.
+    Unrecognized(String),
+}
+
+impl WebhookOrderCurrency {
+    /// The value as the API writes it.
+    pub fn as_str(&self) -> &str {
+        match self {
+            WebhookOrderCurrency::Brl => "BRL",
+            WebhookOrderCurrency::Unrecognized(value) => value,
+        }
+    }
+}
+
+impl From<&str> for WebhookOrderCurrency {
+    fn from(value: &str) -> Self {
+        match value {
+            "BRL" => WebhookOrderCurrency::Brl,
+            other => WebhookOrderCurrency::Unrecognized(other.to_owned()),
+        }
+    }
+}
+
+impl From<String> for WebhookOrderCurrency {
+    fn from(value: String) -> Self {
+        Self::from(value.as_str())
+    }
+}
+
+impl fmt::Display for WebhookOrderCurrency {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
+impl Serialize for WebhookOrderCurrency {
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        serializer.serialize_str(self.as_str())
+    }
+}
+
+impl<'de> Deserialize<'de> for WebhookOrderCurrency {
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        String::deserialize(deserializer).map(Self::from)
+    }
+}
+
+/// The values of `WebhookOrder.order_status`. Onde o pedido está; status é o do checkout e continua succeeded depois de um reembolso, e este vira partially_refunded ou refunded.
+///
+/// A value this SDK does not know yet is kept, as it came, in
+/// [`WebhookOrderOrderStatus::Unrecognized`].
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[non_exhaustive]
+pub enum WebhookOrderOrderStatus {
+    /// `pending`
+    Pending,
+    /// `paid`
+    Paid,
+    /// `partially_refunded`
+    PartiallyRefunded,
+    /// `refunded`
+    Refunded,
+    /// A value this SDK does not know yet.
+    Unrecognized(String),
+}
+
+impl WebhookOrderOrderStatus {
+    /// The value as the API writes it.
+    pub fn as_str(&self) -> &str {
+        match self {
+            WebhookOrderOrderStatus::Pending => "pending",
+            WebhookOrderOrderStatus::Paid => "paid",
+            WebhookOrderOrderStatus::PartiallyRefunded => "partially_refunded",
+            WebhookOrderOrderStatus::Refunded => "refunded",
+            WebhookOrderOrderStatus::Unrecognized(value) => value,
+        }
+    }
+}
+
+impl From<&str> for WebhookOrderOrderStatus {
+    fn from(value: &str) -> Self {
+        match value {
+            "pending" => WebhookOrderOrderStatus::Pending,
+            "paid" => WebhookOrderOrderStatus::Paid,
+            "partially_refunded" => WebhookOrderOrderStatus::PartiallyRefunded,
+            "refunded" => WebhookOrderOrderStatus::Refunded,
+            other => WebhookOrderOrderStatus::Unrecognized(other.to_owned()),
+        }
+    }
+}
+
+impl From<String> for WebhookOrderOrderStatus {
+    fn from(value: String) -> Self {
+        Self::from(value.as_str())
+    }
+}
+
+impl fmt::Display for WebhookOrderOrderStatus {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
+impl Serialize for WebhookOrderOrderStatus {
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        serializer.serialize_str(self.as_str())
+    }
+}
+
+impl<'de> Deserialize<'de> for WebhookOrderOrderStatus {
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        String::deserialize(deserializer).map(Self::from)
+    }
+}
+
+/// The values of `WebhookOrder.status`.
+///
+/// A value this SDK does not know yet is kept, as it came, in
+/// [`WebhookOrderStatus::Unrecognized`].
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[non_exhaustive]
+pub enum WebhookOrderStatus {
+    /// `open`
+    Open,
+    /// `confirmed`
+    Confirmed,
+    /// `succeeded`
+    Succeeded,
+    /// `failed`
+    Failed,
+    /// `expired`
+    Expired,
+    /// A value this SDK does not know yet.
+    Unrecognized(String),
+}
+
+impl WebhookOrderStatus {
+    /// The value as the API writes it.
+    pub fn as_str(&self) -> &str {
+        match self {
+            WebhookOrderStatus::Open => "open",
+            WebhookOrderStatus::Confirmed => "confirmed",
+            WebhookOrderStatus::Succeeded => "succeeded",
+            WebhookOrderStatus::Failed => "failed",
+            WebhookOrderStatus::Expired => "expired",
+            WebhookOrderStatus::Unrecognized(value) => value,
+        }
+    }
+}
+
+impl From<&str> for WebhookOrderStatus {
+    fn from(value: &str) -> Self {
+        match value {
+            "open" => WebhookOrderStatus::Open,
+            "confirmed" => WebhookOrderStatus::Confirmed,
+            "succeeded" => WebhookOrderStatus::Succeeded,
+            "failed" => WebhookOrderStatus::Failed,
+            "expired" => WebhookOrderStatus::Expired,
+            other => WebhookOrderStatus::Unrecognized(other.to_owned()),
+        }
+    }
+}
+
+impl From<String> for WebhookOrderStatus {
+    fn from(value: String) -> Self {
+        Self::from(value.as_str())
+    }
+}
+
+impl fmt::Display for WebhookOrderStatus {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
+impl Serialize for WebhookOrderStatus {
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        serializer.serialize_str(self.as_str())
+    }
+}
+
+impl<'de> Deserialize<'de> for WebhookOrderStatus {
     fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
         String::deserialize(deserializer).map(Self::from)
     }

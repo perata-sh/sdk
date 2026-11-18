@@ -28,8 +28,11 @@ public final class WebhookSale {
     private final Map<String, Object> metadata;
     private final String method;
     private final String paymentId;
+    private final Long refundAmountCents;
+    private final String refundId;
+    private final Long refundedAmountCents;
 
-    WebhookSale(String aggregate, String aggregateId, Long amountCents, String checkoutId, String clientReferenceId, String currency, String environment, String eventId, String merchantId, Map<String, Object> metadata, String method, String paymentId) {
+    WebhookSale(String aggregate, String aggregateId, Long amountCents, String checkoutId, String clientReferenceId, String currency, String environment, String eventId, String merchantId, Map<String, Object> metadata, String method, String paymentId, Long refundAmountCents, String refundId, Long refundedAmountCents) {
         this.aggregate = aggregate;
         this.aggregateId = aggregateId;
         this.amountCents = amountCents;
@@ -42,6 +45,9 @@ public final class WebhookSale {
         this.metadata = metadata;
         this.method = method;
         this.paymentId = paymentId;
+        this.refundAmountCents = refundAmountCents;
+        this.refundId = refundId;
+        this.refundedAmountCents = refundedAmountCents;
     }
 
     static WebhookSale fromJson(Map<String, Object> data) {
@@ -57,7 +63,10 @@ public final class WebhookSale {
                 Json.required(data, "merchant_id", Json::asString),
                 Json.optional(data, "metadata", Json.map(Json::any)),
                 Json.optional(data, "method", Json::asString),
-                Json.optional(data, "payment_id", Json::asString));
+                Json.optional(data, "payment_id", Json::asString),
+                Json.optional(data, "refund_amount_cents", Json::asLong),
+                Json.optional(data, "refund_id", Json::asString),
+                Json.optional(data, "refunded_amount_cents", Json::asLong));
     }
 
     /** @return the API's {@code aggregate} */
@@ -120,8 +129,23 @@ public final class WebhookSale {
         return paymentId;
     }
 
+    /** @return O valor só do reembolso que moveu o pagamento, em centavos; em checkout_payment.refunded e checkout_payment.partially_refunded. (null when the API sends none) */
+    public Long getRefundAmountCents() {
+        return refundAmountCents;
+    }
+
+    /** @return O reembolso: nos eventos refund.*, o próprio; em checkout_payment.refunded e checkout_payment.partially_refunded, o que moveu o pagamento. (null when the API sends none) */
+    public String getRefundId() {
+        return refundId;
+    }
+
+    /** @return Quanto do pagamento já foi devolvido, somando os reembolsos que deram certo, nos eventos checkout_payment.*. (null when the API sends none) */
+    public Long getRefundedAmountCents() {
+        return refundedAmountCents;
+    }
+
     @Override
     public String toString() {
-        return "WebhookSale{" + "aggregate=" + aggregate + ", aggregateId=" + aggregateId + ", amountCents=" + amountCents + ", checkoutId=" + checkoutId + ", clientReferenceId=" + clientReferenceId + ", currency=" + currency + ", environment=" + environment + ", eventId=" + eventId + ", merchantId=" + merchantId + ", metadata=" + metadata + ", method=" + method + ", paymentId=" + paymentId + "}";
+        return "WebhookSale{" + "aggregate=" + aggregate + ", aggregateId=" + aggregateId + ", amountCents=" + amountCents + ", checkoutId=" + checkoutId + ", clientReferenceId=" + clientReferenceId + ", currency=" + currency + ", environment=" + environment + ", eventId=" + eventId + ", merchantId=" + merchantId + ", metadata=" + metadata + ", method=" + method + ", paymentId=" + paymentId + ", refundAmountCents=" + refundAmountCents + ", refundId=" + refundId + ", refundedAmountCents=" + refundedAmountCents + "}";
     }
 }

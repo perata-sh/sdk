@@ -17,14 +17,16 @@ import (
 
 // WebhookMessage is what every webhook carries besides its data: the
 // message's id, the same as the webhook-id header and on every delivery of
-// it; the event's type; and when it happened, in RFC 3339.
+// it; the event's type; when it happened, in RFC 3339; and the environment it
+// happened in, "test" or "live" -- empty when an older server did not send it.
 type WebhookMessage struct {
-	ID        string `json:"id"`
-	Type      string `json:"type"`
-	Timestamp string `json:"timestamp"`
+	ID          string `json:"id"`
+	Type        string `json:"type"`
+	Timestamp   string `json:"timestamp"`
+	Environment string `json:"environment"`
 }
 
-// Message answers the id, type and timestamp of an event.
+// Message answers the id, type, timestamp and environment of an event.
 func (m WebhookMessage) Message() WebhookMessage { return m }
 
 // WebhookEvent is a webhook Peráta sent, verified: one of the
@@ -133,14 +135,14 @@ type IdentifiersWebhookEvent struct {
 	Data map[string]string `json:"data"`
 }
 
-// OrderWebhookEvent carries an Order, for the types
+// OrderWebhookEvent carries a WebhookOrder, for the types
 //   - order.created
 //   - order.paid
 //   - order.refunded
 //   - order.updated
 type OrderWebhookEvent struct {
 	WebhookMessage
-	Data Order `json:"data"`
+	Data WebhookOrder `json:"data"`
 }
 
 // ProductWebhookEvent carries a Product, for the types

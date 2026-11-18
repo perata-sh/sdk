@@ -9,6 +9,14 @@ import java.util.Map;
 public final class Order {
     /** A value of {@link #getCurrency()}. */
     public static final String CURRENCY_BRL = "BRL";
+    /** A value of {@link #getOrderStatus()}. */
+    public static final String ORDER_STATUS_PENDING = "pending";
+    /** A value of {@link #getOrderStatus()}. */
+    public static final String ORDER_STATUS_PAID = "paid";
+    /** A value of {@link #getOrderStatus()}. */
+    public static final String ORDER_STATUS_PARTIALLY_REFUNDED = "partially_refunded";
+    /** A value of {@link #getOrderStatus()}. */
+    public static final String ORDER_STATUS_REFUNDED = "refunded";
     /** A value of {@link #getStatus()}. */
     public static final String STATUS_OPEN = "open";
     /** A value of {@link #getStatus()}. */
@@ -29,12 +37,14 @@ public final class Order {
     private final long installments;
     private final List<CheckoutLine> items;
     private final Map<String, Object> metadata;
+    private final String orderStatus;
     private final String paidAt;
     private final String priceId;
     private final String productId;
+    private final long refundedAmountCents;
     private final String status;
 
-    Order(long amountCents, String clientReferenceId, String currency, String customerId, String id, long installmentInterestCents, long installments, List<CheckoutLine> items, Map<String, Object> metadata, String paidAt, String priceId, String productId, String status) {
+    Order(long amountCents, String clientReferenceId, String currency, String customerId, String id, long installmentInterestCents, long installments, List<CheckoutLine> items, Map<String, Object> metadata, String orderStatus, String paidAt, String priceId, String productId, long refundedAmountCents, String status) {
         this.amountCents = amountCents;
         this.clientReferenceId = clientReferenceId;
         this.currency = currency;
@@ -44,9 +54,11 @@ public final class Order {
         this.installments = installments;
         this.items = items;
         this.metadata = metadata;
+        this.orderStatus = orderStatus;
         this.paidAt = paidAt;
         this.priceId = priceId;
         this.productId = productId;
+        this.refundedAmountCents = refundedAmountCents;
         this.status = status;
     }
 
@@ -61,9 +73,11 @@ public final class Order {
                 Json.required(data, "installments", Json::asLong),
                 Json.required(data, "items", Json.list(Json.model(CheckoutLine::fromJson))),
                 Json.required(data, "metadata", Json.map(Json::any)),
+                Json.optional(data, "order_status", Json::asString),
                 Json.optional(data, "paid_at", Json::asString),
                 Json.required(data, "price_id", Json::asString),
                 Json.required(data, "product_id", Json::asString),
+                Json.required(data, "refunded_amount_cents", Json::asLong),
                 Json.required(data, "status", Json::asString));
     }
 
@@ -112,6 +126,11 @@ public final class Order {
         return metadata;
     }
 
+    /** @return Onde o pedido está; status é o do checkout e continua succeeded depois de um reembolso, e este vira partially_refunded ou refunded. Nulo antes de haver pagamento. (null when the API sends none) */
+    public String getOrderStatus() {
+        return orderStatus;
+    }
+
     /** @return the API's {@code paid_at} (null when the API sends none) */
     public String getPaidAt() {
         return paidAt;
@@ -127,6 +146,11 @@ public final class Order {
         return productId;
     }
 
+    /** @return Quanto do pedido já foi devolvido, somando todos os reembolsos que deram certo, em centavos. */
+    public long getRefundedAmountCents() {
+        return refundedAmountCents;
+    }
+
     /** @return the API's {@code status} */
     public String getStatus() {
         return status;
@@ -134,6 +158,6 @@ public final class Order {
 
     @Override
     public String toString() {
-        return "Order{" + "amountCents=" + amountCents + ", clientReferenceId=" + clientReferenceId + ", currency=" + currency + ", customerId=" + customerId + ", id=" + id + ", installmentInterestCents=" + installmentInterestCents + ", installments=" + installments + ", items=" + items + ", metadata=" + metadata + ", paidAt=" + paidAt + ", priceId=" + priceId + ", productId=" + productId + ", status=" + status + "}";
+        return "Order{" + "amountCents=" + amountCents + ", clientReferenceId=" + clientReferenceId + ", currency=" + currency + ", customerId=" + customerId + ", id=" + id + ", installmentInterestCents=" + installmentInterestCents + ", installments=" + installments + ", items=" + items + ", metadata=" + metadata + ", orderStatus=" + orderStatus + ", paidAt=" + paidAt + ", priceId=" + priceId + ", productId=" + productId + ", refundedAmountCents=" + refundedAmountCents + ", status=" + status + "}";
     }
 }

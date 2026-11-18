@@ -387,9 +387,11 @@ defmodule PerataTest do
   @reference_secret "whsec_MfKQ9r8GKYqrTwjUPD8ILPZIo2LaLaSw"
   @old_secret "whsec_cGVyYXRhLXNkay1vbGQta2V5LTAxMjM0NTY3ODlhYmM="
   @new_secret "whsec_cGVyYXRhLXNkay1uZXcta2V5LTAxMjM0NTY3ODlhYmM="
-  @order_paid ~s({"id":"msg_2","type":"order.paid","timestamp":"2026-10-22T12:00:00Z","data":{"id":"ord_1","customer_id":"cus_1","product_id":"prod_1","price_id":"price_1","amount_cents":12000,"currency":"BRL","status":"succeeded","paid_at":"2026-10-22T12:00:00Z","installments":3,"installment_interest_cents":360,"items":[],"metadata":{},"client_reference_id":""}})
+  @order_paid ~s({"id":"msg_2","type":"order.paid","timestamp":"2026-10-22T12:00:00Z","data":{"id":"ord_1","customer_id":"cus_1","product_id":"prod_1","price_id":"price_1","amount_cents":12000,"currency":"BRL","status":"succeeded","paid_at":"2026-10-22T12:00:00Z","order_status":"paid","refunded_amount_cents":0,"refund_id":null,"refund_amount_cents":null,"installments":3,"installment_interest_cents":360,"items":[],"metadata":{},"client_reference_id":""}})
   @usage_recorded ~s({"id":"msg_3","type":"usage_event.recorded","timestamp":"2026-10-22T12:00:00Z","data":{"event_id":"ue_1","aggregate":"usage_event","aggregate_id":"ue_1","merchant_id":"mer_1","environment":"test"}})
   @payout_sent ~s({"id":"msg_4","type":"payout.sent","timestamp":"2026-10-22T12:00:00Z","data":{"payout_id":"po_1","amount_cents":5000}})
+  @order_paid_live ~s({"id":"msg_5","type":"order.paid","timestamp":"2026-10-22T12:00:00Z","environment":"live","data":{"id":"ord_1","customer_id":"cus_1","product_id":"prod_1","price_id":"price_1","amount_cents":12000,"currency":"BRL","status":"succeeded","paid_at":"2026-10-22T12:00:00Z","order_status":"paid","refunded_amount_cents":0,"refund_id":null,"refund_amount_cents":null,"installments":3,"installment_interest_cents":360,"items":[],"metadata":{},"client_reference_id":""}})
+  @payout_sent_test ~s({"id":"msg_6","type":"payout.sent","timestamp":"2026-10-22T12:00:00Z","environment":"test","data":{"payout_id":"po_1","amount_cents":5000}})
   @signed_at 1_792_670_400
 
   defp webhook_headers(id, at, signature) do
@@ -443,6 +445,37 @@ defmodule PerataTest do
     end
   end
 
+  test "a webhook carries the environment it happened in" do
+    now = @signed_at + 120
+
+    for {id, signature, body} <- [
+          {"msg_2", "v1,XI92+fzspBAwIZD8XhEF5PwZNFrKbyAaykAydn3pPzY= v1,G2ijkhNO0sP+dkoMlsU1sOLmtbpIw9SYOwC2XTqMKdw=", @order_paid},
+          {"msg_3", "v1,Z3E2vTbczigiySfkzakxuZotPn9FlBY1KAET6hPEZoU=", @usage_recorded},
+          {"msg_4", "v1,Sa/yofA3h/58pFR+rIiWdIc8qXfcuqvyJSjxn4oJ1ZY=", @payout_sent}
+        ] do
+      assert {:ok, %{environment: ""}} =
+               Perata.verify_webhook(@new_secret, webhook_headers(id, @signed_at, signature), body,
+                 now: now
+               )
+    end
+
+    assert {:ok, %Perata.OrderWebhookEvent{environment: "live"}} =
+             Perata.verify_webhook(
+               @new_secret,
+               webhook_headers("msg_5", @signed_at, "v1,JECjRi5yt5jEJZSUqpIxpxCJ/OfRgUBipIRj1b2lsUk="),
+               @order_paid_live,
+               now: now
+             )
+
+    assert {:ok, %Perata.UnknownWebhookEvent{environment: "test"}} =
+             Perata.verify_webhook(
+               @new_secret,
+               webhook_headers("msg_6", @signed_at, "v1,6He63m1rUlB789sgtRAHqex4wyKkzAwdHt6uRsp8YQM="),
+               @payout_sent_test,
+               now: now
+             )
+  end
+
   test "a webhook answers its typed event" do
     now = @signed_at + 120
 
@@ -450,11 +483,11 @@ defmodule PerataTest do
       webhook_headers(
         "msg_2",
         @signed_at,
-        "v1,MW5FnOPf5xZdiHRmDImEy+x3spgWmDCUEuwjHOZ7a2Y= v1,rWmUsQveS0J9yTlnQfb7Olszghg8xf7DJHLHG0a7YZo="
+        "v1,XI92+fzspBAwIZD8XhEF5PwZNFrKbyAaykAydn3pPzY= v1,G2ijkhNO0sP+dkoMlsU1sOLmtbpIw9SYOwC2XTqMKdw="
       )
 
     for secret <- [@new_secret, @old_secret] do
-      assert {:ok, %Perata.OrderWebhookEvent{type: "order.paid", data: %Perata.Order{} = order}} =
+      assert {:ok, %Perata.OrderWebhookEvent{type: "order.paid", data: %Perata.WebhookOrder{} = order}} =
                Perata.verify_webhook(secret, headers, @order_paid, now: now)
 
       assert {order.id, order.installments, order.installment_interest_cents} == {"ord_1", 3, 360}

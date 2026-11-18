@@ -7,13 +7,14 @@ import 'package:crypto/crypto.dart';
 import 'models.dart';
 
 /// A webhook Peráta sent, verified: one subclass a kind of data
-/// ([OrderWebhookEvent] carries an [Order]…), or [UnknownWebhookEvent] for a
+/// ([OrderWebhookEvent] carries a [WebhookOrder]…), or [UnknownWebhookEvent] for a
 /// type this SDK does not know yet. Within a class, [type] says what happened.
 sealed class WebhookEvent {
   const WebhookEvent({
     required this.id,
     required this.type,
     required this.timestamp,
+    this.environment = '',
   });
 
   /// The message's id, the same as the `webhook-id` header.
@@ -24,6 +25,10 @@ sealed class WebhookEvent {
 
   /// When it happened, in RFC 3339.
   final String timestamp;
+
+  /// The environment it happened in, `test` or `live`; empty when an older
+  /// server did not send it.
+  final String environment;
 }
 {{range .Webhooks}}
 /// The events that carry {{if eq .Data.Kind "model"}}{{article .Data.Model}}{{else}}the event's identifiers{{end}}.
@@ -32,6 +37,7 @@ final class {{.Name}}WebhookEvent extends WebhookEvent {
     required super.id,
     required super.type,
     required super.timestamp,
+    super.environment,
     required this.data,
   });
 
@@ -52,6 +58,7 @@ final class UnknownWebhookEvent extends WebhookEvent {
     required super.id,
     required super.type,
     required super.timestamp,
+    super.environment,
     required this.data,
   });
 
@@ -164,6 +171,10 @@ WebhookEvent _event(List<int> raw) {
     'type': final String type,
     'timestamp': final String timestamp,
   }) {
+    final environment = switch (json['environment']) {
+      final String environment => environment,
+      _ => '',
+    };
     final data = switch (json['data']) {
       final Map<String, Object?> data => data,
       _ => const <String, Object?>{},
@@ -174,6 +185,7 @@ WebhookEvent _event(List<int> raw) {
         id: id,
         type: type,
         timestamp: timestamp,
+        environment: environment,
 {{- if eq .Data.Kind "model"}}
         data: {{.Data.Model}}.fromJson(data),
 {{- else}}
@@ -188,6 +200,7 @@ WebhookEvent _event(List<int> raw) {
       id: id,
       type: type,
       timestamp: timestamp,
+      environment: environment,
       data: data,
     );
   }

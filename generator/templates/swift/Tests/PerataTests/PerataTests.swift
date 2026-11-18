@@ -312,8 +312,10 @@ final class PerataTests: XCTestCase {
         static let referenceSecret = "whsec_MfKQ9r8GKYqrTwjUPD8ILPZIo2LaLaSw"
         static let oldSecret = "whsec_cGVyYXRhLXNkay1vbGQta2V5LTAxMjM0NTY3ODlhYmM="
         static let newSecret = "whsec_cGVyYXRhLXNkay1uZXcta2V5LTAxMjM0NTY3ODlhYmM="
-        static let orderPaid = Data(#"{"id":"msg_2","type":"order.paid","timestamp":"2026-10-22T12:00:00Z","data":{"id":"ord_1","customer_id":"cus_1","product_id":"prod_1","price_id":"price_1","amount_cents":12000,"currency":"BRL","status":"succeeded","paid_at":"2026-10-22T12:00:00Z","installments":3,"installment_interest_cents":360,"items":[],"metadata":{},"client_reference_id":""}}"#.utf8)
+        static let orderPaid = Data(#"{"id":"msg_2","type":"order.paid","timestamp":"2026-10-22T12:00:00Z","data":{"id":"ord_1","customer_id":"cus_1","product_id":"prod_1","price_id":"price_1","amount_cents":12000,"currency":"BRL","status":"succeeded","paid_at":"2026-10-22T12:00:00Z","order_status":"paid","refunded_amount_cents":0,"refund_id":null,"refund_amount_cents":null,"installments":3,"installment_interest_cents":360,"items":[],"metadata":{},"client_reference_id":""}}"#.utf8)
         static let usageRecorded = Data(#"{"id":"msg_3","type":"usage_event.recorded","timestamp":"2026-10-22T12:00:00Z","data":{"event_id":"ue_1","aggregate":"usage_event","aggregate_id":"ue_1","merchant_id":"mer_1","environment":"test"}}"#.utf8)
+        static let orderPaidLive = Data(#"{"id":"msg_5","type":"order.paid","timestamp":"2026-10-22T12:00:00Z","environment":"live","data":{"id":"ord_1","customer_id":"cus_1","product_id":"prod_1","price_id":"price_1","amount_cents":12000,"currency":"BRL","status":"succeeded","paid_at":"2026-10-22T12:00:00Z","order_status":"paid","refunded_amount_cents":0,"refund_id":null,"refund_amount_cents":null,"installments":3,"installment_interest_cents":360,"items":[],"metadata":{},"client_reference_id":""}}"#.utf8)
+        static let payoutSentTest = Data(#"{"id":"msg_6","type":"payout.sent","timestamp":"2026-10-22T12:00:00Z","environment":"test","data":{"payout_id":"po_1","amount_cents":5000}}"#.utf8)
         static let payoutSent = Data(#"{"id":"msg_4","type":"payout.sent","timestamp":"2026-10-22T12:00:00Z","data":{"payout_id":"po_1","amount_cents":5000}}"#.utf8)
         static let signedAt = 1_792_670_400
 
@@ -347,9 +349,32 @@ final class PerataTests: XCTestCase {
             }
         }
 
+        func testAWebhookCarriesTheEnvironmentItHappenedIn() throws {
+            let now = Date(timeIntervalSince1970: TimeInterval(Self.signedAt + 120))
+            let older: [(String, String, Data)] = [
+                ("msg_2", "v1,XI92+fzspBAwIZD8XhEF5PwZNFrKbyAaykAydn3pPzY= v1,G2ijkhNO0sP+dkoMlsU1sOLmtbpIw9SYOwC2XTqMKdw=", Self.orderPaid),
+                ("msg_3", "v1,Z3E2vTbczigiySfkzakxuZotPn9FlBY1KAET6hPEZoU=", Self.usageRecorded),
+                ("msg_4", "v1,Sa/yofA3h/58pFR+rIiWdIc8qXfcuqvyJSjxn4oJ1ZY=", Self.payoutSent),
+            ]
+            for (id, signature, body) in older {
+                let event = try verifyWebhook(secret: Self.newSecret, headers: webhookHeaders(id, Self.signedAt, signature), body: body, now: now)
+                XCTAssertEqual(event.environment, "", id)
+            }
+            let order = try verifyWebhook(secret: Self.newSecret, headers: webhookHeaders("msg_5", Self.signedAt, "v1,JECjRi5yt5jEJZSUqpIxpxCJ/OfRgUBipIRj1b2lsUk="), body: Self.orderPaidLive, now: now)
+            guard case .order = order else {
+                return XCTFail("not an order event")
+            }
+            XCTAssertEqual(order.environment, "live")
+            let unknown = try verifyWebhook(secret: Self.newSecret, headers: webhookHeaders("msg_6", Self.signedAt, "v1,6He63m1rUlB789sgtRAHqex4wyKkzAwdHt6uRsp8YQM="), body: Self.payoutSentTest, now: now)
+            guard case .unknown = unknown else {
+                return XCTFail("not an unknown event")
+            }
+            XCTAssertEqual(unknown.environment, "test")
+        }
+
         func testAWebhookAnswersItsTypedEvent() throws {
             let now = Date(timeIntervalSince1970: TimeInterval(Self.signedAt + 120))
-            let headers = webhookHeaders("msg_2", Self.signedAt, "v1,MW5FnOPf5xZdiHRmDImEy+x3spgWmDCUEuwjHOZ7a2Y= v1,rWmUsQveS0J9yTlnQfb7Olszghg8xf7DJHLHG0a7YZo=")
+            let headers = webhookHeaders("msg_2", Self.signedAt, "v1,XI92+fzspBAwIZD8XhEF5PwZNFrKbyAaykAydn3pPzY= v1,G2ijkhNO0sP+dkoMlsU1sOLmtbpIw9SYOwC2XTqMKdw=")
             for secret in [Self.newSecret, Self.oldSecret] {
                 guard case let .order(order) = try verifyWebhook(secret: secret, headers: headers, body: Self.orderPaid, now: now) else {
                     return XCTFail("not an order event")

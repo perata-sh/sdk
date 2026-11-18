@@ -18,10 +18,10 @@ module Perata
   end
 
   # A webhook Peráta sent, verified: one subclass a kind of data
-  # (OrderWebhookEvent carries an Order…), or UnknownWebhookEvent for a type
+  # (OrderWebhookEvent carries a WebhookOrder…), or UnknownWebhookEvent for a type
   # this SDK does not know yet. Within a class, +type+ says what happened.
   class WebhookEvent < Model
-    MEMBERS = %i[id type timestamp data].freeze
+    MEMBERS = %i[id type timestamp environment data].freeze
 
     # @return [String] the message's id, the same as the webhook-id header
     attr_reader :id
@@ -29,13 +29,17 @@ module Perata
     attr_reader :type
     # @return [String] when it happened, in RFC 3339
     attr_reader :timestamp
+    # @return [String] the environment it happened in, "test" or "live"; empty
+    #   when an older server did not send it
+    attr_reader :environment
     # @return [Object] what the event carries
     attr_reader :data
 
-    def initialize(id:, type:, timestamp:, data:)
+    def initialize(id:, type:, timestamp:, data:, environment: "")
       @id = id
       @type = type
       @timestamp = timestamp
+      @environment = environment
       @data = data
       freeze
     end
@@ -76,7 +80,7 @@ module Perata
     TYPES = %w[benefit.archived benefit.version_created benefit_product_link.linked benefit_product_link.unlinked checkout_link.archived checkout_link.created checkout_session.confirmed checkout_session.expired checkout_session.failed checkout_session.opened checkout_session.succeeded customer.archived discount.exhausted discount.expired discount.reactivated discount.redeemed discount_redemption.released invoice.drafted invoice.issued invoice.settled invoice.uncollectible invoice.voided price.archived price.created product.archived seat_allocation.opened seat_allocation.resized seat_assignment.claimed seat_assignment.invited seat_assignment.revoked usage_event.recorded usage_period.closed usage_period.opened usage_period_adjustment.created].freeze
   end
 
-  # The events that carry an Order; +data+ is Order.
+  # The events that carry a WebhookOrder; +data+ is WebhookOrder.
   class OrderWebhookEvent < WebhookEvent
     TYPES = %w[order.created order.paid order.refunded order.updated].freeze
   end
@@ -158,7 +162,8 @@ module Perata
   def self.webhook_event(raw)
     event = JSON.parse(raw)
     data = event["data"] || {}
-    message = { id: event.fetch("id"), type: event.fetch("type"), timestamp: event.fetch("timestamp") }
+    environment = event["environment"].is_a?(String) ? event["environment"] : ""
+    message = { id: event.fetch("id"), type: event.fetch("type"), timestamp: event.fetch("timestamp"), environment: environment }
     case message[:type]
     when *BenefitWebhookEvent::TYPES then BenefitWebhookEvent.new(**message, data: WebhookBenefit.from_hash(data))
     when *BenefitGrantWebhookEvent::TYPES then BenefitGrantWebhookEvent.new(**message, data: BenefitGrant.from_hash(data))
@@ -167,7 +172,7 @@ module Perata
     when *DiscountWebhookEvent::TYPES then DiscountWebhookEvent.new(**message, data: WebhookDiscount.from_hash(data))
     when *DisputeWebhookEvent::TYPES then DisputeWebhookEvent.new(**message, data: WebhookDispute.from_hash(data))
     when *IdentifiersWebhookEvent::TYPES then IdentifiersWebhookEvent.new(**message, data: data)
-    when *OrderWebhookEvent::TYPES then OrderWebhookEvent.new(**message, data: Order.from_hash(data))
+    when *OrderWebhookEvent::TYPES then OrderWebhookEvent.new(**message, data: WebhookOrder.from_hash(data))
     when *ProductWebhookEvent::TYPES then ProductWebhookEvent.new(**message, data: Product.from_hash(data))
     when *RefundWebhookEvent::TYPES then RefundWebhookEvent.new(**message, data: WebhookRefund.from_hash(data))
     when *SaleWebhookEvent::TYPES then SaleWebhookEvent.new(**message, data: WebhookSale.from_hash(data))

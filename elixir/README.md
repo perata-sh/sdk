@@ -4,7 +4,7 @@ SDK oficial da API da Peráta para Elixir 1.18+, sem dependências: só `:httpc`
 
 ```elixir
 # mix.exs
-{:perata_sdk, "~> 0.5.2"}
+{:perata_sdk, "~> 0.5.3"}
 ```
 
 ```elixir
@@ -113,6 +113,8 @@ end
 
 A assinatura é a do Standard Webhooks (`webhook-id`, `webhook-timestamp`, `webhook-signature`), com tolerância de 5 minutos. Passe o corpo cru, antes de interpretar. Uma assinatura que não confere devolve `{:error, %Perata.WebhookVerificationError{}}`.
 
-O evento é tipado: um tipo para cada dado que o webhook carrega (`OrderWebhookEvent` traz um `Order`, `DisputeWebhookEvent` a disputa, `IdentifiersWebhookEvent` os identificadores…), e o `type` diz o que aconteceu; um tipo que esta versão do SDK ainda não conhece chega como `UnknownWebhookEvent`, com os dados como vieram. Durante a rotação do segredo o cabeçalho traz mais de uma assinatura, e basta uma conferir. `Perata.verify_webhook_signature/4` só confere a assinatura.
+O evento é tipado: um tipo para cada dado que o webhook carrega (`OrderWebhookEvent` traz um `WebhookOrder`, `DisputeWebhookEvent` a disputa, `IdentifiersWebhookEvent` os identificadores…), e o `type` diz o que aconteceu; um tipo que esta versão do SDK ainda não conhece chega como `UnknownWebhookEvent`, com os dados como vieram. Durante a rotação do segredo o cabeçalho traz mais de uma assinatura, e basta uma conferir. `Perata.verify_webhook_signature/4` só confere a assinatura.
 
-Versão do SDK: 0.5.2 · contrato da API: 0.1.0
+Todo evento traz o ambiente em que aconteceu, em `event.environment`: `"test"` ou `"live"` (vazio se um servidor antigo não mandou). Recuse o evento do ambiente errado: um endpoint de produção deve responder 400 a um evento `"test"`, para que um teste não dê baixa em um pedido real.
+
+Versão do SDK: 0.5.3 · contrato da API: 0.1.0

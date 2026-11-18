@@ -1141,9 +1141,13 @@ class Order:
     """As linhas do pedido, quando o seu servidor as enviou ao criar o checkout; vazio sem elas."""
     metadata: dict[str, Any]
     """Os pares que o seu servidor enviou ao criar o checkout."""
+    order_status: Literal["pending", "paid", "partially_refunded", "refunded"] | None
+    """Onde o pedido está; status é o do checkout e continua succeeded depois de um reembolso, e este vira partially_refunded ou refunded. Nulo antes de haver pagamento."""
     paid_at: str | None
     price_id: str
     product_id: str
+    refunded_amount_cents: int
+    """Quanto do pedido já foi devolvido, somando todos os reembolsos que deram certo, em centavos."""
     status: Literal["open", "confirmed", "succeeded", "failed", "expired"]
 
     @classmethod
@@ -1158,9 +1162,11 @@ class Order:
             installments=data["installments"],
             items=[CheckoutLine.from_dict(item) for item in data["items"]],
             metadata=data["metadata"],
+            order_status=data.get("order_status"),
             paid_at=data.get("paid_at"),
             price_id=data["price_id"],
             product_id=data["product_id"],
+            refunded_amount_cents=data["refunded_amount_cents"],
             status=data["status"],
         )
 
@@ -1738,6 +1744,60 @@ class WebhookEndpointCreated:
 
 
 @dataclass(frozen=True)
+class WebhookOrder:
+    """O pedido como a API o devolve (Order) e, nos eventos que um reembolso causou (order.refunded e o order.updated que o acompanha), o reembolso que o causou. status continua sendo o do checkout (succeeded) depois de um reembolso: order_status e refunded_amount_cents dizem onde o dinheiro está."""
+
+    amount_cents: int
+    client_reference_id: str
+    """O id do pedido no seu sistema, enviado ao criar o checkout; vazio sem ele."""
+    currency: Literal["BRL"]
+    customer_id: str
+    id: str
+    installment_interest_cents: int
+    """Juros do parcelamento pagos pelo comprador, cobrados além de amount_cents."""
+    installments: int
+    """Em quantas parcelas o cartão de crédito foi cobrado; 1 à vista."""
+    items: list[CheckoutLine]
+    """As linhas do pedido, quando o seu servidor as enviou ao criar o checkout; vazio sem elas."""
+    metadata: dict[str, Any]
+    """Os pares que o seu servidor enviou ao criar o checkout."""
+    order_status: Literal["pending", "paid", "partially_refunded", "refunded"] | None
+    """Onde o pedido está; status é o do checkout e continua succeeded depois de um reembolso, e este vira partially_refunded ou refunded."""
+    paid_at: str | None
+    price_id: str
+    product_id: str
+    refund_amount_cents: int | None
+    """O valor só deste reembolso, em centavos; nulo como refund_id. O acumulado do pedido é refunded_amount_cents."""
+    refund_id: str | None
+    """O reembolso que causou este evento; nulo nos eventos que nenhum reembolso causou."""
+    refunded_amount_cents: int
+    """Quanto do pedido já foi devolvido, somando todos os reembolsos que deram certo, em centavos."""
+    status: Literal["open", "confirmed", "succeeded", "failed", "expired"]
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> WebhookOrder:
+        return cls(
+            amount_cents=data["amount_cents"],
+            client_reference_id=data["client_reference_id"],
+            currency=data["currency"],
+            customer_id=data["customer_id"],
+            id=data["id"],
+            installment_interest_cents=data["installment_interest_cents"],
+            installments=data["installments"],
+            items=[CheckoutLine.from_dict(item) for item in data["items"]],
+            metadata=data["metadata"],
+            order_status=data.get("order_status"),
+            paid_at=data.get("paid_at"),
+            price_id=data["price_id"],
+            product_id=data["product_id"],
+            refund_amount_cents=data.get("refund_amount_cents"),
+            refund_id=data.get("refund_id"),
+            refunded_amount_cents=data["refunded_amount_cents"],
+            status=data["status"],
+        )
+
+
+@dataclass(frozen=True)
 class WebhookRefund:
     """WebhookRefund is a resource of Peráta's API."""
 
@@ -1787,6 +1847,12 @@ class WebhookSale:
     """O meio do pagamento, nos eventos checkout_payment.*."""
     payment_id: str | None
     """O pagamento que o reembolso devolve, nos eventos refund.*."""
+    refund_amount_cents: int | None
+    """O valor só do reembolso que moveu o pagamento, em centavos; em checkout_payment.refunded e checkout_payment.partially_refunded."""
+    refund_id: str | None
+    """O reembolso: nos eventos refund.*, o próprio; em checkout_payment.refunded e checkout_payment.partially_refunded, o que moveu o pagamento."""
+    refunded_amount_cents: int | None
+    """Quanto do pagamento já foi devolvido, somando os reembolsos que deram certo, nos eventos checkout_payment.*."""
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> WebhookSale:
@@ -1803,6 +1869,9 @@ class WebhookSale:
             metadata=data.get("metadata"),
             method=data.get("method"),
             payment_id=data.get("payment_id"),
+            refund_amount_cents=data.get("refund_amount_cents"),
+            refund_id=data.get("refund_id"),
+            refunded_amount_cents=data.get("refunded_amount_cents"),
         )
 
 

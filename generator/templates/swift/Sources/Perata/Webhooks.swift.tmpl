@@ -10,7 +10,8 @@ import Foundation
 public let webhookTolerance: TimeInterval = 300
 
 /// What every webhook carries: the message's id, the same as the webhook-id
-/// header; the event's type; when it happened, in RFC 3339; and its data.
+/// header; the event's type; when it happened, in RFC 3339; the environment it
+/// happened in, `test` or `live`; and its data.
 public struct WebhookMessage<Payload: Codable & Sendable & Hashable>: Codable, Sendable, Hashable {
     /// The message's id, the same on every delivery of it.
     public let id: String
@@ -18,26 +19,44 @@ public struct WebhookMessage<Payload: Codable & Sendable & Hashable>: Codable, S
     public let type: String
     /// When it happened.
     public let timestamp: String
+    /// The environment it happened in, `test` or `live`; empty when an older
+    /// server did not send it.
+    public let environment: String
     /// What the event carries.
     public let data: Payload
 
-    public init(id: String, type: String, timestamp: String, data: Payload) {
+    public init(id: String, type: String, timestamp: String, environment: String = "", data: Payload) {
         self.id = id
         self.type = type
         self.timestamp = timestamp
+        self.environment = environment
         self.data = data
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case id, type, timestamp, environment, data
+    }
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decode(String.self, forKey: .id)
+        type = try container.decode(String.self, forKey: .type)
+        timestamp = try container.decode(String.self, forKey: .timestamp)
+        environment = try container.decodeIfPresent(String.self, forKey: .environment) ?? ""
+        data = try container.decode(Payload.self, forKey: .data)
     }
 }
 {{range .Webhooks}}
 /// The events that carry {{if eq .Data.Kind "model"}}{{article .Data.Model}}{{else}}the event's identifiers{{end}}: {{range $i, $t := .Types}}{{if $i}}, {{end}}`{{$t}}`{{end}}.
 public typealias {{.Name}}WebhookEvent = WebhookMessage<{{swData .Data}}>
 {{end}}
-/// An event of a type this SDK does not know yet: its id, type and timestamp,
-/// and the body as it was sent.
+/// An event of a type this SDK does not know yet: its id, type, timestamp and
+/// environment, and the body as it was sent.
 public struct UnknownWebhookEvent: Sendable, Hashable {
     public let id: String
     public let type: String
     public let timestamp: String
+    public let environment: String
     /// The whole body, as JSON.
     public let body: Data
 }
@@ -83,10 +102,22 @@ public enum WebhookEvent: Sendable, Hashable {
         }
     }
 
+    /// The environment it happened in, `test` or `live`; empty when an older
+    /// server did not send it.
+    public var environment: String {
+        switch self {
+{{- range .Webhooks}}
+        case let .{{swLower .Name}}(event): event.environment
+{{- end}}
+        case let .unknown(event): event.environment
+        }
+    }
+
     private struct Header: Decodable {
         let id: String
         let type: String
         let timestamp: String
+        let environment: String?
     }
 
     /// Reads a verified body into the event its type names.
@@ -99,7 +130,7 @@ public enum WebhookEvent: Sendable, Hashable {
             return try .{{swLower .Name}}(decoder.decode({{.Name}}WebhookEvent.self, from: body))
 {{- end}}
         default:
-            return .unknown(UnknownWebhookEvent(id: header.id, type: header.type, timestamp: header.timestamp, body: body))
+            return .unknown(UnknownWebhookEvent(id: header.id, type: header.type, timestamp: header.timestamp, environment: header.environment ?? "", body: body))
         }
     }
 }

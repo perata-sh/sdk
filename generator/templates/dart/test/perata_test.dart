@@ -46,11 +46,13 @@ const referenceSecret = 'whsec_MfKQ9r8GKYqrTwjUPD8ILPZIo2LaLaSw';
 const oldSecret = 'whsec_cGVyYXRhLXNkay1vbGQta2V5LTAxMjM0NTY3ODlhYmM=';
 const newSecret = 'whsec_cGVyYXRhLXNkay1uZXcta2V5LTAxMjM0NTY3ODlhYmM=';
 const orderPaid =
-    '{"id":"msg_2","type":"order.paid","timestamp":"2026-10-22T12:00:00Z",'
-    '"data":{"id":"ord_1","customer_id":"cus_1","product_id":"prod_1",'
-    '"price_id":"price_1","amount_cents":12000,"currency":"BRL",'
-    '"status":"succeeded","paid_at":"2026-10-22T12:00:00Z","installments":3,'
-    '"installment_interest_cents":360,"items":[],"metadata":{},"client_reference_id":""}}';
+    '{"id":"msg_2","type":"order.paid","timestamp":"2026-10-22T12:00:00'
+    'Z","data":{"id":"ord_1","customer_id":"cus_1","product_id":"prod_1'
+    '","price_id":"price_1","amount_cents":12000,"currency":"BRL","stat'
+    'us":"succeeded","paid_at":"2026-10-22T12:00:00Z","order_status":"p'
+    'aid","refunded_amount_cents":0,"refund_id":null,"refund_amount_cen'
+    'ts":null,"installments":3,"installment_interest_cents":360,"items"'
+    ':[],"metadata":{},"client_reference_id":""}}';
 const usageRecorded =
     '{"id":"msg_3","type":"usage_event.recorded",'
     '"timestamp":"2026-10-22T12:00:00Z","data":{"event_id":"ue_1",'
@@ -59,6 +61,18 @@ const usageRecorded =
 const payoutSent =
     '{"id":"msg_4","type":"payout.sent","timestamp":"2026-10-22T12:00:00Z",'
     '"data":{"payout_id":"po_1","amount_cents":5000}}';
+const orderPaidLive =
+    '{"id":"msg_5","type":"order.paid","timestamp":"2026-10-22T12:00:00'
+    'Z","environment":"live","data":{"id":"ord_1","customer_id":"cus_1"'
+    ',"product_id":"prod_1","price_id":"price_1","amount_cents":12000,"'
+    'currency":"BRL","status":"succeeded","paid_at":"2026-10-22T12:00:0'
+    '0Z","order_status":"paid","refunded_amount_cents":0,"refund_id":nu'
+    'll,"refund_amount_cents":null,"installments":3,"installment_intere'
+    'st_cents":360,"items":[],"metadata":{},"client_reference_id":""}}';
+const payoutSentTest =
+    '{"id":"msg_6","type":"payout.sent","timestamp":"2026-10-22T12:00:0'
+    '0Z","environment":"test","data":{"payout_id":"po_1","amount_cents"'
+    ':5000}}';
 const signedAt = 1792670400;
 
 Map<String, String> webhookHeaders(String id, int at, String signature) => {
@@ -555,6 +569,59 @@ void main() {
     }
   });
 
+  test('a webhook carries the environment it happened in', () {
+    final now = DateTime.fromMillisecondsSinceEpoch(
+      (signedAt + 120) * 1000,
+      isUtc: true,
+    );
+    final older = [
+      (
+        'msg_2',
+        'v1,XI92+fzspBAwIZD8XhEF5PwZNFrKbyAaykAydn3pPzY= v1,G2ijkhNO0sP+dkoMlsU1sOLmtbpIw9SYOwC2XTqMKdw=',
+        orderPaid,
+      ),
+      (
+        'msg_3',
+        'v1,Z3E2vTbczigiySfkzakxuZotPn9FlBY1KAET6hPEZoU=',
+        usageRecorded,
+      ),
+      ('msg_4', 'v1,Sa/yofA3h/58pFR+rIiWdIc8qXfcuqvyJSjxn4oJ1ZY=', payoutSent),
+    ];
+    for (final (id, signature, body) in older) {
+      final event = verifyWebhook(
+        newSecret,
+        webhookHeaders(id, signedAt, signature),
+        body,
+        now: now,
+      );
+      expect(event.environment, '', reason: id);
+    }
+    final order = verifyWebhook(
+      newSecret,
+      webhookHeaders(
+        'msg_5',
+        signedAt,
+        'v1,JECjRi5yt5jEJZSUqpIxpxCJ/OfRgUBipIRj1b2lsUk=',
+      ),
+      orderPaidLive,
+      now: now,
+    );
+    expect(order, isA<OrderWebhookEvent>());
+    expect(order.environment, 'live');
+    final unknown = verifyWebhook(
+      newSecret,
+      webhookHeaders(
+        'msg_6',
+        signedAt,
+        'v1,6He63m1rUlB789sgtRAHqex4wyKkzAwdHt6uRsp8YQM=',
+      ),
+      payoutSentTest,
+      now: now,
+    );
+    expect(unknown, isA<UnknownWebhookEvent>());
+    expect(unknown.environment, 'test');
+  });
+
   test('a webhook answers its typed event', () {
     final now = DateTime.fromMillisecondsSinceEpoch(
       (signedAt + 120) * 1000,
@@ -563,8 +630,8 @@ void main() {
     final headers = webhookHeaders(
       'msg_2',
       signedAt,
-      'v1,MW5FnOPf5xZdiHRmDImEy+x3spgWmDCUEuwjHOZ7a2Y= '
-          'v1,rWmUsQveS0J9yTlnQfb7Olszghg8xf7DJHLHG0a7YZo=',
+      'v1,XI92+fzspBAwIZD8XhEF5PwZNFrKbyAaykAydn3pPzY= '
+          'v1,G2ijkhNO0sP+dkoMlsU1sOLmtbpIw9SYOwC2XTqMKdw=',
     );
     for (final secret in [newSecret, oldSecret]) {
       final event = verifyWebhook(secret, headers, orderPaid, now: now);

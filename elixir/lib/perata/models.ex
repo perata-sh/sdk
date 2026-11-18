@@ -1617,9 +1617,11 @@ defmodule Perata.Order do
     :installments,
     :items,
     :metadata,
+    :order_status,
     :paid_at,
     :price_id,
     :product_id,
+    :refunded_amount_cents,
     :status
   ]
 
@@ -1630,6 +1632,8 @@ defmodule Perata.Order do
   * `installments`: Em quantas parcelas o cartão de crédito foi cobrado; 1 à vista.
   * `items`: As linhas do pedido, quando o seu servidor as enviou ao criar o checkout; vazio sem elas.
   * `metadata`: Os pares que o seu servidor enviou ao criar o checkout.
+  * `order_status` (one of `"pending"`, `"paid"`, `"partially_refunded"`, `"refunded"`): Onde o pedido está; status é o do checkout e continua succeeded depois de um reembolso, e este vira partially_refunded ou refunded. Nulo antes de haver pagamento.
+  * `refunded_amount_cents`: Quanto do pedido já foi devolvido, somando todos os reembolsos que deram certo, em centavos.
   * `status` (one of `"open"`, `"confirmed"`, `"succeeded"`, `"failed"`, `"expired"`)
   """
   @type t :: %__MODULE__{
@@ -1642,9 +1646,11 @@ defmodule Perata.Order do
           installments: integer(),
           items: [Perata.CheckoutLine.t()],
           metadata: %{optional(String.t()) => term()},
+          order_status: String.t() | nil,
           paid_at: String.t() | nil,
           price_id: String.t(),
           product_id: String.t(),
+          refunded_amount_cents: integer(),
           status: String.t()
         }
 
@@ -1661,9 +1667,11 @@ defmodule Perata.Order do
       installments: Map.fetch!(data, "installments"),
       items: Enum.map(Map.fetch!(data, "items"), &Perata.CheckoutLine.from_map/1),
       metadata: Map.fetch!(data, "metadata"),
+      order_status: data["order_status"],
       paid_at: data["paid_at"],
       price_id: Map.fetch!(data, "price_id"),
       product_id: Map.fetch!(data, "product_id"),
+      refunded_amount_cents: Map.fetch!(data, "refunded_amount_cents"),
       status: Map.fetch!(data, "status")
     }
   end
@@ -2531,6 +2539,87 @@ defmodule Perata.WebhookEndpointCreated do
   end
 end
 
+defmodule Perata.WebhookOrder do
+  @moduledoc "O pedido como a API o devolve (Order) e, nos eventos que um reembolso causou (order.refunded e o order.updated que o acompanha), o reembolso que o causou. status continua sendo o do checkout (succeeded) depois de um reembolso: order_status e refunded_amount_cents dizem onde o dinheiro está."
+
+  defstruct [
+    :amount_cents,
+    :client_reference_id,
+    :currency,
+    :customer_id,
+    :id,
+    :installment_interest_cents,
+    :installments,
+    :items,
+    :metadata,
+    :order_status,
+    :paid_at,
+    :price_id,
+    :product_id,
+    :refund_amount_cents,
+    :refund_id,
+    :refunded_amount_cents,
+    :status
+  ]
+
+  @typedoc """
+  * `client_reference_id`: O id do pedido no seu sistema, enviado ao criar o checkout; vazio sem ele.
+  * `currency` (one of `"BRL"`)
+  * `installment_interest_cents`: Juros do parcelamento pagos pelo comprador, cobrados além de amount_cents.
+  * `installments`: Em quantas parcelas o cartão de crédito foi cobrado; 1 à vista.
+  * `items`: As linhas do pedido, quando o seu servidor as enviou ao criar o checkout; vazio sem elas.
+  * `metadata`: Os pares que o seu servidor enviou ao criar o checkout.
+  * `order_status` (one of `"pending"`, `"paid"`, `"partially_refunded"`, `"refunded"`): Onde o pedido está; status é o do checkout e continua succeeded depois de um reembolso, e este vira partially_refunded ou refunded.
+  * `refund_amount_cents`: O valor só deste reembolso, em centavos; nulo como refund_id. O acumulado do pedido é refunded_amount_cents.
+  * `refund_id`: O reembolso que causou este evento; nulo nos eventos que nenhum reembolso causou.
+  * `refunded_amount_cents`: Quanto do pedido já foi devolvido, somando todos os reembolsos que deram certo, em centavos.
+  * `status` (one of `"open"`, `"confirmed"`, `"succeeded"`, `"failed"`, `"expired"`)
+  """
+  @type t :: %__MODULE__{
+          amount_cents: integer(),
+          client_reference_id: String.t(),
+          currency: String.t(),
+          customer_id: String.t(),
+          id: String.t(),
+          installment_interest_cents: integer(),
+          installments: integer(),
+          items: [Perata.CheckoutLine.t()],
+          metadata: %{optional(String.t()) => term()},
+          order_status: String.t() | nil,
+          paid_at: String.t() | nil,
+          price_id: String.t(),
+          product_id: String.t(),
+          refund_amount_cents: integer() | nil,
+          refund_id: String.t() | nil,
+          refunded_amount_cents: integer(),
+          status: String.t()
+        }
+
+  @doc "Builds a WebhookOrder from the API's JSON."
+  @spec from_map(map()) :: t()
+  def from_map(%{} = data) do
+    %__MODULE__{
+      amount_cents: Map.fetch!(data, "amount_cents"),
+      client_reference_id: Map.fetch!(data, "client_reference_id"),
+      currency: Map.fetch!(data, "currency"),
+      customer_id: Map.fetch!(data, "customer_id"),
+      id: Map.fetch!(data, "id"),
+      installment_interest_cents: Map.fetch!(data, "installment_interest_cents"),
+      installments: Map.fetch!(data, "installments"),
+      items: Enum.map(Map.fetch!(data, "items"), &Perata.CheckoutLine.from_map/1),
+      metadata: Map.fetch!(data, "metadata"),
+      order_status: data["order_status"],
+      paid_at: data["paid_at"],
+      price_id: Map.fetch!(data, "price_id"),
+      product_id: Map.fetch!(data, "product_id"),
+      refund_amount_cents: data["refund_amount_cents"],
+      refund_id: data["refund_id"],
+      refunded_amount_cents: Map.fetch!(data, "refunded_amount_cents"),
+      status: Map.fetch!(data, "status")
+    }
+  end
+end
+
 defmodule Perata.WebhookRefund do
   @moduledoc "WebhookRefund is a resource of Peráta's API."
 
@@ -2590,7 +2679,10 @@ defmodule Perata.WebhookSale do
     :merchant_id,
     :metadata,
     :method,
-    :payment_id
+    :payment_id,
+    :refund_amount_cents,
+    :refund_id,
+    :refunded_amount_cents
   ]
 
   @typedoc """
@@ -2601,6 +2693,9 @@ defmodule Perata.WebhookSale do
   * `metadata`: Os pares que o servidor do lojista enviou ao criar o checkout; vazio sem eles.
   * `method` (one of `"card"`, `"pix"`, `"boleto"`): O meio do pagamento, nos eventos checkout_payment.*.
   * `payment_id`: O pagamento que o reembolso devolve, nos eventos refund.*.
+  * `refund_amount_cents`: O valor só do reembolso que moveu o pagamento, em centavos; em checkout_payment.refunded e checkout_payment.partially_refunded.
+  * `refund_id`: O reembolso: nos eventos refund.*, o próprio; em checkout_payment.refunded e checkout_payment.partially_refunded, o que moveu o pagamento.
+  * `refunded_amount_cents`: Quanto do pagamento já foi devolvido, somando os reembolsos que deram certo, nos eventos checkout_payment.*.
   """
   @type t :: %__MODULE__{
           aggregate: String.t(),
@@ -2614,7 +2709,10 @@ defmodule Perata.WebhookSale do
           merchant_id: String.t(),
           metadata: %{optional(String.t()) => term()} | nil,
           method: String.t() | nil,
-          payment_id: String.t() | nil
+          payment_id: String.t() | nil,
+          refund_amount_cents: integer() | nil,
+          refund_id: String.t() | nil,
+          refunded_amount_cents: integer() | nil
         }
 
   @doc "Builds a WebhookSale from the API's JSON."
@@ -2632,7 +2730,10 @@ defmodule Perata.WebhookSale do
       merchant_id: Map.fetch!(data, "merchant_id"),
       metadata: data["metadata"],
       method: data["method"],
-      payment_id: data["payment_id"]
+      payment_id: data["payment_id"],
+      refund_amount_cents: data["refund_amount_cents"],
+      refund_id: data["refund_id"],
+      refunded_amount_cents: data["refunded_amount_cents"]
     }
   end
 end

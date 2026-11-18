@@ -2,11 +2,13 @@
 
 import type { {{range $i, $m := webhookModels .Webhooks}}{{if $i}}, {{end}}{{$m}}{{end}} } from "./models.ts";
 
-/** What every webhook carries: the message's id, the same as the webhook-id header; the event's type; when it happened, in RFC 3339; and its data. */
+/** What every webhook carries: the message's id, the same as the webhook-id header; the event's type; when it happened, in RFC 3339; the environment it happened in, "test" or "live"; and its data. */
 export interface WebhookMessage<Type extends string, Data> {
   id: string;
   type: Type;
   timestamp: string;
+  /** "test" or "live"; empty when an older server did not send it. */
+  environment: string;
   data: Data;
 }
 {{range .Webhooks}}
@@ -70,6 +72,10 @@ export async function verifyWebhook(secret: string, headers: HeadersLike, body: 
   const event: unknown = JSON.parse(new TextDecoder().decode(raw));
   if (typeof event !== "object" || event === null || typeof (event as { type?: unknown }).type !== "string" || typeof (event as { id?: unknown }).id !== "string") {
     throw new SyntaxError("perata: the webhook body is not an event");
+  }
+  const message = event as { environment?: unknown };
+  if (typeof message.environment !== "string") {
+    message.environment = "";
   }
   return event as WebhookEvent;
 }

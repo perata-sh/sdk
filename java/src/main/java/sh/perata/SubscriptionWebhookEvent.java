@@ -14,13 +14,13 @@ public final class SubscriptionWebhookEvent extends WebhookEvent {
 
     private final Subscription data;
 
-    SubscriptionWebhookEvent(String id, String type, String timestamp, Subscription data) {
-        super(id, type, timestamp);
+    SubscriptionWebhookEvent(String id, String type, String timestamp, String environment, Subscription data) {
+        super(id, type, timestamp, environment);
         this.data = data;
     }
 
-    static SubscriptionWebhookEvent fromJson(String id, String type, String timestamp, Map<String, Object> data) {
-        return new SubscriptionWebhookEvent(id, type, timestamp, Subscription.fromJson(data));
+    static SubscriptionWebhookEvent fromJson(String id, String type, String timestamp, String environment, Map<String, Object> data) {
+        return new SubscriptionWebhookEvent(id, type, timestamp, environment, Subscription.fromJson(data));
     }
 
     /** @return what the event carries */

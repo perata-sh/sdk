@@ -12,6 +12,18 @@ public sealed record Order
     /// <summary>A value of <see cref="Currency"/>.</summary>
     public const string CurrencyBRL = "BRL";
 
+    /// <summary>A value of <see cref="OrderStatus"/>.</summary>
+    public const string OrderStatusPending = "pending";
+
+    /// <summary>A value of <see cref="OrderStatus"/>.</summary>
+    public const string OrderStatusPaid = "paid";
+
+    /// <summary>A value of <see cref="OrderStatus"/>.</summary>
+    public const string OrderStatusPartiallyRefunded = "partially_refunded";
+
+    /// <summary>A value of <see cref="OrderStatus"/>.</summary>
+    public const string OrderStatusRefunded = "refunded";
+
     /// <summary>A value of <see cref="Status"/>.</summary>
     public const string StatusOpen = "open";
 
@@ -63,6 +75,10 @@ public sealed record Order
     [JsonPropertyName("metadata")]
     public required IReadOnlyDictionary<string, JsonElement> Metadata { get; init; }
 
+    /// <summary>Onde o pedido está; status é o do checkout e continua succeeded depois de um reembolso, e este vira partially_refunded ou refunded. Nulo antes de haver pagamento. Null when the API sends none.</summary>
+    [JsonPropertyName("order_status")]
+    public string? OrderStatus { get; init; }
+
     /// <summary>The API's <c>paid_at</c>. Null when the API sends none.</summary>
     [JsonPropertyName("paid_at")]
     public string? PaidAt { get; init; }
@@ -74,6 +90,10 @@ public sealed record Order
     /// <summary>The API's <c>product_id</c>.</summary>
     [JsonPropertyName("product_id")]
     public required string ProductId { get; init; }
+
+    /// <summary>Quanto do pedido já foi devolvido, somando todos os reembolsos que deram certo, em centavos.</summary>
+    [JsonPropertyName("refunded_amount_cents")]
+    public required long RefundedAmountCents { get; init; }
 
     /// <summary>The API's <c>status</c>.</summary>
     [JsonPropertyName("status")]

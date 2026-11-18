@@ -31,9 +31,16 @@ final class Order
          * @var array<string, mixed>
          */
         public readonly array $metadata,
+        /**
+         * Onde o pedido está; status é o do checkout e continua succeeded depois de um reembolso, e este vira partially_refunded ou refunded. Nulo antes de haver pagamento.
+         * @var 'pending'|'paid'|'partially_refunded'|'refunded'|null
+         */
+        public readonly ?string $orderStatus,
         public readonly ?string $paidAt,
         public readonly string $priceId,
         public readonly string $productId,
+        /** Quanto do pedido já foi devolvido, somando todos os reembolsos que deram certo, em centavos. */
+        public readonly int $refundedAmountCents,
         /** @var 'open'|'confirmed'|'succeeded'|'failed'|'expired' */
         public readonly string $status,
     ) {
@@ -54,9 +61,11 @@ final class Order
             installments: $data['installments'],
             items: array_values(array_map(static fn (array $item) => CheckoutLine::fromArray($item), $data['items'])),
             metadata: $data['metadata'],
+            orderStatus: $data['order_status'] ?? null,
             paidAt: $data['paid_at'] ?? null,
             priceId: $data['price_id'],
             productId: $data['product_id'],
+            refundedAmountCents: $data['refunded_amount_cents'],
             status: $data['status'],
         );
     }

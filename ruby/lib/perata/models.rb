@@ -2126,7 +2126,7 @@ module Perata
 
   # Order is a resource of Peráta's API.
   class Order < Model
-    MEMBERS = %i[amount_cents client_reference_id currency customer_id id installment_interest_cents installments items metadata paid_at price_id product_id status].freeze
+    MEMBERS = %i[amount_cents client_reference_id currency customer_id id installment_interest_cents installments items metadata order_status paid_at price_id product_id refunded_amount_cents status].freeze
 
     # @return [Integer]
     attr_reader :amount_cents
@@ -2160,6 +2160,10 @@ module Perata
     # @return [Hash{String => Object}]
     attr_reader :metadata
 
+    # Onde o pedido está; status é o do checkout e continua succeeded depois de um reembolso, e este vira partially_refunded ou refunded. Nulo antes de haver pagamento.
+    # @return [String ("pending", "paid", "partially_refunded", "refunded"), nil]
+    attr_reader :order_status
+
     # @return [String, nil]
     attr_reader :paid_at
 
@@ -2169,10 +2173,14 @@ module Perata
     # @return [String]
     attr_reader :product_id
 
+    # Quanto do pedido já foi devolvido, somando todos os reembolsos que deram certo, em centavos.
+    # @return [Integer]
+    attr_reader :refunded_amount_cents
+
     # @return [String ("open", "confirmed", "succeeded", "failed", "expired")]
     attr_reader :status
 
-    def initialize(amount_cents:, client_reference_id:, currency:, customer_id:, id:, installment_interest_cents:, installments:, items:, metadata:, paid_at:, price_id:, product_id:, status:)
+    def initialize(amount_cents:, client_reference_id:, currency:, customer_id:, id:, installment_interest_cents:, installments:, items:, metadata:, order_status:, paid_at:, price_id:, product_id:, refunded_amount_cents:, status:)
       @amount_cents = amount_cents
       @client_reference_id = client_reference_id
       @currency = currency
@@ -2182,9 +2190,11 @@ module Perata
       @installments = installments
       @items = items
       @metadata = metadata
+      @order_status = order_status
       @paid_at = paid_at
       @price_id = price_id
       @product_id = product_id
+      @refunded_amount_cents = refunded_amount_cents
       @status = status
       freeze
     end
@@ -2201,9 +2211,11 @@ module Perata
         installments: data.fetch("installments"),
         items: data.fetch("items").map { |item| CheckoutLine.from_hash(item) },
         metadata: data.fetch("metadata"),
+        order_status: data["order_status"],
         paid_at: data["paid_at"],
         price_id: data.fetch("price_id"),
         product_id: data.fetch("product_id"),
+        refunded_amount_cents: data.fetch("refunded_amount_cents"),
         status: data.fetch("status")
       )
     end
@@ -3357,6 +3369,115 @@ module Perata
     end
   end
 
+  # O pedido como a API o devolve (Order) e, nos eventos que um reembolso causou (order.refunded e o order.updated que o acompanha), o reembolso que o causou. status continua sendo o do checkout (succeeded) depois de um reembolso: order_status e refunded_amount_cents dizem onde o dinheiro está.
+  class WebhookOrder < Model
+    MEMBERS = %i[amount_cents client_reference_id currency customer_id id installment_interest_cents installments items metadata order_status paid_at price_id product_id refund_amount_cents refund_id refunded_amount_cents status].freeze
+
+    # @return [Integer]
+    attr_reader :amount_cents
+
+    # O id do pedido no seu sistema, enviado ao criar o checkout; vazio sem ele.
+    # @return [String]
+    attr_reader :client_reference_id
+
+    # @return [String ("BRL")]
+    attr_reader :currency
+
+    # @return [String]
+    attr_reader :customer_id
+
+    # @return [String]
+    attr_reader :id
+
+    # Juros do parcelamento pagos pelo comprador, cobrados além de amount_cents.
+    # @return [Integer]
+    attr_reader :installment_interest_cents
+
+    # Em quantas parcelas o cartão de crédito foi cobrado; 1 à vista.
+    # @return [Integer]
+    attr_reader :installments
+
+    # As linhas do pedido, quando o seu servidor as enviou ao criar o checkout; vazio sem elas.
+    # @return [Array<CheckoutLine>]
+    attr_reader :items
+
+    # Os pares que o seu servidor enviou ao criar o checkout.
+    # @return [Hash{String => Object}]
+    attr_reader :metadata
+
+    # Onde o pedido está; status é o do checkout e continua succeeded depois de um reembolso, e este vira partially_refunded ou refunded.
+    # @return [String ("pending", "paid", "partially_refunded", "refunded"), nil]
+    attr_reader :order_status
+
+    # @return [String, nil]
+    attr_reader :paid_at
+
+    # @return [String]
+    attr_reader :price_id
+
+    # @return [String]
+    attr_reader :product_id
+
+    # O valor só deste reembolso, em centavos; nulo como refund_id. O acumulado do pedido é refunded_amount_cents.
+    # @return [Integer, nil]
+    attr_reader :refund_amount_cents
+
+    # O reembolso que causou este evento; nulo nos eventos que nenhum reembolso causou.
+    # @return [String, nil]
+    attr_reader :refund_id
+
+    # Quanto do pedido já foi devolvido, somando todos os reembolsos que deram certo, em centavos.
+    # @return [Integer]
+    attr_reader :refunded_amount_cents
+
+    # @return [String ("open", "confirmed", "succeeded", "failed", "expired")]
+    attr_reader :status
+
+    def initialize(amount_cents:, client_reference_id:, currency:, customer_id:, id:, installment_interest_cents:, installments:, items:, metadata:, order_status:, paid_at:, price_id:, product_id:, refund_amount_cents:, refund_id:, refunded_amount_cents:, status:)
+      @amount_cents = amount_cents
+      @client_reference_id = client_reference_id
+      @currency = currency
+      @customer_id = customer_id
+      @id = id
+      @installment_interest_cents = installment_interest_cents
+      @installments = installments
+      @items = items
+      @metadata = metadata
+      @order_status = order_status
+      @paid_at = paid_at
+      @price_id = price_id
+      @product_id = product_id
+      @refund_amount_cents = refund_amount_cents
+      @refund_id = refund_id
+      @refunded_amount_cents = refunded_amount_cents
+      @status = status
+      freeze
+    end
+
+    # Builds a WebhookOrder from the API's JSON.
+    def self.from_hash(data)
+      new(
+        amount_cents: data.fetch("amount_cents"),
+        client_reference_id: data.fetch("client_reference_id"),
+        currency: data.fetch("currency"),
+        customer_id: data.fetch("customer_id"),
+        id: data.fetch("id"),
+        installment_interest_cents: data.fetch("installment_interest_cents"),
+        installments: data.fetch("installments"),
+        items: data.fetch("items").map { |item| CheckoutLine.from_hash(item) },
+        metadata: data.fetch("metadata"),
+        order_status: data["order_status"],
+        paid_at: data["paid_at"],
+        price_id: data.fetch("price_id"),
+        product_id: data.fetch("product_id"),
+        refund_amount_cents: data["refund_amount_cents"],
+        refund_id: data["refund_id"],
+        refunded_amount_cents: data.fetch("refunded_amount_cents"),
+        status: data.fetch("status")
+      )
+    end
+  end
+
   # WebhookRefund is a resource of Peráta's API.
   class WebhookRefund < Model
     MEMBERS = %i[amount_cents checkout_id client_reference_id id metadata payment_id status].freeze
@@ -3412,7 +3533,7 @@ module Perata
 
   # Os eventos da venda (checkout_payment.* e refund.*): os identificadores de sempre e, além deles, o checkout, o valor e o que o servidor do lojista enviou ao criar o checkout.
   class WebhookSale < Model
-    MEMBERS = %i[aggregate aggregate_id amount_cents checkout_id client_reference_id currency environment event_id merchant_id metadata method payment_id].freeze
+    MEMBERS = %i[aggregate aggregate_id amount_cents checkout_id client_reference_id currency environment event_id merchant_id metadata method payment_id refund_amount_cents refund_id refunded_amount_cents].freeze
 
     # @return [String]
     attr_reader :aggregate
@@ -3456,7 +3577,19 @@ module Perata
     # @return [String, nil]
     attr_reader :payment_id
 
-    def initialize(aggregate:, aggregate_id:, amount_cents: nil, checkout_id: nil, client_reference_id: nil, currency: nil, environment:, event_id:, merchant_id:, metadata: nil, method: nil, payment_id: nil)
+    # O valor só do reembolso que moveu o pagamento, em centavos; em checkout_payment.refunded e checkout_payment.partially_refunded.
+    # @return [Integer, nil]
+    attr_reader :refund_amount_cents
+
+    # O reembolso: nos eventos refund.*, o próprio; em checkout_payment.refunded e checkout_payment.partially_refunded, o que moveu o pagamento.
+    # @return [String, nil]
+    attr_reader :refund_id
+
+    # Quanto do pagamento já foi devolvido, somando os reembolsos que deram certo, nos eventos checkout_payment.*.
+    # @return [Integer, nil]
+    attr_reader :refunded_amount_cents
+
+    def initialize(aggregate:, aggregate_id:, amount_cents: nil, checkout_id: nil, client_reference_id: nil, currency: nil, environment:, event_id:, merchant_id:, metadata: nil, method: nil, payment_id: nil, refund_amount_cents: nil, refund_id: nil, refunded_amount_cents: nil)
       @aggregate = aggregate
       @aggregate_id = aggregate_id
       @amount_cents = amount_cents
@@ -3469,6 +3602,9 @@ module Perata
       @metadata = metadata
       @method = method
       @payment_id = payment_id
+      @refund_amount_cents = refund_amount_cents
+      @refund_id = refund_id
+      @refunded_amount_cents = refunded_amount_cents
       freeze
     end
 
@@ -3486,7 +3622,10 @@ module Perata
         merchant_id: data.fetch("merchant_id"),
         metadata: data["metadata"],
         method: data["method"],
-        payment_id: data["payment_id"]
+        payment_id: data["payment_id"],
+        refund_amount_cents: data["refund_amount_cents"],
+        refund_id: data["refund_id"],
+        refunded_amount_cents: data["refunded_amount_cents"]
       )
     end
   end

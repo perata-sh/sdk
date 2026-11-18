@@ -593,9 +593,13 @@ export interface Order {
   items: CheckoutLine[];
   /** Os pares que o seu servidor enviou ao criar o checkout. */
   metadata: Record<string, unknown>;
+  /** Onde o pedido está; status é o do checkout e continua succeeded depois de um reembolso, e este vira partially_refunded ou refunded. Nulo antes de haver pagamento. */
+  order_status: "pending" | "paid" | "partially_refunded" | "refunded" | null;
   paid_at: string | null;
   price_id: string;
   product_id: string;
+  /** Quanto do pedido já foi devolvido, somando todos os reembolsos que deram certo, em centavos. */
+  refunded_amount_cents: number;
   status: "open" | "confirmed" | "succeeded" | "failed" | "expired";
 }
 
@@ -877,6 +881,36 @@ export interface WebhookEndpointCreated {
   url: string;
 }
 
+/** O pedido como a API o devolve (Order) e, nos eventos que um reembolso causou (order.refunded e o order.updated que o acompanha), o reembolso que o causou. status continua sendo o do checkout (succeeded) depois de um reembolso: order_status e refunded_amount_cents dizem onde o dinheiro está. */
+export interface WebhookOrder {
+  amount_cents: number;
+  /** O id do pedido no seu sistema, enviado ao criar o checkout; vazio sem ele. */
+  client_reference_id: string;
+  currency: "BRL";
+  customer_id: string;
+  id: string;
+  /** Juros do parcelamento pagos pelo comprador, cobrados além de amount_cents. */
+  installment_interest_cents: number;
+  /** Em quantas parcelas o cartão de crédito foi cobrado; 1 à vista. */
+  installments: number;
+  /** As linhas do pedido, quando o seu servidor as enviou ao criar o checkout; vazio sem elas. */
+  items: CheckoutLine[];
+  /** Os pares que o seu servidor enviou ao criar o checkout. */
+  metadata: Record<string, unknown>;
+  /** Onde o pedido está; status é o do checkout e continua succeeded depois de um reembolso, e este vira partially_refunded ou refunded. */
+  order_status: "pending" | "paid" | "partially_refunded" | "refunded" | null;
+  paid_at: string | null;
+  price_id: string;
+  product_id: string;
+  /** O valor só deste reembolso, em centavos; nulo como refund_id. O acumulado do pedido é refunded_amount_cents. */
+  refund_amount_cents: number | null;
+  /** O reembolso que causou este evento; nulo nos eventos que nenhum reembolso causou. */
+  refund_id: string | null;
+  /** Quanto do pedido já foi devolvido, somando todos os reembolsos que deram certo, em centavos. */
+  refunded_amount_cents: number;
+  status: "open" | "confirmed" | "succeeded" | "failed" | "expired";
+}
+
 /** WebhookRefund is a resource of Peráta's API. */
 export interface WebhookRefund {
   amount_cents: number;
@@ -911,6 +945,12 @@ export interface WebhookSale {
   method?: "card" | "pix" | "boleto";
   /** O pagamento que o reembolso devolve, nos eventos refund.*. */
   payment_id?: string;
+  /** O valor só do reembolso que moveu o pagamento, em centavos; em checkout_payment.refunded e checkout_payment.partially_refunded. */
+  refund_amount_cents?: number;
+  /** O reembolso: nos eventos refund.*, o próprio; em checkout_payment.refunded e checkout_payment.partially_refunded, o que moveu o pagamento. */
+  refund_id?: string;
+  /** Quanto do pagamento já foi devolvido, somando os reembolsos que deram certo, nos eventos checkout_payment.*. */
+  refunded_amount_cents?: number;
 }
 
 /** The body of benefits:create. */

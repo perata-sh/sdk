@@ -4,7 +4,7 @@ SDK oficial da API da Peráta para Swift 6 (macOS 12+, iOS 15+, tvOS 15+, watchO
 
 ```swift
 // Package.swift
-.package(url: "https://github.com/perata-sh/sdk", from: "0.5.2"),
+.package(url: "https://github.com/perata-sh/sdk", from: "0.5.3"),
 // e, no target:
 .product(name: "Perata", package: "sdk"),
 ```
@@ -113,6 +113,8 @@ default:
 
 A assinatura é a do Standard Webhooks (`webhook-id`, `webhook-timestamp`, `webhook-signature`), com tolerância de 5 minutos. Passe o corpo cru, antes de interpretar; uma assinatura inválida ou antiga lança `WebhookVerificationError.invalidSignature`. A verificação usa o CryptoKit e por isso existe nas plataformas da Apple; no Linux, o cliente compila, mas a verificação dos webhooks não está disponível.
 
-O evento é tipado: um caso para cada dado que o webhook carrega (`.order` traz um `Order`, `.dispute` a disputa, `.identifiers` os identificadores…), e o `type` diz o que aconteceu; um tipo que esta versão do SDK ainda não conhece chega como `.unknown`, com o corpo como veio. Durante a rotação do segredo o cabeçalho traz mais de uma assinatura, e basta uma conferir. `verifyWebhookSignature` só confere a assinatura.
+O evento é tipado: um caso para cada dado que o webhook carrega (`.order` traz um `WebhookOrder`, `.dispute` a disputa, `.identifiers` os identificadores…), e o `type` diz o que aconteceu; um tipo que esta versão do SDK ainda não conhece chega como `.unknown`, com o corpo como veio. Durante a rotação do segredo o cabeçalho traz mais de uma assinatura, e basta uma conferir. `verifyWebhookSignature` só confere a assinatura.
 
-Versão do SDK: 0.5.2 · contrato da API: 0.1.0
+Todo evento traz o ambiente em que aconteceu, em `event.environment`: `"test"` ou `"live"` (vazio se um servidor antigo não mandou). Recuse o evento do ambiente errado: um endpoint de produção deve responder 400 a um evento `"test"`, para que um teste não dê baixa em um pedido real.
+
+Versão do SDK: 0.5.3 · contrato da API: 0.1.0

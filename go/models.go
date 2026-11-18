@@ -594,11 +594,15 @@ type Order struct {
 	// As linhas do pedido, quando o seu servidor as enviou ao criar o checkout; vazio sem elas.
 	Items []CheckoutLine `json:"items"`
 	// Os pares que o seu servidor enviou ao criar o checkout.
-	Metadata  map[string]any `json:"metadata"`
-	PaidAt    *string        `json:"paid_at"`
-	PriceID   string         `json:"price_id"`
-	ProductID string         `json:"product_id"`
-	Status    string         `json:"status"`
+	Metadata map[string]any `json:"metadata"`
+	// Onde o pedido está; status é o do checkout e continua succeeded depois de um reembolso, e este vira partially_refunded ou refunded. Nulo antes de haver pagamento.
+	OrderStatus *string `json:"order_status"`
+	PaidAt      *string `json:"paid_at"`
+	PriceID     string  `json:"price_id"`
+	ProductID   string  `json:"product_id"`
+	// Quanto do pedido já foi devolvido, somando todos os reembolsos que deram certo, em centavos.
+	RefundedAmountCents int64  `json:"refunded_amount_cents"`
+	Status              string `json:"status"`
 }
 
 // OrderInvoice is a resource of Peráta's API.
@@ -879,6 +883,36 @@ type WebhookEndpointCreated struct {
 	URL    string `json:"url"`
 }
 
+// O pedido como a API o devolve (Order) e, nos eventos que um reembolso causou (order.refunded e o order.updated que o acompanha), o reembolso que o causou. status continua sendo o do checkout (succeeded) depois de um reembolso: order_status e refunded_amount_cents dizem onde o dinheiro está.
+type WebhookOrder struct {
+	AmountCents int64 `json:"amount_cents"`
+	// O id do pedido no seu sistema, enviado ao criar o checkout; vazio sem ele.
+	ClientReferenceID string `json:"client_reference_id"`
+	Currency          string `json:"currency"`
+	CustomerID        string `json:"customer_id"`
+	ID                string `json:"id"`
+	// Juros do parcelamento pagos pelo comprador, cobrados além de amount_cents.
+	InstallmentInterestCents int64 `json:"installment_interest_cents"`
+	// Em quantas parcelas o cartão de crédito foi cobrado; 1 à vista.
+	Installments int64 `json:"installments"`
+	// As linhas do pedido, quando o seu servidor as enviou ao criar o checkout; vazio sem elas.
+	Items []CheckoutLine `json:"items"`
+	// Os pares que o seu servidor enviou ao criar o checkout.
+	Metadata map[string]any `json:"metadata"`
+	// Onde o pedido está; status é o do checkout e continua succeeded depois de um reembolso, e este vira partially_refunded ou refunded.
+	OrderStatus *string `json:"order_status"`
+	PaidAt      *string `json:"paid_at"`
+	PriceID     string  `json:"price_id"`
+	ProductID   string  `json:"product_id"`
+	// O valor só deste reembolso, em centavos; nulo como refund_id. O acumulado do pedido é refunded_amount_cents.
+	RefundAmountCents *int64 `json:"refund_amount_cents"`
+	// O reembolso que causou este evento; nulo nos eventos que nenhum reembolso causou.
+	RefundID *string `json:"refund_id"`
+	// Quanto do pedido já foi devolvido, somando todos os reembolsos que deram certo, em centavos.
+	RefundedAmountCents int64  `json:"refunded_amount_cents"`
+	Status              string `json:"status"`
+}
+
 // WebhookRefund is a resource of Peráta's API.
 type WebhookRefund struct {
 	AmountCents int64 `json:"amount_cents"`
@@ -913,6 +947,12 @@ type WebhookSale struct {
 	Method string `json:"method,omitempty"`
 	// O pagamento que o reembolso devolve, nos eventos refund.*.
 	PaymentID string `json:"payment_id,omitempty"`
+	// O valor só do reembolso que moveu o pagamento, em centavos; em checkout_payment.refunded e checkout_payment.partially_refunded.
+	RefundAmountCents int64 `json:"refund_amount_cents,omitempty"`
+	// O reembolso: nos eventos refund.*, o próprio; em checkout_payment.refunded e checkout_payment.partially_refunded, o que moveu o pagamento.
+	RefundID string `json:"refund_id,omitempty"`
+	// Quanto do pagamento já foi devolvido, somando os reembolsos que deram certo, nos eventos checkout_payment.*.
+	RefundedAmountCents int64 `json:"refunded_amount_cents,omitempty"`
 }
 
 // The body of benefits:create.
@@ -1400,6 +1440,10 @@ const (
 	MeterUnitTypeToken                                   = "token"
 	MeterUnitTypeCustom                                  = "custom"
 	OrderCurrencyBRL                                     = "BRL"
+	OrderOrderStatusPending                              = "pending"
+	OrderOrderStatusPaid                                 = "paid"
+	OrderOrderStatusPartiallyRefunded                    = "partially_refunded"
+	OrderOrderStatusRefunded                             = "refunded"
 	OrderStatusOpen                                      = "open"
 	OrderStatusConfirmed                                 = "confirmed"
 	OrderStatusSucceeded                                 = "succeeded"
@@ -1484,6 +1528,16 @@ const (
 	WebhookEndpointCreatedFormatSlack                    = "slack"
 	WebhookEndpointCreatedStatusActive                   = "active"
 	WebhookEndpointCreatedStatusDisabled                 = "disabled"
+	WebhookOrderCurrencyBRL                              = "BRL"
+	WebhookOrderOrderStatusPending                       = "pending"
+	WebhookOrderOrderStatusPaid                          = "paid"
+	WebhookOrderOrderStatusPartiallyRefunded             = "partially_refunded"
+	WebhookOrderOrderStatusRefunded                      = "refunded"
+	WebhookOrderStatusOpen                               = "open"
+	WebhookOrderStatusConfirmed                          = "confirmed"
+	WebhookOrderStatusSucceeded                          = "succeeded"
+	WebhookOrderStatusFailed                             = "failed"
+	WebhookOrderStatusExpired                            = "expired"
 	WebhookRefundStatusRequested                         = "requested"
 	WebhookRefundStatusPending                           = "pending"
 	WebhookRefundStatusUnknown                           = "unknown"

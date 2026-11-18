@@ -6,7 +6,7 @@ namespace Perata;
 
 /**
  * A webhook Peráta sent, verified: one subclass a kind of data
- * (OrderWebhookEvent carries an Order…), or UnknownWebhookEvent for a type
+ * (OrderWebhookEvent carries a WebhookOrder…), or UnknownWebhookEvent for a type
  * this SDK does not know yet. Within a class, $type says what happened.
  */
 abstract class WebhookEvent
@@ -18,6 +18,8 @@ abstract class WebhookEvent
         public readonly string $type,
         /** When it happened, in RFC 3339. */
         public readonly string $timestamp,
+        /** The environment it happened in, "test" or "live"; empty when an older server did not send it. */
+        public readonly string $environment = '',
     ) {
     }
 }

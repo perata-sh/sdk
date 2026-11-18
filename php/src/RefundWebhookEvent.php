@@ -16,8 +16,8 @@ final class RefundWebhookEvent extends WebhookEvent
     /** The event types this class carries. */
     public const TYPES = ['refund.created', 'refund.updated'];
 
-    public function __construct(string $id, string $type, string $timestamp, public readonly Models\WebhookRefund $data)
+    public function __construct(string $id, string $type, string $timestamp, string $environment, public readonly Models\WebhookRefund $data)
     {
-        parent::__construct($id, $type, $timestamp);
+        parent::__construct($id, $type, $timestamp, $environment);
     }
 }

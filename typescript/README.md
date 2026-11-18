@@ -102,7 +102,7 @@ import { verifyWebhook } from "@perata-sh/sdk";
 const event = await verifyWebhook(process.env.PERATA_WEBHOOK_SECRET!, request.headers, await request.text());
 switch (event.type) {
   case "order.paid":
-    console.log(event.data.id, event.data.installments); // event.data é um Order
+    console.log(event.data.id, event.data.installments); // event.data é um WebhookOrder
     break;
   case "dispute.opened":
     console.log(event.data.provider_dispute_id); // event.data é um WebhookDispute
@@ -112,6 +112,8 @@ switch (event.type) {
 
 A assinatura é a do Standard Webhooks (`webhook-id`, `webhook-timestamp`, `webhook-signature`), com tolerância de 5 minutos. Passe o corpo cru, antes de interpretar.
 
-O evento é tipado: um tipo para cada dado que o webhook carrega (`OrderWebhookEvent` traz um `Order`, `DisputeWebhookEvent` a disputa, `IdentifiersWebhookEvent` os identificadores…), e o `type` diz o que aconteceu; um tipo que esta versão do SDK ainda não conhece chega como veio, fora da união. Durante a rotação do segredo o cabeçalho traz mais de uma assinatura, e basta uma conferir. `verifyWebhookSignature` só confere a assinatura.
+O evento é tipado: um tipo para cada dado que o webhook carrega (`OrderWebhookEvent` traz um `WebhookOrder`, `DisputeWebhookEvent` a disputa, `IdentifiersWebhookEvent` os identificadores…), e o `type` diz o que aconteceu; um tipo que esta versão do SDK ainda não conhece chega como veio, fora da união. Durante a rotação do segredo o cabeçalho traz mais de uma assinatura, e basta uma conferir. `verifyWebhookSignature` só confere a assinatura.
 
-Versão do SDK: 0.5.2 · contrato da API: 0.1.0
+Todo evento traz o ambiente em que aconteceu, em `event.environment`: `"test"` ou `"live"` (vazio se um servidor antigo não mandou). Recuse o evento do ambiente errado: um endpoint de produção deve responder 400 a um evento `"test"`, para que um teste não dê baixa em um pedido real.
+
+Versão do SDK: 0.5.3 · contrato da API: 0.1.0

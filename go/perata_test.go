@@ -367,9 +367,11 @@ const (
 	referenceSignature = "v1,g0hM9SsE+OTPJTGt/tmIKtSyZlE3uFJELVlNIOLJ1OE="
 	oldSecret          = "whsec_cGVyYXRhLXNkay1vbGQta2V5LTAxMjM0NTY3ODlhYmM="
 	newSecret          = "whsec_cGVyYXRhLXNkay1uZXcta2V5LTAxMjM0NTY3ODlhYmM="
-	orderPaid          = `{"id":"msg_2","type":"order.paid","timestamp":"2026-10-22T12:00:00Z","data":{"id":"ord_1","customer_id":"cus_1","product_id":"prod_1","price_id":"price_1","amount_cents":12000,"currency":"BRL","status":"succeeded","paid_at":"2026-10-22T12:00:00Z","installments":3,"installment_interest_cents":360,"items":[],"metadata":{},"client_reference_id":""}}`
+	orderPaid          = `{"id":"msg_2","type":"order.paid","timestamp":"2026-10-22T12:00:00Z","data":{"id":"ord_1","customer_id":"cus_1","product_id":"prod_1","price_id":"price_1","amount_cents":12000,"currency":"BRL","status":"succeeded","paid_at":"2026-10-22T12:00:00Z","order_status":"paid","refunded_amount_cents":0,"refund_id":null,"refund_amount_cents":null,"installments":3,"installment_interest_cents":360,"items":[],"metadata":{},"client_reference_id":""}}`
 	usageRecorded      = `{"id":"msg_3","type":"usage_event.recorded","timestamp":"2026-10-22T12:00:00Z","data":{"event_id":"ue_1","aggregate":"usage_event","aggregate_id":"ue_1","merchant_id":"mer_1","environment":"test"}}`
 	payoutSent         = `{"id":"msg_4","type":"payout.sent","timestamp":"2026-10-22T12:00:00Z","data":{"payout_id":"po_1","amount_cents":5000}}`
+	orderPaidLive      = `{"id":"msg_5","type":"order.paid","timestamp":"2026-10-22T12:00:00Z","environment":"live","data":{"id":"ord_1","customer_id":"cus_1","product_id":"prod_1","price_id":"price_1","amount_cents":12000,"currency":"BRL","status":"succeeded","paid_at":"2026-10-22T12:00:00Z","order_status":"paid","refunded_amount_cents":0,"refund_id":null,"refund_amount_cents":null,"installments":3,"installment_interest_cents":360,"items":[],"metadata":{},"client_reference_id":""}}`
+	payoutSentTest     = `{"id":"msg_6","type":"payout.sent","timestamp":"2026-10-22T12:00:00Z","environment":"test","data":{"payout_id":"po_1","amount_cents":5000}}`
 	signedAt           = 1792670400
 )
 
@@ -413,7 +415,7 @@ func TestATimestampThatIsNotPlainDigitsIsRefused(t *testing.T) {
 
 func TestAWebhookAnswersItsTypedEvent(t *testing.T) {
 	now := time.Unix(signedAt+120, 0)
-	header := webhookHeader("msg_2", signedAt, "v1,MW5FnOPf5xZdiHRmDImEy+x3spgWmDCUEuwjHOZ7a2Y= v1,rWmUsQveS0J9yTlnQfb7Olszghg8xf7DJHLHG0a7YZo=")
+	header := webhookHeader("msg_2", signedAt, "v1,XI92+fzspBAwIZD8XhEF5PwZNFrKbyAaykAydn3pPzY= v1,G2ijkhNO0sP+dkoMlsU1sOLmtbpIw9SYOwC2XTqMKdw=")
 	for _, secret := range []string{newSecret, oldSecret} {
 		event, err := verifyWebhookAt(secret, header, []byte(orderPaid), now)
 		order, ok := event.(*OrderWebhookEvent)
@@ -432,6 +434,33 @@ func TestAWebhookAnswersItsTypedEvent(t *testing.T) {
 	event, err = verifyWebhookAt(newSecret, webhookHeader("msg_4", signedAt, "v1,Sa/yofA3h/58pFR+rIiWdIc8qXfcuqvyJSjxn4oJ1ZY="), []byte(payoutSent), now)
 	unknown, ok := event.(*UnknownWebhookEvent)
 	if err != nil || !ok || unknown.Type != "payout.sent" || string(unknown.Data) != `{"payout_id":"po_1","amount_cents":5000}` {
+		t.Fatalf("event %#v, %v", event, err)
+	}
+}
+
+func TestAWebhookCarriesTheEnvironmentItHappenedIn(t *testing.T) {
+	now := time.Unix(signedAt+120, 0)
+	older := map[string]struct {
+		signature, body string
+	}{
+		"msg_2": {"v1,XI92+fzspBAwIZD8XhEF5PwZNFrKbyAaykAydn3pPzY= v1,G2ijkhNO0sP+dkoMlsU1sOLmtbpIw9SYOwC2XTqMKdw=", orderPaid},
+		"msg_3": {"v1,Z3E2vTbczigiySfkzakxuZotPn9FlBY1KAET6hPEZoU=", usageRecorded},
+		"msg_4": {"v1,Sa/yofA3h/58pFR+rIiWdIc8qXfcuqvyJSjxn4oJ1ZY=", payoutSent},
+	}
+	for id, sent := range older {
+		event, err := verifyWebhookAt(newSecret, webhookHeader(id, signedAt, sent.signature), []byte(sent.body), now)
+		if err != nil || event.Message().Environment != "" {
+			t.Fatalf("a body without an environment: %#v, %v", event, err)
+		}
+	}
+	event, err := verifyWebhookAt(newSecret, webhookHeader("msg_5", signedAt, "v1,JECjRi5yt5jEJZSUqpIxpxCJ/OfRgUBipIRj1b2lsUk="), []byte(orderPaidLive), now)
+	order, ok := event.(*OrderWebhookEvent)
+	if err != nil || !ok || order.Environment != "live" || order.Message().Environment != "live" || order.Data.ID != "ord_1" {
+		t.Fatalf("event %#v, %v", event, err)
+	}
+	event, err = verifyWebhookAt(newSecret, webhookHeader("msg_6", signedAt, "v1,6He63m1rUlB789sgtRAHqex4wyKkzAwdHt6uRsp8YQM="), []byte(payoutSentTest), now)
+	unknown, ok := event.(*UnknownWebhookEvent)
+	if err != nil || !ok || unknown.Environment != "test" {
 		t.Fatalf("event %#v, %v", event, err)
 	}
 }

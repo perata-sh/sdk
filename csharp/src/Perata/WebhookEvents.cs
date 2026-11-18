@@ -8,9 +8,10 @@ namespace Perata;
 /// <param name="Id">The message's id.</param>
 /// <param name="Type">What happened.</param>
 /// <param name="Timestamp">When it happened, RFC 3339.</param>
+/// <param name="Environment">The environment it happened in, <c>test</c> or <c>live</c>.</param>
 /// <param name="Data">What the event carries.</param>
-public sealed record BenefitWebhookEvent(string Id, string Type, string Timestamp, WebhookBenefit Data)
-    : WebhookEvent(Id, Type, Timestamp)
+public sealed record BenefitWebhookEvent(string Id, string Type, string Timestamp, string Environment, WebhookBenefit Data)
+    : WebhookEvent(Id, Type, Timestamp, Environment)
 {
     /// <summary>The event types this record carries.</summary>
     public static IReadOnlySet<string> Types { get; } = new HashSet<string>
@@ -24,9 +25,10 @@ public sealed record BenefitWebhookEvent(string Id, string Type, string Timestam
 /// <param name="Id">The message's id.</param>
 /// <param name="Type">What happened.</param>
 /// <param name="Timestamp">When it happened, RFC 3339.</param>
+/// <param name="Environment">The environment it happened in, <c>test</c> or <c>live</c>.</param>
 /// <param name="Data">What the event carries.</param>
-public sealed record BenefitGrantWebhookEvent(string Id, string Type, string Timestamp, BenefitGrant Data)
-    : WebhookEvent(Id, Type, Timestamp)
+public sealed record BenefitGrantWebhookEvent(string Id, string Type, string Timestamp, string Environment, BenefitGrant Data)
+    : WebhookEvent(Id, Type, Timestamp, Environment)
 {
     /// <summary>The event types this record carries.</summary>
     public static IReadOnlySet<string> Types { get; } = new HashSet<string>
@@ -41,9 +43,10 @@ public sealed record BenefitGrantWebhookEvent(string Id, string Type, string Tim
 /// <param name="Id">The message's id.</param>
 /// <param name="Type">What happened.</param>
 /// <param name="Timestamp">When it happened, RFC 3339.</param>
+/// <param name="Environment">The environment it happened in, <c>test</c> or <c>live</c>.</param>
 /// <param name="Data">What the event carries.</param>
-public sealed record CheckoutWebhookEvent(string Id, string Type, string Timestamp, WebhookCheckout Data)
-    : WebhookEvent(Id, Type, Timestamp)
+public sealed record CheckoutWebhookEvent(string Id, string Type, string Timestamp, string Environment, WebhookCheckout Data)
+    : WebhookEvent(Id, Type, Timestamp, Environment)
 {
     /// <summary>The event types this record carries.</summary>
     public static IReadOnlySet<string> Types { get; } = new HashSet<string>
@@ -58,9 +61,10 @@ public sealed record CheckoutWebhookEvent(string Id, string Type, string Timesta
 /// <param name="Id">The message's id.</param>
 /// <param name="Type">What happened.</param>
 /// <param name="Timestamp">When it happened, RFC 3339.</param>
+/// <param name="Environment">The environment it happened in, <c>test</c> or <c>live</c>.</param>
 /// <param name="Data">What the event carries.</param>
-public sealed record CustomerWebhookEvent(string Id, string Type, string Timestamp, Customer Data)
-    : WebhookEvent(Id, Type, Timestamp)
+public sealed record CustomerWebhookEvent(string Id, string Type, string Timestamp, string Environment, Customer Data)
+    : WebhookEvent(Id, Type, Timestamp, Environment)
 {
     /// <summary>The event types this record carries.</summary>
     public static IReadOnlySet<string> Types { get; } = new HashSet<string>
@@ -75,9 +79,10 @@ public sealed record CustomerWebhookEvent(string Id, string Type, string Timesta
 /// <param name="Id">The message's id.</param>
 /// <param name="Type">What happened.</param>
 /// <param name="Timestamp">When it happened, RFC 3339.</param>
+/// <param name="Environment">The environment it happened in, <c>test</c> or <c>live</c>.</param>
 /// <param name="Data">What the event carries.</param>
-public sealed record DiscountWebhookEvent(string Id, string Type, string Timestamp, WebhookDiscount Data)
-    : WebhookEvent(Id, Type, Timestamp)
+public sealed record DiscountWebhookEvent(string Id, string Type, string Timestamp, string Environment, WebhookDiscount Data)
+    : WebhookEvent(Id, Type, Timestamp, Environment)
 {
     /// <summary>The event types this record carries.</summary>
     public static IReadOnlySet<string> Types { get; } = new HashSet<string>
@@ -92,9 +97,10 @@ public sealed record DiscountWebhookEvent(string Id, string Type, string Timesta
 /// <param name="Id">The message's id.</param>
 /// <param name="Type">What happened.</param>
 /// <param name="Timestamp">When it happened, RFC 3339.</param>
+/// <param name="Environment">The environment it happened in, <c>test</c> or <c>live</c>.</param>
 /// <param name="Data">What the event carries.</param>
-public sealed record DisputeWebhookEvent(string Id, string Type, string Timestamp, WebhookDispute Data)
-    : WebhookEvent(Id, Type, Timestamp)
+public sealed record DisputeWebhookEvent(string Id, string Type, string Timestamp, string Environment, WebhookDispute Data)
+    : WebhookEvent(Id, Type, Timestamp, Environment)
 {
     /// <summary>The event types this record carries.</summary>
     public static IReadOnlySet<string> Types { get; } = new HashSet<string>
@@ -109,9 +115,10 @@ public sealed record DisputeWebhookEvent(string Id, string Type, string Timestam
 /// <param name="Id">The message's id.</param>
 /// <param name="Type">What happened.</param>
 /// <param name="Timestamp">When it happened, RFC 3339.</param>
+/// <param name="Environment">The environment it happened in, <c>test</c> or <c>live</c>.</param>
 /// <param name="Data">What the event carries.</param>
-public sealed record IdentifiersWebhookEvent(string Id, string Type, string Timestamp, IReadOnlyDictionary<string, string> Data)
-    : WebhookEvent(Id, Type, Timestamp)
+public sealed record IdentifiersWebhookEvent(string Id, string Type, string Timestamp, string Environment, IReadOnlyDictionary<string, string> Data)
+    : WebhookEvent(Id, Type, Timestamp, Environment)
 {
     /// <summary>The event types this record carries.</summary>
     public static IReadOnlySet<string> Types { get; } = new HashSet<string>
@@ -153,13 +160,14 @@ public sealed record IdentifiersWebhookEvent(string Id, string Type, string Time
     };
 }
 
-/// <summary>The events that carry an Order: <c>order.created</c>, <c>order.paid</c>, <c>order.refunded</c>, <c>order.updated</c>.</summary>
+/// <summary>The events that carry a WebhookOrder: <c>order.created</c>, <c>order.paid</c>, <c>order.refunded</c>, <c>order.updated</c>.</summary>
 /// <param name="Id">The message's id.</param>
 /// <param name="Type">What happened.</param>
 /// <param name="Timestamp">When it happened, RFC 3339.</param>
+/// <param name="Environment">The environment it happened in, <c>test</c> or <c>live</c>.</param>
 /// <param name="Data">What the event carries.</param>
-public sealed record OrderWebhookEvent(string Id, string Type, string Timestamp, Order Data)
-    : WebhookEvent(Id, Type, Timestamp)
+public sealed record OrderWebhookEvent(string Id, string Type, string Timestamp, string Environment, WebhookOrder Data)
+    : WebhookEvent(Id, Type, Timestamp, Environment)
 {
     /// <summary>The event types this record carries.</summary>
     public static IReadOnlySet<string> Types { get; } = new HashSet<string>
@@ -175,9 +183,10 @@ public sealed record OrderWebhookEvent(string Id, string Type, string Timestamp,
 /// <param name="Id">The message's id.</param>
 /// <param name="Type">What happened.</param>
 /// <param name="Timestamp">When it happened, RFC 3339.</param>
+/// <param name="Environment">The environment it happened in, <c>test</c> or <c>live</c>.</param>
 /// <param name="Data">What the event carries.</param>
-public sealed record ProductWebhookEvent(string Id, string Type, string Timestamp, Product Data)
-    : WebhookEvent(Id, Type, Timestamp)
+public sealed record ProductWebhookEvent(string Id, string Type, string Timestamp, string Environment, Product Data)
+    : WebhookEvent(Id, Type, Timestamp, Environment)
 {
     /// <summary>The event types this record carries.</summary>
     public static IReadOnlySet<string> Types { get; } = new HashSet<string>
@@ -191,9 +200,10 @@ public sealed record ProductWebhookEvent(string Id, string Type, string Timestam
 /// <param name="Id">The message's id.</param>
 /// <param name="Type">What happened.</param>
 /// <param name="Timestamp">When it happened, RFC 3339.</param>
+/// <param name="Environment">The environment it happened in, <c>test</c> or <c>live</c>.</param>
 /// <param name="Data">What the event carries.</param>
-public sealed record RefundWebhookEvent(string Id, string Type, string Timestamp, WebhookRefund Data)
-    : WebhookEvent(Id, Type, Timestamp)
+public sealed record RefundWebhookEvent(string Id, string Type, string Timestamp, string Environment, WebhookRefund Data)
+    : WebhookEvent(Id, Type, Timestamp, Environment)
 {
     /// <summary>The event types this record carries.</summary>
     public static IReadOnlySet<string> Types { get; } = new HashSet<string>
@@ -207,9 +217,10 @@ public sealed record RefundWebhookEvent(string Id, string Type, string Timestamp
 /// <param name="Id">The message's id.</param>
 /// <param name="Type">What happened.</param>
 /// <param name="Timestamp">When it happened, RFC 3339.</param>
+/// <param name="Environment">The environment it happened in, <c>test</c> or <c>live</c>.</param>
 /// <param name="Data">What the event carries.</param>
-public sealed record SaleWebhookEvent(string Id, string Type, string Timestamp, WebhookSale Data)
-    : WebhookEvent(Id, Type, Timestamp)
+public sealed record SaleWebhookEvent(string Id, string Type, string Timestamp, string Environment, WebhookSale Data)
+    : WebhookEvent(Id, Type, Timestamp, Environment)
 {
     /// <summary>The event types this record carries.</summary>
     public static IReadOnlySet<string> Types { get; } = new HashSet<string>
@@ -231,9 +242,10 @@ public sealed record SaleWebhookEvent(string Id, string Type, string Timestamp, 
 /// <param name="Id">The message's id.</param>
 /// <param name="Type">What happened.</param>
 /// <param name="Timestamp">When it happened, RFC 3339.</param>
+/// <param name="Environment">The environment it happened in, <c>test</c> or <c>live</c>.</param>
 /// <param name="Data">What the event carries.</param>
-public sealed record SubscriptionWebhookEvent(string Id, string Type, string Timestamp, Subscription Data)
-    : WebhookEvent(Id, Type, Timestamp)
+public sealed record SubscriptionWebhookEvent(string Id, string Type, string Timestamp, string Environment, Subscription Data)
+    : WebhookEvent(Id, Type, Timestamp, Environment)
 {
     /// <summary>The event types this record carries.</summary>
     public static IReadOnlySet<string> Types { get; } = new HashSet<string>

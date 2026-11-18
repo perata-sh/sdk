@@ -236,9 +236,11 @@ class PerataTest < Minitest::Test
   REFERENCE_SECRET = "whsec_MfKQ9r8GKYqrTwjUPD8ILPZIo2LaLaSw"
   OLD_SECRET = "whsec_cGVyYXRhLXNkay1vbGQta2V5LTAxMjM0NTY3ODlhYmM="
   NEW_SECRET = "whsec_cGVyYXRhLXNkay1uZXcta2V5LTAxMjM0NTY3ODlhYmM="
-  ORDER_PAID = '{"id":"msg_2","type":"order.paid","timestamp":"2026-10-22T12:00:00Z","data":{"id":"ord_1","customer_id":"cus_1","product_id":"prod_1","price_id":"price_1","amount_cents":12000,"currency":"BRL","status":"succeeded","paid_at":"2026-10-22T12:00:00Z","installments":3,"installment_interest_cents":360,"items":[],"metadata":{},"client_reference_id":""}}'
+  ORDER_PAID = '{"id":"msg_2","type":"order.paid","timestamp":"2026-10-22T12:00:00Z","data":{"id":"ord_1","customer_id":"cus_1","product_id":"prod_1","price_id":"price_1","amount_cents":12000,"currency":"BRL","status":"succeeded","paid_at":"2026-10-22T12:00:00Z","order_status":"paid","refunded_amount_cents":0,"refund_id":null,"refund_amount_cents":null,"installments":3,"installment_interest_cents":360,"items":[],"metadata":{},"client_reference_id":""}}'
   USAGE_RECORDED = '{"id":"msg_3","type":"usage_event.recorded","timestamp":"2026-10-22T12:00:00Z","data":{"event_id":"ue_1","aggregate":"usage_event","aggregate_id":"ue_1","merchant_id":"mer_1","environment":"test"}}'
   PAYOUT_SENT = '{"id":"msg_4","type":"payout.sent","timestamp":"2026-10-22T12:00:00Z","data":{"payout_id":"po_1","amount_cents":5000}}'
+  ORDER_PAID_LIVE = '{"id":"msg_5","type":"order.paid","timestamp":"2026-10-22T12:00:00Z","environment":"live","data":{"id":"ord_1","customer_id":"cus_1","product_id":"prod_1","price_id":"price_1","amount_cents":12000,"currency":"BRL","status":"succeeded","paid_at":"2026-10-22T12:00:00Z","order_status":"paid","refunded_amount_cents":0,"refund_id":null,"refund_amount_cents":null,"installments":3,"installment_interest_cents":360,"items":[],"metadata":{},"client_reference_id":""}}'
+  PAYOUT_SENT_TEST = '{"id":"msg_6","type":"payout.sent","timestamp":"2026-10-22T12:00:00Z","environment":"test","data":{"payout_id":"po_1","amount_cents":5000}}'
   SIGNED_AT = 1_792_670_400
 
   def webhook_headers(id, at, signature)
@@ -263,9 +265,22 @@ class PerataTest < Minitest::Test
     end
   end
 
+  def test_a_webhook_carries_the_environment_it_happened_in
+    now = Time.at(SIGNED_AT + 120)
+    [["msg_2", "v1,XI92+fzspBAwIZD8XhEF5PwZNFrKbyAaykAydn3pPzY= v1,G2ijkhNO0sP+dkoMlsU1sOLmtbpIw9SYOwC2XTqMKdw=", ORDER_PAID], ["msg_3", "v1,Z3E2vTbczigiySfkzakxuZotPn9FlBY1KAET6hPEZoU=", USAGE_RECORDED], ["msg_4", "v1,Sa/yofA3h/58pFR+rIiWdIc8qXfcuqvyJSjxn4oJ1ZY=", PAYOUT_SENT]].each do |id, signature, body|
+      assert_equal "", Perata.verify_webhook(NEW_SECRET, webhook_headers(id, SIGNED_AT, signature), body, now: now).environment, id
+    end
+    order = Perata.verify_webhook(NEW_SECRET, webhook_headers("msg_5", SIGNED_AT, "v1,JECjRi5yt5jEJZSUqpIxpxCJ/OfRgUBipIRj1b2lsUk="), ORDER_PAID_LIVE, now: now)
+    assert_instance_of Perata::OrderWebhookEvent, order
+    assert_equal "live", order.environment
+    unknown = Perata.verify_webhook(NEW_SECRET, webhook_headers("msg_6", SIGNED_AT, "v1,6He63m1rUlB789sgtRAHqex4wyKkzAwdHt6uRsp8YQM="), PAYOUT_SENT_TEST, now: now)
+    assert_instance_of Perata::UnknownWebhookEvent, unknown
+    assert_equal "test", unknown.environment
+  end
+
   def test_a_webhook_answers_its_typed_event
     now = Time.at(SIGNED_AT + 120)
-    headers = webhook_headers("msg_2", SIGNED_AT, "v1,MW5FnOPf5xZdiHRmDImEy+x3spgWmDCUEuwjHOZ7a2Y= v1,rWmUsQveS0J9yTlnQfb7Olszghg8xf7DJHLHG0a7YZo=")
+    headers = webhook_headers("msg_2", SIGNED_AT, "v1,XI92+fzspBAwIZD8XhEF5PwZNFrKbyAaykAydn3pPzY= v1,G2ijkhNO0sP+dkoMlsU1sOLmtbpIw9SYOwC2XTqMKdw=")
     [NEW_SECRET, OLD_SECRET].each do |secret|
       event = Perata.verify_webhook(secret, headers, ORDER_PAID, now: now)
       assert_instance_of Perata::OrderWebhookEvent, event

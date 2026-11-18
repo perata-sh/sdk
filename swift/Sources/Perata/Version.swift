@@ -4,7 +4,7 @@ import Foundation
 
 extension PerataClient {
     /// This SDK's version.
-    public static let version = "0.5.2"
+    public static let version = "0.5.3"
 
     /// The contract this SDK was generated from.
     public static let apiVersion = "0.1.0"

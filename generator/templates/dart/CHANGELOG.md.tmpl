@@ -2,7 +2,25 @@
 
 Todos os SDKs da Peráta saem com a mesma versão; as mudanças de cada uma estão também nas [releases de perata-sh/sdk](https://github.com/perata-sh/sdk/releases).
 
-## {{.Version}} (16/11/2026)
+## {{.Version}} (18/11/2026)
+
+Gerado a partir do contrato da API {{.APIVersion}}.
+
+- O texto do erro traz os campos recusados. Quando a API não manda `message`, o texto do erro diz quais campos foram recusados e por quê (`perata: 422 invalid_request: amount_cents: …; customer_email: …`), em vez de só o código. A API passa a mandar a `message`; o SDK a usa como veio quando existe.
+- `environment` em todo webhook. O envelope de toda mensagem (ao lado de `id`, `type`, `timestamp` e dos dados) traz o ambiente em que o evento aconteceu, `test` ou `live`, e `WebhookEvent.environment` o lê, inclusive em `UnknownWebhookEvent`. Um corpo sem o campo (um servidor mais antigo) continua valendo, com o ambiente vazio. Quem tem um endpoint por ambiente deve recusar o evento do ambiente errado.
+- Reembolso no pedido. `Order` ganha `orderStatus` (`pending`, `paid`, `partially_refunded` ou `refunded`; nulo antes de haver pagamento) e `refundedAmountCents` (quanto já foi devolvido, em centavos); `status` continua sendo o do checkout, `succeeded`, depois de um reembolso. O evento `order.refunded` (e o `order.updated` que o acompanha) passa a trazer o novo modelo `WebhookOrder`: o `Order` mais `refundId` e `refundAmountCents`, o reembolso que causou o evento (nulos nos eventos que nenhum reembolso causou). **Mudança de tipo: `OrderWebhookEvent.data` passa de `Order` a `WebhookOrder`.**
+- Reembolso no pagamento. Os eventos `checkout_payment.*` trazem `refundedAmountCents` (quanto do pagamento já foi devolvido), `checkout_payment.refunded` e `checkout_payment.partially_refunded` trazem também `refundId` e `refundAmountCents`, e os eventos `refund.*` trazem `refundId`.
+
+## 0.5.2 (17/11/2026)
+
+Gerado a partir do contrato da API {{.APIVersion}}.
+
+- Encerrar um checkout: `checkouts.expire` (`POST /api/v1/checkouts/{id}/expire`) fecha um checkout que não deve mais ser pago; responde `CheckoutExpired`, com uma `CheckoutExpiredSession` por sessão. Repetir a chamada é seguro.
+- Filtros nas listas: `orders.list`, `payments.list`, `checkouts.list`, `refunds.list` e `subscriptions.list` aceitam, conforme a lista, `clientReferenceId`, `status`, `customerId`, `externalCustomerId`, `createdAfter`, `createdBefore` e `sorting`. Um filtro que a lista não responde é recusado (422), em vez de ignorado.
+- Identidade do cliente: `Customer` e os parâmetros de criação e alteração ganham `taxId` e `taxIdKind` (CPF ou CNPJ), `phone`, `billingName` e `billingAddress`.
+- Validação mais estrita na API: caracteres de controle e marcas invisíveis de direção do texto são recusados em `clientReferenceId`, `label`, nas linhas e no metadata; `createdAfter` e `createdBefore` fora de 1970 a 9999 são recusados.
+
+## 0.5.0 (16/11/2026)
 
 Gerado a partir do contrato da API {{.APIVersion}}.
 
@@ -12,7 +30,7 @@ Gerado a partir do contrato da API {{.APIVersion}}.
 - Um campo que pode ser nulo e aponta para um modelo (`customer`, `discount` e `payment` de `CheckoutClient`; `pix` e `boleto` de `CheckoutClientPayment`) é agora tipado como o modelo ou nulo, e não mais um valor livre.
 - O README ganhou o fluxo do checkout transparente e embutido.
 
-## {{.Version}} (14/11/2026)
+## 0.4.0 (14/11/2026)
 
 Gerado a partir do contrato da API {{.APIVersion}}.
 

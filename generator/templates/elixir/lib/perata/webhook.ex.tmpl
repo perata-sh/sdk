@@ -9,12 +9,14 @@ defmodule Perata.{{.Name}}WebhookEvent do
   @types ~w({{range $i, $t := .Types}}{{if $i}} {{end}}{{$t}}{{end}})
 
   @enforce_keys [:id, :type, :timestamp, :data]
-  defstruct [:id, :type, :timestamp, :data]
+  defstruct [:id, :type, :timestamp, :data, environment: ""]
 
+  @typedoc "`environment` is \"test\" or \"live\"; empty when an older server did not send it."
   @type t :: %__MODULE__{
           id: String.t(),
           type: String.t(),
           timestamp: String.t(),
+          environment: String.t(),
           data: {{exType .Data}}
         }
 
@@ -28,12 +30,14 @@ defmodule Perata.UnknownWebhookEvent do
   @moduledoc "An event of a type this SDK does not know yet, its data as it was sent."
 
   @enforce_keys [:id, :type, :timestamp, :data]
-  defstruct [:id, :type, :timestamp, :data]
+  defstruct [:id, :type, :timestamp, :data, environment: ""]
 
+  @typedoc "`environment` is \"test\" or \"live\"; empty when an older server did not send it."
   @type t :: %__MODULE__{
           id: String.t(),
           type: String.t(),
           timestamp: String.t(),
+          environment: String.t(),
           data: map()
         }
 end
@@ -41,7 +45,7 @@ end
 defmodule Perata.WebhookEvent do
   @moduledoc """
   A webhook Peráta sent, verified: one struct a kind of data
-  (`Perata.OrderWebhookEvent` carries a `Perata.Order`…), or
+  (`Perata.OrderWebhookEvent` carries a `Perata.WebhookOrder`…), or
   `Perata.UnknownWebhookEvent` for a type this SDK does not know yet. Within a
   struct, `type` says what happened.
   """
@@ -58,6 +62,7 @@ defmodule Perata.WebhookEvent do
     data = event["data"] || %{}
     id = Map.fetch!(event, "id")
     timestamp = Map.fetch!(event, "timestamp")
+    environment = if is_binary(event["environment"]), do: event["environment"], else: ""
 
     cond do
 {{- range .Webhooks}}
@@ -66,11 +71,18 @@ defmodule Perata.WebhookEvent do
           id: id,
           type: type,
           timestamp: timestamp,
+          environment: environment,
           data: {{exBuild .Data "data"}}
         }
 {{end}}
       true ->
-        %Perata.UnknownWebhookEvent{id: id, type: type, timestamp: timestamp, data: data}
+        %Perata.UnknownWebhookEvent{
+          id: id,
+          type: type,
+          timestamp: timestamp,
+          environment: environment,
+          data: data
+        }
     end
   end
 end

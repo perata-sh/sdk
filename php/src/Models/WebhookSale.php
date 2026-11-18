@@ -35,6 +35,12 @@ final class WebhookSale
         public readonly ?string $method,
         /** O pagamento que o reembolso devolve, nos eventos refund.*. */
         public readonly ?string $paymentId,
+        /** O valor só do reembolso que moveu o pagamento, em centavos; em checkout_payment.refunded e checkout_payment.partially_refunded. */
+        public readonly ?int $refundAmountCents,
+        /** O reembolso: nos eventos refund.*, o próprio; em checkout_payment.refunded e checkout_payment.partially_refunded, o que moveu o pagamento. */
+        public readonly ?string $refundId,
+        /** Quanto do pagamento já foi devolvido, somando os reembolsos que deram certo, nos eventos checkout_payment.*. */
+        public readonly ?int $refundedAmountCents,
     ) {
     }
 
@@ -56,6 +62,9 @@ final class WebhookSale
             metadata: $data['metadata'] ?? null,
             method: $data['method'] ?? null,
             paymentId: $data['payment_id'] ?? null,
+            refundAmountCents: $data['refund_amount_cents'] ?? null,
+            refundId: $data['refund_id'] ?? null,
+            refundedAmountCents: $data['refunded_amount_cents'] ?? null,
         );
     }
 }

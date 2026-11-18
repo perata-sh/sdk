@@ -1385,12 +1385,16 @@ public struct Order: Codable, Sendable, Hashable {
     public let items: [CheckoutLine]
     /// Os pares que o seu servidor enviou ao criar o checkout.
     public let metadata: [String: JSONValue]
+    /// Onde o pedido está; status é o do checkout e continua succeeded depois de um reembolso, e este vira partially_refunded ou refunded. Nulo antes de haver pagamento.
+    public let orderStatus: OrderOrderStatus?
     public let paidAt: String?
     public let priceID: String
     public let productID: String
+    /// Quanto do pedido já foi devolvido, somando todos os reembolsos que deram certo, em centavos.
+    public let refundedAmountCents: Int
     public let status: OrderStatus
 
-    public init(amountCents: Int, clientReferenceID: String, currency: OrderCurrency, customerID: String, id: String, installmentInterestCents: Int, installments: Int, items: [CheckoutLine], metadata: [String: JSONValue], paidAt: String?, priceID: String, productID: String, status: OrderStatus) {
+    public init(amountCents: Int, clientReferenceID: String, currency: OrderCurrency, customerID: String, id: String, installmentInterestCents: Int, installments: Int, items: [CheckoutLine], metadata: [String: JSONValue], orderStatus: OrderOrderStatus?, paidAt: String?, priceID: String, productID: String, refundedAmountCents: Int, status: OrderStatus) {
         self.amountCents = amountCents
         self.clientReferenceID = clientReferenceID
         self.currency = currency
@@ -1400,9 +1404,11 @@ public struct Order: Codable, Sendable, Hashable {
         self.installments = installments
         self.items = items
         self.metadata = metadata
+        self.orderStatus = orderStatus
         self.paidAt = paidAt
         self.priceID = priceID
         self.productID = productID
+        self.refundedAmountCents = refundedAmountCents
         self.status = status
     }
 
@@ -1416,9 +1422,11 @@ public struct Order: Codable, Sendable, Hashable {
         case installments
         case items
         case metadata
+        case orderStatus = "order_status"
         case paidAt = "paid_at"
         case priceID = "price_id"
         case productID = "product_id"
+        case refundedAmountCents = "refunded_amount_cents"
         case status
     }
 }
@@ -2145,6 +2153,76 @@ public struct WebhookEndpointCreated: Codable, Sendable, Hashable {
     }
 }
 
+/// O pedido como a API o devolve (Order) e, nos eventos que um reembolso causou (order.refunded e o order.updated que o acompanha), o reembolso que o causou. status continua sendo o do checkout (succeeded) depois de um reembolso: order_status e refunded_amount_cents dizem onde o dinheiro está.
+public struct WebhookOrder: Codable, Sendable, Hashable {
+    public let amountCents: Int
+    /// O id do pedido no seu sistema, enviado ao criar o checkout; vazio sem ele.
+    public let clientReferenceID: String
+    public let currency: WebhookOrderCurrency
+    public let customerID: String
+    public let id: String
+    /// Juros do parcelamento pagos pelo comprador, cobrados além de amount_cents.
+    public let installmentInterestCents: Int
+    /// Em quantas parcelas o cartão de crédito foi cobrado; 1 à vista.
+    public let installments: Int
+    /// As linhas do pedido, quando o seu servidor as enviou ao criar o checkout; vazio sem elas.
+    public let items: [CheckoutLine]
+    /// Os pares que o seu servidor enviou ao criar o checkout.
+    public let metadata: [String: JSONValue]
+    /// Onde o pedido está; status é o do checkout e continua succeeded depois de um reembolso, e este vira partially_refunded ou refunded.
+    public let orderStatus: WebhookOrderOrderStatus?
+    public let paidAt: String?
+    public let priceID: String
+    public let productID: String
+    /// O valor só deste reembolso, em centavos; nulo como refund_id. O acumulado do pedido é refunded_amount_cents.
+    public let refundAmountCents: Int?
+    /// O reembolso que causou este evento; nulo nos eventos que nenhum reembolso causou.
+    public let refundID: String?
+    /// Quanto do pedido já foi devolvido, somando todos os reembolsos que deram certo, em centavos.
+    public let refundedAmountCents: Int
+    public let status: WebhookOrderStatus
+
+    public init(amountCents: Int, clientReferenceID: String, currency: WebhookOrderCurrency, customerID: String, id: String, installmentInterestCents: Int, installments: Int, items: [CheckoutLine], metadata: [String: JSONValue], orderStatus: WebhookOrderOrderStatus?, paidAt: String?, priceID: String, productID: String, refundAmountCents: Int?, refundID: String?, refundedAmountCents: Int, status: WebhookOrderStatus) {
+        self.amountCents = amountCents
+        self.clientReferenceID = clientReferenceID
+        self.currency = currency
+        self.customerID = customerID
+        self.id = id
+        self.installmentInterestCents = installmentInterestCents
+        self.installments = installments
+        self.items = items
+        self.metadata = metadata
+        self.orderStatus = orderStatus
+        self.paidAt = paidAt
+        self.priceID = priceID
+        self.productID = productID
+        self.refundAmountCents = refundAmountCents
+        self.refundID = refundID
+        self.refundedAmountCents = refundedAmountCents
+        self.status = status
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case amountCents = "amount_cents"
+        case clientReferenceID = "client_reference_id"
+        case currency
+        case customerID = "customer_id"
+        case id
+        case installmentInterestCents = "installment_interest_cents"
+        case installments
+        case items
+        case metadata
+        case orderStatus = "order_status"
+        case paidAt = "paid_at"
+        case priceID = "price_id"
+        case productID = "product_id"
+        case refundAmountCents = "refund_amount_cents"
+        case refundID = "refund_id"
+        case refundedAmountCents = "refunded_amount_cents"
+        case status
+    }
+}
+
 /// WebhookRefund is a resource of Peráta's API.
 public struct WebhookRefund: Codable, Sendable, Hashable {
     public let amountCents: Int
@@ -2199,8 +2277,14 @@ public struct WebhookSale: Codable, Sendable, Hashable {
     public let method: WebhookSaleMethod?
     /// O pagamento que o reembolso devolve, nos eventos refund.*.
     public let paymentID: String?
+    /// O valor só do reembolso que moveu o pagamento, em centavos; em checkout_payment.refunded e checkout_payment.partially_refunded.
+    public let refundAmountCents: Int?
+    /// O reembolso: nos eventos refund.*, o próprio; em checkout_payment.refunded e checkout_payment.partially_refunded, o que moveu o pagamento.
+    public let refundID: String?
+    /// Quanto do pagamento já foi devolvido, somando os reembolsos que deram certo, nos eventos checkout_payment.*.
+    public let refundedAmountCents: Int?
 
-    public init(aggregate: String, aggregateID: String, environment: String, eventID: String, merchantID: String, amountCents: Int? = nil, checkoutID: String? = nil, clientReferenceID: String? = nil, currency: WebhookSaleCurrency? = nil, metadata: [String: JSONValue]? = nil, method: WebhookSaleMethod? = nil, paymentID: String? = nil) {
+    public init(aggregate: String, aggregateID: String, environment: String, eventID: String, merchantID: String, amountCents: Int? = nil, checkoutID: String? = nil, clientReferenceID: String? = nil, currency: WebhookSaleCurrency? = nil, metadata: [String: JSONValue]? = nil, method: WebhookSaleMethod? = nil, paymentID: String? = nil, refundAmountCents: Int? = nil, refundID: String? = nil, refundedAmountCents: Int? = nil) {
         self.aggregate = aggregate
         self.aggregateID = aggregateID
         self.amountCents = amountCents
@@ -2213,6 +2297,9 @@ public struct WebhookSale: Codable, Sendable, Hashable {
         self.metadata = metadata
         self.method = method
         self.paymentID = paymentID
+        self.refundAmountCents = refundAmountCents
+        self.refundID = refundID
+        self.refundedAmountCents = refundedAmountCents
     }
 
     enum CodingKeys: String, CodingKey {
@@ -2228,6 +2315,9 @@ public struct WebhookSale: Codable, Sendable, Hashable {
         case metadata
         case method
         case paymentID = "payment_id"
+        case refundAmountCents = "refund_amount_cents"
+        case refundID = "refund_id"
+        case refundedAmountCents = "refunded_amount_cents"
     }
 }
 
@@ -4259,6 +4349,30 @@ public struct OrderCurrency: RawRepresentable, Codable, Sendable, Hashable, Expr
     public static let brl = OrderCurrency(rawValue: "BRL")
 }
 
+/// The values of `Order.order_status`. Onde o pedido está; status é o do checkout e continua succeeded depois de um reembolso, e este vira partially_refunded ou refunded. Nulo antes de haver pagamento.
+///
+/// A value this SDK does not know yet is kept as it came, in `rawValue`.
+public struct OrderOrderStatus: RawRepresentable, Codable, Sendable, Hashable, ExpressibleByStringLiteral {
+    public let rawValue: String
+
+    public init(rawValue: String) {
+        self.rawValue = rawValue
+    }
+
+    public init(stringLiteral value: String) {
+        self.rawValue = value
+    }
+
+    /// `pending`
+    public static let pending = OrderOrderStatus(rawValue: "pending")
+    /// `paid`
+    public static let paid = OrderOrderStatus(rawValue: "paid")
+    /// `partially_refunded`
+    public static let partiallyRefunded = OrderOrderStatus(rawValue: "partially_refunded")
+    /// `refunded`
+    public static let refunded = OrderOrderStatus(rawValue: "refunded")
+}
+
 /// The values of `Order.status`.
 ///
 /// A value this SDK does not know yet is kept as it came, in `rawValue`.
@@ -4905,6 +5019,74 @@ public struct WebhookEndpointCreatedStatus: RawRepresentable, Codable, Sendable,
     public static let active = WebhookEndpointCreatedStatus(rawValue: "active")
     /// `disabled`
     public static let disabled = WebhookEndpointCreatedStatus(rawValue: "disabled")
+}
+
+/// The values of `WebhookOrder.currency`.
+///
+/// A value this SDK does not know yet is kept as it came, in `rawValue`.
+public struct WebhookOrderCurrency: RawRepresentable, Codable, Sendable, Hashable, ExpressibleByStringLiteral {
+    public let rawValue: String
+
+    public init(rawValue: String) {
+        self.rawValue = rawValue
+    }
+
+    public init(stringLiteral value: String) {
+        self.rawValue = value
+    }
+
+    /// `BRL`
+    public static let brl = WebhookOrderCurrency(rawValue: "BRL")
+}
+
+/// The values of `WebhookOrder.order_status`. Onde o pedido está; status é o do checkout e continua succeeded depois de um reembolso, e este vira partially_refunded ou refunded.
+///
+/// A value this SDK does not know yet is kept as it came, in `rawValue`.
+public struct WebhookOrderOrderStatus: RawRepresentable, Codable, Sendable, Hashable, ExpressibleByStringLiteral {
+    public let rawValue: String
+
+    public init(rawValue: String) {
+        self.rawValue = rawValue
+    }
+
+    public init(stringLiteral value: String) {
+        self.rawValue = value
+    }
+
+    /// `pending`
+    public static let pending = WebhookOrderOrderStatus(rawValue: "pending")
+    /// `paid`
+    public static let paid = WebhookOrderOrderStatus(rawValue: "paid")
+    /// `partially_refunded`
+    public static let partiallyRefunded = WebhookOrderOrderStatus(rawValue: "partially_refunded")
+    /// `refunded`
+    public static let refunded = WebhookOrderOrderStatus(rawValue: "refunded")
+}
+
+/// The values of `WebhookOrder.status`.
+///
+/// A value this SDK does not know yet is kept as it came, in `rawValue`.
+public struct WebhookOrderStatus: RawRepresentable, Codable, Sendable, Hashable, ExpressibleByStringLiteral {
+    public let rawValue: String
+
+    public init(rawValue: String) {
+        self.rawValue = rawValue
+    }
+
+    public init(stringLiteral value: String) {
+        self.rawValue = value
+    }
+
+    /// `open`
+    public static let `open` = WebhookOrderStatus(rawValue: "open")
+    /// `confirmed`
+    public static let confirmed = WebhookOrderStatus(rawValue: "confirmed")
+    /// `succeeded`
+    public static let succeeded = WebhookOrderStatus(rawValue: "succeeded")
+    /// `failed`
+    public static let failed = WebhookOrderStatus(rawValue: "failed")
+    /// `expired`
+    public static let expired = WebhookOrderStatus(rawValue: "expired")
 }
 
 /// The values of `WebhookRefund.status`.

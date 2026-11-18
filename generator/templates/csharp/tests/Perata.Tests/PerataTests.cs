@@ -330,8 +330,10 @@ public class PerataTests
     private const string ReferenceSecret = "whsec_MfKQ9r8GKYqrTwjUPD8ILPZIo2LaLaSw";
     private const string OldSecret = "whsec_cGVyYXRhLXNkay1vbGQta2V5LTAxMjM0NTY3ODlhYmM=";
     private const string NewSecret = "whsec_cGVyYXRhLXNkay1uZXcta2V5LTAxMjM0NTY3ODlhYmM=";
-    private const string OrderPaid = """{"id":"msg_2","type":"order.paid","timestamp":"2026-10-22T12:00:00Z","data":{"id":"ord_1","customer_id":"cus_1","product_id":"prod_1","price_id":"price_1","amount_cents":12000,"currency":"BRL","status":"succeeded","paid_at":"2026-10-22T12:00:00Z","installments":3,"installment_interest_cents":360,"items":[],"metadata":{},"client_reference_id":""}}""";
+    private const string OrderPaid = """{"id":"msg_2","type":"order.paid","timestamp":"2026-10-22T12:00:00Z","data":{"id":"ord_1","customer_id":"cus_1","product_id":"prod_1","price_id":"price_1","amount_cents":12000,"currency":"BRL","status":"succeeded","paid_at":"2026-10-22T12:00:00Z","order_status":"paid","refunded_amount_cents":0,"refund_id":null,"refund_amount_cents":null,"installments":3,"installment_interest_cents":360,"items":[],"metadata":{},"client_reference_id":""}}""";
     private const string UsageRecorded = """{"id":"msg_3","type":"usage_event.recorded","timestamp":"2026-10-22T12:00:00Z","data":{"event_id":"ue_1","aggregate":"usage_event","aggregate_id":"ue_1","merchant_id":"mer_1","environment":"test"}}""";
+    private const string OrderPaidLive = """{"id":"msg_5","type":"order.paid","timestamp":"2026-10-22T12:00:00Z","environment":"live","data":{"id":"ord_1","customer_id":"cus_1","product_id":"prod_1","price_id":"price_1","amount_cents":12000,"currency":"BRL","status":"succeeded","paid_at":"2026-10-22T12:00:00Z","order_status":"paid","refunded_amount_cents":0,"refund_id":null,"refund_amount_cents":null,"installments":3,"installment_interest_cents":360,"items":[],"metadata":{},"client_reference_id":""}}""";
+    private const string PayoutSentTest = """{"id":"msg_6","type":"payout.sent","timestamp":"2026-10-22T12:00:00Z","environment":"test","data":{"payout_id":"po_1","amount_cents":5000}}""";
     private const string PayoutSent = """{"id":"msg_4","type":"payout.sent","timestamp":"2026-10-22T12:00:00Z","data":{"payout_id":"po_1","amount_cents":5000}}""";
     private const long SignedAt = 1792670400;
 
@@ -367,10 +369,24 @@ public class PerataTests
     }
 
     [Fact]
+    public void AWebhookCarriesTheEnvironmentItHappenedIn()
+    {
+        var now = DateTimeOffset.FromUnixTimeSeconds(SignedAt + 120);
+        foreach (var (id, signature, body) in new[] { ("msg_2", "v1,XI92+fzspBAwIZD8XhEF5PwZNFrKbyAaykAydn3pPzY= v1,G2ijkhNO0sP+dkoMlsU1sOLmtbpIw9SYOwC2XTqMKdw=", OrderPaid), ("msg_3", "v1,Z3E2vTbczigiySfkzakxuZotPn9FlBY1KAET6hPEZoU=", UsageRecorded), ("msg_4", "v1,Sa/yofA3h/58pFR+rIiWdIc8qXfcuqvyJSjxn4oJ1ZY=", PayoutSent) })
+        {
+            Assert.Equal("", Webhook.Verify(NewSecret, WebhookHeaders(id, SignedAt, signature), body, now).Environment);
+        }
+        var order = Assert.IsType<OrderWebhookEvent>(Webhook.Verify(NewSecret, WebhookHeaders("msg_5", SignedAt, "v1,JECjRi5yt5jEJZSUqpIxpxCJ/OfRgUBipIRj1b2lsUk="), OrderPaidLive, now));
+        Assert.Equal("live", order.Environment);
+        var unknown = Assert.IsType<UnknownWebhookEvent>(Webhook.Verify(NewSecret, WebhookHeaders("msg_6", SignedAt, "v1,6He63m1rUlB789sgtRAHqex4wyKkzAwdHt6uRsp8YQM="), PayoutSentTest, now));
+        Assert.Equal("test", unknown.Environment);
+    }
+
+    [Fact]
     public void AWebhookAnswersItsTypedEvent()
     {
         var now = DateTimeOffset.FromUnixTimeSeconds(SignedAt + 120);
-        var headers = WebhookHeaders("msg_2", SignedAt, "v1,MW5FnOPf5xZdiHRmDImEy+x3spgWmDCUEuwjHOZ7a2Y= v1,rWmUsQveS0J9yTlnQfb7Olszghg8xf7DJHLHG0a7YZo=");
+        var headers = WebhookHeaders("msg_2", SignedAt, "v1,XI92+fzspBAwIZD8XhEF5PwZNFrKbyAaykAydn3pPzY= v1,G2ijkhNO0sP+dkoMlsU1sOLmtbpIw9SYOwC2XTqMKdw=");
         foreach (var secret in new[] { NewSecret, OldSecret })
         {
             var order = Assert.IsType<OrderWebhookEvent>(Webhook.Verify(secret, headers, OrderPaid, now));

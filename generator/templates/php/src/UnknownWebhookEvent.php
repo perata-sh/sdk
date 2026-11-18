@@ -10,8 +10,8 @@ final class UnknownWebhookEvent extends WebhookEvent
     /**
      * @param array<string, mixed> $data
      */
-    public function __construct(string $id, string $type, string $timestamp, public readonly array $data)
+    public function __construct(string $id, string $type, string $timestamp, string $environment, public readonly array $data)
     {
-        parent::__construct($id, $type, $timestamp);
+        parent::__construct($id, $type, $timestamp, $environment);
     }
 }

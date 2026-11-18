@@ -14,13 +14,13 @@ public final class DiscountWebhookEvent extends WebhookEvent {
 
     private final WebhookDiscount data;
 
-    DiscountWebhookEvent(String id, String type, String timestamp, WebhookDiscount data) {
-        super(id, type, timestamp);
+    DiscountWebhookEvent(String id, String type, String timestamp, String environment, WebhookDiscount data) {
+        super(id, type, timestamp, environment);
         this.data = data;
     }
 
-    static DiscountWebhookEvent fromJson(String id, String type, String timestamp, Map<String, Object> data) {
-        return new DiscountWebhookEvent(id, type, timestamp, WebhookDiscount.fromJson(data));
+    static DiscountWebhookEvent fromJson(String id, String type, String timestamp, String environment, Map<String, Object> data) {
+        return new DiscountWebhookEvent(id, type, timestamp, environment, WebhookDiscount.fromJson(data));
     }
 
     /** @return what the event carries */

@@ -117,6 +117,8 @@ match event {
 
 A assinatura é a do Standard Webhooks (`webhook-id`, `webhook-timestamp`, `webhook-signature`), com tolerância de 5 minutos. `headers` pode ser um `http::HeaderMap`, um `HashMap` ou uma lista de pares. Passe o corpo cru, antes de interpretar; uma assinatura inválida ou antiga é `WebhookError::InvalidSignature`.
 
-O evento é tipado: uma variante para cada dado que o webhook carrega (`WebhookEvent::Order` traz um `Order`, `WebhookEvent::Dispute` a disputa, `WebhookEvent::Identifiers` os identificadores…), e o `type` diz o que aconteceu; um tipo que esta versão do SDK ainda não conhece chega como `WebhookEvent::Unknown`, com os dados como vieram. Durante a rotação do segredo o cabeçalho traz mais de uma assinatura, e basta uma conferir. `verify_webhook_signature` só confere a assinatura.
+O evento é tipado: uma variante para cada dado que o webhook carrega (`WebhookEvent::Order` traz um `WebhookOrder`, `WebhookEvent::Dispute` a disputa, `WebhookEvent::Identifiers` os identificadores…), e o `type` diz o que aconteceu; um tipo que esta versão do SDK ainda não conhece chega como `WebhookEvent::Unknown`, com os dados como vieram. Durante a rotação do segredo o cabeçalho traz mais de uma assinatura, e basta uma conferir. `verify_webhook_signature` só confere a assinatura.
 
-Versão do SDK: 0.5.2 · contrato da API: 0.1.0
+Todo evento traz o ambiente em que aconteceu, em `event.environment()`: `"test"` ou `"live"` (vazio se um servidor antigo não mandou). Recuse o evento do ambiente errado: um endpoint de produção deve responder 400 a um evento `"test"`, para que um teste não dê baixa em um pedido real.
+
+Versão do SDK: 0.5.3 · contrato da API: 0.1.0

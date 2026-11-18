@@ -13,7 +13,7 @@ from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import Any, Literal, TypeAlias, cast, get_args
 
-from .models import BenefitGrant, Customer, Order, Product, Subscription, WebhookBenefit, WebhookCheckout, WebhookDiscount, WebhookDispute, WebhookRefund, WebhookSale
+from .models import BenefitGrant, Customer, Product, Subscription, WebhookBenefit, WebhookCheckout, WebhookDiscount, WebhookDispute, WebhookOrder, WebhookRefund, WebhookSale
 
 WEBHOOK_TOLERANCE_SECONDS = 300
 """How far from now a webhook's timestamp may be."""
@@ -38,6 +38,8 @@ class BenefitWebhookEvent:
     type: BenefitWebhookEventType
     timestamp: str
     """When it happened, in RFC 3339."""
+    environment: str
+    """The environment it happened in, ``"test"`` or ``"live"``; empty when an older server did not send it."""
     data: WebhookBenefit
 
 
@@ -53,6 +55,8 @@ class BenefitGrantWebhookEvent:
     type: BenefitGrantWebhookEventType
     timestamp: str
     """When it happened, in RFC 3339."""
+    environment: str
+    """The environment it happened in, ``"test"`` or ``"live"``; empty when an older server did not send it."""
     data: BenefitGrant
 
 
@@ -68,6 +72,8 @@ class CheckoutWebhookEvent:
     type: CheckoutWebhookEventType
     timestamp: str
     """When it happened, in RFC 3339."""
+    environment: str
+    """The environment it happened in, ``"test"`` or ``"live"``; empty when an older server did not send it."""
     data: WebhookCheckout
 
 
@@ -83,6 +89,8 @@ class CustomerWebhookEvent:
     type: CustomerWebhookEventType
     timestamp: str
     """When it happened, in RFC 3339."""
+    environment: str
+    """The environment it happened in, ``"test"`` or ``"live"``; empty when an older server did not send it."""
     data: Customer
 
 
@@ -98,6 +106,8 @@ class DiscountWebhookEvent:
     type: DiscountWebhookEventType
     timestamp: str
     """When it happened, in RFC 3339."""
+    environment: str
+    """The environment it happened in, ``"test"`` or ``"live"``; empty when an older server did not send it."""
     data: WebhookDiscount
 
 
@@ -113,6 +123,8 @@ class DisputeWebhookEvent:
     type: DisputeWebhookEventType
     timestamp: str
     """When it happened, in RFC 3339."""
+    environment: str
+    """The environment it happened in, ``"test"`` or ``"live"``; empty when an older server did not send it."""
     data: WebhookDispute
 
 
@@ -128,6 +140,8 @@ class IdentifiersWebhookEvent:
     type: IdentifiersWebhookEventType
     timestamp: str
     """When it happened, in RFC 3339."""
+    environment: str
+    """The environment it happened in, ``"test"`` or ``"live"``; empty when an older server did not send it."""
     data: dict[str, str]
 
 
@@ -136,14 +150,16 @@ OrderWebhookEventType: TypeAlias = Literal["order.created", "order.paid", "order
 
 @dataclass(frozen=True)
 class OrderWebhookEvent:
-    """The events that carry an Order."""
+    """The events that carry a WebhookOrder."""
 
     id: str
     """The message's id, the same as the webhook-id header."""
     type: OrderWebhookEventType
     timestamp: str
     """When it happened, in RFC 3339."""
-    data: Order
+    environment: str
+    """The environment it happened in, ``"test"`` or ``"live"``; empty when an older server did not send it."""
+    data: WebhookOrder
 
 
 ProductWebhookEventType: TypeAlias = Literal["product.created", "product.updated"]
@@ -158,6 +174,8 @@ class ProductWebhookEvent:
     type: ProductWebhookEventType
     timestamp: str
     """When it happened, in RFC 3339."""
+    environment: str
+    """The environment it happened in, ``"test"`` or ``"live"``; empty when an older server did not send it."""
     data: Product
 
 
@@ -173,6 +191,8 @@ class RefundWebhookEvent:
     type: RefundWebhookEventType
     timestamp: str
     """When it happened, in RFC 3339."""
+    environment: str
+    """The environment it happened in, ``"test"`` or ``"live"``; empty when an older server did not send it."""
     data: WebhookRefund
 
 
@@ -188,6 +208,8 @@ class SaleWebhookEvent:
     type: SaleWebhookEventType
     timestamp: str
     """When it happened, in RFC 3339."""
+    environment: str
+    """The environment it happened in, ``"test"`` or ``"live"``; empty when an older server did not send it."""
     data: WebhookSale
 
 
@@ -203,6 +225,8 @@ class SubscriptionWebhookEvent:
     type: SubscriptionWebhookEventType
     timestamp: str
     """When it happened, in RFC 3339."""
+    environment: str
+    """The environment it happened in, ``"test"`` or ``"live"``; empty when an older server did not send it."""
     data: Subscription
 
 
@@ -213,6 +237,7 @@ class UnknownWebhookEvent:
     id: str
     type: str
     timestamp: str
+    environment: str
     data: dict[str, Any]
 
 
@@ -242,55 +267,105 @@ def _event(raw: bytes) -> WebhookEvent:
     kind: str = event["type"]
     sent = event.get("data")
     data: dict[str, Any] = sent if isinstance(sent, dict) else {}
+    sent_environment = event.get("environment")
+    environment = sent_environment if isinstance(sent_environment, str) else ""
     if kind in get_args(BenefitWebhookEventType):
         return BenefitWebhookEvent(
-            id=event["id"], type=cast(BenefitWebhookEventType, kind), timestamp=event["timestamp"], data=WebhookBenefit.from_dict(data)
+            id=event["id"],
+            type=cast(BenefitWebhookEventType, kind),
+            timestamp=event["timestamp"],
+            environment=environment,
+            data=WebhookBenefit.from_dict(data),
         )
     if kind in get_args(BenefitGrantWebhookEventType):
         return BenefitGrantWebhookEvent(
-            id=event["id"], type=cast(BenefitGrantWebhookEventType, kind), timestamp=event["timestamp"], data=BenefitGrant.from_dict(data)
+            id=event["id"],
+            type=cast(BenefitGrantWebhookEventType, kind),
+            timestamp=event["timestamp"],
+            environment=environment,
+            data=BenefitGrant.from_dict(data),
         )
     if kind in get_args(CheckoutWebhookEventType):
         return CheckoutWebhookEvent(
-            id=event["id"], type=cast(CheckoutWebhookEventType, kind), timestamp=event["timestamp"], data=WebhookCheckout.from_dict(data)
+            id=event["id"],
+            type=cast(CheckoutWebhookEventType, kind),
+            timestamp=event["timestamp"],
+            environment=environment,
+            data=WebhookCheckout.from_dict(data),
         )
     if kind in get_args(CustomerWebhookEventType):
         return CustomerWebhookEvent(
-            id=event["id"], type=cast(CustomerWebhookEventType, kind), timestamp=event["timestamp"], data=Customer.from_dict(data)
+            id=event["id"],
+            type=cast(CustomerWebhookEventType, kind),
+            timestamp=event["timestamp"],
+            environment=environment,
+            data=Customer.from_dict(data),
         )
     if kind in get_args(DiscountWebhookEventType):
         return DiscountWebhookEvent(
-            id=event["id"], type=cast(DiscountWebhookEventType, kind), timestamp=event["timestamp"], data=WebhookDiscount.from_dict(data)
+            id=event["id"],
+            type=cast(DiscountWebhookEventType, kind),
+            timestamp=event["timestamp"],
+            environment=environment,
+            data=WebhookDiscount.from_dict(data),
         )
     if kind in get_args(DisputeWebhookEventType):
         return DisputeWebhookEvent(
-            id=event["id"], type=cast(DisputeWebhookEventType, kind), timestamp=event["timestamp"], data=WebhookDispute.from_dict(data)
+            id=event["id"],
+            type=cast(DisputeWebhookEventType, kind),
+            timestamp=event["timestamp"],
+            environment=environment,
+            data=WebhookDispute.from_dict(data),
         )
     if kind in get_args(IdentifiersWebhookEventType):
         return IdentifiersWebhookEvent(
-            id=event["id"], type=cast(IdentifiersWebhookEventType, kind), timestamp=event["timestamp"], data=data
+            id=event["id"],
+            type=cast(IdentifiersWebhookEventType, kind),
+            timestamp=event["timestamp"],
+            environment=environment,
+            data=data,
         )
     if kind in get_args(OrderWebhookEventType):
         return OrderWebhookEvent(
-            id=event["id"], type=cast(OrderWebhookEventType, kind), timestamp=event["timestamp"], data=Order.from_dict(data)
+            id=event["id"],
+            type=cast(OrderWebhookEventType, kind),
+            timestamp=event["timestamp"],
+            environment=environment,
+            data=WebhookOrder.from_dict(data),
         )
     if kind in get_args(ProductWebhookEventType):
         return ProductWebhookEvent(
-            id=event["id"], type=cast(ProductWebhookEventType, kind), timestamp=event["timestamp"], data=Product.from_dict(data)
+            id=event["id"],
+            type=cast(ProductWebhookEventType, kind),
+            timestamp=event["timestamp"],
+            environment=environment,
+            data=Product.from_dict(data),
         )
     if kind in get_args(RefundWebhookEventType):
         return RefundWebhookEvent(
-            id=event["id"], type=cast(RefundWebhookEventType, kind), timestamp=event["timestamp"], data=WebhookRefund.from_dict(data)
+            id=event["id"],
+            type=cast(RefundWebhookEventType, kind),
+            timestamp=event["timestamp"],
+            environment=environment,
+            data=WebhookRefund.from_dict(data),
         )
     if kind in get_args(SaleWebhookEventType):
         return SaleWebhookEvent(
-            id=event["id"], type=cast(SaleWebhookEventType, kind), timestamp=event["timestamp"], data=WebhookSale.from_dict(data)
+            id=event["id"],
+            type=cast(SaleWebhookEventType, kind),
+            timestamp=event["timestamp"],
+            environment=environment,
+            data=WebhookSale.from_dict(data),
         )
     if kind in get_args(SubscriptionWebhookEventType):
         return SubscriptionWebhookEvent(
-            id=event["id"], type=cast(SubscriptionWebhookEventType, kind), timestamp=event["timestamp"], data=Subscription.from_dict(data)
+            id=event["id"],
+            type=cast(SubscriptionWebhookEventType, kind),
+            timestamp=event["timestamp"],
+            environment=environment,
+            data=Subscription.from_dict(data),
         )
-    return UnknownWebhookEvent(id=event["id"], type=kind, timestamp=event["timestamp"], data=data)
+    return UnknownWebhookEvent(id=event["id"], type=kind, timestamp=event["timestamp"], environment=environment, data=data)
 
 
 def _header(headers: Mapping[str, str], name: str) -> str:

@@ -357,8 +357,10 @@ class PerataTest {
     private static final String REFERENCE_SECRET = "whsec_MfKQ9r8GKYqrTwjUPD8ILPZIo2LaLaSw";
     private static final String OLD_SECRET = "whsec_cGVyYXRhLXNkay1vbGQta2V5LTAxMjM0NTY3ODlhYmM=";
     private static final String NEW_SECRET = "whsec_cGVyYXRhLXNkay1uZXcta2V5LTAxMjM0NTY3ODlhYmM=";
-    private static final String ORDER_PAID = "{\"id\":\"msg_2\",\"type\":\"order.paid\",\"timestamp\":\"2026-10-22T12:00:00Z\",\"data\":{\"id\":\"ord_1\",\"customer_id\":\"cus_1\",\"product_id\":\"prod_1\",\"price_id\":\"price_1\",\"amount_cents\":12000,\"currency\":\"BRL\",\"status\":\"succeeded\",\"paid_at\":\"2026-10-22T12:00:00Z\",\"installments\":3,\"installment_interest_cents\":360,\"items\":[],\"metadata\":{},\"client_reference_id\":\"\"}}";
+    private static final String ORDER_PAID = "{\"id\":\"msg_2\",\"type\":\"order.paid\",\"timestamp\":\"2026-10-22T12:00:00Z\",\"data\":{\"id\":\"ord_1\",\"customer_id\":\"cus_1\",\"product_id\":\"prod_1\",\"price_id\":\"price_1\",\"amount_cents\":12000,\"currency\":\"BRL\",\"status\":\"succeeded\",\"paid_at\":\"2026-10-22T12:00:00Z\",\"order_status\":\"paid\",\"refunded_amount_cents\":0,\"refund_id\":null,\"refund_amount_cents\":null,\"installments\":3,\"installment_interest_cents\":360,\"items\":[],\"metadata\":{},\"client_reference_id\":\"\"}}";
     private static final String USAGE_RECORDED = "{\"id\":\"msg_3\",\"type\":\"usage_event.recorded\",\"timestamp\":\"2026-10-22T12:00:00Z\",\"data\":{\"event_id\":\"ue_1\",\"aggregate\":\"usage_event\",\"aggregate_id\":\"ue_1\",\"merchant_id\":\"mer_1\",\"environment\":\"test\"}}";
+    private static final String ORDER_PAID_LIVE = "{\"id\":\"msg_5\",\"type\":\"order.paid\",\"timestamp\":\"2026-10-22T12:00:00Z\",\"environment\":\"live\",\"data\":{\"id\":\"ord_1\",\"customer_id\":\"cus_1\",\"product_id\":\"prod_1\",\"price_id\":\"price_1\",\"amount_cents\":12000,\"currency\":\"BRL\",\"status\":\"succeeded\",\"paid_at\":\"2026-10-22T12:00:00Z\",\"order_status\":\"paid\",\"refunded_amount_cents\":0,\"refund_id\":null,\"refund_amount_cents\":null,\"installments\":3,\"installment_interest_cents\":360,\"items\":[],\"metadata\":{},\"client_reference_id\":\"\"}}";
+    private static final String PAYOUT_SENT_TEST = "{\"id\":\"msg_6\",\"type\":\"payout.sent\",\"timestamp\":\"2026-10-22T12:00:00Z\",\"environment\":\"test\",\"data\":{\"payout_id\":\"po_1\",\"amount_cents\":5000}}";
     private static final String PAYOUT_SENT = "{\"id\":\"msg_4\",\"type\":\"payout.sent\",\"timestamp\":\"2026-10-22T12:00:00Z\",\"data\":{\"payout_id\":\"po_1\",\"amount_cents\":5000}}";
     private static final long SIGNED_AT = 1792670400L;
 
@@ -394,9 +396,29 @@ class PerataTest {
     }
 
     @Test
+    void aWebhookCarriesTheEnvironmentItHappenedIn() {
+        Instant now = Instant.ofEpochSecond(SIGNED_AT + 120);
+        String[][] older = {
+            {"msg_2", "v1,XI92+fzspBAwIZD8XhEF5PwZNFrKbyAaykAydn3pPzY= v1,G2ijkhNO0sP+dkoMlsU1sOLmtbpIw9SYOwC2XTqMKdw=", ORDER_PAID},
+            {"msg_3", "v1,Z3E2vTbczigiySfkzakxuZotPn9FlBY1KAET6hPEZoU=", USAGE_RECORDED},
+            {"msg_4", "v1,Sa/yofA3h/58pFR+rIiWdIc8qXfcuqvyJSjxn4oJ1ZY=", PAYOUT_SENT},
+        };
+        for (String[] each : older) {
+            WebhookEvent event = Webhook.verify(NEW_SECRET, webhookHeaders(each[0], SIGNED_AT, each[1]), each[2].getBytes(StandardCharsets.UTF_8), now);
+            assertEquals("", event.getEnvironment(), each[0]);
+        }
+        WebhookEvent order = Webhook.verify(NEW_SECRET, webhookHeaders("msg_5", SIGNED_AT, "v1,JECjRi5yt5jEJZSUqpIxpxCJ/OfRgUBipIRj1b2lsUk="), ORDER_PAID_LIVE.getBytes(StandardCharsets.UTF_8), now);
+        assertInstanceOf(OrderWebhookEvent.class, order);
+        assertEquals("live", order.getEnvironment());
+        WebhookEvent unknown = Webhook.verify(NEW_SECRET, webhookHeaders("msg_6", SIGNED_AT, "v1,6He63m1rUlB789sgtRAHqex4wyKkzAwdHt6uRsp8YQM="), PAYOUT_SENT_TEST.getBytes(StandardCharsets.UTF_8), now);
+        assertInstanceOf(UnknownWebhookEvent.class, unknown);
+        assertEquals("test", unknown.getEnvironment());
+    }
+
+    @Test
     void aWebhookAnswersItsTypedEvent() {
         Instant now = Instant.ofEpochSecond(SIGNED_AT + 120);
-        Map<String, String> headers = webhookHeaders("msg_2", SIGNED_AT, "v1,MW5FnOPf5xZdiHRmDImEy+x3spgWmDCUEuwjHOZ7a2Y= v1,rWmUsQveS0J9yTlnQfb7Olszghg8xf7DJHLHG0a7YZo=");
+        Map<String, String> headers = webhookHeaders("msg_2", SIGNED_AT, "v1,XI92+fzspBAwIZD8XhEF5PwZNFrKbyAaykAydn3pPzY= v1,G2ijkhNO0sP+dkoMlsU1sOLmtbpIw9SYOwC2XTqMKdw=");
         byte[] orderPaid = ORDER_PAID.getBytes(StandardCharsets.UTF_8);
         for (String secret : List.of(NEW_SECRET, OLD_SECRET)) {
             WebhookEvent event = Webhook.verify(secret, headers, orderPaid, now);
