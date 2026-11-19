@@ -11,20 +11,20 @@ Os SDKs oficiais ficam em `https://github.com/perata-sh/sdk`. São gerados do me
 | Python | `perata-sdk` (PyPI) | `pip install perata-sdk` | Python 3.11+ |
 | PHP | `perata-sh/sdk` (Packagist) | `composer require perata-sh/sdk` | PHP 8.1+, extensões `curl` e `json` |
 | Ruby | `perata-sdk` (RubyGems) | `gem install perata-sdk` | Ruby 3.1+ |
-| Java / Kotlin | `sh.perata:sdk` (Maven Central) | Maven: `<dependency><groupId>sh.perata</groupId><artifactId>sdk</artifactId><version>0.5.4</version></dependency>`; Gradle: `implementation("sh.perata:sdk:0.5.4")` | Java 11+ |
+| Java / Kotlin | `sh.perata:sdk` (Maven Central) | Maven: `<dependency><groupId>sh.perata</groupId><artifactId>sdk</artifactId><version>0.5.6</version></dependency>`; Gradle: `implementation("sh.perata:sdk:0.5.6")` | Java 11+ |
 | C# / .NET | `PerataSh.Sdk` (NuGet) | **ainda não publicado**, veja a seção 3 | .NET 8+ |
-| Elixir | `perata_sdk` (Hex) | em `mix.exs`: `{:perata_sdk, "~> 0.5.4"}` | Elixir 1.18+ |
+| Elixir | `perata_sdk` (Hex) | em `mix.exs`: `{:perata_sdk, "~> 0.5.6"}` | Elixir 1.18+ |
 | Dart / Flutter | `perata_sdk` (pub.dev) | `dart pub add perata_sdk` ou `flutter pub add perata_sdk` | Dart 3.8+ |
 | Rust | `perata-sdk` (crates.io) | `cargo add perata-sdk` (no código: `use perata::...`) | Rust 1.88+ |
-| Swift | repositório `https://github.com/perata-sh/sdk` (Swift Package Manager) | em `Package.swift`: `.package(url: "https://github.com/perata-sh/sdk", from: "0.5.4")` e, no alvo, `.product(name: "Perata", package: "sdk")` | Swift 6; macOS 12+, iOS 15+ |
+| Swift | repositório `https://github.com/perata-sh/sdk` (Swift Package Manager) | em `Package.swift`: `.package(url: "https://github.com/perata-sh/sdk", from: "0.5.6")` e, no alvo, `.product(name: "Perata", package: "sdk")` | Swift 6; macOS 12+, iOS 15+ |
 
-As versões dos exemplos (`0.5.4`) são a última publicada em 19/11/2026. Confira no registro antes de fixar uma versão e troque pela mais nova. Os SDKs de servidor nunca vão para o navegador nem para um app: a chave de API não pode sair do servidor (Dart e Swift também só no servidor).
+As versões dos exemplos (`0.5.6`) são a última publicada em 19/11/2026. Confira no registro antes de fixar uma versão e troque pela mais nova. Os SDKs de servidor nunca vão para o navegador nem para um app: a chave de API não pode sair do servidor (Dart e Swift também só no servidor).
 
 Para o navegador há o script `https://perata.sh/v1/perata.js` (sem chave) e dois pacotes escritos à mão, `@perata-sh/js` e `@perata-sh/react`, que **ainda não foram publicados** (os nomes são propostas). Enquanto isso, use a tag `<script>` do `perata.js`.
 
 ## 2. Versão do SDK: o que cada uma traz
 
-Última publicada em 19/11/2026: **0.5.4** (Go, PyPI, RubyGems, Hex, pub.dev, Packagist, crates.io, Maven Central). A 0.5.5 e a 0.5.6 já estão no ramo `develop` de `perata-sh/sdk`, sem etiqueta (tag) nem publicação nos registros. Se a versão instalada não tem um recurso, atualize; se a atualização ainda não saiu, chame a rota pela API REST.
+Última publicada em 19/11/2026: **0.5.6** (Go, PyPI, RubyGems, Hex, pub.dev, Packagist, crates.io, Maven Central). A 0.5.5 não foi publicada sozinha: o que ela trazia saiu junto na 0.5.6. Se a versão instalada não tem um recurso, atualize; se a atualização ainda não saiu, chame a rota pela API REST.
 
 | Recurso | A partir de |
 |---|---|
