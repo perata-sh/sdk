@@ -18,7 +18,16 @@ final class PricesService
     }
 
     /**
-     * Criar um preço em reais, avulso ou recorrente.
+     * Criar um preço.
+     *
+     * Cria um preço em reais para um produto, avulso (one_time) ou recorrente
+     * (recurring). No recorrente, interval e interval_count dizem de quanto em
+     * quanto tempo ele renova: month com 3 é trimestral.
+     *
+     * Autenticação: chave de API da organização em Authorization: Bearer
+     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+     * requisição. Respostas em JSON no envelope data; erros com error, message
+     * e fields.
      *
      * @param array{amount_cents: int, interval?: 'month'|'year', interval_count?: int, product_id: string, type: 'one_time'|'recurring'} $params
      */
@@ -29,7 +38,15 @@ final class PricesService
     }
 
     /**
-     * Listar preços, opcionalmente de um produto (product_id). One page; listIter() walks every page.
+     * Listar preços. One page; listIter() walks every page.
+     *
+     * Devolve uma página dos preços da organização. Com product_id, só os de um
+     * produto.
+     *
+     * Autenticação: chave de API da organização em Authorization: Bearer
+     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+     * requisição. Respostas em JSON no envelope data; erros com error, message
+     * e fields.
      *
      * @param array{page?: int, limit?: int, product_id?: string} $params
      * @return Page<Models\Price>

@@ -9,6 +9,20 @@ Todos os SDKs da Peráta saem com a mesma versão (`VERSION`). O histórico de c
 - `js/`: `perata.components.wallet` (o botão do Google Pay e do Apple Pay no layout do lojista), os tipos `WalletComponent`, `WalletComponentOptions`, `WalletComponentEvents` e `WalletKind`, `ChangeEvent.available`, `update({ customer })` e os códigos de erro `wallet_element_required`, `customer_incomplete` e `wallet_unavailable`. `components.payment` passa a trazer a carteira do aparelho e os cartões salvos. Seguem o `perata.js` do perata.sh e valem depois do deploy dele.
 - `react/`: `WalletComponent`.
 
+## 0.5.5 (18/11/2026)
+
+Gerado a partir do contrato da API 0.1.0 (perata.sh 384b09a5).
+
+### Os 11 SDKs de servidor
+
+- **Filtro por metadata nas listas.** `checkouts.list`, `orders.list`, `payments.list` e `subscriptions.list` aceitam `metadata`, um mapa de textos que vai na consulta como um par por chave, `metadata[chave]=valor` (até 10 pares; a linha precisa ter todos). Cada linguagem usa o seu tipo: Go `map[string]string`, TypeScript `Record<string, string>`, Python `dict[str, str]`, PHP `array<string, string>`, Ruby `Hash`, Java `Map<String, String>` (no `ListParams.builder().metadata(…)`), C# `IReadOnlyDictionary<string, string>`, Elixir um mapa (`metadata: %{…}`), Dart `Map<String, String>`, Rust `BTreeMap<String, String>` (`.metadata([("pedido", "123")])` aceita qualquer lista de pares) e Swift `[String: String]`. As chaves vão em ordem e escapadas (`metadata[camera id]=a/b` sai `metadata%5Bcamera%20id%5D=a%2Fb`, ou `+` no lugar do `%20` nas linguagens cujo codificador de consulta o usa), e os `…Iter` levam o filtro em todas as páginas. O gerador passou a ler um `$ref` de `components.parameters` e um parâmetro `style: deepObject` de textos; qualquer outro objeto ou lista na consulta para a geração.
+- **`?email=` nos clientes.** `customers.list` aceita `email` e devolve só o cliente com esse e-mail.
+- **Cliente ligado (200).** `customers.create` responde 200, e não 201, quando liga ao `external_id` enviado um cliente que já existia (um e-mail criado por um checkout). O corpo é o mesmo `Customer`; os SDKs já aceitavam qualquer 2xx, e agora a documentação diz.
+- **Regra da Idempotency-Key.** Uma resposta 2xx fica guardada sob a chave; uma recusa 4xx ou uma falha 5xx a libera, e a mesma chave pode ser enviada de novo, com o corpo corrigido ou como estava. Está no comentário da opção de cada SDK que a documenta (Go, TypeScript, Rust, Java, C# e Dart) e no README das 11.
+- **Documentação nos comentários.** O resumo de cada método agora é curto ("Listar checkouts"), e a descrição da operação vem logo abaixo, em parágrafos quebrados em linhas de até 80 colunas, no estilo de cada linguagem (`///`, Javadoc, docstring, `@doc`, `<remarks>`). Os filtros e o corpo de cada operação trazem a descrição do contrato.
+- **`metadata` declarado.** No contrato, o `metadata` dos corpos de requisição é um objeto livre: até 50 pares, chave de 1 a 40 caracteres, valor texto (de 1 a 500 caracteres), número ou booleano. O tipo nos SDKs continua o mapa de valores livres de antes (`map[string]any`, `Record<string, unknown>`…); mudou o texto do comentário de cada campo.
+- **READMEs.** Exemplos de `checkouts.expire`, de listas com `client_reference_id` e `metadata`, de `subscriptions.resume` e dos eventos `subscription.past_due` e `subscription.suspended` no webhook.
+
 ## 0.5.4 (18/11/2026)
 
 Gerado a partir do contrato da API 0.1.0 (perata.sh 3bc5068b).

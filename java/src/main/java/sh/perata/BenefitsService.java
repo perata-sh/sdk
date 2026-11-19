@@ -6,6 +6,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.TreeMap;
 
 /** The API's benefits. */
 public final class BenefitsService {
@@ -16,7 +17,17 @@ public final class BenefitsService {
     }
 
     /**
-     * Criar um benefício custom, license_key, feature_flag ou meter_credit; downloads e os benefícios do Discord e do GitHub se configuram no painel.
+     * Criar um benefício.
+     *
+     * Cria um benefício do tipo custom, license_key, feature_flag ou
+     * meter_credit. Os downloads e os benefícios do Discord e do GitHub se
+     * configuram no painel.
+     *
+     * Autenticação: chave de API da organização em Authorization: Bearer
+     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+     * requisição. Respostas em JSON no envelope data; erros com error, message
+     * e fields.
+     *
      * @param params the request
      * @param options an idempotency key or another organization's key for this call, or null
      * @return the benefit
@@ -28,7 +39,17 @@ public final class BenefitsService {
     }
 
     /**
-     * Criar um benefício custom, license_key, feature_flag ou meter_credit; downloads e os benefícios do Discord e do GitHub se configuram no painel.
+     * Criar um benefício.
+     *
+     * Cria um benefício do tipo custom, license_key, feature_flag ou
+     * meter_credit. Os downloads e os benefícios do Discord e do GitHub se
+     * configuram no painel.
+     *
+     * Autenticação: chave de API da organização em Authorization: Bearer
+     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+     * requisição. Respostas em JSON no envelope data; erros com error, message
+     * e fields.
+     *
      * @param params the request
      * @return the benefit
      * @throws PerataException when the API refuses the call
@@ -78,7 +99,7 @@ public final class BenefitsService {
             return description;
         }
 
-        /** @return Até 50 pares; valor em texto, número ou booleano. No feature_flag, os valores da flag. (null when left out) */
+        /** @return Pares guardados no benefício. No feature_flag, são os valores da flag. Até 50 pares de chave e valor: a chave tem de 1 a 40 caracteres, e o valor é um texto de 1 a 500 caracteres, um número ou um booleano. Texto sem caracteres de controle nem de direção invisível. (null when left out) */
         public Map<String, Object> getMetadata() {
             return metadata;
         }
@@ -144,7 +165,7 @@ public final class BenefitsService {
             }
 
             /**
-             * @param metadata Até 50 pares; valor em texto, número ou booleano. No feature_flag, os valores da flag.
+             * @param metadata Pares guardados no benefício. No feature_flag, são os valores da flag. Até 50 pares de chave e valor: a chave tem de 1 a 40 caracteres, e o valor é um texto de 1 a 500 caracteres, um número ou um booleano. Texto sem caracteres de controle nem de direção invisível.
              * @return this builder
              */
             public Builder metadata(Map<String, Object> metadata) {
@@ -206,7 +227,16 @@ public final class BenefitsService {
 
 
     /**
-     * Excluir um benefício: ele sai de todos os produtos e é revogado de quem o tem.
+     * Excluir um benefício.
+     *
+     * Exclui um benefício: ele sai de todos os produtos e é revogado de quem o
+     * tem.
+     *
+     * Autenticação: chave de API da organização em Authorization: Bearer
+     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+     * requisição. Respostas em JSON no envelope data; erros com error, message
+     * e fields.
+     *
      * @param benefit the benefit
      * @param options an idempotency key or another organization's key for this call, or null
      * @throws PerataException when the API refuses the call
@@ -216,7 +246,16 @@ public final class BenefitsService {
     }
 
     /**
-     * Excluir um benefício: ele sai de todos os produtos e é revogado de quem o tem.
+     * Excluir um benefício.
+     *
+     * Exclui um benefício: ele sai de todos os produtos e é revogado de quem o
+     * tem.
+     *
+     * Autenticação: chave de API da organização em Authorization: Bearer
+     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+     * requisição. Respostas em JSON no envelope data; erros com error, message
+     * e fields.
+     *
      * @param benefit the benefit
      * @throws PerataException when the API refuses the call
      */
@@ -226,6 +265,14 @@ public final class BenefitsService {
 
     /**
      * Ler um benefício.
+     *
+     * Devolve um benefício pelo ID.
+     *
+     * Autenticação: chave de API da organização em Authorization: Bearer
+     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+     * requisição. Respostas em JSON no envelope data; erros com error, message
+     * e fields.
+     *
      * @param benefit the benefit
      * @param options another organization's key for this call, or null
      * @return the benefit
@@ -238,6 +285,14 @@ public final class BenefitsService {
 
     /**
      * Ler um benefício.
+     *
+     * Devolve um benefício pelo ID.
+     *
+     * Autenticação: chave de API da organização em Authorization: Bearer
+     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+     * requisição. Respostas em JSON no envelope data; erros com error, message
+     * e fields.
+     *
      * @param benefit the benefit
      * @return the benefit
      * @throws PerataException when the API refuses the call
@@ -247,7 +302,16 @@ public final class BenefitsService {
     }
 
     /**
-     * Listar benefícios, opcionalmente de um tipo (type). One page; {@link #listIter} walks every page.
+     * Listar benefícios. One page; {@link #listIter} walks every page.
+     *
+     * Devolve uma página dos benefícios da organização. Com type, só os de um
+     * tipo.
+     *
+     * Autenticação: chave de API da organização em Authorization: Bearer
+     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+     * requisição. Respostas em JSON no envelope data; erros com error, message
+     * e fields.
+     *
      * @param params the page, its size and the filters, or null
      * @param options options for this call, or null
      * @return the page
@@ -259,7 +323,16 @@ public final class BenefitsService {
     }
 
     /**
-     * Listar benefícios, opcionalmente de um tipo (type). One page.
+     * Listar benefícios. One page.
+     *
+     * Devolve uma página dos benefícios da organização. Com type, só os de um
+     * tipo.
+     *
+     * Autenticação: chave de API da organização em Authorization: Bearer
+     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+     * requisição. Respostas em JSON no envelope data; erros com error, message
+     * e fields.
+     *
      * @param params the page, its size and the filters, or null
      * @return the page
      */
@@ -268,7 +341,16 @@ public final class BenefitsService {
     }
 
     /**
-     * Listar benefícios, opcionalmente de um tipo (type). The first page.
+     * Listar benefícios. The first page.
+     *
+     * Devolve uma página dos benefícios da organização. Com type, só os de um
+     * tipo.
+     *
+     * Autenticação: chave de API da organização em Authorization: Bearer
+     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+     * requisição. Respostas em JSON no envelope data; erros com error, message
+     * e fields.
+     *
      * @return the page
      */
     public Page<Benefit> list() {
@@ -396,7 +478,16 @@ public final class BenefitsService {
     }
 
     /**
-     * Listar as concessões de um benefício, opcionalmente de um cliente (customer_id) ou só as vigentes (is_granted). One page; {@link #listGrantsIter} walks every page.
+     * Listar as concessões de um benefício. One page; {@link #listGrantsIter} walks every page.
+     *
+     * Devolve uma página das concessões de um benefício. Com customer_id, só as
+     * de um cliente; com is_granted, só as vigentes ou só as revogadas.
+     *
+     * Autenticação: chave de API da organização em Authorization: Bearer
+     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+     * requisição. Respostas em JSON no envelope data; erros com error, message
+     * e fields.
+     *
      * @param benefit the benefit
      * @param params the page, its size and the filters, or null
      * @param options options for this call, or null
@@ -409,7 +500,16 @@ public final class BenefitsService {
     }
 
     /**
-     * Listar as concessões de um benefício, opcionalmente de um cliente (customer_id) ou só as vigentes (is_granted). One page.
+     * Listar as concessões de um benefício. One page.
+     *
+     * Devolve uma página das concessões de um benefício. Com customer_id, só as
+     * de um cliente; com is_granted, só as vigentes ou só as revogadas.
+     *
+     * Autenticação: chave de API da organização em Authorization: Bearer
+     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+     * requisição. Respostas em JSON no envelope data; erros com error, message
+     * e fields.
+     *
      * @param benefit the benefit
      * @param params the page, its size and the filters, or null
      * @return the page
@@ -419,7 +519,16 @@ public final class BenefitsService {
     }
 
     /**
-     * Listar as concessões de um benefício, opcionalmente de um cliente (customer_id) ou só as vigentes (is_granted). The first page.
+     * Listar as concessões de um benefício. The first page.
+     *
+     * Devolve uma página das concessões de um benefício. Com customer_id, só as
+     * de um cliente; com is_granted, só as vigentes ou só as revogadas.
+     *
+     * Autenticação: chave de API da organização em Authorization: Bearer
+     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+     * requisição. Respostas em JSON no envelope data; erros com error, message
+     * e fields.
+     *
      * @param benefit the benefit
      * @return the page
      */
@@ -570,7 +679,17 @@ public final class BenefitsService {
     }
 
     /**
-     * Atualizar o nome, a visibilidade, as propriedades e os metadados de um benefício; o tipo e a descrição dada na criação não mudam, e o que a concessão já entregou fica como foi entregue.
+     * Atualizar um benefício.
+     *
+     * Muda o nome, a visibilidade, as propriedades e os metadados de um
+     * benefício. O tipo e a descrição dada na criação não mudam, e o que a
+     * concessão já entregou fica como foi entregue.
+     *
+     * Autenticação: chave de API da organização em Authorization: Bearer
+     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+     * requisição. Respostas em JSON no envelope data; erros com error, message
+     * e fields.
+     *
      * @param benefit the benefit
      * @param params the request
      * @param options an idempotency key or another organization's key for this call, or null
@@ -583,7 +702,17 @@ public final class BenefitsService {
     }
 
     /**
-     * Atualizar o nome, a visibilidade, as propriedades e os metadados de um benefício; o tipo e a descrição dada na criação não mudam, e o que a concessão já entregou fica como foi entregue.
+     * Atualizar um benefício.
+     *
+     * Muda o nome, a visibilidade, as propriedades e os metadados de um
+     * benefício. O tipo e a descrição dada na criação não mudam, e o que a
+     * concessão já entregou fica como foi entregue.
+     *
+     * Autenticação: chave de API da organização em Authorization: Bearer
+     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+     * requisição. Respostas em JSON no envelope data; erros com error, message
+     * e fields.
+     *
      * @param benefit the benefit
      * @param params the request
      * @return the benefit
@@ -617,7 +746,7 @@ public final class BenefitsService {
             return new Builder();
         }
 
-        /** @return Substitui os metadados; {} os limpa. (null when left out) */
+        /** @return Substitui os metadados; {} os limpa. Até 50 pares de chave e valor: a chave tem de 1 a 40 caracteres, e o valor é um texto de 1 a 500 caracteres, um número ou um booleano. Texto sem caracteres de controle nem de direção invisível. (null when left out) */
         public Map<String, Object> getMetadata() {
             return metadata;
         }
@@ -665,7 +794,7 @@ public final class BenefitsService {
             }
 
             /**
-             * @param metadata Substitui os metadados; {} os limpa.
+             * @param metadata Substitui os metadados; {} os limpa. Até 50 pares de chave e valor: a chave tem de 1 a 40 caracteres, e o valor é um texto de 1 a 500 caracteres, um número ou um booleano. Texto sem caracteres de controle nem de direção invisível.
              * @return this builder
              */
             public Builder metadata(Map<String, Object> metadata) {

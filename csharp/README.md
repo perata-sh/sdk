@@ -46,7 +46,7 @@ await foreach (var each in perata.Products.ListIterAsync())
 | `perata.Usage` | `IngestAsync` |
 | `perata.Webhooks` | `CreateEndpointAsync`, `DeleteEndpointAsync`, `GetEndpointAsync`, `ListDeliveriesAsync`, `ListDeliveriesIterAsync`, `ListEndpointsAsync`, `ListEndpointsIterAsync`, `UpdateEndpointAsync` |
 
-Os modelos são `record`s imutáveis em PascalCase (`payment.AmountCents`), com os valores enumerados como constantes (`Product.StatusActive`). O corpo de cada escrita é um `record` com membros `required` (`ProductsCreateParams`); um campo opcional nulo fica fora da requisição. As listas aceitam `…ListParams` (`Page`, `Limit` e os filtros) e o `…IterAsync` devolve um `IAsyncEnumerable` que percorre todas as páginas. Todo método aceita, por último, `RequestOptions` (`IdempotencyKey` nas escritas, `ApiKey` para usar a chave de outra organização numa chamada) e um `CancellationToken`. Um POST sem chave de idempotência é enviado com uma `Idempotency-Key` própria (UUID v4 aleatório, uma por chamada); passe a sua para poder repetir a mesma operação com segurança.
+Os modelos são `record`s imutáveis em PascalCase (`payment.AmountCents`), com os valores enumerados como constantes (`Product.StatusActive`). O corpo de cada escrita é um `record` com membros `required` (`ProductsCreateParams`); um campo opcional nulo fica fora da requisição. As listas aceitam `…ListParams` (`Page`, `Limit` e os filtros) e o `…IterAsync` devolve um `IAsyncEnumerable` que percorre todas as páginas. Todo método aceita, por último, `RequestOptions` (`IdempotencyKey` nas escritas, `ApiKey` para usar a chave de outra organização numa chamada) e um `CancellationToken`. Um POST sem chave de idempotência é enviado com uma `Idempotency-Key` própria (UUID v4 aleatório, uma por chamada); passe a sua para poder repetir a mesma operação com segurança. Uma resposta 2xx fica guardada sob a chave; uma recusa 4xx ou uma falha 5xx a libera, e você pode repetir a escrita com a mesma chave, com o corpo corrigido ou como estava.
 
 ## Checkout transparente e embutido
 
@@ -71,6 +71,37 @@ No navegador, com o `client_secret` que o seu servidor devolveu (o site precisa 
   // clientSecret: o que o seu servidor devolveu acima
   Perata().components.payment({ clientSecret, onSuccess: (result) => console.log(result.status) }).mount("#pagamento");
 </script>
+```
+
+## Encerrar, listar e reativar
+
+Encerrar um checkout que não deve mais ser pago: a página, o `client_secret` e o QR do Pix deixam de valer (o Pix já gerado é cancelado), e o evento `checkout.expired` é enviado. Repetir a chamada é seguro; um checkout já pago, ou com boleto emitido, responde 409.
+
+```csharp
+var closed = await perata.Checkouts.ExpireAsync(checkoutId);
+// closed.Status == "expired"
+```
+
+Listar com filtros: `client_reference_id` acha o pedido que você registrou ao criar o checkout, e `metadata` casa os pares que você guardou (até 10 pares; a linha precisa ter todos). Os dois valem nas listas de checkouts, pedidos, pagamentos e assinaturas, e o filtro segue nas páginas de `ListIterAsync`.
+
+```csharp
+var filters = new OrdersListParams
+{
+    ClientReferenceId = "pedido-123",
+    Metadata = new Dictionary<string, string> { ["pedido"] = "123", ["camera id"] = "a/b" },
+};
+var page = await perata.Orders.ListAsync(filters);
+
+await foreach (var order in perata.Orders.ListIterAsync(filters))
+{
+    Console.WriteLine(order.Id);
+}
+```
+
+Reativar uma assinatura suspensa, que volta a ser cobrada, ou retomar uma pausada; qualquer outra assinatura responde 409:
+
+```csharp
+var subscription = await perata.Subscriptions.ResumeAsync(subscriptionId);
 ```
 
 ## Consumo (ingestão de eventos)
@@ -114,11 +145,19 @@ switch (webhook)
     case OrderWebhookEvent { Type: "order.paid" } paid:
         Console.WriteLine($"{paid.Data.Id} {paid.Data.Installments}");
         break;
+    case SubscriptionWebhookEvent { Type: "subscription.past_due" } pastDue: // uma cobrança de cartão foi recusada
+        Console.WriteLine($"{pastDue.Data.Id} {pastDue.Data.PaymentFailure?.Attempt}");
+        break;
+    case SubscriptionWebhookEvent { Type: "subscription.suspended" } suspended: // as tentativas acabaram
+        Console.WriteLine($"{suspended.Data.Id} {suspended.Data.SuspensionReason}");
+        break;
     case UnknownWebhookEvent unknown:
         // um tipo que esta versão do SDK ainda não conhece: unknown.Data é o JSON
         break;
 }
 ```
+
+O `subscription.past_due` sai a cada cobrança de cartão recusada (`payment_failure` traz o número da tentativa e quando o cartão será cobrado de novo): mantenha o acesso do cliente até o `subscription.suspended`. Esse diz que as tentativas acabaram (`suspension_reason`): cancele a assinatura ou reative-a com `Subscriptions.ResumeAsync`.
 
 A assinatura é a do Standard Webhooks (`webhook-id`, `webhook-timestamp`, `webhook-signature`), com tolerância de 5 minutos. Passe o corpo cru, antes de interpretar; os cabeçalhos podem ser os do ASP.NET, de um `HttpHeaders` ou um dicionário. Uma assinatura inválida lança `WebhookVerificationException`.
 
@@ -126,4 +165,4 @@ O evento é tipado: um tipo para cada dado que o webhook carrega (`OrderWebhookE
 
 Todo evento traz o ambiente em que aconteceu, em `Environment`: `"test"` ou `"live"` (vazio se um servidor antigo não mandou). Recuse o evento do ambiente errado: um endpoint de produção deve responder 400 a um evento `"test"`, para que um teste não dê baixa em um pedido real.
 
-Versão do SDK: 0.5.4 · contrato da API: 0.1.0
+Versão do SDK: 0.5.5 · contrato da API: 0.1.0

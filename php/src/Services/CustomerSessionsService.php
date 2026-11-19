@@ -18,7 +18,16 @@ final class CustomerSessionsService
     }
 
     /**
-     * Entrar com um cliente no portal do cliente: o endereço o abre já autenticado.
+     * Abrir o portal do cliente.
+     *
+     * Abre uma sessão do portal do cliente para o cliente informado e devolve o
+     * endereço que o abre já autenticado. Com return_url, um endereço https do
+     * seu aplicativo, o portal oferece a volta.
+     *
+     * Autenticação: chave de API da organização em Authorization: Bearer
+     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+     * requisição. Respostas em JSON no envelope data; erros com error, message
+     * e fields.
      *
      * @param array{customer_id: string, return_url?: string} $params
      */

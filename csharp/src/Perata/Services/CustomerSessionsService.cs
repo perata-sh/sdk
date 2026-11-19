@@ -3,6 +3,7 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Linq;
 using System.Net.Http;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -18,7 +19,16 @@ public sealed class CustomerSessionsService
 
     internal CustomerSessionsService(PerataClient client) => this.client = client;
 
-    /// <summary>Entrar com um cliente no portal do cliente: o endereço o abre já autenticado.</summary>
+    /// <summary>Abrir o portal do cliente.</summary>
+    /// <remarks>
+    /// <para>Abre uma sessão do portal do cliente para o cliente informado e
+    /// devolve o endereço que o abre já autenticado. Com return_url, um
+    /// endereço https do seu aplicativo, o portal oferece a volta.</para>
+    /// <para>Autenticação: chave de API da organização em Authorization: Bearer
+    /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
+    /// da requisição. Respostas em JSON no envelope data; erros com error,
+    /// message e fields.</para>
+    /// </remarks>
     /// <param name="parameters">The request.</param>
     /// <param name="options">An idempotency key, or another organization's key for this call.</param>
     /// <param name="cancellationToken">Cancels the call.</param>

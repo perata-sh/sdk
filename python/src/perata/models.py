@@ -2073,7 +2073,7 @@ class BenefitsCreateParams(TypedDict):
 
     description: NotRequired[str]
     metadata: NotRequired[dict[str, Any]]
-    """Até 50 pares; valor em texto, número ou booleano. No feature_flag, os valores da flag."""
+    """Pares guardados no benefício. No feature_flag, são os valores da flag. Até 50 pares de chave e valor: a chave tem de 1 a 40 caracteres, e o valor é um texto de 1 a 500 caracteres, um número ou um booleano. Texto sem caracteres de controle nem de direção invisível."""
     name: str
     """Como o benefício aparece nos produtos e para o cliente; até 80 caracteres."""
     properties: NotRequired[dict[str, Any]]
@@ -2086,7 +2086,7 @@ class BenefitsUpdateParams(TypedDict):
     """The body of benefits:update."""
 
     metadata: NotRequired[dict[str, Any]]
-    """Substitui os metadados; {} os limpa."""
+    """Substitui os metadados; {} os limpa. Até 50 pares de chave e valor: a chave tem de 1 a 40 caracteres, e o valor é um texto de 1 a 500 caracteres, um número ou um booleano. Texto sem caracteres de controle nem de direção invisível."""
     name: NotRequired[str]
     properties: NotRequired[dict[str, Any]]
     """Os campos do tipo, aplicados sobre os guardados; o que ficar de fora não muda."""
@@ -2107,7 +2107,7 @@ class CheckoutLinksCreateParams(TypedDict):
     max_installments: NotRequired[int]
     """De 0 a 12; 0 segue a organização."""
     metadata: NotRequired[dict[str, Any]]
-    """Até 50 pares; valor em texto, número ou booleano."""
+    """Pares guardados no link. Até 50 pares de chave e valor: a chave tem de 1 a 40 caracteres, e o valor é um texto de 1 a 500 caracteres, um número ou um booleano. Texto sem caracteres de controle nem de direção invisível."""
     price_id: NotRequired[str]
     price_ids: NotRequired[list[str]]
     """Um preço de cada produto, na ordem em que o comprador os vê; até 20."""
@@ -2126,7 +2126,7 @@ class CheckoutLinksUpdateParams(TypedDict):
     cancel_url: NotRequired[str]
     label: NotRequired[str]
     metadata: NotRequired[dict[str, Any]]
-    """Substitui os metadados; {} os limpa."""
+    """Substitui os metadados; {} os limpa. Até 50 pares de chave e valor: a chave tem de 1 a 40 caracteres, e o valor é um texto de 1 a 500 caracteres, um número ou um booleano. Texto sem caracteres de controle nem de direção invisível."""
     price_ids: NotRequired[list[str]]
     """Substitui os produtos do link."""
     require_billing_address: NotRequired[bool]
@@ -2157,7 +2157,7 @@ class CheckoutsCreateParams(TypedDict):
     """As linhas do pedido, até 50, para o comprador ler o detalhe: aparecem no checkout (página, modal, componentes e transparente), no pedido, no recibo, no portal do cliente e nos eventos. A soma de quantity vezes unit_amount_cents precisa ser igual a amount_cents, ou a resposta é 422; enviadas sem amount_cents, a soma é o valor."""
     label: NotRequired[str]
     metadata: NotRequired[dict[str, Any]]
-    """Até 50 pares guardados no link do checkout; valor em texto, número ou booleano."""
+    """Pares guardados no link do checkout e devolvidos no checkout, no pedido, no pagamento e nos eventos da venda. Até 50 pares de chave e valor: a chave tem de 1 a 40 caracteres, e o valor é um texto de 1 a 500 caracteres, um número ou um booleano. Texto sem caracteres de controle nem de direção invisível."""
     price_id: str
     product_id: str
     quantity: NotRequired[int]

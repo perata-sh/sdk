@@ -18,7 +18,15 @@ final class WebhooksService
     }
 
     /**
-     * Criar um endpoint de webhook; o segredo que assina as mensagens vem só nesta resposta.
+     * Criar um endpoint de webhook.
+     *
+     * Cria um endpoint de webhook. O segredo que assina as mensagens vem só
+     * nesta resposta; guarde-o.
+     *
+     * Autenticação: chave de API da organização em Authorization: Bearer
+     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+     * requisição. Respostas em JSON no envelope data; erros com error, message
+     * e fields.
      *
      * @param array{description?: string, events?: list<string>, format?: 'raw'|'discord'|'slack', url: string} $params
      */
@@ -29,7 +37,15 @@ final class WebhooksService
     }
 
     /**
-     * Excluir um endpoint de webhook; as entregas que ainda esperavam por ele falham. The API answers 204, so there is nothing to return.
+     * Excluir um endpoint de webhook. The API answers 204, so there is nothing to return.
+     *
+     * Exclui um endpoint de webhook. As entregas que ainda esperavam por ele
+     * falham.
+     *
+     * Autenticação: chave de API da organização em Authorization: Bearer
+     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+     * requisição. Respostas em JSON no envelope data; erros com error, message
+     * e fields.
      */
     public function deleteEndpoint(string $endpoint, ?string $idempotencyKey = null, ?string $apiKey = null): void
     {
@@ -38,6 +54,13 @@ final class WebhooksService
 
     /**
      * Ler um endpoint de webhook.
+     *
+     * Devolve um endpoint de webhook pelo ID.
+     *
+     * Autenticação: chave de API da organização em Authorization: Bearer
+     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+     * requisição. Respostas em JSON no envelope data; erros com error, message
+     * e fields.
      */
     public function getEndpoint(string $endpoint, ?string $apiKey = null): Models\WebhookEndpoint
     {
@@ -46,7 +69,15 @@ final class WebhooksService
     }
 
     /**
-     * Listar as últimas 100 entregas de eventos aos endpoints, opcionalmente de um endpoint (endpoint_id) ou de uma situação (status). One page; listDeliveriesIter() walks every page.
+     * Listar entregas de webhook. One page; listDeliveriesIter() walks every page.
+     *
+     * Devolve as últimas 100 entregas de eventos aos endpoints. Com
+     * endpoint_id, só as de um endpoint; com status, só as de uma situação.
+     *
+     * Autenticação: chave de API da organização em Authorization: Bearer
+     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+     * requisição. Respostas em JSON no envelope data; erros com error, message
+     * e fields.
      *
      * @param array{page?: int, limit?: int, endpoint_id?: string, status?: string} $params
      * @return Page<Models\WebhookDelivery>
@@ -69,7 +100,14 @@ final class WebhooksService
     }
 
     /**
-     * Listar os endpoints de webhook do lojista. One page; listEndpointsIter() walks every page.
+     * Listar endpoints de webhook. One page; listEndpointsIter() walks every page.
+     *
+     * Devolve uma página dos endpoints de webhook da organização.
+     *
+     * Autenticação: chave de API da organização em Authorization: Bearer
+     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+     * requisição. Respostas em JSON no envelope data; erros com error, message
+     * e fields.
      *
      * @param array{page?: int, limit?: int} $params
      * @return Page<Models\WebhookEndpoint>
@@ -92,7 +130,15 @@ final class WebhooksService
     }
 
     /**
-     * Atualizar o endereço, o formato, os eventos ou a descrição de um endpoint, ou ligar e desligar o envio (enabled); o segredo não muda.
+     * Atualizar um endpoint de webhook.
+     *
+     * Muda o endereço, o formato, os eventos ou a descrição de um endpoint, ou
+     * liga e desliga o envio (enabled). O segredo não muda.
+     *
+     * Autenticação: chave de API da organização em Authorization: Bearer
+     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+     * requisição. Respostas em JSON no envelope data; erros com error, message
+     * e fields.
      *
      * @param array{description?: string, enabled?: bool, events?: list<string>, format?: 'raw'|'discord'|'slack', url?: string} $params
      */

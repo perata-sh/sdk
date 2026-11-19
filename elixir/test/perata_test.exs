@@ -275,6 +275,35 @@ defmodule PerataTest do
     assert query(first)["limit"] == "1"
   end
 
+  test "a metadata filter is sent as one pair a key, the keys sorted and escaped" do
+    perata = client(fn _request -> {200, %{"data" => %{"items" => [], "pagination" => %{"total_count" => 0, "max_page" => 1}}}, []} end)
+    metadata = %{"pedido" => "123", "camera id" => "a/b"}
+
+    assert {:ok, _page} =
+             Perata.Orders.list(perata, client_reference_id: "pedido-1", metadata: metadata)
+
+    assert_received {:request, first}
+
+    assert first.url.query ==
+             "client_reference_id=pedido-1&metadata%5Bcamera+id%5D=a%2Fb&metadata%5Bpedido%5D=123"
+
+    assert query(first)["metadata[camera id]"] == "a/b"
+    assert [] = perata |> Perata.Checkouts.list_stream(limit: 1, metadata: metadata) |> Enum.to_list()
+    assert_received {:request, walked}
+
+    assert walked.url.query ==
+             "page=1&limit=1&metadata%5Bcamera+id%5D=a%2Fb&metadata%5Bpedido%5D=123"
+  end
+
+  test "customers are listed by e-mail" do
+    perata = client(fn _request -> {200, %{"data" => %{"items" => [], "pagination" => %{"total_count" => 0, "max_page" => 1}}}, []} end)
+
+    assert {:ok, _page} = Perata.Customers.list(perata, email: "ana@example.com")
+    assert_received {:request, seen}
+    assert seen.url.path == "/api/v1/customers"
+    assert seen.url.query == "email=ana%40example.com"
+  end
+
   test "usage ingestion carries the source credential and its events" do
     test = self()
 

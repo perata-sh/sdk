@@ -6,6 +6,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.TreeMap;
 
 /** The API's prices. */
 public final class PricesService {
@@ -16,7 +17,17 @@ public final class PricesService {
     }
 
     /**
-     * Criar um preço em reais, avulso ou recorrente.
+     * Criar um preço.
+     *
+     * Cria um preço em reais para um produto, avulso (one_time) ou recorrente
+     * (recurring). No recorrente, interval e interval_count dizem de quanto em
+     * quanto tempo ele renova: month com 3 é trimestral.
+     *
+     * Autenticação: chave de API da organização em Authorization: Bearer
+     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+     * requisição. Respostas em JSON no envelope data; erros com error, message
+     * e fields.
+     *
      * @param params the request
      * @param options an idempotency key or another organization's key for this call, or null
      * @return the price
@@ -28,7 +39,17 @@ public final class PricesService {
     }
 
     /**
-     * Criar um preço em reais, avulso ou recorrente.
+     * Criar um preço.
+     *
+     * Cria um preço em reais para um produto, avulso (one_time) ou recorrente
+     * (recurring). No recorrente, interval e interval_count dizem de quanto em
+     * quanto tempo ele renova: month com 3 é trimestral.
+     *
+     * Autenticação: chave de API da organização em Authorization: Bearer
+     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+     * requisição. Respostas em JSON no envelope data; erros com error, message
+     * e fields.
+     *
      * @param params the request
      * @return the price
      * @throws PerataException when the API refuses the call
@@ -183,7 +204,16 @@ public final class PricesService {
 
 
     /**
-     * Listar preços, opcionalmente de um produto (product_id). One page; {@link #listIter} walks every page.
+     * Listar preços. One page; {@link #listIter} walks every page.
+     *
+     * Devolve uma página dos preços da organização. Com product_id, só os de um
+     * produto.
+     *
+     * Autenticação: chave de API da organização em Authorization: Bearer
+     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+     * requisição. Respostas em JSON no envelope data; erros com error, message
+     * e fields.
+     *
      * @param params the page, its size and the filters, or null
      * @param options options for this call, or null
      * @return the page
@@ -195,7 +225,16 @@ public final class PricesService {
     }
 
     /**
-     * Listar preços, opcionalmente de um produto (product_id). One page.
+     * Listar preços. One page.
+     *
+     * Devolve uma página dos preços da organização. Com product_id, só os de um
+     * produto.
+     *
+     * Autenticação: chave de API da organização em Authorization: Bearer
+     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+     * requisição. Respostas em JSON no envelope data; erros com error, message
+     * e fields.
+     *
      * @param params the page, its size and the filters, or null
      * @return the page
      */
@@ -204,7 +243,16 @@ public final class PricesService {
     }
 
     /**
-     * Listar preços, opcionalmente de um produto (product_id). The first page.
+     * Listar preços. The first page.
+     *
+     * Devolve uma página dos preços da organização. Com product_id, só os de um
+     * produto.
+     *
+     * Autenticação: chave de API da organização em Authorization: Bearer
+     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+     * requisição. Respostas em JSON no envelope data; erros com error, message
+     * e fields.
+     *
      * @return the page
      */
     public Page<Price> list() {

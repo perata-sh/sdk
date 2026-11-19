@@ -172,6 +172,22 @@ class PerataTest(unittest.TestCase):
         self.assertEqual([item.id for item in perata.products.list_iter(limit=1)], ["prod_1", "prod_2", "prod_3"])
         self.assertEqual(parse_qs(recorder.seen[0]["url"].query)["limit"], ["1"])
 
+    def test_a_metadata_filter_is_sent_as_one_pair_a_key_the_keys_sorted_and_escaped(self):
+        empty = {"data": {"items": [], "pagination": {"total_count": 0, "max_page": 1}}}
+        perata, recorder = client(lambda request: (200, empty, {}))
+        metadata = {"pedido": "123", "camera id": "a/b"}
+        perata.orders.list(client_reference_id="pedido-1", metadata=metadata)
+        self.assertEqual(recorder.seen[0]["url"].query, "client_reference_id=pedido-1&metadata%5Bcamera+id%5D=a%2Fb&metadata%5Bpedido%5D=123")
+        self.assertEqual(parse_qs(recorder.seen[0]["url"].query)["metadata[camera id]"], ["a/b"])
+        self.assertEqual(list(perata.checkouts.list_iter(limit=1, metadata=metadata)), [])
+        self.assertEqual(recorder.seen[1]["url"].query, "page=1&limit=1&metadata%5Bcamera+id%5D=a%2Fb&metadata%5Bpedido%5D=123")
+
+    def test_customers_are_listed_by_email(self):
+        perata, recorder = client(lambda request: (200, {"data": {"items": [], "pagination": {"total_count": 0, "max_page": 1}}}, {}))
+        perata.customers.list(email="ana@example.com")
+        self.assertEqual(recorder.seen[0]["url"].path, "/api/v1/customers")
+        self.assertEqual(recorder.seen[0]["url"].query, "email=ana%40example.com")
+
     def test_usage_ingestion_carries_the_source_credential_and_its_events(self):
         recorder = Recorder(lambda request: (200, {"data": {"created": 1, "replayed": 0}}, {}))
         usage = Perata("pus_live_source", base_url="https://perata.test/", transport=recorder)

@@ -251,6 +251,30 @@ public class PerataTests
     }
 
     [Fact]
+    public async Task AMetadataFilterIsSentAsOnePairAKeyTheKeysSortedAndEscaped()
+    {
+        var recorder = new Recorder(_ => new Answer(HttpStatusCode.OK, """{"data":{"items":[],"pagination":{"total_count":0,"max_page":1}}}"""));
+        var metadata = new Dictionary<string, string> { ["pedido"] = "123", ["camera id"] = "a/b" };
+        await Client(recorder).Orders.ListAsync(new OrdersListParams { ClientReferenceId = "pedido-1", Metadata = metadata });
+        Assert.Equal("?client_reference_id=pedido-1&metadata%5Bcamera%20id%5D=a%2Fb&metadata%5Bpedido%5D=123", recorder.Requests[0].Url.Query);
+        await foreach (var _ in Client(recorder).Checkouts.ListIterAsync(new CheckoutsListParams { Limit = 1, Metadata = metadata }))
+        {
+            Assert.Fail("an empty page has no items");
+        }
+        Assert.Equal("?page=1&limit=1&metadata%5Bcamera%20id%5D=a%2Fb&metadata%5Bpedido%5D=123", recorder.Requests[1].Url.Query);
+    }
+
+    [Fact]
+    public async Task CustomersAreListedByEmail()
+    {
+        var recorder = new Recorder(_ => new Answer(HttpStatusCode.OK, """{"data":{"items":[],"pagination":{"total_count":0,"max_page":1}}}"""));
+        await Client(recorder).Customers.ListAsync(new CustomersListParams { Email = "ana@example.com" });
+        var seen = Assert.Single(recorder.Requests);
+        Assert.Equal("/api/v1/customers", seen.Url.AbsolutePath);
+        Assert.Equal("?email=ana%40example.com", seen.Url.Query);
+    }
+
+    [Fact]
     public async Task UsageIngestionCarriesTheSourceCredentialAndItsEvents()
     {
         var recorder = new Recorder(_ => new Answer(HttpStatusCode.OK, """{"data":{"created":1,"replayed":0}}"""));

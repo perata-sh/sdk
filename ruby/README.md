@@ -43,7 +43,7 @@ end
 
 Os modelos são objetos imutáveis com leitores em snake_case (`payment.amount_cents`). O corpo de uma escrita é a classe de parâmetros do método (`Perata::ProductsCreateParams.new(name: "Curso")`) ou um `Hash` com os mesmos nomes; um campo opcional não informado fica fora do JSON. Os métodos `_iter` devolvem um `Enumerator` que percorre todas as páginas a partir de `page:` (ou recebem um bloco).
 
-As escritas aceitam `idempotency_key:`, e todas aceitam `api_key:` para usar a chave de outra organização numa chamada. `Perata::Client.new` aceita `base_url:`, `timeout:` (30 segundos) e `transport:`. Um POST sem chave de idempotência é enviado com uma `Idempotency-Key` própria (UUID v4 aleatório, uma por chamada); passe a sua para poder repetir a mesma operação com segurança.
+As escritas aceitam `idempotency_key:`, e todas aceitam `api_key:` para usar a chave de outra organização numa chamada. `Perata::Client.new` aceita `base_url:`, `timeout:` (30 segundos) e `transport:`. Um POST sem chave de idempotência é enviado com uma `Idempotency-Key` própria (UUID v4 aleatório, uma por chamada); passe a sua para poder repetir a mesma operação com segurança. Uma resposta 2xx fica guardada sob a chave; uma recusa 4xx ou uma falha 5xx a libera, e você pode repetir a escrita com a mesma chave, com o corpo corrigido ou como estava.
 
 ## Checkout transparente e embutido
 
@@ -68,6 +68,32 @@ No navegador, com o `client_secret` que o seu servidor devolveu (o site precisa 
   // clientSecret: o que o seu servidor devolveu acima
   Perata().components.payment({ clientSecret, onSuccess: (result) => console.log(result.status) }).mount("#pagamento");
 </script>
+```
+
+## Encerrar, listar e reativar
+
+Encerrar um checkout que não deve mais ser pago: a página, o `client_secret` e o QR do Pix deixam de valer (o Pix já gerado é cancelado), e o evento `checkout.expired` é enviado. Repetir a chamada é seguro; um checkout já pago, ou com boleto emitido, responde 409.
+
+```ruby
+closed = perata.checkouts.expire(checkout_id)
+# closed.status == "expired"
+```
+
+Listar com filtros: `client_reference_id` acha o pedido que você registrou ao criar o checkout, e `metadata` casa os pares que você guardou (até 10 pares; a linha precisa ter todos). Os dois valem nas listas de checkouts, pedidos, pagamentos e assinaturas, e o filtro segue nas páginas de `list_iter`.
+
+```ruby
+filters = { client_reference_id: "pedido-123", metadata: { "pedido" => "123", "camera id" => "a/b" } }
+page = perata.orders.list(**filters)
+
+perata.orders.list_iter(**filters).each do |order|
+  puts order.id
+end
+```
+
+Reativar uma assinatura suspensa, que volta a ser cobrada, ou retomar uma pausada; qualquer outra assinatura responde 409:
+
+```ruby
+subscription = perata.subscriptions.resume(subscription_id)
 ```
 
 ## Consumo (ingestão de eventos)
@@ -101,9 +127,16 @@ event = Perata.verify_webhook(ENV.fetch("PERATA_WEBHOOK_SECRET"), request.header
 case event
 when Perata::OrderWebhookEvent then puts event.type, event.data.id, event.data.installments
 when Perata::DisputeWebhookEvent then puts event.data.provider_dispute_id
+when Perata::SubscriptionWebhookEvent
+  case event.type
+  when "subscription.past_due" then puts event.data.id, event.data.payment_failure&.attempt # uma cobrança de cartão foi recusada
+  when "subscription.suspended" then puts event.data.id, event.data.suspension_reason # as tentativas acabaram
+  end
 when Perata::UnknownWebhookEvent then nil # um tipo que esta versão ainda não conhece: event.data é o JSON
 end
 ```
+
+O `subscription.past_due` sai a cada cobrança de cartão recusada (`payment_failure` traz o número da tentativa e quando o cartão será cobrado de novo): mantenha o acesso do cliente até o `subscription.suspended`. Esse diz que as tentativas acabaram (`suspension_reason`): cancele a assinatura ou reative-a com `subscriptions.resume`.
 
 A assinatura é a do Standard Webhooks (`webhook-id`, `webhook-timestamp`, `webhook-signature`), com tolerância de 5 minutos. Passe o corpo cru, antes de interpretar; os cabeçalhos podem vir num `Hash` ou no env do Rack. Uma assinatura que não confere levanta `Perata::WebhookVerificationError`.
 
@@ -111,4 +144,4 @@ O evento é tipado: um tipo para cada dado que o webhook carrega (`OrderWebhookE
 
 Todo evento traz o ambiente em que aconteceu, em `event.environment`: `"test"` ou `"live"` (vazio se um servidor antigo não mandou). Recuse o evento do ambiente errado: um endpoint de produção deve responder 400 a um evento `"test"`, para que um teste não dê baixa em um pedido real.
 
-Versão do SDK: 0.5.4 · contrato da API: 0.1.0
+Versão do SDK: 0.5.5 · contrato da API: 0.1.0

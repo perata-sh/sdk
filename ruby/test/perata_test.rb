@@ -169,6 +169,23 @@ class PerataTest < Minitest::Test
     assert_equal "1", query(recorder.seen.first)["limit"]
   end
 
+  def test_a_metadata_filter_is_sent_as_one_pair_a_key_the_keys_sorted_and_escaped
+    perata, recorder = client { [200, { "data" => { "items" => [], "pagination" => { "total_count" => 0, "max_page" => 1 } } }, {}] }
+    metadata = { "pedido" => "123", "camera id" => "a/b" }
+    perata.orders.list(client_reference_id: "pedido-1", metadata: metadata)
+    assert_equal "client_reference_id=pedido-1&metadata%5Bcamera+id%5D=a%2Fb&metadata%5Bpedido%5D=123", recorder.seen[0][:url].query
+    assert_equal({ "client_reference_id" => "pedido-1", "metadata[camera id]" => "a/b", "metadata[pedido]" => "123" }, query(recorder.seen[0]))
+    assert_empty perata.checkouts.list_iter(limit: 1, metadata: metadata).to_a
+    assert_equal "page=1&limit=1&metadata%5Bcamera+id%5D=a%2Fb&metadata%5Bpedido%5D=123", recorder.seen[1][:url].query
+  end
+
+  def test_customers_are_listed_by_email
+    perata, recorder = client { [200, { "data" => { "items" => [], "pagination" => { "total_count" => 0, "max_page" => 1 } } }, {}] }
+    perata.customers.list(email: "ana@example.com")
+    assert_equal "/api/v1/customers", recorder.seen[0][:url].path
+    assert_equal "email=ana%40example.com", recorder.seen[0][:url].query
+  end
+
   def test_usage_ingestion_carries_the_source_credential_and_its_events
     recorder = Recorder.new { [200, { "data" => { "created" => 1, "replayed" => 0 } }, {}] }
     usage = Perata::Client.new("pus_live_source", base_url: "https://perata.test/", transport: recorder)

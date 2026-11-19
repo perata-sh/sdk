@@ -275,6 +275,35 @@ class PerataTest {
     }
 
     @Test
+    void aMetadataFilterIsSentAsOnePairAKeyTheKeysSortedAndEscaped() {
+        Recorder recorder = new Recorder(request -> json(200, Map.of(), data(Map.of(
+                "items", List.of(),
+                "pagination", Map.of("total_count", 0, "max_page", 1)))));
+        Map<String, String> metadata = Map.of("pedido", "123", "camera id", "a/b");
+        client(recorder).orders().list(OrdersService.ListParams.builder().clientReferenceId("pedido-1").metadata(metadata).build());
+        assertEquals(
+                "client_reference_id=pedido-1&metadata%5Bcamera%20id%5D=a%2Fb&metadata%5Bpedido%5D=123",
+                URI.create(recorder.seen.get(0).getUrl()).getRawQuery());
+        for (Checkout ignored : client(recorder).checkouts().listIter(CheckoutsService.ListParams.builder().limit(1).metadata(metadata).build())) {
+            throw new AssertionError("an empty page has no items");
+        }
+        assertEquals(
+                "page=1&limit=1&metadata%5Bcamera%20id%5D=a%2Fb&metadata%5Bpedido%5D=123",
+                URI.create(recorder.seen.get(1).getUrl()).getRawQuery());
+    }
+
+    @Test
+    void customersAreListedByEmail() {
+        Recorder recorder = new Recorder(request -> json(200, Map.of(), data(Map.of(
+                "items", List.of(),
+                "pagination", Map.of("total_count", 0, "max_page", 1)))));
+        client(recorder).customers().list(CustomersService.ListParams.builder().email("ana@example.com").build());
+        URI url = URI.create(recorder.seen.get(0).getUrl());
+        assertEquals("/api/v1/customers", url.getPath());
+        assertEquals("email=ana%40example.com", url.getRawQuery());
+    }
+
+    @Test
     @SuppressWarnings("unchecked")
     void usageIngestionCarriesTheSourceCredentialAndItsEvents() {
         Recorder recorder = new Recorder(request -> json(200, Map.of(), data(Map.of("created", 1L, "replayed", 0L))));

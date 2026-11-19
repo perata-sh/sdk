@@ -1257,7 +1257,7 @@ pub struct UsageIngestReceipt {
 pub struct BenefitsCreateParams {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub description: Option<String>,
-    /// Até 50 pares; valor em texto, número ou booleano. No feature_flag, os valores da flag.
+    /// Pares guardados no benefício. No feature_flag, são os valores da flag. Até 50 pares de chave e valor: a chave tem de 1 a 40 caracteres, e o valor é um texto de 1 a 500 caracteres, um número ou um booleano. Texto sem caracteres de controle nem de direção invisível.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub metadata: Option<std::collections::HashMap<String, serde_json::Value>>,
     /// Como o benefício aparece nos produtos e para o cliente; até 80 caracteres.
@@ -1290,7 +1290,7 @@ impl BenefitsCreateParams {
         self
     }
 
-    /// Até 50 pares; valor em texto, número ou booleano. No feature_flag, os valores da flag.
+    /// Pares guardados no benefício. No feature_flag, são os valores da flag. Até 50 pares de chave e valor: a chave tem de 1 a 40 caracteres, e o valor é um texto de 1 a 500 caracteres, um número ou um booleano. Texto sem caracteres de controle nem de direção invisível.
     pub fn metadata(mut self, metadata: std::collections::HashMap<String, serde_json::Value>) -> Self {
         self.metadata = Some(metadata);
         self
@@ -1316,7 +1316,7 @@ impl BenefitsCreateParams {
 #[derive(Debug, Clone, PartialEq, Default, Serialize, Deserialize)]
 #[non_exhaustive]
 pub struct BenefitsUpdateParams {
-    /// Substitui os metadados; {} os limpa.
+    /// Substitui os metadados; {} os limpa. Até 50 pares de chave e valor: a chave tem de 1 a 40 caracteres, e o valor é um texto de 1 a 500 caracteres, um número ou um booleano. Texto sem caracteres de controle nem de direção invisível.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub metadata: Option<std::collections::HashMap<String, serde_json::Value>>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -1339,7 +1339,7 @@ impl BenefitsUpdateParams {
         }
     }
 
-    /// Substitui os metadados; {} os limpa.
+    /// Substitui os metadados; {} os limpa. Até 50 pares de chave e valor: a chave tem de 1 a 40 caracteres, e o valor é um texto de 1 a 500 caracteres, um número ou um booleano. Texto sem caracteres de controle nem de direção invisível.
     pub fn metadata(mut self, metadata: std::collections::HashMap<String, serde_json::Value>) -> Self {
         self.metadata = Some(metadata);
         self
@@ -1388,7 +1388,7 @@ pub struct CheckoutLinksCreateParams {
     /// De 0 a 12; 0 segue a organização.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub max_installments: Option<i64>,
-    /// Até 50 pares; valor em texto, número ou booleano.
+    /// Pares guardados no link. Até 50 pares de chave e valor: a chave tem de 1 a 40 caracteres, e o valor é um texto de 1 a 500 caracteres, um número ou um booleano. Texto sem caracteres de controle nem de direção invisível.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub metadata: Option<std::collections::HashMap<String, serde_json::Value>>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -1476,7 +1476,7 @@ impl CheckoutLinksCreateParams {
         self
     }
 
-    /// Até 50 pares; valor em texto, número ou booleano.
+    /// Pares guardados no link. Até 50 pares de chave e valor: a chave tem de 1 a 40 caracteres, e o valor é um texto de 1 a 500 caracteres, um número ou um booleano. Texto sem caracteres de controle nem de direção invisível.
     pub fn metadata(mut self, metadata: std::collections::HashMap<String, serde_json::Value>) -> Self {
         self.metadata = Some(metadata);
         self
@@ -1542,7 +1542,7 @@ pub struct CheckoutLinksUpdateParams {
     pub cancel_url: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub label: Option<String>,
-    /// Substitui os metadados; {} os limpa.
+    /// Substitui os metadados; {} os limpa. Até 50 pares de chave e valor: a chave tem de 1 a 40 caracteres, e o valor é um texto de 1 a 500 caracteres, um número ou um booleano. Texto sem caracteres de controle nem de direção invisível.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub metadata: Option<std::collections::HashMap<String, serde_json::Value>>,
     /// Substitui os produtos do link.
@@ -1579,7 +1579,7 @@ impl CheckoutLinksUpdateParams {
         self
     }
 
-    /// Substitui os metadados; {} os limpa.
+    /// Substitui os metadados; {} os limpa. Até 50 pares de chave e valor: a chave tem de 1 a 40 caracteres, e o valor é um texto de 1 a 500 caracteres, um número ou um booleano. Texto sem caracteres de controle nem de direção invisível.
     pub fn metadata(mut self, metadata: std::collections::HashMap<String, serde_json::Value>) -> Self {
         self.metadata = Some(metadata);
         self
@@ -1642,7 +1642,7 @@ pub struct CheckoutsCreateParams {
     pub items: Option<Vec<CheckoutsCreateItem>>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub label: Option<String>,
-    /// Até 50 pares guardados no link do checkout; valor em texto, número ou booleano.
+    /// Pares guardados no link do checkout e devolvidos no checkout, no pedido, no pagamento e nos eventos da venda. Até 50 pares de chave e valor: a chave tem de 1 a 40 caracteres, e o valor é um texto de 1 a 500 caracteres, um número ou um booleano. Texto sem caracteres de controle nem de direção invisível.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub metadata: Option<std::collections::HashMap<String, serde_json::Value>>,
     pub price_id: String,
@@ -1751,7 +1751,7 @@ impl CheckoutsCreateParams {
         self
     }
 
-    /// Até 50 pares guardados no link do checkout; valor em texto, número ou booleano.
+    /// Pares guardados no link do checkout e devolvidos no checkout, no pedido, no pagamento e nos eventos da venda. Até 50 pares de chave e valor: a chave tem de 1 a 40 caracteres, e o valor é um texto de 1 a 500 caracteres, um número ou um booleano. Texto sem caracteres de controle nem de direção invisível.
     pub fn metadata(mut self, metadata: std::collections::HashMap<String, serde_json::Value>) -> Self {
         self.metadata = Some(metadata);
         self

@@ -6,6 +6,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.TreeMap;
 
 /** The API's payments. */
 public final class PaymentsService {
@@ -17,6 +18,14 @@ public final class PaymentsService {
 
     /**
      * Ler um pagamento.
+     *
+     * Devolve um pagamento pelo ID.
+     *
+     * Autenticação: chave de API da organização em Authorization: Bearer
+     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+     * requisição. Respostas em JSON no envelope data; erros com error, message
+     * e fields.
+     *
      * @param payment the payment
      * @param options another organization's key for this call, or null
      * @return the payment
@@ -29,6 +38,14 @@ public final class PaymentsService {
 
     /**
      * Ler um pagamento.
+     *
+     * Devolve um pagamento pelo ID.
+     *
+     * Autenticação: chave de API da organização em Authorization: Bearer
+     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+     * requisição. Respostas em JSON no envelope data; erros com error, message
+     * e fields.
+     *
      * @param payment the payment
      * @return the payment
      * @throws PerataException when the API refuses the call
@@ -38,7 +55,16 @@ public final class PaymentsService {
     }
 
     /**
-     * Listar pagamentos, opcionalmente de um client_reference_id, de um estado, de um cliente, de um período ou de metadados. One page; {@link #listIter} walks every page.
+     * Listar pagamentos. One page; {@link #listIter} walks every page.
+     *
+     * Devolve uma página dos pagamentos. Filtre por client_reference_id,
+     * estado, cliente, período ou metadados.
+     *
+     * Autenticação: chave de API da organização em Authorization: Bearer
+     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+     * requisição. Respostas em JSON no envelope data; erros com error, message
+     * e fields.
+     *
      * @param params the page, its size and the filters, or null
      * @param options options for this call, or null
      * @return the page
@@ -50,7 +76,16 @@ public final class PaymentsService {
     }
 
     /**
-     * Listar pagamentos, opcionalmente de um client_reference_id, de um estado, de um cliente, de um período ou de metadados. One page.
+     * Listar pagamentos. One page.
+     *
+     * Devolve uma página dos pagamentos. Filtre por client_reference_id,
+     * estado, cliente, período ou metadados.
+     *
+     * Autenticação: chave de API da organização em Authorization: Bearer
+     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+     * requisição. Respostas em JSON no envelope data; erros com error, message
+     * e fields.
+     *
      * @param params the page, its size and the filters, or null
      * @return the page
      */
@@ -59,7 +94,16 @@ public final class PaymentsService {
     }
 
     /**
-     * Listar pagamentos, opcionalmente de um client_reference_id, de um estado, de um cliente, de um período ou de metadados. The first page.
+     * Listar pagamentos. The first page.
+     *
+     * Devolve uma página dos pagamentos. Filtre por client_reference_id,
+     * estado, cliente, período ou metadados.
+     *
+     * Autenticação: chave de API da organização em Authorization: Bearer
+     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+     * requisição. Respostas em JSON no envelope data; erros com error, message
+     * e fields.
+     *
      * @return the page
      */
     public Page<Payment> list() {
@@ -107,6 +151,7 @@ public final class PaymentsService {
         private final String createdAfter;
         private final String createdBefore;
         private final String sorting;
+        private final Map<String, String> metadata;
 
         private ListParams(Builder builder) {
             this.page = builder.page;
@@ -118,6 +163,7 @@ public final class PaymentsService {
             this.createdAfter = builder.createdAfter;
             this.createdBefore = builder.createdBefore;
             this.sorting = builder.sorting;
+            this.metadata = builder.metadata;
         }
 
         /** @return a builder of the page and filters */
@@ -170,6 +216,11 @@ public final class PaymentsService {
             return sorting;
         }
 
+        /** @return Filtro por metadados: metadata[chave]=valor, uma vez para cada par (até 10); a linha precisa ter todos. Um valor que parece número ou booleano também casa com o número ou o booleano guardado. (null when not filtered) */
+        public Map<String, String> getMetadata() {
+            return metadata;
+        }
+
         ListParams withPage(int page) {
             Builder builder = builder().page(page);
             builder.limit = limit;
@@ -180,6 +231,7 @@ public final class PaymentsService {
             builder.createdAfter = createdAfter;
             builder.createdBefore = createdBefore;
             builder.sorting = sorting;
+            builder.metadata = metadata;
             return builder.build();
         }
 
@@ -194,6 +246,12 @@ public final class PaymentsService {
             query.put("created_after", createdAfter);
             query.put("created_before", createdBefore);
             query.put("sorting", sorting);
+            if (metadata != null) {
+                // A map filter is one pair a key: metadata[key]=value, the keys sorted.
+                for (Map.Entry<String, String> pair : new TreeMap<>(metadata).entrySet()) {
+                    query.put("metadata" + "[" + pair.getKey() + "]", pair.getValue());
+                }
+            }
             return query;
         }
 
@@ -208,6 +266,7 @@ public final class PaymentsService {
             private String createdAfter;
             private String createdBefore;
             private String sorting;
+            private Map<String, String> metadata;
 
             private Builder() {
             }
@@ -290,6 +349,15 @@ public final class PaymentsService {
              */
             public Builder sorting(String sorting) {
                 this.sorting = sorting;
+                return this;
+            }
+
+            /**
+             * @param metadata Filtro por metadados: metadata[chave]=valor, uma vez para cada par (até 10); a linha precisa ter todos. Um valor que parece número ou booleano também casa com o número ou o booleano guardado.
+             * @return this builder
+             */
+            public Builder metadata(Map<String, String> metadata) {
+                this.metadata = metadata == null ? null : new TreeMap<>(metadata);
                 return this;
             }
 

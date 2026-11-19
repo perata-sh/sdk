@@ -64,7 +64,18 @@ export class Perata implements Requester {
   async request<T>(method: string, path: string, spec: RequestSpec = {}): Promise<T> {
     const url = new URL(this.#baseUrl + path);
     for (const [name, value] of Object.entries(spec.query ?? {})) {
-      if (value !== undefined && value !== "") {
+      if (value === undefined || value === "") {
+        continue;
+      }
+      if (typeof value === "object") {
+        // A map filter is one pair a key: metadata[pedido]=123.
+        for (const key of Object.keys(value).sort()) {
+          const each = value[key];
+          if (each !== undefined && each !== "") {
+            url.searchParams.set(`${name}[${key}]`, String(each));
+          }
+        }
+      } else {
         url.searchParams.set(name, String(value));
       }
     }

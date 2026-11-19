@@ -6,6 +6,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.TreeMap;
 
 /** The API's customer-sessions. */
 public final class CustomerSessionsService {
@@ -16,7 +17,17 @@ public final class CustomerSessionsService {
     }
 
     /**
-     * Entrar com um cliente no portal do cliente: o endereço o abre já autenticado.
+     * Abrir o portal do cliente.
+     *
+     * Abre uma sessão do portal do cliente para o cliente informado e devolve o
+     * endereço que o abre já autenticado. Com return_url, um endereço https do
+     * seu aplicativo, o portal oferece a volta.
+     *
+     * Autenticação: chave de API da organização em Authorization: Bearer
+     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+     * requisição. Respostas em JSON no envelope data; erros com error, message
+     * e fields.
+     *
      * @param params the request
      * @param options an idempotency key or another organization's key for this call, or null
      * @return the customersession
@@ -28,7 +39,17 @@ public final class CustomerSessionsService {
     }
 
     /**
-     * Entrar com um cliente no portal do cliente: o endereço o abre já autenticado.
+     * Abrir o portal do cliente.
+     *
+     * Abre uma sessão do portal do cliente para o cliente informado e devolve o
+     * endereço que o abre já autenticado. Com return_url, um endereço https do
+     * seu aplicativo, o portal oferece a volta.
+     *
+     * Autenticação: chave de API da organização em Authorization: Bearer
+     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+     * requisição. Respostas em JSON no envelope data; erros com error, message
+     * e fields.
+     *
      * @param params the request
      * @return the customersession
      * @throws PerataException when the API refuses the call

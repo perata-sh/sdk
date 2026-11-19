@@ -19,6 +19,13 @@ final class PaymentsService
 
     /**
      * Ler um pagamento.
+     *
+     * Devolve um pagamento pelo ID.
+     *
+     * Autenticação: chave de API da organização em Authorization: Bearer
+     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+     * requisição. Respostas em JSON no envelope data; erros com error, message
+     * e fields.
      */
     public function get(string $payment, ?string $apiKey = null): Models\Payment
     {
@@ -27,9 +34,17 @@ final class PaymentsService
     }
 
     /**
-     * Listar pagamentos, opcionalmente de um client_reference_id, de um estado, de um cliente, de um período ou de metadados. One page; listIter() walks every page.
+     * Listar pagamentos. One page; listIter() walks every page.
      *
-     * @param array{page?: int, limit?: int, client_reference_id?: string, status?: string, customer_id?: string, external_customer_id?: string, created_after?: string, created_before?: string, sorting?: string} $params
+     * Devolve uma página dos pagamentos. Filtre por client_reference_id,
+     * estado, cliente, período ou metadados.
+     *
+     * Autenticação: chave de API da organização em Authorization: Bearer
+     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+     * requisição. Respostas em JSON no envelope data; erros com error, message
+     * e fields.
+     *
+     * @param array{page?: int, limit?: int, client_reference_id?: string, status?: string, customer_id?: string, external_customer_id?: string, created_after?: string, created_before?: string, sorting?: string, metadata?: array<string, string>} $params
      * @return Page<Models\Payment>
      */
     public function list(array $params = [], ?string $apiKey = null): Page
@@ -41,7 +56,7 @@ final class PaymentsService
     /**
      * Walks every page of payments:list, item by item.
      *
-     * @param array{page?: int, limit?: int, client_reference_id?: string, status?: string, customer_id?: string, external_customer_id?: string, created_after?: string, created_before?: string, sorting?: string} $params
+     * @param array{page?: int, limit?: int, client_reference_id?: string, status?: string, customer_id?: string, external_customer_id?: string, created_after?: string, created_before?: string, sorting?: string, metadata?: array<string, string>} $params
      * @return \Generator<int, Models\Payment>
      */
     public function listIter(array $params = [], ?string $apiKey = null): \Generator

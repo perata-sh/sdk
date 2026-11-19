@@ -15,6 +15,7 @@ module Perata
 {{- if .Paginated}}
 
     # {{.Summary}}. One page; +{{snake .Name}}_iter+ walks every page.
+{{- template "doc" .}}
     #
     # @return [Page<{{.Item}}>]
     def {{snake .Name}}({{range .PathParams}}{{rbName .}}, {{end}}page: nil, limit: nil, {{range .Query}}{{rbName .Name}}: nil, {{end}}api_key: nil)
@@ -35,6 +36,7 @@ module Perata
 {{- else if .NoContent}}
 
     # {{.Summary}}. The API answers 204, so there is nothing to return.
+{{- template "doc" .}}
     #
 {{- if .Body}}
     # @param params [{{.Body.Name}}, Hash]
@@ -47,6 +49,7 @@ module Perata
 {{- else}}
 
     # {{.Summary}}.
+{{- template "doc" .}}
     #
 {{- if .Body}}
     # @param params [{{.Body.Name}}, Hash]
@@ -61,4 +64,7 @@ module Perata
   end
 {{- end}}
 end
+{{- define "doc"}}{{with .Description}}
+    #
+{{docBlock "    # " .}}{{end}}{{end}}
 {{- define "path"}}"{{range pathParts .Path}}{{if .Param}}#{Perata.segment({{rbName .Param}})}{{else}}{{.Literal}}{{end}}{{end}}"{{end}}

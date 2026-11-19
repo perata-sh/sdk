@@ -21,14 +21,10 @@ func init() {
 		"exRead":  exRead,
 		"exWrite": exWrite,
 		// exDoc writes a description as an Elixir string, quotes escaped.
-		"exDoc": func(text string) string {
-			text = strings.TrimSpace(text)
-			text = strings.ReplaceAll(text, `\`, `\\`)
-			text = strings.ReplaceAll(text, `"`, `\"`)
-			text = strings.ReplaceAll(text, "#{", `\#{`)
-			return strings.ReplaceAll(text, "\n", " ")
-		},
-		"exStruct": exStruct,
+		"exDoc": func(text string) string { return strings.ReplaceAll(exDocText(text), "\n", " ") },
+		// exDocBlock writes text as the lines of a @doc heredoc.
+		"exDocBlock": func(prefix, text string) string { return docBlock(prefix, text, exDocText) },
+		"exStruct":   exStruct,
 		// exBuild builds expr into t, or takes it as it is.
 		"exBuild": func(t *TypeRef, expr string) string {
 			if convert := exConvert(t, expr, 0); convert != "" {
@@ -156,7 +152,7 @@ func exRequest(m *Method) string {
 		for _, param := range m.Query {
 			query = append(query, param.Name+": opts[:"+param.Name+"]")
 		}
-		items = append(items, "query: ["+strings.Join(query, ", ")+"]")
+		items = append(items, strings.TrimLeft(exLine(6, "query: [", query, "]"), " "))
 	}
 	if m.Body != nil {
 		items = append(items, "body: Perata."+m.Body.Name+".to_map(params)")
@@ -275,4 +271,13 @@ func exWrite(f *Field) string {
 func exHeredoc(text string) string {
 	text = strings.NewReplacer(`\`, `\\`, "#{", `\#{`, `"""`, `\"\"\"`).Replace(text)
 	return strings.Join(strings.Fields(text), " ")
+}
+
+// exDocText escapes text for a doc string: the backslash, the quote and the
+// interpolation.
+func exDocText(text string) string {
+	text = strings.TrimSpace(text)
+	text = strings.ReplaceAll(text, `\`, `\\`)
+	text = strings.ReplaceAll(text, `"`, `\"`)
+	return strings.ReplaceAll(text, "#{", `\#{`)
 }

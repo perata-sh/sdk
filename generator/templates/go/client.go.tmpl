@@ -107,8 +107,10 @@ type requestConfig struct {
 }
 
 // WithIdempotencyKey makes a write safe to repeat: the same key with the same
-// body answers the first response again; with another body, a 409. A POST
-// without one is sent with a random key of its own, one a call.
+// body answers the first response again; with another body, a 409. A 2xx
+// answer stays under the key; a 4xx or 5xx frees it, so the same key can be
+// sent again. A POST without one is sent with a random key of its own, one a
+// call.
 func WithIdempotencyKey(key string) RequestOption {
 	return func(r *requestConfig) { r.idempotencyKey = key }
 }

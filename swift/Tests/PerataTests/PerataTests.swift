@@ -209,6 +209,28 @@ final class PerataTests: XCTestCase {
         XCTAssertEqual(queryItem(recorder.seen[0], "limit"), "1")
     }
 
+    func testAMetadataFilterIsSentAsOnePairAKeyTheKeysSortedAndEscaped() async throws {
+        let (perata, recorder) = client { _ in (200, [:], ["data": ["items": [], "pagination": ["total_count": 0, "max_page": 1]]]) }
+        let metadata = ["pedido": "123", "camera id": "a/b"]
+        _ = try await perata.orders.list(clientReferenceID: "pedido-1", metadata: metadata)
+        XCTAssertEqual(
+            recorder.seen[0].url?.absoluteString,
+            "https://perata.test/api/v1/orders?client_reference_id=pedido-1&metadata%5Bcamera%20id%5D=a%2Fb&metadata%5Bpedido%5D=123")
+        XCTAssertEqual(queryItem(recorder.seen[0], "metadata[camera id]"), "a/b")
+        for try await _ in perata.checkouts.listIter(limit: 1, metadata: metadata) {
+            XCTFail("an empty page has no items")
+        }
+        XCTAssertEqual(
+            recorder.seen[1].url?.absoluteString,
+            "https://perata.test/api/v1/checkouts?page=1&limit=1&metadata%5Bcamera%20id%5D=a%2Fb&metadata%5Bpedido%5D=123")
+    }
+
+    func testCustomersAreListedByEmail() async throws {
+        let (perata, recorder) = client { _ in (200, [:], ["data": ["items": [], "pagination": ["total_count": 0, "max_page": 1]]]) }
+        _ = try await perata.customers.list(email: "ana@example.com")
+        XCTAssertEqual(recorder.seen[0].url?.absoluteString, "https://perata.test/api/v1/customers?email=ana%40example.com")
+    }
+
     func testUsageIngestionCarriesTheSourceCredentialAndItsEvents() async throws {
         let recorder = Recorder()
         let transport: PerataTransport = { request in

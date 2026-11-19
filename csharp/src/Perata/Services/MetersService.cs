@@ -3,6 +3,7 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Linq;
 using System.Net.Http;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -18,7 +19,15 @@ public sealed class MetersService
 
     internal MetersService(PerataClient client) => this.client = client;
 
-    /// <summary>Ler um medidor: o filtro dos eventos que ele conta, a agregação e a unidade.</summary>
+    /// <summary>Ler um medidor.</summary>
+    /// <remarks>
+    /// <para>Devolve um medidor: o filtro dos eventos que ele conta, a
+    /// agregação e a unidade.</para>
+    /// <para>Autenticação: chave de API da organização em Authorization: Bearer
+    /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
+    /// da requisição. Respostas em JSON no envelope data; erros com error,
+    /// message e fields.</para>
+    /// </remarks>
     /// <param name="meter">The meter.</param>
     /// <param name="options">Another organization's key for this call.</param>
     /// <param name="cancellationToken">Cancels the call.</param>
@@ -29,7 +38,15 @@ public sealed class MetersService
         return client.RequestAsync(HttpMethod.Get, "/api/v1/meters/" + PerataClient.Segment(meter), null, null, PerataJson.Default.MeterEnvelope, null, options, cancellationToken);
     }
 
-    /// <summary>Listar medidores; os arquivados só com is_archived=true. One page; <see cref="ListIterAsync"/> walks every page.</summary>
+    /// <summary>Listar medidores. One page; <see cref="ListIterAsync"/> walks every page.</summary>
+    /// <remarks>
+    /// <para>Devolve uma página dos medidores. Os arquivados só aparecem com
+    /// is_archived=true.</para>
+    /// <para>Autenticação: chave de API da organização em Authorization: Bearer
+    /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
+    /// da requisição. Respostas em JSON no envelope data; erros com error,
+    /// message e fields.</para>
+    /// </remarks>
     /// <param name="parameters">The page, its size and the filters; the first page when null.</param>
     /// <param name="options">Another organization's key for this call.</param>
     /// <param name="cancellationToken">Cancels the call.</param>
@@ -62,12 +79,12 @@ public sealed record MetersListParams
     /// <summary>true: só os medidores arquivados; false (padrão): só os ativos.</summary>
     public string? IsArchived { get; init; }
 
-    internal IEnumerable<KeyValuePair<string, string?>> Query() =>
-    [
-        new("page", Page?.ToString(CultureInfo.InvariantCulture)),
-        new("limit", Limit?.ToString(CultureInfo.InvariantCulture)),
-        new("is_archived", IsArchived),
-    ];
+    internal IEnumerable<KeyValuePair<string, string?>> Query()
+    {
+        yield return new("page", Page?.ToString(CultureInfo.InvariantCulture));
+        yield return new("limit", Limit?.ToString(CultureInfo.InvariantCulture));
+        yield return new("is_archived", IsArchived);
+    }
 }
 
 

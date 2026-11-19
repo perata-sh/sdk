@@ -3,6 +3,7 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Linq;
 using System.Net.Http;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -18,7 +19,15 @@ public sealed class PaymentMethodsService
 
     internal PaymentMethodsService(PerataClient client) => this.client = client;
 
-    /// <summary>Parar de cobrar um cartão guardado; recusado enquanto uma assinatura ativa o cobra.</summary>
+    /// <summary>Parar de cobrar um cartão guardado.</summary>
+    /// <remarks>
+    /// <para>Para de cobrar um cartão guardado. É recusado (409) enquanto uma
+    /// assinatura ativa o cobra.</para>
+    /// <para>Autenticação: chave de API da organização em Authorization: Bearer
+    /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
+    /// da requisição. Respostas em JSON no envelope data; erros com error,
+    /// message e fields.</para>
+    /// </remarks>
     /// <param name="paymentMethod">The payment_method.</param>
     /// <param name="options">An idempotency key, or another organization's key for this call.</param>
     /// <param name="cancellationToken">Cancels the call.</param>
@@ -29,7 +38,15 @@ public sealed class PaymentMethodsService
         return client.RequestAsync(HttpMethod.Post, "/api/v1/payment_methods/" + PerataClient.Segment(paymentMethod) + "/detach", null, null, PerataJson.Default.PaymentMethodDetachedEnvelope, options?.IdempotencyKey, options, cancellationToken);
     }
 
-    /// <summary>Listar os cartões guardados de um cliente: bandeira, quatro últimos dígitos e validade. One page; <see cref="ListIterAsync"/> walks every page.</summary>
+    /// <summary>Listar os cartões guardados de um cliente. One page; <see cref="ListIterAsync"/> walks every page.</summary>
+    /// <remarks>
+    /// <para>Devolve os cartões guardados de um cliente: bandeira, quatro
+    /// últimos dígitos e validade. O número do cartão nunca aparece.</para>
+    /// <para>Autenticação: chave de API da organização em Authorization: Bearer
+    /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
+    /// da requisição. Respostas em JSON no envelope data; erros com error,
+    /// message e fields.</para>
+    /// </remarks>
     /// <param name="customer">The customer.</param>
     /// <param name="parameters">The page, its size and the filters; the first page when null.</param>
     /// <param name="options">Another organization's key for this call.</param>
@@ -61,11 +78,11 @@ public sealed record PaymentMethodsListParams
     /// <summary>The items a page, 1 to 100; the API's 10 when null.</summary>
     public int? Limit { get; init; }
 
-    internal IEnumerable<KeyValuePair<string, string?>> Query() =>
-    [
-        new("page", Page?.ToString(CultureInfo.InvariantCulture)),
-        new("limit", Limit?.ToString(CultureInfo.InvariantCulture)),
-    ];
+    internal IEnumerable<KeyValuePair<string, string?>> Query()
+    {
+        yield return new("page", Page?.ToString(CultureInfo.InvariantCulture));
+        yield return new("limit", Limit?.ToString(CultureInfo.InvariantCulture));
+    }
 }
 
 

@@ -20,7 +20,7 @@ for product, err := range client.Products.ListIter(ctx, nil) {
 }
 ```
 
-Um POST sem chave de idempotência é enviado com uma `Idempotency-Key` própria (UUID v4 aleatório, uma por chamada); passe a sua para poder repetir a mesma operação com segurança.
+Um POST sem chave de idempotência é enviado com uma `Idempotency-Key` própria (UUID v4 aleatório, uma por chamada); passe a sua para poder repetir a mesma operação com segurança. Uma resposta 2xx fica guardada sob a chave; uma recusa 4xx ou uma falha 5xx a libera, e você pode repetir a escrita com a mesma chave, com o corpo corrigido ou como estava.
 
 ## Recursos
 
@@ -78,6 +78,38 @@ No navegador, com o `client_secret` que o seu servidor devolveu (o site precisa 
 </script>
 ```
 
+## Encerrar, listar e reativar
+
+Encerrar um checkout que não deve mais ser pago: a página, o `client_secret` e o QR do Pix deixam de valer (o Pix já gerado é cancelado), e o evento `checkout.expired` é enviado. Repetir a chamada é seguro; um checkout já pago, ou com boleto emitido, responde 409.
+
+```go
+closed, err := client.Checkouts.Expire(ctx, checkoutID)
+// closed.Status == "expired"
+```
+
+Listar com filtros: `client_reference_id` acha o pedido que você registrou ao criar o checkout, e `metadata` casa os pares que você guardou (até 10 pares; a linha precisa ter todos). Os dois valem nas listas de checkouts, pedidos, pagamentos e assinaturas, e o filtro segue nas páginas de `ListIter`.
+
+```go
+filters := &perata.OrdersListParams{
+	ClientReferenceID: "pedido-123",
+	Metadata:          map[string]string{"pedido": "123", "camera id": "a/b"},
+}
+page, err := client.Orders.List(ctx, filters)
+
+for order, err := range client.Orders.ListIter(ctx, filters) {
+	if err != nil {
+		return err
+	}
+	fmt.Println(order.ID)
+}
+```
+
+Reativar uma assinatura suspensa, que volta a ser cobrada, ou retomar uma pausada; qualquer outra assinatura responde 409:
+
+```go
+subscription, err := client.Subscriptions.Resume(ctx, subscriptionID)
+```
+
 ## Consumo (ingestão de eventos)
 
 A ingestão de consumo usa outra credencial: a de uma fonte de ingestão (**Configurações › Fontes de ingestão**), `pus_test_…` em teste e `pus_live_…` em produção. Monte um cliente com ela; a chave de API da organização (`prk_…`) é recusada aqui com 401, e uma credencial de um ambiente nunca escreve no outro.
@@ -116,10 +148,19 @@ case *perata.OrderWebhookEvent:
 	fmt.Println(event.Type, event.Data.ID, event.Data.Installments) // order.paid…
 case *perata.DisputeWebhookEvent:
 	fmt.Println(event.Type, event.Data.ProviderDisputeID)
+case *perata.SubscriptionWebhookEvent:
+	switch event.Type {
+	case "subscription.past_due": // uma cobrança de cartão foi recusada
+		fmt.Println(event.Data.ID, event.Data.PaymentFailure)
+	case "subscription.suspended": // as tentativas acabaram
+		fmt.Println(event.Data.ID, event.Data.SuspensionReason)
+	}
 case *perata.UnknownWebhookEvent:
 	// um tipo que esta versão do SDK ainda não conhece: event.Data é o JSON
 }
 ```
+
+O `subscription.past_due` sai a cada cobrança de cartão recusada (`payment_failure` traz o número da tentativa e quando o cartão será cobrado de novo): mantenha o acesso do cliente até o `subscription.suspended`. Esse diz que as tentativas acabaram (`suspension_reason`): cancele a assinatura ou reative-a com `Subscriptions.Resume`.
 
 A assinatura é a do Standard Webhooks (`webhook-id`, `webhook-timestamp`, `webhook-signature`), com tolerância de 5 minutos. Leia o corpo cru e verifique antes de interpretar.
 
@@ -127,4 +168,4 @@ O evento é tipado: um tipo para cada dado que o webhook carrega (`OrderWebhookE
 
 Todo evento traz o ambiente em que aconteceu, em `Message().Environment`: `"test"` ou `"live"` (vazio se um servidor antigo não mandou). Recuse o evento do ambiente errado: um endpoint de produção deve responder 400 a um evento `"test"`, para que um teste não dê baixa em um pedido real.
 
-Versão do SDK: 0.5.4 · contrato da API: 0.1.0
+Versão do SDK: 0.5.5 · contrato da API: 0.1.0

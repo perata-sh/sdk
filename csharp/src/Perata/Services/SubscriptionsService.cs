@@ -3,6 +3,7 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Linq;
 using System.Net.Http;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -18,7 +19,15 @@ public sealed class SubscriptionsService
 
     internal SubscriptionsService(PerataClient client) => this.client = client;
 
-    /// <summary>Cancelar uma assinatura, por padrão no fim do período.</summary>
+    /// <summary>Cancelar uma assinatura.</summary>
+    /// <remarks>
+    /// <para>Cancela uma assinatura. Por padrão o cancelamento vale no fim do
+    /// período já pago.</para>
+    /// <para>Autenticação: chave de API da organização em Authorization: Bearer
+    /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
+    /// da requisição. Respostas em JSON no envelope data; erros com error,
+    /// message e fields.</para>
+    /// </remarks>
     /// <param name="subscription">The subscription.</param>
     /// <param name="parameters">The request.</param>
     /// <param name="options">An idempotency key, or another organization's key for this call.</param>
@@ -32,6 +41,13 @@ public sealed class SubscriptionsService
     }
 
     /// <summary>Ler uma assinatura.</summary>
+    /// <remarks>
+    /// <para>Devolve uma assinatura pelo ID.</para>
+    /// <para>Autenticação: chave de API da organização em Authorization: Bearer
+    /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
+    /// da requisição. Respostas em JSON no envelope data; erros com error,
+    /// message e fields.</para>
+    /// </remarks>
     /// <param name="subscription">The subscription.</param>
     /// <param name="options">Another organization's key for this call.</param>
     /// <param name="cancellationToken">Cancels the call.</param>
@@ -42,7 +58,16 @@ public sealed class SubscriptionsService
         return client.RequestAsync(HttpMethod.Get, "/api/v1/subscriptions/" + PerataClient.Segment(subscription), null, null, PerataJson.Default.SubscriptionEnvelope, null, options, cancellationToken);
     }
 
-    /// <summary>Listar assinaturas, opcionalmente de um cliente (customer_id ou external_customer_id), de um status, de um período ou de metadados. One page; <see cref="ListIterAsync"/> walks every page.</summary>
+    /// <summary>Listar assinaturas. One page; <see cref="ListIterAsync"/> walks every page.</summary>
+    /// <remarks>
+    /// <para>Devolve uma página das assinaturas. Filtre por cliente
+    /// (customer_id ou external_customer_id), status, período ou
+    /// metadados.</para>
+    /// <para>Autenticação: chave de API da organização em Authorization: Bearer
+    /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
+    /// da requisição. Respostas em JSON no envelope data; erros com error,
+    /// message e fields.</para>
+    /// </remarks>
     /// <param name="parameters">The page, its size and the filters; the first page when null.</param>
     /// <param name="options">Another organization's key for this call.</param>
     /// <param name="cancellationToken">Cancels the call.</param>
@@ -62,7 +87,16 @@ public sealed class SubscriptionsService
         return Pages.IterateAsync((page, token) => ListAsync(walk with { Page = page }, options, token), walk.Page, cancellationToken);
     }
 
-    /// <summary>Reativar uma assinatura suspensa, que volta a ser cobrada (a cobrança do ciclo em aberto recomeça), ou retomar uma pausada; qualquer outra recebe 409.</summary>
+    /// <summary>Reativar uma assinatura.</summary>
+    /// <remarks>
+    /// <para>Reativa uma assinatura suspensa, que volta a ser cobrada (a
+    /// cobrança do ciclo em aberto recomeça), ou retoma uma pausada. Qualquer
+    /// outra assinatura recebe 409.</para>
+    /// <para>Autenticação: chave de API da organização em Authorization: Bearer
+    /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
+    /// da requisição. Respostas em JSON no envelope data; erros com error,
+    /// message e fields.</para>
+    /// </remarks>
     /// <param name="subscription">The subscription.</param>
     /// <param name="options">An idempotency key, or another organization's key for this call.</param>
     /// <param name="cancellationToken">Cancels the call.</param>
@@ -73,7 +107,15 @@ public sealed class SubscriptionsService
         return client.RequestAsync(HttpMethod.Post, "/api/v1/subscriptions/" + PerataClient.Segment(subscription) + "/resume", null, null, PerataJson.Default.SubscriptionEnvelope, options?.IdempotencyKey, options, cancellationToken);
     }
 
-    /// <summary>Trocar o plano de uma assinatura: outro preço e, se quiser, outra quantidade, com a forma de ratear a diferença (proration_behavior).</summary>
+    /// <summary>Trocar o plano de uma assinatura.</summary>
+    /// <remarks>
+    /// <para>Troca o plano de uma assinatura: outro preço e, se quiser, outra
+    /// quantidade. O proration_behavior diz como ratear a diferença.</para>
+    /// <para>Autenticação: chave de API da organização em Authorization: Bearer
+    /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
+    /// da requisição. Respostas em JSON no envelope data; erros com error,
+    /// message e fields.</para>
+    /// </remarks>
     /// <param name="subscription">The subscription.</param>
     /// <param name="parameters">The request.</param>
     /// <param name="options">An idempotency key, or another organization's key for this call.</param>
@@ -127,17 +169,25 @@ public sealed record SubscriptionsListParams
     /// <summary>Ordem da lista: created_at ou amount, e com um - na frente é decrescente (-created_at, o mais novo primeiro, é o padrão).</summary>
     public string? Sorting { get; init; }
 
-    internal IEnumerable<KeyValuePair<string, string?>> Query() =>
-    [
-        new("page", Page?.ToString(CultureInfo.InvariantCulture)),
-        new("limit", Limit?.ToString(CultureInfo.InvariantCulture)),
-        new("status", Status),
-        new("customer_id", CustomerId),
-        new("external_customer_id", ExternalCustomerId),
-        new("created_after", CreatedAfter),
-        new("created_before", CreatedBefore),
-        new("sorting", Sorting),
-    ];
+    /// <summary>Filtro por metadados: metadata[chave]=valor, uma vez para cada par (até 10); a linha precisa ter todos. Um valor que parece número ou booleano também casa com o número ou o booleano guardado.</summary>
+    public IReadOnlyDictionary<string, string>? Metadata { get; init; }
+
+    internal IEnumerable<KeyValuePair<string, string?>> Query()
+    {
+        yield return new("page", Page?.ToString(CultureInfo.InvariantCulture));
+        yield return new("limit", Limit?.ToString(CultureInfo.InvariantCulture));
+        yield return new("status", Status);
+        yield return new("customer_id", CustomerId);
+        yield return new("external_customer_id", ExternalCustomerId);
+        yield return new("created_after", CreatedAfter);
+        yield return new("created_before", CreatedBefore);
+        yield return new("sorting", Sorting);
+        // A map filter is one pair a key: metadata[key]=value, the keys sorted.
+        foreach (var pair in Metadata?.OrderBy(each => each.Key, StringComparer.Ordinal) ?? Enumerable.Empty<KeyValuePair<string, string>>())
+        {
+            yield return new("metadata" + "[" + pair.Key + "]", pair.Value);
+        }
+    }
 }
 
 /// <summary>The body of subscriptions:update.</summary>

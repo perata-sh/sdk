@@ -6,6 +6,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.TreeMap;
 
 /** The API's meters. */
 public final class MetersService {
@@ -16,7 +17,16 @@ public final class MetersService {
     }
 
     /**
-     * Ler um medidor: o filtro dos eventos que ele conta, a agregação e a unidade.
+     * Ler um medidor.
+     *
+     * Devolve um medidor: o filtro dos eventos que ele conta, a agregação e a
+     * unidade.
+     *
+     * Autenticação: chave de API da organização em Authorization: Bearer
+     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+     * requisição. Respostas em JSON no envelope data; erros com error, message
+     * e fields.
+     *
      * @param meter the meter
      * @param options another organization's key for this call, or null
      * @return the meter
@@ -28,7 +38,16 @@ public final class MetersService {
     }
 
     /**
-     * Ler um medidor: o filtro dos eventos que ele conta, a agregação e a unidade.
+     * Ler um medidor.
+     *
+     * Devolve um medidor: o filtro dos eventos que ele conta, a agregação e a
+     * unidade.
+     *
+     * Autenticação: chave de API da organização em Authorization: Bearer
+     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+     * requisição. Respostas em JSON no envelope data; erros com error, message
+     * e fields.
+     *
      * @param meter the meter
      * @return the meter
      * @throws PerataException when the API refuses the call
@@ -38,7 +57,16 @@ public final class MetersService {
     }
 
     /**
-     * Listar medidores; os arquivados só com is_archived=true. One page; {@link #listIter} walks every page.
+     * Listar medidores. One page; {@link #listIter} walks every page.
+     *
+     * Devolve uma página dos medidores. Os arquivados só aparecem com
+     * is_archived=true.
+     *
+     * Autenticação: chave de API da organização em Authorization: Bearer
+     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+     * requisição. Respostas em JSON no envelope data; erros com error, message
+     * e fields.
+     *
      * @param params the page, its size and the filters, or null
      * @param options options for this call, or null
      * @return the page
@@ -50,7 +78,16 @@ public final class MetersService {
     }
 
     /**
-     * Listar medidores; os arquivados só com is_archived=true. One page.
+     * Listar medidores. One page.
+     *
+     * Devolve uma página dos medidores. Os arquivados só aparecem com
+     * is_archived=true.
+     *
+     * Autenticação: chave de API da organização em Authorization: Bearer
+     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+     * requisição. Respostas em JSON no envelope data; erros com error, message
+     * e fields.
+     *
      * @param params the page, its size and the filters, or null
      * @return the page
      */
@@ -59,7 +96,16 @@ public final class MetersService {
     }
 
     /**
-     * Listar medidores; os arquivados só com is_archived=true. The first page.
+     * Listar medidores. The first page.
+     *
+     * Devolve uma página dos medidores. Os arquivados só aparecem com
+     * is_archived=true.
+     *
+     * Autenticação: chave de API da organização em Authorization: Bearer
+     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+     * requisição. Respostas em JSON no envelope data; erros com error, message
+     * e fields.
+     *
      * @return the page
      */
     public Page<Meter> list() {

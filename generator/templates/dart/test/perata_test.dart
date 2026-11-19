@@ -350,6 +350,52 @@ void main() {
   });
 
   test(
+    'a metadata filter is sent as one pair a key, the keys sorted and escaped',
+    () async {
+      final (perata, seen) = client(
+        (request) => json(200, {
+          'data': {
+            'items': <Object?>[],
+            'pagination': {'total_count': 0, 'max_page': 1},
+          },
+        }),
+      );
+      final metadata = {'pedido': '123', 'camera id': 'a/b'};
+      await perata.orders.list(
+        clientReferenceId: 'pedido-1',
+        metadata: metadata,
+      );
+      expect(
+        seen[0].url.query,
+        'client_reference_id=pedido-1&metadata%5Bcamera+id%5D=a%2Fb&metadata%5Bpedido%5D=123',
+      );
+      expect(seen[0].url.queryParameters['metadata[camera id]'], 'a/b');
+      final walked = await perata.checkouts
+          .listIter(limit: 1, metadata: metadata)
+          .toList();
+      expect(walked, isEmpty);
+      expect(
+        seen[1].url.query,
+        'page=1&limit=1&metadata%5Bcamera+id%5D=a%2Fb&metadata%5Bpedido%5D=123',
+      );
+    },
+  );
+
+  test('customers are listed by e-mail', () async {
+    final (perata, seen) = client(
+      (request) => json(200, {
+        'data': {
+          'items': <Object?>[],
+          'pagination': {'total_count': 0, 'max_page': 1},
+        },
+      }),
+    );
+    await perata.customers.list(email: 'ana@example.com');
+    expect(seen.single.url.path, '/api/v1/customers');
+    expect(seen.single.url.query, 'email=ana%40example.com');
+  });
+
+  test(
     'usage ingestion carries the source credential and its events',
     () async {
       final seen = <http.Request>[];

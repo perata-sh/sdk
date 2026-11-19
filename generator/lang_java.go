@@ -31,15 +31,17 @@ func init() {
 			}
 			return name
 		},
-		"javaType":   javaType,
-		"javaBoxed":  func(t *TypeRef) string { return javaRef(t, true) },
-		"javaRead":   javaRead,
-		"javaWrite":  javaWrite,
-		"javaClass":  func(m *Model, name string) javaClassOf { return javaClassOf{Model: m, Name: name} },
-		"javaConst":  func(field, value string) string { return constName(field) + "_" + constName(value) },
-		"javaDoc":    javaDoc,
-		"javaText":   javaText,
-		"javaGetter": javaGetter,
+		"javaType":  javaType,
+		"javaBoxed": func(t *TypeRef) string { return javaRef(t, true) },
+		"javaRead":  javaRead,
+		"javaWrite": javaWrite,
+		"javaClass": func(m *Model, name string) javaClassOf { return javaClassOf{Model: m, Name: name} },
+		"javaConst": func(field, value string) string { return constName(field) + "_" + constName(value) },
+		"javaDoc":   javaDoc,
+		"javaText":  javaText,
+		// javaDocBlock writes text as the lines of a Javadoc comment.
+		"javaDocBlock": func(prefix, text string) string { return docBlock(prefix, text, javaText) },
+		"javaGetter":   javaGetter,
 		// javaConvertCall turns the decoded JSON value in expr into t.
 		"javaConvertCall": func(t *TypeRef, expr string) string {
 			if t.Kind == "model" {

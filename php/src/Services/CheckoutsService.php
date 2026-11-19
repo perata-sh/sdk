@@ -18,7 +18,19 @@ final class CheckoutsService
     }
 
     /**
-     * Criar um checkout: o endereço para onde o comprador é enviado e a sessão de compra aberta para ele, com o client_secret que o navegador do comprador usa nas rotas de cliente.
+     * Criar um checkout.
+     *
+     * Cria um checkout. Devolve o endereço para onde mandar o comprador e a
+     * sessão de compra aberta para ele, com o client_secret que o navegador do
+     * comprador usa para pagar sem chave de API; o client_secret vem só nesta
+     * resposta. Para cobrar um valor que o seu servidor define, envie
+     * amount_cents e items (preço de valor livre). Envie client_reference_id e
+     * metadata para achar o pedido depois.
+     *
+     * Autenticação: chave de API da organização em Authorization: Bearer
+     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+     * requisição. Respostas em JSON no envelope data; erros com error, message
+     * e fields.
      *
      * @param array{allow_discount_codes?: bool, amount_cents?: int, cancel_url?: string, client_reference_id?: string, customer_email?: string, customer_id?: string, customer_name?: string, expires_in?: int, external_customer_id?: string, items?: list<array{name: string, quantity?: int, unit_amount_cents: int}>, label?: string, metadata?: array<string, mixed>, price_id: string, product_id: string, quantity?: int, require_billing_address?: bool, return_url?: string, success_url?: string} $params
      */
@@ -29,7 +41,17 @@ final class CheckoutsService
     }
 
     /**
-     * Encerrar um checkout que não deve mais ser pago: a página, o client_secret e o QR do Pix deixam de valer (o Pix já gerado é cancelado na Cielo), e o evento checkout.expired é enviado; 409 se já foi pago ou se emitiu boleto.
+     * Encerrar um checkout.
+     *
+     * Encerra um checkout que não deve mais ser pago: a página, o client_secret
+     * e o QR do Pix deixam de valer (o Pix já gerado é cancelado na Cielo) e o
+     * evento checkout.expired é enviado. Repetir a chamada é seguro. Se o
+     * checkout já foi pago ou emitiu um boleto, a resposta é 409.
+     *
+     * Autenticação: chave de API da organização em Authorization: Bearer
+     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+     * requisição. Respostas em JSON no envelope data; erros com error, message
+     * e fields.
      */
     public function expire(string $checkout, ?string $idempotencyKey = null, ?string $apiKey = null): Models\CheckoutExpired
     {
@@ -38,7 +60,14 @@ final class CheckoutsService
     }
 
     /**
-     * Ler um checkout: o endereço, o estado e as páginas de retorno.
+     * Ler um checkout.
+     *
+     * Devolve um checkout: o endereço, o estado e as páginas de retorno.
+     *
+     * Autenticação: chave de API da organização em Authorization: Bearer
+     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+     * requisição. Respostas em JSON no envelope data; erros com error, message
+     * e fields.
      */
     public function get(string $checkout, ?string $apiKey = null): Models\Checkout
     {
@@ -47,9 +76,17 @@ final class CheckoutsService
     }
 
     /**
-     * Listar checkouts, opcionalmente de um client_reference_id, de um status, de um período ou de metadados. One page; listIter() walks every page.
+     * Listar checkouts. One page; listIter() walks every page.
      *
-     * @param array{page?: int, limit?: int, client_reference_id?: string, status?: string, created_after?: string, created_before?: string, sorting?: string} $params
+     * Devolve uma página dos checkouts. Filtre por client_reference_id, status,
+     * período ou metadados.
+     *
+     * Autenticação: chave de API da organização em Authorization: Bearer
+     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+     * requisição. Respostas em JSON no envelope data; erros com error, message
+     * e fields.
+     *
+     * @param array{page?: int, limit?: int, client_reference_id?: string, status?: string, created_after?: string, created_before?: string, sorting?: string, metadata?: array<string, string>} $params
      * @return Page<Models\Checkout>
      */
     public function list(array $params = [], ?string $apiKey = null): Page
@@ -61,7 +98,7 @@ final class CheckoutsService
     /**
      * Walks every page of checkouts:list, item by item.
      *
-     * @param array{page?: int, limit?: int, client_reference_id?: string, status?: string, created_after?: string, created_before?: string, sorting?: string} $params
+     * @param array{page?: int, limit?: int, client_reference_id?: string, status?: string, created_after?: string, created_before?: string, sorting?: string, metadata?: array<string, string>} $params
      * @return \Generator<int, Models\Checkout>
      */
     public function listIter(array $params = [], ?string $apiKey = null): \Generator
@@ -70,7 +107,14 @@ final class CheckoutsService
     }
 
     /**
-     * Atualizar o rótulo e as páginas de retorno de um checkout ativo.
+     * Atualizar um checkout.
+     *
+     * Muda o rótulo e as páginas de retorno de um checkout ativo.
+     *
+     * Autenticação: chave de API da organização em Authorization: Bearer
+     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+     * requisição. Respostas em JSON no envelope data; erros com error, message
+     * e fields.
      *
      * @param array{cancel_url?: string, label?: string, success_url?: string} $params
      */

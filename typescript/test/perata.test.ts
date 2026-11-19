@@ -250,6 +250,27 @@ test("a redirect is refused and the key never follows it", async () => {
   }
 });
 
+test("a metadata filter is sent as one pair a key, the keys sorted and escaped", async () => {
+  const empty = { data: { items: [], pagination: { total_count: 0, max_page: 1 } } };
+  const { perata, seen } = client(() => json(200, empty));
+  const metadata = { pedido: "123", "camera id": "a/b" };
+  await perata.orders.list({ client_reference_id: "pedido-1", metadata });
+  assert.equal(seen[0]?.url.search, "?client_reference_id=pedido-1&metadata%5Bcamera+id%5D=a%2Fb&metadata%5Bpedido%5D=123");
+  assert.equal(seen[0]?.url.searchParams.get("metadata[camera id]"), "a/b");
+  assert.equal(seen[0]?.url.searchParams.get("metadata[pedido]"), "123");
+  for await (const _each of perata.checkouts.listIter({ limit: 1, metadata })) {
+    // every page of the walk carries the filter
+  }
+  assert.equal(seen[1]?.url.search, "?limit=1&metadata%5Bcamera+id%5D=a%2Fb&metadata%5Bpedido%5D=123&page=1");
+});
+
+test("customers are listed by e-mail", async () => {
+  const { perata, seen } = client(() => json(200, { data: { items: [], pagination: { total_count: 0, max_page: 1 } } }));
+  await perata.customers.list({ email: "ana@example.com" });
+  assert.equal(seen[0]?.url.pathname, "/api/v1/customers");
+  assert.equal(seen[0]?.url.search, "?email=ana%40example.com");
+});
+
 test("a refusal is a typed error", async () => {
   const { perata } = client(({ url }) =>
     url.pathname === "/api/v1/customers"

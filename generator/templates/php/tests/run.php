@@ -169,6 +169,26 @@ $tests['iterating walks every page'] = static function (): void {
     check(str_contains($seen[0]['url'], 'limit=1'), 'limit');
 };
 
+$tests['a metadata filter is sent as one pair a key, the keys sorted and escaped'] = static function (): void {
+    [$perata, $seen] = client(static fn (): array => [200, [], ['data' => ['items' => [], 'pagination' => ['total_count' => 0, 'max_page' => 1]]]]);
+    $metadata = ['pedido' => '123', 'camera id' => 'a/b'];
+    $perata->orders->list(['client_reference_id' => 'pedido-1', 'metadata' => $metadata]);
+    $want = 'https://perata.test/api/v1/orders?client_reference_id=pedido-1&metadata%5Bcamera+id%5D=a%2Fb&metadata%5Bpedido%5D=123';
+    check($seen[0]['url'] === $want, 'query ' . $seen[0]['url']);
+    parse_str((string) parse_url($seen[0]['url'], PHP_URL_QUERY), $read);
+    check(($read['metadata'] ?? null) === ['camera id' => 'a/b', 'pedido' => '123'], 'the server reads ' . json_encode($read));
+    foreach ($perata->checkouts->listIter(['limit' => 1, 'metadata' => $metadata]) as $ignored) {
+        throw new \RuntimeException('an empty page has no items');
+    }
+    check($seen[1]['url'] === 'https://perata.test/api/v1/checkouts?page=1&limit=1&metadata%5Bcamera+id%5D=a%2Fb&metadata%5Bpedido%5D=123', 'walk ' . $seen[1]['url']);
+};
+
+$tests['customers are listed by e-mail'] = static function (): void {
+    [$perata, $seen] = client(static fn (): array => [200, [], ['data' => ['items' => [], 'pagination' => ['total_count' => 0, 'max_page' => 1]]]]);
+    $perata->customers->list(['email' => 'ana@example.com']);
+    check($seen[0]['url'] === 'https://perata.test/api/v1/customers?email=ana%40example.com', 'query ' . $seen[0]['url']);
+};
+
 $tests['usage ingestion carries the source credential and its events'] = static function (): void {
     $seen = new \ArrayObject();
     $transport = static function (string $method, string $url, array $headers, ?string $body, float $timeout) use ($seen): array {

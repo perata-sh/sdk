@@ -18,7 +18,19 @@ final class CustomersService
     }
 
     /**
-     * Criar um cliente, com CPF ou CNPJ, telefone e endereço de cobrança se você os tem.
+     * Criar um cliente.
+     *
+     * Cria um cliente, com CPF ou CNPJ, telefone e endereço de cobrança, se
+     * você os tem. Se você enviar external_id e o e-mail já for de um cliente
+     * que ainda não tem ID externo (por exemplo, um que o checkout criou), esse
+     * cliente recebe o ID e os dados enviados, e a resposta é 200 em vez de
+     * 201. Se o e-mail for de um cliente com outro ID externo, a resposta é
+     * 422.
+     *
+     * Autenticação: chave de API da organização em Authorization: Bearer
+     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+     * requisição. Respostas em JSON no envelope data; erros com error, message
+     * e fields.
      *
      * @param array{billing_address?: array{city?: string, district?: string, line1?: string, line2?: string, postal_code?: string, state?: string}, billing_name?: string, email: string, external_id?: string, name: string, phone?: string, tax_id?: string, tax_id_kind?: 'cpf'|'cnpj'} $params
      */
@@ -29,7 +41,16 @@ final class CustomersService
     }
 
     /**
-     * Excluir um cliente: as assinaturas terminam na hora, os benefícios são revogados e o ID externo é liberado; pedidos e pagamentos continuam. The API answers 204, so there is nothing to return.
+     * Excluir um cliente. The API answers 204, so there is nothing to return.
+     *
+     * Exclui um cliente: as assinaturas terminam na hora, os benefícios são
+     * revogados e o ID externo fica livre. Os pedidos e os pagamentos continuam
+     * nos registros.
+     *
+     * Autenticação: chave de API da organização em Authorization: Bearer
+     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+     * requisição. Respostas em JSON no envelope data; erros com error, message
+     * e fields.
      */
     public function delete(string $customer, ?string $idempotencyKey = null, ?string $apiKey = null): void
     {
@@ -38,6 +59,13 @@ final class CustomersService
 
     /**
      * Ler um cliente.
+     *
+     * Devolve um cliente pelo ID.
+     *
+     * Autenticação: chave de API da organização em Authorization: Bearer
+     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+     * requisição. Respostas em JSON no envelope data; erros com error, message
+     * e fields.
      */
     public function get(string $customer, ?string $apiKey = null): Models\Customer
     {
@@ -46,7 +74,15 @@ final class CustomersService
     }
 
     /**
-     * Ler um cliente pelo ID dele no sistema do lojista (external_id).
+     * Ler um cliente pelo ID externo.
+     *
+     * Devolve o cliente que você identifica pelo ID dele no seu sistema
+     * (external_id).
+     *
+     * Autenticação: chave de API da organização em Authorization: Bearer
+     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+     * requisição. Respostas em JSON no envelope data; erros com error, message
+     * e fields.
      */
     public function getExternal(string $externalId, ?string $apiKey = null): Models\Customer
     {
@@ -55,7 +91,16 @@ final class CustomersService
     }
 
     /**
-     * Ler o estado de um cliente: assinaturas ativas e benefícios vigentes, inclusive os feature flags.
+     * Ler o estado de um cliente.
+     *
+     * Devolve o estado de um cliente: as assinaturas ativas e os benefícios
+     * vigentes, inclusive os feature flags. É a leitura que o seu aplicativo
+     * faz para decidir o que o cliente pode usar.
+     *
+     * Autenticação: chave de API da organização em Authorization: Bearer
+     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+     * requisição. Respostas em JSON no envelope data; erros com error, message
+     * e fields.
      */
     public function getState(string $customer, ?string $apiKey = null): Models\CustomerState
     {
@@ -66,7 +111,15 @@ final class CustomersService
     /**
      * Listar clientes. One page; listIter() walks every page.
      *
-     * @param array{page?: int, limit?: int} $params
+     * Devolve uma página dos clientes. Com email, só o cliente com esse e-mail,
+     * sem diferença entre maiúsculas e minúsculas.
+     *
+     * Autenticação: chave de API da organização em Authorization: Bearer
+     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+     * requisição. Respostas em JSON no envelope data; erros com error, message
+     * e fields.
+     *
+     * @param array{page?: int, limit?: int, email?: string} $params
      * @return Page<Models\Customer>
      */
     public function list(array $params = [], ?string $apiKey = null): Page
@@ -78,7 +131,7 @@ final class CustomersService
     /**
      * Walks every page of customers:list, item by item.
      *
-     * @param array{page?: int, limit?: int} $params
+     * @param array{page?: int, limit?: int, email?: string} $params
      * @return \Generator<int, Models\Customer>
      */
     public function listIter(array $params = [], ?string $apiKey = null): \Generator
@@ -87,7 +140,15 @@ final class CustomersService
     }
 
     /**
-     * Atualizar o nome, o e-mail, o ID externo, o CPF ou CNPJ, o telefone ou o endereço de cobrança de um cliente; o ID externo não muda depois de definido.
+     * Atualizar um cliente.
+     *
+     * Muda o nome, o e-mail, o ID externo, o CPF ou CNPJ, o telefone ou o
+     * endereço de cobrança. O ID externo só pode ser definido uma vez.
+     *
+     * Autenticação: chave de API da organização em Authorization: Bearer
+     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+     * requisição. Respostas em JSON no envelope data; erros com error, message
+     * e fields.
      *
      * @param array{billing_address?: array{city?: string, district?: string, line1?: string, line2?: string, postal_code?: string, state?: string}, billing_name?: string, email?: string, external_id?: string, name?: string, phone?: string, tax_id?: string, tax_id_kind?: 'cpf'|'cnpj'} $params
      */
@@ -98,7 +159,15 @@ final class CustomersService
     }
 
     /**
-     * Atualizar um cliente pelo ID dele no sistema do lojista (external_id).
+     * Atualizar um cliente pelo ID externo.
+     *
+     * Muda o cliente que você identifica pelo ID dele no seu sistema
+     * (external_id). Os campos são os de Atualizar um cliente.
+     *
+     * Autenticação: chave de API da organização em Authorization: Bearer
+     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+     * requisição. Respostas em JSON no envelope data; erros com error, message
+     * e fields.
      *
      * @param array{billing_address?: array{city?: string, district?: string, line1?: string, line2?: string, postal_code?: string, state?: string}, billing_name?: string, email?: string, external_id?: string, name?: string, phone?: string, tax_id?: string, tax_id_kind?: 'cpf'|'cnpj'} $params
      */

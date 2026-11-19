@@ -20,6 +20,26 @@ final class UsageService
     /**
      * Ingerir lote atômico de eventos de uso. Autentica com a credencial de uma fonte de ingestão (pus_test_… ou pus_live_…), não com a chave de API da organização.
      *
+     * Autorização: Bearer é o único formato de credencial suportado. As
+     * credenciais são assinadas pela Peráta, expiram em 30 dias e são
+     * verificadas em relação ao estado da fonte, associação atual do emissor e
+     * permissões nativas. Organização, merchant e ambiente (teste, pus_test_…,
+     * ou produção, pus_live_…) são derivados da fonte autenticada; o payload
+     * JSON não pode sobrescrevê-los, e uma credencial de um ambiente nunca
+     * escreve no outro. Em produção, a fonte só existe para uma organização que
+     * a equipe da Peráta liberou. 1 a 100 eventos, no máximo 65536 bytes.
+     * Contagens são strings decimais de inteiros, de 0 a 1000000000000, com
+     * pelo menos um token por evento; a entrada exclui cache. Ocorrência
+     * RFC3339 em segundos inteiros, com no máximo 90 dias atrás e até cinco
+     * minutos à frente. Escopo/fonte/external_event_id identificam um registro;
+     * repetições exatas contam como replay e conteúdo conflitante retorna 409.
+     * Todos os novos eventos e emissões da outbox são confirmados ou revertidos
+     * juntos. Rotação mantém a identidade da fonte e replay; credenciais
+     * revogadas ou expiradas não podem ser reutilizadas. O sucesso vem no
+     * envelope data; todo erro é o documento de erro da API, o mesmo das demais
+     * operações de /api/v1 (error, message e fields), com record, a posição do
+     * evento recusado, quando há. Sem cobrança ou faturamento automático.
+     *
      * @param array{events: list<array{_cost?: array{amount: string, currency: 'brl'}, _llm?: array{model: string, vendor: string}, cached_tokens: string, customer_id: string, external_event_id: string, input_tokens: string, occurred_at: string, output_tokens: string, parent_id?: string}>} $params
      */
     public function ingest(array $params, ?string $apiKey = null): Models\UsageIngestReceipt

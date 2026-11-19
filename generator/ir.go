@@ -93,6 +93,9 @@ type Method struct {
 	HTTPMethod  string
 	Path        string
 	PathParams  []string
+	// Description is the operation's longer text, in paragraphs separated by a
+	// blank line: what the SDKs write over the method after the summary.
+	Description string
 	// Query are the optional filters, without page and limit.
 	Query []*Param
 	// Body is the request model, or nil.
@@ -121,6 +124,10 @@ type Method struct {
 // Param is a query filter.
 type Param struct {
 	Name, Description string
+	// Map says the filter is a deepObject: a map of strings sent once for each
+	// pair, as name[key]=value (metadata[pedido]=123). The other filters are one
+	// string.
+	Map bool
 }
 
 type spec struct {
@@ -133,20 +140,41 @@ type spec struct {
 	Paths      map[string]map[string]*operation `json:"paths"`
 	Webhooks   map[string]map[string]*operation `json:"webhooks"`
 	Components struct {
-		Schemas map[string]*schema `json:"schemas"`
+		Schemas    map[string]*schema    `json:"schemas"`
+		Parameters map[string]*parameter `json:"parameters"`
 	} `json:"components"`
+}
+
+// parameter is an operation's parameter, written in place or a reference to one
+// of components.parameters, which several operations share.
+type parameter struct {
+	Ref         string `json:"$ref"`
+	Name        string `json:"name"`
+	In          string `json:"in"`
+	Description string `json:"description"`
+	// Style and Explode say how an object is written in the query: a deepObject
+	// that explodes is name[key]=value, one pair each.
+	Style   string  `json:"style"`
+	Explode *bool   `json:"explode"`
+	Schema  *schema `json:"schema"`
+}
+
+// stringMap says the parameter is a deepObject of strings: the filter
+// metadata[key]=value.
+func (p *parameter) stringMap() bool {
+	if p.Style != "deepObject" || p.Explode != nil && !*p.Explode || p.Schema == nil || p.Schema.Type != "object" || len(p.Schema.Properties) > 0 {
+		return false
+	}
+	values := p.Schema.additional()
+	return values != nil && values.Type == "string" && values.Ref == "" && len(values.Enum) == 0
 }
 
 type operation struct {
 	OperationID string                `json:"operationId"`
 	Summary     string                `json:"summary"`
+	Description string                `json:"description"`
 	Security    []map[string][]string `json:"security"`
-	Parameters  []struct {
-		Name        string  `json:"name"`
-		In          string  `json:"in"`
-		Description string  `json:"description"`
-		Schema      *schema `json:"schema"`
-	} `json:"parameters"`
+	Parameters  []*parameter          `json:"parameters"`
 	RequestBody *struct {
 		Content map[string]struct {
 			Schema *schema `json:"schema"`
@@ -318,7 +346,7 @@ func build(doc *spec, version string) (*IR, error) {
 			if err := checkMatch("method", methodName, slug); err != nil {
 				return nil, err
 			}
-			method, err := l.methodOf(op, strings.ToUpper(httpMethod), path, serviceName, methodName)
+			method, err := l.methodOf(doc, op, strings.ToUpper(httpMethod), path, serviceName, methodName)
 			if err != nil {
 				return nil, err
 			}
@@ -355,6 +383,22 @@ func build(doc *spec, version string) (*IR, error) {
 	}
 	ir.Webhooks = webhooks
 	return ir, nil
+}
+
+// resolve is the parameter itself: a reference is read from
+// components.parameters.
+func (d *spec) resolve(p *parameter) (*parameter, error) {
+	if p.Ref == "" {
+		return p, nil
+	}
+	name, ok := strings.CutPrefix(p.Ref, "#/components/parameters/")
+	if !ok || d.Components.Parameters[name] == nil {
+		return nil, fmt.Errorf("parameter %q is not in components.parameters", p.Ref)
+	}
+	if d.Components.Parameters[name].Ref != "" {
+		return nil, fmt.Errorf("parameter %q is a reference to a reference", p.Ref)
+	}
+	return d.Components.Parameters[name], nil
 }
 
 // httpMethods are the verbs an SDK sends.
@@ -433,10 +477,14 @@ func apiKeyOperation(op *operation) bool {
 	return false
 }
 
-func (l *loader) methodOf(op *operation, httpMethod, path, serviceName, methodName string) (*Method, error) {
-	method := &Method{Name: methodName, OperationID: op.OperationID, Summary: cleanLine(op.Summary), HTTPMethod: httpMethod, Path: path,
+func (l *loader) methodOf(doc *spec, op *operation, httpMethod, path, serviceName, methodName string) (*Method, error) {
+	method := &Method{Name: methodName, OperationID: op.OperationID, Summary: cleanLine(op.Summary), Description: cleanText(op.Description), HTTPMethod: httpMethod, Path: path,
 		Write: httpMethod != "GET"}
-	for _, param := range op.Parameters {
+	for _, each := range op.Parameters {
+		param, err := doc.resolve(each)
+		if err != nil {
+			return nil, fmt.Errorf("generator: %s: %w", op.OperationID, err)
+		}
 		switch {
 		case param.In == "path":
 			if err := checkIdentifier("path parameter", param.Name); err != nil {
@@ -447,7 +495,14 @@ func (l *loader) methodOf(op *operation, httpMethod, path, serviceName, methodNa
 			if err := checkIdentifier("query parameter", param.Name); err != nil {
 				return nil, err
 			}
-			method.Query = append(method.Query, &Param{Name: param.Name, Description: cleanText(param.Description)})
+			filter := &Param{Name: param.Name, Description: cleanText(param.Description)}
+			switch {
+			case param.stringMap():
+				filter.Map = true
+			case param.Style != "" && param.Style != "form" || param.Schema != nil && (param.Schema.Type == "object" || param.Schema.Type == "array"):
+				return nil, fmt.Errorf("generator: %s: query parameter %s is not a string or a deepObject of strings, which is all the SDKs send", op.OperationID, param.Name)
+			}
+			method.Query = append(method.Query, filter)
 		}
 	}
 	for status, response := range op.Responses {

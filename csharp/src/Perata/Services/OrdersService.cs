@@ -3,6 +3,7 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Linq;
 using System.Net.Http;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -18,7 +19,14 @@ public sealed class OrdersService
 
     internal OrdersService(PerataClient client) => this.client = client;
 
-    /// <summary>Ler um pedido: um checkout pago.</summary>
+    /// <summary>Ler um pedido.</summary>
+    /// <remarks>
+    /// <para>Devolve um pedido: um checkout pago.</para>
+    /// <para>Autenticação: chave de API da organização em Authorization: Bearer
+    /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
+    /// da requisição. Respostas em JSON no envelope data; erros com error,
+    /// message e fields.</para>
+    /// </remarks>
     /// <param name="order">The order.</param>
     /// <param name="options">Another organization's key for this call.</param>
     /// <param name="cancellationToken">Cancels the call.</param>
@@ -29,7 +37,15 @@ public sealed class OrdersService
         return client.RequestAsync(HttpMethod.Get, "/api/v1/orders/" + PerataClient.Segment(order), null, null, PerataJson.Default.OrderEnvelope, null, options, cancellationToken);
     }
 
-    /// <summary>Ler a fatura de um pedido, o documento comercial que o lojista gerou; sem ela, 404.</summary>
+    /// <summary>Ler a fatura de um pedido.</summary>
+    /// <remarks>
+    /// <para>Devolve a fatura de um pedido, o documento comercial que o lojista
+    /// gerou. Sem fatura, a resposta é 404.</para>
+    /// <para>Autenticação: chave de API da organização em Authorization: Bearer
+    /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
+    /// da requisição. Respostas em JSON no envelope data; erros com error,
+    /// message e fields.</para>
+    /// </remarks>
     /// <param name="order">The order.</param>
     /// <param name="options">Another organization's key for this call.</param>
     /// <param name="cancellationToken">Cancels the call.</param>
@@ -40,7 +56,15 @@ public sealed class OrdersService
         return client.RequestAsync(HttpMethod.Get, "/api/v1/orders/" + PerataClient.Segment(order) + "/invoice", null, null, PerataJson.Default.OrderInvoiceEnvelope, null, options, cancellationToken);
     }
 
-    /// <summary>Ler o recibo de um pedido: o que foi pago, quando e como.</summary>
+    /// <summary>Ler o recibo de um pedido.</summary>
+    /// <remarks>
+    /// <para>Devolve o recibo de um pedido: o que foi pago, quando e
+    /// como.</para>
+    /// <para>Autenticação: chave de API da organização em Authorization: Bearer
+    /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
+    /// da requisição. Respostas em JSON no envelope data; erros com error,
+    /// message e fields.</para>
+    /// </remarks>
     /// <param name="order">The order.</param>
     /// <param name="options">Another organization's key for this call.</param>
     /// <param name="cancellationToken">Cancels the call.</param>
@@ -51,7 +75,15 @@ public sealed class OrdersService
         return client.RequestAsync(HttpMethod.Get, "/api/v1/orders/" + PerataClient.Segment(order) + "/receipt", null, null, PerataJson.Default.OrderReceiptEnvelope, null, options, cancellationToken);
     }
 
-    /// <summary>Listar pedidos (checkouts pagos), opcionalmente de um client_reference_id, de um cliente, de um período ou de metadados. One page; <see cref="ListIterAsync"/> walks every page.</summary>
+    /// <summary>Listar pedidos. One page; <see cref="ListIterAsync"/> walks every page.</summary>
+    /// <remarks>
+    /// <para>Devolve uma página dos pedidos, que são os checkouts pagos. Filtre
+    /// por client_reference_id, cliente, período ou metadados.</para>
+    /// <para>Autenticação: chave de API da organização em Authorization: Bearer
+    /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
+    /// da requisição. Respostas em JSON no envelope data; erros com error,
+    /// message e fields.</para>
+    /// </remarks>
     /// <param name="parameters">The page, its size and the filters; the first page when null.</param>
     /// <param name="options">Another organization's key for this call.</param>
     /// <param name="cancellationToken">Cancels the call.</param>
@@ -102,18 +134,26 @@ public sealed record OrdersListParams
     /// <summary>Ordem da lista: created_at ou amount, e com um - na frente é decrescente (-created_at, o mais novo primeiro, é o padrão).</summary>
     public string? Sorting { get; init; }
 
-    internal IEnumerable<KeyValuePair<string, string?>> Query() =>
-    [
-        new("page", Page?.ToString(CultureInfo.InvariantCulture)),
-        new("limit", Limit?.ToString(CultureInfo.InvariantCulture)),
-        new("client_reference_id", ClientReferenceId),
-        new("status", Status),
-        new("customer_id", CustomerId),
-        new("external_customer_id", ExternalCustomerId),
-        new("created_after", CreatedAfter),
-        new("created_before", CreatedBefore),
-        new("sorting", Sorting),
-    ];
+    /// <summary>Filtro por metadados: metadata[chave]=valor, uma vez para cada par (até 10); a linha precisa ter todos. Um valor que parece número ou booleano também casa com o número ou o booleano guardado.</summary>
+    public IReadOnlyDictionary<string, string>? Metadata { get; init; }
+
+    internal IEnumerable<KeyValuePair<string, string?>> Query()
+    {
+        yield return new("page", Page?.ToString(CultureInfo.InvariantCulture));
+        yield return new("limit", Limit?.ToString(CultureInfo.InvariantCulture));
+        yield return new("client_reference_id", ClientReferenceId);
+        yield return new("status", Status);
+        yield return new("customer_id", CustomerId);
+        yield return new("external_customer_id", ExternalCustomerId);
+        yield return new("created_after", CreatedAfter);
+        yield return new("created_before", CreatedBefore);
+        yield return new("sorting", Sorting);
+        // A map filter is one pair a key: metadata[key]=value, the keys sorted.
+        foreach (var pair in Metadata?.OrderBy(each => each.Key, StringComparer.Ordinal) ?? Enumerable.Empty<KeyValuePair<string, string>>())
+        {
+            yield return new("metadata" + "[" + pair.Key + "]", pair.Value);
+        }
+    }
 }
 
 

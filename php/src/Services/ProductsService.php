@@ -18,7 +18,15 @@ final class ProductsService
     }
 
     /**
-     * Arquivar um produto: sai das vendas novas e o que já foi vendido continua apontando para ele.
+     * Arquivar um produto.
+     *
+     * Arquiva um produto: ele sai das vendas novas, e o que já foi vendido
+     * continua apontando para ele.
+     *
+     * Autenticação: chave de API da organização em Authorization: Bearer
+     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+     * requisição. Respostas em JSON no envelope data; erros com error, message
+     * e fields.
      */
     public function archive(string $product, ?string $idempotencyKey = null, ?string $apiKey = null): Models\Product
     {
@@ -28,6 +36,14 @@ final class ProductsService
 
     /**
      * Criar um produto.
+     *
+     * Cria um produto com nome e descrição. O preço se cria à parte, em Criar
+     * um preço.
+     *
+     * Autenticação: chave de API da organização em Authorization: Bearer
+     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+     * requisição. Respostas em JSON no envelope data; erros com error, message
+     * e fields.
      *
      * @param array{description?: string, name: string} $params
      */
@@ -39,6 +55,13 @@ final class ProductsService
 
     /**
      * Ler um produto.
+     *
+     * Devolve um produto pelo ID.
+     *
+     * Autenticação: chave de API da organização em Authorization: Bearer
+     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+     * requisição. Respostas em JSON no envelope data; erros com error, message
+     * e fields.
      */
     public function get(string $product, ?string $apiKey = null): Models\Product
     {
@@ -48,6 +71,13 @@ final class ProductsService
 
     /**
      * Listar produtos. One page; listIter() walks every page.
+     *
+     * Devolve uma página dos produtos da organização, no ambiente da chave.
+     *
+     * Autenticação: chave de API da organização em Authorization: Bearer
+     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+     * requisição. Respostas em JSON no envelope data; erros com error, message
+     * e fields.
      *
      * @param array{page?: int, limit?: int} $params
      * @return Page<Models\Product>
@@ -70,7 +100,15 @@ final class ProductsService
     }
 
     /**
-     * Atualizar o nome ou a descrição de um produto ativo.
+     * Atualizar um produto.
+     *
+     * Muda o nome ou a descrição de um produto ativo. O que você não enviar
+     * fica como está.
+     *
+     * Autenticação: chave de API da organização em Authorization: Bearer
+     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+     * requisição. Respostas em JSON no envelope data; erros com error, message
+     * e fields.
      *
      * @param array{description?: string, name?: string} $params
      */

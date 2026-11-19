@@ -6,6 +6,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.TreeMap;
 
 /** The API's disputes. */
 public final class DisputesService {
@@ -17,6 +18,14 @@ public final class DisputesService {
 
     /**
      * Ler uma disputa.
+     *
+     * Devolve uma disputa pelo ID.
+     *
+     * Autenticação: chave de API da organização em Authorization: Bearer
+     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+     * requisição. Respostas em JSON no envelope data; erros com error, message
+     * e fields.
+     *
      * @param dispute the dispute
      * @param options another organization's key for this call, or null
      * @return the dispute
@@ -29,6 +38,14 @@ public final class DisputesService {
 
     /**
      * Ler uma disputa.
+     *
+     * Devolve uma disputa pelo ID.
+     *
+     * Autenticação: chave de API da organização em Authorization: Bearer
+     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+     * requisição. Respostas em JSON no envelope data; erros com error, message
+     * e fields.
+     *
      * @param dispute the dispute
      * @return the dispute
      * @throws PerataException when the API refuses the call
@@ -38,7 +55,15 @@ public final class DisputesService {
     }
 
     /**
-     * Listar disputas, opcionalmente de um status (status). One page; {@link #listIter} walks every page.
+     * Listar disputas. One page; {@link #listIter} walks every page.
+     *
+     * Devolve uma página das disputas. Com status, só as que estão nele.
+     *
+     * Autenticação: chave de API da organização em Authorization: Bearer
+     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+     * requisição. Respostas em JSON no envelope data; erros com error, message
+     * e fields.
+     *
      * @param params the page, its size and the filters, or null
      * @param options options for this call, or null
      * @return the page
@@ -50,7 +75,15 @@ public final class DisputesService {
     }
 
     /**
-     * Listar disputas, opcionalmente de um status (status). One page.
+     * Listar disputas. One page.
+     *
+     * Devolve uma página das disputas. Com status, só as que estão nele.
+     *
+     * Autenticação: chave de API da organização em Authorization: Bearer
+     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+     * requisição. Respostas em JSON no envelope data; erros com error, message
+     * e fields.
+     *
      * @param params the page, its size and the filters, or null
      * @return the page
      */
@@ -59,7 +92,15 @@ public final class DisputesService {
     }
 
     /**
-     * Listar disputas, opcionalmente de um status (status). The first page.
+     * Listar disputas. The first page.
+     *
+     * Devolve uma página das disputas. Com status, só as que estão nele.
+     *
+     * Autenticação: chave de API da organização em Authorization: Bearer
+     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+     * requisição. Respostas em JSON no envelope data; erros com error, message
+     * e fields.
+     *
      * @return the page
      */
     public Page<Dispute> list() {

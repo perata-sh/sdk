@@ -18,7 +18,15 @@ final class MetersService
     }
 
     /**
-     * Ler um medidor: o filtro dos eventos que ele conta, a agregação e a unidade.
+     * Ler um medidor.
+     *
+     * Devolve um medidor: o filtro dos eventos que ele conta, a agregação e a
+     * unidade.
+     *
+     * Autenticação: chave de API da organização em Authorization: Bearer
+     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+     * requisição. Respostas em JSON no envelope data; erros com error, message
+     * e fields.
      */
     public function get(string $meter, ?string $apiKey = null): Models\Meter
     {
@@ -27,7 +35,15 @@ final class MetersService
     }
 
     /**
-     * Listar medidores; os arquivados só com is_archived=true. One page; listIter() walks every page.
+     * Listar medidores. One page; listIter() walks every page.
+     *
+     * Devolve uma página dos medidores. Os arquivados só aparecem com
+     * is_archived=true.
+     *
+     * Autenticação: chave de API da organização em Authorization: Bearer
+     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+     * requisição. Respostas em JSON no envelope data; erros com error, message
+     * e fields.
      *
      * @param array{page?: int, limit?: int, is_archived?: string} $params
      * @return Page<Models\Meter>

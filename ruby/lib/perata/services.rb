@@ -9,7 +9,16 @@ module Perata
       @client = client
     end
 
-    # Criar um benefício custom, license_key, feature_flag ou meter_credit; downloads e os benefícios do Discord e do GitHub se configuram no painel.
+    # Criar um benefício.
+    #
+    # Cria um benefício do tipo custom, license_key, feature_flag ou
+    # meter_credit. Os downloads e os benefícios do Discord e do GitHub se
+    # configuram no painel.
+    #
+    # Autenticação: chave de API da organização em Authorization: Bearer
+    # (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+    # requisição. Respostas em JSON no envelope data; erros com error, message e
+    # fields.
     #
     # @param params [BenefitsCreateParams, Hash]
     # @return [Benefit]
@@ -18,7 +27,15 @@ module Perata
       Benefit.from_hash(data)
     end
 
-    # Excluir um benefício: ele sai de todos os produtos e é revogado de quem o tem. The API answers 204, so there is nothing to return.
+    # Excluir um benefício. The API answers 204, so there is nothing to return.
+    #
+    # Exclui um benefício: ele sai de todos os produtos e é revogado de quem o
+    # tem.
+    #
+    # Autenticação: chave de API da organização em Authorization: Bearer
+    # (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+    # requisição. Respostas em JSON no envelope data; erros com error, message e
+    # fields.
     #
     # @return [nil]
     def delete(benefit, idempotency_key: nil, api_key: nil)
@@ -28,13 +45,28 @@ module Perata
 
     # Ler um benefício.
     #
+    # Devolve um benefício pelo ID.
+    #
+    # Autenticação: chave de API da organização em Authorization: Bearer
+    # (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+    # requisição. Respostas em JSON no envelope data; erros com error, message e
+    # fields.
+    #
     # @return [Benefit]
     def get(benefit, api_key: nil)
       data = @client.request("GET", "/api/v1/benefits/#{Perata.segment(benefit)}", api_key: api_key)
       Benefit.from_hash(data)
     end
 
-    # Listar benefícios, opcionalmente de um tipo (type). One page; +list_iter+ walks every page.
+    # Listar benefícios. One page; +list_iter+ walks every page.
+    #
+    # Devolve uma página dos benefícios da organização. Com type, só os de um
+    # tipo.
+    #
+    # Autenticação: chave de API da organização em Authorization: Bearer
+    # (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+    # requisição. Respostas em JSON no envelope data; erros com error, message e
+    # fields.
     #
     # @return [Page<Benefit>]
     def list(page: nil, limit: nil, type: nil, api_key: nil)
@@ -53,7 +85,15 @@ module Perata
       block ? items.each(&block) : items
     end
 
-    # Listar as concessões de um benefício, opcionalmente de um cliente (customer_id) ou só as vigentes (is_granted). One page; +list_grants_iter+ walks every page.
+    # Listar as concessões de um benefício. One page; +list_grants_iter+ walks every page.
+    #
+    # Devolve uma página das concessões de um benefício. Com customer_id, só as
+    # de um cliente; com is_granted, só as vigentes ou só as revogadas.
+    #
+    # Autenticação: chave de API da organização em Authorization: Bearer
+    # (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+    # requisição. Respostas em JSON no envelope data; erros com error, message e
+    # fields.
     #
     # @return [Page<BenefitGrant>]
     def list_grants(benefit, page: nil, limit: nil, customer_id: nil, is_granted: nil, api_key: nil)
@@ -72,7 +112,16 @@ module Perata
       block ? items.each(&block) : items
     end
 
-    # Atualizar o nome, a visibilidade, as propriedades e os metadados de um benefício; o tipo e a descrição dada na criação não mudam, e o que a concessão já entregou fica como foi entregue.
+    # Atualizar um benefício.
+    #
+    # Muda o nome, a visibilidade, as propriedades e os metadados de um
+    # benefício. O tipo e a descrição dada na criação não mudam, e o que a
+    # concessão já entregou fica como foi entregue.
+    #
+    # Autenticação: chave de API da organização em Authorization: Bearer
+    # (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+    # requisição. Respostas em JSON no envelope data; erros com error, message e
+    # fields.
     #
     # @param params [BenefitsUpdateParams, Hash]
     # @return [Benefit]
@@ -88,7 +137,16 @@ module Perata
       @client = client
     end
 
-    # Criar um link de checkout: uma oferta durável de um ou mais produtos, com desconto, quantidade e páginas de retorno.
+    # Criar um link de checkout.
+    #
+    # Cria um link de checkout: uma oferta durável de um ou mais produtos, com
+    # desconto, quantidade e páginas de retorno. Cada visita ao link abre uma
+    # sessão de compra nova.
+    #
+    # Autenticação: chave de API da organização em Authorization: Bearer
+    # (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+    # requisição. Respostas em JSON no envelope data; erros com error, message e
+    # fields.
     #
     # @param params [CheckoutLinksCreateParams, Hash]
     # @return [CheckoutLink]
@@ -97,7 +155,15 @@ module Perata
       CheckoutLink.from_hash(data)
     end
 
-    # Excluir um link de checkout: ele deixa de abrir checkouts; os que já abriu continuam. The API answers 204, so there is nothing to return.
+    # Excluir um link de checkout. The API answers 204, so there is nothing to return.
+    #
+    # Exclui um link de checkout: ele deixa de abrir checkouts. Os que já abriu
+    # continuam.
+    #
+    # Autenticação: chave de API da organização em Authorization: Bearer
+    # (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+    # requisição. Respostas em JSON no envelope data; erros com error, message e
+    # fields.
     #
     # @return [nil]
     def delete(checkout_link, idempotency_key: nil, api_key: nil)
@@ -107,6 +173,13 @@ module Perata
 
     # Ler um link de checkout.
     #
+    # Devolve um link de checkout pelo ID.
+    #
+    # Autenticação: chave de API da organização em Authorization: Bearer
+    # (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+    # requisição. Respostas em JSON no envelope data; erros com error, message e
+    # fields.
+    #
     # @return [CheckoutLink]
     def get(checkout_link, api_key: nil)
       data = @client.request("GET", "/api/v1/checkout-links/#{Perata.segment(checkout_link)}", api_key: api_key)
@@ -114,6 +187,13 @@ module Perata
     end
 
     # Listar links de checkout. One page; +list_iter+ walks every page.
+    #
+    # Devolve uma página dos links de checkout da organização.
+    #
+    # Autenticação: chave de API da organização em Authorization: Bearer
+    # (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+    # requisição. Respostas em JSON no envelope data; erros com error, message e
+    # fields.
     #
     # @return [Page<CheckoutLink>]
     def list(page: nil, limit: nil, api_key: nil)
@@ -132,7 +212,15 @@ module Perata
       block ? items.each(&block) : items
     end
 
-    # Atualizar o rótulo, as páginas de retorno, os produtos e os metadados de um link; a quantidade e o desconto ficam como foram publicados.
+    # Atualizar um link de checkout.
+    #
+    # Muda o rótulo, as páginas de retorno, os produtos e os metadados de um
+    # link. A quantidade e o desconto ficam como foram publicados.
+    #
+    # Autenticação: chave de API da organização em Authorization: Bearer
+    # (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+    # requisição. Respostas em JSON no envelope data; erros com error, message e
+    # fields.
     #
     # @param params [CheckoutLinksUpdateParams, Hash]
     # @return [CheckoutLink]
@@ -148,7 +236,19 @@ module Perata
       @client = client
     end
 
-    # Criar um checkout: o endereço para onde o comprador é enviado e a sessão de compra aberta para ele, com o client_secret que o navegador do comprador usa nas rotas de cliente.
+    # Criar um checkout.
+    #
+    # Cria um checkout. Devolve o endereço para onde mandar o comprador e a
+    # sessão de compra aberta para ele, com o client_secret que o navegador do
+    # comprador usa para pagar sem chave de API; o client_secret vem só nesta
+    # resposta. Para cobrar um valor que o seu servidor define, envie
+    # amount_cents e items (preço de valor livre). Envie client_reference_id e
+    # metadata para achar o pedido depois.
+    #
+    # Autenticação: chave de API da organização em Authorization: Bearer
+    # (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+    # requisição. Respostas em JSON no envelope data; erros com error, message e
+    # fields.
     #
     # @param params [CheckoutsCreateParams, Hash]
     # @return [CheckoutCreated]
@@ -157,7 +257,17 @@ module Perata
       CheckoutCreated.from_hash(data)
     end
 
-    # Encerrar um checkout que não deve mais ser pago: a página, o client_secret e o QR do Pix deixam de valer (o Pix já gerado é cancelado na Cielo), e o evento checkout.expired é enviado; 409 se já foi pago ou se emitiu boleto.
+    # Encerrar um checkout.
+    #
+    # Encerra um checkout que não deve mais ser pago: a página, o client_secret
+    # e o QR do Pix deixam de valer (o Pix já gerado é cancelado na Cielo) e o
+    # evento checkout.expired é enviado. Repetir a chamada é seguro. Se o
+    # checkout já foi pago ou emitiu um boleto, a resposta é 409.
+    #
+    # Autenticação: chave de API da organização em Authorization: Bearer
+    # (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+    # requisição. Respostas em JSON no envelope data; erros com error, message e
+    # fields.
     #
     # @return [CheckoutExpired]
     def expire(checkout, idempotency_key: nil, api_key: nil)
@@ -165,7 +275,14 @@ module Perata
       CheckoutExpired.from_hash(data)
     end
 
-    # Ler um checkout: o endereço, o estado e as páginas de retorno.
+    # Ler um checkout.
+    #
+    # Devolve um checkout: o endereço, o estado e as páginas de retorno.
+    #
+    # Autenticação: chave de API da organização em Authorization: Bearer
+    # (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+    # requisição. Respostas em JSON no envelope data; erros com error, message e
+    # fields.
     #
     # @return [Checkout]
     def get(checkout, api_key: nil)
@@ -173,11 +290,19 @@ module Perata
       Checkout.from_hash(data)
     end
 
-    # Listar checkouts, opcionalmente de um client_reference_id, de um status, de um período ou de metadados. One page; +list_iter+ walks every page.
+    # Listar checkouts. One page; +list_iter+ walks every page.
+    #
+    # Devolve uma página dos checkouts. Filtre por client_reference_id, status,
+    # período ou metadados.
+    #
+    # Autenticação: chave de API da organização em Authorization: Bearer
+    # (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+    # requisição. Respostas em JSON no envelope data; erros com error, message e
+    # fields.
     #
     # @return [Page<Checkout>]
-    def list(page: nil, limit: nil, client_reference_id: nil, status: nil, created_after: nil, created_before: nil, sorting: nil, api_key: nil)
-      query = { "page" => page, "limit" => limit, "client_reference_id" => client_reference_id, "status" => status, "created_after" => created_after, "created_before" => created_before, "sorting" => sorting }
+    def list(page: nil, limit: nil, client_reference_id: nil, status: nil, created_after: nil, created_before: nil, sorting: nil, metadata: nil, api_key: nil)
+      query = { "page" => page, "limit" => limit, "client_reference_id" => client_reference_id, "status" => status, "created_after" => created_after, "created_before" => created_before, "sorting" => sorting, "metadata" => metadata }
       data = @client.request("GET", "/api/v1/checkouts", query: query, api_key: api_key)
       Page.from_hash(data) { |item| Checkout.from_hash(item) }
     end
@@ -185,14 +310,21 @@ module Perata
     # Walks every page of checkouts:list from +page+, item by item.
     #
     # @return [Enumerator<Checkout>]
-    def list_iter(page: nil, limit: nil, client_reference_id: nil, status: nil, created_after: nil, created_before: nil, sorting: nil, api_key: nil, &block)
+    def list_iter(page: nil, limit: nil, client_reference_id: nil, status: nil, created_after: nil, created_before: nil, sorting: nil, metadata: nil, api_key: nil, &block)
       items = Page.iterate(page) do |at|
-        list(page: at, limit: limit, client_reference_id: client_reference_id, status: status, created_after: created_after, created_before: created_before, sorting: sorting, api_key: api_key)
+        list(page: at, limit: limit, client_reference_id: client_reference_id, status: status, created_after: created_after, created_before: created_before, sorting: sorting, metadata: metadata, api_key: api_key)
       end
       block ? items.each(&block) : items
     end
 
-    # Atualizar o rótulo e as páginas de retorno de um checkout ativo.
+    # Atualizar um checkout.
+    #
+    # Muda o rótulo e as páginas de retorno de um checkout ativo.
+    #
+    # Autenticação: chave de API da organização em Authorization: Bearer
+    # (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+    # requisição. Respostas em JSON no envelope data; erros com error, message e
+    # fields.
     #
     # @param params [CheckoutsUpdateParams, Hash]
     # @return [Checkout]
@@ -208,7 +340,16 @@ module Perata
       @client = client
     end
 
-    # Entrar com um cliente no portal do cliente: o endereço o abre já autenticado.
+    # Abrir o portal do cliente.
+    #
+    # Abre uma sessão do portal do cliente para o cliente informado e devolve o
+    # endereço que o abre já autenticado. Com return_url, um endereço https do
+    # seu aplicativo, o portal oferece a volta.
+    #
+    # Autenticação: chave de API da organização em Authorization: Bearer
+    # (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+    # requisição. Respostas em JSON no envelope data; erros com error, message e
+    # fields.
     #
     # @param params [CustomerSessionsCreateParams, Hash]
     # @return [CustomerSession]
@@ -224,7 +365,18 @@ module Perata
       @client = client
     end
 
-    # Criar um cliente, com CPF ou CNPJ, telefone e endereço de cobrança se você os tem.
+    # Criar um cliente.
+    #
+    # Cria um cliente, com CPF ou CNPJ, telefone e endereço de cobrança, se você
+    # os tem. Se você enviar external_id e o e-mail já for de um cliente que
+    # ainda não tem ID externo (por exemplo, um que o checkout criou), esse
+    # cliente recebe o ID e os dados enviados, e a resposta é 200 em vez de 201.
+    # Se o e-mail for de um cliente com outro ID externo, a resposta é 422.
+    #
+    # Autenticação: chave de API da organização em Authorization: Bearer
+    # (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+    # requisição. Respostas em JSON no envelope data; erros com error, message e
+    # fields.
     #
     # @param params [CustomersCreateParams, Hash]
     # @return [Customer]
@@ -233,7 +385,16 @@ module Perata
       Customer.from_hash(data)
     end
 
-    # Excluir um cliente: as assinaturas terminam na hora, os benefícios são revogados e o ID externo é liberado; pedidos e pagamentos continuam. The API answers 204, so there is nothing to return.
+    # Excluir um cliente. The API answers 204, so there is nothing to return.
+    #
+    # Exclui um cliente: as assinaturas terminam na hora, os benefícios são
+    # revogados e o ID externo fica livre. Os pedidos e os pagamentos continuam
+    # nos registros.
+    #
+    # Autenticação: chave de API da organização em Authorization: Bearer
+    # (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+    # requisição. Respostas em JSON no envelope data; erros com error, message e
+    # fields.
     #
     # @return [nil]
     def delete(customer, idempotency_key: nil, api_key: nil)
@@ -243,13 +404,28 @@ module Perata
 
     # Ler um cliente.
     #
+    # Devolve um cliente pelo ID.
+    #
+    # Autenticação: chave de API da organização em Authorization: Bearer
+    # (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+    # requisição. Respostas em JSON no envelope data; erros com error, message e
+    # fields.
+    #
     # @return [Customer]
     def get(customer, api_key: nil)
       data = @client.request("GET", "/api/v1/customers/#{Perata.segment(customer)}", api_key: api_key)
       Customer.from_hash(data)
     end
 
-    # Ler um cliente pelo ID dele no sistema do lojista (external_id).
+    # Ler um cliente pelo ID externo.
+    #
+    # Devolve o cliente que você identifica pelo ID dele no seu sistema
+    # (external_id).
+    #
+    # Autenticação: chave de API da organização em Authorization: Bearer
+    # (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+    # requisição. Respostas em JSON no envelope data; erros com error, message e
+    # fields.
     #
     # @return [Customer]
     def get_external(external_id, api_key: nil)
@@ -257,7 +433,16 @@ module Perata
       Customer.from_hash(data)
     end
 
-    # Ler o estado de um cliente: assinaturas ativas e benefícios vigentes, inclusive os feature flags.
+    # Ler o estado de um cliente.
+    #
+    # Devolve o estado de um cliente: as assinaturas ativas e os benefícios
+    # vigentes, inclusive os feature flags. É a leitura que o seu aplicativo faz
+    # para decidir o que o cliente pode usar.
+    #
+    # Autenticação: chave de API da organização em Authorization: Bearer
+    # (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+    # requisição. Respostas em JSON no envelope data; erros com error, message e
+    # fields.
     #
     # @return [CustomerState]
     def get_state(customer, api_key: nil)
@@ -267,9 +452,17 @@ module Perata
 
     # Listar clientes. One page; +list_iter+ walks every page.
     #
+    # Devolve uma página dos clientes. Com email, só o cliente com esse e-mail,
+    # sem diferença entre maiúsculas e minúsculas.
+    #
+    # Autenticação: chave de API da organização em Authorization: Bearer
+    # (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+    # requisição. Respostas em JSON no envelope data; erros com error, message e
+    # fields.
+    #
     # @return [Page<Customer>]
-    def list(page: nil, limit: nil, api_key: nil)
-      query = { "page" => page, "limit" => limit }
+    def list(page: nil, limit: nil, email: nil, api_key: nil)
+      query = { "page" => page, "limit" => limit, "email" => email }
       data = @client.request("GET", "/api/v1/customers", query: query, api_key: api_key)
       Page.from_hash(data) { |item| Customer.from_hash(item) }
     end
@@ -277,14 +470,22 @@ module Perata
     # Walks every page of customers:list from +page+, item by item.
     #
     # @return [Enumerator<Customer>]
-    def list_iter(page: nil, limit: nil, api_key: nil, &block)
+    def list_iter(page: nil, limit: nil, email: nil, api_key: nil, &block)
       items = Page.iterate(page) do |at|
-        list(page: at, limit: limit, api_key: api_key)
+        list(page: at, limit: limit, email: email, api_key: api_key)
       end
       block ? items.each(&block) : items
     end
 
-    # Atualizar o nome, o e-mail, o ID externo, o CPF ou CNPJ, o telefone ou o endereço de cobrança de um cliente; o ID externo não muda depois de definido.
+    # Atualizar um cliente.
+    #
+    # Muda o nome, o e-mail, o ID externo, o CPF ou CNPJ, o telefone ou o
+    # endereço de cobrança. O ID externo só pode ser definido uma vez.
+    #
+    # Autenticação: chave de API da organização em Authorization: Bearer
+    # (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+    # requisição. Respostas em JSON no envelope data; erros com error, message e
+    # fields.
     #
     # @param params [CustomersUpdateParams, Hash]
     # @return [Customer]
@@ -293,7 +494,15 @@ module Perata
       Customer.from_hash(data)
     end
 
-    # Atualizar um cliente pelo ID dele no sistema do lojista (external_id).
+    # Atualizar um cliente pelo ID externo.
+    #
+    # Muda o cliente que você identifica pelo ID dele no seu sistema
+    # (external_id). Os campos são os de Atualizar um cliente.
+    #
+    # Autenticação: chave de API da organização em Authorization: Bearer
+    # (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+    # requisição. Respostas em JSON no envelope data; erros com error, message e
+    # fields.
     #
     # @param params [CustomersUpdateExternalParams, Hash]
     # @return [Customer]
@@ -309,7 +518,16 @@ module Perata
       @client = client
     end
 
-    # Criar um desconto percentual (basis_points) ou fixo em reais (amount_cents).
+    # Criar um desconto.
+    #
+    # Cria um desconto percentual (basis_points) ou de valor fixo em reais
+    # (amount_cents). O código é o que o comprador digita; sem ele, o desconto
+    # só vale num link de checkout ou pela API.
+    #
+    # Autenticação: chave de API da organização em Authorization: Bearer
+    # (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+    # requisição. Respostas em JSON no envelope data; erros com error, message e
+    # fields.
     #
     # @param params [DiscountsCreateParams, Hash]
     # @return [Discount]
@@ -318,7 +536,15 @@ module Perata
       Discount.from_hash(data)
     end
 
-    # Excluir um desconto: sai das listas e dos checkouts e o código fica livre; o que ele já descontou continua nos registros. The API answers 204, so there is nothing to return.
+    # Excluir um desconto. The API answers 204, so there is nothing to return.
+    #
+    # Exclui um desconto: ele sai das listas e dos checkouts, e o código fica
+    # livre. O que ele já descontou continua nos registros.
+    #
+    # Autenticação: chave de API da organização em Authorization: Bearer
+    # (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+    # requisição. Respostas em JSON no envelope data; erros com error, message e
+    # fields.
     #
     # @return [nil]
     def delete(discount, idempotency_key: nil, api_key: nil)
@@ -328,6 +554,13 @@ module Perata
 
     # Ler um desconto.
     #
+    # Devolve um desconto pelo ID.
+    #
+    # Autenticação: chave de API da organização em Authorization: Bearer
+    # (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+    # requisição. Respostas em JSON no envelope data; erros com error, message e
+    # fields.
+    #
     # @return [Discount]
     def get(discount, api_key: nil)
       data = @client.request("GET", "/api/v1/discounts/#{Perata.segment(discount)}", api_key: api_key)
@@ -335,6 +568,13 @@ module Perata
     end
 
     # Listar descontos. One page; +list_iter+ walks every page.
+    #
+    # Devolve uma página dos descontos da organização.
+    #
+    # Autenticação: chave de API da organização em Authorization: Bearer
+    # (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+    # requisição. Respostas em JSON no envelope data; erros com error, message e
+    # fields.
     #
     # @return [Page<Discount>]
     def list(page: nil, limit: nil, api_key: nil)
@@ -353,7 +593,15 @@ module Perata
       block ? items.each(&block) : items
     end
 
-    # Atualizar um desconto; o tipo e a duração não mudam, e depois do primeiro uso o valor e os meses também não.
+    # Atualizar um desconto.
+    #
+    # Muda um desconto. O tipo e a duração não mudam; depois do primeiro uso, o
+    # valor e os meses também não.
+    #
+    # Autenticação: chave de API da organização em Authorization: Bearer
+    # (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+    # requisição. Respostas em JSON no envelope data; erros com error, message e
+    # fields.
     #
     # @param params [DiscountsUpdateParams, Hash]
     # @return [Discount]
@@ -371,13 +619,27 @@ module Perata
 
     # Ler uma disputa.
     #
+    # Devolve uma disputa pelo ID.
+    #
+    # Autenticação: chave de API da organização em Authorization: Bearer
+    # (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+    # requisição. Respostas em JSON no envelope data; erros com error, message e
+    # fields.
+    #
     # @return [Dispute]
     def get(dispute, api_key: nil)
       data = @client.request("GET", "/api/v1/disputes/#{Perata.segment(dispute)}", api_key: api_key)
       Dispute.from_hash(data)
     end
 
-    # Listar disputas, opcionalmente de um status (status). One page; +list_iter+ walks every page.
+    # Listar disputas. One page; +list_iter+ walks every page.
+    #
+    # Devolve uma página das disputas. Com status, só as que estão nele.
+    #
+    # Autenticação: chave de API da organização em Authorization: Bearer
+    # (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+    # requisição. Respostas em JSON no envelope data; erros com error, message e
+    # fields.
     #
     # @return [Page<Dispute>]
     def list(page: nil, limit: nil, status: nil, api_key: nil)
@@ -403,7 +665,15 @@ module Perata
       @client = client
     end
 
-    # Listar os eventos de consumo que as origens enviaram, do mais novo ao mais antigo. One page; +list_iter+ walks every page.
+    # Listar eventos de consumo. One page; +list_iter+ walks every page.
+    #
+    # Devolve uma página dos eventos de consumo que as fontes enviaram, do mais
+    # novo ao mais antigo.
+    #
+    # Autenticação: chave de API da organização em Authorization: Bearer
+    # (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+    # requisição. Respostas em JSON no envelope data; erros com error, message e
+    # fields.
     #
     # @return [Page<Event>]
     def list(page: nil, limit: nil, customer_id: nil, start: nil, end_: nil, api_key: nil)
@@ -429,7 +699,15 @@ module Perata
       @client = client
     end
 
-    # Ler um medidor: o filtro dos eventos que ele conta, a agregação e a unidade.
+    # Ler um medidor.
+    #
+    # Devolve um medidor: o filtro dos eventos que ele conta, a agregação e a
+    # unidade.
+    #
+    # Autenticação: chave de API da organização em Authorization: Bearer
+    # (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+    # requisição. Respostas em JSON no envelope data; erros com error, message e
+    # fields.
     #
     # @return [Meter]
     def get(meter, api_key: nil)
@@ -437,7 +715,15 @@ module Perata
       Meter.from_hash(data)
     end
 
-    # Listar medidores; os arquivados só com is_archived=true. One page; +list_iter+ walks every page.
+    # Listar medidores. One page; +list_iter+ walks every page.
+    #
+    # Devolve uma página dos medidores. Os arquivados só aparecem com
+    # is_archived=true.
+    #
+    # Autenticação: chave de API da organização em Authorization: Bearer
+    # (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+    # requisição. Respostas em JSON no envelope data; erros com error, message e
+    # fields.
     #
     # @return [Page<Meter>]
     def list(page: nil, limit: nil, is_archived: nil, api_key: nil)
@@ -463,7 +749,14 @@ module Perata
       @client = client
     end
 
-    # Ler um pedido: um checkout pago.
+    # Ler um pedido.
+    #
+    # Devolve um pedido: um checkout pago.
+    #
+    # Autenticação: chave de API da organização em Authorization: Bearer
+    # (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+    # requisição. Respostas em JSON no envelope data; erros com error, message e
+    # fields.
     #
     # @return [Order]
     def get(order, api_key: nil)
@@ -471,7 +764,15 @@ module Perata
       Order.from_hash(data)
     end
 
-    # Ler a fatura de um pedido, o documento comercial que o lojista gerou; sem ela, 404.
+    # Ler a fatura de um pedido.
+    #
+    # Devolve a fatura de um pedido, o documento comercial que o lojista gerou.
+    # Sem fatura, a resposta é 404.
+    #
+    # Autenticação: chave de API da organização em Authorization: Bearer
+    # (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+    # requisição. Respostas em JSON no envelope data; erros com error, message e
+    # fields.
     #
     # @return [OrderInvoice]
     def get_invoice(order, api_key: nil)
@@ -479,7 +780,14 @@ module Perata
       OrderInvoice.from_hash(data)
     end
 
-    # Ler o recibo de um pedido: o que foi pago, quando e como.
+    # Ler o recibo de um pedido.
+    #
+    # Devolve o recibo de um pedido: o que foi pago, quando e como.
+    #
+    # Autenticação: chave de API da organização em Authorization: Bearer
+    # (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+    # requisição. Respostas em JSON no envelope data; erros com error, message e
+    # fields.
     #
     # @return [OrderReceipt]
     def get_receipt(order, api_key: nil)
@@ -487,11 +795,19 @@ module Perata
       OrderReceipt.from_hash(data)
     end
 
-    # Listar pedidos (checkouts pagos), opcionalmente de um client_reference_id, de um cliente, de um período ou de metadados. One page; +list_iter+ walks every page.
+    # Listar pedidos. One page; +list_iter+ walks every page.
+    #
+    # Devolve uma página dos pedidos, que são os checkouts pagos. Filtre por
+    # client_reference_id, cliente, período ou metadados.
+    #
+    # Autenticação: chave de API da organização em Authorization: Bearer
+    # (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+    # requisição. Respostas em JSON no envelope data; erros com error, message e
+    # fields.
     #
     # @return [Page<Order>]
-    def list(page: nil, limit: nil, client_reference_id: nil, status: nil, customer_id: nil, external_customer_id: nil, created_after: nil, created_before: nil, sorting: nil, api_key: nil)
-      query = { "page" => page, "limit" => limit, "client_reference_id" => client_reference_id, "status" => status, "customer_id" => customer_id, "external_customer_id" => external_customer_id, "created_after" => created_after, "created_before" => created_before, "sorting" => sorting }
+    def list(page: nil, limit: nil, client_reference_id: nil, status: nil, customer_id: nil, external_customer_id: nil, created_after: nil, created_before: nil, sorting: nil, metadata: nil, api_key: nil)
+      query = { "page" => page, "limit" => limit, "client_reference_id" => client_reference_id, "status" => status, "customer_id" => customer_id, "external_customer_id" => external_customer_id, "created_after" => created_after, "created_before" => created_before, "sorting" => sorting, "metadata" => metadata }
       data = @client.request("GET", "/api/v1/orders", query: query, api_key: api_key)
       Page.from_hash(data) { |item| Order.from_hash(item) }
     end
@@ -499,9 +815,9 @@ module Perata
     # Walks every page of orders:list from +page+, item by item.
     #
     # @return [Enumerator<Order>]
-    def list_iter(page: nil, limit: nil, client_reference_id: nil, status: nil, customer_id: nil, external_customer_id: nil, created_after: nil, created_before: nil, sorting: nil, api_key: nil, &block)
+    def list_iter(page: nil, limit: nil, client_reference_id: nil, status: nil, customer_id: nil, external_customer_id: nil, created_after: nil, created_before: nil, sorting: nil, metadata: nil, api_key: nil, &block)
       items = Page.iterate(page) do |at|
-        list(page: at, limit: limit, client_reference_id: client_reference_id, status: status, customer_id: customer_id, external_customer_id: external_customer_id, created_after: created_after, created_before: created_before, sorting: sorting, api_key: api_key)
+        list(page: at, limit: limit, client_reference_id: client_reference_id, status: status, customer_id: customer_id, external_customer_id: external_customer_id, created_after: created_after, created_before: created_before, sorting: sorting, metadata: metadata, api_key: api_key)
       end
       block ? items.each(&block) : items
     end
@@ -513,7 +829,15 @@ module Perata
       @client = client
     end
 
-    # Parar de cobrar um cartão guardado; recusado enquanto uma assinatura ativa o cobra.
+    # Parar de cobrar um cartão guardado.
+    #
+    # Para de cobrar um cartão guardado. É recusado (409) enquanto uma
+    # assinatura ativa o cobra.
+    #
+    # Autenticação: chave de API da organização em Authorization: Bearer
+    # (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+    # requisição. Respostas em JSON no envelope data; erros com error, message e
+    # fields.
     #
     # @return [PaymentMethodDetached]
     def detach(payment_method, idempotency_key: nil, api_key: nil)
@@ -521,7 +845,15 @@ module Perata
       PaymentMethodDetached.from_hash(data)
     end
 
-    # Listar os cartões guardados de um cliente: bandeira, quatro últimos dígitos e validade. One page; +list_iter+ walks every page.
+    # Listar os cartões guardados de um cliente. One page; +list_iter+ walks every page.
+    #
+    # Devolve os cartões guardados de um cliente: bandeira, quatro últimos
+    # dígitos e validade. O número do cartão nunca aparece.
+    #
+    # Autenticação: chave de API da organização em Authorization: Bearer
+    # (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+    # requisição. Respostas em JSON no envelope data; erros com error, message e
+    # fields.
     #
     # @return [Page<PaymentMethod>]
     def list(customer, page: nil, limit: nil, api_key: nil)
@@ -549,17 +881,32 @@ module Perata
 
     # Ler um pagamento.
     #
+    # Devolve um pagamento pelo ID.
+    #
+    # Autenticação: chave de API da organização em Authorization: Bearer
+    # (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+    # requisição. Respostas em JSON no envelope data; erros com error, message e
+    # fields.
+    #
     # @return [Payment]
     def get(payment, api_key: nil)
       data = @client.request("GET", "/api/v1/payments/#{Perata.segment(payment)}", api_key: api_key)
       Payment.from_hash(data)
     end
 
-    # Listar pagamentos, opcionalmente de um client_reference_id, de um estado, de um cliente, de um período ou de metadados. One page; +list_iter+ walks every page.
+    # Listar pagamentos. One page; +list_iter+ walks every page.
+    #
+    # Devolve uma página dos pagamentos. Filtre por client_reference_id, estado,
+    # cliente, período ou metadados.
+    #
+    # Autenticação: chave de API da organização em Authorization: Bearer
+    # (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+    # requisição. Respostas em JSON no envelope data; erros com error, message e
+    # fields.
     #
     # @return [Page<Payment>]
-    def list(page: nil, limit: nil, client_reference_id: nil, status: nil, customer_id: nil, external_customer_id: nil, created_after: nil, created_before: nil, sorting: nil, api_key: nil)
-      query = { "page" => page, "limit" => limit, "client_reference_id" => client_reference_id, "status" => status, "customer_id" => customer_id, "external_customer_id" => external_customer_id, "created_after" => created_after, "created_before" => created_before, "sorting" => sorting }
+    def list(page: nil, limit: nil, client_reference_id: nil, status: nil, customer_id: nil, external_customer_id: nil, created_after: nil, created_before: nil, sorting: nil, metadata: nil, api_key: nil)
+      query = { "page" => page, "limit" => limit, "client_reference_id" => client_reference_id, "status" => status, "customer_id" => customer_id, "external_customer_id" => external_customer_id, "created_after" => created_after, "created_before" => created_before, "sorting" => sorting, "metadata" => metadata }
       data = @client.request("GET", "/api/v1/payments", query: query, api_key: api_key)
       Page.from_hash(data) { |item| Payment.from_hash(item) }
     end
@@ -567,9 +914,9 @@ module Perata
     # Walks every page of payments:list from +page+, item by item.
     #
     # @return [Enumerator<Payment>]
-    def list_iter(page: nil, limit: nil, client_reference_id: nil, status: nil, customer_id: nil, external_customer_id: nil, created_after: nil, created_before: nil, sorting: nil, api_key: nil, &block)
+    def list_iter(page: nil, limit: nil, client_reference_id: nil, status: nil, customer_id: nil, external_customer_id: nil, created_after: nil, created_before: nil, sorting: nil, metadata: nil, api_key: nil, &block)
       items = Page.iterate(page) do |at|
-        list(page: at, limit: limit, client_reference_id: client_reference_id, status: status, customer_id: customer_id, external_customer_id: external_customer_id, created_after: created_after, created_before: created_before, sorting: sorting, api_key: api_key)
+        list(page: at, limit: limit, client_reference_id: client_reference_id, status: status, customer_id: customer_id, external_customer_id: external_customer_id, created_after: created_after, created_before: created_before, sorting: sorting, metadata: metadata, api_key: api_key)
       end
       block ? items.each(&block) : items
     end
@@ -581,7 +928,16 @@ module Perata
       @client = client
     end
 
-    # Criar um preço em reais, avulso ou recorrente.
+    # Criar um preço.
+    #
+    # Cria um preço em reais para um produto, avulso (one_time) ou recorrente
+    # (recurring). No recorrente, interval e interval_count dizem de quanto em
+    # quanto tempo ele renova: month com 3 é trimestral.
+    #
+    # Autenticação: chave de API da organização em Authorization: Bearer
+    # (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+    # requisição. Respostas em JSON no envelope data; erros com error, message e
+    # fields.
     #
     # @param params [PricesCreateParams, Hash]
     # @return [Price]
@@ -590,7 +946,15 @@ module Perata
       Price.from_hash(data)
     end
 
-    # Listar preços, opcionalmente de um produto (product_id). One page; +list_iter+ walks every page.
+    # Listar preços. One page; +list_iter+ walks every page.
+    #
+    # Devolve uma página dos preços da organização. Com product_id, só os de um
+    # produto.
+    #
+    # Autenticação: chave de API da organização em Authorization: Bearer
+    # (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+    # requisição. Respostas em JSON no envelope data; erros com error, message e
+    # fields.
     #
     # @return [Page<Price>]
     def list(page: nil, limit: nil, product_id: nil, api_key: nil)
@@ -616,7 +980,15 @@ module Perata
       @client = client
     end
 
-    # Arquivar um produto: sai das vendas novas e o que já foi vendido continua apontando para ele.
+    # Arquivar um produto.
+    #
+    # Arquiva um produto: ele sai das vendas novas, e o que já foi vendido
+    # continua apontando para ele.
+    #
+    # Autenticação: chave de API da organização em Authorization: Bearer
+    # (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+    # requisição. Respostas em JSON no envelope data; erros com error, message e
+    # fields.
     #
     # @return [Product]
     def archive(product, idempotency_key: nil, api_key: nil)
@@ -625,6 +997,14 @@ module Perata
     end
 
     # Criar um produto.
+    #
+    # Cria um produto com nome e descrição. O preço se cria à parte, em Criar um
+    # preço.
+    #
+    # Autenticação: chave de API da organização em Authorization: Bearer
+    # (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+    # requisição. Respostas em JSON no envelope data; erros com error, message e
+    # fields.
     #
     # @param params [ProductsCreateParams, Hash]
     # @return [Product]
@@ -635,6 +1015,13 @@ module Perata
 
     # Ler um produto.
     #
+    # Devolve um produto pelo ID.
+    #
+    # Autenticação: chave de API da organização em Authorization: Bearer
+    # (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+    # requisição. Respostas em JSON no envelope data; erros com error, message e
+    # fields.
+    #
     # @return [Product]
     def get(product, api_key: nil)
       data = @client.request("GET", "/api/v1/products/#{Perata.segment(product)}", api_key: api_key)
@@ -642,6 +1029,13 @@ module Perata
     end
 
     # Listar produtos. One page; +list_iter+ walks every page.
+    #
+    # Devolve uma página dos produtos da organização, no ambiente da chave.
+    #
+    # Autenticação: chave de API da organização em Authorization: Bearer
+    # (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+    # requisição. Respostas em JSON no envelope data; erros com error, message e
+    # fields.
     #
     # @return [Page<Product>]
     def list(page: nil, limit: nil, api_key: nil)
@@ -660,7 +1054,15 @@ module Perata
       block ? items.each(&block) : items
     end
 
-    # Atualizar o nome ou a descrição de um produto ativo.
+    # Atualizar um produto.
+    #
+    # Muda o nome ou a descrição de um produto ativo. O que você não enviar fica
+    # como está.
+    #
+    # Autenticação: chave de API da organização em Authorization: Bearer
+    # (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+    # requisição. Respostas em JSON no envelope data; erros com error, message e
+    # fields.
     #
     # @param params [ProductsUpdateParams, Hash]
     # @return [Product]
@@ -676,7 +1078,16 @@ module Perata
       @client = client
     end
 
-    # Reembolsar parte ou todo um pagamento.
+    # Reembolsar um pagamento.
+    #
+    # Devolve parte ou todo o valor de um pagamento. A Idempotency-Key é
+    # obrigatória: sem ela, repetir a chamada depois de um tempo esgotado seria
+    # devolver duas vezes.
+    #
+    # Autenticação: chave de API da organização em Authorization: Bearer
+    # (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+    # requisição. Respostas em JSON no envelope data; erros com error, message e
+    # fields.
     #
     # @param params [RefundsCreateParams, Hash]
     # @return [Refund]
@@ -685,7 +1096,15 @@ module Perata
       Refund.from_hash(data)
     end
 
-    # Listar reembolsos, opcionalmente de um pagamento (payment_id), de um status, de um cliente ou de um período. One page; +list_iter+ walks every page.
+    # Listar reembolsos. One page; +list_iter+ walks every page.
+    #
+    # Devolve uma página dos reembolsos. Filtre por pagamento (payment_id),
+    # status, cliente ou período.
+    #
+    # Autenticação: chave de API da organização em Authorization: Bearer
+    # (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+    # requisição. Respostas em JSON no envelope data; erros com error, message e
+    # fields.
     #
     # @return [Page<Refund>]
     def list(page: nil, limit: nil, payment_id: nil, status: nil, customer_id: nil, external_customer_id: nil, created_after: nil, created_before: nil, sorting: nil, api_key: nil)
@@ -711,7 +1130,15 @@ module Perata
       @client = client
     end
 
-    # Cancelar uma assinatura, por padrão no fim do período.
+    # Cancelar uma assinatura.
+    #
+    # Cancela uma assinatura. Por padrão o cancelamento vale no fim do período
+    # já pago.
+    #
+    # Autenticação: chave de API da organização em Authorization: Bearer
+    # (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+    # requisição. Respostas em JSON no envelope data; erros com error, message e
+    # fields.
     #
     # @param params [SubscriptionsCancelParams, Hash]
     # @return [Subscription]
@@ -722,17 +1149,32 @@ module Perata
 
     # Ler uma assinatura.
     #
+    # Devolve uma assinatura pelo ID.
+    #
+    # Autenticação: chave de API da organização em Authorization: Bearer
+    # (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+    # requisição. Respostas em JSON no envelope data; erros com error, message e
+    # fields.
+    #
     # @return [Subscription]
     def get(subscription, api_key: nil)
       data = @client.request("GET", "/api/v1/subscriptions/#{Perata.segment(subscription)}", api_key: api_key)
       Subscription.from_hash(data)
     end
 
-    # Listar assinaturas, opcionalmente de um cliente (customer_id ou external_customer_id), de um status, de um período ou de metadados. One page; +list_iter+ walks every page.
+    # Listar assinaturas. One page; +list_iter+ walks every page.
+    #
+    # Devolve uma página das assinaturas. Filtre por cliente (customer_id ou
+    # external_customer_id), status, período ou metadados.
+    #
+    # Autenticação: chave de API da organização em Authorization: Bearer
+    # (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+    # requisição. Respostas em JSON no envelope data; erros com error, message e
+    # fields.
     #
     # @return [Page<Subscription>]
-    def list(page: nil, limit: nil, status: nil, customer_id: nil, external_customer_id: nil, created_after: nil, created_before: nil, sorting: nil, api_key: nil)
-      query = { "page" => page, "limit" => limit, "status" => status, "customer_id" => customer_id, "external_customer_id" => external_customer_id, "created_after" => created_after, "created_before" => created_before, "sorting" => sorting }
+    def list(page: nil, limit: nil, status: nil, customer_id: nil, external_customer_id: nil, created_after: nil, created_before: nil, sorting: nil, metadata: nil, api_key: nil)
+      query = { "page" => page, "limit" => limit, "status" => status, "customer_id" => customer_id, "external_customer_id" => external_customer_id, "created_after" => created_after, "created_before" => created_before, "sorting" => sorting, "metadata" => metadata }
       data = @client.request("GET", "/api/v1/subscriptions", query: query, api_key: api_key)
       Page.from_hash(data) { |item| Subscription.from_hash(item) }
     end
@@ -740,14 +1182,23 @@ module Perata
     # Walks every page of subscriptions:list from +page+, item by item.
     #
     # @return [Enumerator<Subscription>]
-    def list_iter(page: nil, limit: nil, status: nil, customer_id: nil, external_customer_id: nil, created_after: nil, created_before: nil, sorting: nil, api_key: nil, &block)
+    def list_iter(page: nil, limit: nil, status: nil, customer_id: nil, external_customer_id: nil, created_after: nil, created_before: nil, sorting: nil, metadata: nil, api_key: nil, &block)
       items = Page.iterate(page) do |at|
-        list(page: at, limit: limit, status: status, customer_id: customer_id, external_customer_id: external_customer_id, created_after: created_after, created_before: created_before, sorting: sorting, api_key: api_key)
+        list(page: at, limit: limit, status: status, customer_id: customer_id, external_customer_id: external_customer_id, created_after: created_after, created_before: created_before, sorting: sorting, metadata: metadata, api_key: api_key)
       end
       block ? items.each(&block) : items
     end
 
-    # Reativar uma assinatura suspensa, que volta a ser cobrada (a cobrança do ciclo em aberto recomeça), ou retomar uma pausada; qualquer outra recebe 409.
+    # Reativar uma assinatura.
+    #
+    # Reativa uma assinatura suspensa, que volta a ser cobrada (a cobrança do
+    # ciclo em aberto recomeça), ou retoma uma pausada. Qualquer outra
+    # assinatura recebe 409.
+    #
+    # Autenticação: chave de API da organização em Authorization: Bearer
+    # (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+    # requisição. Respostas em JSON no envelope data; erros com error, message e
+    # fields.
     #
     # @return [Subscription]
     def resume(subscription, idempotency_key: nil, api_key: nil)
@@ -755,7 +1206,15 @@ module Perata
       Subscription.from_hash(data)
     end
 
-    # Trocar o plano de uma assinatura: outro preço e, se quiser, outra quantidade, com a forma de ratear a diferença (proration_behavior).
+    # Trocar o plano de uma assinatura.
+    #
+    # Troca o plano de uma assinatura: outro preço e, se quiser, outra
+    # quantidade. O proration_behavior diz como ratear a diferença.
+    #
+    # Autenticação: chave de API da organização em Authorization: Bearer
+    # (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+    # requisição. Respostas em JSON no envelope data; erros com error, message e
+    # fields.
     #
     # @param params [SubscriptionsUpdateParams, Hash]
     # @return [Subscription]
@@ -773,6 +1232,26 @@ module Perata
 
     # Ingerir lote atômico de eventos de uso. Autentica com a credencial de uma fonte de ingestão (pus_test_… ou pus_live_…), não com a chave de API da organização.
     #
+    # Autorização: Bearer é o único formato de credencial suportado. As
+    # credenciais são assinadas pela Peráta, expiram em 30 dias e são
+    # verificadas em relação ao estado da fonte, associação atual do emissor e
+    # permissões nativas. Organização, merchant e ambiente (teste, pus_test_…,
+    # ou produção, pus_live_…) são derivados da fonte autenticada; o payload
+    # JSON não pode sobrescrevê-los, e uma credencial de um ambiente nunca
+    # escreve no outro. Em produção, a fonte só existe para uma organização que
+    # a equipe da Peráta liberou. 1 a 100 eventos, no máximo 65536 bytes.
+    # Contagens são strings decimais de inteiros, de 0 a 1000000000000, com pelo
+    # menos um token por evento; a entrada exclui cache. Ocorrência RFC3339 em
+    # segundos inteiros, com no máximo 90 dias atrás e até cinco minutos à
+    # frente. Escopo/fonte/external_event_id identificam um registro; repetições
+    # exatas contam como replay e conteúdo conflitante retorna 409. Todos os
+    # novos eventos e emissões da outbox são confirmados ou revertidos juntos.
+    # Rotação mantém a identidade da fonte e replay; credenciais revogadas ou
+    # expiradas não podem ser reutilizadas. O sucesso vem no envelope data; todo
+    # erro é o documento de erro da API, o mesmo das demais operações de /api/v1
+    # (error, message e fields), com record, a posição do evento recusado,
+    # quando há. Sem cobrança ou faturamento automático.
+    #
     # @param params [UsageIngestParams, Hash]
     # @return [UsageIngestReceipt]
     def ingest(params, api_key: nil)
@@ -787,7 +1266,15 @@ module Perata
       @client = client
     end
 
-    # Criar um endpoint de webhook; o segredo que assina as mensagens vem só nesta resposta.
+    # Criar um endpoint de webhook.
+    #
+    # Cria um endpoint de webhook. O segredo que assina as mensagens vem só
+    # nesta resposta; guarde-o.
+    #
+    # Autenticação: chave de API da organização em Authorization: Bearer
+    # (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+    # requisição. Respostas em JSON no envelope data; erros com error, message e
+    # fields.
     #
     # @param params [WebhooksCreateEndpointParams, Hash]
     # @return [WebhookEndpointCreated]
@@ -796,7 +1283,15 @@ module Perata
       WebhookEndpointCreated.from_hash(data)
     end
 
-    # Excluir um endpoint de webhook; as entregas que ainda esperavam por ele falham. The API answers 204, so there is nothing to return.
+    # Excluir um endpoint de webhook. The API answers 204, so there is nothing to return.
+    #
+    # Exclui um endpoint de webhook. As entregas que ainda esperavam por ele
+    # falham.
+    #
+    # Autenticação: chave de API da organização em Authorization: Bearer
+    # (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+    # requisição. Respostas em JSON no envelope data; erros com error, message e
+    # fields.
     #
     # @return [nil]
     def delete_endpoint(endpoint, idempotency_key: nil, api_key: nil)
@@ -806,13 +1301,28 @@ module Perata
 
     # Ler um endpoint de webhook.
     #
+    # Devolve um endpoint de webhook pelo ID.
+    #
+    # Autenticação: chave de API da organização em Authorization: Bearer
+    # (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+    # requisição. Respostas em JSON no envelope data; erros com error, message e
+    # fields.
+    #
     # @return [WebhookEndpoint]
     def get_endpoint(endpoint, api_key: nil)
       data = @client.request("GET", "/api/v1/webhooks/endpoints/#{Perata.segment(endpoint)}", api_key: api_key)
       WebhookEndpoint.from_hash(data)
     end
 
-    # Listar as últimas 100 entregas de eventos aos endpoints, opcionalmente de um endpoint (endpoint_id) ou de uma situação (status). One page; +list_deliveries_iter+ walks every page.
+    # Listar entregas de webhook. One page; +list_deliveries_iter+ walks every page.
+    #
+    # Devolve as últimas 100 entregas de eventos aos endpoints. Com endpoint_id,
+    # só as de um endpoint; com status, só as de uma situação.
+    #
+    # Autenticação: chave de API da organização em Authorization: Bearer
+    # (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+    # requisição. Respostas em JSON no envelope data; erros com error, message e
+    # fields.
     #
     # @return [Page<WebhookDelivery>]
     def list_deliveries(page: nil, limit: nil, endpoint_id: nil, status: nil, api_key: nil)
@@ -831,7 +1341,14 @@ module Perata
       block ? items.each(&block) : items
     end
 
-    # Listar os endpoints de webhook do lojista. One page; +list_endpoints_iter+ walks every page.
+    # Listar endpoints de webhook. One page; +list_endpoints_iter+ walks every page.
+    #
+    # Devolve uma página dos endpoints de webhook da organização.
+    #
+    # Autenticação: chave de API da organização em Authorization: Bearer
+    # (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+    # requisição. Respostas em JSON no envelope data; erros com error, message e
+    # fields.
     #
     # @return [Page<WebhookEndpoint>]
     def list_endpoints(page: nil, limit: nil, api_key: nil)
@@ -850,7 +1367,15 @@ module Perata
       block ? items.each(&block) : items
     end
 
-    # Atualizar o endereço, o formato, os eventos ou a descrição de um endpoint, ou ligar e desligar o envio (enabled); o segredo não muda.
+    # Atualizar um endpoint de webhook.
+    #
+    # Muda o endereço, o formato, os eventos ou a descrição de um endpoint, ou
+    # liga e desliga o envio (enabled). O segredo não muda.
+    #
+    # Autenticação: chave de API da organização em Authorization: Bearer
+    # (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+    # requisição. Respostas em JSON no envelope data; erros com error, message e
+    # fields.
     #
     # @param params [WebhooksUpdateEndpointParams, Hash]
     # @return [WebhookEndpoint]

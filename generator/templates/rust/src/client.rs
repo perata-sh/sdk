@@ -167,8 +167,10 @@ impl Transport for UreqTransport {
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct RequestOptions {
     /// Makes a write safe to repeat: the same key with the same body answers
-    /// the first response again; with another body, a 409. A POST without one
-    /// is sent with a random key of its own, one a call.
+    /// the first response again; with another body, a 409. A 2xx answer stays
+    /// under the key; a 4xx or 5xx frees it, so the same key can be sent
+    /// again. A POST without one is sent with a random key of its own, one a
+    /// call.
     pub idempotency_key: Option<String>,
     /// Sends the call with another organization's key.
     pub api_key: Option<String>,
@@ -275,7 +277,7 @@ impl Client {
         &self,
         method: &str,
         path: &str,
-        query: &[(&str, String)],
+        query: &[(String, String)],
         body: Option<&B>,
         options: &RequestOptions,
     ) -> Result<T, Error>

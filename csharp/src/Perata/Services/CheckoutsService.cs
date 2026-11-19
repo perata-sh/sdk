@@ -3,6 +3,7 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Linq;
 using System.Net.Http;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -18,7 +19,19 @@ public sealed class CheckoutsService
 
     internal CheckoutsService(PerataClient client) => this.client = client;
 
-    /// <summary>Criar um checkout: o endereço para onde o comprador é enviado e a sessão de compra aberta para ele, com o client_secret que o navegador do comprador usa nas rotas de cliente.</summary>
+    /// <summary>Criar um checkout.</summary>
+    /// <remarks>
+    /// <para>Cria um checkout. Devolve o endereço para onde mandar o comprador
+    /// e a sessão de compra aberta para ele, com o client_secret que o
+    /// navegador do comprador usa para pagar sem chave de API; o client_secret
+    /// vem só nesta resposta. Para cobrar um valor que o seu servidor define,
+    /// envie amount_cents e items (preço de valor livre). Envie
+    /// client_reference_id e metadata para achar o pedido depois.</para>
+    /// <para>Autenticação: chave de API da organização em Authorization: Bearer
+    /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
+    /// da requisição. Respostas em JSON no envelope data; erros com error,
+    /// message e fields.</para>
+    /// </remarks>
     /// <param name="parameters">The request.</param>
     /// <param name="options">An idempotency key, or another organization's key for this call.</param>
     /// <param name="cancellationToken">Cancels the call.</param>
@@ -30,7 +43,18 @@ public sealed class CheckoutsService
         return client.RequestAsync(HttpMethod.Post, "/api/v1/checkouts", null, JsonSerializer.SerializeToUtf8Bytes(parameters, PerataJson.Default.CheckoutsCreateParams), PerataJson.Default.CheckoutCreatedEnvelope, options?.IdempotencyKey, options, cancellationToken);
     }
 
-    /// <summary>Encerrar um checkout que não deve mais ser pago: a página, o client_secret e o QR do Pix deixam de valer (o Pix já gerado é cancelado na Cielo), e o evento checkout.expired é enviado; 409 se já foi pago ou se emitiu boleto.</summary>
+    /// <summary>Encerrar um checkout.</summary>
+    /// <remarks>
+    /// <para>Encerra um checkout que não deve mais ser pago: a página, o
+    /// client_secret e o QR do Pix deixam de valer (o Pix já gerado é cancelado
+    /// na Cielo) e o evento checkout.expired é enviado. Repetir a chamada é
+    /// seguro. Se o checkout já foi pago ou emitiu um boleto, a resposta é
+    /// 409.</para>
+    /// <para>Autenticação: chave de API da organização em Authorization: Bearer
+    /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
+    /// da requisição. Respostas em JSON no envelope data; erros com error,
+    /// message e fields.</para>
+    /// </remarks>
     /// <param name="checkout">The checkout.</param>
     /// <param name="options">An idempotency key, or another organization's key for this call.</param>
     /// <param name="cancellationToken">Cancels the call.</param>
@@ -41,7 +65,15 @@ public sealed class CheckoutsService
         return client.RequestAsync(HttpMethod.Post, "/api/v1/checkouts/" + PerataClient.Segment(checkout) + "/expire", null, null, PerataJson.Default.CheckoutExpiredEnvelope, options?.IdempotencyKey, options, cancellationToken);
     }
 
-    /// <summary>Ler um checkout: o endereço, o estado e as páginas de retorno.</summary>
+    /// <summary>Ler um checkout.</summary>
+    /// <remarks>
+    /// <para>Devolve um checkout: o endereço, o estado e as páginas de
+    /// retorno.</para>
+    /// <para>Autenticação: chave de API da organização em Authorization: Bearer
+    /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
+    /// da requisição. Respostas em JSON no envelope data; erros com error,
+    /// message e fields.</para>
+    /// </remarks>
     /// <param name="checkout">The checkout.</param>
     /// <param name="options">Another organization's key for this call.</param>
     /// <param name="cancellationToken">Cancels the call.</param>
@@ -52,7 +84,15 @@ public sealed class CheckoutsService
         return client.RequestAsync(HttpMethod.Get, "/api/v1/checkouts/" + PerataClient.Segment(checkout), null, null, PerataJson.Default.CheckoutEnvelope, null, options, cancellationToken);
     }
 
-    /// <summary>Listar checkouts, opcionalmente de um client_reference_id, de um status, de um período ou de metadados. One page; <see cref="ListIterAsync"/> walks every page.</summary>
+    /// <summary>Listar checkouts. One page; <see cref="ListIterAsync"/> walks every page.</summary>
+    /// <remarks>
+    /// <para>Devolve uma página dos checkouts. Filtre por client_reference_id,
+    /// status, período ou metadados.</para>
+    /// <para>Autenticação: chave de API da organização em Authorization: Bearer
+    /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
+    /// da requisição. Respostas em JSON no envelope data; erros com error,
+    /// message e fields.</para>
+    /// </remarks>
     /// <param name="parameters">The page, its size and the filters; the first page when null.</param>
     /// <param name="options">Another organization's key for this call.</param>
     /// <param name="cancellationToken">Cancels the call.</param>
@@ -72,7 +112,14 @@ public sealed class CheckoutsService
         return Pages.IterateAsync((page, token) => ListAsync(walk with { Page = page }, options, token), walk.Page, cancellationToken);
     }
 
-    /// <summary>Atualizar o rótulo e as páginas de retorno de um checkout ativo.</summary>
+    /// <summary>Atualizar um checkout.</summary>
+    /// <remarks>
+    /// <para>Muda o rótulo e as páginas de retorno de um checkout ativo.</para>
+    /// <para>Autenticação: chave de API da organização em Authorization: Bearer
+    /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
+    /// da requisição. Respostas em JSON no envelope data; erros com error,
+    /// message e fields.</para>
+    /// </remarks>
     /// <param name="checkout">The checkout.</param>
     /// <param name="parameters">The request.</param>
     /// <param name="options">An idempotency key, or another organization's key for this call.</param>
@@ -133,7 +180,7 @@ public sealed record CheckoutsCreateParams
     [JsonPropertyName("label")]
     public string? Label { get; init; }
 
-    /// <summary>Até 50 pares guardados no link do checkout; valor em texto, número ou booleano. Left out of the request when null.</summary>
+    /// <summary>Pares guardados no link do checkout e devolvidos no checkout, no pedido, no pagamento e nos eventos da venda. Até 50 pares de chave e valor: a chave tem de 1 a 40 caracteres, e o valor é um texto de 1 a 500 caracteres, um número ou um booleano. Texto sem caracteres de controle nem de direção invisível. Left out of the request when null.</summary>
     [JsonPropertyName("metadata")]
     public IReadOnlyDictionary<string, JsonElement>? Metadata { get; init; }
 
@@ -204,16 +251,24 @@ public sealed record CheckoutsListParams
     /// <summary>Ordem da lista: created_at, e com um - na frente é decrescente (-created_at, o mais novo primeiro, é o padrão).</summary>
     public string? Sorting { get; init; }
 
-    internal IEnumerable<KeyValuePair<string, string?>> Query() =>
-    [
-        new("page", Page?.ToString(CultureInfo.InvariantCulture)),
-        new("limit", Limit?.ToString(CultureInfo.InvariantCulture)),
-        new("client_reference_id", ClientReferenceId),
-        new("status", Status),
-        new("created_after", CreatedAfter),
-        new("created_before", CreatedBefore),
-        new("sorting", Sorting),
-    ];
+    /// <summary>Filtro por metadados: metadata[chave]=valor, uma vez para cada par (até 10); a linha precisa ter todos. Um valor que parece número ou booleano também casa com o número ou o booleano guardado.</summary>
+    public IReadOnlyDictionary<string, string>? Metadata { get; init; }
+
+    internal IEnumerable<KeyValuePair<string, string?>> Query()
+    {
+        yield return new("page", Page?.ToString(CultureInfo.InvariantCulture));
+        yield return new("limit", Limit?.ToString(CultureInfo.InvariantCulture));
+        yield return new("client_reference_id", ClientReferenceId);
+        yield return new("status", Status);
+        yield return new("created_after", CreatedAfter);
+        yield return new("created_before", CreatedBefore);
+        yield return new("sorting", Sorting);
+        // A map filter is one pair a key: metadata[key]=value, the keys sorted.
+        foreach (var pair in Metadata?.OrderBy(each => each.Key, StringComparer.Ordinal) ?? Enumerable.Empty<KeyValuePair<string, string>>())
+        {
+            yield return new("metadata" + "[" + pair.Key + "]", pair.Value);
+        }
+    }
 }
 
 /// <summary>The body of checkouts:update.</summary>

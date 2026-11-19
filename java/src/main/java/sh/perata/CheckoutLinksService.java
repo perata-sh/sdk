@@ -6,6 +6,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.TreeMap;
 
 /** The API's checkout-links. */
 public final class CheckoutLinksService {
@@ -16,7 +17,17 @@ public final class CheckoutLinksService {
     }
 
     /**
-     * Criar um link de checkout: uma oferta durável de um ou mais produtos, com desconto, quantidade e páginas de retorno.
+     * Criar um link de checkout.
+     *
+     * Cria um link de checkout: uma oferta durável de um ou mais produtos, com
+     * desconto, quantidade e páginas de retorno. Cada visita ao link abre uma
+     * sessão de compra nova.
+     *
+     * Autenticação: chave de API da organização em Authorization: Bearer
+     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+     * requisição. Respostas em JSON no envelope data; erros com error, message
+     * e fields.
+     *
      * @param params the request
      * @param options an idempotency key or another organization's key for this call, or null
      * @return the checkoutlink
@@ -28,7 +39,17 @@ public final class CheckoutLinksService {
     }
 
     /**
-     * Criar um link de checkout: uma oferta durável de um ou mais produtos, com desconto, quantidade e páginas de retorno.
+     * Criar um link de checkout.
+     *
+     * Cria um link de checkout: uma oferta durável de um ou mais produtos, com
+     * desconto, quantidade e páginas de retorno. Cada visita ao link abre uma
+     * sessão de compra nova.
+     *
+     * Autenticação: chave de API da organização em Authorization: Bearer
+     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+     * requisição. Respostas em JSON no envelope data; erros com error, message
+     * e fields.
+     *
      * @param params the request
      * @return the checkoutlink
      * @throws PerataException when the API refuses the call
@@ -128,7 +149,7 @@ public final class CheckoutLinksService {
             return maxInstallments;
         }
 
-        /** @return Até 50 pares; valor em texto, número ou booleano. (null when left out) */
+        /** @return Pares guardados no link. Até 50 pares de chave e valor: a chave tem de 1 a 40 caracteres, e o valor é um texto de 1 a 500 caracteres, um número ou um booleano. Texto sem caracteres de controle nem de direção invisível. (null when left out) */
         public Map<String, Object> getMetadata() {
             return metadata;
         }
@@ -312,7 +333,7 @@ public final class CheckoutLinksService {
             }
 
             /**
-             * @param metadata Até 50 pares; valor em texto, número ou booleano.
+             * @param metadata Pares guardados no link. Até 50 pares de chave e valor: a chave tem de 1 a 40 caracteres, e o valor é um texto de 1 a 500 caracteres, um número ou um booleano. Texto sem caracteres de controle nem de direção invisível.
              * @return this builder
              */
             public Builder metadata(Map<String, Object> metadata) {
@@ -404,7 +425,16 @@ public final class CheckoutLinksService {
 
 
     /**
-     * Excluir um link de checkout: ele deixa de abrir checkouts; os que já abriu continuam.
+     * Excluir um link de checkout.
+     *
+     * Exclui um link de checkout: ele deixa de abrir checkouts. Os que já abriu
+     * continuam.
+     *
+     * Autenticação: chave de API da organização em Authorization: Bearer
+     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+     * requisição. Respostas em JSON no envelope data; erros com error, message
+     * e fields.
+     *
      * @param checkoutLink the checkout_link
      * @param options an idempotency key or another organization's key for this call, or null
      * @throws PerataException when the API refuses the call
@@ -414,7 +444,16 @@ public final class CheckoutLinksService {
     }
 
     /**
-     * Excluir um link de checkout: ele deixa de abrir checkouts; os que já abriu continuam.
+     * Excluir um link de checkout.
+     *
+     * Exclui um link de checkout: ele deixa de abrir checkouts. Os que já abriu
+     * continuam.
+     *
+     * Autenticação: chave de API da organização em Authorization: Bearer
+     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+     * requisição. Respostas em JSON no envelope data; erros com error, message
+     * e fields.
+     *
      * @param checkoutLink the checkout_link
      * @throws PerataException when the API refuses the call
      */
@@ -424,6 +463,14 @@ public final class CheckoutLinksService {
 
     /**
      * Ler um link de checkout.
+     *
+     * Devolve um link de checkout pelo ID.
+     *
+     * Autenticação: chave de API da organização em Authorization: Bearer
+     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+     * requisição. Respostas em JSON no envelope data; erros com error, message
+     * e fields.
+     *
      * @param checkoutLink the checkout_link
      * @param options another organization's key for this call, or null
      * @return the checkoutlink
@@ -436,6 +483,14 @@ public final class CheckoutLinksService {
 
     /**
      * Ler um link de checkout.
+     *
+     * Devolve um link de checkout pelo ID.
+     *
+     * Autenticação: chave de API da organização em Authorization: Bearer
+     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+     * requisição. Respostas em JSON no envelope data; erros com error, message
+     * e fields.
+     *
      * @param checkoutLink the checkout_link
      * @return the checkoutlink
      * @throws PerataException when the API refuses the call
@@ -446,6 +501,14 @@ public final class CheckoutLinksService {
 
     /**
      * Listar links de checkout. One page; {@link #listIter} walks every page.
+     *
+     * Devolve uma página dos links de checkout da organização.
+     *
+     * Autenticação: chave de API da organização em Authorization: Bearer
+     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+     * requisição. Respostas em JSON no envelope data; erros com error, message
+     * e fields.
+     *
      * @param params the page, its size and the filters, or null
      * @param options options for this call, or null
      * @return the page
@@ -458,6 +521,14 @@ public final class CheckoutLinksService {
 
     /**
      * Listar links de checkout. One page.
+     *
+     * Devolve uma página dos links de checkout da organização.
+     *
+     * Autenticação: chave de API da organização em Authorization: Bearer
+     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+     * requisição. Respostas em JSON no envelope data; erros com error, message
+     * e fields.
+     *
      * @param params the page, its size and the filters, or null
      * @return the page
      */
@@ -467,6 +538,14 @@ public final class CheckoutLinksService {
 
     /**
      * Listar links de checkout. The first page.
+     *
+     * Devolve uma página dos links de checkout da organização.
+     *
+     * Autenticação: chave de API da organização em Authorization: Bearer
+     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+     * requisição. Respostas em JSON no envelope data; erros com error, message
+     * e fields.
+     *
      * @return the page
      */
     public Page<CheckoutLink> list() {
@@ -575,7 +654,16 @@ public final class CheckoutLinksService {
     }
 
     /**
-     * Atualizar o rótulo, as páginas de retorno, os produtos e os metadados de um link; a quantidade e o desconto ficam como foram publicados.
+     * Atualizar um link de checkout.
+     *
+     * Muda o rótulo, as páginas de retorno, os produtos e os metadados de um
+     * link. A quantidade e o desconto ficam como foram publicados.
+     *
+     * Autenticação: chave de API da organização em Authorization: Bearer
+     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+     * requisição. Respostas em JSON no envelope data; erros com error, message
+     * e fields.
+     *
      * @param checkoutLink the checkout_link
      * @param params the request
      * @param options an idempotency key or another organization's key for this call, or null
@@ -588,7 +676,16 @@ public final class CheckoutLinksService {
     }
 
     /**
-     * Atualizar o rótulo, as páginas de retorno, os produtos e os metadados de um link; a quantidade e o desconto ficam como foram publicados.
+     * Atualizar um link de checkout.
+     *
+     * Muda o rótulo, as páginas de retorno, os produtos e os metadados de um
+     * link. A quantidade e o desconto ficam como foram publicados.
+     *
+     * Autenticação: chave de API da organização em Authorization: Bearer
+     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+     * requisição. Respostas em JSON no envelope data; erros com error, message
+     * e fields.
+     *
      * @param checkoutLink the checkout_link
      * @param params the request
      * @return the checkoutlink
@@ -632,7 +729,7 @@ public final class CheckoutLinksService {
             return label;
         }
 
-        /** @return Substitui os metadados; {} os limpa. (null when left out) */
+        /** @return Substitui os metadados; {} os limpa. Até 50 pares de chave e valor: a chave tem de 1 a 40 caracteres, e o valor é um texto de 1 a 500 caracteres, um número ou um booleano. Texto sem caracteres de controle nem de direção invisível. (null when left out) */
         public Map<String, Object> getMetadata() {
             return metadata;
         }
@@ -706,7 +803,7 @@ public final class CheckoutLinksService {
             }
 
             /**
-             * @param metadata Substitui os metadados; {} os limpa.
+             * @param metadata Substitui os metadados; {} os limpa. Até 50 pares de chave e valor: a chave tem de 1 a 40 caracteres, e o valor é um texto de 1 a 500 caracteres, um número ou um booleano. Texto sem caracteres de controle nem de direção invisível.
              * @return this builder
              */
             public Builder metadata(Map<String, Object> metadata) {

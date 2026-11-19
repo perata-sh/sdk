@@ -26,7 +26,7 @@ for await (const product of perata.products.listIter()) {
 | `perata.{{camel .Name}}` | {{range $i, $m := .Methods}}{{if $i}}, {{end}}`{{camel $m.Name}}`{{if $m.Paginated}}, `{{camel $m.Name}}Iter`{{end}}{{end}} |
 {{- end}}
 
-Cada método aceita, por último, `{ idempotencyKey, apiKey, signal }`. Um POST sem chave de idempotência é enviado com uma `Idempotency-Key` própria (UUID v4 aleatório, uma por chamada); passe a sua para poder repetir a mesma operação com segurança.
+Cada método aceita, por último, `{ idempotencyKey, apiKey, signal }`. Um POST sem chave de idempotência é enviado com uma `Idempotency-Key` própria (UUID v4 aleatório, uma por chamada); passe a sua para poder repetir a mesma operação com segurança. Uma resposta 2xx fica guardada sob a chave; uma recusa 4xx ou uma falha 5xx a libera, e você pode repetir a escrita com a mesma chave, com o corpo corrigido ou como estava.
 
 ## Checkout transparente e embutido
 
@@ -51,6 +51,35 @@ No navegador, com o `client_secret` que o seu servidor devolveu (o site precisa 
   // clientSecret: o que o seu servidor devolveu acima
   Perata().components.payment({ clientSecret, onSuccess: (result) => console.log(result.status) }).mount("#pagamento");
 </script>
+```
+
+## Encerrar, listar e reativar
+
+Encerrar um checkout que não deve mais ser pago: a página, o `client_secret` e o QR do Pix deixam de valer (o Pix já gerado é cancelado), e o evento `checkout.expired` é enviado. Repetir a chamada é seguro; um checkout já pago, ou com boleto emitido, responde 409.
+
+```ts
+const closed = await perata.checkouts.expire(checkoutId);
+// closed.status === "expired"
+```
+
+Listar com filtros: `client_reference_id` acha o pedido que você registrou ao criar o checkout, e `metadata` casa os pares que você guardou (até 10 pares; a linha precisa ter todos). Os dois valem nas listas de checkouts, pedidos, pagamentos e assinaturas, e o filtro segue nas páginas de `listIter`.
+
+```ts
+const filters = {
+  client_reference_id: "pedido-123",
+  metadata: { pedido: "123", "camera id": "a/b" },
+};
+const page = await perata.orders.list(filters);
+
+for await (const order of perata.orders.listIter(filters)) {
+  console.log(order.id);
+}
+```
+
+Reativar uma assinatura suspensa, que volta a ser cobrada, ou retomar uma pausada; qualquer outra assinatura responde 409:
+
+```ts
+const subscription = await perata.subscriptions.resume(subscriptionId);
 ```
 
 ## Consumo (ingestão de eventos)
@@ -92,8 +121,16 @@ switch (event.type) {
   case "dispute.opened":
     console.log(event.data.provider_dispute_id); // event.data é um WebhookDispute
     break;
+  case "subscription.past_due": // uma cobrança de cartão foi recusada
+    console.log(event.data.id, event.data.payment_failure?.attempt);
+    break;
+  case "subscription.suspended": // as tentativas acabaram
+    console.log(event.data.id, event.data.suspension_reason);
+    break;
 }
 ```
+
+O `subscription.past_due` sai a cada cobrança de cartão recusada (`payment_failure` traz o número da tentativa e quando o cartão será cobrado de novo): mantenha o acesso do cliente até o `subscription.suspended`. Esse diz que as tentativas acabaram (`suspension_reason`): cancele a assinatura ou reative-a com `subscriptions.resume`.
 
 A assinatura é a do Standard Webhooks (`webhook-id`, `webhook-timestamp`, `webhook-signature`), com tolerância de 5 minutos. Passe o corpo cru, antes de interpretar.
 

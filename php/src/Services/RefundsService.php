@@ -18,7 +18,16 @@ final class RefundsService
     }
 
     /**
-     * Reembolsar parte ou todo um pagamento.
+     * Reembolsar um pagamento.
+     *
+     * Devolve parte ou todo o valor de um pagamento. A Idempotency-Key é
+     * obrigatória: sem ela, repetir a chamada depois de um tempo esgotado seria
+     * devolver duas vezes.
+     *
+     * Autenticação: chave de API da organização em Authorization: Bearer
+     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+     * requisição. Respostas em JSON no envelope data; erros com error, message
+     * e fields.
      *
      * @param array{amount_cents: int, note?: string, payment_id: string, reason: 'requested_by_customer'|'duplicate'|'fraudulent'|'product_unavailable'|'service_disruption'|'other'} $params
      */
@@ -29,7 +38,15 @@ final class RefundsService
     }
 
     /**
-     * Listar reembolsos, opcionalmente de um pagamento (payment_id), de um status, de um cliente ou de um período. One page; listIter() walks every page.
+     * Listar reembolsos. One page; listIter() walks every page.
+     *
+     * Devolve uma página dos reembolsos. Filtre por pagamento (payment_id),
+     * status, cliente ou período.
+     *
+     * Autenticação: chave de API da organização em Authorization: Bearer
+     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+     * requisição. Respostas em JSON no envelope data; erros com error, message
+     * e fields.
      *
      * @param array{page?: int, limit?: int, payment_id?: string, status?: string, customer_id?: string, external_customer_id?: string, created_after?: string, created_before?: string, sorting?: string} $params
      * @return Page<Models\Refund>

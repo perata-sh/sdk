@@ -40,7 +40,15 @@ func (c *Client) initServices() {
 // BenefitsService is the API's benefits.
 type BenefitsService struct{ client *Client }
 
-// Create: Criar um benefício custom, license_key, feature_flag ou meter_credit; downloads e os benefícios do Discord e do GitHub se configuram no painel.
+// Create: Criar um benefício.
+//
+// Cria um benefício do tipo custom, license_key, feature_flag ou meter_credit.
+// Os downloads e os benefícios do Discord e do GitHub se configuram no painel.
+//
+// Autenticação: chave de API da organização em Authorization: Bearer
+// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+// requisição. Respostas em JSON no envelope data; erros com error, message e
+// fields.
 func (s *BenefitsService) Create(ctx context.Context, params BenefitsCreateParams, opts ...RequestOption) (*Benefit, error) {
 	var out Benefit
 	err := s.client.do(ctx, http.MethodPost, "/api/v1/benefits", nil, params, &out, opts)
@@ -50,12 +58,26 @@ func (s *BenefitsService) Create(ctx context.Context, params BenefitsCreateParam
 	return &out, nil
 }
 
-// Delete: Excluir um benefício: ele sai de todos os produtos e é revogado de quem o tem. The API answers 204, so there is nothing to return.
+// Delete: Excluir um benefício. The API answers 204, so there is nothing to return.
+//
+// Exclui um benefício: ele sai de todos os produtos e é revogado de quem o tem.
+//
+// Autenticação: chave de API da organização em Authorization: Bearer
+// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+// requisição. Respostas em JSON no envelope data; erros com error, message e
+// fields.
 func (s *BenefitsService) Delete(ctx context.Context, benefit string, opts ...RequestOption) error {
 	return s.client.do(ctx, http.MethodDelete, "/api/v1/benefits/"+url.PathEscape(benefit), nil, nil, nil, opts)
 }
 
 // Get: Ler um benefício.
+//
+// Devolve um benefício pelo ID.
+//
+// Autenticação: chave de API da organização em Authorization: Bearer
+// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+// requisição. Respostas em JSON no envelope data; erros com error, message e
+// fields.
 func (s *BenefitsService) Get(ctx context.Context, benefit string, opts ...RequestOption) (*Benefit, error) {
 	var out Benefit
 	err := s.client.do(ctx, http.MethodGet, "/api/v1/benefits/"+url.PathEscape(benefit), nil, nil, &out, opts)
@@ -90,7 +112,14 @@ func (p *BenefitsListParams) query() url.Values {
 	return q
 }
 
-// List: Listar benefícios, opcionalmente de um tipo (type). It answers one page; ListIter walks every page.
+// List: Listar benefícios. It answers one page; ListIter walks every page.
+//
+// Devolve uma página dos benefícios da organização. Com type, só os de um tipo.
+//
+// Autenticação: chave de API da organização em Authorization: Bearer
+// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+// requisição. Respostas em JSON no envelope data; erros com error, message e
+// fields.
 func (s *BenefitsService) List(ctx context.Context, params *BenefitsListParams, opts ...RequestOption) (*Page[Benefit], error) {
 	var page Page[Benefit]
 	err := s.client.do(ctx, http.MethodGet, "/api/v1/benefits", params.query(), nil, &page, opts)
@@ -142,7 +171,15 @@ func (p *BenefitsListGrantsParams) query() url.Values {
 	return q
 }
 
-// ListGrants: Listar as concessões de um benefício, opcionalmente de um cliente (customer_id) ou só as vigentes (is_granted). It answers one page; ListGrantsIter walks every page.
+// ListGrants: Listar as concessões de um benefício. It answers one page; ListGrantsIter walks every page.
+//
+// Devolve uma página das concessões de um benefício. Com customer_id, só as de
+// um cliente; com is_granted, só as vigentes ou só as revogadas.
+//
+// Autenticação: chave de API da organização em Authorization: Bearer
+// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+// requisição. Respostas em JSON no envelope data; erros com error, message e
+// fields.
 func (s *BenefitsService) ListGrants(ctx context.Context, benefit string, params *BenefitsListGrantsParams, opts ...RequestOption) (*Page[BenefitGrant], error) {
 	var page Page[BenefitGrant]
 	err := s.client.do(ctx, http.MethodGet, "/api/v1/benefits/"+url.PathEscape(benefit)+"/grants", params.query(), nil, &page, opts)
@@ -164,7 +201,16 @@ func (s *BenefitsService) ListGrantsIter(ctx context.Context, benefit string, pa
 	}, walk.Page)
 }
 
-// Update: Atualizar o nome, a visibilidade, as propriedades e os metadados de um benefício; o tipo e a descrição dada na criação não mudam, e o que a concessão já entregou fica como foi entregue.
+// Update: Atualizar um benefício.
+//
+// Muda o nome, a visibilidade, as propriedades e os metadados de um benefício.
+// O tipo e a descrição dada na criação não mudam, e o que a concessão já
+// entregou fica como foi entregue.
+//
+// Autenticação: chave de API da organização em Authorization: Bearer
+// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+// requisição. Respostas em JSON no envelope data; erros com error, message e
+// fields.
 func (s *BenefitsService) Update(ctx context.Context, benefit string, params BenefitsUpdateParams, opts ...RequestOption) (*Benefit, error) {
 	var out Benefit
 	err := s.client.do(ctx, http.MethodPatch, "/api/v1/benefits/"+url.PathEscape(benefit), nil, params, &out, opts)
@@ -177,7 +223,16 @@ func (s *BenefitsService) Update(ctx context.Context, benefit string, params Ben
 // CheckoutLinksService is the API's checkout-links.
 type CheckoutLinksService struct{ client *Client }
 
-// Create: Criar um link de checkout: uma oferta durável de um ou mais produtos, com desconto, quantidade e páginas de retorno.
+// Create: Criar um link de checkout.
+//
+// Cria um link de checkout: uma oferta durável de um ou mais produtos, com
+// desconto, quantidade e páginas de retorno. Cada visita ao link abre uma
+// sessão de compra nova.
+//
+// Autenticação: chave de API da organização em Authorization: Bearer
+// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+// requisição. Respostas em JSON no envelope data; erros com error, message e
+// fields.
 func (s *CheckoutLinksService) Create(ctx context.Context, params CheckoutLinksCreateParams, opts ...RequestOption) (*CheckoutLink, error) {
 	var out CheckoutLink
 	err := s.client.do(ctx, http.MethodPost, "/api/v1/checkout-links", nil, params, &out, opts)
@@ -187,12 +242,27 @@ func (s *CheckoutLinksService) Create(ctx context.Context, params CheckoutLinksC
 	return &out, nil
 }
 
-// Delete: Excluir um link de checkout: ele deixa de abrir checkouts; os que já abriu continuam. The API answers 204, so there is nothing to return.
+// Delete: Excluir um link de checkout. The API answers 204, so there is nothing to return.
+//
+// Exclui um link de checkout: ele deixa de abrir checkouts. Os que já abriu
+// continuam.
+//
+// Autenticação: chave de API da organização em Authorization: Bearer
+// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+// requisição. Respostas em JSON no envelope data; erros com error, message e
+// fields.
 func (s *CheckoutLinksService) Delete(ctx context.Context, checkoutLink string, opts ...RequestOption) error {
 	return s.client.do(ctx, http.MethodDelete, "/api/v1/checkout-links/"+url.PathEscape(checkoutLink), nil, nil, nil, opts)
 }
 
 // Get: Ler um link de checkout.
+//
+// Devolve um link de checkout pelo ID.
+//
+// Autenticação: chave de API da organização em Authorization: Bearer
+// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+// requisição. Respostas em JSON no envelope data; erros com error, message e
+// fields.
 func (s *CheckoutLinksService) Get(ctx context.Context, checkoutLink string, opts ...RequestOption) (*CheckoutLink, error) {
 	var out CheckoutLink
 	err := s.client.do(ctx, http.MethodGet, "/api/v1/checkout-links/"+url.PathEscape(checkoutLink), nil, nil, &out, opts)
@@ -223,6 +293,13 @@ func (p *CheckoutLinksListParams) query() url.Values {
 }
 
 // List: Listar links de checkout. It answers one page; ListIter walks every page.
+//
+// Devolve uma página dos links de checkout da organização.
+//
+// Autenticação: chave de API da organização em Authorization: Bearer
+// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+// requisição. Respostas em JSON no envelope data; erros com error, message e
+// fields.
 func (s *CheckoutLinksService) List(ctx context.Context, params *CheckoutLinksListParams, opts ...RequestOption) (*Page[CheckoutLink], error) {
 	var page Page[CheckoutLink]
 	err := s.client.do(ctx, http.MethodGet, "/api/v1/checkout-links", params.query(), nil, &page, opts)
@@ -244,7 +321,15 @@ func (s *CheckoutLinksService) ListIter(ctx context.Context, params *CheckoutLin
 	}, walk.Page)
 }
 
-// Update: Atualizar o rótulo, as páginas de retorno, os produtos e os metadados de um link; a quantidade e o desconto ficam como foram publicados.
+// Update: Atualizar um link de checkout.
+//
+// Muda o rótulo, as páginas de retorno, os produtos e os metadados de um link.
+// A quantidade e o desconto ficam como foram publicados.
+//
+// Autenticação: chave de API da organização em Authorization: Bearer
+// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+// requisição. Respostas em JSON no envelope data; erros com error, message e
+// fields.
 func (s *CheckoutLinksService) Update(ctx context.Context, checkoutLink string, params CheckoutLinksUpdateParams, opts ...RequestOption) (*CheckoutLink, error) {
 	var out CheckoutLink
 	err := s.client.do(ctx, http.MethodPatch, "/api/v1/checkout-links/"+url.PathEscape(checkoutLink), nil, params, &out, opts)
@@ -257,7 +342,19 @@ func (s *CheckoutLinksService) Update(ctx context.Context, checkoutLink string, 
 // CheckoutsService is the API's checkouts.
 type CheckoutsService struct{ client *Client }
 
-// Create: Criar um checkout: o endereço para onde o comprador é enviado e a sessão de compra aberta para ele, com o client_secret que o navegador do comprador usa nas rotas de cliente.
+// Create: Criar um checkout.
+//
+// Cria um checkout. Devolve o endereço para onde mandar o comprador e a sessão
+// de compra aberta para ele, com o client_secret que o navegador do comprador
+// usa para pagar sem chave de API; o client_secret vem só nesta resposta. Para
+// cobrar um valor que o seu servidor define, envie amount_cents e items (preço
+// de valor livre). Envie client_reference_id e metadata para achar o pedido
+// depois.
+//
+// Autenticação: chave de API da organização em Authorization: Bearer
+// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+// requisição. Respostas em JSON no envelope data; erros com error, message e
+// fields.
 func (s *CheckoutsService) Create(ctx context.Context, params CheckoutsCreateParams, opts ...RequestOption) (*CheckoutCreated, error) {
 	var out CheckoutCreated
 	err := s.client.do(ctx, http.MethodPost, "/api/v1/checkouts", nil, params, &out, opts)
@@ -267,7 +364,17 @@ func (s *CheckoutsService) Create(ctx context.Context, params CheckoutsCreatePar
 	return &out, nil
 }
 
-// Expire: Encerrar um checkout que não deve mais ser pago: a página, o client_secret e o QR do Pix deixam de valer (o Pix já gerado é cancelado na Cielo), e o evento checkout.expired é enviado; 409 se já foi pago ou se emitiu boleto.
+// Expire: Encerrar um checkout.
+//
+// Encerra um checkout que não deve mais ser pago: a página, o client_secret e o
+// QR do Pix deixam de valer (o Pix já gerado é cancelado na Cielo) e o evento
+// checkout.expired é enviado. Repetir a chamada é seguro. Se o checkout já foi
+// pago ou emitiu um boleto, a resposta é 409.
+//
+// Autenticação: chave de API da organização em Authorization: Bearer
+// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+// requisição. Respostas em JSON no envelope data; erros com error, message e
+// fields.
 func (s *CheckoutsService) Expire(ctx context.Context, checkout string, opts ...RequestOption) (*CheckoutExpired, error) {
 	var out CheckoutExpired
 	err := s.client.do(ctx, http.MethodPost, "/api/v1/checkouts/"+url.PathEscape(checkout)+"/expire", nil, nil, &out, opts)
@@ -277,7 +384,14 @@ func (s *CheckoutsService) Expire(ctx context.Context, checkout string, opts ...
 	return &out, nil
 }
 
-// Get: Ler um checkout: o endereço, o estado e as páginas de retorno.
+// Get: Ler um checkout.
+//
+// Devolve um checkout: o endereço, o estado e as páginas de retorno.
+//
+// Autenticação: chave de API da organização em Authorization: Bearer
+// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+// requisição. Respostas em JSON no envelope data; erros com error, message e
+// fields.
 func (s *CheckoutsService) Get(ctx context.Context, checkout string, opts ...RequestOption) (*Checkout, error) {
 	var out Checkout
 	err := s.client.do(ctx, http.MethodGet, "/api/v1/checkouts/"+url.PathEscape(checkout), nil, nil, &out, opts)
@@ -301,6 +415,8 @@ type CheckoutsListParams struct {
 	CreatedBefore string
 	// Ordem da lista: created_at, e com um - na frente é decrescente (-created_at, o mais novo primeiro, é o padrão).
 	Sorting string
+	// Filtro por metadados: metadata[chave]=valor, uma vez para cada par (até 10); a linha precisa ter todos. Um valor que parece número ou booleano também casa com o número ou o booleano guardado.
+	Metadata map[string]string
 }
 
 func (p *CheckoutsListParams) query() url.Values {
@@ -329,10 +445,24 @@ func (p *CheckoutsListParams) query() url.Values {
 	if p.Sorting != "" {
 		q.Set("sorting", p.Sorting)
 	}
+	// A map filter is sent once for each pair, as metadata[key]=value; Encode writes the pairs sorted.
+	for key, value := range p.Metadata {
+		if value != "" {
+			q.Set("metadata"+"["+key+"]", value)
+		}
+	}
 	return q
 }
 
-// List: Listar checkouts, opcionalmente de um client_reference_id, de um status, de um período ou de metadados. It answers one page; ListIter walks every page.
+// List: Listar checkouts. It answers one page; ListIter walks every page.
+//
+// Devolve uma página dos checkouts. Filtre por client_reference_id, status,
+// período ou metadados.
+//
+// Autenticação: chave de API da organização em Authorization: Bearer
+// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+// requisição. Respostas em JSON no envelope data; erros com error, message e
+// fields.
 func (s *CheckoutsService) List(ctx context.Context, params *CheckoutsListParams, opts ...RequestOption) (*Page[Checkout], error) {
 	var page Page[Checkout]
 	err := s.client.do(ctx, http.MethodGet, "/api/v1/checkouts", params.query(), nil, &page, opts)
@@ -354,7 +484,14 @@ func (s *CheckoutsService) ListIter(ctx context.Context, params *CheckoutsListPa
 	}, walk.Page)
 }
 
-// Update: Atualizar o rótulo e as páginas de retorno de um checkout ativo.
+// Update: Atualizar um checkout.
+//
+// Muda o rótulo e as páginas de retorno de um checkout ativo.
+//
+// Autenticação: chave de API da organização em Authorization: Bearer
+// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+// requisição. Respostas em JSON no envelope data; erros com error, message e
+// fields.
 func (s *CheckoutsService) Update(ctx context.Context, checkout string, params CheckoutsUpdateParams, opts ...RequestOption) (*Checkout, error) {
 	var out Checkout
 	err := s.client.do(ctx, http.MethodPatch, "/api/v1/checkouts/"+url.PathEscape(checkout), nil, params, &out, opts)
@@ -367,7 +504,16 @@ func (s *CheckoutsService) Update(ctx context.Context, checkout string, params C
 // CustomerSessionsService is the API's customer-sessions.
 type CustomerSessionsService struct{ client *Client }
 
-// Create: Entrar com um cliente no portal do cliente: o endereço o abre já autenticado.
+// Create: Abrir o portal do cliente.
+//
+// Abre uma sessão do portal do cliente para o cliente informado e devolve o
+// endereço que o abre já autenticado. Com return_url, um endereço https do seu
+// aplicativo, o portal oferece a volta.
+//
+// Autenticação: chave de API da organização em Authorization: Bearer
+// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+// requisição. Respostas em JSON no envelope data; erros com error, message e
+// fields.
 func (s *CustomerSessionsService) Create(ctx context.Context, params CustomerSessionsCreateParams, opts ...RequestOption) (*CustomerSession, error) {
 	var out CustomerSession
 	err := s.client.do(ctx, http.MethodPost, "/api/v1/customer-sessions", nil, params, &out, opts)
@@ -380,7 +526,18 @@ func (s *CustomerSessionsService) Create(ctx context.Context, params CustomerSes
 // CustomersService is the API's customers.
 type CustomersService struct{ client *Client }
 
-// Create: Criar um cliente, com CPF ou CNPJ, telefone e endereço de cobrança se você os tem.
+// Create: Criar um cliente.
+//
+// Cria um cliente, com CPF ou CNPJ, telefone e endereço de cobrança, se você os
+// tem. Se você enviar external_id e o e-mail já for de um cliente que ainda não
+// tem ID externo (por exemplo, um que o checkout criou), esse cliente recebe o
+// ID e os dados enviados, e a resposta é 200 em vez de 201. Se o e-mail for de
+// um cliente com outro ID externo, a resposta é 422.
+//
+// Autenticação: chave de API da organização em Authorization: Bearer
+// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+// requisição. Respostas em JSON no envelope data; erros com error, message e
+// fields.
 func (s *CustomersService) Create(ctx context.Context, params CustomersCreateParams, opts ...RequestOption) (*Customer, error) {
 	var out Customer
 	err := s.client.do(ctx, http.MethodPost, "/api/v1/customers", nil, params, &out, opts)
@@ -390,12 +547,28 @@ func (s *CustomersService) Create(ctx context.Context, params CustomersCreatePar
 	return &out, nil
 }
 
-// Delete: Excluir um cliente: as assinaturas terminam na hora, os benefícios são revogados e o ID externo é liberado; pedidos e pagamentos continuam. The API answers 204, so there is nothing to return.
+// Delete: Excluir um cliente. The API answers 204, so there is nothing to return.
+//
+// Exclui um cliente: as assinaturas terminam na hora, os benefícios são
+// revogados e o ID externo fica livre. Os pedidos e os pagamentos continuam nos
+// registros.
+//
+// Autenticação: chave de API da organização em Authorization: Bearer
+// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+// requisição. Respostas em JSON no envelope data; erros com error, message e
+// fields.
 func (s *CustomersService) Delete(ctx context.Context, customer string, opts ...RequestOption) error {
 	return s.client.do(ctx, http.MethodDelete, "/api/v1/customers/"+url.PathEscape(customer), nil, nil, nil, opts)
 }
 
 // Get: Ler um cliente.
+//
+// Devolve um cliente pelo ID.
+//
+// Autenticação: chave de API da organização em Authorization: Bearer
+// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+// requisição. Respostas em JSON no envelope data; erros com error, message e
+// fields.
 func (s *CustomersService) Get(ctx context.Context, customer string, opts ...RequestOption) (*Customer, error) {
 	var out Customer
 	err := s.client.do(ctx, http.MethodGet, "/api/v1/customers/"+url.PathEscape(customer), nil, nil, &out, opts)
@@ -405,7 +578,15 @@ func (s *CustomersService) Get(ctx context.Context, customer string, opts ...Req
 	return &out, nil
 }
 
-// GetExternal: Ler um cliente pelo ID dele no sistema do lojista (external_id).
+// GetExternal: Ler um cliente pelo ID externo.
+//
+// Devolve o cliente que você identifica pelo ID dele no seu sistema
+// (external_id).
+//
+// Autenticação: chave de API da organização em Authorization: Bearer
+// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+// requisição. Respostas em JSON no envelope data; erros com error, message e
+// fields.
 func (s *CustomersService) GetExternal(ctx context.Context, externalID string, opts ...RequestOption) (*Customer, error) {
 	var out Customer
 	err := s.client.do(ctx, http.MethodGet, "/api/v1/external-customers/"+url.PathEscape(externalID), nil, nil, &out, opts)
@@ -415,7 +596,16 @@ func (s *CustomersService) GetExternal(ctx context.Context, externalID string, o
 	return &out, nil
 }
 
-// GetState: Ler o estado de um cliente: assinaturas ativas e benefícios vigentes, inclusive os feature flags.
+// GetState: Ler o estado de um cliente.
+//
+// Devolve o estado de um cliente: as assinaturas ativas e os benefícios
+// vigentes, inclusive os feature flags. É a leitura que o seu aplicativo faz
+// para decidir o que o cliente pode usar.
+//
+// Autenticação: chave de API da organização em Authorization: Bearer
+// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+// requisição. Respostas em JSON no envelope data; erros com error, message e
+// fields.
 func (s *CustomersService) GetState(ctx context.Context, customer string, opts ...RequestOption) (*CustomerState, error) {
 	var out CustomerState
 	err := s.client.do(ctx, http.MethodGet, "/api/v1/customers/"+url.PathEscape(customer)+"/state", nil, nil, &out, opts)
@@ -429,6 +619,8 @@ func (s *CustomersService) GetState(ctx context.Context, customer string, opts .
 type CustomersListParams struct {
 	// Page is the page, from 1; Limit the items a page, 1 to 100 (10 by default).
 	Page, Limit int
+	// Só o cliente com este e-mail (sem diferença de maiúsculas).
+	Email string
 }
 
 func (p *CustomersListParams) query() url.Values {
@@ -442,10 +634,21 @@ func (p *CustomersListParams) query() url.Values {
 	if p.Limit > 0 {
 		q.Set("limit", strconv.Itoa(p.Limit))
 	}
+	if p.Email != "" {
+		q.Set("email", p.Email)
+	}
 	return q
 }
 
 // List: Listar clientes. It answers one page; ListIter walks every page.
+//
+// Devolve uma página dos clientes. Com email, só o cliente com esse e-mail, sem
+// diferença entre maiúsculas e minúsculas.
+//
+// Autenticação: chave de API da organização em Authorization: Bearer
+// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+// requisição. Respostas em JSON no envelope data; erros com error, message e
+// fields.
 func (s *CustomersService) List(ctx context.Context, params *CustomersListParams, opts ...RequestOption) (*Page[Customer], error) {
 	var page Page[Customer]
 	err := s.client.do(ctx, http.MethodGet, "/api/v1/customers", params.query(), nil, &page, opts)
@@ -467,7 +670,15 @@ func (s *CustomersService) ListIter(ctx context.Context, params *CustomersListPa
 	}, walk.Page)
 }
 
-// Update: Atualizar o nome, o e-mail, o ID externo, o CPF ou CNPJ, o telefone ou o endereço de cobrança de um cliente; o ID externo não muda depois de definido.
+// Update: Atualizar um cliente.
+//
+// Muda o nome, o e-mail, o ID externo, o CPF ou CNPJ, o telefone ou o endereço
+// de cobrança. O ID externo só pode ser definido uma vez.
+//
+// Autenticação: chave de API da organização em Authorization: Bearer
+// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+// requisição. Respostas em JSON no envelope data; erros com error, message e
+// fields.
 func (s *CustomersService) Update(ctx context.Context, customer string, params CustomersUpdateParams, opts ...RequestOption) (*Customer, error) {
 	var out Customer
 	err := s.client.do(ctx, http.MethodPatch, "/api/v1/customers/"+url.PathEscape(customer), nil, params, &out, opts)
@@ -477,7 +688,15 @@ func (s *CustomersService) Update(ctx context.Context, customer string, params C
 	return &out, nil
 }
 
-// UpdateExternal: Atualizar um cliente pelo ID dele no sistema do lojista (external_id).
+// UpdateExternal: Atualizar um cliente pelo ID externo.
+//
+// Muda o cliente que você identifica pelo ID dele no seu sistema (external_id).
+// Os campos são os de Atualizar um cliente.
+//
+// Autenticação: chave de API da organização em Authorization: Bearer
+// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+// requisição. Respostas em JSON no envelope data; erros com error, message e
+// fields.
 func (s *CustomersService) UpdateExternal(ctx context.Context, externalID string, params CustomersUpdateExternalParams, opts ...RequestOption) (*Customer, error) {
 	var out Customer
 	err := s.client.do(ctx, http.MethodPatch, "/api/v1/external-customers/"+url.PathEscape(externalID), nil, params, &out, opts)
@@ -490,7 +709,16 @@ func (s *CustomersService) UpdateExternal(ctx context.Context, externalID string
 // DiscountsService is the API's discounts.
 type DiscountsService struct{ client *Client }
 
-// Create: Criar um desconto percentual (basis_points) ou fixo em reais (amount_cents).
+// Create: Criar um desconto.
+//
+// Cria um desconto percentual (basis_points) ou de valor fixo em reais
+// (amount_cents). O código é o que o comprador digita; sem ele, o desconto só
+// vale num link de checkout ou pela API.
+//
+// Autenticação: chave de API da organização em Authorization: Bearer
+// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+// requisição. Respostas em JSON no envelope data; erros com error, message e
+// fields.
 func (s *DiscountsService) Create(ctx context.Context, params DiscountsCreateParams, opts ...RequestOption) (*Discount, error) {
 	var out Discount
 	err := s.client.do(ctx, http.MethodPost, "/api/v1/discounts", nil, params, &out, opts)
@@ -500,12 +728,27 @@ func (s *DiscountsService) Create(ctx context.Context, params DiscountsCreatePar
 	return &out, nil
 }
 
-// Delete: Excluir um desconto: sai das listas e dos checkouts e o código fica livre; o que ele já descontou continua nos registros. The API answers 204, so there is nothing to return.
+// Delete: Excluir um desconto. The API answers 204, so there is nothing to return.
+//
+// Exclui um desconto: ele sai das listas e dos checkouts, e o código fica
+// livre. O que ele já descontou continua nos registros.
+//
+// Autenticação: chave de API da organização em Authorization: Bearer
+// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+// requisição. Respostas em JSON no envelope data; erros com error, message e
+// fields.
 func (s *DiscountsService) Delete(ctx context.Context, discount string, opts ...RequestOption) error {
 	return s.client.do(ctx, http.MethodDelete, "/api/v1/discounts/"+url.PathEscape(discount), nil, nil, nil, opts)
 }
 
 // Get: Ler um desconto.
+//
+// Devolve um desconto pelo ID.
+//
+// Autenticação: chave de API da organização em Authorization: Bearer
+// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+// requisição. Respostas em JSON no envelope data; erros com error, message e
+// fields.
 func (s *DiscountsService) Get(ctx context.Context, discount string, opts ...RequestOption) (*Discount, error) {
 	var out Discount
 	err := s.client.do(ctx, http.MethodGet, "/api/v1/discounts/"+url.PathEscape(discount), nil, nil, &out, opts)
@@ -536,6 +779,13 @@ func (p *DiscountsListParams) query() url.Values {
 }
 
 // List: Listar descontos. It answers one page; ListIter walks every page.
+//
+// Devolve uma página dos descontos da organização.
+//
+// Autenticação: chave de API da organização em Authorization: Bearer
+// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+// requisição. Respostas em JSON no envelope data; erros com error, message e
+// fields.
 func (s *DiscountsService) List(ctx context.Context, params *DiscountsListParams, opts ...RequestOption) (*Page[Discount], error) {
 	var page Page[Discount]
 	err := s.client.do(ctx, http.MethodGet, "/api/v1/discounts", params.query(), nil, &page, opts)
@@ -557,7 +807,15 @@ func (s *DiscountsService) ListIter(ctx context.Context, params *DiscountsListPa
 	}, walk.Page)
 }
 
-// Update: Atualizar um desconto; o tipo e a duração não mudam, e depois do primeiro uso o valor e os meses também não.
+// Update: Atualizar um desconto.
+//
+// Muda um desconto. O tipo e a duração não mudam; depois do primeiro uso, o
+// valor e os meses também não.
+//
+// Autenticação: chave de API da organização em Authorization: Bearer
+// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+// requisição. Respostas em JSON no envelope data; erros com error, message e
+// fields.
 func (s *DiscountsService) Update(ctx context.Context, discount string, params DiscountsUpdateParams, opts ...RequestOption) (*Discount, error) {
 	var out Discount
 	err := s.client.do(ctx, http.MethodPatch, "/api/v1/discounts/"+url.PathEscape(discount), nil, params, &out, opts)
@@ -571,6 +829,13 @@ func (s *DiscountsService) Update(ctx context.Context, discount string, params D
 type DisputesService struct{ client *Client }
 
 // Get: Ler uma disputa.
+//
+// Devolve uma disputa pelo ID.
+//
+// Autenticação: chave de API da organização em Authorization: Bearer
+// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+// requisição. Respostas em JSON no envelope data; erros com error, message e
+// fields.
 func (s *DisputesService) Get(ctx context.Context, dispute string, opts ...RequestOption) (*Dispute, error) {
 	var out Dispute
 	err := s.client.do(ctx, http.MethodGet, "/api/v1/disputes/"+url.PathEscape(dispute), nil, nil, &out, opts)
@@ -605,7 +870,14 @@ func (p *DisputesListParams) query() url.Values {
 	return q
 }
 
-// List: Listar disputas, opcionalmente de um status (status). It answers one page; ListIter walks every page.
+// List: Listar disputas. It answers one page; ListIter walks every page.
+//
+// Devolve uma página das disputas. Com status, só as que estão nele.
+//
+// Autenticação: chave de API da organização em Authorization: Bearer
+// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+// requisição. Respostas em JSON no envelope data; erros com error, message e
+// fields.
 func (s *DisputesService) List(ctx context.Context, params *DisputesListParams, opts ...RequestOption) (*Page[Dispute], error) {
 	var page Page[Dispute]
 	err := s.client.do(ctx, http.MethodGet, "/api/v1/disputes", params.query(), nil, &page, opts)
@@ -665,7 +937,15 @@ func (p *EventsListParams) query() url.Values {
 	return q
 }
 
-// List: Listar os eventos de consumo que as origens enviaram, do mais novo ao mais antigo. It answers one page; ListIter walks every page.
+// List: Listar eventos de consumo. It answers one page; ListIter walks every page.
+//
+// Devolve uma página dos eventos de consumo que as fontes enviaram, do mais
+// novo ao mais antigo.
+//
+// Autenticação: chave de API da organização em Authorization: Bearer
+// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+// requisição. Respostas em JSON no envelope data; erros com error, message e
+// fields.
 func (s *EventsService) List(ctx context.Context, params *EventsListParams, opts ...RequestOption) (*Page[Event], error) {
 	var page Page[Event]
 	err := s.client.do(ctx, http.MethodGet, "/api/v1/events", params.query(), nil, &page, opts)
@@ -690,7 +970,15 @@ func (s *EventsService) ListIter(ctx context.Context, params *EventsListParams, 
 // MetersService is the API's meters.
 type MetersService struct{ client *Client }
 
-// Get: Ler um medidor: o filtro dos eventos que ele conta, a agregação e a unidade.
+// Get: Ler um medidor.
+//
+// Devolve um medidor: o filtro dos eventos que ele conta, a agregação e a
+// unidade.
+//
+// Autenticação: chave de API da organização em Authorization: Bearer
+// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+// requisição. Respostas em JSON no envelope data; erros com error, message e
+// fields.
 func (s *MetersService) Get(ctx context.Context, meter string, opts ...RequestOption) (*Meter, error) {
 	var out Meter
 	err := s.client.do(ctx, http.MethodGet, "/api/v1/meters/"+url.PathEscape(meter), nil, nil, &out, opts)
@@ -725,7 +1013,15 @@ func (p *MetersListParams) query() url.Values {
 	return q
 }
 
-// List: Listar medidores; os arquivados só com is_archived=true. It answers one page; ListIter walks every page.
+// List: Listar medidores. It answers one page; ListIter walks every page.
+//
+// Devolve uma página dos medidores. Os arquivados só aparecem com
+// is_archived=true.
+//
+// Autenticação: chave de API da organização em Authorization: Bearer
+// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+// requisição. Respostas em JSON no envelope data; erros com error, message e
+// fields.
 func (s *MetersService) List(ctx context.Context, params *MetersListParams, opts ...RequestOption) (*Page[Meter], error) {
 	var page Page[Meter]
 	err := s.client.do(ctx, http.MethodGet, "/api/v1/meters", params.query(), nil, &page, opts)
@@ -750,7 +1046,14 @@ func (s *MetersService) ListIter(ctx context.Context, params *MetersListParams, 
 // OrdersService is the API's orders.
 type OrdersService struct{ client *Client }
 
-// Get: Ler um pedido: um checkout pago.
+// Get: Ler um pedido.
+//
+// Devolve um pedido: um checkout pago.
+//
+// Autenticação: chave de API da organização em Authorization: Bearer
+// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+// requisição. Respostas em JSON no envelope data; erros com error, message e
+// fields.
 func (s *OrdersService) Get(ctx context.Context, order string, opts ...RequestOption) (*Order, error) {
 	var out Order
 	err := s.client.do(ctx, http.MethodGet, "/api/v1/orders/"+url.PathEscape(order), nil, nil, &out, opts)
@@ -760,7 +1063,15 @@ func (s *OrdersService) Get(ctx context.Context, order string, opts ...RequestOp
 	return &out, nil
 }
 
-// GetInvoice: Ler a fatura de um pedido, o documento comercial que o lojista gerou; sem ela, 404.
+// GetInvoice: Ler a fatura de um pedido.
+//
+// Devolve a fatura de um pedido, o documento comercial que o lojista gerou. Sem
+// fatura, a resposta é 404.
+//
+// Autenticação: chave de API da organização em Authorization: Bearer
+// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+// requisição. Respostas em JSON no envelope data; erros com error, message e
+// fields.
 func (s *OrdersService) GetInvoice(ctx context.Context, order string, opts ...RequestOption) (*OrderInvoice, error) {
 	var out OrderInvoice
 	err := s.client.do(ctx, http.MethodGet, "/api/v1/orders/"+url.PathEscape(order)+"/invoice", nil, nil, &out, opts)
@@ -770,7 +1081,14 @@ func (s *OrdersService) GetInvoice(ctx context.Context, order string, opts ...Re
 	return &out, nil
 }
 
-// GetReceipt: Ler o recibo de um pedido: o que foi pago, quando e como.
+// GetReceipt: Ler o recibo de um pedido.
+//
+// Devolve o recibo de um pedido: o que foi pago, quando e como.
+//
+// Autenticação: chave de API da organização em Authorization: Bearer
+// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+// requisição. Respostas em JSON no envelope data; erros com error, message e
+// fields.
 func (s *OrdersService) GetReceipt(ctx context.Context, order string, opts ...RequestOption) (*OrderReceipt, error) {
 	var out OrderReceipt
 	err := s.client.do(ctx, http.MethodGet, "/api/v1/orders/"+url.PathEscape(order)+"/receipt", nil, nil, &out, opts)
@@ -798,6 +1116,8 @@ type OrdersListParams struct {
 	CreatedBefore string
 	// Ordem da lista: created_at ou amount, e com um - na frente é decrescente (-created_at, o mais novo primeiro, é o padrão).
 	Sorting string
+	// Filtro por metadados: metadata[chave]=valor, uma vez para cada par (até 10); a linha precisa ter todos. Um valor que parece número ou booleano também casa com o número ou o booleano guardado.
+	Metadata map[string]string
 }
 
 func (p *OrdersListParams) query() url.Values {
@@ -832,10 +1152,24 @@ func (p *OrdersListParams) query() url.Values {
 	if p.Sorting != "" {
 		q.Set("sorting", p.Sorting)
 	}
+	// A map filter is sent once for each pair, as metadata[key]=value; Encode writes the pairs sorted.
+	for key, value := range p.Metadata {
+		if value != "" {
+			q.Set("metadata"+"["+key+"]", value)
+		}
+	}
 	return q
 }
 
-// List: Listar pedidos (checkouts pagos), opcionalmente de um client_reference_id, de um cliente, de um período ou de metadados. It answers one page; ListIter walks every page.
+// List: Listar pedidos. It answers one page; ListIter walks every page.
+//
+// Devolve uma página dos pedidos, que são os checkouts pagos. Filtre por
+// client_reference_id, cliente, período ou metadados.
+//
+// Autenticação: chave de API da organização em Authorization: Bearer
+// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+// requisição. Respostas em JSON no envelope data; erros com error, message e
+// fields.
 func (s *OrdersService) List(ctx context.Context, params *OrdersListParams, opts ...RequestOption) (*Page[Order], error) {
 	var page Page[Order]
 	err := s.client.do(ctx, http.MethodGet, "/api/v1/orders", params.query(), nil, &page, opts)
@@ -860,7 +1194,15 @@ func (s *OrdersService) ListIter(ctx context.Context, params *OrdersListParams, 
 // PaymentMethodsService is the API's payment_methods.
 type PaymentMethodsService struct{ client *Client }
 
-// Detach: Parar de cobrar um cartão guardado; recusado enquanto uma assinatura ativa o cobra.
+// Detach: Parar de cobrar um cartão guardado.
+//
+// Para de cobrar um cartão guardado. É recusado (409) enquanto uma assinatura
+// ativa o cobra.
+//
+// Autenticação: chave de API da organização em Authorization: Bearer
+// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+// requisição. Respostas em JSON no envelope data; erros com error, message e
+// fields.
 func (s *PaymentMethodsService) Detach(ctx context.Context, paymentMethod string, opts ...RequestOption) (*PaymentMethodDetached, error) {
 	var out PaymentMethodDetached
 	err := s.client.do(ctx, http.MethodPost, "/api/v1/payment_methods/"+url.PathEscape(paymentMethod)+"/detach", nil, nil, &out, opts)
@@ -890,7 +1232,15 @@ func (p *PaymentMethodsListParams) query() url.Values {
 	return q
 }
 
-// List: Listar os cartões guardados de um cliente: bandeira, quatro últimos dígitos e validade. It answers one page; ListIter walks every page.
+// List: Listar os cartões guardados de um cliente. It answers one page; ListIter walks every page.
+//
+// Devolve os cartões guardados de um cliente: bandeira, quatro últimos dígitos
+// e validade. O número do cartão nunca aparece.
+//
+// Autenticação: chave de API da organização em Authorization: Bearer
+// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+// requisição. Respostas em JSON no envelope data; erros com error, message e
+// fields.
 func (s *PaymentMethodsService) List(ctx context.Context, customer string, params *PaymentMethodsListParams, opts ...RequestOption) (*Page[PaymentMethod], error) {
 	var page Page[PaymentMethod]
 	err := s.client.do(ctx, http.MethodGet, "/api/v1/customers/"+url.PathEscape(customer)+"/payment_methods", params.query(), nil, &page, opts)
@@ -916,6 +1266,13 @@ func (s *PaymentMethodsService) ListIter(ctx context.Context, customer string, p
 type PaymentsService struct{ client *Client }
 
 // Get: Ler um pagamento.
+//
+// Devolve um pagamento pelo ID.
+//
+// Autenticação: chave de API da organização em Authorization: Bearer
+// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+// requisição. Respostas em JSON no envelope data; erros com error, message e
+// fields.
 func (s *PaymentsService) Get(ctx context.Context, payment string, opts ...RequestOption) (*Payment, error) {
 	var out Payment
 	err := s.client.do(ctx, http.MethodGet, "/api/v1/payments/"+url.PathEscape(payment), nil, nil, &out, opts)
@@ -943,6 +1300,8 @@ type PaymentsListParams struct {
 	CreatedBefore string
 	// Ordem da lista: created_at ou amount, e com um - na frente é decrescente (-created_at, o mais novo primeiro, é o padrão).
 	Sorting string
+	// Filtro por metadados: metadata[chave]=valor, uma vez para cada par (até 10); a linha precisa ter todos. Um valor que parece número ou booleano também casa com o número ou o booleano guardado.
+	Metadata map[string]string
 }
 
 func (p *PaymentsListParams) query() url.Values {
@@ -977,10 +1336,24 @@ func (p *PaymentsListParams) query() url.Values {
 	if p.Sorting != "" {
 		q.Set("sorting", p.Sorting)
 	}
+	// A map filter is sent once for each pair, as metadata[key]=value; Encode writes the pairs sorted.
+	for key, value := range p.Metadata {
+		if value != "" {
+			q.Set("metadata"+"["+key+"]", value)
+		}
+	}
 	return q
 }
 
-// List: Listar pagamentos, opcionalmente de um client_reference_id, de um estado, de um cliente, de um período ou de metadados. It answers one page; ListIter walks every page.
+// List: Listar pagamentos. It answers one page; ListIter walks every page.
+//
+// Devolve uma página dos pagamentos. Filtre por client_reference_id, estado,
+// cliente, período ou metadados.
+//
+// Autenticação: chave de API da organização em Authorization: Bearer
+// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+// requisição. Respostas em JSON no envelope data; erros com error, message e
+// fields.
 func (s *PaymentsService) List(ctx context.Context, params *PaymentsListParams, opts ...RequestOption) (*Page[Payment], error) {
 	var page Page[Payment]
 	err := s.client.do(ctx, http.MethodGet, "/api/v1/payments", params.query(), nil, &page, opts)
@@ -1005,7 +1378,16 @@ func (s *PaymentsService) ListIter(ctx context.Context, params *PaymentsListPara
 // PricesService is the API's prices.
 type PricesService struct{ client *Client }
 
-// Create: Criar um preço em reais, avulso ou recorrente.
+// Create: Criar um preço.
+//
+// Cria um preço em reais para um produto, avulso (one_time) ou recorrente
+// (recurring). No recorrente, interval e interval_count dizem de quanto em
+// quanto tempo ele renova: month com 3 é trimestral.
+//
+// Autenticação: chave de API da organização em Authorization: Bearer
+// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+// requisição. Respostas em JSON no envelope data; erros com error, message e
+// fields.
 func (s *PricesService) Create(ctx context.Context, params PricesCreateParams, opts ...RequestOption) (*Price, error) {
 	var out Price
 	err := s.client.do(ctx, http.MethodPost, "/api/v1/prices", nil, params, &out, opts)
@@ -1040,7 +1422,15 @@ func (p *PricesListParams) query() url.Values {
 	return q
 }
 
-// List: Listar preços, opcionalmente de um produto (product_id). It answers one page; ListIter walks every page.
+// List: Listar preços. It answers one page; ListIter walks every page.
+//
+// Devolve uma página dos preços da organização. Com product_id, só os de um
+// produto.
+//
+// Autenticação: chave de API da organização em Authorization: Bearer
+// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+// requisição. Respostas em JSON no envelope data; erros com error, message e
+// fields.
 func (s *PricesService) List(ctx context.Context, params *PricesListParams, opts ...RequestOption) (*Page[Price], error) {
 	var page Page[Price]
 	err := s.client.do(ctx, http.MethodGet, "/api/v1/prices", params.query(), nil, &page, opts)
@@ -1065,7 +1455,15 @@ func (s *PricesService) ListIter(ctx context.Context, params *PricesListParams, 
 // ProductsService is the API's products.
 type ProductsService struct{ client *Client }
 
-// Archive: Arquivar um produto: sai das vendas novas e o que já foi vendido continua apontando para ele.
+// Archive: Arquivar um produto.
+//
+// Arquiva um produto: ele sai das vendas novas, e o que já foi vendido continua
+// apontando para ele.
+//
+// Autenticação: chave de API da organização em Authorization: Bearer
+// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+// requisição. Respostas em JSON no envelope data; erros com error, message e
+// fields.
 func (s *ProductsService) Archive(ctx context.Context, product string, opts ...RequestOption) (*Product, error) {
 	var out Product
 	err := s.client.do(ctx, http.MethodPost, "/api/v1/products/"+url.PathEscape(product)+"/archive", nil, nil, &out, opts)
@@ -1076,6 +1474,14 @@ func (s *ProductsService) Archive(ctx context.Context, product string, opts ...R
 }
 
 // Create: Criar um produto.
+//
+// Cria um produto com nome e descrição. O preço se cria à parte, em Criar um
+// preço.
+//
+// Autenticação: chave de API da organização em Authorization: Bearer
+// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+// requisição. Respostas em JSON no envelope data; erros com error, message e
+// fields.
 func (s *ProductsService) Create(ctx context.Context, params ProductsCreateParams, opts ...RequestOption) (*Product, error) {
 	var out Product
 	err := s.client.do(ctx, http.MethodPost, "/api/v1/products", nil, params, &out, opts)
@@ -1086,6 +1492,13 @@ func (s *ProductsService) Create(ctx context.Context, params ProductsCreateParam
 }
 
 // Get: Ler um produto.
+//
+// Devolve um produto pelo ID.
+//
+// Autenticação: chave de API da organização em Authorization: Bearer
+// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+// requisição. Respostas em JSON no envelope data; erros com error, message e
+// fields.
 func (s *ProductsService) Get(ctx context.Context, product string, opts ...RequestOption) (*Product, error) {
 	var out Product
 	err := s.client.do(ctx, http.MethodGet, "/api/v1/products/"+url.PathEscape(product), nil, nil, &out, opts)
@@ -1116,6 +1529,13 @@ func (p *ProductsListParams) query() url.Values {
 }
 
 // List: Listar produtos. It answers one page; ListIter walks every page.
+//
+// Devolve uma página dos produtos da organização, no ambiente da chave.
+//
+// Autenticação: chave de API da organização em Authorization: Bearer
+// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+// requisição. Respostas em JSON no envelope data; erros com error, message e
+// fields.
 func (s *ProductsService) List(ctx context.Context, params *ProductsListParams, opts ...RequestOption) (*Page[Product], error) {
 	var page Page[Product]
 	err := s.client.do(ctx, http.MethodGet, "/api/v1/products", params.query(), nil, &page, opts)
@@ -1137,7 +1557,15 @@ func (s *ProductsService) ListIter(ctx context.Context, params *ProductsListPara
 	}, walk.Page)
 }
 
-// Update: Atualizar o nome ou a descrição de um produto ativo.
+// Update: Atualizar um produto.
+//
+// Muda o nome ou a descrição de um produto ativo. O que você não enviar fica
+// como está.
+//
+// Autenticação: chave de API da organização em Authorization: Bearer
+// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+// requisição. Respostas em JSON no envelope data; erros com error, message e
+// fields.
 func (s *ProductsService) Update(ctx context.Context, product string, params ProductsUpdateParams, opts ...RequestOption) (*Product, error) {
 	var out Product
 	err := s.client.do(ctx, http.MethodPatch, "/api/v1/products/"+url.PathEscape(product), nil, params, &out, opts)
@@ -1150,7 +1578,16 @@ func (s *ProductsService) Update(ctx context.Context, product string, params Pro
 // RefundsService is the API's refunds.
 type RefundsService struct{ client *Client }
 
-// Create: Reembolsar parte ou todo um pagamento.
+// Create: Reembolsar um pagamento.
+//
+// Devolve parte ou todo o valor de um pagamento. A Idempotency-Key é
+// obrigatória: sem ela, repetir a chamada depois de um tempo esgotado seria
+// devolver duas vezes.
+//
+// Autenticação: chave de API da organização em Authorization: Bearer
+// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+// requisição. Respostas em JSON no envelope data; erros com error, message e
+// fields.
 func (s *RefundsService) Create(ctx context.Context, params RefundsCreateParams, opts ...RequestOption) (*Refund, error) {
 	var out Refund
 	err := s.client.do(ctx, http.MethodPost, "/api/v1/refunds", nil, params, &out, opts)
@@ -1215,7 +1652,15 @@ func (p *RefundsListParams) query() url.Values {
 	return q
 }
 
-// List: Listar reembolsos, opcionalmente de um pagamento (payment_id), de um status, de um cliente ou de um período. It answers one page; ListIter walks every page.
+// List: Listar reembolsos. It answers one page; ListIter walks every page.
+//
+// Devolve uma página dos reembolsos. Filtre por pagamento (payment_id), status,
+// cliente ou período.
+//
+// Autenticação: chave de API da organização em Authorization: Bearer
+// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+// requisição. Respostas em JSON no envelope data; erros com error, message e
+// fields.
 func (s *RefundsService) List(ctx context.Context, params *RefundsListParams, opts ...RequestOption) (*Page[Refund], error) {
 	var page Page[Refund]
 	err := s.client.do(ctx, http.MethodGet, "/api/v1/refunds", params.query(), nil, &page, opts)
@@ -1240,7 +1685,15 @@ func (s *RefundsService) ListIter(ctx context.Context, params *RefundsListParams
 // SubscriptionsService is the API's subscriptions.
 type SubscriptionsService struct{ client *Client }
 
-// Cancel: Cancelar uma assinatura, por padrão no fim do período.
+// Cancel: Cancelar uma assinatura.
+//
+// Cancela uma assinatura. Por padrão o cancelamento vale no fim do período já
+// pago.
+//
+// Autenticação: chave de API da organização em Authorization: Bearer
+// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+// requisição. Respostas em JSON no envelope data; erros com error, message e
+// fields.
 func (s *SubscriptionsService) Cancel(ctx context.Context, subscription string, params SubscriptionsCancelParams, opts ...RequestOption) (*Subscription, error) {
 	var out Subscription
 	err := s.client.do(ctx, http.MethodPost, "/api/v1/subscriptions/"+url.PathEscape(subscription)+"/cancel", nil, params, &out, opts)
@@ -1251,6 +1704,13 @@ func (s *SubscriptionsService) Cancel(ctx context.Context, subscription string, 
 }
 
 // Get: Ler uma assinatura.
+//
+// Devolve uma assinatura pelo ID.
+//
+// Autenticação: chave de API da organização em Authorization: Bearer
+// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+// requisição. Respostas em JSON no envelope data; erros com error, message e
+// fields.
 func (s *SubscriptionsService) Get(ctx context.Context, subscription string, opts ...RequestOption) (*Subscription, error) {
 	var out Subscription
 	err := s.client.do(ctx, http.MethodGet, "/api/v1/subscriptions/"+url.PathEscape(subscription), nil, nil, &out, opts)
@@ -1276,6 +1736,8 @@ type SubscriptionsListParams struct {
 	CreatedBefore string
 	// Ordem da lista: created_at ou amount, e com um - na frente é decrescente (-created_at, o mais novo primeiro, é o padrão).
 	Sorting string
+	// Filtro por metadados: metadata[chave]=valor, uma vez para cada par (até 10); a linha precisa ter todos. Um valor que parece número ou booleano também casa com o número ou o booleano guardado.
+	Metadata map[string]string
 }
 
 func (p *SubscriptionsListParams) query() url.Values {
@@ -1307,10 +1769,24 @@ func (p *SubscriptionsListParams) query() url.Values {
 	if p.Sorting != "" {
 		q.Set("sorting", p.Sorting)
 	}
+	// A map filter is sent once for each pair, as metadata[key]=value; Encode writes the pairs sorted.
+	for key, value := range p.Metadata {
+		if value != "" {
+			q.Set("metadata"+"["+key+"]", value)
+		}
+	}
 	return q
 }
 
-// List: Listar assinaturas, opcionalmente de um cliente (customer_id ou external_customer_id), de um status, de um período ou de metadados. It answers one page; ListIter walks every page.
+// List: Listar assinaturas. It answers one page; ListIter walks every page.
+//
+// Devolve uma página das assinaturas. Filtre por cliente (customer_id ou
+// external_customer_id), status, período ou metadados.
+//
+// Autenticação: chave de API da organização em Authorization: Bearer
+// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+// requisição. Respostas em JSON no envelope data; erros com error, message e
+// fields.
 func (s *SubscriptionsService) List(ctx context.Context, params *SubscriptionsListParams, opts ...RequestOption) (*Page[Subscription], error) {
 	var page Page[Subscription]
 	err := s.client.do(ctx, http.MethodGet, "/api/v1/subscriptions", params.query(), nil, &page, opts)
@@ -1332,7 +1808,16 @@ func (s *SubscriptionsService) ListIter(ctx context.Context, params *Subscriptio
 	}, walk.Page)
 }
 
-// Resume: Reativar uma assinatura suspensa, que volta a ser cobrada (a cobrança do ciclo em aberto recomeça), ou retomar uma pausada; qualquer outra recebe 409.
+// Resume: Reativar uma assinatura.
+//
+// Reativa uma assinatura suspensa, que volta a ser cobrada (a cobrança do ciclo
+// em aberto recomeça), ou retoma uma pausada. Qualquer outra assinatura recebe
+// 409.
+//
+// Autenticação: chave de API da organização em Authorization: Bearer
+// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+// requisição. Respostas em JSON no envelope data; erros com error, message e
+// fields.
 func (s *SubscriptionsService) Resume(ctx context.Context, subscription string, opts ...RequestOption) (*Subscription, error) {
 	var out Subscription
 	err := s.client.do(ctx, http.MethodPost, "/api/v1/subscriptions/"+url.PathEscape(subscription)+"/resume", nil, nil, &out, opts)
@@ -1342,7 +1827,15 @@ func (s *SubscriptionsService) Resume(ctx context.Context, subscription string, 
 	return &out, nil
 }
 
-// Update: Trocar o plano de uma assinatura: outro preço e, se quiser, outra quantidade, com a forma de ratear a diferença (proration_behavior).
+// Update: Trocar o plano de uma assinatura.
+//
+// Troca o plano de uma assinatura: outro preço e, se quiser, outra quantidade.
+// O proration_behavior diz como ratear a diferença.
+//
+// Autenticação: chave de API da organização em Authorization: Bearer
+// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+// requisição. Respostas em JSON no envelope data; erros com error, message e
+// fields.
 func (s *SubscriptionsService) Update(ctx context.Context, subscription string, params SubscriptionsUpdateParams, opts ...RequestOption) (*Subscription, error) {
 	var out Subscription
 	err := s.client.do(ctx, http.MethodPatch, "/api/v1/subscriptions/"+url.PathEscape(subscription), nil, params, &out, opts)
@@ -1356,6 +1849,25 @@ func (s *SubscriptionsService) Update(ctx context.Context, subscription string, 
 type UsageService struct{ client *Client }
 
 // Ingest: Ingerir lote atômico de eventos de uso. Autentica com a credencial de uma fonte de ingestão (pus_test_… ou pus_live_…), não com a chave de API da organização.
+//
+// Autorização: Bearer é o único formato de credencial suportado. As credenciais
+// são assinadas pela Peráta, expiram em 30 dias e são verificadas em relação ao
+// estado da fonte, associação atual do emissor e permissões nativas.
+// Organização, merchant e ambiente (teste, pus_test_…, ou produção, pus_live_…)
+// são derivados da fonte autenticada; o payload JSON não pode sobrescrevê-los,
+// e uma credencial de um ambiente nunca escreve no outro. Em produção, a fonte
+// só existe para uma organização que a equipe da Peráta liberou. 1 a 100
+// eventos, no máximo 65536 bytes. Contagens são strings decimais de inteiros,
+// de 0 a 1000000000000, com pelo menos um token por evento; a entrada exclui
+// cache. Ocorrência RFC3339 em segundos inteiros, com no máximo 90 dias atrás e
+// até cinco minutos à frente. Escopo/fonte/external_event_id identificam um
+// registro; repetições exatas contam como replay e conteúdo conflitante retorna
+// 409. Todos os novos eventos e emissões da outbox são confirmados ou
+// revertidos juntos. Rotação mantém a identidade da fonte e replay; credenciais
+// revogadas ou expiradas não podem ser reutilizadas. O sucesso vem no envelope
+// data; todo erro é o documento de erro da API, o mesmo das demais operações de
+// /api/v1 (error, message e fields), com record, a posição do evento recusado,
+// quando há. Sem cobrança ou faturamento automático.
 func (s *UsageService) Ingest(ctx context.Context, params UsageIngestParams, opts ...RequestOption) (*UsageIngestReceipt, error) {
 	var out UsageIngestReceipt
 	err := s.client.do(ctx, http.MethodPost, "/api/v1/usage/token-events", nil, params, &out, opts)
@@ -1368,7 +1880,15 @@ func (s *UsageService) Ingest(ctx context.Context, params UsageIngestParams, opt
 // WebhooksService is the API's webhooks.
 type WebhooksService struct{ client *Client }
 
-// CreateEndpoint: Criar um endpoint de webhook; o segredo que assina as mensagens vem só nesta resposta.
+// CreateEndpoint: Criar um endpoint de webhook.
+//
+// Cria um endpoint de webhook. O segredo que assina as mensagens vem só nesta
+// resposta; guarde-o.
+//
+// Autenticação: chave de API da organização em Authorization: Bearer
+// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+// requisição. Respostas em JSON no envelope data; erros com error, message e
+// fields.
 func (s *WebhooksService) CreateEndpoint(ctx context.Context, params WebhooksCreateEndpointParams, opts ...RequestOption) (*WebhookEndpointCreated, error) {
 	var out WebhookEndpointCreated
 	err := s.client.do(ctx, http.MethodPost, "/api/v1/webhooks/endpoints", nil, params, &out, opts)
@@ -1378,12 +1898,27 @@ func (s *WebhooksService) CreateEndpoint(ctx context.Context, params WebhooksCre
 	return &out, nil
 }
 
-// DeleteEndpoint: Excluir um endpoint de webhook; as entregas que ainda esperavam por ele falham. The API answers 204, so there is nothing to return.
+// DeleteEndpoint: Excluir um endpoint de webhook. The API answers 204, so there is nothing to return.
+//
+// Exclui um endpoint de webhook. As entregas que ainda esperavam por ele
+// falham.
+//
+// Autenticação: chave de API da organização em Authorization: Bearer
+// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+// requisição. Respostas em JSON no envelope data; erros com error, message e
+// fields.
 func (s *WebhooksService) DeleteEndpoint(ctx context.Context, endpoint string, opts ...RequestOption) error {
 	return s.client.do(ctx, http.MethodDelete, "/api/v1/webhooks/endpoints/"+url.PathEscape(endpoint), nil, nil, nil, opts)
 }
 
 // GetEndpoint: Ler um endpoint de webhook.
+//
+// Devolve um endpoint de webhook pelo ID.
+//
+// Autenticação: chave de API da organização em Authorization: Bearer
+// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+// requisição. Respostas em JSON no envelope data; erros com error, message e
+// fields.
 func (s *WebhooksService) GetEndpoint(ctx context.Context, endpoint string, opts ...RequestOption) (*WebhookEndpoint, error) {
 	var out WebhookEndpoint
 	err := s.client.do(ctx, http.MethodGet, "/api/v1/webhooks/endpoints/"+url.PathEscape(endpoint), nil, nil, &out, opts)
@@ -1423,7 +1958,15 @@ func (p *WebhooksListDeliveriesParams) query() url.Values {
 	return q
 }
 
-// ListDeliveries: Listar as últimas 100 entregas de eventos aos endpoints, opcionalmente de um endpoint (endpoint_id) ou de uma situação (status). It answers one page; ListDeliveriesIter walks every page.
+// ListDeliveries: Listar entregas de webhook. It answers one page; ListDeliveriesIter walks every page.
+//
+// Devolve as últimas 100 entregas de eventos aos endpoints. Com endpoint_id, só
+// as de um endpoint; com status, só as de uma situação.
+//
+// Autenticação: chave de API da organização em Authorization: Bearer
+// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+// requisição. Respostas em JSON no envelope data; erros com error, message e
+// fields.
 func (s *WebhooksService) ListDeliveries(ctx context.Context, params *WebhooksListDeliveriesParams, opts ...RequestOption) (*Page[WebhookDelivery], error) {
 	var page Page[WebhookDelivery]
 	err := s.client.do(ctx, http.MethodGet, "/api/v1/webhooks/deliveries", params.query(), nil, &page, opts)
@@ -1465,7 +2008,14 @@ func (p *WebhooksListEndpointsParams) query() url.Values {
 	return q
 }
 
-// ListEndpoints: Listar os endpoints de webhook do lojista. It answers one page; ListEndpointsIter walks every page.
+// ListEndpoints: Listar endpoints de webhook. It answers one page; ListEndpointsIter walks every page.
+//
+// Devolve uma página dos endpoints de webhook da organização.
+//
+// Autenticação: chave de API da organização em Authorization: Bearer
+// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+// requisição. Respostas em JSON no envelope data; erros com error, message e
+// fields.
 func (s *WebhooksService) ListEndpoints(ctx context.Context, params *WebhooksListEndpointsParams, opts ...RequestOption) (*Page[WebhookEndpoint], error) {
 	var page Page[WebhookEndpoint]
 	err := s.client.do(ctx, http.MethodGet, "/api/v1/webhooks/endpoints", params.query(), nil, &page, opts)
@@ -1487,7 +2037,15 @@ func (s *WebhooksService) ListEndpointsIter(ctx context.Context, params *Webhook
 	}, walk.Page)
 }
 
-// UpdateEndpoint: Atualizar o endereço, o formato, os eventos ou a descrição de um endpoint, ou ligar e desligar o envio (enabled); o segredo não muda.
+// UpdateEndpoint: Atualizar um endpoint de webhook.
+//
+// Muda o endereço, o formato, os eventos ou a descrição de um endpoint, ou liga
+// e desliga o envio (enabled). O segredo não muda.
+//
+// Autenticação: chave de API da organização em Authorization: Bearer
+// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+// requisição. Respostas em JSON no envelope data; erros com error, message e
+// fields.
 func (s *WebhooksService) UpdateEndpoint(ctx context.Context, endpoint string, params WebhooksUpdateEndpointParams, opts ...RequestOption) (*WebhookEndpoint, error) {
 	var out WebhookEndpoint
 	err := s.client.do(ctx, http.MethodPatch, "/api/v1/webhooks/endpoints/"+url.PathEscape(endpoint), nil, params, &out, opts)

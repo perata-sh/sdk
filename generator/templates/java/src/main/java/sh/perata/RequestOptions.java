@@ -35,7 +35,9 @@ public final class RequestOptions {
 
         /**
          * Makes a write safe to repeat: the same key with the same body
-         * answers the first response again; with another body, a 409.
+         * answers the first response again; with another body, a 409. A 2xx
+         * answer stays under the key; a 4xx or 5xx frees it, so the same key
+         * can be sent again.
          *
          * @param idempotencyKey the key
          * @return this builder

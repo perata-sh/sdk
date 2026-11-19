@@ -2576,7 +2576,7 @@ public struct UsageIngestReceipt: Codable, Sendable, Hashable {
 /// nil is not sent.
 public struct BenefitsCreateParams: Encodable, Sendable, Hashable {
     public var description: String?
-    /// Até 50 pares; valor em texto, número ou booleano. No feature_flag, os valores da flag.
+    /// Pares guardados no benefício. No feature_flag, são os valores da flag. Até 50 pares de chave e valor: a chave tem de 1 a 40 caracteres, e o valor é um texto de 1 a 500 caracteres, um número ou um booleano. Texto sem caracteres de controle nem de direção invisível.
     public var metadata: [String: JSONValue]?
     /// Como o benefício aparece nos produtos e para o cliente; até 80 caracteres.
     public var name: String
@@ -2619,7 +2619,7 @@ public struct BenefitsCreateParams: Encodable, Sendable, Hashable {
 /// The initializer takes the required fields first; an optional field left
 /// nil is not sent.
 public struct BenefitsUpdateParams: Encodable, Sendable, Hashable {
-    /// Substitui os metadados; {} os limpa.
+    /// Substitui os metadados; {} os limpa. Até 50 pares de chave e valor: a chave tem de 1 a 40 caracteres, e o valor é um texto de 1 a 500 caracteres, um número ou um booleano. Texto sem caracteres de controle nem de direção invisível.
     public var metadata: [String: JSONValue]?
     public var name: String?
     /// Os campos do tipo, aplicados sobre os guardados; o que ficar de fora não muda.
@@ -2664,7 +2664,7 @@ public struct CheckoutLinksCreateParams: Encodable, Sendable, Hashable {
     public var label: String?
     /// De 0 a 12; 0 segue a organização.
     public var maxInstallments: Int?
-    /// Até 50 pares; valor em texto, número ou booleano.
+    /// Pares guardados no link. Até 50 pares de chave e valor: a chave tem de 1 a 40 caracteres, e o valor é um texto de 1 a 500 caracteres, um número ou um booleano. Texto sem caracteres de controle nem de direção invisível.
     public var metadata: [String: JSONValue]?
     public var priceID: String?
     /// Um preço de cada produto, na ordem em que o comprador os vê; até 20.
@@ -2743,7 +2743,7 @@ public struct CheckoutLinksCreateParams: Encodable, Sendable, Hashable {
 public struct CheckoutLinksUpdateParams: Encodable, Sendable, Hashable {
     public var cancelURL: String?
     public var label: String?
-    /// Substitui os metadados; {} os limpa.
+    /// Substitui os metadados; {} os limpa. Até 50 pares de chave e valor: a chave tem de 1 a 40 caracteres, e o valor é um texto de 1 a 500 caracteres, um número ou um booleano. Texto sem caracteres de controle nem de direção invisível.
     public var metadata: [String: JSONValue]?
     /// Substitui os produtos do link.
     public var priceIds: [String]?
@@ -2804,7 +2804,7 @@ public struct CheckoutsCreateParams: Encodable, Sendable, Hashable {
     /// As linhas do pedido, até 50, para o comprador ler o detalhe: aparecem no checkout (página, modal, componentes e transparente), no pedido, no recibo, no portal do cliente e nos eventos. A soma de quantity vezes unit_amount_cents precisa ser igual a amount_cents, ou a resposta é 422; enviadas sem amount_cents, a soma é o valor.
     public var items: [CheckoutsCreateItem]?
     public var label: String?
-    /// Até 50 pares guardados no link do checkout; valor em texto, número ou booleano.
+    /// Pares guardados no link do checkout e devolvidos no checkout, no pedido, no pagamento e nos eventos da venda. Até 50 pares de chave e valor: a chave tem de 1 a 40 caracteres, e o valor é um texto de 1 a 500 caracteres, um número ou um booleano. Texto sem caracteres de controle nem de direção invisível.
     public var metadata: [String: JSONValue]?
     public var priceID: String
     public var productID: String

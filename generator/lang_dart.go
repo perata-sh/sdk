@@ -37,6 +37,8 @@ func init() {
 		"dartReadEntry":  func(f *Field) string { return dartEntry(6, dartName(f.Wire), dartRead(f)) },
 		"dartWriteEntry": func(f *Field) string { return dartEntry(4, dartQuote(f.Wire), dartWriteValue(f)) },
 		"dartDoc":        dartDoc,
+		// dartDocBlock writes text as the lines of a doc comment, wrapped.
+		"dartDocBlock": func(prefix, text string) string { return docBlock(prefix, text, dartText) },
 		// dartFieldDoc documents a field: its description and the values it
 		// may take.
 		"dartFieldDoc": func(indent string, f *Field) string {
@@ -267,7 +269,11 @@ func dartParams(m *Method, variant string) string {
 		}
 		named = append(named, "int? limit")
 		for _, query := range m.Query {
-			named = append(named, "String? "+dartParam(query.Name))
+			if query.Map {
+				named = append(named, "Map<String, String>? "+dartParam(query.Name))
+			} else {
+				named = append(named, "String? "+dartParam(query.Name))
+			}
 		}
 	default:
 		if m.Body != nil {

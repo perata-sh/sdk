@@ -1,6 +1,6 @@
 {
   "name": "@perata-sh/sdk",
-  "version": "0.5.4",
+  "version": "0.5.5",
   "description": "Peráta's SDK for TypeScript and JavaScript: products, customers, checkouts, payments, subscriptions and webhooks.",
   "license": "MIT",
   "homepage": "https://perata.sh",

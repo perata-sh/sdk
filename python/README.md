@@ -41,7 +41,7 @@ for product in perata.products.list_iter():
 | `perata.usage` | `ingest` |
 | `perata.webhooks` | `create_endpoint`, `delete_endpoint`, `get_endpoint`, `list_deliveries`, `list_deliveries_iter`, `list_endpoints`, `list_endpoints_iter`, `update_endpoint` |
 
-As escritas aceitam `idempotency_key=`, e todas aceitam `api_key=` para usar a chave de outra organização numa chamada. Um POST sem chave de idempotência é enviado com uma `Idempotency-Key` própria (UUID v4 aleatório, uma por chamada); passe a sua para poder repetir a mesma operação com segurança.
+As escritas aceitam `idempotency_key=`, e todas aceitam `api_key=` para usar a chave de outra organização numa chamada. Um POST sem chave de idempotência é enviado com uma `Idempotency-Key` própria (UUID v4 aleatório, uma por chamada); passe a sua para poder repetir a mesma operação com segurança. Uma resposta 2xx fica guardada sob a chave; uma recusa 4xx ou uma falha 5xx a libera, e você pode repetir a escrita com a mesma chave, com o corpo corrigido ou como estava.
 
 ## Checkout transparente e embutido
 
@@ -66,6 +66,31 @@ No navegador, com o `client_secret` que o seu servidor devolveu (o site precisa 
   // clientSecret: o que o seu servidor devolveu acima
   Perata().components.payment({ clientSecret, onSuccess: (result) => console.log(result.status) }).mount("#pagamento");
 </script>
+```
+
+## Encerrar, listar e reativar
+
+Encerrar um checkout que não deve mais ser pago: a página, o `client_secret` e o QR do Pix deixam de valer (o Pix já gerado é cancelado), e o evento `checkout.expired` é enviado. Repetir a chamada é seguro; um checkout já pago, ou com boleto emitido, responde 409.
+
+```python
+closed = perata.checkouts.expire(checkout_id)
+# closed.status == "expired"
+```
+
+Listar com filtros: `client_reference_id` acha o pedido que você registrou ao criar o checkout, e `metadata` casa os pares que você guardou (até 10 pares; a linha precisa ter todos). Os dois valem nas listas de checkouts, pedidos, pagamentos e assinaturas, e o filtro segue nas páginas de `list_iter`.
+
+```python
+filters = {"client_reference_id": "pedido-123", "metadata": {"pedido": "123", "camera id": "a/b"}}
+page = perata.orders.list(**filters)
+
+for order in perata.orders.list_iter(**filters):
+    print(order.id)
+```
+
+Reativar uma assinatura suspensa, que volta a ser cobrada, ou retomar uma pausada; qualquer outra assinatura responde 409:
+
+```python
+subscription = perata.subscriptions.resume(subscription_id)
 ```
 
 ## Consumo (ingestão de eventos)
@@ -105,9 +130,15 @@ match event:
         print(order.id, order.installments)
     case DisputeWebhookEvent(data=dispute):
         print(event.type, dispute.provider_dispute_id)
+    case SubscriptionWebhookEvent(type="subscription.past_due", data=subscription):
+        print(subscription.id, subscription.payment_failure)  # uma cobrança de cartão foi recusada
+    case SubscriptionWebhookEvent(type="subscription.suspended", data=subscription):
+        print(subscription.id, subscription.suspension_reason)  # as tentativas acabaram
     case UnknownWebhookEvent():
         pass  # um tipo que esta versão do SDK ainda não conhece: event.data é o JSON
 ```
+
+O `subscription.past_due` sai a cada cobrança de cartão recusada (`payment_failure` traz o número da tentativa e quando o cartão será cobrado de novo): mantenha o acesso do cliente até o `subscription.suspended`. Esse diz que as tentativas acabaram (`suspension_reason`): cancele a assinatura ou reative-a com `subscriptions.resume`.
 
 A assinatura é a do Standard Webhooks (`webhook-id`, `webhook-timestamp`, `webhook-signature`), com tolerância de 5 minutos. Passe o corpo cru, antes de interpretar.
 
@@ -115,4 +146,4 @@ O evento é tipado: um tipo para cada dado que o webhook carrega (`OrderWebhookE
 
 Todo evento traz o ambiente em que aconteceu, em `event.environment`: `"test"` ou `"live"` (vazio se um servidor antigo não mandou). Recuse o evento do ambiente errado: um endpoint de produção deve responder 400 a um evento `"test"`, para que um teste não dê baixa em um pedido real.
 
-Versão do SDK: 0.5.4 · contrato da API: 0.1.0
+Versão do SDK: 0.5.5 · contrato da API: 0.1.0

@@ -18,7 +18,7 @@ defmodule Perata do
 
   @doc "This SDK's version."
   @spec version() :: String.t()
-  def version, do: "0.5.4"
+  def version, do: "0.5.5"
 
   @doc "The contract this SDK was generated from."
   @spec api_version() :: String.t()

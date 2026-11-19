@@ -6,6 +6,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.TreeMap;
 
 /** The API's {{.Service.Name}}. */
 public final class {{pascal .Service.Name}}Service {
@@ -18,7 +19,7 @@ public final class {{pascal .Service.Name}}Service {
 {{- if .Paginated}}
 
     /**
-     * {{javaText .Summary}}. One page; {@link #{{camel .Name}}Iter} walks every page.
+     * {{javaText .Summary}}. One page; {@link #{{camel .Name}}Iter} walks every page.{{template "doc" .}}
 {{- range .PathParams}}
      * @param {{javaName .}} the {{.}}
 {{- end}}
@@ -33,7 +34,7 @@ public final class {{pascal .Service.Name}}Service {
     }
 
     /**
-     * {{javaText .Summary}}. One page.
+     * {{javaText .Summary}}. One page.{{template "doc" .}}
 {{- range .PathParams}}
      * @param {{javaName .}} the {{.}}
 {{- end}}
@@ -45,7 +46,7 @@ public final class {{pascal .Service.Name}}Service {
     }
 
     /**
-     * {{javaText .Summary}}. The first page.
+     * {{javaText .Summary}}. The first page.{{template "doc" .}}
 {{- range .PathParams}}
      * @param {{javaName .}} the {{.}}
 {{- end}}
@@ -99,7 +100,7 @@ public final class {{pascal .Service.Name}}Service {
         private final Integer page;
         private final Integer limit;
 {{- range .Query}}
-        private final String {{javaName .Name}};
+        private final {{if .Map}}Map<String, String>{{else}}String{{end}} {{javaName .Name}};
 {{- end}}
 
         private {{pascal .Name}}Params(Builder builder) {
@@ -127,7 +128,7 @@ public final class {{pascal .Service.Name}}Service {
 {{- range .Query}}
 
         /** @return {{if .Description}}{{javaText .Description}}{{else}}the {@code {{.Name}}} filter{{end}} (null when not filtered) */
-        public String {{javaGetter .Name}}() {
+        public {{if .Map}}Map<String, String>{{else}}String{{end}} {{javaGetter .Name}}() {
             return {{javaName .Name}};
         }
 {{- end}}
@@ -146,7 +147,16 @@ public final class {{pascal .Service.Name}}Service {
             query.put("page", page == null ? null : page.toString());
             query.put("limit", limit == null ? null : limit.toString());
 {{- range .Query}}
+{{- if .Map}}
+            if ({{javaName .Name}} != null) {
+                // A map filter is one pair a key: {{.Name}}[key]=value, the keys sorted.
+                for (Map.Entry<String, String> pair : new TreeMap<>({{javaName .Name}}).entrySet()) {
+                    query.put({{quote .Name}} + "[" + pair.getKey() + "]", pair.getValue());
+                }
+            }
+{{- else}}
             query.put({{quote .Name}}, {{javaName .Name}});
+{{- end}}
 {{- end}}
             return query;
         }
@@ -156,7 +166,7 @@ public final class {{pascal .Service.Name}}Service {
             private Integer page;
             private Integer limit;
 {{- range .Query}}
-            private String {{javaName .Name}};
+            private {{if .Map}}Map<String, String>{{else}}String{{end}} {{javaName .Name}};
 {{- end}}
 
             private Builder() {
@@ -185,8 +195,8 @@ public final class {{pascal .Service.Name}}Service {
              * @param {{javaName .Name}} {{if .Description}}{{javaText .Description}}{{else}}the {@code {{.Name}}} filter{{end}}
              * @return this builder
              */
-            public Builder {{javaName .Name}}(String {{javaName .Name}}) {
-                this.{{javaName .Name}} = {{javaName .Name}};
+            public Builder {{javaName .Name}}({{if .Map}}Map<String, String>{{else}}String{{end}} {{javaName .Name}}) {
+                this.{{javaName .Name}} = {{if .Map}}{{javaName .Name}} == null ? null : new TreeMap<>({{javaName .Name}}){{else}}{{javaName .Name}}{{end}};
                 return this;
             }
 {{- end}}
@@ -200,7 +210,7 @@ public final class {{pascal .Service.Name}}Service {
 {{- else}}
 
     /**
-     * {{javaText .Summary}}.
+     * {{javaText .Summary}}.{{template "doc" .}}
 {{- range .PathParams}}
      * @param {{javaName .}} the {{.}}
 {{- end}}
@@ -223,7 +233,7 @@ public final class {{pascal .Service.Name}}Service {
     }
 
     /**
-     * {{javaText .Summary}}.
+     * {{javaText .Summary}}.{{template "doc" .}}
 {{- range .PathParams}}
      * @param {{javaName .}} the {{.}}
 {{- end}}
@@ -247,7 +257,11 @@ public final class {{pascal .Service.Name}}Service {
 {{- end}}
 {{- end}}
 }
-{{define "path"}}{{range $i, $part := pathParts .Path}}{{if $i}} + {{end}}{{if $part.Param}}Perata.segment({{javaName $part.Param}}){{else}}{{quote $part.Literal}}{{end}}{{end}}{{end}}
+{{define "doc"}}{{with .Description}}
+     *
+{{javaDocBlock "     * " .}}
+     *{{end}}{{end}}
+{{- define "path"}}{{range $i, $part := pathParts .Path}}{{if $i}} + {{end}}{{if $part.Param}}Perata.segment({{javaName $part.Param}}){{else}}{{quote $part.Literal}}{{end}}{{end}}{{end}}
 {{- define "sig"}}{{range .PathParams}}String {{javaName .}}, {{end}}{{end}}
 {{- define "args"}}{{range .PathParams}}{{javaName .}}, {{end}}{{end}}
 {{- define "only"}}{{range $i, $p := .PathParams}}{{if $i}}, {{end}}String {{javaName $p}}{{end}}{{end}}

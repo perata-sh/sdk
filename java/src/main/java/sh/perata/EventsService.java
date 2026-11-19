@@ -6,6 +6,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.TreeMap;
 
 /** The API's events. */
 public final class EventsService {
@@ -16,7 +17,16 @@ public final class EventsService {
     }
 
     /**
-     * Listar os eventos de consumo que as origens enviaram, do mais novo ao mais antigo. One page; {@link #listIter} walks every page.
+     * Listar eventos de consumo. One page; {@link #listIter} walks every page.
+     *
+     * Devolve uma página dos eventos de consumo que as fontes enviaram, do mais
+     * novo ao mais antigo.
+     *
+     * Autenticação: chave de API da organização em Authorization: Bearer
+     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+     * requisição. Respostas em JSON no envelope data; erros com error, message
+     * e fields.
+     *
      * @param params the page, its size and the filters, or null
      * @param options options for this call, or null
      * @return the page
@@ -28,7 +38,16 @@ public final class EventsService {
     }
 
     /**
-     * Listar os eventos de consumo que as origens enviaram, do mais novo ao mais antigo. One page.
+     * Listar eventos de consumo. One page.
+     *
+     * Devolve uma página dos eventos de consumo que as fontes enviaram, do mais
+     * novo ao mais antigo.
+     *
+     * Autenticação: chave de API da organização em Authorization: Bearer
+     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+     * requisição. Respostas em JSON no envelope data; erros com error, message
+     * e fields.
+     *
      * @param params the page, its size and the filters, or null
      * @return the page
      */
@@ -37,7 +56,16 @@ public final class EventsService {
     }
 
     /**
-     * Listar os eventos de consumo que as origens enviaram, do mais novo ao mais antigo. The first page.
+     * Listar eventos de consumo. The first page.
+     *
+     * Devolve uma página dos eventos de consumo que as fontes enviaram, do mais
+     * novo ao mais antigo.
+     *
+     * Autenticação: chave de API da organização em Authorization: Bearer
+     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+     * requisição. Respostas em JSON no envelope data; erros com error, message
+     * e fields.
+     *
      * @return the page
      */
     public Page<Event> list() {

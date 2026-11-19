@@ -3,6 +3,7 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Linq;
 using System.Net.Http;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -18,7 +19,16 @@ public sealed class BenefitsService
 
     internal BenefitsService(PerataClient client) => this.client = client;
 
-    /// <summary>Criar um benefício custom, license_key, feature_flag ou meter_credit; downloads e os benefícios do Discord e do GitHub se configuram no painel.</summary>
+    /// <summary>Criar um benefício.</summary>
+    /// <remarks>
+    /// <para>Cria um benefício do tipo custom, license_key, feature_flag ou
+    /// meter_credit. Os downloads e os benefícios do Discord e do GitHub se
+    /// configuram no painel.</para>
+    /// <para>Autenticação: chave de API da organização em Authorization: Bearer
+    /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
+    /// da requisição. Respostas em JSON no envelope data; erros com error,
+    /// message e fields.</para>
+    /// </remarks>
     /// <param name="parameters">The request.</param>
     /// <param name="options">An idempotency key, or another organization's key for this call.</param>
     /// <param name="cancellationToken">Cancels the call.</param>
@@ -30,7 +40,15 @@ public sealed class BenefitsService
         return client.RequestAsync(HttpMethod.Post, "/api/v1/benefits", null, JsonSerializer.SerializeToUtf8Bytes(parameters, PerataJson.Default.BenefitsCreateParams), PerataJson.Default.BenefitEnvelope, options?.IdempotencyKey, options, cancellationToken);
     }
 
-    /// <summary>Excluir um benefício: ele sai de todos os produtos e é revogado de quem o tem. The API answers 204, so there is nothing to return.</summary>
+    /// <summary>Excluir um benefício. The API answers 204, so there is nothing to return.</summary>
+    /// <remarks>
+    /// <para>Exclui um benefício: ele sai de todos os produtos e é revogado de
+    /// quem o tem.</para>
+    /// <para>Autenticação: chave de API da organização em Authorization: Bearer
+    /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
+    /// da requisição. Respostas em JSON no envelope data; erros com error,
+    /// message e fields.</para>
+    /// </remarks>
     /// <param name="benefit">The benefit.</param>
     /// <param name="options">An idempotency key, or another organization's key for this call.</param>
     /// <param name="cancellationToken">Cancels the call.</param>
@@ -41,6 +59,13 @@ public sealed class BenefitsService
     }
 
     /// <summary>Ler um benefício.</summary>
+    /// <remarks>
+    /// <para>Devolve um benefício pelo ID.</para>
+    /// <para>Autenticação: chave de API da organização em Authorization: Bearer
+    /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
+    /// da requisição. Respostas em JSON no envelope data; erros com error,
+    /// message e fields.</para>
+    /// </remarks>
     /// <param name="benefit">The benefit.</param>
     /// <param name="options">Another organization's key for this call.</param>
     /// <param name="cancellationToken">Cancels the call.</param>
@@ -51,7 +76,15 @@ public sealed class BenefitsService
         return client.RequestAsync(HttpMethod.Get, "/api/v1/benefits/" + PerataClient.Segment(benefit), null, null, PerataJson.Default.BenefitEnvelope, null, options, cancellationToken);
     }
 
-    /// <summary>Listar benefícios, opcionalmente de um tipo (type). One page; <see cref="ListIterAsync"/> walks every page.</summary>
+    /// <summary>Listar benefícios. One page; <see cref="ListIterAsync"/> walks every page.</summary>
+    /// <remarks>
+    /// <para>Devolve uma página dos benefícios da organização. Com type, só os
+    /// de um tipo.</para>
+    /// <para>Autenticação: chave de API da organização em Authorization: Bearer
+    /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
+    /// da requisição. Respostas em JSON no envelope data; erros com error,
+    /// message e fields.</para>
+    /// </remarks>
     /// <param name="parameters">The page, its size and the filters; the first page when null.</param>
     /// <param name="options">Another organization's key for this call.</param>
     /// <param name="cancellationToken">Cancels the call.</param>
@@ -71,7 +104,16 @@ public sealed class BenefitsService
         return Pages.IterateAsync((page, token) => ListAsync(walk with { Page = page }, options, token), walk.Page, cancellationToken);
     }
 
-    /// <summary>Listar as concessões de um benefício, opcionalmente de um cliente (customer_id) ou só as vigentes (is_granted). One page; <see cref="ListGrantsIterAsync"/> walks every page.</summary>
+    /// <summary>Listar as concessões de um benefício. One page; <see cref="ListGrantsIterAsync"/> walks every page.</summary>
+    /// <remarks>
+    /// <para>Devolve uma página das concessões de um benefício. Com
+    /// customer_id, só as de um cliente; com is_granted, só as vigentes ou só
+    /// as revogadas.</para>
+    /// <para>Autenticação: chave de API da organização em Authorization: Bearer
+    /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
+    /// da requisição. Respostas em JSON no envelope data; erros com error,
+    /// message e fields.</para>
+    /// </remarks>
     /// <param name="benefit">The benefit.</param>
     /// <param name="parameters">The page, its size and the filters; the first page when null.</param>
     /// <param name="options">Another organization's key for this call.</param>
@@ -93,7 +135,16 @@ public sealed class BenefitsService
         return Pages.IterateAsync((page, token) => ListGrantsAsync(benefit, walk with { Page = page }, options, token), walk.Page, cancellationToken);
     }
 
-    /// <summary>Atualizar o nome, a visibilidade, as propriedades e os metadados de um benefício; o tipo e a descrição dada na criação não mudam, e o que a concessão já entregou fica como foi entregue.</summary>
+    /// <summary>Atualizar um benefício.</summary>
+    /// <remarks>
+    /// <para>Muda o nome, a visibilidade, as propriedades e os metadados de um
+    /// benefício. O tipo e a descrição dada na criação não mudam, e o que a
+    /// concessão já entregou fica como foi entregue.</para>
+    /// <para>Autenticação: chave de API da organização em Authorization: Bearer
+    /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
+    /// da requisição. Respostas em JSON no envelope data; erros com error,
+    /// message e fields.</para>
+    /// </remarks>
     /// <param name="benefit">The benefit.</param>
     /// <param name="parameters">The request.</param>
     /// <param name="options">An idempotency key, or another organization's key for this call.</param>
@@ -132,7 +183,7 @@ public sealed record BenefitsCreateParams
     [JsonPropertyName("description")]
     public string? Description { get; init; }
 
-    /// <summary>Até 50 pares; valor em texto, número ou booleano. No feature_flag, os valores da flag. Left out of the request when null.</summary>
+    /// <summary>Pares guardados no benefício. No feature_flag, são os valores da flag. Até 50 pares de chave e valor: a chave tem de 1 a 40 caracteres, e o valor é um texto de 1 a 500 caracteres, um número ou um booleano. Texto sem caracteres de controle nem de direção invisível. Left out of the request when null.</summary>
     [JsonPropertyName("metadata")]
     public IReadOnlyDictionary<string, JsonElement>? Metadata { get; init; }
 
@@ -166,12 +217,12 @@ public sealed record BenefitsListParams
     /// <summary>Só os benefícios deste tipo: custom, license_key, downloadable, feature_flag, meter_credit, discord ou github_repository.</summary>
     public string? Type { get; init; }
 
-    internal IEnumerable<KeyValuePair<string, string?>> Query() =>
-    [
-        new("page", Page?.ToString(CultureInfo.InvariantCulture)),
-        new("limit", Limit?.ToString(CultureInfo.InvariantCulture)),
-        new("type", Type),
-    ];
+    internal IEnumerable<KeyValuePair<string, string?>> Query()
+    {
+        yield return new("page", Page?.ToString(CultureInfo.InvariantCulture));
+        yield return new("limit", Limit?.ToString(CultureInfo.InvariantCulture));
+        yield return new("type", Type);
+    }
 }
 
 /// <summary>The page and filters of benefits:list_grants.</summary>
@@ -189,13 +240,13 @@ public sealed record BenefitsListGrantsParams
     /// <summary>true: só as vigentes; false: só as revogadas.</summary>
     public string? IsGranted { get; init; }
 
-    internal IEnumerable<KeyValuePair<string, string?>> Query() =>
-    [
-        new("page", Page?.ToString(CultureInfo.InvariantCulture)),
-        new("limit", Limit?.ToString(CultureInfo.InvariantCulture)),
-        new("customer_id", CustomerId),
-        new("is_granted", IsGranted),
-    ];
+    internal IEnumerable<KeyValuePair<string, string?>> Query()
+    {
+        yield return new("page", Page?.ToString(CultureInfo.InvariantCulture));
+        yield return new("limit", Limit?.ToString(CultureInfo.InvariantCulture));
+        yield return new("customer_id", CustomerId);
+        yield return new("is_granted", IsGranted);
+    }
 }
 
 /// <summary>The body of benefits:update.</summary>
@@ -207,7 +258,7 @@ public sealed record BenefitsUpdateParams
     /// <summary>A value of <see cref="Visibility"/>.</summary>
     public const string VisibilityPrivate = "private";
 
-    /// <summary>Substitui os metadados; {} os limpa. Left out of the request when null.</summary>
+    /// <summary>Substitui os metadados; {} os limpa. Até 50 pares de chave e valor: a chave tem de 1 a 40 caracteres, e o valor é um texto de 1 a 500 caracteres, um número ou um booleano. Texto sem caracteres de controle nem de direção invisível. Left out of the request when null.</summary>
     [JsonPropertyName("metadata")]
     public IReadOnlyDictionary<string, JsonElement>? Metadata { get; init; }
 

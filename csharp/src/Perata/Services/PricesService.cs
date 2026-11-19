@@ -3,6 +3,7 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Linq;
 using System.Net.Http;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -18,7 +19,16 @@ public sealed class PricesService
 
     internal PricesService(PerataClient client) => this.client = client;
 
-    /// <summary>Criar um preço em reais, avulso ou recorrente.</summary>
+    /// <summary>Criar um preço.</summary>
+    /// <remarks>
+    /// <para>Cria um preço em reais para um produto, avulso (one_time) ou
+    /// recorrente (recurring). No recorrente, interval e interval_count dizem
+    /// de quanto em quanto tempo ele renova: month com 3 é trimestral.</para>
+    /// <para>Autenticação: chave de API da organização em Authorization: Bearer
+    /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
+    /// da requisição. Respostas em JSON no envelope data; erros com error,
+    /// message e fields.</para>
+    /// </remarks>
     /// <param name="parameters">The request.</param>
     /// <param name="options">An idempotency key, or another organization's key for this call.</param>
     /// <param name="cancellationToken">Cancels the call.</param>
@@ -30,7 +40,15 @@ public sealed class PricesService
         return client.RequestAsync(HttpMethod.Post, "/api/v1/prices", null, JsonSerializer.SerializeToUtf8Bytes(parameters, PerataJson.Default.PricesCreateParams), PerataJson.Default.PriceEnvelope, options?.IdempotencyKey, options, cancellationToken);
     }
 
-    /// <summary>Listar preços, opcionalmente de um produto (product_id). One page; <see cref="ListIterAsync"/> walks every page.</summary>
+    /// <summary>Listar preços. One page; <see cref="ListIterAsync"/> walks every page.</summary>
+    /// <remarks>
+    /// <para>Devolve uma página dos preços da organização. Com product_id, só
+    /// os de um produto.</para>
+    /// <para>Autenticação: chave de API da organização em Authorization: Bearer
+    /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
+    /// da requisição. Respostas em JSON no envelope data; erros com error,
+    /// message e fields.</para>
+    /// </remarks>
     /// <param name="parameters">The page, its size and the filters; the first page when null.</param>
     /// <param name="options">Another organization's key for this call.</param>
     /// <param name="cancellationToken">Cancels the call.</param>
@@ -100,12 +118,12 @@ public sealed record PricesListParams
     /// <summary>Só os preços deste produto.</summary>
     public string? ProductId { get; init; }
 
-    internal IEnumerable<KeyValuePair<string, string?>> Query() =>
-    [
-        new("page", Page?.ToString(CultureInfo.InvariantCulture)),
-        new("limit", Limit?.ToString(CultureInfo.InvariantCulture)),
-        new("product_id", ProductId),
-    ];
+    internal IEnumerable<KeyValuePair<string, string?>> Query()
+    {
+        yield return new("page", Page?.ToString(CultureInfo.InvariantCulture));
+        yield return new("limit", Limit?.ToString(CultureInfo.InvariantCulture));
+        yield return new("product_id", ProductId);
+    }
 }
 
 

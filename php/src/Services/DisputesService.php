@@ -19,6 +19,13 @@ final class DisputesService
 
     /**
      * Ler uma disputa.
+     *
+     * Devolve uma disputa pelo ID.
+     *
+     * Autenticação: chave de API da organização em Authorization: Bearer
+     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+     * requisição. Respostas em JSON no envelope data; erros com error, message
+     * e fields.
      */
     public function get(string $dispute, ?string $apiKey = null): Models\Dispute
     {
@@ -27,7 +34,14 @@ final class DisputesService
     }
 
     /**
-     * Listar disputas, opcionalmente de um status (status). One page; listIter() walks every page.
+     * Listar disputas. One page; listIter() walks every page.
+     *
+     * Devolve uma página das disputas. Com status, só as que estão nele.
+     *
+     * Autenticação: chave de API da organização em Authorization: Bearer
+     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+     * requisição. Respostas em JSON no envelope data; erros com error, message
+     * e fields.
      *
      * @param array{page?: int, limit?: int, status?: string} $params
      * @return Page<Models\Dispute>

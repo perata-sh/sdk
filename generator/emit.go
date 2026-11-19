@@ -170,9 +170,12 @@ func commonFuncs() template.FuncMap {
 		// lines continues a line comment over every line of text: prefix is
 		// what each line after the first starts with.
 		"lines": func(prefix, text string) string { return strings.ReplaceAll(text, "\n", "\n"+prefix) },
-		"upper": strings.ToUpper,
-		"lower": strings.ToLower,
-		"join":  strings.Join,
+		// docBlock writes text as comment lines that start with prefix, wrapped
+		// to 80 columns, for the languages that need no escaping of their own.
+		"docBlock": func(prefix, text string) string { return docBlock(prefix, text, nil) },
+		"upper":    strings.ToUpper,
+		"lower":    strings.ToLower,
+		"join":     strings.Join,
 		// singular writes a service as the noun of one of its resources.
 		"singular": func(name string) string {
 			if strings.HasSuffix(name, "ies") {
@@ -185,6 +188,16 @@ func commonFuncs() template.FuncMap {
 		"outputs": func(models []*Model) []*Model { return pick(models, false) },
 		"inputs":  func(models []*Model) []*Model { return pick(models, true) },
 		"hasPath": func(m *Method) bool { return len(m.PathParams) > 0 },
+		// hasMap says a method takes a map filter (a deepObject), sent as one
+		// pair a key.
+		"hasMap": func(m *Method) bool {
+			for _, param := range m.Query {
+				if param.Map {
+					return true
+				}
+			}
+			return false
+		},
 		// pathTemplate splits a path into its literal parts and parameters.
 		"pathParts":     pathParts,
 		"webhookModels": webhookModels,

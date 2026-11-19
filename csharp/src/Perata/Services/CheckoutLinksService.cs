@@ -3,6 +3,7 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Linq;
 using System.Net.Http;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -18,7 +19,16 @@ public sealed class CheckoutLinksService
 
     internal CheckoutLinksService(PerataClient client) => this.client = client;
 
-    /// <summary>Criar um link de checkout: uma oferta durável de um ou mais produtos, com desconto, quantidade e páginas de retorno.</summary>
+    /// <summary>Criar um link de checkout.</summary>
+    /// <remarks>
+    /// <para>Cria um link de checkout: uma oferta durável de um ou mais
+    /// produtos, com desconto, quantidade e páginas de retorno. Cada visita ao
+    /// link abre uma sessão de compra nova.</para>
+    /// <para>Autenticação: chave de API da organização em Authorization: Bearer
+    /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
+    /// da requisição. Respostas em JSON no envelope data; erros com error,
+    /// message e fields.</para>
+    /// </remarks>
     /// <param name="parameters">The request.</param>
     /// <param name="options">An idempotency key, or another organization's key for this call.</param>
     /// <param name="cancellationToken">Cancels the call.</param>
@@ -30,7 +40,15 @@ public sealed class CheckoutLinksService
         return client.RequestAsync(HttpMethod.Post, "/api/v1/checkout-links", null, JsonSerializer.SerializeToUtf8Bytes(parameters, PerataJson.Default.CheckoutLinksCreateParams), PerataJson.Default.CheckoutLinkEnvelope, options?.IdempotencyKey, options, cancellationToken);
     }
 
-    /// <summary>Excluir um link de checkout: ele deixa de abrir checkouts; os que já abriu continuam. The API answers 204, so there is nothing to return.</summary>
+    /// <summary>Excluir um link de checkout. The API answers 204, so there is nothing to return.</summary>
+    /// <remarks>
+    /// <para>Exclui um link de checkout: ele deixa de abrir checkouts. Os que
+    /// já abriu continuam.</para>
+    /// <para>Autenticação: chave de API da organização em Authorization: Bearer
+    /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
+    /// da requisição. Respostas em JSON no envelope data; erros com error,
+    /// message e fields.</para>
+    /// </remarks>
     /// <param name="checkoutLink">The checkout_link.</param>
     /// <param name="options">An idempotency key, or another organization's key for this call.</param>
     /// <param name="cancellationToken">Cancels the call.</param>
@@ -41,6 +59,13 @@ public sealed class CheckoutLinksService
     }
 
     /// <summary>Ler um link de checkout.</summary>
+    /// <remarks>
+    /// <para>Devolve um link de checkout pelo ID.</para>
+    /// <para>Autenticação: chave de API da organização em Authorization: Bearer
+    /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
+    /// da requisição. Respostas em JSON no envelope data; erros com error,
+    /// message e fields.</para>
+    /// </remarks>
     /// <param name="checkoutLink">The checkout_link.</param>
     /// <param name="options">Another organization's key for this call.</param>
     /// <param name="cancellationToken">Cancels the call.</param>
@@ -52,6 +77,13 @@ public sealed class CheckoutLinksService
     }
 
     /// <summary>Listar links de checkout. One page; <see cref="ListIterAsync"/> walks every page.</summary>
+    /// <remarks>
+    /// <para>Devolve uma página dos links de checkout da organização.</para>
+    /// <para>Autenticação: chave de API da organização em Authorization: Bearer
+    /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
+    /// da requisição. Respostas em JSON no envelope data; erros com error,
+    /// message e fields.</para>
+    /// </remarks>
     /// <param name="parameters">The page, its size and the filters; the first page when null.</param>
     /// <param name="options">Another organization's key for this call.</param>
     /// <param name="cancellationToken">Cancels the call.</param>
@@ -71,7 +103,16 @@ public sealed class CheckoutLinksService
         return Pages.IterateAsync((page, token) => ListAsync(walk with { Page = page }, options, token), walk.Page, cancellationToken);
     }
 
-    /// <summary>Atualizar o rótulo, as páginas de retorno, os produtos e os metadados de um link; a quantidade e o desconto ficam como foram publicados.</summary>
+    /// <summary>Atualizar um link de checkout.</summary>
+    /// <remarks>
+    /// <para>Muda o rótulo, as páginas de retorno, os produtos e os metadados
+    /// de um link. A quantidade e o desconto ficam como foram
+    /// publicados.</para>
+    /// <para>Autenticação: chave de API da organização em Authorization: Bearer
+    /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
+    /// da requisição. Respostas em JSON no envelope data; erros com error,
+    /// message e fields.</para>
+    /// </remarks>
     /// <param name="checkoutLink">The checkout_link.</param>
     /// <param name="parameters">The request.</param>
     /// <param name="options">An idempotency key, or another organization's key for this call.</param>
@@ -134,7 +175,7 @@ public sealed record CheckoutLinksCreateParams
     [JsonPropertyName("max_installments")]
     public long? MaxInstallments { get; init; }
 
-    /// <summary>Até 50 pares; valor em texto, número ou booleano. Left out of the request when null.</summary>
+    /// <summary>Pares guardados no link. Até 50 pares de chave e valor: a chave tem de 1 a 40 caracteres, e o valor é um texto de 1 a 500 caracteres, um número ou um booleano. Texto sem caracteres de controle nem de direção invisível. Left out of the request when null.</summary>
     [JsonPropertyName("metadata")]
     public IReadOnlyDictionary<string, JsonElement>? Metadata { get; init; }
 
@@ -181,11 +222,11 @@ public sealed record CheckoutLinksListParams
     /// <summary>The items a page, 1 to 100; the API's 10 when null.</summary>
     public int? Limit { get; init; }
 
-    internal IEnumerable<KeyValuePair<string, string?>> Query() =>
-    [
-        new("page", Page?.ToString(CultureInfo.InvariantCulture)),
-        new("limit", Limit?.ToString(CultureInfo.InvariantCulture)),
-    ];
+    internal IEnumerable<KeyValuePair<string, string?>> Query()
+    {
+        yield return new("page", Page?.ToString(CultureInfo.InvariantCulture));
+        yield return new("limit", Limit?.ToString(CultureInfo.InvariantCulture));
+    }
 }
 
 /// <summary>The body of checkout-links:update.</summary>
@@ -199,7 +240,7 @@ public sealed record CheckoutLinksUpdateParams
     [JsonPropertyName("label")]
     public string? Label { get; init; }
 
-    /// <summary>Substitui os metadados; {} os limpa. Left out of the request when null.</summary>
+    /// <summary>Substitui os metadados; {} os limpa. Até 50 pares de chave e valor: a chave tem de 1 a 40 caracteres, e o valor é um texto de 1 a 500 caracteres, um número ou um booleano. Texto sem caracteres de controle nem de direção invisível. Left out of the request when null.</summary>
     [JsonPropertyName("metadata")]
     public IReadOnlyDictionary<string, JsonElement>? Metadata { get; init; }
 

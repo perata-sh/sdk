@@ -57,9 +57,22 @@ final class Perata implements Requester
     public function request(string $method, string $path, array $query = [], ?array $body = null, ?string $idempotencyKey = null, ?string $apiKey = null): array
     {
         $url = $this->baseUrl . $path;
-        $query = array_filter($query, static fn (mixed $value): bool => $value !== null && $value !== '');
-        if ($query !== []) {
-            $url .= '?' . http_build_query($query);
+        $pairs = [];
+        foreach ($query as $name => $value) {
+            if (is_array($value)) {
+                // A map filter is one pair a key: metadata[pedido]=123, the keys sorted.
+                ksort($value, SORT_STRING);
+                foreach ($value as $key => $each) {
+                    if ($each !== null && $each !== '') {
+                        $pairs[$name . '[' . $key . ']'] = $each;
+                    }
+                }
+            } elseif ($value !== null && $value !== '') {
+                $pairs[$name] = $value;
+            }
+        }
+        if ($pairs !== []) {
+            $url .= '?' . http_build_query($pairs);
         }
         $headers = [
             'Authorization' => 'Bearer ' . ($apiKey ?? $this->apiKey),

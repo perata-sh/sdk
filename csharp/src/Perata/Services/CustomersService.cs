@@ -3,6 +3,7 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Linq;
 using System.Net.Http;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -18,7 +19,19 @@ public sealed class CustomersService
 
     internal CustomersService(PerataClient client) => this.client = client;
 
-    /// <summary>Criar um cliente, com CPF ou CNPJ, telefone e endereço de cobrança se você os tem.</summary>
+    /// <summary>Criar um cliente.</summary>
+    /// <remarks>
+    /// <para>Cria um cliente, com CPF ou CNPJ, telefone e endereço de cobrança,
+    /// se você os tem. Se você enviar external_id e o e-mail já for de um
+    /// cliente que ainda não tem ID externo (por exemplo, um que o checkout
+    /// criou), esse cliente recebe o ID e os dados enviados, e a resposta é 200
+    /// em vez de 201. Se o e-mail for de um cliente com outro ID externo, a
+    /// resposta é 422.</para>
+    /// <para>Autenticação: chave de API da organização em Authorization: Bearer
+    /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
+    /// da requisição. Respostas em JSON no envelope data; erros com error,
+    /// message e fields.</para>
+    /// </remarks>
     /// <param name="parameters">The request.</param>
     /// <param name="options">An idempotency key, or another organization's key for this call.</param>
     /// <param name="cancellationToken">Cancels the call.</param>
@@ -30,7 +43,16 @@ public sealed class CustomersService
         return client.RequestAsync(HttpMethod.Post, "/api/v1/customers", null, JsonSerializer.SerializeToUtf8Bytes(parameters, PerataJson.Default.CustomersCreateParams), PerataJson.Default.CustomerEnvelope, options?.IdempotencyKey, options, cancellationToken);
     }
 
-    /// <summary>Excluir um cliente: as assinaturas terminam na hora, os benefícios são revogados e o ID externo é liberado; pedidos e pagamentos continuam. The API answers 204, so there is nothing to return.</summary>
+    /// <summary>Excluir um cliente. The API answers 204, so there is nothing to return.</summary>
+    /// <remarks>
+    /// <para>Exclui um cliente: as assinaturas terminam na hora, os benefícios
+    /// são revogados e o ID externo fica livre. Os pedidos e os pagamentos
+    /// continuam nos registros.</para>
+    /// <para>Autenticação: chave de API da organização em Authorization: Bearer
+    /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
+    /// da requisição. Respostas em JSON no envelope data; erros com error,
+    /// message e fields.</para>
+    /// </remarks>
     /// <param name="customer">The customer.</param>
     /// <param name="options">An idempotency key, or another organization's key for this call.</param>
     /// <param name="cancellationToken">Cancels the call.</param>
@@ -41,6 +63,13 @@ public sealed class CustomersService
     }
 
     /// <summary>Ler um cliente.</summary>
+    /// <remarks>
+    /// <para>Devolve um cliente pelo ID.</para>
+    /// <para>Autenticação: chave de API da organização em Authorization: Bearer
+    /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
+    /// da requisição. Respostas em JSON no envelope data; erros com error,
+    /// message e fields.</para>
+    /// </remarks>
     /// <param name="customer">The customer.</param>
     /// <param name="options">Another organization's key for this call.</param>
     /// <param name="cancellationToken">Cancels the call.</param>
@@ -51,7 +80,15 @@ public sealed class CustomersService
         return client.RequestAsync(HttpMethod.Get, "/api/v1/customers/" + PerataClient.Segment(customer), null, null, PerataJson.Default.CustomerEnvelope, null, options, cancellationToken);
     }
 
-    /// <summary>Ler um cliente pelo ID dele no sistema do lojista (external_id).</summary>
+    /// <summary>Ler um cliente pelo ID externo.</summary>
+    /// <remarks>
+    /// <para>Devolve o cliente que você identifica pelo ID dele no seu sistema
+    /// (external_id).</para>
+    /// <para>Autenticação: chave de API da organização em Authorization: Bearer
+    /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
+    /// da requisição. Respostas em JSON no envelope data; erros com error,
+    /// message e fields.</para>
+    /// </remarks>
     /// <param name="externalId">The external_id.</param>
     /// <param name="options">Another organization's key for this call.</param>
     /// <param name="cancellationToken">Cancels the call.</param>
@@ -62,7 +99,16 @@ public sealed class CustomersService
         return client.RequestAsync(HttpMethod.Get, "/api/v1/external-customers/" + PerataClient.Segment(externalId), null, null, PerataJson.Default.CustomerEnvelope, null, options, cancellationToken);
     }
 
-    /// <summary>Ler o estado de um cliente: assinaturas ativas e benefícios vigentes, inclusive os feature flags.</summary>
+    /// <summary>Ler o estado de um cliente.</summary>
+    /// <remarks>
+    /// <para>Devolve o estado de um cliente: as assinaturas ativas e os
+    /// benefícios vigentes, inclusive os feature flags. É a leitura que o seu
+    /// aplicativo faz para decidir o que o cliente pode usar.</para>
+    /// <para>Autenticação: chave de API da organização em Authorization: Bearer
+    /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
+    /// da requisição. Respostas em JSON no envelope data; erros com error,
+    /// message e fields.</para>
+    /// </remarks>
     /// <param name="customer">The customer.</param>
     /// <param name="options">Another organization's key for this call.</param>
     /// <param name="cancellationToken">Cancels the call.</param>
@@ -74,6 +120,14 @@ public sealed class CustomersService
     }
 
     /// <summary>Listar clientes. One page; <see cref="ListIterAsync"/> walks every page.</summary>
+    /// <remarks>
+    /// <para>Devolve uma página dos clientes. Com email, só o cliente com esse
+    /// e-mail, sem diferença entre maiúsculas e minúsculas.</para>
+    /// <para>Autenticação: chave de API da organização em Authorization: Bearer
+    /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
+    /// da requisição. Respostas em JSON no envelope data; erros com error,
+    /// message e fields.</para>
+    /// </remarks>
     /// <param name="parameters">The page, its size and the filters; the first page when null.</param>
     /// <param name="options">Another organization's key for this call.</param>
     /// <param name="cancellationToken">Cancels the call.</param>
@@ -93,7 +147,16 @@ public sealed class CustomersService
         return Pages.IterateAsync((page, token) => ListAsync(walk with { Page = page }, options, token), walk.Page, cancellationToken);
     }
 
-    /// <summary>Atualizar o nome, o e-mail, o ID externo, o CPF ou CNPJ, o telefone ou o endereço de cobrança de um cliente; o ID externo não muda depois de definido.</summary>
+    /// <summary>Atualizar um cliente.</summary>
+    /// <remarks>
+    /// <para>Muda o nome, o e-mail, o ID externo, o CPF ou CNPJ, o telefone ou
+    /// o endereço de cobrança. O ID externo só pode ser definido uma
+    /// vez.</para>
+    /// <para>Autenticação: chave de API da organização em Authorization: Bearer
+    /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
+    /// da requisição. Respostas em JSON no envelope data; erros com error,
+    /// message e fields.</para>
+    /// </remarks>
     /// <param name="customer">The customer.</param>
     /// <param name="parameters">The request.</param>
     /// <param name="options">An idempotency key, or another organization's key for this call.</param>
@@ -106,7 +169,15 @@ public sealed class CustomersService
         return client.RequestAsync(HttpMethod.Patch, "/api/v1/customers/" + PerataClient.Segment(customer), null, JsonSerializer.SerializeToUtf8Bytes(parameters, PerataJson.Default.CustomersUpdateParams), PerataJson.Default.CustomerEnvelope, options?.IdempotencyKey, options, cancellationToken);
     }
 
-    /// <summary>Atualizar um cliente pelo ID dele no sistema do lojista (external_id).</summary>
+    /// <summary>Atualizar um cliente pelo ID externo.</summary>
+    /// <remarks>
+    /// <para>Muda o cliente que você identifica pelo ID dele no seu sistema
+    /// (external_id). Os campos são os de Atualizar um cliente.</para>
+    /// <para>Autenticação: chave de API da organização em Authorization: Bearer
+    /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
+    /// da requisição. Respostas em JSON no envelope data; erros com error,
+    /// message e fields.</para>
+    /// </remarks>
     /// <param name="externalId">The external_id.</param>
     /// <param name="parameters">The request.</param>
     /// <param name="options">An idempotency key, or another organization's key for this call.</param>
@@ -201,11 +272,15 @@ public sealed record CustomersListParams
     /// <summary>The items a page, 1 to 100; the API's 10 when null.</summary>
     public int? Limit { get; init; }
 
-    internal IEnumerable<KeyValuePair<string, string?>> Query() =>
-    [
-        new("page", Page?.ToString(CultureInfo.InvariantCulture)),
-        new("limit", Limit?.ToString(CultureInfo.InvariantCulture)),
-    ];
+    /// <summary>Só o cliente com este e-mail (sem diferença de maiúsculas).</summary>
+    public string? Email { get; init; }
+
+    internal IEnumerable<KeyValuePair<string, string?>> Query()
+    {
+        yield return new("page", Page?.ToString(CultureInfo.InvariantCulture));
+        yield return new("limit", Limit?.ToString(CultureInfo.InvariantCulture));
+        yield return new("email", Email);
+    }
 }
 
 /// <summary>The body of customers:update.</summary>

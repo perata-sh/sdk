@@ -18,7 +18,14 @@ final class OrdersService
     }
 
     /**
-     * Ler um pedido: um checkout pago.
+     * Ler um pedido.
+     *
+     * Devolve um pedido: um checkout pago.
+     *
+     * Autenticação: chave de API da organização em Authorization: Bearer
+     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+     * requisição. Respostas em JSON no envelope data; erros com error, message
+     * e fields.
      */
     public function get(string $order, ?string $apiKey = null): Models\Order
     {
@@ -27,7 +34,15 @@ final class OrdersService
     }
 
     /**
-     * Ler a fatura de um pedido, o documento comercial que o lojista gerou; sem ela, 404.
+     * Ler a fatura de um pedido.
+     *
+     * Devolve a fatura de um pedido, o documento comercial que o lojista gerou.
+     * Sem fatura, a resposta é 404.
+     *
+     * Autenticação: chave de API da organização em Authorization: Bearer
+     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+     * requisição. Respostas em JSON no envelope data; erros com error, message
+     * e fields.
      */
     public function getInvoice(string $order, ?string $apiKey = null): Models\OrderInvoice
     {
@@ -36,7 +51,14 @@ final class OrdersService
     }
 
     /**
-     * Ler o recibo de um pedido: o que foi pago, quando e como.
+     * Ler o recibo de um pedido.
+     *
+     * Devolve o recibo de um pedido: o que foi pago, quando e como.
+     *
+     * Autenticação: chave de API da organização em Authorization: Bearer
+     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+     * requisição. Respostas em JSON no envelope data; erros com error, message
+     * e fields.
      */
     public function getReceipt(string $order, ?string $apiKey = null): Models\OrderReceipt
     {
@@ -45,9 +67,17 @@ final class OrdersService
     }
 
     /**
-     * Listar pedidos (checkouts pagos), opcionalmente de um client_reference_id, de um cliente, de um período ou de metadados. One page; listIter() walks every page.
+     * Listar pedidos. One page; listIter() walks every page.
      *
-     * @param array{page?: int, limit?: int, client_reference_id?: string, status?: string, customer_id?: string, external_customer_id?: string, created_after?: string, created_before?: string, sorting?: string} $params
+     * Devolve uma página dos pedidos, que são os checkouts pagos. Filtre por
+     * client_reference_id, cliente, período ou metadados.
+     *
+     * Autenticação: chave de API da organização em Authorization: Bearer
+     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+     * requisição. Respostas em JSON no envelope data; erros com error, message
+     * e fields.
+     *
+     * @param array{page?: int, limit?: int, client_reference_id?: string, status?: string, customer_id?: string, external_customer_id?: string, created_after?: string, created_before?: string, sorting?: string, metadata?: array<string, string>} $params
      * @return Page<Models\Order>
      */
     public function list(array $params = [], ?string $apiKey = null): Page
@@ -59,7 +89,7 @@ final class OrdersService
     /**
      * Walks every page of orders:list, item by item.
      *
-     * @param array{page?: int, limit?: int, client_reference_id?: string, status?: string, customer_id?: string, external_customer_id?: string, created_after?: string, created_before?: string, sorting?: string} $params
+     * @param array{page?: int, limit?: int, client_reference_id?: string, status?: string, customer_id?: string, external_customer_id?: string, created_after?: string, created_before?: string, sorting?: string, metadata?: array<string, string>} $params
      * @return \Generator<int, Models\Order>
      */
     public function listIter(array $params = [], ?string $apiKey = null): \Generator

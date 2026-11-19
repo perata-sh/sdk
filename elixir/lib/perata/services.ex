@@ -6,7 +6,14 @@ defmodule Perata.Benefits do
   alias Perata.Client
 
   @doc """
-  Criar um benefício custom, license_key, feature_flag ou meter_credit; downloads e os benefícios do Discord e do GitHub se configuram no painel.
+  Criar um benefício.
+
+  Cria um benefício do tipo custom, license_key, feature_flag ou meter_credit.
+  Os downloads e os benefícios do Discord e do GitHub se configuram no painel.
+
+  Autenticação: chave de API da organização em Authorization: Bearer (prk_test_…
+  ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição.
+  Respostas em JSON no envelope data; erros com error, message e fields.
 
   Options: `:idempotency_key` and `:api_key`.
   """
@@ -27,7 +34,13 @@ defmodule Perata.Benefits do
   end
 
   @doc """
-  Excluir um benefício: ele sai de todos os produtos e é revogado de quem o tem. The API answers 204, so there is nothing to return: `:ok`.
+  Excluir um benefício. The API answers 204, so there is nothing to return: `:ok`.
+
+  Exclui um benefício: ele sai de todos os produtos e é revogado de quem o tem.
+
+  Autenticação: chave de API da organização em Authorization: Bearer (prk_test_…
+  ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição.
+  Respostas em JSON no envelope data; erros com error, message e fields.
 
   Options: `:idempotency_key` and `:api_key`.
   """
@@ -44,6 +57,12 @@ defmodule Perata.Benefits do
   @doc """
   Ler um benefício.
 
+  Devolve um benefício pelo ID.
+
+  Autenticação: chave de API da organização em Authorization: Bearer (prk_test_…
+  ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição.
+  Respostas em JSON no envelope data; erros com error, message e fields.
+
   Options: `:api_key`.
   """
   @spec get(Client.t(), String.t(), keyword()) ::
@@ -58,7 +77,13 @@ defmodule Perata.Benefits do
   end
 
   @doc """
-  Listar benefícios, opcionalmente de um tipo (type). One page; `list_stream/2` walks every page.
+  Listar benefícios. One page; `list_stream/2` walks every page.
+
+  Devolve uma página dos benefícios da organização. Com type, só os de um tipo.
+
+  Autenticação: chave de API da organização em Authorization: Bearer (prk_test_…
+  ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição.
+  Respostas em JSON no envelope data; erros com error, message e fields.
 
   Options: `:page`, `:limit`, `:type` and `:api_key`.
   """
@@ -87,7 +112,14 @@ defmodule Perata.Benefits do
   end
 
   @doc """
-  Listar as concessões de um benefício, opcionalmente de um cliente (customer_id) ou só as vigentes (is_granted). One page; `list_grants_stream/3` walks every page.
+  Listar as concessões de um benefício. One page; `list_grants_stream/3` walks every page.
+
+  Devolve uma página das concessões de um benefício. Com customer_id, só as de
+  um cliente; com is_granted, só as vigentes ou só as revogadas.
+
+  Autenticação: chave de API da organização em Authorization: Bearer (prk_test_…
+  ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição.
+  Respostas em JSON no envelope data; erros com error, message e fields.
 
   Options: `:page`, `:limit`, `:customer_id`, `:is_granted` and `:api_key`.
   """
@@ -97,7 +129,12 @@ defmodule Perata.Benefits do
     path = "/api/v1/benefits/#{Client.segment(benefit)}/grants"
 
     request = [
-      query: [page: opts[:page], limit: opts[:limit], customer_id: opts[:customer_id], is_granted: opts[:is_granted]],
+      query: [
+        page: opts[:page],
+        limit: opts[:limit],
+        customer_id: opts[:customer_id],
+        is_granted: opts[:is_granted]
+      ],
       api_key: opts[:api_key]
     ]
 
@@ -117,7 +154,15 @@ defmodule Perata.Benefits do
   end
 
   @doc """
-  Atualizar o nome, a visibilidade, as propriedades e os metadados de um benefício; o tipo e a descrição dada na criação não mudam, e o que a concessão já entregou fica como foi entregue.
+  Atualizar um benefício.
+
+  Muda o nome, a visibilidade, as propriedades e os metadados de um benefício. O
+  tipo e a descrição dada na criação não mudam, e o que a concessão já entregou
+  fica como foi entregue.
+
+  Autenticação: chave de API da organização em Authorization: Bearer (prk_test_…
+  ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição.
+  Respostas em JSON no envelope data; erros com error, message e fields.
 
   Options: `:idempotency_key` and `:api_key`.
   """
@@ -149,7 +194,15 @@ defmodule Perata.CheckoutLinks do
   alias Perata.Client
 
   @doc """
-  Criar um link de checkout: uma oferta durável de um ou mais produtos, com desconto, quantidade e páginas de retorno.
+  Criar um link de checkout.
+
+  Cria um link de checkout: uma oferta durável de um ou mais produtos, com
+  desconto, quantidade e páginas de retorno. Cada visita ao link abre uma sessão
+  de compra nova.
+
+  Autenticação: chave de API da organização em Authorization: Bearer (prk_test_…
+  ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição.
+  Respostas em JSON no envelope data; erros com error, message e fields.
 
   Options: `:idempotency_key` and `:api_key`.
   """
@@ -170,7 +223,14 @@ defmodule Perata.CheckoutLinks do
   end
 
   @doc """
-  Excluir um link de checkout: ele deixa de abrir checkouts; os que já abriu continuam. The API answers 204, so there is nothing to return: `:ok`.
+  Excluir um link de checkout. The API answers 204, so there is nothing to return: `:ok`.
+
+  Exclui um link de checkout: ele deixa de abrir checkouts. Os que já abriu
+  continuam.
+
+  Autenticação: chave de API da organização em Authorization: Bearer (prk_test_…
+  ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição.
+  Respostas em JSON no envelope data; erros com error, message e fields.
 
   Options: `:idempotency_key` and `:api_key`.
   """
@@ -187,6 +247,12 @@ defmodule Perata.CheckoutLinks do
   @doc """
   Ler um link de checkout.
 
+  Devolve um link de checkout pelo ID.
+
+  Autenticação: chave de API da organização em Authorization: Bearer (prk_test_…
+  ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição.
+  Respostas em JSON no envelope data; erros com error, message e fields.
+
   Options: `:api_key`.
   """
   @spec get(Client.t(), String.t(), keyword()) ::
@@ -202,6 +268,12 @@ defmodule Perata.CheckoutLinks do
 
   @doc """
   Listar links de checkout. One page; `list_stream/2` walks every page.
+
+  Devolve uma página dos links de checkout da organização.
+
+  Autenticação: chave de API da organização em Authorization: Bearer (prk_test_…
+  ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição.
+  Respostas em JSON no envelope data; erros com error, message e fields.
 
   Options: `:page`, `:limit` and `:api_key`.
   """
@@ -226,7 +298,14 @@ defmodule Perata.CheckoutLinks do
   end
 
   @doc """
-  Atualizar o rótulo, as páginas de retorno, os produtos e os metadados de um link; a quantidade e o desconto ficam como foram publicados.
+  Atualizar um link de checkout.
+
+  Muda o rótulo, as páginas de retorno, os produtos e os metadados de um link. A
+  quantidade e o desconto ficam como foram publicados.
+
+  Autenticação: chave de API da organização em Authorization: Bearer (prk_test_…
+  ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição.
+  Respostas em JSON no envelope data; erros com error, message e fields.
 
   Options: `:idempotency_key` and `:api_key`.
   """
@@ -258,7 +337,18 @@ defmodule Perata.Checkouts do
   alias Perata.Client
 
   @doc """
-  Criar um checkout: o endereço para onde o comprador é enviado e a sessão de compra aberta para ele, com o client_secret que o navegador do comprador usa nas rotas de cliente.
+  Criar um checkout.
+
+  Cria um checkout. Devolve o endereço para onde mandar o comprador e a sessão
+  de compra aberta para ele, com o client_secret que o navegador do comprador
+  usa para pagar sem chave de API; o client_secret vem só nesta resposta. Para
+  cobrar um valor que o seu servidor define, envie amount_cents e items (preço
+  de valor livre). Envie client_reference_id e metadata para achar o pedido
+  depois.
+
+  Autenticação: chave de API da organização em Authorization: Bearer (prk_test_…
+  ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição.
+  Respostas em JSON no envelope data; erros com error, message e fields.
 
   Options: `:idempotency_key` and `:api_key`.
   """
@@ -279,7 +369,16 @@ defmodule Perata.Checkouts do
   end
 
   @doc """
-  Encerrar um checkout que não deve mais ser pago: a página, o client_secret e o QR do Pix deixam de valer (o Pix já gerado é cancelado na Cielo), e o evento checkout.expired é enviado; 409 se já foi pago ou se emitiu boleto.
+  Encerrar um checkout.
+
+  Encerra um checkout que não deve mais ser pago: a página, o client_secret e o
+  QR do Pix deixam de valer (o Pix já gerado é cancelado na Cielo) e o evento
+  checkout.expired é enviado. Repetir a chamada é seguro. Se o checkout já foi
+  pago ou emitiu um boleto, a resposta é 409.
+
+  Autenticação: chave de API da organização em Authorization: Bearer (prk_test_…
+  ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição.
+  Respostas em JSON no envelope data; erros com error, message e fields.
 
   Options: `:idempotency_key` and `:api_key`.
   """
@@ -295,7 +394,13 @@ defmodule Perata.Checkouts do
   end
 
   @doc """
-  Ler um checkout: o endereço, o estado e as páginas de retorno.
+  Ler um checkout.
+
+  Devolve um checkout: o endereço, o estado e as páginas de retorno.
+
+  Autenticação: chave de API da organização em Authorization: Bearer (prk_test_…
+  ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição.
+  Respostas em JSON no envelope data; erros com error, message e fields.
 
   Options: `:api_key`.
   """
@@ -311,9 +416,16 @@ defmodule Perata.Checkouts do
   end
 
   @doc """
-  Listar checkouts, opcionalmente de um client_reference_id, de um status, de um período ou de metadados. One page; `list_stream/2` walks every page.
+  Listar checkouts. One page; `list_stream/2` walks every page.
 
-  Options: `:page`, `:limit`, `:client_reference_id`, `:status`, `:created_after`, `:created_before`, `:sorting` and `:api_key`.
+  Devolve uma página dos checkouts. Filtre por client_reference_id, status,
+  período ou metadados.
+
+  Autenticação: chave de API da organização em Authorization: Bearer (prk_test_…
+  ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição.
+  Respostas em JSON no envelope data; erros com error, message e fields.
+
+  Options: `:page`, `:limit`, `:client_reference_id`, `:status`, `:created_after`, `:created_before`, `:sorting`, `:metadata` (a map of strings, sent as `metadata[key]=value`) and `:api_key`.
   """
   @spec list(Client.t(), keyword()) ::
           {:ok, Perata.Page.t(Perata.Checkout.t())} | {:error, Perata.Error.t()}
@@ -321,7 +433,16 @@ defmodule Perata.Checkouts do
     path = "/api/v1/checkouts"
 
     request = [
-      query: [page: opts[:page], limit: opts[:limit], client_reference_id: opts[:client_reference_id], status: opts[:status], created_after: opts[:created_after], created_before: opts[:created_before], sorting: opts[:sorting]],
+      query: [
+        page: opts[:page],
+        limit: opts[:limit],
+        client_reference_id: opts[:client_reference_id],
+        status: opts[:status],
+        created_after: opts[:created_after],
+        created_before: opts[:created_before],
+        sorting: opts[:sorting],
+        metadata: opts[:metadata]
+      ],
       api_key: opts[:api_key]
     ]
 
@@ -340,7 +461,13 @@ defmodule Perata.Checkouts do
   end
 
   @doc """
-  Atualizar o rótulo e as páginas de retorno de um checkout ativo.
+  Atualizar um checkout.
+
+  Muda o rótulo e as páginas de retorno de um checkout ativo.
+
+  Autenticação: chave de API da organização em Authorization: Bearer (prk_test_…
+  ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição.
+  Respostas em JSON no envelope data; erros com error, message e fields.
 
   Options: `:idempotency_key` and `:api_key`.
   """
@@ -372,7 +499,15 @@ defmodule Perata.CustomerSessions do
   alias Perata.Client
 
   @doc """
-  Entrar com um cliente no portal do cliente: o endereço o abre já autenticado.
+  Abrir o portal do cliente.
+
+  Abre uma sessão do portal do cliente para o cliente informado e devolve o
+  endereço que o abre já autenticado. Com return_url, um endereço https do seu
+  aplicativo, o portal oferece a volta.
+
+  Autenticação: chave de API da organização em Authorization: Bearer (prk_test_…
+  ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição.
+  Respostas em JSON no envelope data; erros com error, message e fields.
 
   Options: `:idempotency_key` and `:api_key`.
   """
@@ -403,7 +538,17 @@ defmodule Perata.Customers do
   alias Perata.Client
 
   @doc """
-  Criar um cliente, com CPF ou CNPJ, telefone e endereço de cobrança se você os tem.
+  Criar um cliente.
+
+  Cria um cliente, com CPF ou CNPJ, telefone e endereço de cobrança, se você os
+  tem. Se você enviar external_id e o e-mail já for de um cliente que ainda não
+  tem ID externo (por exemplo, um que o checkout criou), esse cliente recebe o
+  ID e os dados enviados, e a resposta é 200 em vez de 201. Se o e-mail for de
+  um cliente com outro ID externo, a resposta é 422.
+
+  Autenticação: chave de API da organização em Authorization: Bearer (prk_test_…
+  ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição.
+  Respostas em JSON no envelope data; erros com error, message e fields.
 
   Options: `:idempotency_key` and `:api_key`.
   """
@@ -424,7 +569,15 @@ defmodule Perata.Customers do
   end
 
   @doc """
-  Excluir um cliente: as assinaturas terminam na hora, os benefícios são revogados e o ID externo é liberado; pedidos e pagamentos continuam. The API answers 204, so there is nothing to return: `:ok`.
+  Excluir um cliente. The API answers 204, so there is nothing to return: `:ok`.
+
+  Exclui um cliente: as assinaturas terminam na hora, os benefícios são
+  revogados e o ID externo fica livre. Os pedidos e os pagamentos continuam nos
+  registros.
+
+  Autenticação: chave de API da organização em Authorization: Bearer (prk_test_…
+  ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição.
+  Respostas em JSON no envelope data; erros com error, message e fields.
 
   Options: `:idempotency_key` and `:api_key`.
   """
@@ -441,6 +594,12 @@ defmodule Perata.Customers do
   @doc """
   Ler um cliente.
 
+  Devolve um cliente pelo ID.
+
+  Autenticação: chave de API da organização em Authorization: Bearer (prk_test_…
+  ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição.
+  Respostas em JSON no envelope data; erros com error, message e fields.
+
   Options: `:api_key`.
   """
   @spec get(Client.t(), String.t(), keyword()) ::
@@ -455,7 +614,14 @@ defmodule Perata.Customers do
   end
 
   @doc """
-  Ler um cliente pelo ID dele no sistema do lojista (external_id).
+  Ler um cliente pelo ID externo.
+
+  Devolve o cliente que você identifica pelo ID dele no seu sistema
+  (external_id).
+
+  Autenticação: chave de API da organização em Authorization: Bearer (prk_test_…
+  ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição.
+  Respostas em JSON no envelope data; erros com error, message e fields.
 
   Options: `:api_key`.
   """
@@ -471,7 +637,15 @@ defmodule Perata.Customers do
   end
 
   @doc """
-  Ler o estado de um cliente: assinaturas ativas e benefícios vigentes, inclusive os feature flags.
+  Ler o estado de um cliente.
+
+  Devolve o estado de um cliente: as assinaturas ativas e os benefícios
+  vigentes, inclusive os feature flags. É a leitura que o seu aplicativo faz
+  para decidir o que o cliente pode usar.
+
+  Autenticação: chave de API da organização em Authorization: Bearer (prk_test_…
+  ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição.
+  Respostas em JSON no envelope data; erros com error, message e fields.
 
   Options: `:api_key`.
   """
@@ -489,13 +663,24 @@ defmodule Perata.Customers do
   @doc """
   Listar clientes. One page; `list_stream/2` walks every page.
 
-  Options: `:page`, `:limit` and `:api_key`.
+  Devolve uma página dos clientes. Com email, só o cliente com esse e-mail, sem
+  diferença entre maiúsculas e minúsculas.
+
+  Autenticação: chave de API da organização em Authorization: Bearer (prk_test_…
+  ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição.
+  Respostas em JSON no envelope data; erros com error, message e fields.
+
+  Options: `:page`, `:limit`, `:email` and `:api_key`.
   """
   @spec list(Client.t(), keyword()) ::
           {:ok, Perata.Page.t(Perata.Customer.t())} | {:error, Perata.Error.t()}
   def list(%Client{} = client, opts \\ []) do
     path = "/api/v1/customers"
-    request = [query: [page: opts[:page], limit: opts[:limit]], api_key: opts[:api_key]]
+
+    request = [
+      query: [page: opts[:page], limit: opts[:limit], email: opts[:email]],
+      api_key: opts[:api_key]
+    ]
 
     with {:ok, data} <- Client.request(client, "GET", path, request) do
       {:ok, Perata.Page.from_map(data, &Perata.Customer.from_map/1)}
@@ -512,7 +697,14 @@ defmodule Perata.Customers do
   end
 
   @doc """
-  Atualizar o nome, o e-mail, o ID externo, o CPF ou CNPJ, o telefone ou o endereço de cobrança de um cliente; o ID externo não muda depois de definido.
+  Atualizar um cliente.
+
+  Muda o nome, o e-mail, o ID externo, o CPF ou CNPJ, o telefone ou o endereço
+  de cobrança. O ID externo só pode ser definido uma vez.
+
+  Autenticação: chave de API da organização em Authorization: Bearer (prk_test_…
+  ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição.
+  Respostas em JSON no envelope data; erros com error, message e fields.
 
   Options: `:idempotency_key` and `:api_key`.
   """
@@ -538,7 +730,14 @@ defmodule Perata.Customers do
   end
 
   @doc """
-  Atualizar um cliente pelo ID dele no sistema do lojista (external_id).
+  Atualizar um cliente pelo ID externo.
+
+  Muda o cliente que você identifica pelo ID dele no seu sistema (external_id).
+  Os campos são os de Atualizar um cliente.
+
+  Autenticação: chave de API da organização em Authorization: Bearer (prk_test_…
+  ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição.
+  Respostas em JSON no envelope data; erros com error, message e fields.
 
   Options: `:idempotency_key` and `:api_key`.
   """
@@ -570,7 +769,15 @@ defmodule Perata.Discounts do
   alias Perata.Client
 
   @doc """
-  Criar um desconto percentual (basis_points) ou fixo em reais (amount_cents).
+  Criar um desconto.
+
+  Cria um desconto percentual (basis_points) ou de valor fixo em reais
+  (amount_cents). O código é o que o comprador digita; sem ele, o desconto só
+  vale num link de checkout ou pela API.
+
+  Autenticação: chave de API da organização em Authorization: Bearer (prk_test_…
+  ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição.
+  Respostas em JSON no envelope data; erros com error, message e fields.
 
   Options: `:idempotency_key` and `:api_key`.
   """
@@ -591,7 +798,14 @@ defmodule Perata.Discounts do
   end
 
   @doc """
-  Excluir um desconto: sai das listas e dos checkouts e o código fica livre; o que ele já descontou continua nos registros. The API answers 204, so there is nothing to return: `:ok`.
+  Excluir um desconto. The API answers 204, so there is nothing to return: `:ok`.
+
+  Exclui um desconto: ele sai das listas e dos checkouts, e o código fica livre.
+  O que ele já descontou continua nos registros.
+
+  Autenticação: chave de API da organização em Authorization: Bearer (prk_test_…
+  ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição.
+  Respostas em JSON no envelope data; erros com error, message e fields.
 
   Options: `:idempotency_key` and `:api_key`.
   """
@@ -608,6 +822,12 @@ defmodule Perata.Discounts do
   @doc """
   Ler um desconto.
 
+  Devolve um desconto pelo ID.
+
+  Autenticação: chave de API da organização em Authorization: Bearer (prk_test_…
+  ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição.
+  Respostas em JSON no envelope data; erros com error, message e fields.
+
   Options: `:api_key`.
   """
   @spec get(Client.t(), String.t(), keyword()) ::
@@ -623,6 +843,12 @@ defmodule Perata.Discounts do
 
   @doc """
   Listar descontos. One page; `list_stream/2` walks every page.
+
+  Devolve uma página dos descontos da organização.
+
+  Autenticação: chave de API da organização em Authorization: Bearer (prk_test_…
+  ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição.
+  Respostas em JSON no envelope data; erros com error, message e fields.
 
   Options: `:page`, `:limit` and `:api_key`.
   """
@@ -647,7 +873,14 @@ defmodule Perata.Discounts do
   end
 
   @doc """
-  Atualizar um desconto; o tipo e a duração não mudam, e depois do primeiro uso o valor e os meses também não.
+  Atualizar um desconto.
+
+  Muda um desconto. O tipo e a duração não mudam; depois do primeiro uso, o
+  valor e os meses também não.
+
+  Autenticação: chave de API da organização em Authorization: Bearer (prk_test_…
+  ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição.
+  Respostas em JSON no envelope data; erros com error, message e fields.
 
   Options: `:idempotency_key` and `:api_key`.
   """
@@ -681,6 +914,12 @@ defmodule Perata.Disputes do
   @doc """
   Ler uma disputa.
 
+  Devolve uma disputa pelo ID.
+
+  Autenticação: chave de API da organização em Authorization: Bearer (prk_test_…
+  ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição.
+  Respostas em JSON no envelope data; erros com error, message e fields.
+
   Options: `:api_key`.
   """
   @spec get(Client.t(), String.t(), keyword()) ::
@@ -695,7 +934,13 @@ defmodule Perata.Disputes do
   end
 
   @doc """
-  Listar disputas, opcionalmente de um status (status). One page; `list_stream/2` walks every page.
+  Listar disputas. One page; `list_stream/2` walks every page.
+
+  Devolve uma página das disputas. Com status, só as que estão nele.
+
+  Autenticação: chave de API da organização em Authorization: Bearer (prk_test_…
+  ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição.
+  Respostas em JSON no envelope data; erros com error, message e fields.
 
   Options: `:page`, `:limit`, `:status` and `:api_key`.
   """
@@ -730,7 +975,14 @@ defmodule Perata.Events do
   alias Perata.Client
 
   @doc """
-  Listar os eventos de consumo que as origens enviaram, do mais novo ao mais antigo. One page; `list_stream/2` walks every page.
+  Listar eventos de consumo. One page; `list_stream/2` walks every page.
+
+  Devolve uma página dos eventos de consumo que as fontes enviaram, do mais novo
+  ao mais antigo.
+
+  Autenticação: chave de API da organização em Authorization: Bearer (prk_test_…
+  ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição.
+  Respostas em JSON no envelope data; erros com error, message e fields.
 
   Options: `:page`, `:limit`, `:customer_id`, `:start`, `:end` and `:api_key`.
   """
@@ -740,7 +992,13 @@ defmodule Perata.Events do
     path = "/api/v1/events"
 
     request = [
-      query: [page: opts[:page], limit: opts[:limit], customer_id: opts[:customer_id], start: opts[:start], end: opts[:end]],
+      query: [
+        page: opts[:page],
+        limit: opts[:limit],
+        customer_id: opts[:customer_id],
+        start: opts[:start],
+        end: opts[:end]
+      ],
       api_key: opts[:api_key]
     ]
 
@@ -765,7 +1023,14 @@ defmodule Perata.Meters do
   alias Perata.Client
 
   @doc """
-  Ler um medidor: o filtro dos eventos que ele conta, a agregação e a unidade.
+  Ler um medidor.
+
+  Devolve um medidor: o filtro dos eventos que ele conta, a agregação e a
+  unidade.
+
+  Autenticação: chave de API da organização em Authorization: Bearer (prk_test_…
+  ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição.
+  Respostas em JSON no envelope data; erros com error, message e fields.
 
   Options: `:api_key`.
   """
@@ -781,7 +1046,14 @@ defmodule Perata.Meters do
   end
 
   @doc """
-  Listar medidores; os arquivados só com is_archived=true. One page; `list_stream/2` walks every page.
+  Listar medidores. One page; `list_stream/2` walks every page.
+
+  Devolve uma página dos medidores. Os arquivados só aparecem com
+  is_archived=true.
+
+  Autenticação: chave de API da organização em Authorization: Bearer (prk_test_…
+  ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição.
+  Respostas em JSON no envelope data; erros com error, message e fields.
 
   Options: `:page`, `:limit`, `:is_archived` and `:api_key`.
   """
@@ -816,7 +1088,13 @@ defmodule Perata.Orders do
   alias Perata.Client
 
   @doc """
-  Ler um pedido: um checkout pago.
+  Ler um pedido.
+
+  Devolve um pedido: um checkout pago.
+
+  Autenticação: chave de API da organização em Authorization: Bearer (prk_test_…
+  ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição.
+  Respostas em JSON no envelope data; erros com error, message e fields.
 
   Options: `:api_key`.
   """
@@ -832,7 +1110,14 @@ defmodule Perata.Orders do
   end
 
   @doc """
-  Ler a fatura de um pedido, o documento comercial que o lojista gerou; sem ela, 404.
+  Ler a fatura de um pedido.
+
+  Devolve a fatura de um pedido, o documento comercial que o lojista gerou. Sem
+  fatura, a resposta é 404.
+
+  Autenticação: chave de API da organização em Authorization: Bearer (prk_test_…
+  ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição.
+  Respostas em JSON no envelope data; erros com error, message e fields.
 
   Options: `:api_key`.
   """
@@ -848,7 +1133,13 @@ defmodule Perata.Orders do
   end
 
   @doc """
-  Ler o recibo de um pedido: o que foi pago, quando e como.
+  Ler o recibo de um pedido.
+
+  Devolve o recibo de um pedido: o que foi pago, quando e como.
+
+  Autenticação: chave de API da organização em Authorization: Bearer (prk_test_…
+  ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição.
+  Respostas em JSON no envelope data; erros com error, message e fields.
 
   Options: `:api_key`.
   """
@@ -864,9 +1155,16 @@ defmodule Perata.Orders do
   end
 
   @doc """
-  Listar pedidos (checkouts pagos), opcionalmente de um client_reference_id, de um cliente, de um período ou de metadados. One page; `list_stream/2` walks every page.
+  Listar pedidos. One page; `list_stream/2` walks every page.
 
-  Options: `:page`, `:limit`, `:client_reference_id`, `:status`, `:customer_id`, `:external_customer_id`, `:created_after`, `:created_before`, `:sorting` and `:api_key`.
+  Devolve uma página dos pedidos, que são os checkouts pagos. Filtre por
+  client_reference_id, cliente, período ou metadados.
+
+  Autenticação: chave de API da organização em Authorization: Bearer (prk_test_…
+  ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição.
+  Respostas em JSON no envelope data; erros com error, message e fields.
+
+  Options: `:page`, `:limit`, `:client_reference_id`, `:status`, `:customer_id`, `:external_customer_id`, `:created_after`, `:created_before`, `:sorting`, `:metadata` (a map of strings, sent as `metadata[key]=value`) and `:api_key`.
   """
   @spec list(Client.t(), keyword()) ::
           {:ok, Perata.Page.t(Perata.Order.t())} | {:error, Perata.Error.t()}
@@ -874,7 +1172,18 @@ defmodule Perata.Orders do
     path = "/api/v1/orders"
 
     request = [
-      query: [page: opts[:page], limit: opts[:limit], client_reference_id: opts[:client_reference_id], status: opts[:status], customer_id: opts[:customer_id], external_customer_id: opts[:external_customer_id], created_after: opts[:created_after], created_before: opts[:created_before], sorting: opts[:sorting]],
+      query: [
+        page: opts[:page],
+        limit: opts[:limit],
+        client_reference_id: opts[:client_reference_id],
+        status: opts[:status],
+        customer_id: opts[:customer_id],
+        external_customer_id: opts[:external_customer_id],
+        created_after: opts[:created_after],
+        created_before: opts[:created_before],
+        sorting: opts[:sorting],
+        metadata: opts[:metadata]
+      ],
       api_key: opts[:api_key]
     ]
 
@@ -899,7 +1208,14 @@ defmodule Perata.PaymentMethods do
   alias Perata.Client
 
   @doc """
-  Parar de cobrar um cartão guardado; recusado enquanto uma assinatura ativa o cobra.
+  Parar de cobrar um cartão guardado.
+
+  Para de cobrar um cartão guardado. É recusado (409) enquanto uma assinatura
+  ativa o cobra.
+
+  Autenticação: chave de API da organização em Authorization: Bearer (prk_test_…
+  ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição.
+  Respostas em JSON no envelope data; erros com error, message e fields.
 
   Options: `:idempotency_key` and `:api_key`.
   """
@@ -915,7 +1231,14 @@ defmodule Perata.PaymentMethods do
   end
 
   @doc """
-  Listar os cartões guardados de um cliente: bandeira, quatro últimos dígitos e validade. One page; `list_stream/3` walks every page.
+  Listar os cartões guardados de um cliente. One page; `list_stream/3` walks every page.
+
+  Devolve os cartões guardados de um cliente: bandeira, quatro últimos dígitos e
+  validade. O número do cartão nunca aparece.
+
+  Autenticação: chave de API da organização em Authorization: Bearer (prk_test_…
+  ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição.
+  Respostas em JSON no envelope data; erros com error, message e fields.
 
   Options: `:page`, `:limit` and `:api_key`.
   """
@@ -948,6 +1271,12 @@ defmodule Perata.Payments do
   @doc """
   Ler um pagamento.
 
+  Devolve um pagamento pelo ID.
+
+  Autenticação: chave de API da organização em Authorization: Bearer (prk_test_…
+  ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição.
+  Respostas em JSON no envelope data; erros com error, message e fields.
+
   Options: `:api_key`.
   """
   @spec get(Client.t(), String.t(), keyword()) ::
@@ -962,9 +1291,16 @@ defmodule Perata.Payments do
   end
 
   @doc """
-  Listar pagamentos, opcionalmente de um client_reference_id, de um estado, de um cliente, de um período ou de metadados. One page; `list_stream/2` walks every page.
+  Listar pagamentos. One page; `list_stream/2` walks every page.
 
-  Options: `:page`, `:limit`, `:client_reference_id`, `:status`, `:customer_id`, `:external_customer_id`, `:created_after`, `:created_before`, `:sorting` and `:api_key`.
+  Devolve uma página dos pagamentos. Filtre por client_reference_id, estado,
+  cliente, período ou metadados.
+
+  Autenticação: chave de API da organização em Authorization: Bearer (prk_test_…
+  ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição.
+  Respostas em JSON no envelope data; erros com error, message e fields.
+
+  Options: `:page`, `:limit`, `:client_reference_id`, `:status`, `:customer_id`, `:external_customer_id`, `:created_after`, `:created_before`, `:sorting`, `:metadata` (a map of strings, sent as `metadata[key]=value`) and `:api_key`.
   """
   @spec list(Client.t(), keyword()) ::
           {:ok, Perata.Page.t(Perata.Payment.t())} | {:error, Perata.Error.t()}
@@ -972,7 +1308,18 @@ defmodule Perata.Payments do
     path = "/api/v1/payments"
 
     request = [
-      query: [page: opts[:page], limit: opts[:limit], client_reference_id: opts[:client_reference_id], status: opts[:status], customer_id: opts[:customer_id], external_customer_id: opts[:external_customer_id], created_after: opts[:created_after], created_before: opts[:created_before], sorting: opts[:sorting]],
+      query: [
+        page: opts[:page],
+        limit: opts[:limit],
+        client_reference_id: opts[:client_reference_id],
+        status: opts[:status],
+        customer_id: opts[:customer_id],
+        external_customer_id: opts[:external_customer_id],
+        created_after: opts[:created_after],
+        created_before: opts[:created_before],
+        sorting: opts[:sorting],
+        metadata: opts[:metadata]
+      ],
       api_key: opts[:api_key]
     ]
 
@@ -997,7 +1344,15 @@ defmodule Perata.Prices do
   alias Perata.Client
 
   @doc """
-  Criar um preço em reais, avulso ou recorrente.
+  Criar um preço.
+
+  Cria um preço em reais para um produto, avulso (one_time) ou recorrente
+  (recurring). No recorrente, interval e interval_count dizem de quanto em
+  quanto tempo ele renova: month com 3 é trimestral.
+
+  Autenticação: chave de API da organização em Authorization: Bearer (prk_test_…
+  ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição.
+  Respostas em JSON no envelope data; erros com error, message e fields.
 
   Options: `:idempotency_key` and `:api_key`.
   """
@@ -1018,7 +1373,14 @@ defmodule Perata.Prices do
   end
 
   @doc """
-  Listar preços, opcionalmente de um produto (product_id). One page; `list_stream/2` walks every page.
+  Listar preços. One page; `list_stream/2` walks every page.
+
+  Devolve uma página dos preços da organização. Com product_id, só os de um
+  produto.
+
+  Autenticação: chave de API da organização em Authorization: Bearer (prk_test_…
+  ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição.
+  Respostas em JSON no envelope data; erros com error, message e fields.
 
   Options: `:page`, `:limit`, `:product_id` and `:api_key`.
   """
@@ -1053,7 +1415,14 @@ defmodule Perata.Products do
   alias Perata.Client
 
   @doc """
-  Arquivar um produto: sai das vendas novas e o que já foi vendido continua apontando para ele.
+  Arquivar um produto.
+
+  Arquiva um produto: ele sai das vendas novas, e o que já foi vendido continua
+  apontando para ele.
+
+  Autenticação: chave de API da organização em Authorization: Bearer (prk_test_…
+  ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição.
+  Respostas em JSON no envelope data; erros com error, message e fields.
 
   Options: `:idempotency_key` and `:api_key`.
   """
@@ -1070,6 +1439,13 @@ defmodule Perata.Products do
 
   @doc """
   Criar um produto.
+
+  Cria um produto com nome e descrição. O preço se cria à parte, em Criar um
+  preço.
+
+  Autenticação: chave de API da organização em Authorization: Bearer (prk_test_…
+  ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição.
+  Respostas em JSON no envelope data; erros com error, message e fields.
 
   Options: `:idempotency_key` and `:api_key`.
   """
@@ -1092,6 +1468,12 @@ defmodule Perata.Products do
   @doc """
   Ler um produto.
 
+  Devolve um produto pelo ID.
+
+  Autenticação: chave de API da organização em Authorization: Bearer (prk_test_…
+  ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição.
+  Respostas em JSON no envelope data; erros com error, message e fields.
+
   Options: `:api_key`.
   """
   @spec get(Client.t(), String.t(), keyword()) ::
@@ -1107,6 +1489,12 @@ defmodule Perata.Products do
 
   @doc """
   Listar produtos. One page; `list_stream/2` walks every page.
+
+  Devolve uma página dos produtos da organização, no ambiente da chave.
+
+  Autenticação: chave de API da organização em Authorization: Bearer (prk_test_…
+  ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição.
+  Respostas em JSON no envelope data; erros com error, message e fields.
 
   Options: `:page`, `:limit` and `:api_key`.
   """
@@ -1131,7 +1519,14 @@ defmodule Perata.Products do
   end
 
   @doc """
-  Atualizar o nome ou a descrição de um produto ativo.
+  Atualizar um produto.
+
+  Muda o nome ou a descrição de um produto ativo. O que você não enviar fica
+  como está.
+
+  Autenticação: chave de API da organização em Authorization: Bearer (prk_test_…
+  ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição.
+  Respostas em JSON no envelope data; erros com error, message e fields.
 
   Options: `:idempotency_key` and `:api_key`.
   """
@@ -1163,7 +1558,15 @@ defmodule Perata.Refunds do
   alias Perata.Client
 
   @doc """
-  Reembolsar parte ou todo um pagamento.
+  Reembolsar um pagamento.
+
+  Devolve parte ou todo o valor de um pagamento. A Idempotency-Key é
+  obrigatória: sem ela, repetir a chamada depois de um tempo esgotado seria
+  devolver duas vezes.
+
+  Autenticação: chave de API da organização em Authorization: Bearer (prk_test_…
+  ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição.
+  Respostas em JSON no envelope data; erros com error, message e fields.
 
   Options: `:idempotency_key` and `:api_key`.
   """
@@ -1184,7 +1587,14 @@ defmodule Perata.Refunds do
   end
 
   @doc """
-  Listar reembolsos, opcionalmente de um pagamento (payment_id), de um status, de um cliente ou de um período. One page; `list_stream/2` walks every page.
+  Listar reembolsos. One page; `list_stream/2` walks every page.
+
+  Devolve uma página dos reembolsos. Filtre por pagamento (payment_id), status,
+  cliente ou período.
+
+  Autenticação: chave de API da organização em Authorization: Bearer (prk_test_…
+  ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição.
+  Respostas em JSON no envelope data; erros com error, message e fields.
 
   Options: `:page`, `:limit`, `:payment_id`, `:status`, `:customer_id`, `:external_customer_id`, `:created_after`, `:created_before`, `:sorting` and `:api_key`.
   """
@@ -1194,7 +1604,17 @@ defmodule Perata.Refunds do
     path = "/api/v1/refunds"
 
     request = [
-      query: [page: opts[:page], limit: opts[:limit], payment_id: opts[:payment_id], status: opts[:status], customer_id: opts[:customer_id], external_customer_id: opts[:external_customer_id], created_after: opts[:created_after], created_before: opts[:created_before], sorting: opts[:sorting]],
+      query: [
+        page: opts[:page],
+        limit: opts[:limit],
+        payment_id: opts[:payment_id],
+        status: opts[:status],
+        customer_id: opts[:customer_id],
+        external_customer_id: opts[:external_customer_id],
+        created_after: opts[:created_after],
+        created_before: opts[:created_before],
+        sorting: opts[:sorting]
+      ],
       api_key: opts[:api_key]
     ]
 
@@ -1219,7 +1639,14 @@ defmodule Perata.Subscriptions do
   alias Perata.Client
 
   @doc """
-  Cancelar uma assinatura, por padrão no fim do período.
+  Cancelar uma assinatura.
+
+  Cancela uma assinatura. Por padrão o cancelamento vale no fim do período já
+  pago.
+
+  Autenticação: chave de API da organização em Authorization: Bearer (prk_test_…
+  ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição.
+  Respostas em JSON no envelope data; erros com error, message e fields.
 
   Options: `:idempotency_key` and `:api_key`.
   """
@@ -1247,6 +1674,12 @@ defmodule Perata.Subscriptions do
   @doc """
   Ler uma assinatura.
 
+  Devolve uma assinatura pelo ID.
+
+  Autenticação: chave de API da organização em Authorization: Bearer (prk_test_…
+  ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição.
+  Respostas em JSON no envelope data; erros com error, message e fields.
+
   Options: `:api_key`.
   """
   @spec get(Client.t(), String.t(), keyword()) ::
@@ -1261,9 +1694,16 @@ defmodule Perata.Subscriptions do
   end
 
   @doc """
-  Listar assinaturas, opcionalmente de um cliente (customer_id ou external_customer_id), de um status, de um período ou de metadados. One page; `list_stream/2` walks every page.
+  Listar assinaturas. One page; `list_stream/2` walks every page.
 
-  Options: `:page`, `:limit`, `:status`, `:customer_id`, `:external_customer_id`, `:created_after`, `:created_before`, `:sorting` and `:api_key`.
+  Devolve uma página das assinaturas. Filtre por cliente (customer_id ou
+  external_customer_id), status, período ou metadados.
+
+  Autenticação: chave de API da organização em Authorization: Bearer (prk_test_…
+  ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição.
+  Respostas em JSON no envelope data; erros com error, message e fields.
+
+  Options: `:page`, `:limit`, `:status`, `:customer_id`, `:external_customer_id`, `:created_after`, `:created_before`, `:sorting`, `:metadata` (a map of strings, sent as `metadata[key]=value`) and `:api_key`.
   """
   @spec list(Client.t(), keyword()) ::
           {:ok, Perata.Page.t(Perata.Subscription.t())} | {:error, Perata.Error.t()}
@@ -1271,7 +1711,17 @@ defmodule Perata.Subscriptions do
     path = "/api/v1/subscriptions"
 
     request = [
-      query: [page: opts[:page], limit: opts[:limit], status: opts[:status], customer_id: opts[:customer_id], external_customer_id: opts[:external_customer_id], created_after: opts[:created_after], created_before: opts[:created_before], sorting: opts[:sorting]],
+      query: [
+        page: opts[:page],
+        limit: opts[:limit],
+        status: opts[:status],
+        customer_id: opts[:customer_id],
+        external_customer_id: opts[:external_customer_id],
+        created_after: opts[:created_after],
+        created_before: opts[:created_before],
+        sorting: opts[:sorting],
+        metadata: opts[:metadata]
+      ],
       api_key: opts[:api_key]
     ]
 
@@ -1290,7 +1740,15 @@ defmodule Perata.Subscriptions do
   end
 
   @doc """
-  Reativar uma assinatura suspensa, que volta a ser cobrada (a cobrança do ciclo em aberto recomeça), ou retomar uma pausada; qualquer outra recebe 409.
+  Reativar uma assinatura.
+
+  Reativa uma assinatura suspensa, que volta a ser cobrada (a cobrança do ciclo
+  em aberto recomeça), ou retoma uma pausada. Qualquer outra assinatura recebe
+  409.
+
+  Autenticação: chave de API da organização em Authorization: Bearer (prk_test_…
+  ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição.
+  Respostas em JSON no envelope data; erros com error, message e fields.
 
   Options: `:idempotency_key` and `:api_key`.
   """
@@ -1306,7 +1764,14 @@ defmodule Perata.Subscriptions do
   end
 
   @doc """
-  Trocar o plano de uma assinatura: outro preço e, se quiser, outra quantidade, com a forma de ratear a diferença (proration_behavior).
+  Trocar o plano de uma assinatura.
+
+  Troca o plano de uma assinatura: outro preço e, se quiser, outra quantidade. O
+  proration_behavior diz como ratear a diferença.
+
+  Autenticação: chave de API da organização em Authorization: Bearer (prk_test_…
+  ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição.
+  Respostas em JSON no envelope data; erros com error, message e fields.
 
   Options: `:idempotency_key` and `:api_key`.
   """
@@ -1340,6 +1805,25 @@ defmodule Perata.Usage do
   @doc """
   Ingerir lote atômico de eventos de uso. Autentica com a credencial de uma fonte de ingestão (pus_test_… ou pus_live_…), não com a chave de API da organização.
 
+  Autorização: Bearer é o único formato de credencial suportado. As credenciais
+  são assinadas pela Peráta, expiram em 30 dias e são verificadas em relação ao
+  estado da fonte, associação atual do emissor e permissões nativas.
+  Organização, merchant e ambiente (teste, pus_test_…, ou produção, pus_live_…)
+  são derivados da fonte autenticada; o payload JSON não pode sobrescrevê-los, e
+  uma credencial de um ambiente nunca escreve no outro. Em produção, a fonte só
+  existe para uma organização que a equipe da Peráta liberou. 1 a 100 eventos,
+  no máximo 65536 bytes. Contagens são strings decimais de inteiros, de 0 a
+  1000000000000, com pelo menos um token por evento; a entrada exclui cache.
+  Ocorrência RFC3339 em segundos inteiros, com no máximo 90 dias atrás e até
+  cinco minutos à frente. Escopo/fonte/external_event_id identificam um
+  registro; repetições exatas contam como replay e conteúdo conflitante retorna
+  409. Todos os novos eventos e emissões da outbox são confirmados ou revertidos
+  juntos. Rotação mantém a identidade da fonte e replay; credenciais revogadas
+  ou expiradas não podem ser reutilizadas. O sucesso vem no envelope data; todo
+  erro é o documento de erro da API, o mesmo das demais operações de /api/v1
+  (error, message e fields), com record, a posição do evento recusado, quando
+  há. Sem cobrança ou faturamento automático.
+
   Options: `:api_key`.
   """
   @spec ingest(Client.t(), Perata.UsageIngestParams.t() | keyword() | map(), keyword()) ::
@@ -1360,7 +1844,14 @@ defmodule Perata.Webhooks do
   alias Perata.Client
 
   @doc """
-  Criar um endpoint de webhook; o segredo que assina as mensagens vem só nesta resposta.
+  Criar um endpoint de webhook.
+
+  Cria um endpoint de webhook. O segredo que assina as mensagens vem só nesta
+  resposta; guarde-o.
+
+  Autenticação: chave de API da organização em Authorization: Bearer (prk_test_…
+  ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição.
+  Respostas em JSON no envelope data; erros com error, message e fields.
 
   Options: `:idempotency_key` and `:api_key`.
   """
@@ -1385,7 +1876,13 @@ defmodule Perata.Webhooks do
   end
 
   @doc """
-  Excluir um endpoint de webhook; as entregas que ainda esperavam por ele falham. The API answers 204, so there is nothing to return: `:ok`.
+  Excluir um endpoint de webhook. The API answers 204, so there is nothing to return: `:ok`.
+
+  Exclui um endpoint de webhook. As entregas que ainda esperavam por ele falham.
+
+  Autenticação: chave de API da organização em Authorization: Bearer (prk_test_…
+  ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição.
+  Respostas em JSON no envelope data; erros com error, message e fields.
 
   Options: `:idempotency_key` and `:api_key`.
   """
@@ -1402,6 +1899,12 @@ defmodule Perata.Webhooks do
   @doc """
   Ler um endpoint de webhook.
 
+  Devolve um endpoint de webhook pelo ID.
+
+  Autenticação: chave de API da organização em Authorization: Bearer (prk_test_…
+  ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição.
+  Respostas em JSON no envelope data; erros com error, message e fields.
+
   Options: `:api_key`.
   """
   @spec get_endpoint(Client.t(), String.t(), keyword()) ::
@@ -1416,7 +1919,14 @@ defmodule Perata.Webhooks do
   end
 
   @doc """
-  Listar as últimas 100 entregas de eventos aos endpoints, opcionalmente de um endpoint (endpoint_id) ou de uma situação (status). One page; `list_deliveries_stream/2` walks every page.
+  Listar entregas de webhook. One page; `list_deliveries_stream/2` walks every page.
+
+  Devolve as últimas 100 entregas de eventos aos endpoints. Com endpoint_id, só
+  as de um endpoint; com status, só as de uma situação.
+
+  Autenticação: chave de API da organização em Authorization: Bearer (prk_test_…
+  ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição.
+  Respostas em JSON no envelope data; erros com error, message e fields.
 
   Options: `:page`, `:limit`, `:endpoint_id`, `:status` and `:api_key`.
   """
@@ -1426,7 +1936,12 @@ defmodule Perata.Webhooks do
     path = "/api/v1/webhooks/deliveries"
 
     request = [
-      query: [page: opts[:page], limit: opts[:limit], endpoint_id: opts[:endpoint_id], status: opts[:status]],
+      query: [
+        page: opts[:page],
+        limit: opts[:limit],
+        endpoint_id: opts[:endpoint_id],
+        status: opts[:status]
+      ],
       api_key: opts[:api_key]
     ]
 
@@ -1445,7 +1960,13 @@ defmodule Perata.Webhooks do
   end
 
   @doc """
-  Listar os endpoints de webhook do lojista. One page; `list_endpoints_stream/2` walks every page.
+  Listar endpoints de webhook. One page; `list_endpoints_stream/2` walks every page.
+
+  Devolve uma página dos endpoints de webhook da organização.
+
+  Autenticação: chave de API da organização em Authorization: Bearer (prk_test_…
+  ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição.
+  Respostas em JSON no envelope data; erros com error, message e fields.
 
   Options: `:page`, `:limit` and `:api_key`.
   """
@@ -1470,7 +1991,14 @@ defmodule Perata.Webhooks do
   end
 
   @doc """
-  Atualizar o endereço, o formato, os eventos ou a descrição de um endpoint, ou ligar e desligar o envio (enabled); o segredo não muda.
+  Atualizar um endpoint de webhook.
+
+  Muda o endereço, o formato, os eventos ou a descrição de um endpoint, ou liga
+  e desliga o envio (enabled). O segredo não muda.
+
+  Autenticação: chave de API da organização em Authorization: Bearer (prk_test_…
+  ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição.
+  Respostas em JSON no envelope data; erros com error, message e fields.
 
   Options: `:idempotency_key` and `:api_key`.
   """

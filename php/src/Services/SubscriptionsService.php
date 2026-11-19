@@ -18,7 +18,15 @@ final class SubscriptionsService
     }
 
     /**
-     * Cancelar uma assinatura, por padrão no fim do período.
+     * Cancelar uma assinatura.
+     *
+     * Cancela uma assinatura. Por padrão o cancelamento vale no fim do período
+     * já pago.
+     *
+     * Autenticação: chave de API da organização em Authorization: Bearer
+     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+     * requisição. Respostas em JSON no envelope data; erros com error, message
+     * e fields.
      *
      * @param array{at_period_end?: bool, reason?: string} $params
      */
@@ -30,6 +38,13 @@ final class SubscriptionsService
 
     /**
      * Ler uma assinatura.
+     *
+     * Devolve uma assinatura pelo ID.
+     *
+     * Autenticação: chave de API da organização em Authorization: Bearer
+     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+     * requisição. Respostas em JSON no envelope data; erros com error, message
+     * e fields.
      */
     public function get(string $subscription, ?string $apiKey = null): Models\Subscription
     {
@@ -38,9 +53,17 @@ final class SubscriptionsService
     }
 
     /**
-     * Listar assinaturas, opcionalmente de um cliente (customer_id ou external_customer_id), de um status, de um período ou de metadados. One page; listIter() walks every page.
+     * Listar assinaturas. One page; listIter() walks every page.
      *
-     * @param array{page?: int, limit?: int, status?: string, customer_id?: string, external_customer_id?: string, created_after?: string, created_before?: string, sorting?: string} $params
+     * Devolve uma página das assinaturas. Filtre por cliente (customer_id ou
+     * external_customer_id), status, período ou metadados.
+     *
+     * Autenticação: chave de API da organização em Authorization: Bearer
+     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+     * requisição. Respostas em JSON no envelope data; erros com error, message
+     * e fields.
+     *
+     * @param array{page?: int, limit?: int, status?: string, customer_id?: string, external_customer_id?: string, created_after?: string, created_before?: string, sorting?: string, metadata?: array<string, string>} $params
      * @return Page<Models\Subscription>
      */
     public function list(array $params = [], ?string $apiKey = null): Page
@@ -52,7 +75,7 @@ final class SubscriptionsService
     /**
      * Walks every page of subscriptions:list, item by item.
      *
-     * @param array{page?: int, limit?: int, status?: string, customer_id?: string, external_customer_id?: string, created_after?: string, created_before?: string, sorting?: string} $params
+     * @param array{page?: int, limit?: int, status?: string, customer_id?: string, external_customer_id?: string, created_after?: string, created_before?: string, sorting?: string, metadata?: array<string, string>} $params
      * @return \Generator<int, Models\Subscription>
      */
     public function listIter(array $params = [], ?string $apiKey = null): \Generator
@@ -61,7 +84,16 @@ final class SubscriptionsService
     }
 
     /**
-     * Reativar uma assinatura suspensa, que volta a ser cobrada (a cobrança do ciclo em aberto recomeça), ou retomar uma pausada; qualquer outra recebe 409.
+     * Reativar uma assinatura.
+     *
+     * Reativa uma assinatura suspensa, que volta a ser cobrada (a cobrança do
+     * ciclo em aberto recomeça), ou retoma uma pausada. Qualquer outra
+     * assinatura recebe 409.
+     *
+     * Autenticação: chave de API da organização em Authorization: Bearer
+     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+     * requisição. Respostas em JSON no envelope data; erros com error, message
+     * e fields.
      */
     public function resume(string $subscription, ?string $idempotencyKey = null, ?string $apiKey = null): Models\Subscription
     {
@@ -70,7 +102,15 @@ final class SubscriptionsService
     }
 
     /**
-     * Trocar o plano de uma assinatura: outro preço e, se quiser, outra quantidade, com a forma de ratear a diferença (proration_behavior).
+     * Trocar o plano de uma assinatura.
+     *
+     * Troca o plano de uma assinatura: outro preço e, se quiser, outra
+     * quantidade. O proration_behavior diz como ratear a diferença.
+     *
+     * Autenticação: chave de API da organização em Authorization: Bearer
+     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+     * requisição. Respostas em JSON no envelope data; erros com error, message
+     * e fields.
      *
      * @param array{price_id: string, proration_behavior?: 'prorate'|'invoice'|'next_period'|'reset', quantity?: int} $params
      */

@@ -126,10 +126,20 @@ class Perata implements Requester {
     String? idempotencyKey,
     String? apiKey,
   }) async {
-    final parameters = {
-      for (final MapEntry(:key, :value) in query.entries)
-        if (value != null && value != '') key: '$value',
-    };
+    final parameters = <String, String>{};
+    for (final MapEntry(:key, :value) in query.entries) {
+      if (value is Map<String, String>) {
+        // A map filter is one pair a key: metadata[pedido]=123, the keys
+        // sorted.
+        for (final each in value.keys.toList()..sort()) {
+          if (value[each] != '') {
+            parameters['$key[$each]'] = value[each]!;
+          }
+        }
+      } else if (value != null && value != '') {
+        parameters[key] = '$value';
+      }
+    }
     final url = Uri.parse('$_baseUrl$path');
     final request = http.Request(
       method,

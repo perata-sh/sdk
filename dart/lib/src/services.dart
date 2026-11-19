@@ -10,7 +10,16 @@ class BenefitsService {
 
   final Requester _client;
 
-  /// Criar um benefício custom, license_key, feature_flag ou meter_credit; downloads e os benefícios do Discord e do GitHub se configuram no painel.
+  /// Criar um benefício.
+  ///
+  /// Cria um benefício do tipo custom, license_key, feature_flag ou
+  /// meter_credit. Os downloads e os benefícios do Discord e do GitHub se
+  /// configuram no painel.
+  ///
+  /// Autenticação: chave de API da organização em Authorization: Bearer
+  /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+  /// requisição. Respostas em JSON no envelope data; erros com error, message e
+  /// fields.
   Future<Benefit> create(
     BenefitsCreateParams params, {
     String? idempotencyKey,
@@ -26,7 +35,15 @@ class BenefitsService {
     return Benefit.fromJson(data);
   }
 
-  /// Excluir um benefício: ele sai de todos os produtos e é revogado de quem o tem. The API answers 204, so there is nothing to return.
+  /// Excluir um benefício. The API answers 204, so there is nothing to return.
+  ///
+  /// Exclui um benefício: ele sai de todos os produtos e é revogado de quem o
+  /// tem.
+  ///
+  /// Autenticação: chave de API da organização em Authorization: Bearer
+  /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+  /// requisição. Respostas em JSON no envelope data; erros com error, message e
+  /// fields.
   Future<void> delete(
     String benefit, {
     String? idempotencyKey,
@@ -41,6 +58,13 @@ class BenefitsService {
   }
 
   /// Ler um benefício.
+  ///
+  /// Devolve um benefício pelo ID.
+  ///
+  /// Autenticação: chave de API da organização em Authorization: Bearer
+  /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+  /// requisição. Respostas em JSON no envelope data; erros com error, message e
+  /// fields.
   Future<Benefit> get(
     String benefit, {
     String? apiKey,
@@ -53,7 +77,15 @@ class BenefitsService {
     return Benefit.fromJson(data);
   }
 
-  /// Listar benefícios, opcionalmente de um tipo (type).
+  /// Listar benefícios.
+  ///
+  /// Devolve uma página dos benefícios da organização. Com type, só os de um
+  /// tipo.
+  ///
+  /// Autenticação: chave de API da organização em Authorization: Bearer
+  /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+  /// requisição. Respostas em JSON no envelope data; erros com error, message e
+  /// fields.
   ///
   /// One page, from 1, of [limit] items (1 to 100, 10 by default);
   /// [listIter] walks every page.
@@ -94,7 +126,15 @@ class BenefitsService {
     );
   }
 
-  /// Listar as concessões de um benefício, opcionalmente de um cliente (customer_id) ou só as vigentes (is_granted).
+  /// Listar as concessões de um benefício.
+  ///
+  /// Devolve uma página das concessões de um benefício. Com customer_id, só as
+  /// de um cliente; com is_granted, só as vigentes ou só as revogadas.
+  ///
+  /// Autenticação: chave de API da organização em Authorization: Bearer
+  /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+  /// requisição. Respostas em JSON no envelope data; erros com error, message e
+  /// fields.
   ///
   /// One page, from 1, of [limit] items (1 to 100, 10 by default);
   /// [listGrantsIter] walks every page.
@@ -142,7 +182,16 @@ class BenefitsService {
     );
   }
 
-  /// Atualizar o nome, a visibilidade, as propriedades e os metadados de um benefício; o tipo e a descrição dada na criação não mudam, e o que a concessão já entregou fica como foi entregue.
+  /// Atualizar um benefício.
+  ///
+  /// Muda o nome, a visibilidade, as propriedades e os metadados de um
+  /// benefício. O tipo e a descrição dada na criação não mudam, e o que a
+  /// concessão já entregou fica como foi entregue.
+  ///
+  /// Autenticação: chave de API da organização em Authorization: Bearer
+  /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+  /// requisição. Respostas em JSON no envelope data; erros com error, message e
+  /// fields.
   Future<Benefit> update(
     String benefit,
     BenefitsUpdateParams params, {
@@ -166,7 +215,16 @@ class CheckoutLinksService {
 
   final Requester _client;
 
-  /// Criar um link de checkout: uma oferta durável de um ou mais produtos, com desconto, quantidade e páginas de retorno.
+  /// Criar um link de checkout.
+  ///
+  /// Cria um link de checkout: uma oferta durável de um ou mais produtos, com
+  /// desconto, quantidade e páginas de retorno. Cada visita ao link abre uma
+  /// sessão de compra nova.
+  ///
+  /// Autenticação: chave de API da organização em Authorization: Bearer
+  /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+  /// requisição. Respostas em JSON no envelope data; erros com error, message e
+  /// fields.
   Future<CheckoutLink> create(
     CheckoutLinksCreateParams params, {
     String? idempotencyKey,
@@ -182,7 +240,15 @@ class CheckoutLinksService {
     return CheckoutLink.fromJson(data);
   }
 
-  /// Excluir um link de checkout: ele deixa de abrir checkouts; os que já abriu continuam. The API answers 204, so there is nothing to return.
+  /// Excluir um link de checkout. The API answers 204, so there is nothing to return.
+  ///
+  /// Exclui um link de checkout: ele deixa de abrir checkouts. Os que já abriu
+  /// continuam.
+  ///
+  /// Autenticação: chave de API da organização em Authorization: Bearer
+  /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+  /// requisição. Respostas em JSON no envelope data; erros com error, message e
+  /// fields.
   Future<void> delete(
     String checkoutLink, {
     String? idempotencyKey,
@@ -197,6 +263,13 @@ class CheckoutLinksService {
   }
 
   /// Ler um link de checkout.
+  ///
+  /// Devolve um link de checkout pelo ID.
+  ///
+  /// Autenticação: chave de API da organização em Authorization: Bearer
+  /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+  /// requisição. Respostas em JSON no envelope data; erros com error, message e
+  /// fields.
   Future<CheckoutLink> get(
     String checkoutLink, {
     String? apiKey,
@@ -210,6 +283,13 @@ class CheckoutLinksService {
   }
 
   /// Listar links de checkout.
+  ///
+  /// Devolve uma página dos links de checkout da organização.
+  ///
+  /// Autenticação: chave de API da organização em Authorization: Bearer
+  /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+  /// requisição. Respostas em JSON no envelope data; erros com error, message e
+  /// fields.
   ///
   /// One page, from 1, of [limit] items (1 to 100, 10 by default);
   /// [listIter] walks every page.
@@ -246,7 +326,15 @@ class CheckoutLinksService {
     );
   }
 
-  /// Atualizar o rótulo, as páginas de retorno, os produtos e os metadados de um link; a quantidade e o desconto ficam como foram publicados.
+  /// Atualizar um link de checkout.
+  ///
+  /// Muda o rótulo, as páginas de retorno, os produtos e os metadados de um
+  /// link. A quantidade e o desconto ficam como foram publicados.
+  ///
+  /// Autenticação: chave de API da organização em Authorization: Bearer
+  /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+  /// requisição. Respostas em JSON no envelope data; erros com error, message e
+  /// fields.
   Future<CheckoutLink> update(
     String checkoutLink,
     CheckoutLinksUpdateParams params, {
@@ -270,7 +358,19 @@ class CheckoutsService {
 
   final Requester _client;
 
-  /// Criar um checkout: o endereço para onde o comprador é enviado e a sessão de compra aberta para ele, com o client_secret que o navegador do comprador usa nas rotas de cliente.
+  /// Criar um checkout.
+  ///
+  /// Cria um checkout. Devolve o endereço para onde mandar o comprador e a
+  /// sessão de compra aberta para ele, com o client_secret que o navegador do
+  /// comprador usa para pagar sem chave de API; o client_secret vem só nesta
+  /// resposta. Para cobrar um valor que o seu servidor define, envie
+  /// amount_cents e items (preço de valor livre). Envie client_reference_id e
+  /// metadata para achar o pedido depois.
+  ///
+  /// Autenticação: chave de API da organização em Authorization: Bearer
+  /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+  /// requisição. Respostas em JSON no envelope data; erros com error, message e
+  /// fields.
   Future<CheckoutCreated> create(
     CheckoutsCreateParams params, {
     String? idempotencyKey,
@@ -286,7 +386,17 @@ class CheckoutsService {
     return CheckoutCreated.fromJson(data);
   }
 
-  /// Encerrar um checkout que não deve mais ser pago: a página, o client_secret e o QR do Pix deixam de valer (o Pix já gerado é cancelado na Cielo), e o evento checkout.expired é enviado; 409 se já foi pago ou se emitiu boleto.
+  /// Encerrar um checkout.
+  ///
+  /// Encerra um checkout que não deve mais ser pago: a página, o client_secret
+  /// e o QR do Pix deixam de valer (o Pix já gerado é cancelado na Cielo) e o
+  /// evento checkout.expired é enviado. Repetir a chamada é seguro. Se o
+  /// checkout já foi pago ou emitiu um boleto, a resposta é 409.
+  ///
+  /// Autenticação: chave de API da organização em Authorization: Bearer
+  /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+  /// requisição. Respostas em JSON no envelope data; erros com error, message e
+  /// fields.
   Future<CheckoutExpired> expire(
     String checkout, {
     String? idempotencyKey,
@@ -301,7 +411,14 @@ class CheckoutsService {
     return CheckoutExpired.fromJson(data);
   }
 
-  /// Ler um checkout: o endereço, o estado e as páginas de retorno.
+  /// Ler um checkout.
+  ///
+  /// Devolve um checkout: o endereço, o estado e as páginas de retorno.
+  ///
+  /// Autenticação: chave de API da organização em Authorization: Bearer
+  /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+  /// requisição. Respostas em JSON no envelope data; erros com error, message e
+  /// fields.
   Future<Checkout> get(
     String checkout, {
     String? apiKey,
@@ -314,7 +431,15 @@ class CheckoutsService {
     return Checkout.fromJson(data);
   }
 
-  /// Listar checkouts, opcionalmente de um client_reference_id, de um status, de um período ou de metadados.
+  /// Listar checkouts.
+  ///
+  /// Devolve uma página dos checkouts. Filtre por client_reference_id, status,
+  /// período ou metadados.
+  ///
+  /// Autenticação: chave de API da organização em Authorization: Bearer
+  /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+  /// requisição. Respostas em JSON no envelope data; erros com error, message e
+  /// fields.
   ///
   /// One page, from 1, of [limit] items (1 to 100, 10 by default);
   /// [listIter] walks every page.
@@ -326,6 +451,7 @@ class CheckoutsService {
     String? createdAfter,
     String? createdBefore,
     String? sorting,
+    Map<String, String>? metadata,
     String? apiKey,
   }) async {
     final data = await _client.request(
@@ -339,6 +465,7 @@ class CheckoutsService {
         'created_after': createdAfter,
         'created_before': createdBefore,
         'sorting': sorting,
+        'metadata': metadata,
       },
       apiKey: apiKey,
     );
@@ -354,6 +481,7 @@ class CheckoutsService {
     String? createdAfter,
     String? createdBefore,
     String? sorting,
+    Map<String, String>? metadata,
     String? apiKey,
   }) {
     return iterate(
@@ -365,13 +493,21 @@ class CheckoutsService {
         createdAfter: createdAfter,
         createdBefore: createdBefore,
         sorting: sorting,
+        metadata: metadata,
         apiKey: apiKey,
       ),
       page,
     );
   }
 
-  /// Atualizar o rótulo e as páginas de retorno de um checkout ativo.
+  /// Atualizar um checkout.
+  ///
+  /// Muda o rótulo e as páginas de retorno de um checkout ativo.
+  ///
+  /// Autenticação: chave de API da organização em Authorization: Bearer
+  /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+  /// requisição. Respostas em JSON no envelope data; erros com error, message e
+  /// fields.
   Future<Checkout> update(
     String checkout,
     CheckoutsUpdateParams params, {
@@ -395,7 +531,16 @@ class CustomerSessionsService {
 
   final Requester _client;
 
-  /// Entrar com um cliente no portal do cliente: o endereço o abre já autenticado.
+  /// Abrir o portal do cliente.
+  ///
+  /// Abre uma sessão do portal do cliente para o cliente informado e devolve o
+  /// endereço que o abre já autenticado. Com return_url, um endereço https do
+  /// seu aplicativo, o portal oferece a volta.
+  ///
+  /// Autenticação: chave de API da organização em Authorization: Bearer
+  /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+  /// requisição. Respostas em JSON no envelope data; erros com error, message e
+  /// fields.
   Future<CustomerSession> create(
     CustomerSessionsCreateParams params, {
     String? idempotencyKey,
@@ -418,7 +563,18 @@ class CustomersService {
 
   final Requester _client;
 
-  /// Criar um cliente, com CPF ou CNPJ, telefone e endereço de cobrança se você os tem.
+  /// Criar um cliente.
+  ///
+  /// Cria um cliente, com CPF ou CNPJ, telefone e endereço de cobrança, se você
+  /// os tem. Se você enviar external_id e o e-mail já for de um cliente que
+  /// ainda não tem ID externo (por exemplo, um que o checkout criou), esse
+  /// cliente recebe o ID e os dados enviados, e a resposta é 200 em vez de 201.
+  /// Se o e-mail for de um cliente com outro ID externo, a resposta é 422.
+  ///
+  /// Autenticação: chave de API da organização em Authorization: Bearer
+  /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+  /// requisição. Respostas em JSON no envelope data; erros com error, message e
+  /// fields.
   Future<Customer> create(
     CustomersCreateParams params, {
     String? idempotencyKey,
@@ -434,7 +590,16 @@ class CustomersService {
     return Customer.fromJson(data);
   }
 
-  /// Excluir um cliente: as assinaturas terminam na hora, os benefícios são revogados e o ID externo é liberado; pedidos e pagamentos continuam. The API answers 204, so there is nothing to return.
+  /// Excluir um cliente. The API answers 204, so there is nothing to return.
+  ///
+  /// Exclui um cliente: as assinaturas terminam na hora, os benefícios são
+  /// revogados e o ID externo fica livre. Os pedidos e os pagamentos continuam
+  /// nos registros.
+  ///
+  /// Autenticação: chave de API da organização em Authorization: Bearer
+  /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+  /// requisição. Respostas em JSON no envelope data; erros com error, message e
+  /// fields.
   Future<void> delete(
     String customer, {
     String? idempotencyKey,
@@ -449,6 +614,13 @@ class CustomersService {
   }
 
   /// Ler um cliente.
+  ///
+  /// Devolve um cliente pelo ID.
+  ///
+  /// Autenticação: chave de API da organização em Authorization: Bearer
+  /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+  /// requisição. Respostas em JSON no envelope data; erros com error, message e
+  /// fields.
   Future<Customer> get(
     String customer, {
     String? apiKey,
@@ -461,7 +633,15 @@ class CustomersService {
     return Customer.fromJson(data);
   }
 
-  /// Ler um cliente pelo ID dele no sistema do lojista (external_id).
+  /// Ler um cliente pelo ID externo.
+  ///
+  /// Devolve o cliente que você identifica pelo ID dele no seu sistema
+  /// (external_id).
+  ///
+  /// Autenticação: chave de API da organização em Authorization: Bearer
+  /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+  /// requisição. Respostas em JSON no envelope data; erros com error, message e
+  /// fields.
   Future<Customer> getExternal(
     String externalId, {
     String? apiKey,
@@ -474,7 +654,16 @@ class CustomersService {
     return Customer.fromJson(data);
   }
 
-  /// Ler o estado de um cliente: assinaturas ativas e benefícios vigentes, inclusive os feature flags.
+  /// Ler o estado de um cliente.
+  ///
+  /// Devolve o estado de um cliente: as assinaturas ativas e os benefícios
+  /// vigentes, inclusive os feature flags. É a leitura que o seu aplicativo faz
+  /// para decidir o que o cliente pode usar.
+  ///
+  /// Autenticação: chave de API da organização em Authorization: Bearer
+  /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+  /// requisição. Respostas em JSON no envelope data; erros com error, message e
+  /// fields.
   Future<CustomerState> getState(
     String customer, {
     String? apiKey,
@@ -489,11 +678,20 @@ class CustomersService {
 
   /// Listar clientes.
   ///
+  /// Devolve uma página dos clientes. Com email, só o cliente com esse e-mail,
+  /// sem diferença entre maiúsculas e minúsculas.
+  ///
+  /// Autenticação: chave de API da organização em Authorization: Bearer
+  /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+  /// requisição. Respostas em JSON no envelope data; erros com error, message e
+  /// fields.
+  ///
   /// One page, from 1, of [limit] items (1 to 100, 10 by default);
   /// [listIter] walks every page.
   Future<Page<Customer>> list({
     int? page,
     int? limit,
+    String? email,
     String? apiKey,
   }) async {
     final data = await _client.request(
@@ -502,6 +700,7 @@ class CustomersService {
       query: {
         'page': page,
         'limit': limit,
+        'email': email,
       },
       apiKey: apiKey,
     );
@@ -512,19 +711,29 @@ class CustomersService {
   Stream<Customer> listIter({
     int page = 1,
     int? limit,
+    String? email,
     String? apiKey,
   }) {
     return iterate(
       (at) => list(
         page: at,
         limit: limit,
+        email: email,
         apiKey: apiKey,
       ),
       page,
     );
   }
 
-  /// Atualizar o nome, o e-mail, o ID externo, o CPF ou CNPJ, o telefone ou o endereço de cobrança de um cliente; o ID externo não muda depois de definido.
+  /// Atualizar um cliente.
+  ///
+  /// Muda o nome, o e-mail, o ID externo, o CPF ou CNPJ, o telefone ou o
+  /// endereço de cobrança. O ID externo só pode ser definido uma vez.
+  ///
+  /// Autenticação: chave de API da organização em Authorization: Bearer
+  /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+  /// requisição. Respostas em JSON no envelope data; erros com error, message e
+  /// fields.
   Future<Customer> update(
     String customer,
     CustomersUpdateParams params, {
@@ -541,7 +750,15 @@ class CustomersService {
     return Customer.fromJson(data);
   }
 
-  /// Atualizar um cliente pelo ID dele no sistema do lojista (external_id).
+  /// Atualizar um cliente pelo ID externo.
+  ///
+  /// Muda o cliente que você identifica pelo ID dele no seu sistema
+  /// (external_id). Os campos são os de Atualizar um cliente.
+  ///
+  /// Autenticação: chave de API da organização em Authorization: Bearer
+  /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+  /// requisição. Respostas em JSON no envelope data; erros com error, message e
+  /// fields.
   Future<Customer> updateExternal(
     String externalId,
     CustomersUpdateExternalParams params, {
@@ -565,7 +782,16 @@ class DiscountsService {
 
   final Requester _client;
 
-  /// Criar um desconto percentual (basis_points) ou fixo em reais (amount_cents).
+  /// Criar um desconto.
+  ///
+  /// Cria um desconto percentual (basis_points) ou de valor fixo em reais
+  /// (amount_cents). O código é o que o comprador digita; sem ele, o desconto
+  /// só vale num link de checkout ou pela API.
+  ///
+  /// Autenticação: chave de API da organização em Authorization: Bearer
+  /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+  /// requisição. Respostas em JSON no envelope data; erros com error, message e
+  /// fields.
   Future<Discount> create(
     DiscountsCreateParams params, {
     String? idempotencyKey,
@@ -581,7 +807,15 @@ class DiscountsService {
     return Discount.fromJson(data);
   }
 
-  /// Excluir um desconto: sai das listas e dos checkouts e o código fica livre; o que ele já descontou continua nos registros. The API answers 204, so there is nothing to return.
+  /// Excluir um desconto. The API answers 204, so there is nothing to return.
+  ///
+  /// Exclui um desconto: ele sai das listas e dos checkouts, e o código fica
+  /// livre. O que ele já descontou continua nos registros.
+  ///
+  /// Autenticação: chave de API da organização em Authorization: Bearer
+  /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+  /// requisição. Respostas em JSON no envelope data; erros com error, message e
+  /// fields.
   Future<void> delete(
     String discount, {
     String? idempotencyKey,
@@ -596,6 +830,13 @@ class DiscountsService {
   }
 
   /// Ler um desconto.
+  ///
+  /// Devolve um desconto pelo ID.
+  ///
+  /// Autenticação: chave de API da organização em Authorization: Bearer
+  /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+  /// requisição. Respostas em JSON no envelope data; erros com error, message e
+  /// fields.
   Future<Discount> get(
     String discount, {
     String? apiKey,
@@ -609,6 +850,13 @@ class DiscountsService {
   }
 
   /// Listar descontos.
+  ///
+  /// Devolve uma página dos descontos da organização.
+  ///
+  /// Autenticação: chave de API da organização em Authorization: Bearer
+  /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+  /// requisição. Respostas em JSON no envelope data; erros com error, message e
+  /// fields.
   ///
   /// One page, from 1, of [limit] items (1 to 100, 10 by default);
   /// [listIter] walks every page.
@@ -645,7 +893,15 @@ class DiscountsService {
     );
   }
 
-  /// Atualizar um desconto; o tipo e a duração não mudam, e depois do primeiro uso o valor e os meses também não.
+  /// Atualizar um desconto.
+  ///
+  /// Muda um desconto. O tipo e a duração não mudam; depois do primeiro uso, o
+  /// valor e os meses também não.
+  ///
+  /// Autenticação: chave de API da organização em Authorization: Bearer
+  /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+  /// requisição. Respostas em JSON no envelope data; erros com error, message e
+  /// fields.
   Future<Discount> update(
     String discount,
     DiscountsUpdateParams params, {
@@ -670,6 +926,13 @@ class DisputesService {
   final Requester _client;
 
   /// Ler uma disputa.
+  ///
+  /// Devolve uma disputa pelo ID.
+  ///
+  /// Autenticação: chave de API da organização em Authorization: Bearer
+  /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+  /// requisição. Respostas em JSON no envelope data; erros com error, message e
+  /// fields.
   Future<Dispute> get(
     String dispute, {
     String? apiKey,
@@ -682,7 +945,14 @@ class DisputesService {
     return Dispute.fromJson(data);
   }
 
-  /// Listar disputas, opcionalmente de um status (status).
+  /// Listar disputas.
+  ///
+  /// Devolve uma página das disputas. Com status, só as que estão nele.
+  ///
+  /// Autenticação: chave de API da organização em Authorization: Bearer
+  /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+  /// requisição. Respostas em JSON no envelope data; erros com error, message e
+  /// fields.
   ///
   /// One page, from 1, of [limit] items (1 to 100, 10 by default);
   /// [listIter] walks every page.
@@ -730,7 +1000,15 @@ class EventsService {
 
   final Requester _client;
 
-  /// Listar os eventos de consumo que as origens enviaram, do mais novo ao mais antigo.
+  /// Listar eventos de consumo.
+  ///
+  /// Devolve uma página dos eventos de consumo que as fontes enviaram, do mais
+  /// novo ao mais antigo.
+  ///
+  /// Autenticação: chave de API da organização em Authorization: Bearer
+  /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+  /// requisição. Respostas em JSON no envelope data; erros com error, message e
+  /// fields.
   ///
   /// One page, from 1, of [limit] items (1 to 100, 10 by default);
   /// [listIter] walks every page.
@@ -786,7 +1064,15 @@ class MetersService {
 
   final Requester _client;
 
-  /// Ler um medidor: o filtro dos eventos que ele conta, a agregação e a unidade.
+  /// Ler um medidor.
+  ///
+  /// Devolve um medidor: o filtro dos eventos que ele conta, a agregação e a
+  /// unidade.
+  ///
+  /// Autenticação: chave de API da organização em Authorization: Bearer
+  /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+  /// requisição. Respostas em JSON no envelope data; erros com error, message e
+  /// fields.
   Future<Meter> get(
     String meter, {
     String? apiKey,
@@ -799,7 +1085,15 @@ class MetersService {
     return Meter.fromJson(data);
   }
 
-  /// Listar medidores; os arquivados só com is_archived=true.
+  /// Listar medidores.
+  ///
+  /// Devolve uma página dos medidores. Os arquivados só aparecem com
+  /// is_archived=true.
+  ///
+  /// Autenticação: chave de API da organização em Authorization: Bearer
+  /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+  /// requisição. Respostas em JSON no envelope data; erros com error, message e
+  /// fields.
   ///
   /// One page, from 1, of [limit] items (1 to 100, 10 by default);
   /// [listIter] walks every page.
@@ -847,7 +1141,14 @@ class OrdersService {
 
   final Requester _client;
 
-  /// Ler um pedido: um checkout pago.
+  /// Ler um pedido.
+  ///
+  /// Devolve um pedido: um checkout pago.
+  ///
+  /// Autenticação: chave de API da organização em Authorization: Bearer
+  /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+  /// requisição. Respostas em JSON no envelope data; erros com error, message e
+  /// fields.
   Future<Order> get(
     String order, {
     String? apiKey,
@@ -860,7 +1161,15 @@ class OrdersService {
     return Order.fromJson(data);
   }
 
-  /// Ler a fatura de um pedido, o documento comercial que o lojista gerou; sem ela, 404.
+  /// Ler a fatura de um pedido.
+  ///
+  /// Devolve a fatura de um pedido, o documento comercial que o lojista gerou.
+  /// Sem fatura, a resposta é 404.
+  ///
+  /// Autenticação: chave de API da organização em Authorization: Bearer
+  /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+  /// requisição. Respostas em JSON no envelope data; erros com error, message e
+  /// fields.
   Future<OrderInvoice> getInvoice(
     String order, {
     String? apiKey,
@@ -873,7 +1182,14 @@ class OrdersService {
     return OrderInvoice.fromJson(data);
   }
 
-  /// Ler o recibo de um pedido: o que foi pago, quando e como.
+  /// Ler o recibo de um pedido.
+  ///
+  /// Devolve o recibo de um pedido: o que foi pago, quando e como.
+  ///
+  /// Autenticação: chave de API da organização em Authorization: Bearer
+  /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+  /// requisição. Respostas em JSON no envelope data; erros com error, message e
+  /// fields.
   Future<OrderReceipt> getReceipt(
     String order, {
     String? apiKey,
@@ -886,7 +1202,15 @@ class OrdersService {
     return OrderReceipt.fromJson(data);
   }
 
-  /// Listar pedidos (checkouts pagos), opcionalmente de um client_reference_id, de um cliente, de um período ou de metadados.
+  /// Listar pedidos.
+  ///
+  /// Devolve uma página dos pedidos, que são os checkouts pagos. Filtre por
+  /// client_reference_id, cliente, período ou metadados.
+  ///
+  /// Autenticação: chave de API da organização em Authorization: Bearer
+  /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+  /// requisição. Respostas em JSON no envelope data; erros com error, message e
+  /// fields.
   ///
   /// One page, from 1, of [limit] items (1 to 100, 10 by default);
   /// [listIter] walks every page.
@@ -900,6 +1224,7 @@ class OrdersService {
     String? createdAfter,
     String? createdBefore,
     String? sorting,
+    Map<String, String>? metadata,
     String? apiKey,
   }) async {
     final data = await _client.request(
@@ -915,6 +1240,7 @@ class OrdersService {
         'created_after': createdAfter,
         'created_before': createdBefore,
         'sorting': sorting,
+        'metadata': metadata,
       },
       apiKey: apiKey,
     );
@@ -932,6 +1258,7 @@ class OrdersService {
     String? createdAfter,
     String? createdBefore,
     String? sorting,
+    Map<String, String>? metadata,
     String? apiKey,
   }) {
     return iterate(
@@ -945,6 +1272,7 @@ class OrdersService {
         createdAfter: createdAfter,
         createdBefore: createdBefore,
         sorting: sorting,
+        metadata: metadata,
         apiKey: apiKey,
       ),
       page,
@@ -958,7 +1286,15 @@ class PaymentMethodsService {
 
   final Requester _client;
 
-  /// Parar de cobrar um cartão guardado; recusado enquanto uma assinatura ativa o cobra.
+  /// Parar de cobrar um cartão guardado.
+  ///
+  /// Para de cobrar um cartão guardado. É recusado (409) enquanto uma
+  /// assinatura ativa o cobra.
+  ///
+  /// Autenticação: chave de API da organização em Authorization: Bearer
+  /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+  /// requisição. Respostas em JSON no envelope data; erros com error, message e
+  /// fields.
   Future<PaymentMethodDetached> detach(
     String paymentMethod, {
     String? idempotencyKey,
@@ -973,7 +1309,15 @@ class PaymentMethodsService {
     return PaymentMethodDetached.fromJson(data);
   }
 
-  /// Listar os cartões guardados de um cliente: bandeira, quatro últimos dígitos e validade.
+  /// Listar os cartões guardados de um cliente.
+  ///
+  /// Devolve os cartões guardados de um cliente: bandeira, quatro últimos
+  /// dígitos e validade. O número do cartão nunca aparece.
+  ///
+  /// Autenticação: chave de API da organização em Authorization: Bearer
+  /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+  /// requisição. Respostas em JSON no envelope data; erros com error, message e
+  /// fields.
   ///
   /// One page, from 1, of [limit] items (1 to 100, 10 by default);
   /// [listIter] walks every page.
@@ -1021,6 +1365,13 @@ class PaymentsService {
   final Requester _client;
 
   /// Ler um pagamento.
+  ///
+  /// Devolve um pagamento pelo ID.
+  ///
+  /// Autenticação: chave de API da organização em Authorization: Bearer
+  /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+  /// requisição. Respostas em JSON no envelope data; erros com error, message e
+  /// fields.
   Future<Payment> get(
     String payment, {
     String? apiKey,
@@ -1033,7 +1384,15 @@ class PaymentsService {
     return Payment.fromJson(data);
   }
 
-  /// Listar pagamentos, opcionalmente de um client_reference_id, de um estado, de um cliente, de um período ou de metadados.
+  /// Listar pagamentos.
+  ///
+  /// Devolve uma página dos pagamentos. Filtre por client_reference_id, estado,
+  /// cliente, período ou metadados.
+  ///
+  /// Autenticação: chave de API da organização em Authorization: Bearer
+  /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+  /// requisição. Respostas em JSON no envelope data; erros com error, message e
+  /// fields.
   ///
   /// One page, from 1, of [limit] items (1 to 100, 10 by default);
   /// [listIter] walks every page.
@@ -1047,6 +1406,7 @@ class PaymentsService {
     String? createdAfter,
     String? createdBefore,
     String? sorting,
+    Map<String, String>? metadata,
     String? apiKey,
   }) async {
     final data = await _client.request(
@@ -1062,6 +1422,7 @@ class PaymentsService {
         'created_after': createdAfter,
         'created_before': createdBefore,
         'sorting': sorting,
+        'metadata': metadata,
       },
       apiKey: apiKey,
     );
@@ -1079,6 +1440,7 @@ class PaymentsService {
     String? createdAfter,
     String? createdBefore,
     String? sorting,
+    Map<String, String>? metadata,
     String? apiKey,
   }) {
     return iterate(
@@ -1092,6 +1454,7 @@ class PaymentsService {
         createdAfter: createdAfter,
         createdBefore: createdBefore,
         sorting: sorting,
+        metadata: metadata,
         apiKey: apiKey,
       ),
       page,
@@ -1105,7 +1468,16 @@ class PricesService {
 
   final Requester _client;
 
-  /// Criar um preço em reais, avulso ou recorrente.
+  /// Criar um preço.
+  ///
+  /// Cria um preço em reais para um produto, avulso (one_time) ou recorrente
+  /// (recurring). No recorrente, interval e interval_count dizem de quanto em
+  /// quanto tempo ele renova: month com 3 é trimestral.
+  ///
+  /// Autenticação: chave de API da organização em Authorization: Bearer
+  /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+  /// requisição. Respostas em JSON no envelope data; erros com error, message e
+  /// fields.
   Future<Price> create(
     PricesCreateParams params, {
     String? idempotencyKey,
@@ -1121,7 +1493,15 @@ class PricesService {
     return Price.fromJson(data);
   }
 
-  /// Listar preços, opcionalmente de um produto (product_id).
+  /// Listar preços.
+  ///
+  /// Devolve uma página dos preços da organização. Com product_id, só os de um
+  /// produto.
+  ///
+  /// Autenticação: chave de API da organização em Authorization: Bearer
+  /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+  /// requisição. Respostas em JSON no envelope data; erros com error, message e
+  /// fields.
   ///
   /// One page, from 1, of [limit] items (1 to 100, 10 by default);
   /// [listIter] walks every page.
@@ -1169,7 +1549,15 @@ class ProductsService {
 
   final Requester _client;
 
-  /// Arquivar um produto: sai das vendas novas e o que já foi vendido continua apontando para ele.
+  /// Arquivar um produto.
+  ///
+  /// Arquiva um produto: ele sai das vendas novas, e o que já foi vendido
+  /// continua apontando para ele.
+  ///
+  /// Autenticação: chave de API da organização em Authorization: Bearer
+  /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+  /// requisição. Respostas em JSON no envelope data; erros com error, message e
+  /// fields.
   Future<Product> archive(
     String product, {
     String? idempotencyKey,
@@ -1185,6 +1573,14 @@ class ProductsService {
   }
 
   /// Criar um produto.
+  ///
+  /// Cria um produto com nome e descrição. O preço se cria à parte, em Criar um
+  /// preço.
+  ///
+  /// Autenticação: chave de API da organização em Authorization: Bearer
+  /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+  /// requisição. Respostas em JSON no envelope data; erros com error, message e
+  /// fields.
   Future<Product> create(
     ProductsCreateParams params, {
     String? idempotencyKey,
@@ -1201,6 +1597,13 @@ class ProductsService {
   }
 
   /// Ler um produto.
+  ///
+  /// Devolve um produto pelo ID.
+  ///
+  /// Autenticação: chave de API da organização em Authorization: Bearer
+  /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+  /// requisição. Respostas em JSON no envelope data; erros com error, message e
+  /// fields.
   Future<Product> get(
     String product, {
     String? apiKey,
@@ -1214,6 +1617,13 @@ class ProductsService {
   }
 
   /// Listar produtos.
+  ///
+  /// Devolve uma página dos produtos da organização, no ambiente da chave.
+  ///
+  /// Autenticação: chave de API da organização em Authorization: Bearer
+  /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+  /// requisição. Respostas em JSON no envelope data; erros com error, message e
+  /// fields.
   ///
   /// One page, from 1, of [limit] items (1 to 100, 10 by default);
   /// [listIter] walks every page.
@@ -1250,7 +1660,15 @@ class ProductsService {
     );
   }
 
-  /// Atualizar o nome ou a descrição de um produto ativo.
+  /// Atualizar um produto.
+  ///
+  /// Muda o nome ou a descrição de um produto ativo. O que você não enviar fica
+  /// como está.
+  ///
+  /// Autenticação: chave de API da organização em Authorization: Bearer
+  /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+  /// requisição. Respostas em JSON no envelope data; erros com error, message e
+  /// fields.
   Future<Product> update(
     String product,
     ProductsUpdateParams params, {
@@ -1274,7 +1692,16 @@ class RefundsService {
 
   final Requester _client;
 
-  /// Reembolsar parte ou todo um pagamento.
+  /// Reembolsar um pagamento.
+  ///
+  /// Devolve parte ou todo o valor de um pagamento. A Idempotency-Key é
+  /// obrigatória: sem ela, repetir a chamada depois de um tempo esgotado seria
+  /// devolver duas vezes.
+  ///
+  /// Autenticação: chave de API da organização em Authorization: Bearer
+  /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+  /// requisição. Respostas em JSON no envelope data; erros com error, message e
+  /// fields.
   Future<Refund> create(
     RefundsCreateParams params, {
     String? idempotencyKey,
@@ -1290,7 +1717,15 @@ class RefundsService {
     return Refund.fromJson(data);
   }
 
-  /// Listar reembolsos, opcionalmente de um pagamento (payment_id), de um status, de um cliente ou de um período.
+  /// Listar reembolsos.
+  ///
+  /// Devolve uma página dos reembolsos. Filtre por pagamento (payment_id),
+  /// status, cliente ou período.
+  ///
+  /// Autenticação: chave de API da organização em Authorization: Bearer
+  /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+  /// requisição. Respostas em JSON no envelope data; erros com error, message e
+  /// fields.
   ///
   /// One page, from 1, of [limit] items (1 to 100, 10 by default);
   /// [listIter] walks every page.
@@ -1362,7 +1797,15 @@ class SubscriptionsService {
 
   final Requester _client;
 
-  /// Cancelar uma assinatura, por padrão no fim do período.
+  /// Cancelar uma assinatura.
+  ///
+  /// Cancela uma assinatura. Por padrão o cancelamento vale no fim do período
+  /// já pago.
+  ///
+  /// Autenticação: chave de API da organização em Authorization: Bearer
+  /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+  /// requisição. Respostas em JSON no envelope data; erros com error, message e
+  /// fields.
   Future<Subscription> cancel(
     String subscription,
     SubscriptionsCancelParams params, {
@@ -1380,6 +1823,13 @@ class SubscriptionsService {
   }
 
   /// Ler uma assinatura.
+  ///
+  /// Devolve uma assinatura pelo ID.
+  ///
+  /// Autenticação: chave de API da organização em Authorization: Bearer
+  /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+  /// requisição. Respostas em JSON no envelope data; erros com error, message e
+  /// fields.
   Future<Subscription> get(
     String subscription, {
     String? apiKey,
@@ -1392,7 +1842,15 @@ class SubscriptionsService {
     return Subscription.fromJson(data);
   }
 
-  /// Listar assinaturas, opcionalmente de um cliente (customer_id ou external_customer_id), de um status, de um período ou de metadados.
+  /// Listar assinaturas.
+  ///
+  /// Devolve uma página das assinaturas. Filtre por cliente (customer_id ou
+  /// external_customer_id), status, período ou metadados.
+  ///
+  /// Autenticação: chave de API da organização em Authorization: Bearer
+  /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+  /// requisição. Respostas em JSON no envelope data; erros com error, message e
+  /// fields.
   ///
   /// One page, from 1, of [limit] items (1 to 100, 10 by default);
   /// [listIter] walks every page.
@@ -1405,6 +1863,7 @@ class SubscriptionsService {
     String? createdAfter,
     String? createdBefore,
     String? sorting,
+    Map<String, String>? metadata,
     String? apiKey,
   }) async {
     final data = await _client.request(
@@ -1419,6 +1878,7 @@ class SubscriptionsService {
         'created_after': createdAfter,
         'created_before': createdBefore,
         'sorting': sorting,
+        'metadata': metadata,
       },
       apiKey: apiKey,
     );
@@ -1435,6 +1895,7 @@ class SubscriptionsService {
     String? createdAfter,
     String? createdBefore,
     String? sorting,
+    Map<String, String>? metadata,
     String? apiKey,
   }) {
     return iterate(
@@ -1447,13 +1908,23 @@ class SubscriptionsService {
         createdAfter: createdAfter,
         createdBefore: createdBefore,
         sorting: sorting,
+        metadata: metadata,
         apiKey: apiKey,
       ),
       page,
     );
   }
 
-  /// Reativar uma assinatura suspensa, que volta a ser cobrada (a cobrança do ciclo em aberto recomeça), ou retomar uma pausada; qualquer outra recebe 409.
+  /// Reativar uma assinatura.
+  ///
+  /// Reativa uma assinatura suspensa, que volta a ser cobrada (a cobrança do
+  /// ciclo em aberto recomeça), ou retoma uma pausada. Qualquer outra
+  /// assinatura recebe 409.
+  ///
+  /// Autenticação: chave de API da organização em Authorization: Bearer
+  /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+  /// requisição. Respostas em JSON no envelope data; erros com error, message e
+  /// fields.
   Future<Subscription> resume(
     String subscription, {
     String? idempotencyKey,
@@ -1468,7 +1939,15 @@ class SubscriptionsService {
     return Subscription.fromJson(data);
   }
 
-  /// Trocar o plano de uma assinatura: outro preço e, se quiser, outra quantidade, com a forma de ratear a diferença (proration_behavior).
+  /// Trocar o plano de uma assinatura.
+  ///
+  /// Troca o plano de uma assinatura: outro preço e, se quiser, outra
+  /// quantidade. O proration_behavior diz como ratear a diferença.
+  ///
+  /// Autenticação: chave de API da organização em Authorization: Bearer
+  /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+  /// requisição. Respostas em JSON no envelope data; erros com error, message e
+  /// fields.
   Future<Subscription> update(
     String subscription,
     SubscriptionsUpdateParams params, {
@@ -1493,6 +1972,26 @@ class UsageService {
   final Requester _client;
 
   /// Ingerir lote atômico de eventos de uso. Autentica com a credencial de uma fonte de ingestão (pus_test_… ou pus_live_…), não com a chave de API da organização.
+  ///
+  /// Autorização: Bearer é o único formato de credencial suportado. As
+  /// credenciais são assinadas pela Peráta, expiram em 30 dias e são
+  /// verificadas em relação ao estado da fonte, associação atual do emissor e
+  /// permissões nativas. Organização, merchant e ambiente (teste, pus_test_…,
+  /// ou produção, pus_live_…) são derivados da fonte autenticada; o payload
+  /// JSON não pode sobrescrevê-los, e uma credencial de um ambiente nunca
+  /// escreve no outro. Em produção, a fonte só existe para uma organização que
+  /// a equipe da Peráta liberou. 1 a 100 eventos, no máximo 65536 bytes.
+  /// Contagens são strings decimais de inteiros, de 0 a 1000000000000, com pelo
+  /// menos um token por evento; a entrada exclui cache. Ocorrência RFC3339 em
+  /// segundos inteiros, com no máximo 90 dias atrás e até cinco minutos à
+  /// frente. Escopo/fonte/external_event_id identificam um registro; repetições
+  /// exatas contam como replay e conteúdo conflitante retorna 409. Todos os
+  /// novos eventos e emissões da outbox são confirmados ou revertidos juntos.
+  /// Rotação mantém a identidade da fonte e replay; credenciais revogadas ou
+  /// expiradas não podem ser reutilizadas. O sucesso vem no envelope data; todo
+  /// erro é o documento de erro da API, o mesmo das demais operações de /api/v1
+  /// (error, message e fields), com record, a posição do evento recusado,
+  /// quando há. Sem cobrança ou faturamento automático.
   Future<UsageIngestReceipt> ingest(
     UsageIngestParams params, {
     String? apiKey,
@@ -1513,7 +2012,15 @@ class WebhooksService {
 
   final Requester _client;
 
-  /// Criar um endpoint de webhook; o segredo que assina as mensagens vem só nesta resposta.
+  /// Criar um endpoint de webhook.
+  ///
+  /// Cria um endpoint de webhook. O segredo que assina as mensagens vem só
+  /// nesta resposta; guarde-o.
+  ///
+  /// Autenticação: chave de API da organização em Authorization: Bearer
+  /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+  /// requisição. Respostas em JSON no envelope data; erros com error, message e
+  /// fields.
   Future<WebhookEndpointCreated> createEndpoint(
     WebhooksCreateEndpointParams params, {
     String? idempotencyKey,
@@ -1529,7 +2036,15 @@ class WebhooksService {
     return WebhookEndpointCreated.fromJson(data);
   }
 
-  /// Excluir um endpoint de webhook; as entregas que ainda esperavam por ele falham. The API answers 204, so there is nothing to return.
+  /// Excluir um endpoint de webhook. The API answers 204, so there is nothing to return.
+  ///
+  /// Exclui um endpoint de webhook. As entregas que ainda esperavam por ele
+  /// falham.
+  ///
+  /// Autenticação: chave de API da organização em Authorization: Bearer
+  /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+  /// requisição. Respostas em JSON no envelope data; erros com error, message e
+  /// fields.
   Future<void> deleteEndpoint(
     String endpoint, {
     String? idempotencyKey,
@@ -1544,6 +2059,13 @@ class WebhooksService {
   }
 
   /// Ler um endpoint de webhook.
+  ///
+  /// Devolve um endpoint de webhook pelo ID.
+  ///
+  /// Autenticação: chave de API da organização em Authorization: Bearer
+  /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+  /// requisição. Respostas em JSON no envelope data; erros com error, message e
+  /// fields.
   Future<WebhookEndpoint> getEndpoint(
     String endpoint, {
     String? apiKey,
@@ -1556,7 +2078,15 @@ class WebhooksService {
     return WebhookEndpoint.fromJson(data);
   }
 
-  /// Listar as últimas 100 entregas de eventos aos endpoints, opcionalmente de um endpoint (endpoint_id) ou de uma situação (status).
+  /// Listar entregas de webhook.
+  ///
+  /// Devolve as últimas 100 entregas de eventos aos endpoints. Com endpoint_id,
+  /// só as de um endpoint; com status, só as de uma situação.
+  ///
+  /// Autenticação: chave de API da organização em Authorization: Bearer
+  /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+  /// requisição. Respostas em JSON no envelope data; erros com error, message e
+  /// fields.
   ///
   /// One page, from 1, of [limit] items (1 to 100, 10 by default);
   /// [listDeliveriesIter] walks every page.
@@ -1601,7 +2131,14 @@ class WebhooksService {
     );
   }
 
-  /// Listar os endpoints de webhook do lojista.
+  /// Listar endpoints de webhook.
+  ///
+  /// Devolve uma página dos endpoints de webhook da organização.
+  ///
+  /// Autenticação: chave de API da organização em Authorization: Bearer
+  /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+  /// requisição. Respostas em JSON no envelope data; erros com error, message e
+  /// fields.
   ///
   /// One page, from 1, of [limit] items (1 to 100, 10 by default);
   /// [listEndpointsIter] walks every page.
@@ -1638,7 +2175,15 @@ class WebhooksService {
     );
   }
 
-  /// Atualizar o endereço, o formato, os eventos ou a descrição de um endpoint, ou ligar e desligar o envio (enabled); o segredo não muda.
+  /// Atualizar um endpoint de webhook.
+  ///
+  /// Muda o endereço, o formato, os eventos ou a descrição de um endpoint, ou
+  /// liga e desliga o envio (enabled). O segredo não muda.
+  ///
+  /// Autenticação: chave de API da organização em Authorization: Bearer
+  /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+  /// requisição. Respostas em JSON no envelope data; erros com error, message e
+  /// fields.
   Future<WebhookEndpoint> updateEndpoint(
     String endpoint,
     WebhooksUpdateEndpointParams params, {

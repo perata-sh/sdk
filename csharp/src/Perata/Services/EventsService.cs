@@ -3,6 +3,7 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Linq;
 using System.Net.Http;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -18,7 +19,15 @@ public sealed class EventsService
 
     internal EventsService(PerataClient client) => this.client = client;
 
-    /// <summary>Listar os eventos de consumo que as origens enviaram, do mais novo ao mais antigo. One page; <see cref="ListIterAsync"/> walks every page.</summary>
+    /// <summary>Listar eventos de consumo. One page; <see cref="ListIterAsync"/> walks every page.</summary>
+    /// <remarks>
+    /// <para>Devolve uma página dos eventos de consumo que as fontes enviaram,
+    /// do mais novo ao mais antigo.</para>
+    /// <para>Autenticação: chave de API da organização em Authorization: Bearer
+    /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
+    /// da requisição. Respostas em JSON no envelope data; erros com error,
+    /// message e fields.</para>
+    /// </remarks>
     /// <param name="parameters">The page, its size and the filters; the first page when null.</param>
     /// <param name="options">Another organization's key for this call.</param>
     /// <param name="cancellationToken">Cancels the call.</param>
@@ -57,14 +66,14 @@ public sealed record EventsListParams
     /// <summary>Só os eventos até este instante (RFC 3339).</summary>
     public string? End { get; init; }
 
-    internal IEnumerable<KeyValuePair<string, string?>> Query() =>
-    [
-        new("page", Page?.ToString(CultureInfo.InvariantCulture)),
-        new("limit", Limit?.ToString(CultureInfo.InvariantCulture)),
-        new("customer_id", CustomerId),
-        new("start", Start),
-        new("end", End),
-    ];
+    internal IEnumerable<KeyValuePair<string, string?>> Query()
+    {
+        yield return new("page", Page?.ToString(CultureInfo.InvariantCulture));
+        yield return new("limit", Limit?.ToString(CultureInfo.InvariantCulture));
+        yield return new("customer_id", CustomerId);
+        yield return new("start", Start);
+        yield return new("end", End);
+    }
 }
 
 

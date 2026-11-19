@@ -18,7 +18,15 @@ final class EventsService
     }
 
     /**
-     * Listar os eventos de consumo que as origens enviaram, do mais novo ao mais antigo. One page; listIter() walks every page.
+     * Listar eventos de consumo. One page; listIter() walks every page.
+     *
+     * Devolve uma página dos eventos de consumo que as fontes enviaram, do mais
+     * novo ao mais antigo.
+     *
+     * Autenticação: chave de API da organização em Authorization: Bearer
+     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+     * requisição. Respostas em JSON no envelope data; erros com error, message
+     * e fields.
      *
      * @param array{page?: int, limit?: int, customer_id?: string, start?: string, end?: string} $params
      * @return Page<Models\Event>

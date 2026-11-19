@@ -155,7 +155,19 @@ defmodule Perata.Client do
   defp query(nil), do: ""
 
   defp query(values) do
-    case Enum.reject(values, fn {_name, value} -> value in [nil, ""] end) do
+    pairs =
+      Enum.flat_map(values, fn
+        # A map filter is one pair a key: metadata[pedido]=123, the keys sorted.
+        {name, map} when is_map(map) ->
+          map
+          |> Enum.sort_by(fn {key, _value} -> to_string(key) end)
+          |> Enum.map(fn {key, value} -> {"#{name}[#{key}]", value} end)
+
+        pair ->
+          [pair]
+      end)
+
+    case Enum.reject(pairs, fn {_name, value} -> value in [nil, ""] end) do
       [] -> ""
       kept -> "?" <> URI.encode_query(kept)
     end

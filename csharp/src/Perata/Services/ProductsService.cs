@@ -3,6 +3,7 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Linq;
 using System.Net.Http;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -18,7 +19,15 @@ public sealed class ProductsService
 
     internal ProductsService(PerataClient client) => this.client = client;
 
-    /// <summary>Arquivar um produto: sai das vendas novas e o que já foi vendido continua apontando para ele.</summary>
+    /// <summary>Arquivar um produto.</summary>
+    /// <remarks>
+    /// <para>Arquiva um produto: ele sai das vendas novas, e o que já foi
+    /// vendido continua apontando para ele.</para>
+    /// <para>Autenticação: chave de API da organização em Authorization: Bearer
+    /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
+    /// da requisição. Respostas em JSON no envelope data; erros com error,
+    /// message e fields.</para>
+    /// </remarks>
     /// <param name="product">The product.</param>
     /// <param name="options">An idempotency key, or another organization's key for this call.</param>
     /// <param name="cancellationToken">Cancels the call.</param>
@@ -30,6 +39,14 @@ public sealed class ProductsService
     }
 
     /// <summary>Criar um produto.</summary>
+    /// <remarks>
+    /// <para>Cria um produto com nome e descrição. O preço se cria à parte, em
+    /// Criar um preço.</para>
+    /// <para>Autenticação: chave de API da organização em Authorization: Bearer
+    /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
+    /// da requisição. Respostas em JSON no envelope data; erros com error,
+    /// message e fields.</para>
+    /// </remarks>
     /// <param name="parameters">The request.</param>
     /// <param name="options">An idempotency key, or another organization's key for this call.</param>
     /// <param name="cancellationToken">Cancels the call.</param>
@@ -42,6 +59,13 @@ public sealed class ProductsService
     }
 
     /// <summary>Ler um produto.</summary>
+    /// <remarks>
+    /// <para>Devolve um produto pelo ID.</para>
+    /// <para>Autenticação: chave de API da organização em Authorization: Bearer
+    /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
+    /// da requisição. Respostas em JSON no envelope data; erros com error,
+    /// message e fields.</para>
+    /// </remarks>
     /// <param name="product">The product.</param>
     /// <param name="options">Another organization's key for this call.</param>
     /// <param name="cancellationToken">Cancels the call.</param>
@@ -53,6 +77,14 @@ public sealed class ProductsService
     }
 
     /// <summary>Listar produtos. One page; <see cref="ListIterAsync"/> walks every page.</summary>
+    /// <remarks>
+    /// <para>Devolve uma página dos produtos da organização, no ambiente da
+    /// chave.</para>
+    /// <para>Autenticação: chave de API da organização em Authorization: Bearer
+    /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
+    /// da requisição. Respostas em JSON no envelope data; erros com error,
+    /// message e fields.</para>
+    /// </remarks>
     /// <param name="parameters">The page, its size and the filters; the first page when null.</param>
     /// <param name="options">Another organization's key for this call.</param>
     /// <param name="cancellationToken">Cancels the call.</param>
@@ -72,7 +104,15 @@ public sealed class ProductsService
         return Pages.IterateAsync((page, token) => ListAsync(walk with { Page = page }, options, token), walk.Page, cancellationToken);
     }
 
-    /// <summary>Atualizar o nome ou a descrição de um produto ativo.</summary>
+    /// <summary>Atualizar um produto.</summary>
+    /// <remarks>
+    /// <para>Muda o nome ou a descrição de um produto ativo. O que você não
+    /// enviar fica como está.</para>
+    /// <para>Autenticação: chave de API da organização em Authorization: Bearer
+    /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
+    /// da requisição. Respostas em JSON no envelope data; erros com error,
+    /// message e fields.</para>
+    /// </remarks>
     /// <param name="product">The product.</param>
     /// <param name="parameters">The request.</param>
     /// <param name="options">An idempotency key, or another organization's key for this call.</param>
@@ -108,11 +148,11 @@ public sealed record ProductsListParams
     /// <summary>The items a page, 1 to 100; the API's 10 when null.</summary>
     public int? Limit { get; init; }
 
-    internal IEnumerable<KeyValuePair<string, string?>> Query() =>
-    [
-        new("page", Page?.ToString(CultureInfo.InvariantCulture)),
-        new("limit", Limit?.ToString(CultureInfo.InvariantCulture)),
-    ];
+    internal IEnumerable<KeyValuePair<string, string?>> Query()
+    {
+        yield return new("page", Page?.ToString(CultureInfo.InvariantCulture));
+        yield return new("limit", Limit?.ToString(CultureInfo.InvariantCulture));
+    }
 }
 
 /// <summary>The body of products:update.</summary>

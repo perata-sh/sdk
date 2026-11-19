@@ -6,6 +6,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.TreeMap;
 
 /** The API's payment_methods. */
 public final class PaymentMethodsService {
@@ -16,7 +17,16 @@ public final class PaymentMethodsService {
     }
 
     /**
-     * Parar de cobrar um cartão guardado; recusado enquanto uma assinatura ativa o cobra.
+     * Parar de cobrar um cartão guardado.
+     *
+     * Para de cobrar um cartão guardado. É recusado (409) enquanto uma
+     * assinatura ativa o cobra.
+     *
+     * Autenticação: chave de API da organização em Authorization: Bearer
+     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+     * requisição. Respostas em JSON no envelope data; erros com error, message
+     * e fields.
+     *
      * @param paymentMethod the payment_method
      * @param options an idempotency key or another organization's key for this call, or null
      * @return the paymentmethoddetached
@@ -28,7 +38,16 @@ public final class PaymentMethodsService {
     }
 
     /**
-     * Parar de cobrar um cartão guardado; recusado enquanto uma assinatura ativa o cobra.
+     * Parar de cobrar um cartão guardado.
+     *
+     * Para de cobrar um cartão guardado. É recusado (409) enquanto uma
+     * assinatura ativa o cobra.
+     *
+     * Autenticação: chave de API da organização em Authorization: Bearer
+     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+     * requisição. Respostas em JSON no envelope data; erros com error, message
+     * e fields.
+     *
      * @param paymentMethod the payment_method
      * @return the paymentmethoddetached
      * @throws PerataException when the API refuses the call
@@ -38,7 +57,16 @@ public final class PaymentMethodsService {
     }
 
     /**
-     * Listar os cartões guardados de um cliente: bandeira, quatro últimos dígitos e validade. One page; {@link #listIter} walks every page.
+     * Listar os cartões guardados de um cliente. One page; {@link #listIter} walks every page.
+     *
+     * Devolve os cartões guardados de um cliente: bandeira, quatro últimos
+     * dígitos e validade. O número do cartão nunca aparece.
+     *
+     * Autenticação: chave de API da organização em Authorization: Bearer
+     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+     * requisição. Respostas em JSON no envelope data; erros com error, message
+     * e fields.
+     *
      * @param customer the customer
      * @param params the page, its size and the filters, or null
      * @param options options for this call, or null
@@ -51,7 +79,16 @@ public final class PaymentMethodsService {
     }
 
     /**
-     * Listar os cartões guardados de um cliente: bandeira, quatro últimos dígitos e validade. One page.
+     * Listar os cartões guardados de um cliente. One page.
+     *
+     * Devolve os cartões guardados de um cliente: bandeira, quatro últimos
+     * dígitos e validade. O número do cartão nunca aparece.
+     *
+     * Autenticação: chave de API da organização em Authorization: Bearer
+     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+     * requisição. Respostas em JSON no envelope data; erros com error, message
+     * e fields.
+     *
      * @param customer the customer
      * @param params the page, its size and the filters, or null
      * @return the page
@@ -61,7 +98,16 @@ public final class PaymentMethodsService {
     }
 
     /**
-     * Listar os cartões guardados de um cliente: bandeira, quatro últimos dígitos e validade. The first page.
+     * Listar os cartões guardados de um cliente. The first page.
+     *
+     * Devolve os cartões guardados de um cliente: bandeira, quatro últimos
+     * dígitos e validade. O número do cartão nunca aparece.
+     *
+     * Autenticação: chave de API da organização em Authorization: Bearer
+     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+     * requisição. Respostas em JSON no envelope data; erros com error, message
+     * e fields.
+     *
      * @param customer the customer
      * @return the page
      */

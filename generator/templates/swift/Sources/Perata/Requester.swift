@@ -122,6 +122,11 @@ extension PerataError {
     }
 }
 
+/// A map filter is one pair a key: `metadata[pedido]=123`, the keys sorted.
+func deepObject(_ name: String, _ map: [String: String]?) -> [(String, String?)] {
+    (map ?? [:]).sorted { $0.key < $1.key }.map { ("\(name)[\($0.key)]", $0.value) }
+}
+
 private struct Envelope<T: Decodable>: Decodable {
     let data: T
 }

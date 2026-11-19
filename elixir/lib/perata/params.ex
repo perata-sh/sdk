@@ -13,7 +13,7 @@ defmodule Perata.BenefitsCreateParams do
 
   @typedoc """
   * `description` (optional)
-  * `metadata` (optional): Até 50 pares; valor em texto, número ou booleano. No feature_flag, os valores da flag.
+  * `metadata` (optional): Pares guardados no benefício. No feature_flag, são os valores da flag. Até 50 pares de chave e valor: a chave tem de 1 a 40 caracteres, e o valor é um texto de 1 a 500 caracteres, um número ou um booleano. Texto sem caracteres de controle nem de direção invisível.
   * `name`: Como o benefício aparece nos produtos e para o cliente; até 80 caracteres.
   * `properties` (optional): Os campos do tipo. custom: note. license_key: prefix, expires_in, expires_unit (day, month, year), activation_limit, customer_can_deactivate, usage_limit. meter_credit: meter_id, units, rollover. feature_flag: nenhum.
   * `type` (one of `"custom"`, `"license_key"`, `"feature_flag"`, `"meter_credit"`)
@@ -57,7 +57,7 @@ defmodule Perata.BenefitsUpdateParams do
   defstruct [:metadata, :name, :properties, :visibility]
 
   @typedoc """
-  * `metadata` (optional): Substitui os metadados; {} os limpa.
+  * `metadata` (optional): Substitui os metadados; {} os limpa. Até 50 pares de chave e valor: a chave tem de 1 a 40 caracteres, e o valor é um texto de 1 a 500 caracteres, um número ou um booleano. Texto sem caracteres de controle nem de direção invisível.
   * `name` (optional)
   * `properties` (optional): Os campos do tipo, aplicados sobre os guardados; o que ficar de fora não muda.
   * `visibility` (optional; one of `"public"`, `"private"`)
@@ -122,7 +122,7 @@ defmodule Perata.CheckoutLinksCreateParams do
   * `expires_at` (optional): Data e hora RFC 3339 no futuro.
   * `label` (optional)
   * `max_installments` (optional): De 0 a 12; 0 segue a organização.
-  * `metadata` (optional): Até 50 pares; valor em texto, número ou booleano.
+  * `metadata` (optional): Pares guardados no link. Até 50 pares de chave e valor: a chave tem de 1 a 40 caracteres, e o valor é um texto de 1 a 500 caracteres, um número ou um booleano. Texto sem caracteres de controle nem de direção invisível.
   * `price_id` (optional)
   * `price_ids` (optional): Um preço de cada produto, na ordem em que o comprador os vê; até 20.
   * `product_id` (optional): Com price_id, o produto que o link vende; ou use price_ids.
@@ -194,7 +194,7 @@ defmodule Perata.CheckoutLinksUpdateParams do
   @typedoc """
   * `cancel_url` (optional)
   * `label` (optional)
-  * `metadata` (optional): Substitui os metadados; {} os limpa.
+  * `metadata` (optional): Substitui os metadados; {} os limpa. Até 50 pares de chave e valor: a chave tem de 1 a 40 caracteres, e o valor é um texto de 1 a 500 caracteres, um número ou um booleano. Texto sem caracteres de controle nem de direção invisível.
   * `price_ids` (optional): Substitui os produtos do link.
   * `require_billing_address` (optional)
   * `success_url` (optional)
@@ -270,7 +270,7 @@ defmodule Perata.CheckoutsCreateParams do
   * `external_customer_id` (optional): O mesmo cliente, pelo ID que você deu a ele.
   * `items` (optional): As linhas do pedido, até 50, para o comprador ler o detalhe: aparecem no checkout (página, modal, componentes e transparente), no pedido, no recibo, no portal do cliente e nos eventos. A soma de quantity vezes unit_amount_cents precisa ser igual a amount_cents, ou a resposta é 422; enviadas sem amount_cents, a soma é o valor.
   * `label` (optional)
-  * `metadata` (optional): Até 50 pares guardados no link do checkout; valor em texto, número ou booleano.
+  * `metadata` (optional): Pares guardados no link do checkout e devolvidos no checkout, no pedido, no pagamento e nos eventos da venda. Até 50 pares de chave e valor: a chave tem de 1 a 40 caracteres, e o valor é um texto de 1 a 500 caracteres, um número ou um booleano. Texto sem caracteres de controle nem de direção invisível.
   * `quantity` (optional): Quantas unidades. Com amount_cents é sempre 1: envie 1 ou omita; qualquer outro valor é recusado com 422.
   * `require_billing_address` (optional): Pede o endereço de cobrança completo de todo comprador, não só no boleto; desligado quando fica de fora.
   * `return_url` (optional): Outro nome de cancel_url: a página https a que o comprador volta sem pagar. Enviada com um cancel_url diferente, é recusada.

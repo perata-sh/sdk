@@ -6,11 +6,11 @@ use std::time::{Duration, UNIX_EPOCH};
 
 use perata::{
     verify_webhook_at, verify_webhook_signature_at, BoxError, CheckoutClientPayment,
-    CheckoutsCreateParams, Client, CustomersCreateParams, DiscountsCreateParams,
-    DiscountsCreateParamsDuration, DiscountsCreateParamsType, DiscountsListParams, Error,
-    HttpRequest, HttpResponse, ProductStatus, ProductsCreateParams, ProductsListParams,
-    UsageIngestEvent, UsageIngestEventCost, UsageIngestEventCostCurrency, UsageIngestParams,
-    WebhookError, WebhookEvent,
+    CheckoutsCreateParams, CheckoutsListParams, Client, CustomersCreateParams, CustomersListParams,
+    DiscountsCreateParams, DiscountsCreateParamsDuration, DiscountsCreateParamsType,
+    DiscountsListParams, Error, HttpRequest, HttpResponse, OrdersListParams, ProductStatus,
+    ProductsCreateParams, ProductsListParams, UsageIngestEvent, UsageIngestEventCost,
+    UsageIngestEventCostCurrency, UsageIngestParams, WebhookError, WebhookEvent,
 };
 
 type Seen = Arc<Mutex<Vec<HttpRequest>>>;
@@ -330,6 +330,57 @@ fn iterating_walks_every_page() {
     assert_eq!(
         query(&seen.lock().unwrap()[0].url, "limit").as_deref(),
         Some("1")
+    );
+}
+
+#[test]
+fn a_metadata_filter_is_sent_as_one_pair_a_key_the_keys_sorted_and_escaped() {
+    let (client, seen) = client(|_| {
+        json(
+            200,
+            serde_json::json!({"data": {"items": [], "pagination": {"total_count": 0, "max_page": 1}}}),
+        )
+    });
+    let metadata = [("pedido", "123"), ("camera id", "a/b")];
+    client
+        .orders()
+        .list(
+            &OrdersListParams::new()
+                .client_reference_id("pedido-1")
+                .metadata(metadata),
+        )
+        .unwrap();
+    let walked = client
+        .checkouts()
+        .list_iter(CheckoutsListParams::new().limit(1).metadata(metadata))
+        .count();
+    assert_eq!(walked, 0);
+    let seen = seen.lock().unwrap();
+    assert_eq!(
+        seen[0].url,
+        "https://perata.test/api/v1/orders?client_reference_id=pedido-1&metadata%5Bcamera%20id%5D=a%2Fb&metadata%5Bpedido%5D=123"
+    );
+    assert_eq!(
+        seen[1].url,
+        "https://perata.test/api/v1/checkouts?page=1&limit=1&metadata%5Bcamera%20id%5D=a%2Fb&metadata%5Bpedido%5D=123"
+    );
+}
+
+#[test]
+fn customers_are_listed_by_email() {
+    let (client, seen) = client(|_| {
+        json(
+            200,
+            serde_json::json!({"data": {"items": [], "pagination": {"total_count": 0, "max_page": 1}}}),
+        )
+    });
+    client
+        .customers()
+        .list(&CustomersListParams::new().email("ana@example.com"))
+        .unwrap();
+    assert_eq!(
+        seen.lock().unwrap()[0].url,
+        "https://perata.test/api/v1/customers?email=ana%40example.com"
     );
 }
 

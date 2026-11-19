@@ -3,6 +3,7 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Linq;
 using System.Net.Http;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -19,6 +20,13 @@ public sealed class DisputesService
     internal DisputesService(PerataClient client) => this.client = client;
 
     /// <summary>Ler uma disputa.</summary>
+    /// <remarks>
+    /// <para>Devolve uma disputa pelo ID.</para>
+    /// <para>Autenticação: chave de API da organização em Authorization: Bearer
+    /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
+    /// da requisição. Respostas em JSON no envelope data; erros com error,
+    /// message e fields.</para>
+    /// </remarks>
     /// <param name="dispute">The dispute.</param>
     /// <param name="options">Another organization's key for this call.</param>
     /// <param name="cancellationToken">Cancels the call.</param>
@@ -29,7 +37,15 @@ public sealed class DisputesService
         return client.RequestAsync(HttpMethod.Get, "/api/v1/disputes/" + PerataClient.Segment(dispute), null, null, PerataJson.Default.DisputeEnvelope, null, options, cancellationToken);
     }
 
-    /// <summary>Listar disputas, opcionalmente de um status (status). One page; <see cref="ListIterAsync"/> walks every page.</summary>
+    /// <summary>Listar disputas. One page; <see cref="ListIterAsync"/> walks every page.</summary>
+    /// <remarks>
+    /// <para>Devolve uma página das disputas. Com status, só as que estão
+    /// nele.</para>
+    /// <para>Autenticação: chave de API da organização em Authorization: Bearer
+    /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
+    /// da requisição. Respostas em JSON no envelope data; erros com error,
+    /// message e fields.</para>
+    /// </remarks>
     /// <param name="parameters">The page, its size and the filters; the first page when null.</param>
     /// <param name="options">Another organization's key for this call.</param>
     /// <param name="cancellationToken">Cancels the call.</param>
@@ -62,12 +78,12 @@ public sealed record DisputesListParams
     /// <summary>opened, needs_evidence, submitted, under_review, won, lost ou closed.</summary>
     public string? Status { get; init; }
 
-    internal IEnumerable<KeyValuePair<string, string?>> Query() =>
-    [
-        new("page", Page?.ToString(CultureInfo.InvariantCulture)),
-        new("limit", Limit?.ToString(CultureInfo.InvariantCulture)),
-        new("status", Status),
-    ];
+    internal IEnumerable<KeyValuePair<string, string?>> Query()
+    {
+        yield return new("page", Page?.ToString(CultureInfo.InvariantCulture));
+        yield return new("limit", Limit?.ToString(CultureInfo.InvariantCulture));
+        yield return new("status", Status);
+    }
 }
 
 

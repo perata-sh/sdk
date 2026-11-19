@@ -6,6 +6,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.TreeMap;
 
 /** The API's checkouts. */
 public final class CheckoutsService {
@@ -16,7 +17,20 @@ public final class CheckoutsService {
     }
 
     /**
-     * Criar um checkout: o endereço para onde o comprador é enviado e a sessão de compra aberta para ele, com o client_secret que o navegador do comprador usa nas rotas de cliente.
+     * Criar um checkout.
+     *
+     * Cria um checkout. Devolve o endereço para onde mandar o comprador e a
+     * sessão de compra aberta para ele, com o client_secret que o navegador do
+     * comprador usa para pagar sem chave de API; o client_secret vem só nesta
+     * resposta. Para cobrar um valor que o seu servidor define, envie
+     * amount_cents e items (preço de valor livre). Envie client_reference_id e
+     * metadata para achar o pedido depois.
+     *
+     * Autenticação: chave de API da organização em Authorization: Bearer
+     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+     * requisição. Respostas em JSON no envelope data; erros com error, message
+     * e fields.
+     *
      * @param params the request
      * @param options an idempotency key or another organization's key for this call, or null
      * @return the checkoutcreated
@@ -28,7 +42,20 @@ public final class CheckoutsService {
     }
 
     /**
-     * Criar um checkout: o endereço para onde o comprador é enviado e a sessão de compra aberta para ele, com o client_secret que o navegador do comprador usa nas rotas de cliente.
+     * Criar um checkout.
+     *
+     * Cria um checkout. Devolve o endereço para onde mandar o comprador e a
+     * sessão de compra aberta para ele, com o client_secret que o navegador do
+     * comprador usa para pagar sem chave de API; o client_secret vem só nesta
+     * resposta. Para cobrar um valor que o seu servidor define, envie
+     * amount_cents e items (preço de valor livre). Envie client_reference_id e
+     * metadata para achar o pedido depois.
+     *
+     * Autenticação: chave de API da organização em Authorization: Bearer
+     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+     * requisição. Respostas em JSON no envelope data; erros com error, message
+     * e fields.
+     *
      * @param params the request
      * @return the checkoutcreated
      * @throws PerataException when the API refuses the call
@@ -140,7 +167,7 @@ public final class CheckoutsService {
             return label;
         }
 
-        /** @return Até 50 pares guardados no link do checkout; valor em texto, número ou booleano. (null when left out) */
+        /** @return Pares guardados no link do checkout e devolvidos no checkout, no pedido, no pagamento e nos eventos da venda. Até 50 pares de chave e valor: a chave tem de 1 a 40 caracteres, e o valor é um texto de 1 a 500 caracteres, um número ou um booleano. Texto sem caracteres de controle nem de direção invisível. (null when left out) */
         public Map<String, Object> getMetadata() {
             return metadata;
         }
@@ -354,7 +381,7 @@ public final class CheckoutsService {
             }
 
             /**
-             * @param metadata Até 50 pares guardados no link do checkout; valor em texto, número ou booleano.
+             * @param metadata Pares guardados no link do checkout e devolvidos no checkout, no pedido, no pagamento e nos eventos da venda. Até 50 pares de chave e valor: a chave tem de 1 a 40 caracteres, e o valor é um texto de 1 a 500 caracteres, um número ou um booleano. Texto sem caracteres de controle nem de direção invisível.
              * @return this builder
              */
             public Builder metadata(Map<String, Object> metadata) {
@@ -530,7 +557,18 @@ public final class CheckoutsService {
 
 
     /**
-     * Encerrar um checkout que não deve mais ser pago: a página, o client_secret e o QR do Pix deixam de valer (o Pix já gerado é cancelado na Cielo), e o evento checkout.expired é enviado; 409 se já foi pago ou se emitiu boleto.
+     * Encerrar um checkout.
+     *
+     * Encerra um checkout que não deve mais ser pago: a página, o client_secret
+     * e o QR do Pix deixam de valer (o Pix já gerado é cancelado na Cielo) e o
+     * evento checkout.expired é enviado. Repetir a chamada é seguro. Se o
+     * checkout já foi pago ou emitiu um boleto, a resposta é 409.
+     *
+     * Autenticação: chave de API da organização em Authorization: Bearer
+     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+     * requisição. Respostas em JSON no envelope data; erros com error, message
+     * e fields.
+     *
      * @param checkout the checkout
      * @param options an idempotency key or another organization's key for this call, or null
      * @return the checkoutexpired
@@ -542,7 +580,18 @@ public final class CheckoutsService {
     }
 
     /**
-     * Encerrar um checkout que não deve mais ser pago: a página, o client_secret e o QR do Pix deixam de valer (o Pix já gerado é cancelado na Cielo), e o evento checkout.expired é enviado; 409 se já foi pago ou se emitiu boleto.
+     * Encerrar um checkout.
+     *
+     * Encerra um checkout que não deve mais ser pago: a página, o client_secret
+     * e o QR do Pix deixam de valer (o Pix já gerado é cancelado na Cielo) e o
+     * evento checkout.expired é enviado. Repetir a chamada é seguro. Se o
+     * checkout já foi pago ou emitiu um boleto, a resposta é 409.
+     *
+     * Autenticação: chave de API da organização em Authorization: Bearer
+     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+     * requisição. Respostas em JSON no envelope data; erros com error, message
+     * e fields.
+     *
      * @param checkout the checkout
      * @return the checkoutexpired
      * @throws PerataException when the API refuses the call
@@ -552,7 +601,15 @@ public final class CheckoutsService {
     }
 
     /**
-     * Ler um checkout: o endereço, o estado e as páginas de retorno.
+     * Ler um checkout.
+     *
+     * Devolve um checkout: o endereço, o estado e as páginas de retorno.
+     *
+     * Autenticação: chave de API da organização em Authorization: Bearer
+     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+     * requisição. Respostas em JSON no envelope data; erros com error, message
+     * e fields.
+     *
      * @param checkout the checkout
      * @param options another organization's key for this call, or null
      * @return the checkout
@@ -564,7 +621,15 @@ public final class CheckoutsService {
     }
 
     /**
-     * Ler um checkout: o endereço, o estado e as páginas de retorno.
+     * Ler um checkout.
+     *
+     * Devolve um checkout: o endereço, o estado e as páginas de retorno.
+     *
+     * Autenticação: chave de API da organização em Authorization: Bearer
+     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+     * requisição. Respostas em JSON no envelope data; erros com error, message
+     * e fields.
+     *
      * @param checkout the checkout
      * @return the checkout
      * @throws PerataException when the API refuses the call
@@ -574,7 +639,16 @@ public final class CheckoutsService {
     }
 
     /**
-     * Listar checkouts, opcionalmente de um client_reference_id, de um status, de um período ou de metadados. One page; {@link #listIter} walks every page.
+     * Listar checkouts. One page; {@link #listIter} walks every page.
+     *
+     * Devolve uma página dos checkouts. Filtre por client_reference_id, status,
+     * período ou metadados.
+     *
+     * Autenticação: chave de API da organização em Authorization: Bearer
+     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+     * requisição. Respostas em JSON no envelope data; erros com error, message
+     * e fields.
+     *
      * @param params the page, its size and the filters, or null
      * @param options options for this call, or null
      * @return the page
@@ -586,7 +660,16 @@ public final class CheckoutsService {
     }
 
     /**
-     * Listar checkouts, opcionalmente de um client_reference_id, de um status, de um período ou de metadados. One page.
+     * Listar checkouts. One page.
+     *
+     * Devolve uma página dos checkouts. Filtre por client_reference_id, status,
+     * período ou metadados.
+     *
+     * Autenticação: chave de API da organização em Authorization: Bearer
+     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+     * requisição. Respostas em JSON no envelope data; erros com error, message
+     * e fields.
+     *
      * @param params the page, its size and the filters, or null
      * @return the page
      */
@@ -595,7 +678,16 @@ public final class CheckoutsService {
     }
 
     /**
-     * Listar checkouts, opcionalmente de um client_reference_id, de um status, de um período ou de metadados. The first page.
+     * Listar checkouts. The first page.
+     *
+     * Devolve uma página dos checkouts. Filtre por client_reference_id, status,
+     * período ou metadados.
+     *
+     * Autenticação: chave de API da organização em Authorization: Bearer
+     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+     * requisição. Respostas em JSON no envelope data; erros com error, message
+     * e fields.
+     *
      * @return the page
      */
     public Page<Checkout> list() {
@@ -641,6 +733,7 @@ public final class CheckoutsService {
         private final String createdAfter;
         private final String createdBefore;
         private final String sorting;
+        private final Map<String, String> metadata;
 
         private ListParams(Builder builder) {
             this.page = builder.page;
@@ -650,6 +743,7 @@ public final class CheckoutsService {
             this.createdAfter = builder.createdAfter;
             this.createdBefore = builder.createdBefore;
             this.sorting = builder.sorting;
+            this.metadata = builder.metadata;
         }
 
         /** @return a builder of the page and filters */
@@ -692,6 +786,11 @@ public final class CheckoutsService {
             return sorting;
         }
 
+        /** @return Filtro por metadados: metadata[chave]=valor, uma vez para cada par (até 10); a linha precisa ter todos. Um valor que parece número ou booleano também casa com o número ou o booleano guardado. (null when not filtered) */
+        public Map<String, String> getMetadata() {
+            return metadata;
+        }
+
         ListParams withPage(int page) {
             Builder builder = builder().page(page);
             builder.limit = limit;
@@ -700,6 +799,7 @@ public final class CheckoutsService {
             builder.createdAfter = createdAfter;
             builder.createdBefore = createdBefore;
             builder.sorting = sorting;
+            builder.metadata = metadata;
             return builder.build();
         }
 
@@ -712,6 +812,12 @@ public final class CheckoutsService {
             query.put("created_after", createdAfter);
             query.put("created_before", createdBefore);
             query.put("sorting", sorting);
+            if (metadata != null) {
+                // A map filter is one pair a key: metadata[key]=value, the keys sorted.
+                for (Map.Entry<String, String> pair : new TreeMap<>(metadata).entrySet()) {
+                    query.put("metadata" + "[" + pair.getKey() + "]", pair.getValue());
+                }
+            }
             return query;
         }
 
@@ -724,6 +830,7 @@ public final class CheckoutsService {
             private String createdAfter;
             private String createdBefore;
             private String sorting;
+            private Map<String, String> metadata;
 
             private Builder() {
             }
@@ -791,6 +898,15 @@ public final class CheckoutsService {
                 return this;
             }
 
+            /**
+             * @param metadata Filtro por metadados: metadata[chave]=valor, uma vez para cada par (até 10); a linha precisa ter todos. Um valor que parece número ou booleano também casa com o número ou o booleano guardado.
+             * @return this builder
+             */
+            public Builder metadata(Map<String, String> metadata) {
+                this.metadata = metadata == null ? null : new TreeMap<>(metadata);
+                return this;
+            }
+
             /** @return the page and filters */
             public ListParams build() {
                 return new ListParams(this);
@@ -799,7 +915,15 @@ public final class CheckoutsService {
     }
 
     /**
-     * Atualizar o rótulo e as páginas de retorno de um checkout ativo.
+     * Atualizar um checkout.
+     *
+     * Muda o rótulo e as páginas de retorno de um checkout ativo.
+     *
+     * Autenticação: chave de API da organização em Authorization: Bearer
+     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+     * requisição. Respostas em JSON no envelope data; erros com error, message
+     * e fields.
+     *
      * @param checkout the checkout
      * @param params the request
      * @param options an idempotency key or another organization's key for this call, or null
@@ -812,7 +936,15 @@ public final class CheckoutsService {
     }
 
     /**
-     * Atualizar o rótulo e as páginas de retorno de um checkout ativo.
+     * Atualizar um checkout.
+     *
+     * Muda o rótulo e as páginas de retorno de um checkout ativo.
+     *
+     * Autenticação: chave de API da organização em Authorization: Bearer
+     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+     * requisição. Respostas em JSON no envelope data; erros com error, message
+     * e fields.
+     *
      * @param checkout the checkout
      * @param params the request
      * @return the checkout

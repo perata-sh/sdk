@@ -18,8 +18,8 @@
         "tags": [
           "benefits"
         ],
-        "summary": "Listar benefícios, opcionalmente de um tipo (type)",
-        "description": "Autenticação: chave de API da organização em Authorization: Bearer (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição. Respostas em JSON no envelope data; erros com error, message e fields.",
+        "summary": "Listar benefícios",
+        "description": "Devolve uma página dos benefícios da organização. Com type, só os de um tipo.\n\nAutenticação: chave de API da organização em Authorization: Bearer (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição. Respostas em JSON no envelope data; erros com error, message e fields.",
         "operationId": "benefits:list",
         "parameters": [
           {
@@ -126,14 +126,14 @@
         "tags": [
           "benefits"
         ],
-        "summary": "Criar um benefício custom, license_key, feature_flag ou meter_credit; downloads e os benefícios do Discord e do GitHub se configuram no painel",
-        "description": "Autenticação: chave de API da organização em Authorization: Bearer (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição. Respostas em JSON no envelope data; erros com error, message e fields.",
+        "summary": "Criar um benefício",
+        "description": "Cria um benefício do tipo custom, license_key, feature_flag ou meter_credit. Os downloads e os benefícios do Discord e do GitHub se configuram no painel.\n\nAutenticação: chave de API da organização em Authorization: Bearer (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição. Respostas em JSON no envelope data; erros com error, message e fields.",
         "operationId": "benefits:create",
         "parameters": [
           {
             "name": "Idempotency-Key",
             "in": "header",
-            "description": "Opcional, até 255 caracteres. A mesma chave com o mesmo corpo repete a resposta original (Idempotent-Replayed: true); com outro corpo, 409.",
+            "description": "Opcional, até 255 caracteres. A mesma chave com o mesmo corpo repete a resposta original (Idempotent-Replayed: true); com outro corpo, 409. Uma resposta 2xx fica guardada sob a chave; uma recusa 4xx ou uma falha 5xx libera a chave, e você pode repetir a escrita com a mesma chave, com o corpo corrigido ou como estava.",
             "schema": {
               "type": "string"
             }
@@ -171,14 +171,31 @@
                   "properties": {
                     "type": "object",
                     "description": "Os campos do tipo. custom: note. license_key: prefix, expires_in, expires_unit (day, month, year), activation_limit, customer_can_deactivate, usage_limit. meter_credit: meter_id, units, rollover. feature_flag: nenhum.",
-                    "properties": {},
-                    "additionalProperties": false
+                    "additionalProperties": true
                   },
                   "metadata": {
                     "type": "object",
-                    "description": "Até 50 pares; valor em texto, número ou booleano. No feature_flag, os valores da flag.",
-                    "properties": {},
-                    "additionalProperties": false
+                    "description": "Pares guardados no benefício. No feature_flag, são os valores da flag. Até 50 pares de chave e valor: a chave tem de 1 a 40 caracteres, e o valor é um texto de 1 a 500 caracteres, um número ou um booleano. Texto sem caracteres de controle nem de direção invisível.",
+                    "maxProperties": 50,
+                    "propertyNames": {
+                      "minLength": 1,
+                      "maxLength": 40
+                    },
+                    "additionalProperties": {
+                      "oneOf": [
+                        {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 500
+                        },
+                        {
+                          "type": "number"
+                        },
+                        {
+                          "type": "boolean"
+                        }
+                      ]
+                    }
                   }
                 },
                 "required": [
@@ -288,7 +305,7 @@
           "benefits"
         ],
         "summary": "Ler um benefício",
-        "description": "Autenticação: chave de API da organização em Authorization: Bearer (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição. Respostas em JSON no envelope data; erros com error, message e fields.",
+        "description": "Devolve um benefício pelo ID.\n\nAutenticação: chave de API da organização em Authorization: Bearer (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição. Respostas em JSON no envelope data; erros com error, message e fields.",
         "operationId": "benefits:get",
         "parameters": [
           {
@@ -376,8 +393,8 @@
         "tags": [
           "benefits"
         ],
-        "summary": "Excluir um benefício: ele sai de todos os produtos e é revogado de quem o tem",
-        "description": "Autenticação: chave de API da organização em Authorization: Bearer (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição. Respostas em JSON no envelope data; erros com error, message e fields.",
+        "summary": "Excluir um benefício",
+        "description": "Exclui um benefício: ele sai de todos os produtos e é revogado de quem o tem.\n\nAutenticação: chave de API da organização em Authorization: Bearer (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição. Respostas em JSON no envelope data; erros com error, message e fields.",
         "operationId": "benefits:delete",
         "parameters": [
           {
@@ -392,7 +409,7 @@
           {
             "name": "Idempotency-Key",
             "in": "header",
-            "description": "Opcional, até 255 caracteres. A mesma chave com o mesmo corpo repete a resposta original (Idempotent-Replayed: true); com outro corpo, 409.",
+            "description": "Opcional, até 255 caracteres. A mesma chave com o mesmo corpo repete a resposta original (Idempotent-Replayed: true); com outro corpo, 409. Uma resposta 2xx fica guardada sob a chave; uma recusa 4xx ou uma falha 5xx libera a chave, e você pode repetir a escrita com a mesma chave, com o corpo corrigido ou como estava.",
             "schema": {
               "type": "string"
             }
@@ -476,8 +493,8 @@
         "tags": [
           "benefits"
         ],
-        "summary": "Atualizar o nome, a visibilidade, as propriedades e os metadados de um benefício; o tipo e a descrição dada na criação não mudam, e o que a concessão já entregou fica como foi entregue",
-        "description": "Autenticação: chave de API da organização em Authorization: Bearer (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição. Respostas em JSON no envelope data; erros com error, message e fields.",
+        "summary": "Atualizar um benefício",
+        "description": "Muda o nome, a visibilidade, as propriedades e os metadados de um benefício. O tipo e a descrição dada na criação não mudam, e o que a concessão já entregou fica como foi entregue.\n\nAutenticação: chave de API da organização em Authorization: Bearer (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição. Respostas em JSON no envelope data; erros com error, message e fields.",
         "operationId": "benefits:update",
         "parameters": [
           {
@@ -492,7 +509,7 @@
           {
             "name": "Idempotency-Key",
             "in": "header",
-            "description": "Opcional, até 255 caracteres. A mesma chave com o mesmo corpo repete a resposta original (Idempotent-Replayed: true); com outro corpo, 409.",
+            "description": "Opcional, até 255 caracteres. A mesma chave com o mesmo corpo repete a resposta original (Idempotent-Replayed: true); com outro corpo, 409. Uma resposta 2xx fica guardada sob a chave; uma recusa 4xx ou uma falha 5xx libera a chave, e você pode repetir a escrita com a mesma chave, com o corpo corrigido ou como estava.",
             "schema": {
               "type": "string"
             }
@@ -517,14 +534,31 @@
                   "properties": {
                     "type": "object",
                     "description": "Os campos do tipo, aplicados sobre os guardados; o que ficar de fora não muda.",
-                    "properties": {},
-                    "additionalProperties": false
+                    "additionalProperties": true
                   },
                   "metadata": {
                     "type": "object",
-                    "description": "Substitui os metadados; {} os limpa.",
-                    "properties": {},
-                    "additionalProperties": false
+                    "description": "Substitui os metadados; {} os limpa. Até 50 pares de chave e valor: a chave tem de 1 a 40 caracteres, e o valor é um texto de 1 a 500 caracteres, um número ou um booleano. Texto sem caracteres de controle nem de direção invisível.",
+                    "maxProperties": 50,
+                    "propertyNames": {
+                      "minLength": 1,
+                      "maxLength": 40
+                    },
+                    "additionalProperties": {
+                      "oneOf": [
+                        {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 500
+                        },
+                        {
+                          "type": "number"
+                        },
+                        {
+                          "type": "boolean"
+                        }
+                      ]
+                    }
                   }
                 },
                 "additionalProperties": false
@@ -629,8 +663,8 @@
         "tags": [
           "benefits"
         ],
-        "summary": "Listar as concessões de um benefício, opcionalmente de um cliente (customer_id) ou só as vigentes (is_granted)",
-        "description": "Autenticação: chave de API da organização em Authorization: Bearer (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição. Respostas em JSON no envelope data; erros com error, message e fields.",
+        "summary": "Listar as concessões de um benefício",
+        "description": "Devolve uma página das concessões de um benefício. Com customer_id, só as de um cliente; com is_granted, só as vigentes ou só as revogadas.\n\nAutenticação: chave de API da organização em Authorization: Bearer (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição. Respostas em JSON no envelope data; erros com error, message e fields.",
         "operationId": "benefits:list_grants",
         "parameters": [
           {
@@ -757,7 +791,7 @@
           "checkout-links"
         ],
         "summary": "Listar links de checkout",
-        "description": "Autenticação: chave de API da organização em Authorization: Bearer (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição. Respostas em JSON no envelope data; erros com error, message e fields.",
+        "description": "Devolve uma página dos links de checkout da organização.\n\nAutenticação: chave de API da organização em Authorization: Bearer (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição. Respostas em JSON no envelope data; erros com error, message e fields.",
         "operationId": "checkout-links:list",
         "parameters": [
           {
@@ -856,14 +890,14 @@
         "tags": [
           "checkout-links"
         ],
-        "summary": "Criar um link de checkout: uma oferta durável de um ou mais produtos, com desconto, quantidade e páginas de retorno",
-        "description": "Autenticação: chave de API da organização em Authorization: Bearer (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição. Respostas em JSON no envelope data; erros com error, message e fields.",
+        "summary": "Criar um link de checkout",
+        "description": "Cria um link de checkout: uma oferta durável de um ou mais produtos, com desconto, quantidade e páginas de retorno. Cada visita ao link abre uma sessão de compra nova.\n\nAutenticação: chave de API da organização em Authorization: Bearer (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição. Respostas em JSON no envelope data; erros com error, message e fields.",
         "operationId": "checkout-links:create",
         "parameters": [
           {
             "name": "Idempotency-Key",
             "in": "header",
-            "description": "Opcional, até 255 caracteres. A mesma chave com o mesmo corpo repete a resposta original (Idempotent-Replayed: true); com outro corpo, 409.",
+            "description": "Opcional, até 255 caracteres. A mesma chave com o mesmo corpo repete a resposta original (Idempotent-Replayed: true); com outro corpo, 409. Uma resposta 2xx fica guardada sob a chave; uma recusa 4xx ou uma falha 5xx libera a chave, e você pode repetir a escrita com a mesma chave, com o corpo corrigido ou como estava.",
             "schema": {
               "type": "string"
             }
@@ -941,9 +975,27 @@
                   },
                   "metadata": {
                     "type": "object",
-                    "description": "Até 50 pares; valor em texto, número ou booleano.",
-                    "properties": {},
-                    "additionalProperties": false
+                    "description": "Pares guardados no link. Até 50 pares de chave e valor: a chave tem de 1 a 40 caracteres, e o valor é um texto de 1 a 500 caracteres, um número ou um booleano. Texto sem caracteres de controle nem de direção invisível.",
+                    "maxProperties": 50,
+                    "propertyNames": {
+                      "minLength": 1,
+                      "maxLength": 40
+                    },
+                    "additionalProperties": {
+                      "oneOf": [
+                        {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 500
+                        },
+                        {
+                          "type": "number"
+                        },
+                        {
+                          "type": "boolean"
+                        }
+                      ]
+                    }
                   }
                 },
                 "additionalProperties": false
@@ -1049,7 +1101,7 @@
           "checkout-links"
         ],
         "summary": "Ler um link de checkout",
-        "description": "Autenticação: chave de API da organização em Authorization: Bearer (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição. Respostas em JSON no envelope data; erros com error, message e fields.",
+        "description": "Devolve um link de checkout pelo ID.\n\nAutenticação: chave de API da organização em Authorization: Bearer (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição. Respostas em JSON no envelope data; erros com error, message e fields.",
         "operationId": "checkout-links:get",
         "parameters": [
           {
@@ -1137,8 +1189,8 @@
         "tags": [
           "checkout-links"
         ],
-        "summary": "Excluir um link de checkout: ele deixa de abrir checkouts; os que já abriu continuam",
-        "description": "Autenticação: chave de API da organização em Authorization: Bearer (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição. Respostas em JSON no envelope data; erros com error, message e fields.",
+        "summary": "Excluir um link de checkout",
+        "description": "Exclui um link de checkout: ele deixa de abrir checkouts. Os que já abriu continuam.\n\nAutenticação: chave de API da organização em Authorization: Bearer (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição. Respostas em JSON no envelope data; erros com error, message e fields.",
         "operationId": "checkout-links:delete",
         "parameters": [
           {
@@ -1153,7 +1205,7 @@
           {
             "name": "Idempotency-Key",
             "in": "header",
-            "description": "Opcional, até 255 caracteres. A mesma chave com o mesmo corpo repete a resposta original (Idempotent-Replayed: true); com outro corpo, 409.",
+            "description": "Opcional, até 255 caracteres. A mesma chave com o mesmo corpo repete a resposta original (Idempotent-Replayed: true); com outro corpo, 409. Uma resposta 2xx fica guardada sob a chave; uma recusa 4xx ou uma falha 5xx libera a chave, e você pode repetir a escrita com a mesma chave, com o corpo corrigido ou como estava.",
             "schema": {
               "type": "string"
             }
@@ -1237,8 +1289,8 @@
         "tags": [
           "checkout-links"
         ],
-        "summary": "Atualizar o rótulo, as páginas de retorno, os produtos e os metadados de um link; a quantidade e o desconto ficam como foram publicados",
-        "description": "Autenticação: chave de API da organização em Authorization: Bearer (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição. Respostas em JSON no envelope data; erros com error, message e fields.",
+        "summary": "Atualizar um link de checkout",
+        "description": "Muda o rótulo, as páginas de retorno, os produtos e os metadados de um link. A quantidade e o desconto ficam como foram publicados.\n\nAutenticação: chave de API da organização em Authorization: Bearer (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição. Respostas em JSON no envelope data; erros com error, message e fields.",
         "operationId": "checkout-links:update",
         "parameters": [
           {
@@ -1253,7 +1305,7 @@
           {
             "name": "Idempotency-Key",
             "in": "header",
-            "description": "Opcional, até 255 caracteres. A mesma chave com o mesmo corpo repete a resposta original (Idempotent-Replayed: true); com outro corpo, 409.",
+            "description": "Opcional, até 255 caracteres. A mesma chave com o mesmo corpo repete a resposta original (Idempotent-Replayed: true); com outro corpo, 409. Uma resposta 2xx fica guardada sob a chave; uma recusa 4xx ou uma falha 5xx libera a chave, e você pode repetir a escrita com a mesma chave, com o corpo corrigido ou como estava.",
             "schema": {
               "type": "string"
             }
@@ -1286,9 +1338,27 @@
                   },
                   "metadata": {
                     "type": "object",
-                    "description": "Substitui os metadados; {} os limpa.",
-                    "properties": {},
-                    "additionalProperties": false
+                    "description": "Substitui os metadados; {} os limpa. Até 50 pares de chave e valor: a chave tem de 1 a 40 caracteres, e o valor é um texto de 1 a 500 caracteres, um número ou um booleano. Texto sem caracteres de controle nem de direção invisível.",
+                    "maxProperties": 50,
+                    "propertyNames": {
+                      "minLength": 1,
+                      "maxLength": 40
+                    },
+                    "additionalProperties": {
+                      "oneOf": [
+                        {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 500
+                        },
+                        {
+                          "type": "number"
+                        },
+                        {
+                          "type": "boolean"
+                        }
+                      ]
+                    }
                   }
                 },
                 "additionalProperties": false
@@ -1393,8 +1463,8 @@
         "tags": [
           "checkouts"
         ],
-        "summary": "Listar checkouts, opcionalmente de um client_reference_id, de um status, de um período ou de metadados",
-        "description": "Autenticação: chave de API da organização em Authorization: Bearer (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição. Respostas em JSON no envelope data; erros com error, message e fields. Filtro por metadados: metadata[chave]=valor, uma vez para cada par (até 10); a linha precisa ter todos. Um valor que parece número ou booleano também casa com o número ou o booleano guardado.",
+        "summary": "Listar checkouts",
+        "description": "Devolve uma página dos checkouts. Filtre por client_reference_id, status, período ou metadados.\n\nAutenticação: chave de API da organização em Authorization: Bearer (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição. Respostas em JSON no envelope data; erros com error, message e fields.",
         "operationId": "checkouts:list",
         "parameters": [
           {
@@ -1403,7 +1473,8 @@
             "description": "Só os registros com este client_reference_id: o ID do pedido no seu sistema, que você enviou ao criar o checkout.",
             "schema": {
               "type": "string"
-            }
+            },
+            "example": "pedido-123"
           },
           {
             "name": "status",
@@ -1419,7 +1490,8 @@
             "description": "Só os criados a partir deste instante, inclusive (RFC 3339, como 2026-11-17T00:00:00-03:00).",
             "schema": {
               "type": "string"
-            }
+            },
+            "example": "2026-11-01T00:00:00-03:00"
           },
           {
             "name": "created_before",
@@ -1427,7 +1499,8 @@
             "description": "Só os criados antes deste instante (RFC 3339); com created_after, o período é [created_after, created_before).",
             "schema": {
               "type": "string"
-            }
+            },
+            "example": "2026-12-01T00:00:00-03:00"
           },
           {
             "name": "sorting",
@@ -1435,7 +1508,8 @@
             "description": "Ordem da lista: created_at, e com um - na frente é decrescente (-created_at, o mais novo primeiro, é o padrão).",
             "schema": {
               "type": "string"
-            }
+            },
+            "example": "-created_at"
           },
           {
             "name": "page",
@@ -1452,6 +1526,9 @@
             "schema": {
               "type": "integer"
             }
+          },
+          {
+            "$ref": "#/components/parameters/MetadataFilter"
           }
         ],
         "responses": {
@@ -1533,14 +1610,14 @@
         "tags": [
           "checkouts"
         ],
-        "summary": "Criar um checkout: o endereço para onde o comprador é enviado e a sessão de compra aberta para ele, com o client_secret que o navegador do comprador usa nas rotas de cliente",
-        "description": "Autenticação: chave de API da organização em Authorization: Bearer (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição. Respostas em JSON no envelope data; erros com error, message e fields.",
+        "summary": "Criar um checkout",
+        "description": "Cria um checkout. Devolve o endereço para onde mandar o comprador e a sessão de compra aberta para ele, com o client_secret que o navegador do comprador usa para pagar sem chave de API; o client_secret vem só nesta resposta. Para cobrar um valor que o seu servidor define, envie amount_cents e items (preço de valor livre). Envie client_reference_id e metadata para achar o pedido depois.\n\nAutenticação: chave de API da organização em Authorization: Bearer (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição. Respostas em JSON no envelope data; erros com error, message e fields.",
         "operationId": "checkouts:create",
         "parameters": [
           {
             "name": "Idempotency-Key",
             "in": "header",
-            "description": "Opcional, até 255 caracteres. A mesma chave com o mesmo corpo repete a resposta original (Idempotent-Replayed: true); com outro corpo, 409.",
+            "description": "Opcional, até 255 caracteres. A mesma chave com o mesmo corpo repete a resposta original (Idempotent-Replayed: true); com outro corpo, 409. Uma resposta 2xx fica guardada sob a chave; uma recusa 4xx ou uma falha 5xx libera a chave, e você pode repetir a escrita com a mesma chave, com o corpo corrigido ou como estava.",
             "schema": {
               "type": "string"
             }
@@ -1631,9 +1708,27 @@
                   },
                   "metadata": {
                     "type": "object",
-                    "description": "Até 50 pares guardados no link do checkout; valor em texto, número ou booleano.",
-                    "properties": {},
-                    "additionalProperties": false
+                    "description": "Pares guardados no link do checkout e devolvidos no checkout, no pedido, no pagamento e nos eventos da venda. Até 50 pares de chave e valor: a chave tem de 1 a 40 caracteres, e o valor é um texto de 1 a 500 caracteres, um número ou um booleano. Texto sem caracteres de controle nem de direção invisível.",
+                    "maxProperties": 50,
+                    "propertyNames": {
+                      "minLength": 1,
+                      "maxLength": 40
+                    },
+                    "additionalProperties": {
+                      "oneOf": [
+                        {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 500
+                        },
+                        {
+                          "type": "number"
+                        },
+                        {
+                          "type": "boolean"
+                        }
+                      ]
+                    }
                   },
                   "allow_discount_codes": {
                     "type": "boolean",
@@ -1655,6 +1750,54 @@
                   "price_id"
                 ],
                 "additionalProperties": false
+              },
+              "examples": {
+                "preco_cadastrado": {
+                  "summary": "Vender o preço como ele está cadastrado",
+                  "value": {
+                    "product_id": "0193c5e2-4a7d-7b1e-9c3f-2d8a6e5f1b40",
+                    "price_id": "0193c5e2-5f10-7e2a-8b64-9a1c3d7e0f52",
+                    "success_url": "https://exemplo.com/obrigado",
+                    "client_reference_id": "pedido-123",
+                    "metadata": {
+                      "pedido": "123"
+                    }
+                  }
+                },
+                "valor_fixo_com_itens": {
+                  "summary": "Cobrar um valor que o seu servidor define, com as linhas do pedido (preço de valor livre)",
+                  "value": {
+                    "product_id": "0193c5e2-4a7d-7b1e-9c3f-2d8a6e5f1b40",
+                    "price_id": "0193c5e2-5f10-7e2a-8b64-9a1c3d7e0f52",
+                    "amount_cents": 50508,
+                    "items": [
+                      {
+                        "name": "Câmera Portaria, 01/12 a 31/12",
+                        "quantity": 1,
+                        "unit_amount_cents": 45000
+                      },
+                      {
+                        "name": "Serviço de conexão",
+                        "quantity": 1,
+                        "unit_amount_cents": 5000
+                      },
+                      {
+                        "name": "Multa e juros",
+                        "quantity": 1,
+                        "unit_amount_cents": 508
+                      }
+                    ],
+                    "client_reference_id": "pedido-123",
+                    "metadata": {
+                      "pedido": "123",
+                      "prioridade": 2,
+                      "reenvio": false
+                    },
+                    "success_url": "https://exemplo.com/obrigado",
+                    "cancel_url": "https://exemplo.com/carrinho",
+                    "expires_in": 259200
+                  }
+                }
               }
             }
           }
@@ -1666,6 +1809,49 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/CheckoutCreatedEnvelope"
+                },
+                "example": {
+                  "data": {
+                    "id": "pcl_8Hq2mZp4VtRn",
+                    "url": "https://perata.sh/pagamento/pcl_8Hq2mZp4VtRn?session=0193c6b1-3e5a-7f90-b2c4-1d8e6a7f3b95\u0026key=4f9c1a7e2b60\u0026client_secret=pcs_test_Zk3VdQ8mTn5yRw1A",
+                    "product_id": "0193c5e2-4a7d-7b1e-9c3f-2d8a6e5f1b40",
+                    "price_id": "0193c5e2-5f10-7e2a-8b64-9a1c3d7e0f52",
+                    "status": "active",
+                    "label": "",
+                    "quantity": 1,
+                    "amount_cents": 50508,
+                    "items": [
+                      {
+                        "name": "Câmera Portaria, 01/12 a 31/12",
+                        "quantity": 1,
+                        "unit_amount_cents": 45000
+                      },
+                      {
+                        "name": "Serviço de conexão",
+                        "quantity": 1,
+                        "unit_amount_cents": 5000
+                      },
+                      {
+                        "name": "Multa e juros",
+                        "quantity": 1,
+                        "unit_amount_cents": 508
+                      }
+                    ],
+                    "metadata": {
+                      "pedido": "123",
+                      "prioridade": 2,
+                      "reenvio": false
+                    },
+                    "client_reference_id": "pedido-123",
+                    "success_url": "https://exemplo.com/obrigado",
+                    "cancel_url": "https://exemplo.com/carrinho",
+                    "expires_at": "2026-11-21T14:32:07Z",
+                    "created_at": "2026-11-18T14:32:07Z",
+                    "session_id": "0193c6b1-3e5a-7f90-b2c4-1d8e6a7f3b95",
+                    "client_secret": "pcs_test_Zk3VdQ8mTn5yRw1A",
+                    "client_secret_expires_at": "2026-11-21T14:32:07Z",
+                    "status_key": "psk_test_Hn7Bc2LxQe9uVf4D"
+                  }
                 }
               }
             }
@@ -1726,6 +1912,15 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": "invalid_request",
+                  "message": "quantity: Envie uma quantidade de pelo menos 1, ou omita para usar 1.",
+                  "fields": {
+                    "quantity": [
+                      "Envie uma quantidade de pelo menos 1, ou omita para usar 1."
+                    ]
+                  }
                 }
               }
             }
@@ -2011,7 +2206,7 @@
         "tags": [
           "checkouts"
         ],
-        "summary": "Gerar o token de tokenização do cartão de uma sessão de checkout",
+        "summary": "Gerar o token do cartão de uma sessão de checkout",
         "description": "Gera o token do Silent Order Post com que os campos seguros enviam o cartão à Cielo. O número do cartão nunca passa por esta API. É entregue só a pedidos que o navegador envia de uma página da própria origem da Peráta, o quadro dos campos seguros, que antes resolve um desafio Cloudflare Turnstile e o envia em turnstile_token; a página de um lojista, ou um pedido sem o desafio, recebe 403. Sem chave de API: o client_secret da sessão, no endereço, é a credencial; o POST /checkouts o devolve uma só vez ao servidor do lojista. Um navegador numa página das origens que a organização cadastra em Checkout incorporado pode chamá-la (CORS, sem credenciais nem cookies). Os erros são documentos de problema (application/problem+json), como o checkout hospedado os responde. O script que monta os campos de pagamento, perata.js, vem de /v1/perata.js, que recebe as correções em minutos; para fixar uma versão, carregue-o do endereço que leva o hash do conteúdo (/v1/perata.\u003chash\u003e.js) com o atributo integrity (Subresource Integrity, sha384) e crossorigin=\"anonymous\". O endereço e o valor de cada versão ficam em Configurações › Como integrar, no painel.",
         "operationId": "checkouts:client_card_tokenization",
         "parameters": [
@@ -2250,7 +2445,7 @@
         "tags": [
           "checkouts"
         ],
-        "summary": "Enviar o código que libera o que está guardado para um e-mail",
+        "summary": "Enviar o código dos dados guardados de um e-mail",
         "description": "Envia ao comprador um código por e-mail quando o lojista guarda algo para ele: cartões, nome, documento e endereço. A resposta diz se há algo guardado (sent): só então um código foi enviado, e o comprador que ainda não tem nada guardado segue sem o campo do código. O pedido é limitado a 30 por hora por endereço e a 10 por e-mail. Sem chave de API: o client_secret da sessão, no endereço, é a credencial; o POST /checkouts o devolve uma só vez ao servidor do lojista. Um navegador numa página das origens que a organização cadastra em Checkout incorporado pode chamá-la (CORS, sem credenciais nem cookies). Os erros são documentos de problema (application/problem+json), como o checkout hospedado os responde. O script que monta os campos de pagamento, perata.js, vem de /v1/perata.js, que recebe as correções em minutos; para fixar uma versão, carregue-o do endereço que leva o hash do conteúdo (/v1/perata.\u003chash\u003e.js) com o atributo integrity (Subresource Integrity, sha384) e crossorigin=\"anonymous\". O endereço e o valor de cada versão ficam em Configurações › Como integrar, no painel.",
         "operationId": "checkouts:client_saved_data_code",
         "parameters": [
@@ -2325,7 +2520,7 @@
         "tags": [
           "checkouts"
         ],
-        "summary": "Usar o código que libera o que está guardado para um e-mail",
+        "summary": "Usar o código dos dados guardados de um e-mail",
         "description": "Gasta o código e devolve a prova, os cartões guardados (bandeira, quatro últimos dígitos e validade) e o perfil para preencher. Sem chave de API: o client_secret da sessão, no endereço, é a credencial; o POST /checkouts o devolve uma só vez ao servidor do lojista. Um navegador numa página das origens que a organização cadastra em Checkout incorporado pode chamá-la (CORS, sem credenciais nem cookies). Os erros são documentos de problema (application/problem+json), como o checkout hospedado os responde. O script que monta os campos de pagamento, perata.js, vem de /v1/perata.js, que recebe as correções em minutos; para fixar uma versão, carregue-o do endereço que leva o hash do conteúdo (/v1/perata.\u003chash\u003e.js) com o atributo integrity (Subresource Integrity, sha384) e crossorigin=\"anonymous\". O endereço e o valor de cada versão ficam em Configurações › Como integrar, no painel.",
         "operationId": "checkouts:client_saved_data_verify",
         "parameters": [
@@ -2400,8 +2595,8 @@
         "tags": [
           "checkouts"
         ],
-        "summary": "Ler um checkout: o endereço, o estado e as páginas de retorno",
-        "description": "Autenticação: chave de API da organização em Authorization: Bearer (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição. Respostas em JSON no envelope data; erros com error, message e fields.",
+        "summary": "Ler um checkout",
+        "description": "Devolve um checkout: o endereço, o estado e as páginas de retorno.\n\nAutenticação: chave de API da organização em Authorization: Bearer (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição. Respostas em JSON no envelope data; erros com error, message e fields.",
         "operationId": "checkouts:get",
         "parameters": [
           {
@@ -2489,8 +2684,8 @@
         "tags": [
           "checkouts"
         ],
-        "summary": "Atualizar o rótulo e as páginas de retorno de um checkout ativo",
-        "description": "Autenticação: chave de API da organização em Authorization: Bearer (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição. Respostas em JSON no envelope data; erros com error, message e fields.",
+        "summary": "Atualizar um checkout",
+        "description": "Muda o rótulo e as páginas de retorno de um checkout ativo.\n\nAutenticação: chave de API da organização em Authorization: Bearer (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição. Respostas em JSON no envelope data; erros com error, message e fields.",
         "operationId": "checkouts:update",
         "parameters": [
           {
@@ -2505,7 +2700,7 @@
           {
             "name": "Idempotency-Key",
             "in": "header",
-            "description": "Opcional, até 255 caracteres. A mesma chave com o mesmo corpo repete a resposta original (Idempotent-Replayed: true); com outro corpo, 409.",
+            "description": "Opcional, até 255 caracteres. A mesma chave com o mesmo corpo repete a resposta original (Idempotent-Replayed: true); com outro corpo, 409. Uma resposta 2xx fica guardada sob a chave; uma recusa 4xx ou uma falha 5xx libera a chave, e você pode repetir a escrita com a mesma chave, com o corpo corrigido ou como estava.",
             "schema": {
               "type": "string"
             }
@@ -2631,8 +2826,8 @@
         "tags": [
           "checkouts"
         ],
-        "summary": "Encerrar um checkout que não deve mais ser pago: a página, o client_secret e o QR do Pix deixam de valer (o Pix já gerado é cancelado na Cielo), e o evento checkout.expired é enviado; 409 se já foi pago ou se emitiu boleto",
-        "description": "Autenticação: chave de API da organização em Authorization: Bearer (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição. Respostas em JSON no envelope data; erros com error, message e fields.",
+        "summary": "Encerrar um checkout",
+        "description": "Encerra um checkout que não deve mais ser pago: a página, o client_secret e o QR do Pix deixam de valer (o Pix já gerado é cancelado na Cielo) e o evento checkout.expired é enviado. Repetir a chamada é seguro. Se o checkout já foi pago ou emitiu um boleto, a resposta é 409.\n\nAutenticação: chave de API da organização em Authorization: Bearer (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição. Respostas em JSON no envelope data; erros com error, message e fields.",
         "operationId": "checkouts:expire",
         "parameters": [
           {
@@ -2647,7 +2842,7 @@
           {
             "name": "Idempotency-Key",
             "in": "header",
-            "description": "Opcional, até 255 caracteres. A mesma chave com o mesmo corpo repete a resposta original (Idempotent-Replayed: true); com outro corpo, 409.",
+            "description": "Opcional, até 255 caracteres. A mesma chave com o mesmo corpo repete a resposta original (Idempotent-Replayed: true); com outro corpo, 409. Uma resposta 2xx fica guardada sob a chave; uma recusa 4xx ou uma falha 5xx libera a chave, e você pode repetir a escrita com a mesma chave, com o corpo corrigido ou como estava.",
             "schema": {
               "type": "string"
             }
@@ -2660,6 +2855,24 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/CheckoutExpiredEnvelope"
+                },
+                "example": {
+                  "data": {
+                    "id": "pcl_8Hq2mZp4VtRn",
+                    "status": "expired",
+                    "sessions": [
+                      {
+                        "session_id": "0193c6b1-3e5a-7f90-b2c4-1d8e6a7f3b95",
+                        "status": "expired",
+                        "expired_at": "2026-11-18T15:02:40Z",
+                        "payment_id": "0193c6b8-7a21-7d4c-9e06-5b3f8a2c1e47",
+                        "method": "pix",
+                        "payment_state": "canceled",
+                        "canceled": true,
+                        "already_closed": false
+                      }
+                    ]
+                  }
                 }
               }
             }
@@ -2740,14 +2953,14 @@
         "tags": [
           "customer-sessions"
         ],
-        "summary": "Entrar com um cliente no portal do cliente: o endereço o abre já autenticado",
-        "description": "Autenticação: chave de API da organização em Authorization: Bearer (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição. Respostas em JSON no envelope data; erros com error, message e fields.",
+        "summary": "Abrir o portal do cliente",
+        "description": "Abre uma sessão do portal do cliente para o cliente informado e devolve o endereço que o abre já autenticado. Com return_url, um endereço https do seu aplicativo, o portal oferece a volta.\n\nAutenticação: chave de API da organização em Authorization: Bearer (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição. Respostas em JSON no envelope data; erros com error, message e fields.",
         "operationId": "customer-sessions:create",
         "parameters": [
           {
             "name": "Idempotency-Key",
             "in": "header",
-            "description": "Opcional, até 255 caracteres. A mesma chave com o mesmo corpo repete a resposta original (Idempotent-Replayed: true); com outro corpo, 409.",
+            "description": "Opcional, até 255 caracteres. A mesma chave com o mesmo corpo repete a resposta original (Idempotent-Replayed: true); com outro corpo, 409. Uma resposta 2xx fica guardada sob a chave; uma recusa 4xx ou uma falha 5xx libera a chave, e você pode repetir a escrita com a mesma chave, com o corpo corrigido ou como estava.",
             "schema": {
               "type": "string"
             }
@@ -2873,9 +3086,18 @@
           "customers"
         ],
         "summary": "Listar clientes",
-        "description": "Autenticação: chave de API da organização em Authorization: Bearer (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição. Respostas em JSON no envelope data; erros com error, message e fields.",
+        "description": "Devolve uma página dos clientes. Com email, só o cliente com esse e-mail, sem diferença entre maiúsculas e minúsculas.\n\nAutenticação: chave de API da organização em Authorization: Bearer (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição. Respostas em JSON no envelope data; erros com error, message e fields.",
         "operationId": "customers:list",
         "parameters": [
+          {
+            "name": "email",
+            "in": "query",
+            "description": "Só o cliente com este e-mail (sem diferença de maiúsculas).",
+            "schema": {
+              "type": "string"
+            },
+            "example": "ana@exemplo.com.br"
+          },
           {
             "name": "page",
             "in": "query",
@@ -2972,14 +3194,14 @@
         "tags": [
           "customers"
         ],
-        "summary": "Criar um cliente, com CPF ou CNPJ, telefone e endereço de cobrança se você os tem",
-        "description": "Autenticação: chave de API da organização em Authorization: Bearer (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição. Respostas em JSON no envelope data; erros com error, message e fields.",
+        "summary": "Criar um cliente",
+        "description": "Cria um cliente, com CPF ou CNPJ, telefone e endereço de cobrança, se você os tem. Se você enviar external_id e o e-mail já for de um cliente que ainda não tem ID externo (por exemplo, um que o checkout criou), esse cliente recebe o ID e os dados enviados, e a resposta é 200 em vez de 201. Se o e-mail for de um cliente com outro ID externo, a resposta é 422.\n\nAutenticação: chave de API da organização em Authorization: Bearer (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição. Respostas em JSON no envelope data; erros com error, message e fields.",
         "operationId": "customers:create",
         "parameters": [
           {
             "name": "Idempotency-Key",
             "in": "header",
-            "description": "Opcional, até 255 caracteres. A mesma chave com o mesmo corpo repete a resposta original (Idempotent-Replayed: true); com outro corpo, 409.",
+            "description": "Opcional, até 255 caracteres. A mesma chave com o mesmo corpo repete a resposta original (Idempotent-Replayed: true); com outro corpo, 409. Uma resposta 2xx fica guardada sob a chave; uma recusa 4xx ou uma falha 5xx libera a chave, e você pode repetir a escrita com a mesma chave, com o corpo corrigido ou como estava.",
             "schema": {
               "type": "string"
             }
@@ -3058,17 +3280,85 @@
                   "email"
                 ],
                 "additionalProperties": false
+              },
+              "example": {
+                "name": "Ana Souza",
+                "email": "ana@exemplo.com.br",
+                "external_id": "usuario-4521",
+                "tax_id": "529.982.247-25",
+                "phone": "(11) 98888-7777",
+                "billing_address": {
+                  "line1": "Rua das Acácias, 120",
+                  "district": "Jardim Paulista",
+                  "city": "São Paulo",
+                  "state": "SP",
+                  "postal_code": "01310-100"
+                }
               }
             }
           }
         },
         "responses": {
+          "200": {
+            "description": "Cliente que já existia sem ID externo e o recebeu junto com os dados enviados (o e-mail já era dele). A resposta é o cliente.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CustomerEnvelope"
+                },
+                "example": {
+                  "data": {
+                    "id": "0193c60a-91d4-7c3b-8e15-4f2a7d6b9c08",
+                    "name": "Ana Souza",
+                    "email": "ana@exemplo.com.br",
+                    "external_id": "usuario-4521",
+                    "status": "active",
+                    "created_at": "2026-11-18T14:30:55Z",
+                    "tax_id": "***.***.247-25",
+                    "tax_id_kind": "cpf",
+                    "phone": "11988887777",
+                    "billing_address": {
+                      "line1": "Rua das Acácias, 120",
+                      "line2": "",
+                      "district": "Jardim Paulista",
+                      "city": "São Paulo",
+                      "state": "SP",
+                      "postal_code": "01310100",
+                      "country": "BR"
+                    }
+                  }
+                }
+              }
+            }
+          },
           "201": {
             "description": "O recurso no envelope data.",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/CustomerEnvelope"
+                },
+                "example": {
+                  "data": {
+                    "id": "0193c60a-91d4-7c3b-8e15-4f2a7d6b9c08",
+                    "name": "Ana Souza",
+                    "email": "ana@exemplo.com.br",
+                    "external_id": "usuario-4521",
+                    "status": "active",
+                    "created_at": "2026-11-18T14:30:55Z",
+                    "tax_id": "***.***.247-25",
+                    "tax_id_kind": "cpf",
+                    "phone": "11988887777",
+                    "billing_address": {
+                      "line1": "Rua das Acácias, 120",
+                      "line2": "",
+                      "district": "Jardim Paulista",
+                      "city": "São Paulo",
+                      "state": "SP",
+                      "postal_code": "01310100",
+                      "country": "BR"
+                    }
+                  }
                 }
               }
             }
@@ -3129,6 +3419,15 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": "invalid_request",
+                  "message": "email: Já existe um cliente com este e-mail.",
+                  "fields": {
+                    "email": [
+                      "Já existe um cliente com este e-mail."
+                    ]
+                  }
                 }
               }
             }
@@ -3160,7 +3459,7 @@
           "customers"
         ],
         "summary": "Ler um cliente",
-        "description": "Autenticação: chave de API da organização em Authorization: Bearer (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição. Respostas em JSON no envelope data; erros com error, message e fields.",
+        "description": "Devolve um cliente pelo ID.\n\nAutenticação: chave de API da organização em Authorization: Bearer (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição. Respostas em JSON no envelope data; erros com error, message e fields.",
         "operationId": "customers:get",
         "parameters": [
           {
@@ -3248,8 +3547,8 @@
         "tags": [
           "customers"
         ],
-        "summary": "Excluir um cliente: as assinaturas terminam na hora, os benefícios são revogados e o ID externo é liberado; pedidos e pagamentos continuam",
-        "description": "Autenticação: chave de API da organização em Authorization: Bearer (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição. Respostas em JSON no envelope data; erros com error, message e fields.",
+        "summary": "Excluir um cliente",
+        "description": "Exclui um cliente: as assinaturas terminam na hora, os benefícios são revogados e o ID externo fica livre. Os pedidos e os pagamentos continuam nos registros.\n\nAutenticação: chave de API da organização em Authorization: Bearer (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição. Respostas em JSON no envelope data; erros com error, message e fields.",
         "operationId": "customers:delete",
         "parameters": [
           {
@@ -3264,7 +3563,7 @@
           {
             "name": "Idempotency-Key",
             "in": "header",
-            "description": "Opcional, até 255 caracteres. A mesma chave com o mesmo corpo repete a resposta original (Idempotent-Replayed: true); com outro corpo, 409.",
+            "description": "Opcional, até 255 caracteres. A mesma chave com o mesmo corpo repete a resposta original (Idempotent-Replayed: true); com outro corpo, 409. Uma resposta 2xx fica guardada sob a chave; uma recusa 4xx ou uma falha 5xx libera a chave, e você pode repetir a escrita com a mesma chave, com o corpo corrigido ou como estava.",
             "schema": {
               "type": "string"
             }
@@ -3348,8 +3647,8 @@
         "tags": [
           "customers"
         ],
-        "summary": "Atualizar o nome, o e-mail, o ID externo, o CPF ou CNPJ, o telefone ou o endereço de cobrança de um cliente; o ID externo não muda depois de definido",
-        "description": "Autenticação: chave de API da organização em Authorization: Bearer (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição. Respostas em JSON no envelope data; erros com error, message e fields.",
+        "summary": "Atualizar um cliente",
+        "description": "Muda o nome, o e-mail, o ID externo, o CPF ou CNPJ, o telefone ou o endereço de cobrança. O ID externo só pode ser definido uma vez.\n\nAutenticação: chave de API da organização em Authorization: Bearer (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição. Respostas em JSON no envelope data; erros com error, message e fields.",
         "operationId": "customers:update",
         "parameters": [
           {
@@ -3364,7 +3663,7 @@
           {
             "name": "Idempotency-Key",
             "in": "header",
-            "description": "Opcional, até 255 caracteres. A mesma chave com o mesmo corpo repete a resposta original (Idempotent-Replayed: true); com outro corpo, 409.",
+            "description": "Opcional, até 255 caracteres. A mesma chave com o mesmo corpo repete a resposta original (Idempotent-Replayed: true); com outro corpo, 409. Uma resposta 2xx fica guardada sob a chave; uma recusa 4xx ou uma falha 5xx libera a chave, e você pode repetir a escrita com a mesma chave, com o corpo corrigido ou como estava.",
             "schema": {
               "type": "string"
             }
@@ -3540,8 +3839,8 @@
         "tags": [
           "payment_methods"
         ],
-        "summary": "Listar os cartões guardados de um cliente: bandeira, quatro últimos dígitos e validade",
-        "description": "Autenticação: chave de API da organização em Authorization: Bearer (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição. Respostas em JSON no envelope data; erros com error, message e fields.",
+        "summary": "Listar os cartões guardados de um cliente",
+        "description": "Devolve os cartões guardados de um cliente: bandeira, quatro últimos dígitos e validade. O número do cartão nunca aparece.\n\nAutenticação: chave de API da organização em Authorization: Bearer (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição. Respostas em JSON no envelope data; erros com error, message e fields.",
         "operationId": "payment_methods:list",
         "parameters": [
           {
@@ -3651,8 +3950,8 @@
         "tags": [
           "customers"
         ],
-        "summary": "Ler o estado de um cliente: assinaturas ativas e benefícios vigentes, inclusive os feature flags",
-        "description": "Autenticação: chave de API da organização em Authorization: Bearer (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição. Respostas em JSON no envelope data; erros com error, message e fields.",
+        "summary": "Ler o estado de um cliente",
+        "description": "Devolve o estado de um cliente: as assinaturas ativas e os benefícios vigentes, inclusive os feature flags. É a leitura que o seu aplicativo faz para decidir o que o cliente pode usar.\n\nAutenticação: chave de API da organização em Authorization: Bearer (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição. Respostas em JSON no envelope data; erros com error, message e fields.",
         "operationId": "customers:get_state",
         "parameters": [
           {
@@ -3743,7 +4042,7 @@
           "discounts"
         ],
         "summary": "Listar descontos",
-        "description": "Autenticação: chave de API da organização em Authorization: Bearer (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição. Respostas em JSON no envelope data; erros com error, message e fields.",
+        "description": "Devolve uma página dos descontos da organização.\n\nAutenticação: chave de API da organização em Authorization: Bearer (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição. Respostas em JSON no envelope data; erros com error, message e fields.",
         "operationId": "discounts:list",
         "parameters": [
           {
@@ -3842,14 +4141,14 @@
         "tags": [
           "discounts"
         ],
-        "summary": "Criar um desconto percentual (basis_points) ou fixo em reais (amount_cents)",
-        "description": "Autenticação: chave de API da organização em Authorization: Bearer (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição. Respostas em JSON no envelope data; erros com error, message e fields.",
+        "summary": "Criar um desconto",
+        "description": "Cria um desconto percentual (basis_points) ou de valor fixo em reais (amount_cents). O código é o que o comprador digita; sem ele, o desconto só vale num link de checkout ou pela API.\n\nAutenticação: chave de API da organização em Authorization: Bearer (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição. Respostas em JSON no envelope data; erros com error, message e fields.",
         "operationId": "discounts:create",
         "parameters": [
           {
             "name": "Idempotency-Key",
             "in": "header",
-            "description": "Opcional, até 255 caracteres. A mesma chave com o mesmo corpo repete a resposta original (Idempotent-Replayed: true); com outro corpo, 409.",
+            "description": "Opcional, até 255 caracteres. A mesma chave com o mesmo corpo repete a resposta original (Idempotent-Replayed: true); com outro corpo, 409. Uma resposta 2xx fica guardada sob a chave; uma recusa 4xx ou uma falha 5xx libera a chave, e você pode repetir a escrita com a mesma chave, com o corpo corrigido ou como estava.",
             "schema": {
               "type": "string"
             }
@@ -4025,7 +4324,7 @@
           "discounts"
         ],
         "summary": "Ler um desconto",
-        "description": "Autenticação: chave de API da organização em Authorization: Bearer (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição. Respostas em JSON no envelope data; erros com error, message e fields.",
+        "description": "Devolve um desconto pelo ID.\n\nAutenticação: chave de API da organização em Authorization: Bearer (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição. Respostas em JSON no envelope data; erros com error, message e fields.",
         "operationId": "discounts:get",
         "parameters": [
           {
@@ -4113,8 +4412,8 @@
         "tags": [
           "discounts"
         ],
-        "summary": "Excluir um desconto: sai das listas e dos checkouts e o código fica livre; o que ele já descontou continua nos registros",
-        "description": "Autenticação: chave de API da organização em Authorization: Bearer (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição. Respostas em JSON no envelope data; erros com error, message e fields.",
+        "summary": "Excluir um desconto",
+        "description": "Exclui um desconto: ele sai das listas e dos checkouts, e o código fica livre. O que ele já descontou continua nos registros.\n\nAutenticação: chave de API da organização em Authorization: Bearer (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição. Respostas em JSON no envelope data; erros com error, message e fields.",
         "operationId": "discounts:delete",
         "parameters": [
           {
@@ -4129,7 +4428,7 @@
           {
             "name": "Idempotency-Key",
             "in": "header",
-            "description": "Opcional, até 255 caracteres. A mesma chave com o mesmo corpo repete a resposta original (Idempotent-Replayed: true); com outro corpo, 409.",
+            "description": "Opcional, até 255 caracteres. A mesma chave com o mesmo corpo repete a resposta original (Idempotent-Replayed: true); com outro corpo, 409. Uma resposta 2xx fica guardada sob a chave; uma recusa 4xx ou uma falha 5xx libera a chave, e você pode repetir a escrita com a mesma chave, com o corpo corrigido ou como estava.",
             "schema": {
               "type": "string"
             }
@@ -4213,8 +4512,8 @@
         "tags": [
           "discounts"
         ],
-        "summary": "Atualizar um desconto; o tipo e a duração não mudam, e depois do primeiro uso o valor e os meses também não",
-        "description": "Autenticação: chave de API da organização em Authorization: Bearer (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição. Respostas em JSON no envelope data; erros com error, message e fields.",
+        "summary": "Atualizar um desconto",
+        "description": "Muda um desconto. O tipo e a duração não mudam; depois do primeiro uso, o valor e os meses também não.\n\nAutenticação: chave de API da organização em Authorization: Bearer (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição. Respostas em JSON no envelope data; erros com error, message e fields.",
         "operationId": "discounts:update",
         "parameters": [
           {
@@ -4229,7 +4528,7 @@
           {
             "name": "Idempotency-Key",
             "in": "header",
-            "description": "Opcional, até 255 caracteres. A mesma chave com o mesmo corpo repete a resposta original (Idempotent-Replayed: true); com outro corpo, 409.",
+            "description": "Opcional, até 255 caracteres. A mesma chave com o mesmo corpo repete a resposta original (Idempotent-Replayed: true); com outro corpo, 409. Uma resposta 2xx fica guardada sob a chave; uma recusa 4xx ou uma falha 5xx libera a chave, e você pode repetir a escrita com a mesma chave, com o corpo corrigido ou como estava.",
             "schema": {
               "type": "string"
             }
@@ -4382,8 +4681,8 @@
         "tags": [
           "disputes"
         ],
-        "summary": "Listar disputas, opcionalmente de um status (status)",
-        "description": "Autenticação: chave de API da organização em Authorization: Bearer (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição. Respostas em JSON no envelope data; erros com error, message e fields.",
+        "summary": "Listar disputas",
+        "description": "Devolve uma página das disputas. Com status, só as que estão nele.\n\nAutenticação: chave de API da organização em Authorization: Bearer (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição. Respostas em JSON no envelope data; erros com error, message e fields.",
         "operationId": "disputes:list",
         "parameters": [
           {
@@ -4493,7 +4792,7 @@
           "disputes"
         ],
         "summary": "Ler uma disputa",
-        "description": "Autenticação: chave de API da organização em Authorization: Bearer (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição. Respostas em JSON no envelope data; erros com error, message e fields.",
+        "description": "Devolve uma disputa pelo ID.\n\nAutenticação: chave de API da organização em Authorization: Bearer (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição. Respostas em JSON no envelope data; erros com error, message e fields.",
         "operationId": "disputes:get",
         "parameters": [
           {
@@ -4583,8 +4882,8 @@
         "tags": [
           "events"
         ],
-        "summary": "Listar os eventos de consumo que as origens enviaram, do mais novo ao mais antigo",
-        "description": "Autenticação: chave de API da organização em Authorization: Bearer (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição. Respostas em JSON no envelope data; erros com error, message e fields.",
+        "summary": "Listar eventos de consumo",
+        "description": "Devolve uma página dos eventos de consumo que as fontes enviaram, do mais novo ao mais antigo.\n\nAutenticação: chave de API da organização em Authorization: Bearer (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição. Respostas em JSON no envelope data; erros com error, message e fields.",
         "operationId": "events:list",
         "parameters": [
           {
@@ -4709,8 +5008,8 @@
         "tags": [
           "customers"
         ],
-        "summary": "Ler um cliente pelo ID dele no sistema do lojista (external_id)",
-        "description": "Autenticação: chave de API da organização em Authorization: Bearer (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição. Respostas em JSON no envelope data; erros com error, message e fields.",
+        "summary": "Ler um cliente pelo ID externo",
+        "description": "Devolve o cliente que você identifica pelo ID dele no seu sistema (external_id).\n\nAutenticação: chave de API da organização em Authorization: Bearer (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição. Respostas em JSON no envelope data; erros com error, message e fields.",
         "operationId": "customers:get_external",
         "parameters": [
           {
@@ -4798,8 +5097,8 @@
         "tags": [
           "customers"
         ],
-        "summary": "Atualizar um cliente pelo ID dele no sistema do lojista (external_id)",
-        "description": "Autenticação: chave de API da organização em Authorization: Bearer (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição. Respostas em JSON no envelope data; erros com error, message e fields.",
+        "summary": "Atualizar um cliente pelo ID externo",
+        "description": "Muda o cliente que você identifica pelo ID dele no seu sistema (external_id). Os campos são os de Atualizar um cliente.\n\nAutenticação: chave de API da organização em Authorization: Bearer (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição. Respostas em JSON no envelope data; erros com error, message e fields.",
         "operationId": "customers:update_external",
         "parameters": [
           {
@@ -4814,7 +5113,7 @@
           {
             "name": "Idempotency-Key",
             "in": "header",
-            "description": "Opcional, até 255 caracteres. A mesma chave com o mesmo corpo repete a resposta original (Idempotent-Replayed: true); com outro corpo, 409.",
+            "description": "Opcional, até 255 caracteres. A mesma chave com o mesmo corpo repete a resposta original (Idempotent-Replayed: true); com outro corpo, 409. Uma resposta 2xx fica guardada sob a chave; uma recusa 4xx ou uma falha 5xx libera a chave, e você pode repetir a escrita com a mesma chave, com o corpo corrigido ou como estava.",
             "schema": {
               "type": "string"
             }
@@ -4990,8 +5289,8 @@
         "tags": [
           "meters"
         ],
-        "summary": "Listar medidores; os arquivados só com is_archived=true",
-        "description": "Autenticação: chave de API da organização em Authorization: Bearer (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição. Respostas em JSON no envelope data; erros com error, message e fields.",
+        "summary": "Listar medidores",
+        "description": "Devolve uma página dos medidores. Os arquivados só aparecem com is_archived=true.\n\nAutenticação: chave de API da organização em Authorization: Bearer (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição. Respostas em JSON no envelope data; erros com error, message e fields.",
         "operationId": "meters:list",
         "parameters": [
           {
@@ -5100,8 +5399,8 @@
         "tags": [
           "meters"
         ],
-        "summary": "Ler um medidor: o filtro dos eventos que ele conta, a agregação e a unidade",
-        "description": "Autenticação: chave de API da organização em Authorization: Bearer (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição. Respostas em JSON no envelope data; erros com error, message e fields.",
+        "summary": "Ler um medidor",
+        "description": "Devolve um medidor: o filtro dos eventos que ele conta, a agregação e a unidade.\n\nAutenticação: chave de API da organização em Authorization: Bearer (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição. Respostas em JSON no envelope data; erros com error, message e fields.",
         "operationId": "meters:get",
         "parameters": [
           {
@@ -5191,8 +5490,8 @@
         "tags": [
           "orders"
         ],
-        "summary": "Listar pedidos (checkouts pagos), opcionalmente de um client_reference_id, de um cliente, de um período ou de metadados",
-        "description": "Autenticação: chave de API da organização em Authorization: Bearer (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição. Respostas em JSON no envelope data; erros com error, message e fields. Filtro por metadados: metadata[chave]=valor, uma vez para cada par (até 10); a linha precisa ter todos. Um valor que parece número ou booleano também casa com o número ou o booleano guardado.",
+        "summary": "Listar pedidos",
+        "description": "Devolve uma página dos pedidos, que são os checkouts pagos. Filtre por client_reference_id, cliente, período ou metadados.\n\nAutenticação: chave de API da organização em Authorization: Bearer (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição. Respostas em JSON no envelope data; erros com error, message e fields.",
         "operationId": "orders:list",
         "parameters": [
           {
@@ -5201,7 +5500,8 @@
             "description": "Só os registros com este client_reference_id: o ID do pedido no seu sistema, que você enviou ao criar o checkout.",
             "schema": {
               "type": "string"
-            }
+            },
+            "example": "pedido-123"
           },
           {
             "name": "status",
@@ -5233,7 +5533,8 @@
             "description": "Só os criados a partir deste instante, inclusive (RFC 3339, como 2026-11-17T00:00:00-03:00).",
             "schema": {
               "type": "string"
-            }
+            },
+            "example": "2026-11-01T00:00:00-03:00"
           },
           {
             "name": "created_before",
@@ -5241,7 +5542,8 @@
             "description": "Só os criados antes deste instante (RFC 3339); com created_after, o período é [created_after, created_before).",
             "schema": {
               "type": "string"
-            }
+            },
+            "example": "2026-12-01T00:00:00-03:00"
           },
           {
             "name": "sorting",
@@ -5249,7 +5551,8 @@
             "description": "Ordem da lista: created_at ou amount, e com um - na frente é decrescente (-created_at, o mais novo primeiro, é o padrão).",
             "schema": {
               "type": "string"
-            }
+            },
+            "example": "-created_at"
           },
           {
             "name": "page",
@@ -5266,6 +5569,9 @@
             "schema": {
               "type": "integer"
             }
+          },
+          {
+            "$ref": "#/components/parameters/MetadataFilter"
           }
         ],
         "responses": {
@@ -5275,6 +5581,51 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/OrderListEnvelope"
+                },
+                "example": {
+                  "data": {
+                    "items": [
+                      {
+                        "id": "0193c6b1-3e5a-7f90-b2c4-1d8e6a7f3b95",
+                        "customer_id": "0193c60a-91d4-7c3b-8e15-4f2a7d6b9c08",
+                        "product_id": "0193c5e2-4a7d-7b1e-9c3f-2d8a6e5f1b40",
+                        "price_id": "0193c5e2-5f10-7e2a-8b64-9a1c3d7e0f52",
+                        "amount_cents": 50508,
+                        "currency": "BRL",
+                        "status": "succeeded",
+                        "paid_at": "2026-11-18T14:41:12Z",
+                        "order_status": "paid",
+                        "refunded_amount_cents": 0,
+                        "installments": 1,
+                        "installment_interest_cents": 0,
+                        "items": [
+                          {
+                            "name": "Câmera Portaria, 01/12 a 31/12",
+                            "quantity": 1,
+                            "unit_amount_cents": 45000
+                          },
+                          {
+                            "name": "Serviço de conexão",
+                            "quantity": 1,
+                            "unit_amount_cents": 5000
+                          },
+                          {
+                            "name": "Multa e juros",
+                            "quantity": 1,
+                            "unit_amount_cents": 508
+                          }
+                        ],
+                        "metadata": {
+                          "pedido": "123"
+                        },
+                        "client_reference_id": "pedido-123"
+                      }
+                    ],
+                    "pagination": {
+                      "total_count": 1,
+                      "max_page": 1
+                    }
+                  }
                 }
               }
             }
@@ -5349,8 +5700,8 @@
         "tags": [
           "orders"
         ],
-        "summary": "Ler um pedido: um checkout pago",
-        "description": "Autenticação: chave de API da organização em Authorization: Bearer (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição. Respostas em JSON no envelope data; erros com error, message e fields.",
+        "summary": "Ler um pedido",
+        "description": "Devolve um pedido: um checkout pago.\n\nAutenticação: chave de API da organização em Authorization: Bearer (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição. Respostas em JSON no envelope data; erros com error, message e fields.",
         "operationId": "orders:get",
         "parameters": [
           {
@@ -5440,8 +5791,8 @@
         "tags": [
           "orders"
         ],
-        "summary": "Ler a fatura de um pedido, o documento comercial que o lojista gerou; sem ela, 404",
-        "description": "Autenticação: chave de API da organização em Authorization: Bearer (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição. Respostas em JSON no envelope data; erros com error, message e fields.",
+        "summary": "Ler a fatura de um pedido",
+        "description": "Devolve a fatura de um pedido, o documento comercial que o lojista gerou. Sem fatura, a resposta é 404.\n\nAutenticação: chave de API da organização em Authorization: Bearer (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição. Respostas em JSON no envelope data; erros com error, message e fields.",
         "operationId": "orders:get_invoice",
         "parameters": [
           {
@@ -5531,8 +5882,8 @@
         "tags": [
           "orders"
         ],
-        "summary": "Ler o recibo de um pedido: o que foi pago, quando e como",
-        "description": "Autenticação: chave de API da organização em Authorization: Bearer (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição. Respostas em JSON no envelope data; erros com error, message e fields.",
+        "summary": "Ler o recibo de um pedido",
+        "description": "Devolve o recibo de um pedido: o que foi pago, quando e como.\n\nAutenticação: chave de API da organização em Authorization: Bearer (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição. Respostas em JSON no envelope data; erros com error, message e fields.",
         "operationId": "orders:get_receipt",
         "parameters": [
           {
@@ -5622,8 +5973,8 @@
         "tags": [
           "payment_methods"
         ],
-        "summary": "Parar de cobrar um cartão guardado; recusado enquanto uma assinatura ativa o cobra",
-        "description": "Autenticação: chave de API da organização em Authorization: Bearer (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição. Respostas em JSON no envelope data; erros com error, message e fields.",
+        "summary": "Parar de cobrar um cartão guardado",
+        "description": "Para de cobrar um cartão guardado. É recusado (409) enquanto uma assinatura ativa o cobra.\n\nAutenticação: chave de API da organização em Authorization: Bearer (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição. Respostas em JSON no envelope data; erros com error, message e fields.",
         "operationId": "payment_methods:detach",
         "parameters": [
           {
@@ -5638,7 +5989,7 @@
           {
             "name": "Idempotency-Key",
             "in": "header",
-            "description": "Opcional, até 255 caracteres. A mesma chave com o mesmo corpo repete a resposta original (Idempotent-Replayed: true); com outro corpo, 409.",
+            "description": "Opcional, até 255 caracteres. A mesma chave com o mesmo corpo repete a resposta original (Idempotent-Replayed: true); com outro corpo, 409. Uma resposta 2xx fica guardada sob a chave; uma recusa 4xx ou uma falha 5xx libera a chave, e você pode repetir a escrita com a mesma chave, com o corpo corrigido ou como estava.",
             "schema": {
               "type": "string"
             }
@@ -5731,8 +6082,8 @@
         "tags": [
           "payments"
         ],
-        "summary": "Listar pagamentos, opcionalmente de um client_reference_id, de um estado, de um cliente, de um período ou de metadados",
-        "description": "Autenticação: chave de API da organização em Authorization: Bearer (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição. Respostas em JSON no envelope data; erros com error, message e fields. Filtro por metadados: metadata[chave]=valor, uma vez para cada par (até 10); a linha precisa ter todos. Um valor que parece número ou booleano também casa com o número ou o booleano guardado.",
+        "summary": "Listar pagamentos",
+        "description": "Devolve uma página dos pagamentos. Filtre por client_reference_id, estado, cliente, período ou metadados.\n\nAutenticação: chave de API da organização em Authorization: Bearer (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição. Respostas em JSON no envelope data; erros com error, message e fields.",
         "operationId": "payments:list",
         "parameters": [
           {
@@ -5741,7 +6092,8 @@
             "description": "Só os registros com este client_reference_id: o ID do pedido no seu sistema, que você enviou ao criar o checkout.",
             "schema": {
               "type": "string"
-            }
+            },
+            "example": "pedido-123"
           },
           {
             "name": "status",
@@ -5773,7 +6125,8 @@
             "description": "Só os criados a partir deste instante, inclusive (RFC 3339, como 2026-11-17T00:00:00-03:00).",
             "schema": {
               "type": "string"
-            }
+            },
+            "example": "2026-11-01T00:00:00-03:00"
           },
           {
             "name": "created_before",
@@ -5781,7 +6134,8 @@
             "description": "Só os criados antes deste instante (RFC 3339); com created_after, o período é [created_after, created_before).",
             "schema": {
               "type": "string"
-            }
+            },
+            "example": "2026-12-01T00:00:00-03:00"
           },
           {
             "name": "sorting",
@@ -5789,7 +6143,8 @@
             "description": "Ordem da lista: created_at ou amount, e com um - na frente é decrescente (-created_at, o mais novo primeiro, é o padrão).",
             "schema": {
               "type": "string"
-            }
+            },
+            "example": "-created_at"
           },
           {
             "name": "page",
@@ -5806,6 +6161,9 @@
             "schema": {
               "type": "integer"
             }
+          },
+          {
+            "$ref": "#/components/parameters/MetadataFilter"
           }
         ],
         "responses": {
@@ -5890,7 +6248,7 @@
           "payments"
         ],
         "summary": "Ler um pagamento",
-        "description": "Autenticação: chave de API da organização em Authorization: Bearer (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição. Respostas em JSON no envelope data; erros com error, message e fields.",
+        "description": "Devolve um pagamento pelo ID.\n\nAutenticação: chave de API da organização em Authorization: Bearer (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição. Respostas em JSON no envelope data; erros com error, message e fields.",
         "operationId": "payments:get",
         "parameters": [
           {
@@ -5980,8 +6338,8 @@
         "tags": [
           "prices"
         ],
-        "summary": "Listar preços, opcionalmente de um produto (product_id)",
-        "description": "Autenticação: chave de API da organização em Authorization: Bearer (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição. Respostas em JSON no envelope data; erros com error, message e fields.",
+        "summary": "Listar preços",
+        "description": "Devolve uma página dos preços da organização. Com product_id, só os de um produto.\n\nAutenticação: chave de API da organização em Authorization: Bearer (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição. Respostas em JSON no envelope data; erros com error, message e fields.",
         "operationId": "prices:list",
         "parameters": [
           {
@@ -6088,14 +6446,14 @@
         "tags": [
           "prices"
         ],
-        "summary": "Criar um preço em reais, avulso ou recorrente",
-        "description": "Autenticação: chave de API da organização em Authorization: Bearer (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição. Respostas em JSON no envelope data; erros com error, message e fields.",
+        "summary": "Criar um preço",
+        "description": "Cria um preço em reais para um produto, avulso (one_time) ou recorrente (recurring). No recorrente, interval e interval_count dizem de quanto em quanto tempo ele renova: month com 3 é trimestral.\n\nAutenticação: chave de API da organização em Authorization: Bearer (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição. Respostas em JSON no envelope data; erros com error, message e fields.",
         "operationId": "prices:create",
         "parameters": [
           {
             "name": "Idempotency-Key",
             "in": "header",
-            "description": "Opcional, até 255 caracteres. A mesma chave com o mesmo corpo repete a resposta original (Idempotent-Replayed: true); com outro corpo, 409.",
+            "description": "Opcional, até 255 caracteres. A mesma chave com o mesmo corpo repete a resposta original (Idempotent-Replayed: true); com outro corpo, 409. Uma resposta 2xx fica guardada sob a chave; uma recusa 4xx ou uma falha 5xx libera a chave, e você pode repetir a escrita com a mesma chave, com o corpo corrigido ou como estava.",
             "schema": {
               "type": "string"
             }
@@ -6141,6 +6499,13 @@
                   "type"
                 ],
                 "additionalProperties": false
+              },
+              "example": {
+                "product_id": "0193c5e2-4a7d-7b1e-9c3f-2d8a6e5f1b40",
+                "amount_cents": 29700,
+                "type": "recurring",
+                "interval": "month",
+                "interval_count": 3
               }
             }
           }
@@ -6152,6 +6517,18 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/PriceEnvelope"
+                },
+                "example": {
+                  "data": {
+                    "id": "0193c5e3-0b8c-7a49-a5d2-6e4f8b1c2d73",
+                    "product_id": "0193c5e2-4a7d-7b1e-9c3f-2d8a6e5f1b40",
+                    "currency": "BRL",
+                    "amount_cents": 29700,
+                    "type": "recurring",
+                    "interval": "month",
+                    "interval_count": 3,
+                    "status": "active"
+                  }
                 }
               }
             }
@@ -6212,6 +6589,15 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": "invalid_request",
+                  "message": "interval_count: Com year o preço renova a cada 1 ano; envie 1 ou omita. Para 12 meses use month com interval_count 12, ou year.",
+                  "fields": {
+                    "interval_count": [
+                      "Com year o preço renova a cada 1 ano; envie 1 ou omita. Para 12 meses use month com interval_count 12, ou year."
+                    ]
+                  }
                 }
               }
             }
@@ -6243,7 +6629,7 @@
           "products"
         ],
         "summary": "Listar produtos",
-        "description": "Autenticação: chave de API da organização em Authorization: Bearer (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição. Respostas em JSON no envelope data; erros com error, message e fields.",
+        "description": "Devolve uma página dos produtos da organização, no ambiente da chave.\n\nAutenticação: chave de API da organização em Authorization: Bearer (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição. Respostas em JSON no envelope data; erros com error, message e fields.",
         "operationId": "products:list",
         "parameters": [
           {
@@ -6343,13 +6729,13 @@
           "products"
         ],
         "summary": "Criar um produto",
-        "description": "Autenticação: chave de API da organização em Authorization: Bearer (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição. Respostas em JSON no envelope data; erros com error, message e fields.",
+        "description": "Cria um produto com nome e descrição. O preço se cria à parte, em Criar um preço.\n\nAutenticação: chave de API da organização em Authorization: Bearer (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição. Respostas em JSON no envelope data; erros com error, message e fields.",
         "operationId": "products:create",
         "parameters": [
           {
             "name": "Idempotency-Key",
             "in": "header",
-            "description": "Opcional, até 255 caracteres. A mesma chave com o mesmo corpo repete a resposta original (Idempotent-Replayed: true); com outro corpo, 409.",
+            "description": "Opcional, até 255 caracteres. A mesma chave com o mesmo corpo repete a resposta original (Idempotent-Replayed: true); com outro corpo, 409. Uma resposta 2xx fica guardada sob a chave; uma recusa 4xx ou uma falha 5xx libera a chave, e você pode repetir a escrita com a mesma chave, com o corpo corrigido ou como estava.",
             "schema": {
               "type": "string"
             }
@@ -6474,7 +6860,7 @@
           "products"
         ],
         "summary": "Ler um produto",
-        "description": "Autenticação: chave de API da organização em Authorization: Bearer (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição. Respostas em JSON no envelope data; erros com error, message e fields.",
+        "description": "Devolve um produto pelo ID.\n\nAutenticação: chave de API da organização em Authorization: Bearer (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição. Respostas em JSON no envelope data; erros com error, message e fields.",
         "operationId": "products:get",
         "parameters": [
           {
@@ -6562,8 +6948,8 @@
         "tags": [
           "products"
         ],
-        "summary": "Atualizar o nome ou a descrição de um produto ativo",
-        "description": "Autenticação: chave de API da organização em Authorization: Bearer (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição. Respostas em JSON no envelope data; erros com error, message e fields.",
+        "summary": "Atualizar um produto",
+        "description": "Muda o nome ou a descrição de um produto ativo. O que você não enviar fica como está.\n\nAutenticação: chave de API da organização em Authorization: Bearer (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição. Respostas em JSON no envelope data; erros com error, message e fields.",
         "operationId": "products:update",
         "parameters": [
           {
@@ -6578,7 +6964,7 @@
           {
             "name": "Idempotency-Key",
             "in": "header",
-            "description": "Opcional, até 255 caracteres. A mesma chave com o mesmo corpo repete a resposta original (Idempotent-Replayed: true); com outro corpo, 409.",
+            "description": "Opcional, até 255 caracteres. A mesma chave com o mesmo corpo repete a resposta original (Idempotent-Replayed: true); com outro corpo, 409. Uma resposta 2xx fica guardada sob a chave; uma recusa 4xx ou uma falha 5xx libera a chave, e você pode repetir a escrita com a mesma chave, com o corpo corrigido ou como estava.",
             "schema": {
               "type": "string"
             }
@@ -6699,8 +7085,8 @@
         "tags": [
           "products"
         ],
-        "summary": "Arquivar um produto: sai das vendas novas e o que já foi vendido continua apontando para ele",
-        "description": "Autenticação: chave de API da organização em Authorization: Bearer (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição. Respostas em JSON no envelope data; erros com error, message e fields.",
+        "summary": "Arquivar um produto",
+        "description": "Arquiva um produto: ele sai das vendas novas, e o que já foi vendido continua apontando para ele.\n\nAutenticação: chave de API da organização em Authorization: Bearer (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição. Respostas em JSON no envelope data; erros com error, message e fields.",
         "operationId": "products:archive",
         "parameters": [
           {
@@ -6715,7 +7101,7 @@
           {
             "name": "Idempotency-Key",
             "in": "header",
-            "description": "Opcional, até 255 caracteres. A mesma chave com o mesmo corpo repete a resposta original (Idempotent-Replayed: true); com outro corpo, 409.",
+            "description": "Opcional, até 255 caracteres. A mesma chave com o mesmo corpo repete a resposta original (Idempotent-Replayed: true); com outro corpo, 409. Uma resposta 2xx fica guardada sob a chave; uma recusa 4xx ou uma falha 5xx libera a chave, e você pode repetir a escrita com a mesma chave, com o corpo corrigido ou como estava.",
             "schema": {
               "type": "string"
             }
@@ -6808,8 +7194,8 @@
         "tags": [
           "refunds"
         ],
-        "summary": "Listar reembolsos, opcionalmente de um pagamento (payment_id), de um status, de um cliente ou de um período",
-        "description": "Autenticação: chave de API da organização em Authorization: Bearer (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição. Respostas em JSON no envelope data; erros com error, message e fields.",
+        "summary": "Listar reembolsos",
+        "description": "Devolve uma página dos reembolsos. Filtre por pagamento (payment_id), status, cliente ou período.\n\nAutenticação: chave de API da organização em Authorization: Bearer (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição. Respostas em JSON no envelope data; erros com error, message e fields.",
         "operationId": "refunds:list",
         "parameters": [
           {
@@ -6850,7 +7236,8 @@
             "description": "Só os criados a partir deste instante, inclusive (RFC 3339, como 2026-11-17T00:00:00-03:00).",
             "schema": {
               "type": "string"
-            }
+            },
+            "example": "2026-11-01T00:00:00-03:00"
           },
           {
             "name": "created_before",
@@ -6858,7 +7245,8 @@
             "description": "Só os criados antes deste instante (RFC 3339); com created_after, o período é [created_after, created_before).",
             "schema": {
               "type": "string"
-            }
+            },
+            "example": "2026-12-01T00:00:00-03:00"
           },
           {
             "name": "sorting",
@@ -6866,7 +7254,8 @@
             "description": "Ordem da lista: created_at ou amount, e com um - na frente é decrescente (-created_at, o mais novo primeiro, é o padrão).",
             "schema": {
               "type": "string"
-            }
+            },
+            "example": "-created_at"
           },
           {
             "name": "page",
@@ -6964,14 +7353,14 @@
         "tags": [
           "refunds"
         ],
-        "summary": "Reembolsar parte ou todo um pagamento",
-        "description": "Autenticação: chave de API da organização em Authorization: Bearer (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição. Respostas em JSON no envelope data; erros com error, message e fields.",
+        "summary": "Reembolsar um pagamento",
+        "description": "Devolve parte ou todo o valor de um pagamento. A Idempotency-Key é obrigatória: sem ela, repetir a chamada depois de um tempo esgotado seria devolver duas vezes.\n\nAutenticação: chave de API da organização em Authorization: Bearer (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição. Respostas em JSON no envelope data; erros com error, message e fields.",
         "operationId": "refunds:create",
         "parameters": [
           {
             "name": "Idempotency-Key",
             "in": "header",
-            "description": "Obrigatória, até 255 caracteres: sem ela a requisição é recusada com 400 invalid_idempotency_key, porque esta escrita move dinheiro e uma repetição depois de um tempo esgotado seria outra operação. A mesma chave com o mesmo corpo repete a resposta original (Idempotent-Replayed: true); com outro corpo, 409.",
+            "description": "Obrigatória, até 255 caracteres: sem ela a requisição é recusada com 400 invalid_idempotency_key, porque esta escrita move dinheiro e uma repetição depois de um tempo esgotado seria outra operação. A mesma chave com o mesmo corpo repete a resposta original (Idempotent-Replayed: true); com outro corpo, 409. Uma resposta 2xx fica guardada sob a chave; uma recusa 4xx ou uma falha 5xx libera a chave, e você pode repetir a escrita com a mesma chave, com o corpo corrigido ou como estava.",
             "required": true,
             "schema": {
               "type": "string"
@@ -7011,6 +7400,12 @@
                   "reason"
                 ],
                 "additionalProperties": false
+              },
+              "example": {
+                "payment_id": "0193c6b8-7a21-7d4c-9e06-5b3f8a2c1e47",
+                "amount_cents": 10000,
+                "reason": "requested_by_customer",
+                "note": "Cliente pediu o cancelamento de uma das câmeras."
               }
             }
           }
@@ -7022,6 +7417,14 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/RefundEnvelope"
+                },
+                "example": {
+                  "data": {
+                    "id": "0193c7f4-2c96-7a81-b5d3-8e1f4a6c9d20",
+                    "payment_id": "0193c6b8-7a21-7d4c-9e06-5b3f8a2c1e47",
+                    "amount_cents": 10000,
+                    "status": "pending"
+                  }
                 }
               }
             }
@@ -7122,8 +7525,8 @@
         "tags": [
           "subscriptions"
         ],
-        "summary": "Listar assinaturas, opcionalmente de um cliente (customer_id ou external_customer_id), de um status, de um período ou de metadados",
-        "description": "Autenticação: chave de API da organização em Authorization: Bearer (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição. Respostas em JSON no envelope data; erros com error, message e fields. Filtro por metadados: metadata[chave]=valor, uma vez para cada par (até 10); a linha precisa ter todos. Um valor que parece número ou booleano também casa com o número ou o booleano guardado.",
+        "summary": "Listar assinaturas",
+        "description": "Devolve uma página das assinaturas. Filtre por cliente (customer_id ou external_customer_id), status, período ou metadados.\n\nAutenticação: chave de API da organização em Authorization: Bearer (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição. Respostas em JSON no envelope data; erros com error, message e fields.",
         "operationId": "subscriptions:list",
         "parameters": [
           {
@@ -7156,7 +7559,8 @@
             "description": "Só os criados a partir deste instante, inclusive (RFC 3339, como 2026-11-17T00:00:00-03:00).",
             "schema": {
               "type": "string"
-            }
+            },
+            "example": "2026-11-01T00:00:00-03:00"
           },
           {
             "name": "created_before",
@@ -7164,7 +7568,8 @@
             "description": "Só os criados antes deste instante (RFC 3339); com created_after, o período é [created_after, created_before).",
             "schema": {
               "type": "string"
-            }
+            },
+            "example": "2026-12-01T00:00:00-03:00"
           },
           {
             "name": "sorting",
@@ -7172,7 +7577,8 @@
             "description": "Ordem da lista: created_at ou amount, e com um - na frente é decrescente (-created_at, o mais novo primeiro, é o padrão).",
             "schema": {
               "type": "string"
-            }
+            },
+            "example": "-created_at"
           },
           {
             "name": "page",
@@ -7189,6 +7595,9 @@
             "schema": {
               "type": "integer"
             }
+          },
+          {
+            "$ref": "#/components/parameters/MetadataFilter"
           }
         ],
         "responses": {
@@ -7273,7 +7682,7 @@
           "subscriptions"
         ],
         "summary": "Ler uma assinatura",
-        "description": "Autenticação: chave de API da organização em Authorization: Bearer (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição. Respostas em JSON no envelope data; erros com error, message e fields.",
+        "description": "Devolve uma assinatura pelo ID.\n\nAutenticação: chave de API da organização em Authorization: Bearer (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição. Respostas em JSON no envelope data; erros com error, message e fields.",
         "operationId": "subscriptions:get",
         "parameters": [
           {
@@ -7361,8 +7770,8 @@
         "tags": [
           "subscriptions"
         ],
-        "summary": "Trocar o plano de uma assinatura: outro preço e, se quiser, outra quantidade, com a forma de ratear a diferença (proration_behavior)",
-        "description": "Autenticação: chave de API da organização em Authorization: Bearer (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição. Respostas em JSON no envelope data; erros com error, message e fields.",
+        "summary": "Trocar o plano de uma assinatura",
+        "description": "Troca o plano de uma assinatura: outro preço e, se quiser, outra quantidade. O proration_behavior diz como ratear a diferença.\n\nAutenticação: chave de API da organização em Authorization: Bearer (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição. Respostas em JSON no envelope data; erros com error, message e fields.",
         "operationId": "subscriptions:update",
         "parameters": [
           {
@@ -7377,7 +7786,7 @@
           {
             "name": "Idempotency-Key",
             "in": "header",
-            "description": "Opcional, até 255 caracteres. A mesma chave com o mesmo corpo repete a resposta original (Idempotent-Replayed: true); com outro corpo, 409.",
+            "description": "Opcional, até 255 caracteres. A mesma chave com o mesmo corpo repete a resposta original (Idempotent-Replayed: true); com outro corpo, 409. Uma resposta 2xx fica guardada sob a chave; uma recusa 4xx ou uma falha 5xx libera a chave, e você pode repetir a escrita com a mesma chave, com o corpo corrigido ou como estava.",
             "schema": {
               "type": "string"
             }
@@ -7513,8 +7922,8 @@
         "tags": [
           "subscriptions"
         ],
-        "summary": "Cancelar uma assinatura, por padrão no fim do período",
-        "description": "Autenticação: chave de API da organização em Authorization: Bearer (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição. Respostas em JSON no envelope data; erros com error, message e fields.",
+        "summary": "Cancelar uma assinatura",
+        "description": "Cancela uma assinatura. Por padrão o cancelamento vale no fim do período já pago.\n\nAutenticação: chave de API da organização em Authorization: Bearer (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição. Respostas em JSON no envelope data; erros com error, message e fields.",
         "operationId": "subscriptions:cancel",
         "parameters": [
           {
@@ -7529,7 +7938,7 @@
           {
             "name": "Idempotency-Key",
             "in": "header",
-            "description": "Opcional, até 255 caracteres. A mesma chave com o mesmo corpo repete a resposta original (Idempotent-Replayed: true); com outro corpo, 409.",
+            "description": "Opcional, até 255 caracteres. A mesma chave com o mesmo corpo repete a resposta original (Idempotent-Replayed: true); com outro corpo, 409. Uma resposta 2xx fica guardada sob a chave; uma recusa 4xx ou uma falha 5xx libera a chave, e você pode repetir a escrita com a mesma chave, com o corpo corrigido ou como estava.",
             "schema": {
               "type": "string"
             }
@@ -7650,8 +8059,8 @@
         "tags": [
           "subscriptions"
         ],
-        "summary": "Reativar uma assinatura suspensa, que volta a ser cobrada (a cobrança do ciclo em aberto recomeça), ou retomar uma pausada; qualquer outra recebe 409",
-        "description": "Autenticação: chave de API da organização em Authorization: Bearer (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição. Respostas em JSON no envelope data; erros com error, message e fields.",
+        "summary": "Reativar uma assinatura",
+        "description": "Reativa uma assinatura suspensa, que volta a ser cobrada (a cobrança do ciclo em aberto recomeça), ou retoma uma pausada. Qualquer outra assinatura recebe 409.\n\nAutenticação: chave de API da organização em Authorization: Bearer (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição. Respostas em JSON no envelope data; erros com error, message e fields.",
         "operationId": "subscriptions:resume",
         "parameters": [
           {
@@ -7666,7 +8075,7 @@
           {
             "name": "Idempotency-Key",
             "in": "header",
-            "description": "Opcional, até 255 caracteres. A mesma chave com o mesmo corpo repete a resposta original (Idempotent-Replayed: true); com outro corpo, 409.",
+            "description": "Opcional, até 255 caracteres. A mesma chave com o mesmo corpo repete a resposta original (Idempotent-Replayed: true); com outro corpo, 409. Uma resposta 2xx fica guardada sob a chave; uma recusa 4xx ou uma falha 5xx libera a chave, e você pode repetir a escrita com a mesma chave, com o corpo corrigido ou como estava.",
             "schema": {
               "type": "string"
             }
@@ -7679,6 +8088,28 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/SubscriptionEnvelope"
+                },
+                "example": {
+                  "data": {
+                    "id": "0193c6d0-6b34-7e58-a1f9-3c7d2b8e5a16",
+                    "customer_id": "0193c60a-91d4-7c3b-8e15-4f2a7d6b9c08",
+                    "product_id": "0193c5e2-4a7d-7b1e-9c3f-2d8a6e5f1b40",
+                    "price_id": "0193c5e3-0b8c-7a49-a5d2-6e4f8b1c2d73",
+                    "status": "active",
+                    "amount_cents": 29700,
+                    "currency": "BRL",
+                    "interval": "month",
+                    "current_period_start": "2026-11-18T15:10:00Z",
+                    "current_period_end": "2027-02-18T15:10:00Z",
+                    "cancel_at_period_end": false,
+                    "suspended_at": null,
+                    "suspension_reason": null,
+                    "trial_start": null,
+                    "trial_end": null,
+                    "metadata": {
+                      "camera": "portaria"
+                    }
+                  }
                 }
               }
             }
@@ -7756,6 +8187,9 @@
     },
     "/api/v1/usage/token-events": {
       "post": {
+        "tags": [
+          "usage"
+        ],
         "summary": "Ingerir lote atômico de eventos de uso",
         "description": "Autorização: Bearer é o único formato de credencial suportado. As credenciais são assinadas pela Peráta, expiram em 30 dias e são verificadas em relação ao estado da fonte, associação atual do emissor e permissões nativas. Organização, merchant e ambiente (teste, pus_test_…, ou produção, pus_live_…) são derivados da fonte autenticada; o payload JSON não pode sobrescrevê-los, e uma credencial de um ambiente nunca escreve no outro. Em produção, a fonte só existe para uma organização que a equipe da Peráta liberou. 1 a 100 eventos, no máximo 65536 bytes. Contagens são strings decimais de inteiros, de 0 a 1000000000000, com pelo menos um token por evento; a entrada exclui cache. Ocorrência RFC3339 em segundos inteiros, com no máximo 90 dias atrás e até cinco minutos à frente. Escopo/fonte/external_event_id identificam um registro; repetições exatas contam como replay e conteúdo conflitante retorna 409. Todos os novos eventos e emissões da outbox são confirmados ou revertidos juntos. Rotação mantém a identidade da fonte e replay; credenciais revogadas ou expiradas não podem ser reutilizadas. O sucesso vem no envelope data; todo erro é o documento de erro da API, o mesmo das demais operações de /api/v1 (error, message e fields), com record, a posição do evento recusado, quando há. Sem cobrança ou faturamento automático.",
         "operationId": "usage.ingest",
@@ -7985,8 +8419,8 @@
         "tags": [
           "webhooks"
         ],
-        "summary": "Listar as últimas 100 entregas de eventos aos endpoints, opcionalmente de um endpoint (endpoint_id) ou de uma situação (status)",
-        "description": "Autenticação: chave de API da organização em Authorization: Bearer (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição. Respostas em JSON no envelope data; erros com error, message e fields.",
+        "summary": "Listar entregas de webhook",
+        "description": "Devolve as últimas 100 entregas de eventos aos endpoints. Com endpoint_id, só as de um endpoint; com status, só as de uma situação.\n\nAutenticação: chave de API da organização em Authorization: Bearer (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição. Respostas em JSON no envelope data; erros com error, message e fields.",
         "operationId": "webhooks:list_deliveries",
         "parameters": [
           {
@@ -8103,8 +8537,8 @@
         "tags": [
           "webhooks"
         ],
-        "summary": "Listar os endpoints de webhook do lojista",
-        "description": "Autenticação: chave de API da organização em Authorization: Bearer (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição. Respostas em JSON no envelope data; erros com error, message e fields.",
+        "summary": "Listar endpoints de webhook",
+        "description": "Devolve uma página dos endpoints de webhook da organização.\n\nAutenticação: chave de API da organização em Authorization: Bearer (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição. Respostas em JSON no envelope data; erros com error, message e fields.",
         "operationId": "webhooks:list_endpoints",
         "parameters": [
           {
@@ -8203,14 +8637,14 @@
         "tags": [
           "webhooks"
         ],
-        "summary": "Criar um endpoint de webhook; o segredo que assina as mensagens vem só nesta resposta",
-        "description": "Autenticação: chave de API da organização em Authorization: Bearer (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição. Respostas em JSON no envelope data; erros com error, message e fields.",
+        "summary": "Criar um endpoint de webhook",
+        "description": "Cria um endpoint de webhook. O segredo que assina as mensagens vem só nesta resposta; guarde-o.\n\nAutenticação: chave de API da organização em Authorization: Bearer (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição. Respostas em JSON no envelope data; erros com error, message e fields.",
         "operationId": "webhooks:create_endpoint",
         "parameters": [
           {
             "name": "Idempotency-Key",
             "in": "header",
-            "description": "Opcional, até 255 caracteres. A mesma chave com o mesmo corpo repete a resposta original (Idempotent-Replayed: true); com outro corpo, 409.",
+            "description": "Opcional, até 255 caracteres. A mesma chave com o mesmo corpo repete a resposta original (Idempotent-Replayed: true); com outro corpo, 409. Uma resposta 2xx fica guardada sob a chave; uma recusa 4xx ou uma falha 5xx libera a chave, e você pode repetir a escrita com a mesma chave, com o corpo corrigido ou como estava.",
             "schema": {
               "type": "string"
             }
@@ -8353,7 +8787,7 @@
           "webhooks"
         ],
         "summary": "Ler um endpoint de webhook",
-        "description": "Autenticação: chave de API da organização em Authorization: Bearer (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição. Respostas em JSON no envelope data; erros com error, message e fields.",
+        "description": "Devolve um endpoint de webhook pelo ID.\n\nAutenticação: chave de API da organização em Authorization: Bearer (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição. Respostas em JSON no envelope data; erros com error, message e fields.",
         "operationId": "webhooks:get_endpoint",
         "parameters": [
           {
@@ -8441,8 +8875,8 @@
         "tags": [
           "webhooks"
         ],
-        "summary": "Excluir um endpoint de webhook; as entregas que ainda esperavam por ele falham",
-        "description": "Autenticação: chave de API da organização em Authorization: Bearer (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição. Respostas em JSON no envelope data; erros com error, message e fields.",
+        "summary": "Excluir um endpoint de webhook",
+        "description": "Exclui um endpoint de webhook. As entregas que ainda esperavam por ele falham.\n\nAutenticação: chave de API da organização em Authorization: Bearer (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição. Respostas em JSON no envelope data; erros com error, message e fields.",
         "operationId": "webhooks:delete_endpoint",
         "parameters": [
           {
@@ -8457,7 +8891,7 @@
           {
             "name": "Idempotency-Key",
             "in": "header",
-            "description": "Opcional, até 255 caracteres. A mesma chave com o mesmo corpo repete a resposta original (Idempotent-Replayed: true); com outro corpo, 409.",
+            "description": "Opcional, até 255 caracteres. A mesma chave com o mesmo corpo repete a resposta original (Idempotent-Replayed: true); com outro corpo, 409. Uma resposta 2xx fica guardada sob a chave; uma recusa 4xx ou uma falha 5xx libera a chave, e você pode repetir a escrita com a mesma chave, com o corpo corrigido ou como estava.",
             "schema": {
               "type": "string"
             }
@@ -8541,8 +8975,8 @@
         "tags": [
           "webhooks"
         ],
-        "summary": "Atualizar o endereço, o formato, os eventos ou a descrição de um endpoint, ou ligar e desligar o envio (enabled); o segredo não muda",
-        "description": "Autenticação: chave de API da organização em Authorization: Bearer (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição. Respostas em JSON no envelope data; erros com error, message e fields.",
+        "summary": "Atualizar um endpoint de webhook",
+        "description": "Muda o endereço, o formato, os eventos ou a descrição de um endpoint, ou liga e desliga o envio (enabled). O segredo não muda.\n\nAutenticação: chave de API da organização em Authorization: Bearer (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição. Respostas em JSON no envelope data; erros com error, message e fields.",
         "operationId": "webhooks:update_endpoint",
         "parameters": [
           {
@@ -8557,7 +8991,7 @@
           {
             "name": "Idempotency-Key",
             "in": "header",
-            "description": "Opcional, até 255 caracteres. A mesma chave com o mesmo corpo repete a resposta original (Idempotent-Replayed: true); com outro corpo, 409.",
+            "description": "Opcional, até 255 caracteres. A mesma chave com o mesmo corpo repete a resposta original (Idempotent-Replayed: true); com outro corpo, 409. Uma resposta 2xx fica guardada sob a chave; uma recusa 4xx ou uma falha 5xx libera a chave, e você pode repetir a escrita com a mesma chave, com o corpo corrigido ou como estava.",
             "schema": {
               "type": "string"
             }
@@ -18017,6 +18451,24 @@
         }
       }
     },
+    "parameters": {
+      "MetadataFilter": {
+        "name": "metadata",
+        "in": "query",
+        "description": "Filtro por metadados: metadata[chave]=valor, uma vez para cada par (até 10); a linha precisa ter todos. Um valor que parece número ou booleano também casa com o número ou o booleano guardado.",
+        "style": "deepObject",
+        "explode": true,
+        "schema": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
+        "example": {
+          "pedido": "1234"
+        }
+      }
+    },
     "securitySchemes": {
       "apiKey": {
         "type": "http",
@@ -18029,5 +18481,79 @@
         "bearerFormat": "Credencial de fonte de ingestão da Peráta (formato: pus_test_... ou pus_live_...)"
       }
     }
-  }
+  },
+  "tags": [
+    {
+      "name": "products",
+      "description": "O que você vende: nome e descrição. O valor está nos preços."
+    },
+    {
+      "name": "prices",
+      "description": "Quanto custa um produto, em reais: avulso ou recorrente, com o intervalo de renovação."
+    },
+    {
+      "name": "discounts",
+      "description": "Descontos percentuais ou de valor fixo, com ou sem código."
+    },
+    {
+      "name": "customers",
+      "description": "Os compradores: dados de contato, CPF ou CNPJ, endereço de cobrança e o ID deles no seu sistema."
+    },
+    {
+      "name": "payment_methods",
+      "description": "Os cartões que um cliente guardou."
+    },
+    {
+      "name": "customer-sessions",
+      "description": "A entrada de um cliente no portal do cliente."
+    },
+    {
+      "name": "checkouts",
+      "description": "A cobrança de um pedido: o endereço do comprador, a sessão de pagamento e o encerramento."
+    },
+    {
+      "name": "checkout-links",
+      "description": "Ofertas duráveis de um ou mais produtos, que abrem uma sessão de compra a cada visita."
+    },
+    {
+      "name": "orders",
+      "description": "Os checkouts que foram pagos, com a fatura e o recibo."
+    },
+    {
+      "name": "payments",
+      "description": "As cobranças feitas no cartão, no Pix ou no boleto."
+    },
+    {
+      "name": "refunds",
+      "description": "A devolução de parte ou de todo um pagamento."
+    },
+    {
+      "name": "subscriptions",
+      "description": "As cobranças que se repetem: troca de plano, cancelamento e reativação."
+    },
+    {
+      "name": "disputes",
+      "description": "As contestações de pagamento (chargeback no cartão, MED no Pix)."
+    },
+    {
+      "name": "benefits",
+      "description": "O que o cliente recebe ao comprar: chaves de licença, feature flags, créditos de medidor e outros."
+    },
+    {
+      "name": "meters",
+      "description": "Os medidores da cobrança por uso."
+    },
+    {
+      "name": "events",
+      "description": "Os eventos de consumo que as fontes enviaram."
+    },
+    {
+      "name": "usage",
+      "description": "A entrada do consumo: a fonte envia eventos de uso, com a credencial dela (pus_test_… ou pus_live_…)."
+    },
+    {
+      "name": "webhooks",
+      "description": "Os avisos que a Peráta envia ao seu servidor, e os endpoints e as entregas que os controlam."
+    }
+  ]
 }

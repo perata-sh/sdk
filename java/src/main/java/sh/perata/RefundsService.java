@@ -6,6 +6,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.TreeMap;
 
 /** The API's refunds. */
 public final class RefundsService {
@@ -16,7 +17,17 @@ public final class RefundsService {
     }
 
     /**
-     * Reembolsar parte ou todo um pagamento.
+     * Reembolsar um pagamento.
+     *
+     * Devolve parte ou todo o valor de um pagamento. A Idempotency-Key é
+     * obrigatória: sem ela, repetir a chamada depois de um tempo esgotado seria
+     * devolver duas vezes.
+     *
+     * Autenticação: chave de API da organização em Authorization: Bearer
+     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+     * requisição. Respostas em JSON no envelope data; erros com error, message
+     * e fields.
+     *
      * @param params the request
      * @param options an idempotency key or another organization's key for this call, or null
      * @return the refund
@@ -28,7 +39,17 @@ public final class RefundsService {
     }
 
     /**
-     * Reembolsar parte ou todo um pagamento.
+     * Reembolsar um pagamento.
+     *
+     * Devolve parte ou todo o valor de um pagamento. A Idempotency-Key é
+     * obrigatória: sem ela, repetir a chamada depois de um tempo esgotado seria
+     * devolver duas vezes.
+     *
+     * Autenticação: chave de API da organização em Authorization: Bearer
+     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+     * requisição. Respostas em JSON no envelope data; erros com error, message
+     * e fields.
+     *
      * @param params the request
      * @return the refund
      * @throws PerataException when the API refuses the call
@@ -167,7 +188,16 @@ public final class RefundsService {
 
 
     /**
-     * Listar reembolsos, opcionalmente de um pagamento (payment_id), de um status, de um cliente ou de um período. One page; {@link #listIter} walks every page.
+     * Listar reembolsos. One page; {@link #listIter} walks every page.
+     *
+     * Devolve uma página dos reembolsos. Filtre por pagamento (payment_id),
+     * status, cliente ou período.
+     *
+     * Autenticação: chave de API da organização em Authorization: Bearer
+     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+     * requisição. Respostas em JSON no envelope data; erros com error, message
+     * e fields.
+     *
      * @param params the page, its size and the filters, or null
      * @param options options for this call, or null
      * @return the page
@@ -179,7 +209,16 @@ public final class RefundsService {
     }
 
     /**
-     * Listar reembolsos, opcionalmente de um pagamento (payment_id), de um status, de um cliente ou de um período. One page.
+     * Listar reembolsos. One page.
+     *
+     * Devolve uma página dos reembolsos. Filtre por pagamento (payment_id),
+     * status, cliente ou período.
+     *
+     * Autenticação: chave de API da organização em Authorization: Bearer
+     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+     * requisição. Respostas em JSON no envelope data; erros com error, message
+     * e fields.
+     *
      * @param params the page, its size and the filters, or null
      * @return the page
      */
@@ -188,7 +227,16 @@ public final class RefundsService {
     }
 
     /**
-     * Listar reembolsos, opcionalmente de um pagamento (payment_id), de um status, de um cliente ou de um período. The first page.
+     * Listar reembolsos. The first page.
+     *
+     * Devolve uma página dos reembolsos. Filtre por pagamento (payment_id),
+     * status, cliente ou período.
+     *
+     * Autenticação: chave de API da organização em Authorization: Bearer
+     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+     * requisição. Respostas em JSON no envelope data; erros com error, message
+     * e fields.
+     *
      * @return the page
      */
     public Page<Refund> list() {

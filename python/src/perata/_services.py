@@ -16,21 +16,57 @@ class BenefitsService:
         self._client = client
 
     def create(self, params: models.BenefitsCreateParams, *, idempotency_key: str | None = None, api_key: str | None = None) -> models.Benefit:
-        """Criar um benefício custom, license_key, feature_flag ou meter_credit; downloads e os benefícios do Discord e do GitHub se configuram no painel."""
+        """Criar um benefício.
+
+        Cria um benefício do tipo custom, license_key, feature_flag ou
+        meter_credit. Os downloads e os benefícios do Discord e do GitHub se
+        configuram no painel.
+
+        Autenticação: chave de API da organização em Authorization: Bearer
+        (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
+        da requisição. Respostas em JSON no envelope data; erros com error,
+        message e fields.
+        """
         data = self._client.request("POST", "/api/v1/benefits", body=params, idempotency_key=idempotency_key, api_key=api_key)
         return models.Benefit.from_dict(data)
 
     def delete(self, benefit: str, *, idempotency_key: str | None = None, api_key: str | None = None) -> None:
-        """Excluir um benefício: ele sai de todos os produtos e é revogado de quem o tem. The API answers 204, so there is nothing to return."""
+        """Excluir um benefício. The API answers 204, so there is nothing to return.
+
+        Exclui um benefício: ele sai de todos os produtos e é revogado de quem o
+        tem.
+
+        Autenticação: chave de API da organização em Authorization: Bearer
+        (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
+        da requisição. Respostas em JSON no envelope data; erros com error,
+        message e fields.
+        """
         self._client.request("DELETE", f"/api/v1/benefits/{segment(benefit)}", idempotency_key=idempotency_key, api_key=api_key)
 
     def get(self, benefit: str, *, api_key: str | None = None) -> models.Benefit:
-        """Ler um benefício."""
+        """Ler um benefício.
+
+        Devolve um benefício pelo ID.
+
+        Autenticação: chave de API da organização em Authorization: Bearer
+        (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
+        da requisição. Respostas em JSON no envelope data; erros com error,
+        message e fields.
+        """
         data = self._client.request("GET", f"/api/v1/benefits/{segment(benefit)}", api_key=api_key)
         return models.Benefit.from_dict(data)
 
     def list(self, *, page: int | None = None, limit: int | None = None, type: str | None = None, api_key: str | None = None) -> Page[models.Benefit]:
-        """Listar benefícios, opcionalmente de um tipo (type). One page; ``list_iter`` walks every page."""
+        """Listar benefícios. One page; ``list_iter`` walks every page.
+
+        Devolve uma página dos benefícios da organização. Com type, só os de um
+        tipo.
+
+        Autenticação: chave de API da organização em Authorization: Bearer
+        (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
+        da requisição. Respostas em JSON no envelope data; erros com error,
+        message e fields.
+        """
         data = self._client.request("GET", "/api/v1/benefits", query={"page": page, "limit": limit, "type": type}, api_key=api_key)
         return Page.from_dict(data, models.Benefit.from_dict)
 
@@ -39,7 +75,16 @@ class BenefitsService:
         return iterate(lambda at: self.list(page=at, limit=limit, type=type, api_key=api_key), page)
 
     def list_grants(self, benefit: str, *, page: int | None = None, limit: int | None = None, customer_id: str | None = None, is_granted: str | None = None, api_key: str | None = None) -> Page[models.BenefitGrant]:
-        """Listar as concessões de um benefício, opcionalmente de um cliente (customer_id) ou só as vigentes (is_granted). One page; ``list_grants_iter`` walks every page."""
+        """Listar as concessões de um benefício. One page; ``list_grants_iter`` walks every page.
+
+        Devolve uma página das concessões de um benefício. Com customer_id, só
+        as de um cliente; com is_granted, só as vigentes ou só as revogadas.
+
+        Autenticação: chave de API da organização em Authorization: Bearer
+        (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
+        da requisição. Respostas em JSON no envelope data; erros com error,
+        message e fields.
+        """
         data = self._client.request("GET", f"/api/v1/benefits/{segment(benefit)}/grants", query={"page": page, "limit": limit, "customer_id": customer_id, "is_granted": is_granted}, api_key=api_key)
         return Page.from_dict(data, models.BenefitGrant.from_dict)
 
@@ -48,7 +93,17 @@ class BenefitsService:
         return iterate(lambda at: self.list_grants(benefit, page=at, limit=limit, customer_id=customer_id, is_granted=is_granted, api_key=api_key), page)
 
     def update(self, benefit: str, params: models.BenefitsUpdateParams, *, idempotency_key: str | None = None, api_key: str | None = None) -> models.Benefit:
-        """Atualizar o nome, a visibilidade, as propriedades e os metadados de um benefício; o tipo e a descrição dada na criação não mudam, e o que a concessão já entregou fica como foi entregue."""
+        """Atualizar um benefício.
+
+        Muda o nome, a visibilidade, as propriedades e os metadados de um
+        benefício. O tipo e a descrição dada na criação não mudam, e o que a
+        concessão já entregou fica como foi entregue.
+
+        Autenticação: chave de API da organização em Authorization: Bearer
+        (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
+        da requisição. Respostas em JSON no envelope data; erros com error,
+        message e fields.
+        """
         data = self._client.request("PATCH", f"/api/v1/benefits/{segment(benefit)}", body=params, idempotency_key=idempotency_key, api_key=api_key)
         return models.Benefit.from_dict(data)
 
@@ -60,21 +115,56 @@ class CheckoutLinksService:
         self._client = client
 
     def create(self, params: models.CheckoutLinksCreateParams, *, idempotency_key: str | None = None, api_key: str | None = None) -> models.CheckoutLink:
-        """Criar um link de checkout: uma oferta durável de um ou mais produtos, com desconto, quantidade e páginas de retorno."""
+        """Criar um link de checkout.
+
+        Cria um link de checkout: uma oferta durável de um ou mais produtos, com
+        desconto, quantidade e páginas de retorno. Cada visita ao link abre uma
+        sessão de compra nova.
+
+        Autenticação: chave de API da organização em Authorization: Bearer
+        (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
+        da requisição. Respostas em JSON no envelope data; erros com error,
+        message e fields.
+        """
         data = self._client.request("POST", "/api/v1/checkout-links", body=params, idempotency_key=idempotency_key, api_key=api_key)
         return models.CheckoutLink.from_dict(data)
 
     def delete(self, checkout_link: str, *, idempotency_key: str | None = None, api_key: str | None = None) -> None:
-        """Excluir um link de checkout: ele deixa de abrir checkouts; os que já abriu continuam. The API answers 204, so there is nothing to return."""
+        """Excluir um link de checkout. The API answers 204, so there is nothing to return.
+
+        Exclui um link de checkout: ele deixa de abrir checkouts. Os que já
+        abriu continuam.
+
+        Autenticação: chave de API da organização em Authorization: Bearer
+        (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
+        da requisição. Respostas em JSON no envelope data; erros com error,
+        message e fields.
+        """
         self._client.request("DELETE", f"/api/v1/checkout-links/{segment(checkout_link)}", idempotency_key=idempotency_key, api_key=api_key)
 
     def get(self, checkout_link: str, *, api_key: str | None = None) -> models.CheckoutLink:
-        """Ler um link de checkout."""
+        """Ler um link de checkout.
+
+        Devolve um link de checkout pelo ID.
+
+        Autenticação: chave de API da organização em Authorization: Bearer
+        (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
+        da requisição. Respostas em JSON no envelope data; erros com error,
+        message e fields.
+        """
         data = self._client.request("GET", f"/api/v1/checkout-links/{segment(checkout_link)}", api_key=api_key)
         return models.CheckoutLink.from_dict(data)
 
     def list(self, *, page: int | None = None, limit: int | None = None, api_key: str | None = None) -> Page[models.CheckoutLink]:
-        """Listar links de checkout. One page; ``list_iter`` walks every page."""
+        """Listar links de checkout. One page; ``list_iter`` walks every page.
+
+        Devolve uma página dos links de checkout da organização.
+
+        Autenticação: chave de API da organização em Authorization: Bearer
+        (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
+        da requisição. Respostas em JSON no envelope data; erros com error,
+        message e fields.
+        """
         data = self._client.request("GET", "/api/v1/checkout-links", query={"page": page, "limit": limit}, api_key=api_key)
         return Page.from_dict(data, models.CheckoutLink.from_dict)
 
@@ -83,7 +173,16 @@ class CheckoutLinksService:
         return iterate(lambda at: self.list(page=at, limit=limit, api_key=api_key), page)
 
     def update(self, checkout_link: str, params: models.CheckoutLinksUpdateParams, *, idempotency_key: str | None = None, api_key: str | None = None) -> models.CheckoutLink:
-        """Atualizar o rótulo, as páginas de retorno, os produtos e os metadados de um link; a quantidade e o desconto ficam como foram publicados."""
+        """Atualizar um link de checkout.
+
+        Muda o rótulo, as páginas de retorno, os produtos e os metadados de um
+        link. A quantidade e o desconto ficam como foram publicados.
+
+        Autenticação: chave de API da organização em Authorization: Bearer
+        (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
+        da requisição. Respostas em JSON no envelope data; erros com error,
+        message e fields.
+        """
         data = self._client.request("PATCH", f"/api/v1/checkout-links/{segment(checkout_link)}", body=params, idempotency_key=idempotency_key, api_key=api_key)
         return models.CheckoutLink.from_dict(data)
 
@@ -95,31 +194,80 @@ class CheckoutsService:
         self._client = client
 
     def create(self, params: models.CheckoutsCreateParams, *, idempotency_key: str | None = None, api_key: str | None = None) -> models.CheckoutCreated:
-        """Criar um checkout: o endereço para onde o comprador é enviado e a sessão de compra aberta para ele, com o client_secret que o navegador do comprador usa nas rotas de cliente."""
+        """Criar um checkout.
+
+        Cria um checkout. Devolve o endereço para onde mandar o comprador e a
+        sessão de compra aberta para ele, com o client_secret que o navegador do
+        comprador usa para pagar sem chave de API; o client_secret vem só nesta
+        resposta. Para cobrar um valor que o seu servidor define, envie
+        amount_cents e items (preço de valor livre). Envie client_reference_id e
+        metadata para achar o pedido depois.
+
+        Autenticação: chave de API da organização em Authorization: Bearer
+        (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
+        da requisição. Respostas em JSON no envelope data; erros com error,
+        message e fields.
+        """
         data = self._client.request("POST", "/api/v1/checkouts", body=params, idempotency_key=idempotency_key, api_key=api_key)
         return models.CheckoutCreated.from_dict(data)
 
     def expire(self, checkout: str, *, idempotency_key: str | None = None, api_key: str | None = None) -> models.CheckoutExpired:
-        """Encerrar um checkout que não deve mais ser pago: a página, o client_secret e o QR do Pix deixam de valer (o Pix já gerado é cancelado na Cielo), e o evento checkout.expired é enviado; 409 se já foi pago ou se emitiu boleto."""
+        """Encerrar um checkout.
+
+        Encerra um checkout que não deve mais ser pago: a página, o
+        client_secret e o QR do Pix deixam de valer (o Pix já gerado é cancelado
+        na Cielo) e o evento checkout.expired é enviado. Repetir a chamada é
+        seguro. Se o checkout já foi pago ou emitiu um boleto, a resposta é 409.
+
+        Autenticação: chave de API da organização em Authorization: Bearer
+        (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
+        da requisição. Respostas em JSON no envelope data; erros com error,
+        message e fields.
+        """
         data = self._client.request("POST", f"/api/v1/checkouts/{segment(checkout)}/expire", idempotency_key=idempotency_key, api_key=api_key)
         return models.CheckoutExpired.from_dict(data)
 
     def get(self, checkout: str, *, api_key: str | None = None) -> models.Checkout:
-        """Ler um checkout: o endereço, o estado e as páginas de retorno."""
+        """Ler um checkout.
+
+        Devolve um checkout: o endereço, o estado e as páginas de retorno.
+
+        Autenticação: chave de API da organização em Authorization: Bearer
+        (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
+        da requisição. Respostas em JSON no envelope data; erros com error,
+        message e fields.
+        """
         data = self._client.request("GET", f"/api/v1/checkouts/{segment(checkout)}", api_key=api_key)
         return models.Checkout.from_dict(data)
 
-    def list(self, *, page: int | None = None, limit: int | None = None, client_reference_id: str | None = None, status: str | None = None, created_after: str | None = None, created_before: str | None = None, sorting: str | None = None, api_key: str | None = None) -> Page[models.Checkout]:
-        """Listar checkouts, opcionalmente de um client_reference_id, de um status, de um período ou de metadados. One page; ``list_iter`` walks every page."""
-        data = self._client.request("GET", "/api/v1/checkouts", query={"page": page, "limit": limit, "client_reference_id": client_reference_id, "status": status, "created_after": created_after, "created_before": created_before, "sorting": sorting}, api_key=api_key)
+    def list(self, *, page: int | None = None, limit: int | None = None, client_reference_id: str | None = None, status: str | None = None, created_after: str | None = None, created_before: str | None = None, sorting: str | None = None, metadata: dict[str, str] | None = None, api_key: str | None = None) -> Page[models.Checkout]:
+        """Listar checkouts. One page; ``list_iter`` walks every page.
+
+        Devolve uma página dos checkouts. Filtre por client_reference_id,
+        status, período ou metadados.
+
+        Autenticação: chave de API da organização em Authorization: Bearer
+        (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
+        da requisição. Respostas em JSON no envelope data; erros com error,
+        message e fields.
+        """
+        data = self._client.request("GET", "/api/v1/checkouts", query={"page": page, "limit": limit, "client_reference_id": client_reference_id, "status": status, "created_after": created_after, "created_before": created_before, "sorting": sorting, "metadata": metadata}, api_key=api_key)
         return Page.from_dict(data, models.Checkout.from_dict)
 
-    def list_iter(self, *, page: int | None = None, limit: int | None = None, client_reference_id: str | None = None, status: str | None = None, created_after: str | None = None, created_before: str | None = None, sorting: str | None = None, api_key: str | None = None) -> Iterator[models.Checkout]:
+    def list_iter(self, *, page: int | None = None, limit: int | None = None, client_reference_id: str | None = None, status: str | None = None, created_after: str | None = None, created_before: str | None = None, sorting: str | None = None, metadata: dict[str, str] | None = None, api_key: str | None = None) -> Iterator[models.Checkout]:
         """Walks every page of checkouts:list, item by item."""
-        return iterate(lambda at: self.list(page=at, limit=limit, client_reference_id=client_reference_id, status=status, created_after=created_after, created_before=created_before, sorting=sorting, api_key=api_key), page)
+        return iterate(lambda at: self.list(page=at, limit=limit, client_reference_id=client_reference_id, status=status, created_after=created_after, created_before=created_before, sorting=sorting, metadata=metadata, api_key=api_key), page)
 
     def update(self, checkout: str, params: models.CheckoutsUpdateParams, *, idempotency_key: str | None = None, api_key: str | None = None) -> models.Checkout:
-        """Atualizar o rótulo e as páginas de retorno de um checkout ativo."""
+        """Atualizar um checkout.
+
+        Muda o rótulo e as páginas de retorno de um checkout ativo.
+
+        Autenticação: chave de API da organização em Authorization: Bearer
+        (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
+        da requisição. Respostas em JSON no envelope data; erros com error,
+        message e fields.
+        """
         data = self._client.request("PATCH", f"/api/v1/checkouts/{segment(checkout)}", body=params, idempotency_key=idempotency_key, api_key=api_key)
         return models.Checkout.from_dict(data)
 
@@ -131,7 +279,17 @@ class CustomerSessionsService:
         self._client = client
 
     def create(self, params: models.CustomerSessionsCreateParams, *, idempotency_key: str | None = None, api_key: str | None = None) -> models.CustomerSession:
-        """Entrar com um cliente no portal do cliente: o endereço o abre já autenticado."""
+        """Abrir o portal do cliente.
+
+        Abre uma sessão do portal do cliente para o cliente informado e devolve
+        o endereço que o abre já autenticado. Com return_url, um endereço https
+        do seu aplicativo, o portal oferece a volta.
+
+        Autenticação: chave de API da organização em Authorization: Bearer
+        (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
+        da requisição. Respostas em JSON no envelope data; erros com error,
+        message e fields.
+        """
         data = self._client.request("POST", "/api/v1/customer-sessions", body=params, idempotency_key=idempotency_key, api_key=api_key)
         return models.CustomerSession.from_dict(data)
 
@@ -143,45 +301,122 @@ class CustomersService:
         self._client = client
 
     def create(self, params: models.CustomersCreateParams, *, idempotency_key: str | None = None, api_key: str | None = None) -> models.Customer:
-        """Criar um cliente, com CPF ou CNPJ, telefone e endereço de cobrança se você os tem."""
+        """Criar um cliente.
+
+        Cria um cliente, com CPF ou CNPJ, telefone e endereço de cobrança, se
+        você os tem. Se você enviar external_id e o e-mail já for de um cliente
+        que ainda não tem ID externo (por exemplo, um que o checkout criou),
+        esse cliente recebe o ID e os dados enviados, e a resposta é 200 em vez
+        de 201. Se o e-mail for de um cliente com outro ID externo, a resposta é
+        422.
+
+        Autenticação: chave de API da organização em Authorization: Bearer
+        (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
+        da requisição. Respostas em JSON no envelope data; erros com error,
+        message e fields.
+        """
         data = self._client.request("POST", "/api/v1/customers", body=params, idempotency_key=idempotency_key, api_key=api_key)
         return models.Customer.from_dict(data)
 
     def delete(self, customer: str, *, idempotency_key: str | None = None, api_key: str | None = None) -> None:
-        """Excluir um cliente: as assinaturas terminam na hora, os benefícios são revogados e o ID externo é liberado; pedidos e pagamentos continuam. The API answers 204, so there is nothing to return."""
+        """Excluir um cliente. The API answers 204, so there is nothing to return.
+
+        Exclui um cliente: as assinaturas terminam na hora, os benefícios são
+        revogados e o ID externo fica livre. Os pedidos e os pagamentos
+        continuam nos registros.
+
+        Autenticação: chave de API da organização em Authorization: Bearer
+        (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
+        da requisição. Respostas em JSON no envelope data; erros com error,
+        message e fields.
+        """
         self._client.request("DELETE", f"/api/v1/customers/{segment(customer)}", idempotency_key=idempotency_key, api_key=api_key)
 
     def get(self, customer: str, *, api_key: str | None = None) -> models.Customer:
-        """Ler um cliente."""
+        """Ler um cliente.
+
+        Devolve um cliente pelo ID.
+
+        Autenticação: chave de API da organização em Authorization: Bearer
+        (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
+        da requisição. Respostas em JSON no envelope data; erros com error,
+        message e fields.
+        """
         data = self._client.request("GET", f"/api/v1/customers/{segment(customer)}", api_key=api_key)
         return models.Customer.from_dict(data)
 
     def get_external(self, external_id: str, *, api_key: str | None = None) -> models.Customer:
-        """Ler um cliente pelo ID dele no sistema do lojista (external_id)."""
+        """Ler um cliente pelo ID externo.
+
+        Devolve o cliente que você identifica pelo ID dele no seu sistema
+        (external_id).
+
+        Autenticação: chave de API da organização em Authorization: Bearer
+        (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
+        da requisição. Respostas em JSON no envelope data; erros com error,
+        message e fields.
+        """
         data = self._client.request("GET", f"/api/v1/external-customers/{segment(external_id)}", api_key=api_key)
         return models.Customer.from_dict(data)
 
     def get_state(self, customer: str, *, api_key: str | None = None) -> models.CustomerState:
-        """Ler o estado de um cliente: assinaturas ativas e benefícios vigentes, inclusive os feature flags."""
+        """Ler o estado de um cliente.
+
+        Devolve o estado de um cliente: as assinaturas ativas e os benefícios
+        vigentes, inclusive os feature flags. É a leitura que o seu aplicativo
+        faz para decidir o que o cliente pode usar.
+
+        Autenticação: chave de API da organização em Authorization: Bearer
+        (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
+        da requisição. Respostas em JSON no envelope data; erros com error,
+        message e fields.
+        """
         data = self._client.request("GET", f"/api/v1/customers/{segment(customer)}/state", api_key=api_key)
         return models.CustomerState.from_dict(data)
 
-    def list(self, *, page: int | None = None, limit: int | None = None, api_key: str | None = None) -> Page[models.Customer]:
-        """Listar clientes. One page; ``list_iter`` walks every page."""
-        data = self._client.request("GET", "/api/v1/customers", query={"page": page, "limit": limit}, api_key=api_key)
+    def list(self, *, page: int | None = None, limit: int | None = None, email: str | None = None, api_key: str | None = None) -> Page[models.Customer]:
+        """Listar clientes. One page; ``list_iter`` walks every page.
+
+        Devolve uma página dos clientes. Com email, só o cliente com esse
+        e-mail, sem diferença entre maiúsculas e minúsculas.
+
+        Autenticação: chave de API da organização em Authorization: Bearer
+        (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
+        da requisição. Respostas em JSON no envelope data; erros com error,
+        message e fields.
+        """
+        data = self._client.request("GET", "/api/v1/customers", query={"page": page, "limit": limit, "email": email}, api_key=api_key)
         return Page.from_dict(data, models.Customer.from_dict)
 
-    def list_iter(self, *, page: int | None = None, limit: int | None = None, api_key: str | None = None) -> Iterator[models.Customer]:
+    def list_iter(self, *, page: int | None = None, limit: int | None = None, email: str | None = None, api_key: str | None = None) -> Iterator[models.Customer]:
         """Walks every page of customers:list, item by item."""
-        return iterate(lambda at: self.list(page=at, limit=limit, api_key=api_key), page)
+        return iterate(lambda at: self.list(page=at, limit=limit, email=email, api_key=api_key), page)
 
     def update(self, customer: str, params: models.CustomersUpdateParams, *, idempotency_key: str | None = None, api_key: str | None = None) -> models.Customer:
-        """Atualizar o nome, o e-mail, o ID externo, o CPF ou CNPJ, o telefone ou o endereço de cobrança de um cliente; o ID externo não muda depois de definido."""
+        """Atualizar um cliente.
+
+        Muda o nome, o e-mail, o ID externo, o CPF ou CNPJ, o telefone ou o
+        endereço de cobrança. O ID externo só pode ser definido uma vez.
+
+        Autenticação: chave de API da organização em Authorization: Bearer
+        (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
+        da requisição. Respostas em JSON no envelope data; erros com error,
+        message e fields.
+        """
         data = self._client.request("PATCH", f"/api/v1/customers/{segment(customer)}", body=params, idempotency_key=idempotency_key, api_key=api_key)
         return models.Customer.from_dict(data)
 
     def update_external(self, external_id: str, params: models.CustomersUpdateExternalParams, *, idempotency_key: str | None = None, api_key: str | None = None) -> models.Customer:
-        """Atualizar um cliente pelo ID dele no sistema do lojista (external_id)."""
+        """Atualizar um cliente pelo ID externo.
+
+        Muda o cliente que você identifica pelo ID dele no seu sistema
+        (external_id). Os campos são os de Atualizar um cliente.
+
+        Autenticação: chave de API da organização em Authorization: Bearer
+        (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
+        da requisição. Respostas em JSON no envelope data; erros com error,
+        message e fields.
+        """
         data = self._client.request("PATCH", f"/api/v1/external-customers/{segment(external_id)}", body=params, idempotency_key=idempotency_key, api_key=api_key)
         return models.Customer.from_dict(data)
 
@@ -193,21 +428,56 @@ class DiscountsService:
         self._client = client
 
     def create(self, params: models.DiscountsCreateParams, *, idempotency_key: str | None = None, api_key: str | None = None) -> models.Discount:
-        """Criar um desconto percentual (basis_points) ou fixo em reais (amount_cents)."""
+        """Criar um desconto.
+
+        Cria um desconto percentual (basis_points) ou de valor fixo em reais
+        (amount_cents). O código é o que o comprador digita; sem ele, o desconto
+        só vale num link de checkout ou pela API.
+
+        Autenticação: chave de API da organização em Authorization: Bearer
+        (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
+        da requisição. Respostas em JSON no envelope data; erros com error,
+        message e fields.
+        """
         data = self._client.request("POST", "/api/v1/discounts", body=params, idempotency_key=idempotency_key, api_key=api_key)
         return models.Discount.from_dict(data)
 
     def delete(self, discount: str, *, idempotency_key: str | None = None, api_key: str | None = None) -> None:
-        """Excluir um desconto: sai das listas e dos checkouts e o código fica livre; o que ele já descontou continua nos registros. The API answers 204, so there is nothing to return."""
+        """Excluir um desconto. The API answers 204, so there is nothing to return.
+
+        Exclui um desconto: ele sai das listas e dos checkouts, e o código fica
+        livre. O que ele já descontou continua nos registros.
+
+        Autenticação: chave de API da organização em Authorization: Bearer
+        (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
+        da requisição. Respostas em JSON no envelope data; erros com error,
+        message e fields.
+        """
         self._client.request("DELETE", f"/api/v1/discounts/{segment(discount)}", idempotency_key=idempotency_key, api_key=api_key)
 
     def get(self, discount: str, *, api_key: str | None = None) -> models.Discount:
-        """Ler um desconto."""
+        """Ler um desconto.
+
+        Devolve um desconto pelo ID.
+
+        Autenticação: chave de API da organização em Authorization: Bearer
+        (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
+        da requisição. Respostas em JSON no envelope data; erros com error,
+        message e fields.
+        """
         data = self._client.request("GET", f"/api/v1/discounts/{segment(discount)}", api_key=api_key)
         return models.Discount.from_dict(data)
 
     def list(self, *, page: int | None = None, limit: int | None = None, api_key: str | None = None) -> Page[models.Discount]:
-        """Listar descontos. One page; ``list_iter`` walks every page."""
+        """Listar descontos. One page; ``list_iter`` walks every page.
+
+        Devolve uma página dos descontos da organização.
+
+        Autenticação: chave de API da organização em Authorization: Bearer
+        (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
+        da requisição. Respostas em JSON no envelope data; erros com error,
+        message e fields.
+        """
         data = self._client.request("GET", "/api/v1/discounts", query={"page": page, "limit": limit}, api_key=api_key)
         return Page.from_dict(data, models.Discount.from_dict)
 
@@ -216,7 +486,16 @@ class DiscountsService:
         return iterate(lambda at: self.list(page=at, limit=limit, api_key=api_key), page)
 
     def update(self, discount: str, params: models.DiscountsUpdateParams, *, idempotency_key: str | None = None, api_key: str | None = None) -> models.Discount:
-        """Atualizar um desconto; o tipo e a duração não mudam, e depois do primeiro uso o valor e os meses também não."""
+        """Atualizar um desconto.
+
+        Muda um desconto. O tipo e a duração não mudam; depois do primeiro uso,
+        o valor e os meses também não.
+
+        Autenticação: chave de API da organização em Authorization: Bearer
+        (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
+        da requisição. Respostas em JSON no envelope data; erros com error,
+        message e fields.
+        """
         data = self._client.request("PATCH", f"/api/v1/discounts/{segment(discount)}", body=params, idempotency_key=idempotency_key, api_key=api_key)
         return models.Discount.from_dict(data)
 
@@ -228,12 +507,28 @@ class DisputesService:
         self._client = client
 
     def get(self, dispute: str, *, api_key: str | None = None) -> models.Dispute:
-        """Ler uma disputa."""
+        """Ler uma disputa.
+
+        Devolve uma disputa pelo ID.
+
+        Autenticação: chave de API da organização em Authorization: Bearer
+        (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
+        da requisição. Respostas em JSON no envelope data; erros com error,
+        message e fields.
+        """
         data = self._client.request("GET", f"/api/v1/disputes/{segment(dispute)}", api_key=api_key)
         return models.Dispute.from_dict(data)
 
     def list(self, *, page: int | None = None, limit: int | None = None, status: str | None = None, api_key: str | None = None) -> Page[models.Dispute]:
-        """Listar disputas, opcionalmente de um status (status). One page; ``list_iter`` walks every page."""
+        """Listar disputas. One page; ``list_iter`` walks every page.
+
+        Devolve uma página das disputas. Com status, só as que estão nele.
+
+        Autenticação: chave de API da organização em Authorization: Bearer
+        (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
+        da requisição. Respostas em JSON no envelope data; erros com error,
+        message e fields.
+        """
         data = self._client.request("GET", "/api/v1/disputes", query={"page": page, "limit": limit, "status": status}, api_key=api_key)
         return Page.from_dict(data, models.Dispute.from_dict)
 
@@ -249,7 +544,16 @@ class EventsService:
         self._client = client
 
     def list(self, *, page: int | None = None, limit: int | None = None, customer_id: str | None = None, start: str | None = None, end: str | None = None, api_key: str | None = None) -> Page[models.Event]:
-        """Listar os eventos de consumo que as origens enviaram, do mais novo ao mais antigo. One page; ``list_iter`` walks every page."""
+        """Listar eventos de consumo. One page; ``list_iter`` walks every page.
+
+        Devolve uma página dos eventos de consumo que as fontes enviaram, do
+        mais novo ao mais antigo.
+
+        Autenticação: chave de API da organização em Authorization: Bearer
+        (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
+        da requisição. Respostas em JSON no envelope data; erros com error,
+        message e fields.
+        """
         data = self._client.request("GET", "/api/v1/events", query={"page": page, "limit": limit, "customer_id": customer_id, "start": start, "end": end}, api_key=api_key)
         return Page.from_dict(data, models.Event.from_dict)
 
@@ -265,12 +569,30 @@ class MetersService:
         self._client = client
 
     def get(self, meter: str, *, api_key: str | None = None) -> models.Meter:
-        """Ler um medidor: o filtro dos eventos que ele conta, a agregação e a unidade."""
+        """Ler um medidor.
+
+        Devolve um medidor: o filtro dos eventos que ele conta, a agregação e a
+        unidade.
+
+        Autenticação: chave de API da organização em Authorization: Bearer
+        (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
+        da requisição. Respostas em JSON no envelope data; erros com error,
+        message e fields.
+        """
         data = self._client.request("GET", f"/api/v1/meters/{segment(meter)}", api_key=api_key)
         return models.Meter.from_dict(data)
 
     def list(self, *, page: int | None = None, limit: int | None = None, is_archived: str | None = None, api_key: str | None = None) -> Page[models.Meter]:
-        """Listar medidores; os arquivados só com is_archived=true. One page; ``list_iter`` walks every page."""
+        """Listar medidores. One page; ``list_iter`` walks every page.
+
+        Devolve uma página dos medidores. Os arquivados só aparecem com
+        is_archived=true.
+
+        Autenticação: chave de API da organização em Authorization: Bearer
+        (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
+        da requisição. Respostas em JSON no envelope data; erros com error,
+        message e fields.
+        """
         data = self._client.request("GET", "/api/v1/meters", query={"page": page, "limit": limit, "is_archived": is_archived}, api_key=api_key)
         return Page.from_dict(data, models.Meter.from_dict)
 
@@ -286,28 +608,62 @@ class OrdersService:
         self._client = client
 
     def get(self, order: str, *, api_key: str | None = None) -> models.Order:
-        """Ler um pedido: um checkout pago."""
+        """Ler um pedido.
+
+        Devolve um pedido: um checkout pago.
+
+        Autenticação: chave de API da organização em Authorization: Bearer
+        (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
+        da requisição. Respostas em JSON no envelope data; erros com error,
+        message e fields.
+        """
         data = self._client.request("GET", f"/api/v1/orders/{segment(order)}", api_key=api_key)
         return models.Order.from_dict(data)
 
     def get_invoice(self, order: str, *, api_key: str | None = None) -> models.OrderInvoice:
-        """Ler a fatura de um pedido, o documento comercial que o lojista gerou; sem ela, 404."""
+        """Ler a fatura de um pedido.
+
+        Devolve a fatura de um pedido, o documento comercial que o lojista
+        gerou. Sem fatura, a resposta é 404.
+
+        Autenticação: chave de API da organização em Authorization: Bearer
+        (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
+        da requisição. Respostas em JSON no envelope data; erros com error,
+        message e fields.
+        """
         data = self._client.request("GET", f"/api/v1/orders/{segment(order)}/invoice", api_key=api_key)
         return models.OrderInvoice.from_dict(data)
 
     def get_receipt(self, order: str, *, api_key: str | None = None) -> models.OrderReceipt:
-        """Ler o recibo de um pedido: o que foi pago, quando e como."""
+        """Ler o recibo de um pedido.
+
+        Devolve o recibo de um pedido: o que foi pago, quando e como.
+
+        Autenticação: chave de API da organização em Authorization: Bearer
+        (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
+        da requisição. Respostas em JSON no envelope data; erros com error,
+        message e fields.
+        """
         data = self._client.request("GET", f"/api/v1/orders/{segment(order)}/receipt", api_key=api_key)
         return models.OrderReceipt.from_dict(data)
 
-    def list(self, *, page: int | None = None, limit: int | None = None, client_reference_id: str | None = None, status: str | None = None, customer_id: str | None = None, external_customer_id: str | None = None, created_after: str | None = None, created_before: str | None = None, sorting: str | None = None, api_key: str | None = None) -> Page[models.Order]:
-        """Listar pedidos (checkouts pagos), opcionalmente de um client_reference_id, de um cliente, de um período ou de metadados. One page; ``list_iter`` walks every page."""
-        data = self._client.request("GET", "/api/v1/orders", query={"page": page, "limit": limit, "client_reference_id": client_reference_id, "status": status, "customer_id": customer_id, "external_customer_id": external_customer_id, "created_after": created_after, "created_before": created_before, "sorting": sorting}, api_key=api_key)
+    def list(self, *, page: int | None = None, limit: int | None = None, client_reference_id: str | None = None, status: str | None = None, customer_id: str | None = None, external_customer_id: str | None = None, created_after: str | None = None, created_before: str | None = None, sorting: str | None = None, metadata: dict[str, str] | None = None, api_key: str | None = None) -> Page[models.Order]:
+        """Listar pedidos. One page; ``list_iter`` walks every page.
+
+        Devolve uma página dos pedidos, que são os checkouts pagos. Filtre por
+        client_reference_id, cliente, período ou metadados.
+
+        Autenticação: chave de API da organização em Authorization: Bearer
+        (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
+        da requisição. Respostas em JSON no envelope data; erros com error,
+        message e fields.
+        """
+        data = self._client.request("GET", "/api/v1/orders", query={"page": page, "limit": limit, "client_reference_id": client_reference_id, "status": status, "customer_id": customer_id, "external_customer_id": external_customer_id, "created_after": created_after, "created_before": created_before, "sorting": sorting, "metadata": metadata}, api_key=api_key)
         return Page.from_dict(data, models.Order.from_dict)
 
-    def list_iter(self, *, page: int | None = None, limit: int | None = None, client_reference_id: str | None = None, status: str | None = None, customer_id: str | None = None, external_customer_id: str | None = None, created_after: str | None = None, created_before: str | None = None, sorting: str | None = None, api_key: str | None = None) -> Iterator[models.Order]:
+    def list_iter(self, *, page: int | None = None, limit: int | None = None, client_reference_id: str | None = None, status: str | None = None, customer_id: str | None = None, external_customer_id: str | None = None, created_after: str | None = None, created_before: str | None = None, sorting: str | None = None, metadata: dict[str, str] | None = None, api_key: str | None = None) -> Iterator[models.Order]:
         """Walks every page of orders:list, item by item."""
-        return iterate(lambda at: self.list(page=at, limit=limit, client_reference_id=client_reference_id, status=status, customer_id=customer_id, external_customer_id=external_customer_id, created_after=created_after, created_before=created_before, sorting=sorting, api_key=api_key), page)
+        return iterate(lambda at: self.list(page=at, limit=limit, client_reference_id=client_reference_id, status=status, customer_id=customer_id, external_customer_id=external_customer_id, created_after=created_after, created_before=created_before, sorting=sorting, metadata=metadata, api_key=api_key), page)
 
 
 class PaymentMethodsService:
@@ -317,12 +673,30 @@ class PaymentMethodsService:
         self._client = client
 
     def detach(self, payment_method: str, *, idempotency_key: str | None = None, api_key: str | None = None) -> models.PaymentMethodDetached:
-        """Parar de cobrar um cartão guardado; recusado enquanto uma assinatura ativa o cobra."""
+        """Parar de cobrar um cartão guardado.
+
+        Para de cobrar um cartão guardado. É recusado (409) enquanto uma
+        assinatura ativa o cobra.
+
+        Autenticação: chave de API da organização em Authorization: Bearer
+        (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
+        da requisição. Respostas em JSON no envelope data; erros com error,
+        message e fields.
+        """
         data = self._client.request("POST", f"/api/v1/payment_methods/{segment(payment_method)}/detach", idempotency_key=idempotency_key, api_key=api_key)
         return models.PaymentMethodDetached.from_dict(data)
 
     def list(self, customer: str, *, page: int | None = None, limit: int | None = None, api_key: str | None = None) -> Page[models.PaymentMethod]:
-        """Listar os cartões guardados de um cliente: bandeira, quatro últimos dígitos e validade. One page; ``list_iter`` walks every page."""
+        """Listar os cartões guardados de um cliente. One page; ``list_iter`` walks every page.
+
+        Devolve os cartões guardados de um cliente: bandeira, quatro últimos
+        dígitos e validade. O número do cartão nunca aparece.
+
+        Autenticação: chave de API da organização em Authorization: Bearer
+        (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
+        da requisição. Respostas em JSON no envelope data; erros com error,
+        message e fields.
+        """
         data = self._client.request("GET", f"/api/v1/customers/{segment(customer)}/payment_methods", query={"page": page, "limit": limit}, api_key=api_key)
         return Page.from_dict(data, models.PaymentMethod.from_dict)
 
@@ -338,18 +712,35 @@ class PaymentsService:
         self._client = client
 
     def get(self, payment: str, *, api_key: str | None = None) -> models.Payment:
-        """Ler um pagamento."""
+        """Ler um pagamento.
+
+        Devolve um pagamento pelo ID.
+
+        Autenticação: chave de API da organização em Authorization: Bearer
+        (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
+        da requisição. Respostas em JSON no envelope data; erros com error,
+        message e fields.
+        """
         data = self._client.request("GET", f"/api/v1/payments/{segment(payment)}", api_key=api_key)
         return models.Payment.from_dict(data)
 
-    def list(self, *, page: int | None = None, limit: int | None = None, client_reference_id: str | None = None, status: str | None = None, customer_id: str | None = None, external_customer_id: str | None = None, created_after: str | None = None, created_before: str | None = None, sorting: str | None = None, api_key: str | None = None) -> Page[models.Payment]:
-        """Listar pagamentos, opcionalmente de um client_reference_id, de um estado, de um cliente, de um período ou de metadados. One page; ``list_iter`` walks every page."""
-        data = self._client.request("GET", "/api/v1/payments", query={"page": page, "limit": limit, "client_reference_id": client_reference_id, "status": status, "customer_id": customer_id, "external_customer_id": external_customer_id, "created_after": created_after, "created_before": created_before, "sorting": sorting}, api_key=api_key)
+    def list(self, *, page: int | None = None, limit: int | None = None, client_reference_id: str | None = None, status: str | None = None, customer_id: str | None = None, external_customer_id: str | None = None, created_after: str | None = None, created_before: str | None = None, sorting: str | None = None, metadata: dict[str, str] | None = None, api_key: str | None = None) -> Page[models.Payment]:
+        """Listar pagamentos. One page; ``list_iter`` walks every page.
+
+        Devolve uma página dos pagamentos. Filtre por client_reference_id,
+        estado, cliente, período ou metadados.
+
+        Autenticação: chave de API da organização em Authorization: Bearer
+        (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
+        da requisição. Respostas em JSON no envelope data; erros com error,
+        message e fields.
+        """
+        data = self._client.request("GET", "/api/v1/payments", query={"page": page, "limit": limit, "client_reference_id": client_reference_id, "status": status, "customer_id": customer_id, "external_customer_id": external_customer_id, "created_after": created_after, "created_before": created_before, "sorting": sorting, "metadata": metadata}, api_key=api_key)
         return Page.from_dict(data, models.Payment.from_dict)
 
-    def list_iter(self, *, page: int | None = None, limit: int | None = None, client_reference_id: str | None = None, status: str | None = None, customer_id: str | None = None, external_customer_id: str | None = None, created_after: str | None = None, created_before: str | None = None, sorting: str | None = None, api_key: str | None = None) -> Iterator[models.Payment]:
+    def list_iter(self, *, page: int | None = None, limit: int | None = None, client_reference_id: str | None = None, status: str | None = None, customer_id: str | None = None, external_customer_id: str | None = None, created_after: str | None = None, created_before: str | None = None, sorting: str | None = None, metadata: dict[str, str] | None = None, api_key: str | None = None) -> Iterator[models.Payment]:
         """Walks every page of payments:list, item by item."""
-        return iterate(lambda at: self.list(page=at, limit=limit, client_reference_id=client_reference_id, status=status, customer_id=customer_id, external_customer_id=external_customer_id, created_after=created_after, created_before=created_before, sorting=sorting, api_key=api_key), page)
+        return iterate(lambda at: self.list(page=at, limit=limit, client_reference_id=client_reference_id, status=status, customer_id=customer_id, external_customer_id=external_customer_id, created_after=created_after, created_before=created_before, sorting=sorting, metadata=metadata, api_key=api_key), page)
 
 
 class PricesService:
@@ -359,12 +750,31 @@ class PricesService:
         self._client = client
 
     def create(self, params: models.PricesCreateParams, *, idempotency_key: str | None = None, api_key: str | None = None) -> models.Price:
-        """Criar um preço em reais, avulso ou recorrente."""
+        """Criar um preço.
+
+        Cria um preço em reais para um produto, avulso (one_time) ou recorrente
+        (recurring). No recorrente, interval e interval_count dizem de quanto em
+        quanto tempo ele renova: month com 3 é trimestral.
+
+        Autenticação: chave de API da organização em Authorization: Bearer
+        (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
+        da requisição. Respostas em JSON no envelope data; erros com error,
+        message e fields.
+        """
         data = self._client.request("POST", "/api/v1/prices", body=params, idempotency_key=idempotency_key, api_key=api_key)
         return models.Price.from_dict(data)
 
     def list(self, *, page: int | None = None, limit: int | None = None, product_id: str | None = None, api_key: str | None = None) -> Page[models.Price]:
-        """Listar preços, opcionalmente de um produto (product_id). One page; ``list_iter`` walks every page."""
+        """Listar preços. One page; ``list_iter`` walks every page.
+
+        Devolve uma página dos preços da organização. Com product_id, só os de
+        um produto.
+
+        Autenticação: chave de API da organização em Authorization: Bearer
+        (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
+        da requisição. Respostas em JSON no envelope data; erros com error,
+        message e fields.
+        """
         data = self._client.request("GET", "/api/v1/prices", query={"page": page, "limit": limit, "product_id": product_id}, api_key=api_key)
         return Page.from_dict(data, models.Price.from_dict)
 
@@ -380,22 +790,56 @@ class ProductsService:
         self._client = client
 
     def archive(self, product: str, *, idempotency_key: str | None = None, api_key: str | None = None) -> models.Product:
-        """Arquivar um produto: sai das vendas novas e o que já foi vendido continua apontando para ele."""
+        """Arquivar um produto.
+
+        Arquiva um produto: ele sai das vendas novas, e o que já foi vendido
+        continua apontando para ele.
+
+        Autenticação: chave de API da organização em Authorization: Bearer
+        (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
+        da requisição. Respostas em JSON no envelope data; erros com error,
+        message e fields.
+        """
         data = self._client.request("POST", f"/api/v1/products/{segment(product)}/archive", idempotency_key=idempotency_key, api_key=api_key)
         return models.Product.from_dict(data)
 
     def create(self, params: models.ProductsCreateParams, *, idempotency_key: str | None = None, api_key: str | None = None) -> models.Product:
-        """Criar um produto."""
+        """Criar um produto.
+
+        Cria um produto com nome e descrição. O preço se cria à parte, em Criar
+        um preço.
+
+        Autenticação: chave de API da organização em Authorization: Bearer
+        (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
+        da requisição. Respostas em JSON no envelope data; erros com error,
+        message e fields.
+        """
         data = self._client.request("POST", "/api/v1/products", body=params, idempotency_key=idempotency_key, api_key=api_key)
         return models.Product.from_dict(data)
 
     def get(self, product: str, *, api_key: str | None = None) -> models.Product:
-        """Ler um produto."""
+        """Ler um produto.
+
+        Devolve um produto pelo ID.
+
+        Autenticação: chave de API da organização em Authorization: Bearer
+        (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
+        da requisição. Respostas em JSON no envelope data; erros com error,
+        message e fields.
+        """
         data = self._client.request("GET", f"/api/v1/products/{segment(product)}", api_key=api_key)
         return models.Product.from_dict(data)
 
     def list(self, *, page: int | None = None, limit: int | None = None, api_key: str | None = None) -> Page[models.Product]:
-        """Listar produtos. One page; ``list_iter`` walks every page."""
+        """Listar produtos. One page; ``list_iter`` walks every page.
+
+        Devolve uma página dos produtos da organização, no ambiente da chave.
+
+        Autenticação: chave de API da organização em Authorization: Bearer
+        (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
+        da requisição. Respostas em JSON no envelope data; erros com error,
+        message e fields.
+        """
         data = self._client.request("GET", "/api/v1/products", query={"page": page, "limit": limit}, api_key=api_key)
         return Page.from_dict(data, models.Product.from_dict)
 
@@ -404,7 +848,16 @@ class ProductsService:
         return iterate(lambda at: self.list(page=at, limit=limit, api_key=api_key), page)
 
     def update(self, product: str, params: models.ProductsUpdateParams, *, idempotency_key: str | None = None, api_key: str | None = None) -> models.Product:
-        """Atualizar o nome ou a descrição de um produto ativo."""
+        """Atualizar um produto.
+
+        Muda o nome ou a descrição de um produto ativo. O que você não enviar
+        fica como está.
+
+        Autenticação: chave de API da organização em Authorization: Bearer
+        (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
+        da requisição. Respostas em JSON no envelope data; erros com error,
+        message e fields.
+        """
         data = self._client.request("PATCH", f"/api/v1/products/{segment(product)}", body=params, idempotency_key=idempotency_key, api_key=api_key)
         return models.Product.from_dict(data)
 
@@ -416,12 +869,31 @@ class RefundsService:
         self._client = client
 
     def create(self, params: models.RefundsCreateParams, *, idempotency_key: str | None = None, api_key: str | None = None) -> models.Refund:
-        """Reembolsar parte ou todo um pagamento."""
+        """Reembolsar um pagamento.
+
+        Devolve parte ou todo o valor de um pagamento. A Idempotency-Key é
+        obrigatória: sem ela, repetir a chamada depois de um tempo esgotado
+        seria devolver duas vezes.
+
+        Autenticação: chave de API da organização em Authorization: Bearer
+        (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
+        da requisição. Respostas em JSON no envelope data; erros com error,
+        message e fields.
+        """
         data = self._client.request("POST", "/api/v1/refunds", body=params, idempotency_key=idempotency_key, api_key=api_key)
         return models.Refund.from_dict(data)
 
     def list(self, *, page: int | None = None, limit: int | None = None, payment_id: str | None = None, status: str | None = None, customer_id: str | None = None, external_customer_id: str | None = None, created_after: str | None = None, created_before: str | None = None, sorting: str | None = None, api_key: str | None = None) -> Page[models.Refund]:
-        """Listar reembolsos, opcionalmente de um pagamento (payment_id), de um status, de um cliente ou de um período. One page; ``list_iter`` walks every page."""
+        """Listar reembolsos. One page; ``list_iter`` walks every page.
+
+        Devolve uma página dos reembolsos. Filtre por pagamento (payment_id),
+        status, cliente ou período.
+
+        Autenticação: chave de API da organização em Authorization: Bearer
+        (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
+        da requisição. Respostas em JSON no envelope data; erros com error,
+        message e fields.
+        """
         data = self._client.request("GET", "/api/v1/refunds", query={"page": page, "limit": limit, "payment_id": payment_id, "status": status, "customer_id": customer_id, "external_customer_id": external_customer_id, "created_after": created_after, "created_before": created_before, "sorting": sorting}, api_key=api_key)
         return Page.from_dict(data, models.Refund.from_dict)
 
@@ -437,31 +909,76 @@ class SubscriptionsService:
         self._client = client
 
     def cancel(self, subscription: str, params: models.SubscriptionsCancelParams, *, idempotency_key: str | None = None, api_key: str | None = None) -> models.Subscription:
-        """Cancelar uma assinatura, por padrão no fim do período."""
+        """Cancelar uma assinatura.
+
+        Cancela uma assinatura. Por padrão o cancelamento vale no fim do período
+        já pago.
+
+        Autenticação: chave de API da organização em Authorization: Bearer
+        (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
+        da requisição. Respostas em JSON no envelope data; erros com error,
+        message e fields.
+        """
         data = self._client.request("POST", f"/api/v1/subscriptions/{segment(subscription)}/cancel", body=params, idempotency_key=idempotency_key, api_key=api_key)
         return models.Subscription.from_dict(data)
 
     def get(self, subscription: str, *, api_key: str | None = None) -> models.Subscription:
-        """Ler uma assinatura."""
+        """Ler uma assinatura.
+
+        Devolve uma assinatura pelo ID.
+
+        Autenticação: chave de API da organização em Authorization: Bearer
+        (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
+        da requisição. Respostas em JSON no envelope data; erros com error,
+        message e fields.
+        """
         data = self._client.request("GET", f"/api/v1/subscriptions/{segment(subscription)}", api_key=api_key)
         return models.Subscription.from_dict(data)
 
-    def list(self, *, page: int | None = None, limit: int | None = None, status: str | None = None, customer_id: str | None = None, external_customer_id: str | None = None, created_after: str | None = None, created_before: str | None = None, sorting: str | None = None, api_key: str | None = None) -> Page[models.Subscription]:
-        """Listar assinaturas, opcionalmente de um cliente (customer_id ou external_customer_id), de um status, de um período ou de metadados. One page; ``list_iter`` walks every page."""
-        data = self._client.request("GET", "/api/v1/subscriptions", query={"page": page, "limit": limit, "status": status, "customer_id": customer_id, "external_customer_id": external_customer_id, "created_after": created_after, "created_before": created_before, "sorting": sorting}, api_key=api_key)
+    def list(self, *, page: int | None = None, limit: int | None = None, status: str | None = None, customer_id: str | None = None, external_customer_id: str | None = None, created_after: str | None = None, created_before: str | None = None, sorting: str | None = None, metadata: dict[str, str] | None = None, api_key: str | None = None) -> Page[models.Subscription]:
+        """Listar assinaturas. One page; ``list_iter`` walks every page.
+
+        Devolve uma página das assinaturas. Filtre por cliente (customer_id ou
+        external_customer_id), status, período ou metadados.
+
+        Autenticação: chave de API da organização em Authorization: Bearer
+        (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
+        da requisição. Respostas em JSON no envelope data; erros com error,
+        message e fields.
+        """
+        data = self._client.request("GET", "/api/v1/subscriptions", query={"page": page, "limit": limit, "status": status, "customer_id": customer_id, "external_customer_id": external_customer_id, "created_after": created_after, "created_before": created_before, "sorting": sorting, "metadata": metadata}, api_key=api_key)
         return Page.from_dict(data, models.Subscription.from_dict)
 
-    def list_iter(self, *, page: int | None = None, limit: int | None = None, status: str | None = None, customer_id: str | None = None, external_customer_id: str | None = None, created_after: str | None = None, created_before: str | None = None, sorting: str | None = None, api_key: str | None = None) -> Iterator[models.Subscription]:
+    def list_iter(self, *, page: int | None = None, limit: int | None = None, status: str | None = None, customer_id: str | None = None, external_customer_id: str | None = None, created_after: str | None = None, created_before: str | None = None, sorting: str | None = None, metadata: dict[str, str] | None = None, api_key: str | None = None) -> Iterator[models.Subscription]:
         """Walks every page of subscriptions:list, item by item."""
-        return iterate(lambda at: self.list(page=at, limit=limit, status=status, customer_id=customer_id, external_customer_id=external_customer_id, created_after=created_after, created_before=created_before, sorting=sorting, api_key=api_key), page)
+        return iterate(lambda at: self.list(page=at, limit=limit, status=status, customer_id=customer_id, external_customer_id=external_customer_id, created_after=created_after, created_before=created_before, sorting=sorting, metadata=metadata, api_key=api_key), page)
 
     def resume(self, subscription: str, *, idempotency_key: str | None = None, api_key: str | None = None) -> models.Subscription:
-        """Reativar uma assinatura suspensa, que volta a ser cobrada (a cobrança do ciclo em aberto recomeça), ou retomar uma pausada; qualquer outra recebe 409."""
+        """Reativar uma assinatura.
+
+        Reativa uma assinatura suspensa, que volta a ser cobrada (a cobrança do
+        ciclo em aberto recomeça), ou retoma uma pausada. Qualquer outra
+        assinatura recebe 409.
+
+        Autenticação: chave de API da organização em Authorization: Bearer
+        (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
+        da requisição. Respostas em JSON no envelope data; erros com error,
+        message e fields.
+        """
         data = self._client.request("POST", f"/api/v1/subscriptions/{segment(subscription)}/resume", idempotency_key=idempotency_key, api_key=api_key)
         return models.Subscription.from_dict(data)
 
     def update(self, subscription: str, params: models.SubscriptionsUpdateParams, *, idempotency_key: str | None = None, api_key: str | None = None) -> models.Subscription:
-        """Trocar o plano de uma assinatura: outro preço e, se quiser, outra quantidade, com a forma de ratear a diferença (proration_behavior)."""
+        """Trocar o plano de uma assinatura.
+
+        Troca o plano de uma assinatura: outro preço e, se quiser, outra
+        quantidade. O proration_behavior diz como ratear a diferença.
+
+        Autenticação: chave de API da organização em Authorization: Bearer
+        (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
+        da requisição. Respostas em JSON no envelope data; erros com error,
+        message e fields.
+        """
         data = self._client.request("PATCH", f"/api/v1/subscriptions/{segment(subscription)}", body=params, idempotency_key=idempotency_key, api_key=api_key)
         return models.Subscription.from_dict(data)
 
@@ -473,7 +990,29 @@ class UsageService:
         self._client = client
 
     def ingest(self, params: models.UsageIngestParams, *, api_key: str | None = None) -> models.UsageIngestReceipt:
-        """Ingerir lote atômico de eventos de uso. Autentica com a credencial de uma fonte de ingestão (pus_test_… ou pus_live_…), não com a chave de API da organização."""
+        """Ingerir lote atômico de eventos de uso. Autentica com a credencial de uma fonte de ingestão (pus_test_… ou pus_live_…), não com a chave de API da organização.
+
+        Autorização: Bearer é o único formato de credencial suportado. As
+        credenciais são assinadas pela Peráta, expiram em 30 dias e são
+        verificadas em relação ao estado da fonte, associação atual do emissor e
+        permissões nativas. Organização, merchant e ambiente (teste, pus_test_…,
+        ou produção, pus_live_…) são derivados da fonte autenticada; o payload
+        JSON não pode sobrescrevê-los, e uma credencial de um ambiente nunca
+        escreve no outro. Em produção, a fonte só existe para uma organização
+        que a equipe da Peráta liberou. 1 a 100 eventos, no máximo 65536 bytes.
+        Contagens são strings decimais de inteiros, de 0 a 1000000000000, com
+        pelo menos um token por evento; a entrada exclui cache. Ocorrência
+        RFC3339 em segundos inteiros, com no máximo 90 dias atrás e até cinco
+        minutos à frente. Escopo/fonte/external_event_id identificam um
+        registro; repetições exatas contam como replay e conteúdo conflitante
+        retorna 409. Todos os novos eventos e emissões da outbox são confirmados
+        ou revertidos juntos. Rotação mantém a identidade da fonte e replay;
+        credenciais revogadas ou expiradas não podem ser reutilizadas. O sucesso
+        vem no envelope data; todo erro é o documento de erro da API, o mesmo
+        das demais operações de /api/v1 (error, message e fields), com record, a
+        posição do evento recusado, quando há. Sem cobrança ou faturamento
+        automático.
+        """
         data = self._client.request("POST", "/api/v1/usage/token-events", body=params, api_key=api_key)
         return models.UsageIngestReceipt.from_dict(data)
 
@@ -485,21 +1024,56 @@ class WebhooksService:
         self._client = client
 
     def create_endpoint(self, params: models.WebhooksCreateEndpointParams, *, idempotency_key: str | None = None, api_key: str | None = None) -> models.WebhookEndpointCreated:
-        """Criar um endpoint de webhook; o segredo que assina as mensagens vem só nesta resposta."""
+        """Criar um endpoint de webhook.
+
+        Cria um endpoint de webhook. O segredo que assina as mensagens vem só
+        nesta resposta; guarde-o.
+
+        Autenticação: chave de API da organização em Authorization: Bearer
+        (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
+        da requisição. Respostas em JSON no envelope data; erros com error,
+        message e fields.
+        """
         data = self._client.request("POST", "/api/v1/webhooks/endpoints", body=params, idempotency_key=idempotency_key, api_key=api_key)
         return models.WebhookEndpointCreated.from_dict(data)
 
     def delete_endpoint(self, endpoint: str, *, idempotency_key: str | None = None, api_key: str | None = None) -> None:
-        """Excluir um endpoint de webhook; as entregas que ainda esperavam por ele falham. The API answers 204, so there is nothing to return."""
+        """Excluir um endpoint de webhook. The API answers 204, so there is nothing to return.
+
+        Exclui um endpoint de webhook. As entregas que ainda esperavam por ele
+        falham.
+
+        Autenticação: chave de API da organização em Authorization: Bearer
+        (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
+        da requisição. Respostas em JSON no envelope data; erros com error,
+        message e fields.
+        """
         self._client.request("DELETE", f"/api/v1/webhooks/endpoints/{segment(endpoint)}", idempotency_key=idempotency_key, api_key=api_key)
 
     def get_endpoint(self, endpoint: str, *, api_key: str | None = None) -> models.WebhookEndpoint:
-        """Ler um endpoint de webhook."""
+        """Ler um endpoint de webhook.
+
+        Devolve um endpoint de webhook pelo ID.
+
+        Autenticação: chave de API da organização em Authorization: Bearer
+        (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
+        da requisição. Respostas em JSON no envelope data; erros com error,
+        message e fields.
+        """
         data = self._client.request("GET", f"/api/v1/webhooks/endpoints/{segment(endpoint)}", api_key=api_key)
         return models.WebhookEndpoint.from_dict(data)
 
     def list_deliveries(self, *, page: int | None = None, limit: int | None = None, endpoint_id: str | None = None, status: str | None = None, api_key: str | None = None) -> Page[models.WebhookDelivery]:
-        """Listar as últimas 100 entregas de eventos aos endpoints, opcionalmente de um endpoint (endpoint_id) ou de uma situação (status). One page; ``list_deliveries_iter`` walks every page."""
+        """Listar entregas de webhook. One page; ``list_deliveries_iter`` walks every page.
+
+        Devolve as últimas 100 entregas de eventos aos endpoints. Com
+        endpoint_id, só as de um endpoint; com status, só as de uma situação.
+
+        Autenticação: chave de API da organização em Authorization: Bearer
+        (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
+        da requisição. Respostas em JSON no envelope data; erros com error,
+        message e fields.
+        """
         data = self._client.request("GET", "/api/v1/webhooks/deliveries", query={"page": page, "limit": limit, "endpoint_id": endpoint_id, "status": status}, api_key=api_key)
         return Page.from_dict(data, models.WebhookDelivery.from_dict)
 
@@ -508,7 +1082,15 @@ class WebhooksService:
         return iterate(lambda at: self.list_deliveries(page=at, limit=limit, endpoint_id=endpoint_id, status=status, api_key=api_key), page)
 
     def list_endpoints(self, *, page: int | None = None, limit: int | None = None, api_key: str | None = None) -> Page[models.WebhookEndpoint]:
-        """Listar os endpoints de webhook do lojista. One page; ``list_endpoints_iter`` walks every page."""
+        """Listar endpoints de webhook. One page; ``list_endpoints_iter`` walks every page.
+
+        Devolve uma página dos endpoints de webhook da organização.
+
+        Autenticação: chave de API da organização em Authorization: Bearer
+        (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
+        da requisição. Respostas em JSON no envelope data; erros com error,
+        message e fields.
+        """
         data = self._client.request("GET", "/api/v1/webhooks/endpoints", query={"page": page, "limit": limit}, api_key=api_key)
         return Page.from_dict(data, models.WebhookEndpoint.from_dict)
 
@@ -517,7 +1099,16 @@ class WebhooksService:
         return iterate(lambda at: self.list_endpoints(page=at, limit=limit, api_key=api_key), page)
 
     def update_endpoint(self, endpoint: str, params: models.WebhooksUpdateEndpointParams, *, idempotency_key: str | None = None, api_key: str | None = None) -> models.WebhookEndpoint:
-        """Atualizar o endereço, o formato, os eventos ou a descrição de um endpoint, ou ligar e desligar o envio (enabled); o segredo não muda."""
+        """Atualizar um endpoint de webhook.
+
+        Muda o endereço, o formato, os eventos ou a descrição de um endpoint, ou
+        liga e desliga o envio (enabled). O segredo não muda.
+
+        Autenticação: chave de API da organização em Authorization: Bearer
+        (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
+        da requisição. Respostas em JSON no envelope data; erros com error,
+        message e fields.
+        """
         data = self._client.request("PATCH", f"/api/v1/webhooks/endpoints/{segment(endpoint)}", body=params, idempotency_key=idempotency_key, api_key=api_key)
         return models.WebhookEndpoint.from_dict(data)
 

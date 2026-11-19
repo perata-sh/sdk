@@ -10,7 +10,7 @@ module Perata
     # @return [String, nil]
     attr_reader :description
 
-    # Até 50 pares; valor em texto, número ou booleano. No feature_flag, os valores da flag.
+    # Pares guardados no benefício. No feature_flag, são os valores da flag. Até 50 pares de chave e valor: a chave tem de 1 a 40 caracteres, e o valor é um texto de 1 a 500 caracteres, um número ou um booleano. Texto sem caracteres de controle nem de direção invisível.
     # @return [Hash{String => Object}, nil]
     attr_reader :metadata
 
@@ -55,7 +55,7 @@ module Perata
   class BenefitsUpdateParams < Params
     MEMBERS = %i[metadata name properties visibility].freeze
 
-    # Substitui os metadados; {} os limpa.
+    # Substitui os metadados; {} os limpa. Até 50 pares de chave e valor: a chave tem de 1 a 40 caracteres, e o valor é um texto de 1 a 500 caracteres, um número ou um booleano. Texto sem caracteres de controle nem de direção invisível.
     # @return [Hash{String => Object}, nil]
     attr_reader :metadata
 
@@ -116,7 +116,7 @@ module Perata
     # @return [Integer, nil]
     attr_reader :max_installments
 
-    # Até 50 pares; valor em texto, número ou booleano.
+    # Pares guardados no link. Até 50 pares de chave e valor: a chave tem de 1 a 40 caracteres, e o valor é um texto de 1 a 500 caracteres, um número ou um booleano. Texto sem caracteres de controle nem de direção invisível.
     # @return [Hash{String => Object}, nil]
     attr_reader :metadata
 
@@ -199,7 +199,7 @@ module Perata
     # @return [String, nil]
     attr_reader :label
 
-    # Substitui os metadados; {} os limpa.
+    # Substitui os metadados; {} os limpa. Até 50 pares de chave e valor: a chave tem de 1 a 40 caracteres, e o valor é um texto de 1 a 500 caracteres, um número ou um booleano. Texto sem caracteres de controle nem de direção invisível.
     # @return [Hash{String => Object}, nil]
     attr_reader :metadata
 
@@ -282,7 +282,7 @@ module Perata
     # @return [String, nil]
     attr_reader :label
 
-    # Até 50 pares guardados no link do checkout; valor em texto, número ou booleano.
+    # Pares guardados no link do checkout e devolvidos no checkout, no pedido, no pagamento e nos eventos da venda. Até 50 pares de chave e valor: a chave tem de 1 a 40 caracteres, e o valor é um texto de 1 a 500 caracteres, um número ou um booleano. Texto sem caracteres de controle nem de direção invisível.
     # @return [Hash{String => Object}, nil]
     attr_reader :metadata
 

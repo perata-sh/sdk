@@ -3,6 +3,7 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Linq;
 using System.Net.Http;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -18,7 +19,16 @@ public sealed class DiscountsService
 
     internal DiscountsService(PerataClient client) => this.client = client;
 
-    /// <summary>Criar um desconto percentual (basis_points) ou fixo em reais (amount_cents).</summary>
+    /// <summary>Criar um desconto.</summary>
+    /// <remarks>
+    /// <para>Cria um desconto percentual (basis_points) ou de valor fixo em
+    /// reais (amount_cents). O código é o que o comprador digita; sem ele, o
+    /// desconto só vale num link de checkout ou pela API.</para>
+    /// <para>Autenticação: chave de API da organização em Authorization: Bearer
+    /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
+    /// da requisição. Respostas em JSON no envelope data; erros com error,
+    /// message e fields.</para>
+    /// </remarks>
     /// <param name="parameters">The request.</param>
     /// <param name="options">An idempotency key, or another organization's key for this call.</param>
     /// <param name="cancellationToken">Cancels the call.</param>
@@ -30,7 +40,15 @@ public sealed class DiscountsService
         return client.RequestAsync(HttpMethod.Post, "/api/v1/discounts", null, JsonSerializer.SerializeToUtf8Bytes(parameters, PerataJson.Default.DiscountsCreateParams), PerataJson.Default.DiscountEnvelope, options?.IdempotencyKey, options, cancellationToken);
     }
 
-    /// <summary>Excluir um desconto: sai das listas e dos checkouts e o código fica livre; o que ele já descontou continua nos registros. The API answers 204, so there is nothing to return.</summary>
+    /// <summary>Excluir um desconto. The API answers 204, so there is nothing to return.</summary>
+    /// <remarks>
+    /// <para>Exclui um desconto: ele sai das listas e dos checkouts, e o código
+    /// fica livre. O que ele já descontou continua nos registros.</para>
+    /// <para>Autenticação: chave de API da organização em Authorization: Bearer
+    /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
+    /// da requisição. Respostas em JSON no envelope data; erros com error,
+    /// message e fields.</para>
+    /// </remarks>
     /// <param name="discount">The discount.</param>
     /// <param name="options">An idempotency key, or another organization's key for this call.</param>
     /// <param name="cancellationToken">Cancels the call.</param>
@@ -41,6 +59,13 @@ public sealed class DiscountsService
     }
 
     /// <summary>Ler um desconto.</summary>
+    /// <remarks>
+    /// <para>Devolve um desconto pelo ID.</para>
+    /// <para>Autenticação: chave de API da organização em Authorization: Bearer
+    /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
+    /// da requisição. Respostas em JSON no envelope data; erros com error,
+    /// message e fields.</para>
+    /// </remarks>
     /// <param name="discount">The discount.</param>
     /// <param name="options">Another organization's key for this call.</param>
     /// <param name="cancellationToken">Cancels the call.</param>
@@ -52,6 +77,13 @@ public sealed class DiscountsService
     }
 
     /// <summary>Listar descontos. One page; <see cref="ListIterAsync"/> walks every page.</summary>
+    /// <remarks>
+    /// <para>Devolve uma página dos descontos da organização.</para>
+    /// <para>Autenticação: chave de API da organização em Authorization: Bearer
+    /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
+    /// da requisição. Respostas em JSON no envelope data; erros com error,
+    /// message e fields.</para>
+    /// </remarks>
     /// <param name="parameters">The page, its size and the filters; the first page when null.</param>
     /// <param name="options">Another organization's key for this call.</param>
     /// <param name="cancellationToken">Cancels the call.</param>
@@ -71,7 +103,15 @@ public sealed class DiscountsService
         return Pages.IterateAsync((page, token) => ListAsync(walk with { Page = page }, options, token), walk.Page, cancellationToken);
     }
 
-    /// <summary>Atualizar um desconto; o tipo e a duração não mudam, e depois do primeiro uso o valor e os meses também não.</summary>
+    /// <summary>Atualizar um desconto.</summary>
+    /// <remarks>
+    /// <para>Muda um desconto. O tipo e a duração não mudam; depois do primeiro
+    /// uso, o valor e os meses também não.</para>
+    /// <para>Autenticação: chave de API da organização em Authorization: Bearer
+    /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
+    /// da requisição. Respostas em JSON no envelope data; erros com error,
+    /// message e fields.</para>
+    /// </remarks>
     /// <param name="discount">The discount.</param>
     /// <param name="parameters">The request.</param>
     /// <param name="options">An idempotency key, or another organization's key for this call.</param>
@@ -162,11 +202,11 @@ public sealed record DiscountsListParams
     /// <summary>The items a page, 1 to 100; the API's 10 when null.</summary>
     public int? Limit { get; init; }
 
-    internal IEnumerable<KeyValuePair<string, string?>> Query() =>
-    [
-        new("page", Page?.ToString(CultureInfo.InvariantCulture)),
-        new("limit", Limit?.ToString(CultureInfo.InvariantCulture)),
-    ];
+    internal IEnumerable<KeyValuePair<string, string?>> Query()
+    {
+        yield return new("page", Page?.ToString(CultureInfo.InvariantCulture));
+        yield return new("limit", Limit?.ToString(CultureInfo.InvariantCulture));
+    }
 }
 
 /// <summary>The body of discounts:update.</summary>

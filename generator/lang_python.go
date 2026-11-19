@@ -17,6 +17,8 @@ func init() {
 		// there, and a quote could end it.
 		"pyText": pyText,
 		"pyRead": pyRead,
+		// pyDocBlock writes text as the lines of a docstring, indented.
+		"pyDocBlock": func(indent, text string) string { return docBlock(indent, text, pyText) },
 		// pyBuild builds expr into t, or takes it as it is.
 		"pyBuild": func(t *TypeRef, expr string) string {
 			if convert := pyConvert(t, expr); convert != "" {

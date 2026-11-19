@@ -18,7 +18,16 @@ final class BenefitsService
     }
 
     /**
-     * Criar um benefício custom, license_key, feature_flag ou meter_credit; downloads e os benefícios do Discord e do GitHub se configuram no painel.
+     * Criar um benefício.
+     *
+     * Cria um benefício do tipo custom, license_key, feature_flag ou
+     * meter_credit. Os downloads e os benefícios do Discord e do GitHub se
+     * configuram no painel.
+     *
+     * Autenticação: chave de API da organização em Authorization: Bearer
+     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+     * requisição. Respostas em JSON no envelope data; erros com error, message
+     * e fields.
      *
      * @param array{description?: string, metadata?: array<string, mixed>, name: string, properties?: array<string, mixed>, type: 'custom'|'license_key'|'feature_flag'|'meter_credit', visibility?: 'public'|'private'} $params
      */
@@ -29,7 +38,15 @@ final class BenefitsService
     }
 
     /**
-     * Excluir um benefício: ele sai de todos os produtos e é revogado de quem o tem. The API answers 204, so there is nothing to return.
+     * Excluir um benefício. The API answers 204, so there is nothing to return.
+     *
+     * Exclui um benefício: ele sai de todos os produtos e é revogado de quem o
+     * tem.
+     *
+     * Autenticação: chave de API da organização em Authorization: Bearer
+     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+     * requisição. Respostas em JSON no envelope data; erros com error, message
+     * e fields.
      */
     public function delete(string $benefit, ?string $idempotencyKey = null, ?string $apiKey = null): void
     {
@@ -38,6 +55,13 @@ final class BenefitsService
 
     /**
      * Ler um benefício.
+     *
+     * Devolve um benefício pelo ID.
+     *
+     * Autenticação: chave de API da organização em Authorization: Bearer
+     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+     * requisição. Respostas em JSON no envelope data; erros com error, message
+     * e fields.
      */
     public function get(string $benefit, ?string $apiKey = null): Models\Benefit
     {
@@ -46,7 +70,15 @@ final class BenefitsService
     }
 
     /**
-     * Listar benefícios, opcionalmente de um tipo (type). One page; listIter() walks every page.
+     * Listar benefícios. One page; listIter() walks every page.
+     *
+     * Devolve uma página dos benefícios da organização. Com type, só os de um
+     * tipo.
+     *
+     * Autenticação: chave de API da organização em Authorization: Bearer
+     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+     * requisição. Respostas em JSON no envelope data; erros com error, message
+     * e fields.
      *
      * @param array{page?: int, limit?: int, type?: string} $params
      * @return Page<Models\Benefit>
@@ -69,7 +101,15 @@ final class BenefitsService
     }
 
     /**
-     * Listar as concessões de um benefício, opcionalmente de um cliente (customer_id) ou só as vigentes (is_granted). One page; listGrantsIter() walks every page.
+     * Listar as concessões de um benefício. One page; listGrantsIter() walks every page.
+     *
+     * Devolve uma página das concessões de um benefício. Com customer_id, só as
+     * de um cliente; com is_granted, só as vigentes ou só as revogadas.
+     *
+     * Autenticação: chave de API da organização em Authorization: Bearer
+     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+     * requisição. Respostas em JSON no envelope data; erros com error, message
+     * e fields.
      *
      * @param array{page?: int, limit?: int, customer_id?: string, is_granted?: string} $params
      * @return Page<Models\BenefitGrant>
@@ -92,7 +132,16 @@ final class BenefitsService
     }
 
     /**
-     * Atualizar o nome, a visibilidade, as propriedades e os metadados de um benefício; o tipo e a descrição dada na criação não mudam, e o que a concessão já entregou fica como foi entregue.
+     * Atualizar um benefício.
+     *
+     * Muda o nome, a visibilidade, as propriedades e os metadados de um
+     * benefício. O tipo e a descrição dada na criação não mudam, e o que a
+     * concessão já entregou fica como foi entregue.
+     *
+     * Autenticação: chave de API da organização em Authorization: Bearer
+     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+     * requisição. Respostas em JSON no envelope data; erros com error, message
+     * e fields.
      *
      * @param array{metadata?: array<string, mixed>, name?: string, properties?: array<string, mixed>, visibility?: 'public'|'private'} $params
      */

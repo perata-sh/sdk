@@ -18,7 +18,16 @@ final class DiscountsService
     }
 
     /**
-     * Criar um desconto percentual (basis_points) ou fixo em reais (amount_cents).
+     * Criar um desconto.
+     *
+     * Cria um desconto percentual (basis_points) ou de valor fixo em reais
+     * (amount_cents). O código é o que o comprador digita; sem ele, o desconto
+     * só vale num link de checkout ou pela API.
+     *
+     * Autenticação: chave de API da organização em Authorization: Bearer
+     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+     * requisição. Respostas em JSON no envelope data; erros com error, message
+     * e fields.
      *
      * @param array{amount_cents?: int, basis_points?: int, code?: string, duration: 'once'|'repeating'|'forever', duration_in_months?: int, ends_at?: string, max_redemptions?: int, max_redemptions_per_customer?: int, name: string, product_ids?: list<string>, starts_at?: string, type: 'percentage'|'fixed'} $params
      */
@@ -29,7 +38,15 @@ final class DiscountsService
     }
 
     /**
-     * Excluir um desconto: sai das listas e dos checkouts e o código fica livre; o que ele já descontou continua nos registros. The API answers 204, so there is nothing to return.
+     * Excluir um desconto. The API answers 204, so there is nothing to return.
+     *
+     * Exclui um desconto: ele sai das listas e dos checkouts, e o código fica
+     * livre. O que ele já descontou continua nos registros.
+     *
+     * Autenticação: chave de API da organização em Authorization: Bearer
+     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+     * requisição. Respostas em JSON no envelope data; erros com error, message
+     * e fields.
      */
     public function delete(string $discount, ?string $idempotencyKey = null, ?string $apiKey = null): void
     {
@@ -38,6 +55,13 @@ final class DiscountsService
 
     /**
      * Ler um desconto.
+     *
+     * Devolve um desconto pelo ID.
+     *
+     * Autenticação: chave de API da organização em Authorization: Bearer
+     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+     * requisição. Respostas em JSON no envelope data; erros com error, message
+     * e fields.
      */
     public function get(string $discount, ?string $apiKey = null): Models\Discount
     {
@@ -47,6 +71,13 @@ final class DiscountsService
 
     /**
      * Listar descontos. One page; listIter() walks every page.
+     *
+     * Devolve uma página dos descontos da organização.
+     *
+     * Autenticação: chave de API da organização em Authorization: Bearer
+     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+     * requisição. Respostas em JSON no envelope data; erros com error, message
+     * e fields.
      *
      * @param array{page?: int, limit?: int} $params
      * @return Page<Models\Discount>
@@ -69,7 +100,15 @@ final class DiscountsService
     }
 
     /**
-     * Atualizar um desconto; o tipo e a duração não mudam, e depois do primeiro uso o valor e os meses também não.
+     * Atualizar um desconto.
+     *
+     * Muda um desconto. O tipo e a duração não mudam; depois do primeiro uso, o
+     * valor e os meses também não.
+     *
+     * Autenticação: chave de API da organização em Authorization: Bearer
+     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+     * requisição. Respostas em JSON no envelope data; erros com error, message
+     * e fields.
      *
      * @param array{amount_cents?: int, basis_points?: int, code?: string, duration_in_months?: int, ends_at?: string, max_redemptions?: int, max_redemptions_per_customer?: int, name?: string, product_ids?: list<string>, starts_at?: string} $params
      */

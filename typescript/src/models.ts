@@ -1063,7 +1063,7 @@ export interface WebhookSubscriptionPaymentFailure {
 /** The body of benefits:create. */
 export interface BenefitsCreateParams {
   description?: string;
-  /** Até 50 pares; valor em texto, número ou booleano. No feature_flag, os valores da flag. */
+  /** Pares guardados no benefício. No feature_flag, são os valores da flag. Até 50 pares de chave e valor: a chave tem de 1 a 40 caracteres, e o valor é um texto de 1 a 500 caracteres, um número ou um booleano. Texto sem caracteres de controle nem de direção invisível. */
   metadata?: Record<string, unknown>;
   /** Como o benefício aparece nos produtos e para o cliente; até 80 caracteres. */
   name: string;
@@ -1075,7 +1075,7 @@ export interface BenefitsCreateParams {
 
 /** The body of benefits:update. */
 export interface BenefitsUpdateParams {
-  /** Substitui os metadados; {} os limpa. */
+  /** Substitui os metadados; {} os limpa. Até 50 pares de chave e valor: a chave tem de 1 a 40 caracteres, e o valor é um texto de 1 a 500 caracteres, um número ou um booleano. Texto sem caracteres de controle nem de direção invisível. */
   metadata?: Record<string, unknown>;
   name?: string;
   /** Os campos do tipo, aplicados sobre os guardados; o que ficar de fora não muda. */
@@ -1095,7 +1095,7 @@ export interface CheckoutLinksCreateParams {
   label?: string;
   /** De 0 a 12; 0 segue a organização. */
   max_installments?: number;
-  /** Até 50 pares; valor em texto, número ou booleano. */
+  /** Pares guardados no link. Até 50 pares de chave e valor: a chave tem de 1 a 40 caracteres, e o valor é um texto de 1 a 500 caracteres, um número ou um booleano. Texto sem caracteres de controle nem de direção invisível. */
   metadata?: Record<string, unknown>;
   price_id?: string;
   /** Um preço de cada produto, na ordem em que o comprador os vê; até 20. */
@@ -1113,7 +1113,7 @@ export interface CheckoutLinksCreateParams {
 export interface CheckoutLinksUpdateParams {
   cancel_url?: string;
   label?: string;
-  /** Substitui os metadados; {} os limpa. */
+  /** Substitui os metadados; {} os limpa. Até 50 pares de chave e valor: a chave tem de 1 a 40 caracteres, e o valor é um texto de 1 a 500 caracteres, um número ou um booleano. Texto sem caracteres de controle nem de direção invisível. */
   metadata?: Record<string, unknown>;
   /** Substitui os produtos do link. */
   price_ids?: string[];
@@ -1143,7 +1143,7 @@ export interface CheckoutsCreateParams {
   /** As linhas do pedido, até 50, para o comprador ler o detalhe: aparecem no checkout (página, modal, componentes e transparente), no pedido, no recibo, no portal do cliente e nos eventos. A soma de quantity vezes unit_amount_cents precisa ser igual a amount_cents, ou a resposta é 422; enviadas sem amount_cents, a soma é o valor. */
   items?: CheckoutsCreateItem[];
   label?: string;
-  /** Até 50 pares guardados no link do checkout; valor em texto, número ou booleano. */
+  /** Pares guardados no link do checkout e devolvidos no checkout, no pedido, no pagamento e nos eventos da venda. Até 50 pares de chave e valor: a chave tem de 1 a 40 caracteres, e o valor é um texto de 1 a 500 caracteres, um número ou um booleano. Texto sem caracteres de controle nem de direção invisível. */
   metadata?: Record<string, unknown>;
   price_id: string;
   product_id: string;

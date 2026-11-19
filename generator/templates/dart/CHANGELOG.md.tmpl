@@ -4,6 +4,18 @@ Todos os SDKs da Peráta saem com a mesma versão; as mudanças de cada uma est�
 
 ## {{.Version}} (18/11/2026)
 
+Gerado a partir do contrato da API {{.APIVersion}}.
+
+- Filtro por metadata nas listas: `checkouts.list`, `orders.list`, `payments.list` e `subscriptions.list` aceitam `metadata` (`Map<String, String>`), enviado como um par por chave, `metadata[chave]=valor` (até 10 pares; a linha precisa ter todos), com as chaves em ordem e escapadas. `listIter` leva o filtro em todas as páginas.
+- `customers.list` aceita `email`.
+- `customers.create` responde 200, e não 201, quando liga ao `externalId` um cliente que já existia (um e-mail criado por um checkout); o corpo é o mesmo `Customer`.
+- Regra da `Idempotency-Key`: uma resposta 2xx fica guardada sob a chave; uma recusa 4xx ou uma falha 5xx a libera, e a mesma chave pode ser enviada de novo.
+- Documentação: o resumo de cada método é curto, e a descrição da operação vem logo abaixo, em parágrafos.
+- `metadata` dos corpos declarado no contrato como objeto livre: até 50 pares, chave de 1 a 40 caracteres, valor texto, número ou booleano. O tipo continua `Map<String, Object?>`.
+- README: exemplos de `checkouts.expire`, de listas com `clientReferenceId` e `metadata`, de `subscriptions.resume` e dos eventos `subscription.past_due` e `subscription.suspended`.
+
+## 0.5.4 (18/11/2026)
+
 Gerado a partir do contrato da API 0.1.0.
 
 - Preços: `intervalCount` na criação e na leitura (planos de 3 e 6 meses com `interval: "month"`).

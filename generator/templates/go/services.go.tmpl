@@ -31,7 +31,7 @@ type {{pascal $service.Name}}{{pascal .Name}}Params struct {
 	// Page is the page, from 1; Limit the items a page, 1 to 100 (10 by default).
 	Page, Limit int
 {{- range .Query}}
-{{goComment "\t" .Description}}	{{pascal .Name}} string
+{{goComment "\t" .Description}}	{{pascal .Name}} {{if .Map}}map[string]string{{else}}string{{end}}
 {{- end}}
 }
 
@@ -47,14 +47,23 @@ func (p *{{pascal $service.Name}}{{pascal .Name}}Params) query() url.Values {
 		q.Set("limit", strconv.Itoa(p.Limit))
 	}
 {{- range .Query}}
+{{- if .Map}}
+	// A map filter is sent once for each pair, as {{.Name}}[key]=value; Encode writes the pairs sorted.
+	for key, value := range p.{{pascal .Name}} {
+		if value != "" {
+			q.Set({{quote .Name}}+"["+key+"]", value)
+		}
+	}
+{{- else}}
 	if p.{{pascal .Name}} != "" {
 		q.Set({{quote .Name}}, p.{{pascal .Name}})
 	}
 {{- end}}
+{{- end}}
 	return q
 }
 
-// {{pascal .Name}}: {{.Summary}}. It answers one page; {{pascal .Name}}Iter walks every page.
+// {{pascal .Name}}: {{.Summary}}. It answers one page; {{pascal .Name}}Iter walks every page.{{template "doc" .}}
 func (s *{{pascal $service.Name}}Service) {{pascal .Name}}(ctx context.Context{{range .PathParams}}, {{goParam .}} string{{end}}, params *{{pascal $service.Name}}{{pascal .Name}}Params, opts ...RequestOption) (*Page[{{.Item}}], error) {
 	var page Page[{{.Item}}]
 	err := s.client.do(ctx, http.Method{{pascal (lower .HTTPMethod)}}, {{template "path" .}}, params.query(), nil, &page, opts)
@@ -76,12 +85,12 @@ func (s *{{pascal $service.Name}}Service) {{pascal .Name}}Iter(ctx context.Conte
 	}, walk.Page)
 }
 {{- else if .NoContent}}
-// {{pascal .Name}}: {{.Summary}}. The API answers 204, so there is nothing to return.
+// {{pascal .Name}}: {{.Summary}}. The API answers 204, so there is nothing to return.{{template "doc" .}}
 func (s *{{pascal $service.Name}}Service) {{pascal .Name}}(ctx context.Context{{range .PathParams}}, {{goParam .}} string{{end}}{{if .Body}}, params {{.Body.Name}}{{end}}, opts ...RequestOption) error {
 	return s.client.do(ctx, http.Method{{pascal (lower .HTTPMethod)}}, {{template "path" .}}, nil, {{if .Body}}params{{else}}nil{{end}}, nil, opts)
 }
 {{- else}}
-// {{pascal .Name}}: {{.Summary}}.
+// {{pascal .Name}}: {{.Summary}}.{{template "doc" .}}
 func (s *{{pascal $service.Name}}Service) {{pascal .Name}}(ctx context.Context{{range .PathParams}}, {{goParam .}} string{{end}}{{if .Body}}, params {{.Body.Name}}{{end}}, opts ...RequestOption) (*{{.Response}}, error) {
 	var out {{.Response}}
 	err := s.client.do(ctx, http.Method{{pascal (lower .HTTPMethod)}}, {{template "path" .}}, nil, {{if .Body}}params{{else}}nil{{end}}, &out, opts)
@@ -92,4 +101,7 @@ func (s *{{pascal $service.Name}}Service) {{pascal .Name}}(ctx context.Context{{
 }
 {{- end}}
 {{end}}{{end}}
+{{- define "doc"}}{{with .Description}}
+//
+{{docBlock "// " .}}{{end}}{{end}}
 {{- define "path"}}{{range $i, $part := pathParts .Path}}{{if $i}} + {{end}}{{if $part.Param}}url.PathEscape({{goParam $part.Param}}){{else}}{{quote $part.Literal}}{{end}}{{end}}{{end}}

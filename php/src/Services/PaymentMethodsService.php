@@ -18,7 +18,15 @@ final class PaymentMethodsService
     }
 
     /**
-     * Parar de cobrar um cartão guardado; recusado enquanto uma assinatura ativa o cobra.
+     * Parar de cobrar um cartão guardado.
+     *
+     * Para de cobrar um cartão guardado. É recusado (409) enquanto uma
+     * assinatura ativa o cobra.
+     *
+     * Autenticação: chave de API da organização em Authorization: Bearer
+     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+     * requisição. Respostas em JSON no envelope data; erros com error, message
+     * e fields.
      */
     public function detach(string $paymentMethod, ?string $idempotencyKey = null, ?string $apiKey = null): Models\PaymentMethodDetached
     {
@@ -27,7 +35,15 @@ final class PaymentMethodsService
     }
 
     /**
-     * Listar os cartões guardados de um cliente: bandeira, quatro últimos dígitos e validade. One page; listIter() walks every page.
+     * Listar os cartões guardados de um cliente. One page; listIter() walks every page.
+     *
+     * Devolve os cartões guardados de um cliente: bandeira, quatro últimos
+     * dígitos e validade. O número do cartão nunca aparece.
+     *
+     * Autenticação: chave de API da organização em Authorization: Bearer
+     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+     * requisição. Respostas em JSON no envelope data; erros com error, message
+     * e fields.
      *
      * @param array{page?: int, limit?: int} $params
      * @return Page<Models\PaymentMethod>

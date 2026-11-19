@@ -6,6 +6,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.TreeMap;
 
 /** The API's customers. */
 public final class CustomersService {
@@ -16,7 +17,20 @@ public final class CustomersService {
     }
 
     /**
-     * Criar um cliente, com CPF ou CNPJ, telefone e endereço de cobrança se você os tem.
+     * Criar um cliente.
+     *
+     * Cria um cliente, com CPF ou CNPJ, telefone e endereço de cobrança, se
+     * você os tem. Se você enviar external_id e o e-mail já for de um cliente
+     * que ainda não tem ID externo (por exemplo, um que o checkout criou), esse
+     * cliente recebe o ID e os dados enviados, e a resposta é 200 em vez de
+     * 201. Se o e-mail for de um cliente com outro ID externo, a resposta é
+     * 422.
+     *
+     * Autenticação: chave de API da organização em Authorization: Bearer
+     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+     * requisição. Respostas em JSON no envelope data; erros com error, message
+     * e fields.
+     *
      * @param params the request
      * @param options an idempotency key or another organization's key for this call, or null
      * @return the customer
@@ -28,7 +42,20 @@ public final class CustomersService {
     }
 
     /**
-     * Criar um cliente, com CPF ou CNPJ, telefone e endereço de cobrança se você os tem.
+     * Criar um cliente.
+     *
+     * Cria um cliente, com CPF ou CNPJ, telefone e endereço de cobrança, se
+     * você os tem. Se você enviar external_id e o e-mail já for de um cliente
+     * que ainda não tem ID externo (por exemplo, um que o checkout criou), esse
+     * cliente recebe o ID e os dados enviados, e a resposta é 200 em vez de
+     * 201. Se o e-mail for de um cliente com outro ID externo, a resposta é
+     * 422.
+     *
+     * Autenticação: chave de API da organização em Authorization: Bearer
+     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+     * requisição. Respostas em JSON no envelope data; erros com error, message
+     * e fields.
+     *
      * @param params the request
      * @return the customer
      * @throws PerataException when the API refuses the call
@@ -392,7 +419,17 @@ public final class CustomersService {
 
 
     /**
-     * Excluir um cliente: as assinaturas terminam na hora, os benefícios são revogados e o ID externo é liberado; pedidos e pagamentos continuam.
+     * Excluir um cliente.
+     *
+     * Exclui um cliente: as assinaturas terminam na hora, os benefícios são
+     * revogados e o ID externo fica livre. Os pedidos e os pagamentos continuam
+     * nos registros.
+     *
+     * Autenticação: chave de API da organização em Authorization: Bearer
+     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+     * requisição. Respostas em JSON no envelope data; erros com error, message
+     * e fields.
+     *
      * @param customer the customer
      * @param options an idempotency key or another organization's key for this call, or null
      * @throws PerataException when the API refuses the call
@@ -402,7 +439,17 @@ public final class CustomersService {
     }
 
     /**
-     * Excluir um cliente: as assinaturas terminam na hora, os benefícios são revogados e o ID externo é liberado; pedidos e pagamentos continuam.
+     * Excluir um cliente.
+     *
+     * Exclui um cliente: as assinaturas terminam na hora, os benefícios são
+     * revogados e o ID externo fica livre. Os pedidos e os pagamentos continuam
+     * nos registros.
+     *
+     * Autenticação: chave de API da organização em Authorization: Bearer
+     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+     * requisição. Respostas em JSON no envelope data; erros com error, message
+     * e fields.
+     *
      * @param customer the customer
      * @throws PerataException when the API refuses the call
      */
@@ -412,6 +459,14 @@ public final class CustomersService {
 
     /**
      * Ler um cliente.
+     *
+     * Devolve um cliente pelo ID.
+     *
+     * Autenticação: chave de API da organização em Authorization: Bearer
+     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+     * requisição. Respostas em JSON no envelope data; erros com error, message
+     * e fields.
+     *
      * @param customer the customer
      * @param options another organization's key for this call, or null
      * @return the customer
@@ -424,6 +479,14 @@ public final class CustomersService {
 
     /**
      * Ler um cliente.
+     *
+     * Devolve um cliente pelo ID.
+     *
+     * Autenticação: chave de API da organização em Authorization: Bearer
+     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+     * requisição. Respostas em JSON no envelope data; erros com error, message
+     * e fields.
+     *
      * @param customer the customer
      * @return the customer
      * @throws PerataException when the API refuses the call
@@ -433,7 +496,16 @@ public final class CustomersService {
     }
 
     /**
-     * Ler um cliente pelo ID dele no sistema do lojista (external_id).
+     * Ler um cliente pelo ID externo.
+     *
+     * Devolve o cliente que você identifica pelo ID dele no seu sistema
+     * (external_id).
+     *
+     * Autenticação: chave de API da organização em Authorization: Bearer
+     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+     * requisição. Respostas em JSON no envelope data; erros com error, message
+     * e fields.
+     *
      * @param externalId the external_id
      * @param options another organization's key for this call, or null
      * @return the customer
@@ -445,7 +517,16 @@ public final class CustomersService {
     }
 
     /**
-     * Ler um cliente pelo ID dele no sistema do lojista (external_id).
+     * Ler um cliente pelo ID externo.
+     *
+     * Devolve o cliente que você identifica pelo ID dele no seu sistema
+     * (external_id).
+     *
+     * Autenticação: chave de API da organização em Authorization: Bearer
+     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+     * requisição. Respostas em JSON no envelope data; erros com error, message
+     * e fields.
+     *
      * @param externalId the external_id
      * @return the customer
      * @throws PerataException when the API refuses the call
@@ -455,7 +536,17 @@ public final class CustomersService {
     }
 
     /**
-     * Ler o estado de um cliente: assinaturas ativas e benefícios vigentes, inclusive os feature flags.
+     * Ler o estado de um cliente.
+     *
+     * Devolve o estado de um cliente: as assinaturas ativas e os benefícios
+     * vigentes, inclusive os feature flags. É a leitura que o seu aplicativo
+     * faz para decidir o que o cliente pode usar.
+     *
+     * Autenticação: chave de API da organização em Authorization: Bearer
+     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+     * requisição. Respostas em JSON no envelope data; erros com error, message
+     * e fields.
+     *
      * @param customer the customer
      * @param options another organization's key for this call, or null
      * @return the customerstate
@@ -467,7 +558,17 @@ public final class CustomersService {
     }
 
     /**
-     * Ler o estado de um cliente: assinaturas ativas e benefícios vigentes, inclusive os feature flags.
+     * Ler o estado de um cliente.
+     *
+     * Devolve o estado de um cliente: as assinaturas ativas e os benefícios
+     * vigentes, inclusive os feature flags. É a leitura que o seu aplicativo
+     * faz para decidir o que o cliente pode usar.
+     *
+     * Autenticação: chave de API da organização em Authorization: Bearer
+     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+     * requisição. Respostas em JSON no envelope data; erros com error, message
+     * e fields.
+     *
      * @param customer the customer
      * @return the customerstate
      * @throws PerataException when the API refuses the call
@@ -478,6 +579,15 @@ public final class CustomersService {
 
     /**
      * Listar clientes. One page; {@link #listIter} walks every page.
+     *
+     * Devolve uma página dos clientes. Com email, só o cliente com esse e-mail,
+     * sem diferença entre maiúsculas e minúsculas.
+     *
+     * Autenticação: chave de API da organização em Authorization: Bearer
+     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+     * requisição. Respostas em JSON no envelope data; erros com error, message
+     * e fields.
+     *
      * @param params the page, its size and the filters, or null
      * @param options options for this call, or null
      * @return the page
@@ -490,6 +600,15 @@ public final class CustomersService {
 
     /**
      * Listar clientes. One page.
+     *
+     * Devolve uma página dos clientes. Com email, só o cliente com esse e-mail,
+     * sem diferença entre maiúsculas e minúsculas.
+     *
+     * Autenticação: chave de API da organização em Authorization: Bearer
+     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+     * requisição. Respostas em JSON no envelope data; erros com error, message
+     * e fields.
+     *
      * @param params the page, its size and the filters, or null
      * @return the page
      */
@@ -499,6 +618,15 @@ public final class CustomersService {
 
     /**
      * Listar clientes. The first page.
+     *
+     * Devolve uma página dos clientes. Com email, só o cliente com esse e-mail,
+     * sem diferença entre maiúsculas e minúsculas.
+     *
+     * Autenticação: chave de API da organização em Authorization: Bearer
+     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+     * requisição. Respostas em JSON no envelope data; erros com error, message
+     * e fields.
+     *
      * @return the page
      */
     public Page<Customer> list() {
@@ -539,10 +667,12 @@ public final class CustomersService {
     public static final class ListParams {
         private final Integer page;
         private final Integer limit;
+        private final String email;
 
         private ListParams(Builder builder) {
             this.page = builder.page;
             this.limit = builder.limit;
+            this.email = builder.email;
         }
 
         /** @return a builder of the page and filters */
@@ -560,9 +690,15 @@ public final class CustomersService {
             return limit;
         }
 
+        /** @return Só o cliente com este e-mail (sem diferença de maiúsculas). (null when not filtered) */
+        public String getEmail() {
+            return email;
+        }
+
         ListParams withPage(int page) {
             Builder builder = builder().page(page);
             builder.limit = limit;
+            builder.email = email;
             return builder.build();
         }
 
@@ -570,6 +706,7 @@ public final class CustomersService {
             Map<String, String> query = new LinkedHashMap<>();
             query.put("page", page == null ? null : page.toString());
             query.put("limit", limit == null ? null : limit.toString());
+            query.put("email", email);
             return query;
         }
 
@@ -577,6 +714,7 @@ public final class CustomersService {
         public static final class Builder {
             private Integer page;
             private Integer limit;
+            private String email;
 
             private Builder() {
             }
@@ -599,6 +737,15 @@ public final class CustomersService {
                 return this;
             }
 
+            /**
+             * @param email Só o cliente com este e-mail (sem diferença de maiúsculas).
+             * @return this builder
+             */
+            public Builder email(String email) {
+                this.email = email;
+                return this;
+            }
+
             /** @return the page and filters */
             public ListParams build() {
                 return new ListParams(this);
@@ -607,7 +754,16 @@ public final class CustomersService {
     }
 
     /**
-     * Atualizar o nome, o e-mail, o ID externo, o CPF ou CNPJ, o telefone ou o endereço de cobrança de um cliente; o ID externo não muda depois de definido.
+     * Atualizar um cliente.
+     *
+     * Muda o nome, o e-mail, o ID externo, o CPF ou CNPJ, o telefone ou o
+     * endereço de cobrança. O ID externo só pode ser definido uma vez.
+     *
+     * Autenticação: chave de API da organização em Authorization: Bearer
+     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+     * requisição. Respostas em JSON no envelope data; erros com error, message
+     * e fields.
+     *
      * @param customer the customer
      * @param params the request
      * @param options an idempotency key or another organization's key for this call, or null
@@ -620,7 +776,16 @@ public final class CustomersService {
     }
 
     /**
-     * Atualizar o nome, o e-mail, o ID externo, o CPF ou CNPJ, o telefone ou o endereço de cobrança de um cliente; o ID externo não muda depois de definido.
+     * Atualizar um cliente.
+     *
+     * Muda o nome, o e-mail, o ID externo, o CPF ou CNPJ, o telefone ou o
+     * endereço de cobrança. O ID externo só pode ser definido uma vez.
+     *
+     * Autenticação: chave de API da organização em Authorization: Bearer
+     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+     * requisição. Respostas em JSON no envelope data; erros com error, message
+     * e fields.
+     *
      * @param customer the customer
      * @param params the request
      * @return the customer
@@ -983,7 +1148,16 @@ public final class CustomersService {
 
 
     /**
-     * Atualizar um cliente pelo ID dele no sistema do lojista (external_id).
+     * Atualizar um cliente pelo ID externo.
+     *
+     * Muda o cliente que você identifica pelo ID dele no seu sistema
+     * (external_id). Os campos são os de Atualizar um cliente.
+     *
+     * Autenticação: chave de API da organização em Authorization: Bearer
+     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+     * requisição. Respostas em JSON no envelope data; erros com error, message
+     * e fields.
+     *
      * @param externalId the external_id
      * @param params the request
      * @param options an idempotency key or another organization's key for this call, or null
@@ -996,7 +1170,16 @@ public final class CustomersService {
     }
 
     /**
-     * Atualizar um cliente pelo ID dele no sistema do lojista (external_id).
+     * Atualizar um cliente pelo ID externo.
+     *
+     * Muda o cliente que você identifica pelo ID dele no seu sistema
+     * (external_id). Os campos são os de Atualizar um cliente.
+     *
+     * Autenticação: chave de API da organização em Authorization: Bearer
+     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+     * requisição. Respostas em JSON no envelope data; erros com error, message
+     * e fields.
+     *
      * @param externalId the external_id
      * @param params the request
      * @return the customer

@@ -10,8 +10,8 @@ defmodule Perata.{{pascal .Name}} do
 
   @doc """
   {{exDoc .Summary}}. One page; `{{snake .Name}}_stream/{{if hasPath .}}3{{else}}2{{end}}` walks every page.
-
-  Options: `:page`, `:limit`{{range .Query}}, `:{{.Name}}`{{end}} and `:api_key`.
+{{template "doc" .}}
+  Options: `:page`, `:limit`{{range .Query}}, `:{{.Name}}`{{if .Map}} (a map of strings, sent as `{{.Name}}[key]=value`){{end}}{{end}} and `:api_key`.
   """
 {{exSpec . "page"}}
   def {{snake .Name}}(%Client{} = client{{range .PathParams}}, {{exName .}}{{end}}, opts \\ []) do
@@ -34,7 +34,7 @@ defmodule Perata.{{pascal .Name}} do
 
   @doc """
   {{exDoc .Summary}}. The API answers 204, so there is nothing to return: `:ok`.
-
+{{template "doc" .}}
   Options: {{if .Write}}`:idempotency_key` and {{end}}`:api_key`.
   """
 {{exSpec . "call"}}
@@ -49,7 +49,7 @@ defmodule Perata.{{pascal .Name}} do
 
   @doc """
   {{exDoc .Summary}}.
-
+{{template "doc" .}}
   Options: {{if .Write}}`:idempotency_key` and {{end}}`:api_key`.
   """
 {{exSpec . "call"}}
@@ -64,4 +64,7 @@ defmodule Perata.{{pascal .Name}} do
 {{- end}}
 end
 {{- end}}
+{{- define "doc"}}{{with .Description}}
+{{exDocBlock "  " .}}
+{{end}}{{end}}
 {{- define "path"}}"{{range pathParts .Path}}{{if .Param}}#{Client.segment({{exName .Param}})}{{else}}{{.Literal}}{{end}}{{end}}"{{end}}

@@ -18,7 +18,16 @@ final class CheckoutLinksService
     }
 
     /**
-     * Criar um link de checkout: uma oferta durável de um ou mais produtos, com desconto, quantidade e páginas de retorno.
+     * Criar um link de checkout.
+     *
+     * Cria um link de checkout: uma oferta durável de um ou mais produtos, com
+     * desconto, quantidade e páginas de retorno. Cada visita ao link abre uma
+     * sessão de compra nova.
+     *
+     * Autenticação: chave de API da organização em Authorization: Bearer
+     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+     * requisição. Respostas em JSON no envelope data; erros com error, message
+     * e fields.
      *
      * @param array{allow_discount_codes?: bool, cancel_url?: string, capture_mode?: 'automatic'|'manual', discount_id?: string, expires_at?: string, label?: string, max_installments?: int, metadata?: array<string, mixed>, price_id?: string, price_ids?: list<string>, product_id?: string, quantity?: int, require_billing_address?: bool, success_url?: string, trial_interval?: 'day'|'week'|'month'|'year', trial_interval_count?: int} $params
      */
@@ -29,7 +38,15 @@ final class CheckoutLinksService
     }
 
     /**
-     * Excluir um link de checkout: ele deixa de abrir checkouts; os que já abriu continuam. The API answers 204, so there is nothing to return.
+     * Excluir um link de checkout. The API answers 204, so there is nothing to return.
+     *
+     * Exclui um link de checkout: ele deixa de abrir checkouts. Os que já abriu
+     * continuam.
+     *
+     * Autenticação: chave de API da organização em Authorization: Bearer
+     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+     * requisição. Respostas em JSON no envelope data; erros com error, message
+     * e fields.
      */
     public function delete(string $checkoutLink, ?string $idempotencyKey = null, ?string $apiKey = null): void
     {
@@ -38,6 +55,13 @@ final class CheckoutLinksService
 
     /**
      * Ler um link de checkout.
+     *
+     * Devolve um link de checkout pelo ID.
+     *
+     * Autenticação: chave de API da organização em Authorization: Bearer
+     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+     * requisição. Respostas em JSON no envelope data; erros com error, message
+     * e fields.
      */
     public function get(string $checkoutLink, ?string $apiKey = null): Models\CheckoutLink
     {
@@ -47,6 +71,13 @@ final class CheckoutLinksService
 
     /**
      * Listar links de checkout. One page; listIter() walks every page.
+     *
+     * Devolve uma página dos links de checkout da organização.
+     *
+     * Autenticação: chave de API da organização em Authorization: Bearer
+     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+     * requisição. Respostas em JSON no envelope data; erros com error, message
+     * e fields.
      *
      * @param array{page?: int, limit?: int} $params
      * @return Page<Models\CheckoutLink>
@@ -69,7 +100,15 @@ final class CheckoutLinksService
     }
 
     /**
-     * Atualizar o rótulo, as páginas de retorno, os produtos e os metadados de um link; a quantidade e o desconto ficam como foram publicados.
+     * Atualizar um link de checkout.
+     *
+     * Muda o rótulo, as páginas de retorno, os produtos e os metadados de um
+     * link. A quantidade e o desconto ficam como foram publicados.
+     *
+     * Autenticação: chave de API da organização em Authorization: Bearer
+     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+     * requisição. Respostas em JSON no envelope data; erros com error, message
+     * e fields.
      *
      * @param array{cancel_url?: string, label?: string, metadata?: array<string, mixed>, price_ids?: list<string>, require_billing_address?: bool, success_url?: string} $params
      */

@@ -34,22 +34,62 @@ export class BenefitsService {
     this.#client = client;
   }
 
-  /** Criar um benefício custom, license_key, feature_flag ou meter_credit; downloads e os benefícios do Discord e do GitHub se configuram no painel. */
+  /**
+   * Criar um benefício.
+   *
+   * Cria um benefício do tipo custom, license_key, feature_flag ou
+   * meter_credit. Os downloads e os benefícios do Discord e do GitHub se
+   * configuram no painel.
+   *
+   * Autenticação: chave de API da organização em Authorization: Bearer
+   * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+   * requisição. Respostas em JSON no envelope data; erros com error, message e
+   * fields.
+   */
   create(params: models.BenefitsCreateParams, options?: RequestOptions): Promise<models.Benefit> {
     return this.#client.request("POST", `/api/v1/benefits`, { body: params, options });
   }
 
-  /** Excluir um benefício: ele sai de todos os produtos e é revogado de quem o tem. The API answers 204, so there is nothing to return. */
+  /**
+   * Excluir um benefício. The API answers 204, so there is nothing to return.
+   *
+   * Exclui um benefício: ele sai de todos os produtos e é revogado de quem o
+   * tem.
+   *
+   * Autenticação: chave de API da organização em Authorization: Bearer
+   * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+   * requisição. Respostas em JSON no envelope data; erros com error, message e
+   * fields.
+   */
   async delete(benefit: string, options?: RequestOptions): Promise<void> {
     await this.#client.request<undefined>("DELETE", `/api/v1/benefits/${encodeURIComponent(benefit)}`, { options });
   }
 
-  /** Ler um benefício. */
+  /**
+   * Ler um benefício.
+   *
+   * Devolve um benefício pelo ID.
+   *
+   * Autenticação: chave de API da organização em Authorization: Bearer
+   * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+   * requisição. Respostas em JSON no envelope data; erros com error, message e
+   * fields.
+   */
   get(benefit: string, options?: RequestOptions): Promise<models.Benefit> {
     return this.#client.request("GET", `/api/v1/benefits/${encodeURIComponent(benefit)}`, { options });
   }
 
-  /** Listar benefícios, opcionalmente de um tipo (type). One page; `listIter` walks every page. */
+  /**
+   * Listar benefícios. One page; `listIter` walks every page.
+   *
+   * Devolve uma página dos benefícios da organização. Com type, só os de um
+   * tipo.
+   *
+   * Autenticação: chave de API da organização em Authorization: Bearer
+   * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+   * requisição. Respostas em JSON no envelope data; erros com error, message e
+   * fields.
+   */
   list(params: BenefitsListParams = {}, options?: RequestOptions): Promise<Page<models.Benefit>> {
     return this.#client.request("GET", `/api/v1/benefits`, { query: { ...params }, options });
   }
@@ -59,7 +99,17 @@ export class BenefitsService {
     return iterate((page) => this.list({ ...params, page }, options), params.page);
   }
 
-  /** Listar as concessões de um benefício, opcionalmente de um cliente (customer_id) ou só as vigentes (is_granted). One page; `listGrantsIter` walks every page. */
+  /**
+   * Listar as concessões de um benefício. One page; `listGrantsIter` walks every page.
+   *
+   * Devolve uma página das concessões de um benefício. Com customer_id, só as
+   * de um cliente; com is_granted, só as vigentes ou só as revogadas.
+   *
+   * Autenticação: chave de API da organização em Authorization: Bearer
+   * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+   * requisição. Respostas em JSON no envelope data; erros com error, message e
+   * fields.
+   */
   listGrants(benefit: string, params: BenefitsListGrantsParams = {}, options?: RequestOptions): Promise<Page<models.BenefitGrant>> {
     return this.#client.request("GET", `/api/v1/benefits/${encodeURIComponent(benefit)}/grants`, { query: { ...params }, options });
   }
@@ -69,7 +119,18 @@ export class BenefitsService {
     return iterate((page) => this.listGrants(benefit, { ...params, page }, options), params.page);
   }
 
-  /** Atualizar o nome, a visibilidade, as propriedades e os metadados de um benefício; o tipo e a descrição dada na criação não mudam, e o que a concessão já entregou fica como foi entregue. */
+  /**
+   * Atualizar um benefício.
+   *
+   * Muda o nome, a visibilidade, as propriedades e os metadados de um
+   * benefício. O tipo e a descrição dada na criação não mudam, e o que a
+   * concessão já entregou fica como foi entregue.
+   *
+   * Autenticação: chave de API da organização em Authorization: Bearer
+   * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+   * requisição. Respostas em JSON no envelope data; erros com error, message e
+   * fields.
+   */
   update(benefit: string, params: models.BenefitsUpdateParams, options?: RequestOptions): Promise<models.Benefit> {
     return this.#client.request("PATCH", `/api/v1/benefits/${encodeURIComponent(benefit)}`, { body: params, options });
   }
@@ -91,22 +152,61 @@ export class CheckoutLinksService {
     this.#client = client;
   }
 
-  /** Criar um link de checkout: uma oferta durável de um ou mais produtos, com desconto, quantidade e páginas de retorno. */
+  /**
+   * Criar um link de checkout.
+   *
+   * Cria um link de checkout: uma oferta durável de um ou mais produtos, com
+   * desconto, quantidade e páginas de retorno. Cada visita ao link abre uma
+   * sessão de compra nova.
+   *
+   * Autenticação: chave de API da organização em Authorization: Bearer
+   * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+   * requisição. Respostas em JSON no envelope data; erros com error, message e
+   * fields.
+   */
   create(params: models.CheckoutLinksCreateParams, options?: RequestOptions): Promise<models.CheckoutLink> {
     return this.#client.request("POST", `/api/v1/checkout-links`, { body: params, options });
   }
 
-  /** Excluir um link de checkout: ele deixa de abrir checkouts; os que já abriu continuam. The API answers 204, so there is nothing to return. */
+  /**
+   * Excluir um link de checkout. The API answers 204, so there is nothing to return.
+   *
+   * Exclui um link de checkout: ele deixa de abrir checkouts. Os que já abriu
+   * continuam.
+   *
+   * Autenticação: chave de API da organização em Authorization: Bearer
+   * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+   * requisição. Respostas em JSON no envelope data; erros com error, message e
+   * fields.
+   */
   async delete(checkoutLink: string, options?: RequestOptions): Promise<void> {
     await this.#client.request<undefined>("DELETE", `/api/v1/checkout-links/${encodeURIComponent(checkoutLink)}`, { options });
   }
 
-  /** Ler um link de checkout. */
+  /**
+   * Ler um link de checkout.
+   *
+   * Devolve um link de checkout pelo ID.
+   *
+   * Autenticação: chave de API da organização em Authorization: Bearer
+   * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+   * requisição. Respostas em JSON no envelope data; erros com error, message e
+   * fields.
+   */
   get(checkoutLink: string, options?: RequestOptions): Promise<models.CheckoutLink> {
     return this.#client.request("GET", `/api/v1/checkout-links/${encodeURIComponent(checkoutLink)}`, { options });
   }
 
-  /** Listar links de checkout. One page; `listIter` walks every page. */
+  /**
+   * Listar links de checkout. One page; `listIter` walks every page.
+   *
+   * Devolve uma página dos links de checkout da organização.
+   *
+   * Autenticação: chave de API da organização em Authorization: Bearer
+   * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+   * requisição. Respostas em JSON no envelope data; erros com error, message e
+   * fields.
+   */
   list(params: CheckoutLinksListParams = {}, options?: RequestOptions): Promise<Page<models.CheckoutLink>> {
     return this.#client.request("GET", `/api/v1/checkout-links`, { query: { ...params }, options });
   }
@@ -116,7 +216,17 @@ export class CheckoutLinksService {
     return iterate((page) => this.list({ ...params, page }, options), params.page);
   }
 
-  /** Atualizar o rótulo, as páginas de retorno, os produtos e os metadados de um link; a quantidade e o desconto ficam como foram publicados. */
+  /**
+   * Atualizar um link de checkout.
+   *
+   * Muda o rótulo, as páginas de retorno, os produtos e os metadados de um
+   * link. A quantidade e o desconto ficam como foram publicados.
+   *
+   * Autenticação: chave de API da organização em Authorization: Bearer
+   * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+   * requisição. Respostas em JSON no envelope data; erros com error, message e
+   * fields.
+   */
   update(checkoutLink: string, params: models.CheckoutLinksUpdateParams, options?: RequestOptions): Promise<models.CheckoutLink> {
     return this.#client.request("PATCH", `/api/v1/checkout-links/${encodeURIComponent(checkoutLink)}`, { body: params, options });
   }
@@ -138,6 +248,8 @@ export interface CheckoutsListParams {
   created_before?: string;
   /** Ordem da lista: created_at, e com um - na frente é decrescente (-created_at, o mais novo primeiro, é o padrão). */
   sorting?: string;
+  /** Filtro por metadados: metadata[chave]=valor, uma vez para cada par (até 10); a linha precisa ter todos. Um valor que parece número ou booleano também casa com o número ou o booleano guardado. */
+  metadata?: Record<string, string>;
 }
 
 /** The API's checkouts. */
@@ -148,22 +260,67 @@ export class CheckoutsService {
     this.#client = client;
   }
 
-  /** Criar um checkout: o endereço para onde o comprador é enviado e a sessão de compra aberta para ele, com o client_secret que o navegador do comprador usa nas rotas de cliente. */
+  /**
+   * Criar um checkout.
+   *
+   * Cria um checkout. Devolve o endereço para onde mandar o comprador e a
+   * sessão de compra aberta para ele, com o client_secret que o navegador do
+   * comprador usa para pagar sem chave de API; o client_secret vem só nesta
+   * resposta. Para cobrar um valor que o seu servidor define, envie
+   * amount_cents e items (preço de valor livre). Envie client_reference_id e
+   * metadata para achar o pedido depois.
+   *
+   * Autenticação: chave de API da organização em Authorization: Bearer
+   * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+   * requisição. Respostas em JSON no envelope data; erros com error, message e
+   * fields.
+   */
   create(params: models.CheckoutsCreateParams, options?: RequestOptions): Promise<models.CheckoutCreated> {
     return this.#client.request("POST", `/api/v1/checkouts`, { body: params, options });
   }
 
-  /** Encerrar um checkout que não deve mais ser pago: a página, o client_secret e o QR do Pix deixam de valer (o Pix já gerado é cancelado na Cielo), e o evento checkout.expired é enviado; 409 se já foi pago ou se emitiu boleto. */
+  /**
+   * Encerrar um checkout.
+   *
+   * Encerra um checkout que não deve mais ser pago: a página, o client_secret e
+   * o QR do Pix deixam de valer (o Pix já gerado é cancelado na Cielo) e o
+   * evento checkout.expired é enviado. Repetir a chamada é seguro. Se o
+   * checkout já foi pago ou emitiu um boleto, a resposta é 409.
+   *
+   * Autenticação: chave de API da organização em Authorization: Bearer
+   * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+   * requisição. Respostas em JSON no envelope data; erros com error, message e
+   * fields.
+   */
   expire(checkout: string, options?: RequestOptions): Promise<models.CheckoutExpired> {
     return this.#client.request("POST", `/api/v1/checkouts/${encodeURIComponent(checkout)}/expire`, { options });
   }
 
-  /** Ler um checkout: o endereço, o estado e as páginas de retorno. */
+  /**
+   * Ler um checkout.
+   *
+   * Devolve um checkout: o endereço, o estado e as páginas de retorno.
+   *
+   * Autenticação: chave de API da organização em Authorization: Bearer
+   * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+   * requisição. Respostas em JSON no envelope data; erros com error, message e
+   * fields.
+   */
   get(checkout: string, options?: RequestOptions): Promise<models.Checkout> {
     return this.#client.request("GET", `/api/v1/checkouts/${encodeURIComponent(checkout)}`, { options });
   }
 
-  /** Listar checkouts, opcionalmente de um client_reference_id, de um status, de um período ou de metadados. One page; `listIter` walks every page. */
+  /**
+   * Listar checkouts. One page; `listIter` walks every page.
+   *
+   * Devolve uma página dos checkouts. Filtre por client_reference_id, status,
+   * período ou metadados.
+   *
+   * Autenticação: chave de API da organização em Authorization: Bearer
+   * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+   * requisição. Respostas em JSON no envelope data; erros com error, message e
+   * fields.
+   */
   list(params: CheckoutsListParams = {}, options?: RequestOptions): Promise<Page<models.Checkout>> {
     return this.#client.request("GET", `/api/v1/checkouts`, { query: { ...params }, options });
   }
@@ -173,7 +330,16 @@ export class CheckoutsService {
     return iterate((page) => this.list({ ...params, page }, options), params.page);
   }
 
-  /** Atualizar o rótulo e as páginas de retorno de um checkout ativo. */
+  /**
+   * Atualizar um checkout.
+   *
+   * Muda o rótulo e as páginas de retorno de um checkout ativo.
+   *
+   * Autenticação: chave de API da organização em Authorization: Bearer
+   * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+   * requisição. Respostas em JSON no envelope data; erros com error, message e
+   * fields.
+   */
   update(checkout: string, params: models.CheckoutsUpdateParams, options?: RequestOptions): Promise<models.Checkout> {
     return this.#client.request("PATCH", `/api/v1/checkouts/${encodeURIComponent(checkout)}`, { body: params, options });
   }
@@ -187,7 +353,18 @@ export class CustomerSessionsService {
     this.#client = client;
   }
 
-  /** Entrar com um cliente no portal do cliente: o endereço o abre já autenticado. */
+  /**
+   * Abrir o portal do cliente.
+   *
+   * Abre uma sessão do portal do cliente para o cliente informado e devolve o
+   * endereço que o abre já autenticado. Com return_url, um endereço https do
+   * seu aplicativo, o portal oferece a volta.
+   *
+   * Autenticação: chave de API da organização em Authorization: Bearer
+   * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+   * requisição. Respostas em JSON no envelope data; erros com error, message e
+   * fields.
+   */
   create(params: models.CustomerSessionsCreateParams, options?: RequestOptions): Promise<models.CustomerSession> {
     return this.#client.request("POST", `/api/v1/customer-sessions`, { body: params, options });
   }
@@ -199,6 +376,8 @@ export interface CustomersListParams {
   page?: number;
   /** Items a page, 1 to 100 (10 by default). */
   limit?: number;
+  /** Só o cliente com este e-mail (sem diferença de maiúsculas). */
+  email?: string;
 }
 
 /** The API's customers. */
@@ -209,32 +388,96 @@ export class CustomersService {
     this.#client = client;
   }
 
-  /** Criar um cliente, com CPF ou CNPJ, telefone e endereço de cobrança se você os tem. */
+  /**
+   * Criar um cliente.
+   *
+   * Cria um cliente, com CPF ou CNPJ, telefone e endereço de cobrança, se você
+   * os tem. Se você enviar external_id e o e-mail já for de um cliente que
+   * ainda não tem ID externo (por exemplo, um que o checkout criou), esse
+   * cliente recebe o ID e os dados enviados, e a resposta é 200 em vez de 201.
+   * Se o e-mail for de um cliente com outro ID externo, a resposta é 422.
+   *
+   * Autenticação: chave de API da organização em Authorization: Bearer
+   * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+   * requisição. Respostas em JSON no envelope data; erros com error, message e
+   * fields.
+   */
   create(params: models.CustomersCreateParams, options?: RequestOptions): Promise<models.Customer> {
     return this.#client.request("POST", `/api/v1/customers`, { body: params, options });
   }
 
-  /** Excluir um cliente: as assinaturas terminam na hora, os benefícios são revogados e o ID externo é liberado; pedidos e pagamentos continuam. The API answers 204, so there is nothing to return. */
+  /**
+   * Excluir um cliente. The API answers 204, so there is nothing to return.
+   *
+   * Exclui um cliente: as assinaturas terminam na hora, os benefícios são
+   * revogados e o ID externo fica livre. Os pedidos e os pagamentos continuam
+   * nos registros.
+   *
+   * Autenticação: chave de API da organização em Authorization: Bearer
+   * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+   * requisição. Respostas em JSON no envelope data; erros com error, message e
+   * fields.
+   */
   async delete(customer: string, options?: RequestOptions): Promise<void> {
     await this.#client.request<undefined>("DELETE", `/api/v1/customers/${encodeURIComponent(customer)}`, { options });
   }
 
-  /** Ler um cliente. */
+  /**
+   * Ler um cliente.
+   *
+   * Devolve um cliente pelo ID.
+   *
+   * Autenticação: chave de API da organização em Authorization: Bearer
+   * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+   * requisição. Respostas em JSON no envelope data; erros com error, message e
+   * fields.
+   */
   get(customer: string, options?: RequestOptions): Promise<models.Customer> {
     return this.#client.request("GET", `/api/v1/customers/${encodeURIComponent(customer)}`, { options });
   }
 
-  /** Ler um cliente pelo ID dele no sistema do lojista (external_id). */
+  /**
+   * Ler um cliente pelo ID externo.
+   *
+   * Devolve o cliente que você identifica pelo ID dele no seu sistema
+   * (external_id).
+   *
+   * Autenticação: chave de API da organização em Authorization: Bearer
+   * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+   * requisição. Respostas em JSON no envelope data; erros com error, message e
+   * fields.
+   */
   getExternal(externalID: string, options?: RequestOptions): Promise<models.Customer> {
     return this.#client.request("GET", `/api/v1/external-customers/${encodeURIComponent(externalID)}`, { options });
   }
 
-  /** Ler o estado de um cliente: assinaturas ativas e benefícios vigentes, inclusive os feature flags. */
+  /**
+   * Ler o estado de um cliente.
+   *
+   * Devolve o estado de um cliente: as assinaturas ativas e os benefícios
+   * vigentes, inclusive os feature flags. É a leitura que o seu aplicativo faz
+   * para decidir o que o cliente pode usar.
+   *
+   * Autenticação: chave de API da organização em Authorization: Bearer
+   * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+   * requisição. Respostas em JSON no envelope data; erros com error, message e
+   * fields.
+   */
   getState(customer: string, options?: RequestOptions): Promise<models.CustomerState> {
     return this.#client.request("GET", `/api/v1/customers/${encodeURIComponent(customer)}/state`, { options });
   }
 
-  /** Listar clientes. One page; `listIter` walks every page. */
+  /**
+   * Listar clientes. One page; `listIter` walks every page.
+   *
+   * Devolve uma página dos clientes. Com email, só o cliente com esse e-mail,
+   * sem diferença entre maiúsculas e minúsculas.
+   *
+   * Autenticação: chave de API da organização em Authorization: Bearer
+   * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+   * requisição. Respostas em JSON no envelope data; erros com error, message e
+   * fields.
+   */
   list(params: CustomersListParams = {}, options?: RequestOptions): Promise<Page<models.Customer>> {
     return this.#client.request("GET", `/api/v1/customers`, { query: { ...params }, options });
   }
@@ -244,12 +487,32 @@ export class CustomersService {
     return iterate((page) => this.list({ ...params, page }, options), params.page);
   }
 
-  /** Atualizar o nome, o e-mail, o ID externo, o CPF ou CNPJ, o telefone ou o endereço de cobrança de um cliente; o ID externo não muda depois de definido. */
+  /**
+   * Atualizar um cliente.
+   *
+   * Muda o nome, o e-mail, o ID externo, o CPF ou CNPJ, o telefone ou o
+   * endereço de cobrança. O ID externo só pode ser definido uma vez.
+   *
+   * Autenticação: chave de API da organização em Authorization: Bearer
+   * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+   * requisição. Respostas em JSON no envelope data; erros com error, message e
+   * fields.
+   */
   update(customer: string, params: models.CustomersUpdateParams, options?: RequestOptions): Promise<models.Customer> {
     return this.#client.request("PATCH", `/api/v1/customers/${encodeURIComponent(customer)}`, { body: params, options });
   }
 
-  /** Atualizar um cliente pelo ID dele no sistema do lojista (external_id). */
+  /**
+   * Atualizar um cliente pelo ID externo.
+   *
+   * Muda o cliente que você identifica pelo ID dele no seu sistema
+   * (external_id). Os campos são os de Atualizar um cliente.
+   *
+   * Autenticação: chave de API da organização em Authorization: Bearer
+   * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+   * requisição. Respostas em JSON no envelope data; erros com error, message e
+   * fields.
+   */
   updateExternal(externalID: string, params: models.CustomersUpdateExternalParams, options?: RequestOptions): Promise<models.Customer> {
     return this.#client.request("PATCH", `/api/v1/external-customers/${encodeURIComponent(externalID)}`, { body: params, options });
   }
@@ -271,22 +534,61 @@ export class DiscountsService {
     this.#client = client;
   }
 
-  /** Criar um desconto percentual (basis_points) ou fixo em reais (amount_cents). */
+  /**
+   * Criar um desconto.
+   *
+   * Cria um desconto percentual (basis_points) ou de valor fixo em reais
+   * (amount_cents). O código é o que o comprador digita; sem ele, o desconto só
+   * vale num link de checkout ou pela API.
+   *
+   * Autenticação: chave de API da organização em Authorization: Bearer
+   * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+   * requisição. Respostas em JSON no envelope data; erros com error, message e
+   * fields.
+   */
   create(params: models.DiscountsCreateParams, options?: RequestOptions): Promise<models.Discount> {
     return this.#client.request("POST", `/api/v1/discounts`, { body: params, options });
   }
 
-  /** Excluir um desconto: sai das listas e dos checkouts e o código fica livre; o que ele já descontou continua nos registros. The API answers 204, so there is nothing to return. */
+  /**
+   * Excluir um desconto. The API answers 204, so there is nothing to return.
+   *
+   * Exclui um desconto: ele sai das listas e dos checkouts, e o código fica
+   * livre. O que ele já descontou continua nos registros.
+   *
+   * Autenticação: chave de API da organização em Authorization: Bearer
+   * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+   * requisição. Respostas em JSON no envelope data; erros com error, message e
+   * fields.
+   */
   async delete(discount: string, options?: RequestOptions): Promise<void> {
     await this.#client.request<undefined>("DELETE", `/api/v1/discounts/${encodeURIComponent(discount)}`, { options });
   }
 
-  /** Ler um desconto. */
+  /**
+   * Ler um desconto.
+   *
+   * Devolve um desconto pelo ID.
+   *
+   * Autenticação: chave de API da organização em Authorization: Bearer
+   * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+   * requisição. Respostas em JSON no envelope data; erros com error, message e
+   * fields.
+   */
   get(discount: string, options?: RequestOptions): Promise<models.Discount> {
     return this.#client.request("GET", `/api/v1/discounts/${encodeURIComponent(discount)}`, { options });
   }
 
-  /** Listar descontos. One page; `listIter` walks every page. */
+  /**
+   * Listar descontos. One page; `listIter` walks every page.
+   *
+   * Devolve uma página dos descontos da organização.
+   *
+   * Autenticação: chave de API da organização em Authorization: Bearer
+   * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+   * requisição. Respostas em JSON no envelope data; erros com error, message e
+   * fields.
+   */
   list(params: DiscountsListParams = {}, options?: RequestOptions): Promise<Page<models.Discount>> {
     return this.#client.request("GET", `/api/v1/discounts`, { query: { ...params }, options });
   }
@@ -296,7 +598,17 @@ export class DiscountsService {
     return iterate((page) => this.list({ ...params, page }, options), params.page);
   }
 
-  /** Atualizar um desconto; o tipo e a duração não mudam, e depois do primeiro uso o valor e os meses também não. */
+  /**
+   * Atualizar um desconto.
+   *
+   * Muda um desconto. O tipo e a duração não mudam; depois do primeiro uso, o
+   * valor e os meses também não.
+   *
+   * Autenticação: chave de API da organização em Authorization: Bearer
+   * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+   * requisição. Respostas em JSON no envelope data; erros com error, message e
+   * fields.
+   */
   update(discount: string, params: models.DiscountsUpdateParams, options?: RequestOptions): Promise<models.Discount> {
     return this.#client.request("PATCH", `/api/v1/discounts/${encodeURIComponent(discount)}`, { body: params, options });
   }
@@ -320,12 +632,30 @@ export class DisputesService {
     this.#client = client;
   }
 
-  /** Ler uma disputa. */
+  /**
+   * Ler uma disputa.
+   *
+   * Devolve uma disputa pelo ID.
+   *
+   * Autenticação: chave de API da organização em Authorization: Bearer
+   * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+   * requisição. Respostas em JSON no envelope data; erros com error, message e
+   * fields.
+   */
   get(dispute: string, options?: RequestOptions): Promise<models.Dispute> {
     return this.#client.request("GET", `/api/v1/disputes/${encodeURIComponent(dispute)}`, { options });
   }
 
-  /** Listar disputas, opcionalmente de um status (status). One page; `listIter` walks every page. */
+  /**
+   * Listar disputas. One page; `listIter` walks every page.
+   *
+   * Devolve uma página das disputas. Com status, só as que estão nele.
+   *
+   * Autenticação: chave de API da organização em Authorization: Bearer
+   * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+   * requisição. Respostas em JSON no envelope data; erros com error, message e
+   * fields.
+   */
   list(params: DisputesListParams = {}, options?: RequestOptions): Promise<Page<models.Dispute>> {
     return this.#client.request("GET", `/api/v1/disputes`, { query: { ...params }, options });
   }
@@ -358,7 +688,17 @@ export class EventsService {
     this.#client = client;
   }
 
-  /** Listar os eventos de consumo que as origens enviaram, do mais novo ao mais antigo. One page; `listIter` walks every page. */
+  /**
+   * Listar eventos de consumo. One page; `listIter` walks every page.
+   *
+   * Devolve uma página dos eventos de consumo que as fontes enviaram, do mais
+   * novo ao mais antigo.
+   *
+   * Autenticação: chave de API da organização em Authorization: Bearer
+   * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+   * requisição. Respostas em JSON no envelope data; erros com error, message e
+   * fields.
+   */
   list(params: EventsListParams = {}, options?: RequestOptions): Promise<Page<models.Event>> {
     return this.#client.request("GET", `/api/v1/events`, { query: { ...params }, options });
   }
@@ -387,12 +727,32 @@ export class MetersService {
     this.#client = client;
   }
 
-  /** Ler um medidor: o filtro dos eventos que ele conta, a agregação e a unidade. */
+  /**
+   * Ler um medidor.
+   *
+   * Devolve um medidor: o filtro dos eventos que ele conta, a agregação e a
+   * unidade.
+   *
+   * Autenticação: chave de API da organização em Authorization: Bearer
+   * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+   * requisição. Respostas em JSON no envelope data; erros com error, message e
+   * fields.
+   */
   get(meter: string, options?: RequestOptions): Promise<models.Meter> {
     return this.#client.request("GET", `/api/v1/meters/${encodeURIComponent(meter)}`, { options });
   }
 
-  /** Listar medidores; os arquivados só com is_archived=true. One page; `listIter` walks every page. */
+  /**
+   * Listar medidores. One page; `listIter` walks every page.
+   *
+   * Devolve uma página dos medidores. Os arquivados só aparecem com
+   * is_archived=true.
+   *
+   * Autenticação: chave de API da organização em Authorization: Bearer
+   * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+   * requisição. Respostas em JSON no envelope data; erros com error, message e
+   * fields.
+   */
   list(params: MetersListParams = {}, options?: RequestOptions): Promise<Page<models.Meter>> {
     return this.#client.request("GET", `/api/v1/meters`, { query: { ...params }, options });
   }
@@ -423,6 +783,8 @@ export interface OrdersListParams {
   created_before?: string;
   /** Ordem da lista: created_at ou amount, e com um - na frente é decrescente (-created_at, o mais novo primeiro, é o padrão). */
   sorting?: string;
+  /** Filtro por metadados: metadata[chave]=valor, uma vez para cada par (até 10); a linha precisa ter todos. Um valor que parece número ou booleano também casa com o número ou o booleano guardado. */
+  metadata?: Record<string, string>;
 }
 
 /** The API's orders. */
@@ -433,22 +795,60 @@ export class OrdersService {
     this.#client = client;
   }
 
-  /** Ler um pedido: um checkout pago. */
+  /**
+   * Ler um pedido.
+   *
+   * Devolve um pedido: um checkout pago.
+   *
+   * Autenticação: chave de API da organização em Authorization: Bearer
+   * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+   * requisição. Respostas em JSON no envelope data; erros com error, message e
+   * fields.
+   */
   get(order: string, options?: RequestOptions): Promise<models.Order> {
     return this.#client.request("GET", `/api/v1/orders/${encodeURIComponent(order)}`, { options });
   }
 
-  /** Ler a fatura de um pedido, o documento comercial que o lojista gerou; sem ela, 404. */
+  /**
+   * Ler a fatura de um pedido.
+   *
+   * Devolve a fatura de um pedido, o documento comercial que o lojista gerou.
+   * Sem fatura, a resposta é 404.
+   *
+   * Autenticação: chave de API da organização em Authorization: Bearer
+   * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+   * requisição. Respostas em JSON no envelope data; erros com error, message e
+   * fields.
+   */
   getInvoice(order: string, options?: RequestOptions): Promise<models.OrderInvoice> {
     return this.#client.request("GET", `/api/v1/orders/${encodeURIComponent(order)}/invoice`, { options });
   }
 
-  /** Ler o recibo de um pedido: o que foi pago, quando e como. */
+  /**
+   * Ler o recibo de um pedido.
+   *
+   * Devolve o recibo de um pedido: o que foi pago, quando e como.
+   *
+   * Autenticação: chave de API da organização em Authorization: Bearer
+   * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+   * requisição. Respostas em JSON no envelope data; erros com error, message e
+   * fields.
+   */
   getReceipt(order: string, options?: RequestOptions): Promise<models.OrderReceipt> {
     return this.#client.request("GET", `/api/v1/orders/${encodeURIComponent(order)}/receipt`, { options });
   }
 
-  /** Listar pedidos (checkouts pagos), opcionalmente de um client_reference_id, de um cliente, de um período ou de metadados. One page; `listIter` walks every page. */
+  /**
+   * Listar pedidos. One page; `listIter` walks every page.
+   *
+   * Devolve uma página dos pedidos, que são os checkouts pagos. Filtre por
+   * client_reference_id, cliente, período ou metadados.
+   *
+   * Autenticação: chave de API da organização em Authorization: Bearer
+   * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+   * requisição. Respostas em JSON no envelope data; erros com error, message e
+   * fields.
+   */
   list(params: OrdersListParams = {}, options?: RequestOptions): Promise<Page<models.Order>> {
     return this.#client.request("GET", `/api/v1/orders`, { query: { ...params }, options });
   }
@@ -475,12 +875,32 @@ export class PaymentMethodsService {
     this.#client = client;
   }
 
-  /** Parar de cobrar um cartão guardado; recusado enquanto uma assinatura ativa o cobra. */
+  /**
+   * Parar de cobrar um cartão guardado.
+   *
+   * Para de cobrar um cartão guardado. É recusado (409) enquanto uma assinatura
+   * ativa o cobra.
+   *
+   * Autenticação: chave de API da organização em Authorization: Bearer
+   * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+   * requisição. Respostas em JSON no envelope data; erros com error, message e
+   * fields.
+   */
   detach(paymentMethod: string, options?: RequestOptions): Promise<models.PaymentMethodDetached> {
     return this.#client.request("POST", `/api/v1/payment_methods/${encodeURIComponent(paymentMethod)}/detach`, { options });
   }
 
-  /** Listar os cartões guardados de um cliente: bandeira, quatro últimos dígitos e validade. One page; `listIter` walks every page. */
+  /**
+   * Listar os cartões guardados de um cliente. One page; `listIter` walks every page.
+   *
+   * Devolve os cartões guardados de um cliente: bandeira, quatro últimos
+   * dígitos e validade. O número do cartão nunca aparece.
+   *
+   * Autenticação: chave de API da organização em Authorization: Bearer
+   * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+   * requisição. Respostas em JSON no envelope data; erros com error, message e
+   * fields.
+   */
   list(customer: string, params: PaymentMethodsListParams = {}, options?: RequestOptions): Promise<Page<models.PaymentMethod>> {
     return this.#client.request("GET", `/api/v1/customers/${encodeURIComponent(customer)}/payment_methods`, { query: { ...params }, options });
   }
@@ -511,6 +931,8 @@ export interface PaymentsListParams {
   created_before?: string;
   /** Ordem da lista: created_at ou amount, e com um - na frente é decrescente (-created_at, o mais novo primeiro, é o padrão). */
   sorting?: string;
+  /** Filtro por metadados: metadata[chave]=valor, uma vez para cada par (até 10); a linha precisa ter todos. Um valor que parece número ou booleano também casa com o número ou o booleano guardado. */
+  metadata?: Record<string, string>;
 }
 
 /** The API's payments. */
@@ -521,12 +943,31 @@ export class PaymentsService {
     this.#client = client;
   }
 
-  /** Ler um pagamento. */
+  /**
+   * Ler um pagamento.
+   *
+   * Devolve um pagamento pelo ID.
+   *
+   * Autenticação: chave de API da organização em Authorization: Bearer
+   * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+   * requisição. Respostas em JSON no envelope data; erros com error, message e
+   * fields.
+   */
   get(payment: string, options?: RequestOptions): Promise<models.Payment> {
     return this.#client.request("GET", `/api/v1/payments/${encodeURIComponent(payment)}`, { options });
   }
 
-  /** Listar pagamentos, opcionalmente de um client_reference_id, de um estado, de um cliente, de um período ou de metadados. One page; `listIter` walks every page. */
+  /**
+   * Listar pagamentos. One page; `listIter` walks every page.
+   *
+   * Devolve uma página dos pagamentos. Filtre por client_reference_id, estado,
+   * cliente, período ou metadados.
+   *
+   * Autenticação: chave de API da organização em Authorization: Bearer
+   * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+   * requisição. Respostas em JSON no envelope data; erros com error, message e
+   * fields.
+   */
   list(params: PaymentsListParams = {}, options?: RequestOptions): Promise<Page<models.Payment>> {
     return this.#client.request("GET", `/api/v1/payments`, { query: { ...params }, options });
   }
@@ -555,12 +996,33 @@ export class PricesService {
     this.#client = client;
   }
 
-  /** Criar um preço em reais, avulso ou recorrente. */
+  /**
+   * Criar um preço.
+   *
+   * Cria um preço em reais para um produto, avulso (one_time) ou recorrente
+   * (recurring). No recorrente, interval e interval_count dizem de quanto em
+   * quanto tempo ele renova: month com 3 é trimestral.
+   *
+   * Autenticação: chave de API da organização em Authorization: Bearer
+   * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+   * requisição. Respostas em JSON no envelope data; erros com error, message e
+   * fields.
+   */
   create(params: models.PricesCreateParams, options?: RequestOptions): Promise<models.Price> {
     return this.#client.request("POST", `/api/v1/prices`, { body: params, options });
   }
 
-  /** Listar preços, opcionalmente de um produto (product_id). One page; `listIter` walks every page. */
+  /**
+   * Listar preços. One page; `listIter` walks every page.
+   *
+   * Devolve uma página dos preços da organização. Com product_id, só os de um
+   * produto.
+   *
+   * Autenticação: chave de API da organização em Authorization: Bearer
+   * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+   * requisição. Respostas em JSON no envelope data; erros com error, message e
+   * fields.
+   */
   list(params: PricesListParams = {}, options?: RequestOptions): Promise<Page<models.Price>> {
     return this.#client.request("GET", `/api/v1/prices`, { query: { ...params }, options });
   }
@@ -587,22 +1049,60 @@ export class ProductsService {
     this.#client = client;
   }
 
-  /** Arquivar um produto: sai das vendas novas e o que já foi vendido continua apontando para ele. */
+  /**
+   * Arquivar um produto.
+   *
+   * Arquiva um produto: ele sai das vendas novas, e o que já foi vendido
+   * continua apontando para ele.
+   *
+   * Autenticação: chave de API da organização em Authorization: Bearer
+   * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+   * requisição. Respostas em JSON no envelope data; erros com error, message e
+   * fields.
+   */
   archive(product: string, options?: RequestOptions): Promise<models.Product> {
     return this.#client.request("POST", `/api/v1/products/${encodeURIComponent(product)}/archive`, { options });
   }
 
-  /** Criar um produto. */
+  /**
+   * Criar um produto.
+   *
+   * Cria um produto com nome e descrição. O preço se cria à parte, em Criar um
+   * preço.
+   *
+   * Autenticação: chave de API da organização em Authorization: Bearer
+   * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+   * requisição. Respostas em JSON no envelope data; erros com error, message e
+   * fields.
+   */
   create(params: models.ProductsCreateParams, options?: RequestOptions): Promise<models.Product> {
     return this.#client.request("POST", `/api/v1/products`, { body: params, options });
   }
 
-  /** Ler um produto. */
+  /**
+   * Ler um produto.
+   *
+   * Devolve um produto pelo ID.
+   *
+   * Autenticação: chave de API da organização em Authorization: Bearer
+   * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+   * requisição. Respostas em JSON no envelope data; erros com error, message e
+   * fields.
+   */
   get(product: string, options?: RequestOptions): Promise<models.Product> {
     return this.#client.request("GET", `/api/v1/products/${encodeURIComponent(product)}`, { options });
   }
 
-  /** Listar produtos. One page; `listIter` walks every page. */
+  /**
+   * Listar produtos. One page; `listIter` walks every page.
+   *
+   * Devolve uma página dos produtos da organização, no ambiente da chave.
+   *
+   * Autenticação: chave de API da organização em Authorization: Bearer
+   * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+   * requisição. Respostas em JSON no envelope data; erros com error, message e
+   * fields.
+   */
   list(params: ProductsListParams = {}, options?: RequestOptions): Promise<Page<models.Product>> {
     return this.#client.request("GET", `/api/v1/products`, { query: { ...params }, options });
   }
@@ -612,7 +1112,17 @@ export class ProductsService {
     return iterate((page) => this.list({ ...params, page }, options), params.page);
   }
 
-  /** Atualizar o nome ou a descrição de um produto ativo. */
+  /**
+   * Atualizar um produto.
+   *
+   * Muda o nome ou a descrição de um produto ativo. O que você não enviar fica
+   * como está.
+   *
+   * Autenticação: chave de API da organização em Authorization: Bearer
+   * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+   * requisição. Respostas em JSON no envelope data; erros com error, message e
+   * fields.
+   */
   update(product: string, params: models.ProductsUpdateParams, options?: RequestOptions): Promise<models.Product> {
     return this.#client.request("PATCH", `/api/v1/products/${encodeURIComponent(product)}`, { body: params, options });
   }
@@ -648,12 +1158,33 @@ export class RefundsService {
     this.#client = client;
   }
 
-  /** Reembolsar parte ou todo um pagamento. */
+  /**
+   * Reembolsar um pagamento.
+   *
+   * Devolve parte ou todo o valor de um pagamento. A Idempotency-Key é
+   * obrigatória: sem ela, repetir a chamada depois de um tempo esgotado seria
+   * devolver duas vezes.
+   *
+   * Autenticação: chave de API da organização em Authorization: Bearer
+   * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+   * requisição. Respostas em JSON no envelope data; erros com error, message e
+   * fields.
+   */
   create(params: models.RefundsCreateParams, options?: RequestOptions): Promise<models.Refund> {
     return this.#client.request("POST", `/api/v1/refunds`, { body: params, options });
   }
 
-  /** Listar reembolsos, opcionalmente de um pagamento (payment_id), de um status, de um cliente ou de um período. One page; `listIter` walks every page. */
+  /**
+   * Listar reembolsos. One page; `listIter` walks every page.
+   *
+   * Devolve uma página dos reembolsos. Filtre por pagamento (payment_id),
+   * status, cliente ou período.
+   *
+   * Autenticação: chave de API da organização em Authorization: Bearer
+   * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+   * requisição. Respostas em JSON no envelope data; erros com error, message e
+   * fields.
+   */
   list(params: RefundsListParams = {}, options?: RequestOptions): Promise<Page<models.Refund>> {
     return this.#client.request("GET", `/api/v1/refunds`, { query: { ...params }, options });
   }
@@ -682,6 +1213,8 @@ export interface SubscriptionsListParams {
   created_before?: string;
   /** Ordem da lista: created_at ou amount, e com um - na frente é decrescente (-created_at, o mais novo primeiro, é o padrão). */
   sorting?: string;
+  /** Filtro por metadados: metadata[chave]=valor, uma vez para cada par (até 10); a linha precisa ter todos. Um valor que parece número ou booleano também casa com o número ou o booleano guardado. */
+  metadata?: Record<string, string>;
 }
 
 /** The API's subscriptions. */
@@ -692,17 +1225,46 @@ export class SubscriptionsService {
     this.#client = client;
   }
 
-  /** Cancelar uma assinatura, por padrão no fim do período. */
+  /**
+   * Cancelar uma assinatura.
+   *
+   * Cancela uma assinatura. Por padrão o cancelamento vale no fim do período já
+   * pago.
+   *
+   * Autenticação: chave de API da organização em Authorization: Bearer
+   * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+   * requisição. Respostas em JSON no envelope data; erros com error, message e
+   * fields.
+   */
   cancel(subscription: string, params: models.SubscriptionsCancelParams, options?: RequestOptions): Promise<models.Subscription> {
     return this.#client.request("POST", `/api/v1/subscriptions/${encodeURIComponent(subscription)}/cancel`, { body: params, options });
   }
 
-  /** Ler uma assinatura. */
+  /**
+   * Ler uma assinatura.
+   *
+   * Devolve uma assinatura pelo ID.
+   *
+   * Autenticação: chave de API da organização em Authorization: Bearer
+   * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+   * requisição. Respostas em JSON no envelope data; erros com error, message e
+   * fields.
+   */
   get(subscription: string, options?: RequestOptions): Promise<models.Subscription> {
     return this.#client.request("GET", `/api/v1/subscriptions/${encodeURIComponent(subscription)}`, { options });
   }
 
-  /** Listar assinaturas, opcionalmente de um cliente (customer_id ou external_customer_id), de um status, de um período ou de metadados. One page; `listIter` walks every page. */
+  /**
+   * Listar assinaturas. One page; `listIter` walks every page.
+   *
+   * Devolve uma página das assinaturas. Filtre por cliente (customer_id ou
+   * external_customer_id), status, período ou metadados.
+   *
+   * Autenticação: chave de API da organização em Authorization: Bearer
+   * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+   * requisição. Respostas em JSON no envelope data; erros com error, message e
+   * fields.
+   */
   list(params: SubscriptionsListParams = {}, options?: RequestOptions): Promise<Page<models.Subscription>> {
     return this.#client.request("GET", `/api/v1/subscriptions`, { query: { ...params }, options });
   }
@@ -712,12 +1274,33 @@ export class SubscriptionsService {
     return iterate((page) => this.list({ ...params, page }, options), params.page);
   }
 
-  /** Reativar uma assinatura suspensa, que volta a ser cobrada (a cobrança do ciclo em aberto recomeça), ou retomar uma pausada; qualquer outra recebe 409. */
+  /**
+   * Reativar uma assinatura.
+   *
+   * Reativa uma assinatura suspensa, que volta a ser cobrada (a cobrança do
+   * ciclo em aberto recomeça), ou retoma uma pausada. Qualquer outra assinatura
+   * recebe 409.
+   *
+   * Autenticação: chave de API da organização em Authorization: Bearer
+   * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+   * requisição. Respostas em JSON no envelope data; erros com error, message e
+   * fields.
+   */
   resume(subscription: string, options?: RequestOptions): Promise<models.Subscription> {
     return this.#client.request("POST", `/api/v1/subscriptions/${encodeURIComponent(subscription)}/resume`, { options });
   }
 
-  /** Trocar o plano de uma assinatura: outro preço e, se quiser, outra quantidade, com a forma de ratear a diferença (proration_behavior). */
+  /**
+   * Trocar o plano de uma assinatura.
+   *
+   * Troca o plano de uma assinatura: outro preço e, se quiser, outra
+   * quantidade. O proration_behavior diz como ratear a diferença.
+   *
+   * Autenticação: chave de API da organização em Authorization: Bearer
+   * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+   * requisição. Respostas em JSON no envelope data; erros com error, message e
+   * fields.
+   */
   update(subscription: string, params: models.SubscriptionsUpdateParams, options?: RequestOptions): Promise<models.Subscription> {
     return this.#client.request("PATCH", `/api/v1/subscriptions/${encodeURIComponent(subscription)}`, { body: params, options });
   }
@@ -731,7 +1314,29 @@ export class UsageService {
     this.#client = client;
   }
 
-  /** Ingerir lote atômico de eventos de uso. Autentica com a credencial de uma fonte de ingestão (pus_test_… ou pus_live_…), não com a chave de API da organização. */
+  /**
+   * Ingerir lote atômico de eventos de uso. Autentica com a credencial de uma fonte de ingestão (pus_test_… ou pus_live_…), não com a chave de API da organização.
+   *
+   * Autorização: Bearer é o único formato de credencial suportado. As
+   * credenciais são assinadas pela Peráta, expiram em 30 dias e são verificadas
+   * em relação ao estado da fonte, associação atual do emissor e permissões
+   * nativas. Organização, merchant e ambiente (teste, pus_test_…, ou produção,
+   * pus_live_…) são derivados da fonte autenticada; o payload JSON não pode
+   * sobrescrevê-los, e uma credencial de um ambiente nunca escreve no outro. Em
+   * produção, a fonte só existe para uma organização que a equipe da Peráta
+   * liberou. 1 a 100 eventos, no máximo 65536 bytes. Contagens são strings
+   * decimais de inteiros, de 0 a 1000000000000, com pelo menos um token por
+   * evento; a entrada exclui cache. Ocorrência RFC3339 em segundos inteiros,
+   * com no máximo 90 dias atrás e até cinco minutos à frente.
+   * Escopo/fonte/external_event_id identificam um registro; repetições exatas
+   * contam como replay e conteúdo conflitante retorna 409. Todos os novos
+   * eventos e emissões da outbox são confirmados ou revertidos juntos. Rotação
+   * mantém a identidade da fonte e replay; credenciais revogadas ou expiradas
+   * não podem ser reutilizadas. O sucesso vem no envelope data; todo erro é o
+   * documento de erro da API, o mesmo das demais operações de /api/v1 (error,
+   * message e fields), com record, a posição do evento recusado, quando há. Sem
+   * cobrança ou faturamento automático.
+   */
   ingest(params: models.UsageIngestParams, options?: RequestOptions): Promise<models.UsageIngestReceipt> {
     return this.#client.request("POST", `/api/v1/usage/token-events`, { body: params, options });
   }
@@ -765,22 +1370,61 @@ export class WebhooksService {
     this.#client = client;
   }
 
-  /** Criar um endpoint de webhook; o segredo que assina as mensagens vem só nesta resposta. */
+  /**
+   * Criar um endpoint de webhook.
+   *
+   * Cria um endpoint de webhook. O segredo que assina as mensagens vem só nesta
+   * resposta; guarde-o.
+   *
+   * Autenticação: chave de API da organização em Authorization: Bearer
+   * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+   * requisição. Respostas em JSON no envelope data; erros com error, message e
+   * fields.
+   */
   createEndpoint(params: models.WebhooksCreateEndpointParams, options?: RequestOptions): Promise<models.WebhookEndpointCreated> {
     return this.#client.request("POST", `/api/v1/webhooks/endpoints`, { body: params, options });
   }
 
-  /** Excluir um endpoint de webhook; as entregas que ainda esperavam por ele falham. The API answers 204, so there is nothing to return. */
+  /**
+   * Excluir um endpoint de webhook. The API answers 204, so there is nothing to return.
+   *
+   * Exclui um endpoint de webhook. As entregas que ainda esperavam por ele
+   * falham.
+   *
+   * Autenticação: chave de API da organização em Authorization: Bearer
+   * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+   * requisição. Respostas em JSON no envelope data; erros com error, message e
+   * fields.
+   */
   async deleteEndpoint(endpoint: string, options?: RequestOptions): Promise<void> {
     await this.#client.request<undefined>("DELETE", `/api/v1/webhooks/endpoints/${encodeURIComponent(endpoint)}`, { options });
   }
 
-  /** Ler um endpoint de webhook. */
+  /**
+   * Ler um endpoint de webhook.
+   *
+   * Devolve um endpoint de webhook pelo ID.
+   *
+   * Autenticação: chave de API da organização em Authorization: Bearer
+   * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+   * requisição. Respostas em JSON no envelope data; erros com error, message e
+   * fields.
+   */
   getEndpoint(endpoint: string, options?: RequestOptions): Promise<models.WebhookEndpoint> {
     return this.#client.request("GET", `/api/v1/webhooks/endpoints/${encodeURIComponent(endpoint)}`, { options });
   }
 
-  /** Listar as últimas 100 entregas de eventos aos endpoints, opcionalmente de um endpoint (endpoint_id) ou de uma situação (status). One page; `listDeliveriesIter` walks every page. */
+  /**
+   * Listar entregas de webhook. One page; `listDeliveriesIter` walks every page.
+   *
+   * Devolve as últimas 100 entregas de eventos aos endpoints. Com endpoint_id,
+   * só as de um endpoint; com status, só as de uma situação.
+   *
+   * Autenticação: chave de API da organização em Authorization: Bearer
+   * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+   * requisição. Respostas em JSON no envelope data; erros com error, message e
+   * fields.
+   */
   listDeliveries(params: WebhooksListDeliveriesParams = {}, options?: RequestOptions): Promise<Page<models.WebhookDelivery>> {
     return this.#client.request("GET", `/api/v1/webhooks/deliveries`, { query: { ...params }, options });
   }
@@ -790,7 +1434,16 @@ export class WebhooksService {
     return iterate((page) => this.listDeliveries({ ...params, page }, options), params.page);
   }
 
-  /** Listar os endpoints de webhook do lojista. One page; `listEndpointsIter` walks every page. */
+  /**
+   * Listar endpoints de webhook. One page; `listEndpointsIter` walks every page.
+   *
+   * Devolve uma página dos endpoints de webhook da organização.
+   *
+   * Autenticação: chave de API da organização em Authorization: Bearer
+   * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+   * requisição. Respostas em JSON no envelope data; erros com error, message e
+   * fields.
+   */
   listEndpoints(params: WebhooksListEndpointsParams = {}, options?: RequestOptions): Promise<Page<models.WebhookEndpoint>> {
     return this.#client.request("GET", `/api/v1/webhooks/endpoints`, { query: { ...params }, options });
   }
@@ -800,7 +1453,17 @@ export class WebhooksService {
     return iterate((page) => this.listEndpoints({ ...params, page }, options), params.page);
   }
 
-  /** Atualizar o endereço, o formato, os eventos ou a descrição de um endpoint, ou ligar e desligar o envio (enabled); o segredo não muda. */
+  /**
+   * Atualizar um endpoint de webhook.
+   *
+   * Muda o endereço, o formato, os eventos ou a descrição de um endpoint, ou
+   * liga e desliga o envio (enabled). O segredo não muda.
+   *
+   * Autenticação: chave de API da organização em Authorization: Bearer
+   * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+   * requisição. Respostas em JSON no envelope data; erros com error, message e
+   * fields.
+   */
   updateEndpoint(endpoint: string, params: models.WebhooksUpdateEndpointParams, options?: RequestOptions): Promise<models.WebhookEndpoint> {
     return this.#client.request("PATCH", `/api/v1/webhooks/endpoints/${encodeURIComponent(endpoint)}`, { body: params, options });
   }

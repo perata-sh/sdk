@@ -50,6 +50,7 @@ func init() {
 		"csConst":     func(field, value string) string { return idiomPascal(field) + csConstPart(value) },
 		"csDoc":       csDoc,
 		"csText":      csText,
+		"csRemarks":   csRemarks,
 		"csEnvelopes": csEnvelopes,
 		"csWrite":     csWrite,
 		"csRef":       csRef,
@@ -178,4 +179,14 @@ func csEnvelopes(services []*Service) []Envelope {
 	}
 	sort.Slice(out, func(i, j int) bool { return out[i].Name < out[j].Name })
 	return out
+}
+
+// csRemarks writes a description as the paragraphs of an XML doc remarks
+// element, one <para> each, wrapped.
+func csRemarks(prefix, text string) string {
+	var out []string
+	for _, paragraph := range strings.Split(strings.TrimSpace(text), "\n\n") {
+		out = append(out, docBlock(prefix, "<para>"+xmlText(paragraph)+"</para>", nil))
+	}
+	return strings.Join(out, "\n")
 }

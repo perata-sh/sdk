@@ -50,7 +50,7 @@ A chave da API é da organização e dá acesso a ela inteira: use o SDK no serv
 | `perata.usage` | `ingest` |
 | `perata.webhooks` | `createEndpoint`, `deleteEndpoint`, `getEndpoint`, `listDeliveries`, `listDeliveriesIter`, `listEndpoints`, `listEndpointsIter`, `updateEndpoint` |
 
-Os modelos são classes imutáveis com campos em camelCase (`payment.amountCents`) e `fromJson`/`toJson` com os nomes da API; os corpos das escritas são classes `…Params`, e um campo opcional deixado nulo não é enviado. As listas devolvem uma `Page` (`items`, `pagination.totalCount`, `pagination.maxPage`), e o `…Iter` devolve um `Stream` que percorre todas as páginas. As escritas aceitam `idempotencyKey:`, e todas aceitam `apiKey:` para usar a chave de outra organização numa chamada. `Perata(…, baseUrl:, httpClient:, timeout:)` troca o endereço, o `http.Client` (por exemplo, um `MockClient` nos testes) e o limite de 30 segundos. Um POST sem chave de idempotência é enviado com uma `Idempotency-Key` própria (UUID v4 aleatório, uma por chamada); passe a sua para poder repetir a mesma operação com segurança.
+Os modelos são classes imutáveis com campos em camelCase (`payment.amountCents`) e `fromJson`/`toJson` com os nomes da API; os corpos das escritas são classes `…Params`, e um campo opcional deixado nulo não é enviado. As listas devolvem uma `Page` (`items`, `pagination.totalCount`, `pagination.maxPage`), e o `…Iter` devolve um `Stream` que percorre todas as páginas. As escritas aceitam `idempotencyKey:`, e todas aceitam `apiKey:` para usar a chave de outra organização numa chamada. `Perata(…, baseUrl:, httpClient:, timeout:)` troca o endereço, o `http.Client` (por exemplo, um `MockClient` nos testes) e o limite de 30 segundos. Um POST sem chave de idempotência é enviado com uma `Idempotency-Key` própria (UUID v4 aleatório, uma por chamada); passe a sua para poder repetir a mesma operação com segurança. Uma resposta 2xx fica guardada sob a chave; uma recusa 4xx ou uma falha 5xx a libera, e você pode repetir a escrita com a mesma chave, com o corpo corrigido ou como estava.
 
 ## Checkout transparente e embutido
 
@@ -80,6 +80,38 @@ No navegador, com o `client_secret` que o seu servidor devolveu (o site precisa 
   // clientSecret: o que o seu servidor devolveu acima
   Perata().components.payment({ clientSecret, onSuccess: (result) => console.log(result.status) }).mount("#pagamento");
 </script>
+```
+
+## Encerrar, listar e reativar
+
+Encerrar um checkout que não deve mais ser pago: a página, o `client_secret` e o QR do Pix deixam de valer (o Pix já gerado é cancelado), e o evento `checkout.expired` é enviado. Repetir a chamada é seguro; um checkout já pago, ou com boleto emitido, responde 409.
+
+```dart
+final closed = await perata.checkouts.expire(checkoutId);
+// closed.status == 'expired'
+```
+
+Listar com filtros: `client_reference_id` acha o pedido que você registrou ao criar o checkout, e `metadata` casa os pares que você guardou (até 10 pares; a linha precisa ter todos). Os dois valem nas listas de checkouts, pedidos, pagamentos e assinaturas, e o filtro segue nas páginas de `listIter`.
+
+```dart
+final metadata = {'pedido': '123', 'camera id': 'a/b'};
+final page = await perata.orders.list(
+  clientReferenceId: 'pedido-123',
+  metadata: metadata,
+);
+
+await for (final order in perata.orders.listIter(
+  clientReferenceId: 'pedido-123',
+  metadata: metadata,
+)) {
+  print(order.id);
+}
+```
+
+Reativar uma assinatura suspensa, que volta a ser cobrada, ou retomar uma pausada; qualquer outra assinatura responde 409:
+
+```dart
+final subscription = await perata.subscriptions.resume(subscriptionId);
 ```
 
 ## Consumo (ingestão de eventos)
@@ -127,10 +159,16 @@ switch (event) {
     print('${data.id} ${data.installments}');
   case DisputeWebhookEvent(:final data):
     print(data.providerDisputeId);
+  case SubscriptionWebhookEvent(type: 'subscription.past_due', :final data):
+    print('${data.id} ${data.paymentFailure?.attempt}'); // uma cobrança de cartão foi recusada
+  case SubscriptionWebhookEvent(type: 'subscription.suspended', :final data):
+    print('${data.id} ${data.suspensionReason}'); // as tentativas acabaram
   case _:
     break;
 }
 ```
+
+O `subscription.past_due` sai a cada cobrança de cartão recusada (`payment_failure` traz o número da tentativa e quando o cartão será cobrado de novo): mantenha o acesso do cliente até o `subscription.suspended`. Esse diz que as tentativas acabaram (`suspension_reason`): cancele a assinatura ou reative-a com `subscriptions.resume`.
 
 A assinatura é a do Standard Webhooks (`webhook-id`, `webhook-timestamp`, `webhook-signature`), com tolerância de 5 minutos; uma assinatura que não confere lança `WebhookVerificationException`. Passe o corpo cru, `String` ou bytes, antes de interpretar.
 
@@ -138,4 +176,4 @@ O evento é tipado: um tipo para cada dado que o webhook carrega (`OrderWebhookE
 
 Todo evento traz o ambiente em que aconteceu, em `event.environment`: `"test"` ou `"live"` (vazio se um servidor antigo não mandou). Recuse o evento do ambiente errado: um endpoint de produção deve responder 400 a um evento `"test"`, para que um teste não dê baixa em um pedido real.
 
-Versão do SDK: 0.5.4 · contrato da API: 0.1.0
+Versão do SDK: 0.5.5 · contrato da API: 0.1.0

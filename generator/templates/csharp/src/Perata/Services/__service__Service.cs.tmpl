@@ -3,6 +3,7 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Linq;
 using System.Net.Http;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -21,7 +22,7 @@ public sealed class {{pascal .Service.Name}}Service
 {{- range .Service.Methods}}
 {{- if .Paginated}}
 
-    /// <summary>{{csText .Summary}}. One page; <see cref="{{pascal .Name}}IterAsync"/> walks every page.</summary>
+    /// <summary>{{csText .Summary}}. One page; <see cref="{{pascal .Name}}IterAsync"/> walks every page.</summary>{{template "doc" .}}
 {{- range .PathParams}}
     /// <param name="{{csParam .}}">The {{.}}.</param>
 {{- end}}
@@ -48,7 +49,7 @@ public sealed class {{pascal .Service.Name}}Service
     }
 {{- else if .NoContent}}
 
-    /// <summary>{{csText .Summary}}. The API answers 204, so there is nothing to return.</summary>
+    /// <summary>{{csText .Summary}}. The API answers 204, so there is nothing to return.</summary>{{template "doc" .}}
 {{- range .PathParams}}
     /// <param name="{{csParam .}}">The {{.}}.</param>
 {{- end}}
@@ -67,7 +68,7 @@ public sealed class {{pascal .Service.Name}}Service
     }
 {{- else}}
 
-    /// <summary>{{csText .Summary}}.</summary>
+    /// <summary>{{csText .Summary}}.</summary>{{template "doc" .}}
 {{- range .PathParams}}
     /// <param name="{{csParam .}}">The {{.}}.</param>
 {{- end}}
@@ -102,17 +103,25 @@ public sealed record {{$service}}{{pascal .Name}}Params
 {{- range .Query}}
 
     /// <summary>{{if .Description}}{{csText .Description}}{{else}}The <c>{{.Name}}</c> filter.{{end}}</summary>
-    public string? {{csName .Name}} { get; init; }
+    public {{if .Map}}IReadOnlyDictionary<string, string>{{else}}string{{end}}? {{csName .Name}} { get; init; }
 {{- end}}
 
-    internal IEnumerable<KeyValuePair<string, string?>> Query() =>
-    [
-        new("page", Page?.ToString(CultureInfo.InvariantCulture)),
-        new("limit", Limit?.ToString(CultureInfo.InvariantCulture)),
+    internal IEnumerable<KeyValuePair<string, string?>> Query()
+    {
+        yield return new("page", Page?.ToString(CultureInfo.InvariantCulture));
+        yield return new("limit", Limit?.ToString(CultureInfo.InvariantCulture));
 {{- range .Query}}
-        new({{quote .Name}}, {{csName .Name}}),
+{{- if .Map}}
+        // A map filter is one pair a key: {{.Name}}[key]=value, the keys sorted.
+        foreach (var pair in {{csName .Name}}?.OrderBy(each => each.Key, StringComparer.Ordinal) ?? Enumerable.Empty<KeyValuePair<string, string>>())
+        {
+            yield return new({{quote .Name}} + "[" + pair.Key + "]", pair.Value);
+        }
+{{- else}}
+        yield return new({{quote .Name}}, {{csName .Name}});
 {{- end}}
-    ];
+{{- end}}
+    }
 }
 {{- end}}
 {{- if .Body}}
@@ -122,7 +131,11 @@ public sealed record {{$service}}{{pascal .Name}}Params
 {{- end}}
 {{- end}}
 {{- end}}
-{{define "path"}}{{range $i, $part := pathParts .Path}}{{if $i}} + {{end}}{{if $part.Param}}PerataClient.Segment({{csParam $part.Param}}){{else}}{{quote $part.Literal}}{{end}}{{end}}{{end}}
+{{define "doc"}}{{with .Description}}
+    /// <remarks>
+{{csRemarks "    /// " .}}
+    /// </remarks>{{end}}{{end}}
+{{- define "path"}}{{range $i, $part := pathParts .Path}}{{if $i}} + {{end}}{{if $part.Param}}PerataClient.Segment({{csParam $part.Param}}){{else}}{{quote $part.Literal}}{{end}}{{end}}{{end}}
 {{- define "sig"}}{{range .PathParams}}string {{csParam .}}, {{end}}{{end}}
 {{- define "args"}}{{range .PathParams}}{{csParam .}}, {{end}}{{end}}
 {{define "inputrecord"}}{{$body := .Name}}

@@ -4,7 +4,7 @@ SDK oficial da API da Peráta para Elixir 1.18+, sem dependências: só `:httpc`
 
 ```elixir
 # mix.exs
-{:perata_sdk, "~> 0.5.4"}
+{:perata_sdk, "~> 0.5.5"}
 ```
 
 ```elixir
@@ -42,7 +42,7 @@ client
 
 Cada função recebe o cliente primeiro e devolve `{:ok, valor}` ou `{:error, %Perata.Error{}}`. Os modelos são structs com os nomes da API (`payment.amount_cents`). O corpo de uma escrita é a struct de parâmetros do método (`%Perata.ProductsCreateParams{name: "Curso"}`), uma keyword list ou um mapa com chaves atom; um campo opcional não informado fica fora do JSON. As funções `_stream` devolvem um `Stream` preguiçoso que percorre todas as páginas a partir de `page:` e levantam `Perata.Error` numa recusa.
 
-As escritas aceitam `idempotency_key:`, e todas aceitam `api_key:` para usar a chave de outra organização numa chamada. `Perata.new/2` aceita `base_url:`, `timeout:` (30 segundos, em milissegundos) e `transport:`. Um POST sem chave de idempotência é enviado com uma `Idempotency-Key` própria (UUID v4 aleatório, uma por chamada); passe a sua para poder repetir a mesma operação com segurança.
+As escritas aceitam `idempotency_key:`, e todas aceitam `api_key:` para usar a chave de outra organização numa chamada. `Perata.new/2` aceita `base_url:`, `timeout:` (30 segundos, em milissegundos) e `transport:`. Um POST sem chave de idempotência é enviado com uma `Idempotency-Key` própria (UUID v4 aleatório, uma por chamada); passe a sua para poder repetir a mesma operação com segurança. Uma resposta 2xx fica guardada sob a chave; uma recusa 4xx ou uma falha 5xx a libera, e você pode repetir a escrita com a mesma chave, com o corpo corrigido ou como estava.
 
 ## Checkout transparente e embutido
 
@@ -67,6 +67,32 @@ No navegador, com o `client_secret` que o seu servidor devolveu (o site precisa 
   // clientSecret: o que o seu servidor devolveu acima
   Perata().components.payment({ clientSecret, onSuccess: (result) => console.log(result.status) }).mount("#pagamento");
 </script>
+```
+
+## Encerrar, listar e reativar
+
+Encerrar um checkout que não deve mais ser pago: a página, o `client_secret` e o QR do Pix deixam de valer (o Pix já gerado é cancelado), e o evento `checkout.expired` é enviado. Repetir a chamada é seguro; um checkout já pago, ou com boleto emitido, responde 409.
+
+```elixir
+{:ok, closed} = Perata.Checkouts.expire(client, checkout_id)
+# closed.status == "expired"
+```
+
+Listar com filtros: `client_reference_id` acha o pedido que você registrou ao criar o checkout, e `metadata` casa os pares que você guardou (até 10 pares; a linha precisa ter todos). Os dois valem nas listas de checkouts, pedidos, pagamentos e assinaturas, e o filtro segue nas páginas de `list_stream`.
+
+```elixir
+filters = [client_reference_id: "pedido-123", metadata: %{"pedido" => "123", "camera id" => "a/b"}]
+{:ok, page} = Perata.Orders.list(client, filters)
+
+client
+|> Perata.Orders.list_stream(filters)
+|> Enum.each(&IO.puts(&1.id))
+```
+
+Reativar uma assinatura suspensa, que volta a ser cobrada, ou retomar uma pausada; qualquer outra assinatura responde 409:
+
+```elixir
+{:ok, subscription} = Perata.Subscriptions.resume(client, subscription_id)
 ```
 
 ## Consumo (ingestão de eventos)
@@ -107,9 +133,13 @@ Uma recusa da API é um `{:error, %Perata.Error{}}`, com `status`, `code` (`inva
 case event do
   %Perata.OrderWebhookEvent{type: "order.paid", data: order} -> IO.inspect(order.installments)
   %Perata.DisputeWebhookEvent{data: dispute} -> IO.inspect(dispute.provider_dispute_id)
+  %Perata.SubscriptionWebhookEvent{type: "subscription.past_due", data: subscription} -> IO.inspect(subscription.payment_failure)
+  %Perata.SubscriptionWebhookEvent{type: "subscription.suspended", data: subscription} -> IO.inspect(subscription.suspension_reason)
   %Perata.UnknownWebhookEvent{} -> :ok
 end
 ```
+
+O `subscription.past_due` sai a cada cobrança de cartão recusada (`payment_failure` traz o número da tentativa e quando o cartão será cobrado de novo): mantenha o acesso do cliente até o `subscription.suspended`. Esse diz que as tentativas acabaram (`suspension_reason`): cancele a assinatura ou reative-a com `Perata.Subscriptions.resume/3`.
 
 A assinatura é a do Standard Webhooks (`webhook-id`, `webhook-timestamp`, `webhook-signature`), com tolerância de 5 minutos. Passe o corpo cru, antes de interpretar. Uma assinatura que não confere devolve `{:error, %Perata.WebhookVerificationError{}}`.
 
@@ -117,4 +147,4 @@ O evento é tipado: um tipo para cada dado que o webhook carrega (`OrderWebhookE
 
 Todo evento traz o ambiente em que aconteceu, em `event.environment`: `"test"` ou `"live"` (vazio se um servidor antigo não mandou). Recuse o evento do ambiente errado: um endpoint de produção deve responder 400 a um evento `"test"`, para que um teste não dê baixa em um pedido real.
 
-Versão do SDK: 0.5.4 · contrato da API: 0.1.0
+Versão do SDK: 0.5.5 · contrato da API: 0.1.0

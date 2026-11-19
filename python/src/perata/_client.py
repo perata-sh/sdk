@@ -103,7 +103,15 @@ class Perata:
     ) -> Any:
         """Calls the API and answers what it wrapped in ``data``; a refusal raises PerataError."""
         url = self._base_url + path
-        values = {name: str(value) for name, value in (query or {}).items() if value is not None and value != ""}
+        values: dict[str, str] = {}
+        for name, value in (query or {}).items():
+            if isinstance(value, dict):
+                # A map filter is one pair a key: metadata[pedido]=123, the keys sorted.
+                for key in sorted(value):
+                    if value[key] is not None and value[key] != "":
+                        values[f"{name}[{key}]"] = str(value[key])
+            elif value is not None and value != "":
+                values[name] = str(value)
         if values:
             url += "?" + urlencode(values)
         headers = {

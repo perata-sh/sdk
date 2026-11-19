@@ -1065,7 +1065,7 @@ type WebhookSubscriptionPaymentFailure struct {
 // The body of benefits:create.
 type BenefitsCreateParams struct {
 	Description *string `json:"description,omitempty"`
-	// Até 50 pares; valor em texto, número ou booleano. No feature_flag, os valores da flag.
+	// Pares guardados no benefício. No feature_flag, são os valores da flag. Até 50 pares de chave e valor: a chave tem de 1 a 40 caracteres, e o valor é um texto de 1 a 500 caracteres, um número ou um booleano. Texto sem caracteres de controle nem de direção invisível.
 	Metadata map[string]any `json:"metadata,omitempty"`
 	// Como o benefício aparece nos produtos e para o cliente; até 80 caracteres.
 	Name string `json:"name"`
@@ -1077,7 +1077,7 @@ type BenefitsCreateParams struct {
 
 // The body of benefits:update.
 type BenefitsUpdateParams struct {
-	// Substitui os metadados; {} os limpa.
+	// Substitui os metadados; {} os limpa. Até 50 pares de chave e valor: a chave tem de 1 a 40 caracteres, e o valor é um texto de 1 a 500 caracteres, um número ou um booleano. Texto sem caracteres de controle nem de direção invisível.
 	Metadata map[string]any `json:"metadata,omitempty"`
 	Name     *string        `json:"name,omitempty"`
 	// Os campos do tipo, aplicados sobre os guardados; o que ficar de fora não muda.
@@ -1097,7 +1097,7 @@ type CheckoutLinksCreateParams struct {
 	Label     *string `json:"label,omitempty"`
 	// De 0 a 12; 0 segue a organização.
 	MaxInstallments *int64 `json:"max_installments,omitempty"`
-	// Até 50 pares; valor em texto, número ou booleano.
+	// Pares guardados no link. Até 50 pares de chave e valor: a chave tem de 1 a 40 caracteres, e o valor é um texto de 1 a 500 caracteres, um número ou um booleano. Texto sem caracteres de controle nem de direção invisível.
 	Metadata map[string]any `json:"metadata,omitempty"`
 	PriceID  *string        `json:"price_id,omitempty"`
 	// Um preço de cada produto, na ordem em que o comprador os vê; até 20.
@@ -1115,7 +1115,7 @@ type CheckoutLinksCreateParams struct {
 type CheckoutLinksUpdateParams struct {
 	CancelURL *string `json:"cancel_url,omitempty"`
 	Label     *string `json:"label,omitempty"`
-	// Substitui os metadados; {} os limpa.
+	// Substitui os metadados; {} os limpa. Até 50 pares de chave e valor: a chave tem de 1 a 40 caracteres, e o valor é um texto de 1 a 500 caracteres, um número ou um booleano. Texto sem caracteres de controle nem de direção invisível.
 	Metadata map[string]any `json:"metadata,omitempty"`
 	// Substitui os produtos do link.
 	PriceIds              []string `json:"price_ids,omitempty"`
@@ -1145,7 +1145,7 @@ type CheckoutsCreateParams struct {
 	// As linhas do pedido, até 50, para o comprador ler o detalhe: aparecem no checkout (página, modal, componentes e transparente), no pedido, no recibo, no portal do cliente e nos eventos. A soma de quantity vezes unit_amount_cents precisa ser igual a amount_cents, ou a resposta é 422; enviadas sem amount_cents, a soma é o valor.
 	Items []CheckoutsCreateItem `json:"items,omitempty"`
 	Label *string               `json:"label,omitempty"`
-	// Até 50 pares guardados no link do checkout; valor em texto, número ou booleano.
+	// Pares guardados no link do checkout e devolvidos no checkout, no pedido, no pagamento e nos eventos da venda. Até 50 pares de chave e valor: a chave tem de 1 a 40 caracteres, e o valor é um texto de 1 a 500 caracteres, um número ou um booleano. Texto sem caracteres de controle nem de direção invisível.
 	Metadata  map[string]any `json:"metadata,omitempty"`
 	PriceID   string         `json:"price_id"`
 	ProductID string         `json:"product_id"`

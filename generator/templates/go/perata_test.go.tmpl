@@ -325,6 +325,50 @@ func TestIteratingWalksEveryPage(t *testing.T) {
 	}
 }
 
+// The metadata filter is one pair a key, metadata[key]=value, the keys sorted
+// and escaped, and the server reads each pair back; every page of a walk keeps
+// the filter.
+func TestAMetadataFilterIsSentAsOnePairAKey(t *testing.T) {
+	var queries []string
+	client := server(t, func(w http.ResponseWriter, r *http.Request) {
+		queries = append(queries, r.URL.RawQuery)
+		if got := r.URL.Query(); got.Get("metadata[pedido]") != "123" || got.Get("metadata[camera id]") != "a/b" {
+			t.Errorf("the server reads %v", got)
+		}
+		page, _ := strconv.Atoi(r.URL.Query().Get("page"))
+		fmt.Fprintf(w, `{"data":{"items":[],"pagination":{"total_count":0,"max_page":%d}}}`, max(page, 1))
+	})
+	metadata := map[string]string{"pedido": "123", "camera id": "a/b"}
+	if _, err := client.Orders.List(context.Background(), &OrdersListParams{ClientReferenceID: "pedido-1", Metadata: metadata}); err != nil {
+		t.Fatal(err)
+	}
+	want := "client_reference_id=pedido-1&metadata%5Bcamera+id%5D=a%2Fb&metadata%5Bpedido%5D=123"
+	if queries[0] != want {
+		t.Fatalf("query %q, want %q", queries[0], want)
+	}
+	for _, err := range client.Checkouts.ListIter(context.Background(), &CheckoutsListParams{Limit: 1, Metadata: metadata}) {
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+	if len(queries) != 2 || queries[1] != "limit=1&metadata%5Bcamera+id%5D=a%2Fb&metadata%5Bpedido%5D=123&page=1" {
+		t.Fatalf("queries %q", queries)
+	}
+}
+
+// A customer is found by its e-mail: the filter goes in the query.
+func TestCustomersAreListedByEmail(t *testing.T) {
+	client := server(t, func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/api/v1/customers" || r.URL.RawQuery != "email=ana%40example.com" {
+			t.Errorf("request %s ? %s", r.URL.Path, r.URL.RawQuery)
+		}
+		fmt.Fprint(w, `{"data":{"items":[],"pagination":{"total_count":0,"max_page":1}}}`)
+	})
+	if _, err := client.Customers.List(context.Background(), &CustomersListParams{Email: "ana@example.com"}); err != nil {
+		t.Fatal(err)
+	}
+}
+
 func TestARefusalIsATypedError(t *testing.T) {
 	client := server(t, func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path == "/api/v1/customers" {

@@ -3,6 +3,7 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Linq;
 using System.Net.Http;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -18,7 +19,15 @@ public sealed class WebhooksService
 
     internal WebhooksService(PerataClient client) => this.client = client;
 
-    /// <summary>Criar um endpoint de webhook; o segredo que assina as mensagens vem só nesta resposta.</summary>
+    /// <summary>Criar um endpoint de webhook.</summary>
+    /// <remarks>
+    /// <para>Cria um endpoint de webhook. O segredo que assina as mensagens vem
+    /// só nesta resposta; guarde-o.</para>
+    /// <para>Autenticação: chave de API da organização em Authorization: Bearer
+    /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
+    /// da requisição. Respostas em JSON no envelope data; erros com error,
+    /// message e fields.</para>
+    /// </remarks>
     /// <param name="parameters">The request.</param>
     /// <param name="options">An idempotency key, or another organization's key for this call.</param>
     /// <param name="cancellationToken">Cancels the call.</param>
@@ -30,7 +39,15 @@ public sealed class WebhooksService
         return client.RequestAsync(HttpMethod.Post, "/api/v1/webhooks/endpoints", null, JsonSerializer.SerializeToUtf8Bytes(parameters, PerataJson.Default.WebhooksCreateEndpointParams), PerataJson.Default.WebhookEndpointCreatedEnvelope, options?.IdempotencyKey, options, cancellationToken);
     }
 
-    /// <summary>Excluir um endpoint de webhook; as entregas que ainda esperavam por ele falham. The API answers 204, so there is nothing to return.</summary>
+    /// <summary>Excluir um endpoint de webhook. The API answers 204, so there is nothing to return.</summary>
+    /// <remarks>
+    /// <para>Exclui um endpoint de webhook. As entregas que ainda esperavam por
+    /// ele falham.</para>
+    /// <para>Autenticação: chave de API da organização em Authorization: Bearer
+    /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
+    /// da requisição. Respostas em JSON no envelope data; erros com error,
+    /// message e fields.</para>
+    /// </remarks>
     /// <param name="endpoint">The endpoint.</param>
     /// <param name="options">An idempotency key, or another organization's key for this call.</param>
     /// <param name="cancellationToken">Cancels the call.</param>
@@ -41,6 +58,13 @@ public sealed class WebhooksService
     }
 
     /// <summary>Ler um endpoint de webhook.</summary>
+    /// <remarks>
+    /// <para>Devolve um endpoint de webhook pelo ID.</para>
+    /// <para>Autenticação: chave de API da organização em Authorization: Bearer
+    /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
+    /// da requisição. Respostas em JSON no envelope data; erros com error,
+    /// message e fields.</para>
+    /// </remarks>
     /// <param name="endpoint">The endpoint.</param>
     /// <param name="options">Another organization's key for this call.</param>
     /// <param name="cancellationToken">Cancels the call.</param>
@@ -51,7 +75,16 @@ public sealed class WebhooksService
         return client.RequestAsync(HttpMethod.Get, "/api/v1/webhooks/endpoints/" + PerataClient.Segment(endpoint), null, null, PerataJson.Default.WebhookEndpointEnvelope, null, options, cancellationToken);
     }
 
-    /// <summary>Listar as últimas 100 entregas de eventos aos endpoints, opcionalmente de um endpoint (endpoint_id) ou de uma situação (status). One page; <see cref="ListDeliveriesIterAsync"/> walks every page.</summary>
+    /// <summary>Listar entregas de webhook. One page; <see cref="ListDeliveriesIterAsync"/> walks every page.</summary>
+    /// <remarks>
+    /// <para>Devolve as últimas 100 entregas de eventos aos endpoints. Com
+    /// endpoint_id, só as de um endpoint; com status, só as de uma
+    /// situação.</para>
+    /// <para>Autenticação: chave de API da organização em Authorization: Bearer
+    /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
+    /// da requisição. Respostas em JSON no envelope data; erros com error,
+    /// message e fields.</para>
+    /// </remarks>
     /// <param name="parameters">The page, its size and the filters; the first page when null.</param>
     /// <param name="options">Another organization's key for this call.</param>
     /// <param name="cancellationToken">Cancels the call.</param>
@@ -71,7 +104,14 @@ public sealed class WebhooksService
         return Pages.IterateAsync((page, token) => ListDeliveriesAsync(walk with { Page = page }, options, token), walk.Page, cancellationToken);
     }
 
-    /// <summary>Listar os endpoints de webhook do lojista. One page; <see cref="ListEndpointsIterAsync"/> walks every page.</summary>
+    /// <summary>Listar endpoints de webhook. One page; <see cref="ListEndpointsIterAsync"/> walks every page.</summary>
+    /// <remarks>
+    /// <para>Devolve uma página dos endpoints de webhook da organização.</para>
+    /// <para>Autenticação: chave de API da organização em Authorization: Bearer
+    /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
+    /// da requisição. Respostas em JSON no envelope data; erros com error,
+    /// message e fields.</para>
+    /// </remarks>
     /// <param name="parameters">The page, its size and the filters; the first page when null.</param>
     /// <param name="options">Another organization's key for this call.</param>
     /// <param name="cancellationToken">Cancels the call.</param>
@@ -91,7 +131,16 @@ public sealed class WebhooksService
         return Pages.IterateAsync((page, token) => ListEndpointsAsync(walk with { Page = page }, options, token), walk.Page, cancellationToken);
     }
 
-    /// <summary>Atualizar o endereço, o formato, os eventos ou a descrição de um endpoint, ou ligar e desligar o envio (enabled); o segredo não muda.</summary>
+    /// <summary>Atualizar um endpoint de webhook.</summary>
+    /// <remarks>
+    /// <para>Muda o endereço, o formato, os eventos ou a descrição de um
+    /// endpoint, ou liga e desliga o envio (enabled). O segredo não
+    /// muda.</para>
+    /// <para>Autenticação: chave de API da organização em Authorization: Bearer
+    /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
+    /// da requisição. Respostas em JSON no envelope data; erros com error,
+    /// message e fields.</para>
+    /// </remarks>
     /// <param name="endpoint">The endpoint.</param>
     /// <param name="parameters">The request.</param>
     /// <param name="options">An idempotency key, or another organization's key for this call.</param>
@@ -150,13 +199,13 @@ public sealed record WebhooksListDeliveriesParams
     /// <summary>pending, succeeded ou exhausted.</summary>
     public string? Status { get; init; }
 
-    internal IEnumerable<KeyValuePair<string, string?>> Query() =>
-    [
-        new("page", Page?.ToString(CultureInfo.InvariantCulture)),
-        new("limit", Limit?.ToString(CultureInfo.InvariantCulture)),
-        new("endpoint_id", EndpointId),
-        new("status", Status),
-    ];
+    internal IEnumerable<KeyValuePair<string, string?>> Query()
+    {
+        yield return new("page", Page?.ToString(CultureInfo.InvariantCulture));
+        yield return new("limit", Limit?.ToString(CultureInfo.InvariantCulture));
+        yield return new("endpoint_id", EndpointId);
+        yield return new("status", Status);
+    }
 }
 
 /// <summary>The page and filters of webhooks:list_endpoints.</summary>
@@ -168,11 +217,11 @@ public sealed record WebhooksListEndpointsParams
     /// <summary>The items a page, 1 to 100; the API's 10 when null.</summary>
     public int? Limit { get; init; }
 
-    internal IEnumerable<KeyValuePair<string, string?>> Query() =>
-    [
-        new("page", Page?.ToString(CultureInfo.InvariantCulture)),
-        new("limit", Limit?.ToString(CultureInfo.InvariantCulture)),
-    ];
+    internal IEnumerable<KeyValuePair<string, string?>> Query()
+    {
+        yield return new("page", Page?.ToString(CultureInfo.InvariantCulture));
+        yield return new("limit", Limit?.ToString(CultureInfo.InvariantCulture));
+    }
 }
 
 /// <summary>The body of webhooks:update_endpoint.</summary>

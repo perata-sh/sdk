@@ -6,6 +6,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.TreeMap;
 
 /** The API's products. */
 public final class ProductsService {
@@ -16,7 +17,16 @@ public final class ProductsService {
     }
 
     /**
-     * Arquivar um produto: sai das vendas novas e o que já foi vendido continua apontando para ele.
+     * Arquivar um produto.
+     *
+     * Arquiva um produto: ele sai das vendas novas, e o que já foi vendido
+     * continua apontando para ele.
+     *
+     * Autenticação: chave de API da organização em Authorization: Bearer
+     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+     * requisição. Respostas em JSON no envelope data; erros com error, message
+     * e fields.
+     *
      * @param product the product
      * @param options an idempotency key or another organization's key for this call, or null
      * @return the product
@@ -28,7 +38,16 @@ public final class ProductsService {
     }
 
     /**
-     * Arquivar um produto: sai das vendas novas e o que já foi vendido continua apontando para ele.
+     * Arquivar um produto.
+     *
+     * Arquiva um produto: ele sai das vendas novas, e o que já foi vendido
+     * continua apontando para ele.
+     *
+     * Autenticação: chave de API da organização em Authorization: Bearer
+     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+     * requisição. Respostas em JSON no envelope data; erros com error, message
+     * e fields.
+     *
      * @param product the product
      * @return the product
      * @throws PerataException when the API refuses the call
@@ -39,6 +58,15 @@ public final class ProductsService {
 
     /**
      * Criar um produto.
+     *
+     * Cria um produto com nome e descrição. O preço se cria à parte, em Criar
+     * um preço.
+     *
+     * Autenticação: chave de API da organização em Authorization: Bearer
+     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+     * requisição. Respostas em JSON no envelope data; erros com error, message
+     * e fields.
+     *
      * @param params the request
      * @param options an idempotency key or another organization's key for this call, or null
      * @return the product
@@ -51,6 +79,15 @@ public final class ProductsService {
 
     /**
      * Criar um produto.
+     *
+     * Cria um produto com nome e descrição. O preço se cria à parte, em Criar
+     * um preço.
+     *
+     * Autenticação: chave de API da organização em Authorization: Bearer
+     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+     * requisição. Respostas em JSON no envelope data; erros com error, message
+     * e fields.
+     *
      * @param params the request
      * @return the product
      * @throws PerataException when the API refuses the call
@@ -136,6 +173,14 @@ public final class ProductsService {
 
     /**
      * Ler um produto.
+     *
+     * Devolve um produto pelo ID.
+     *
+     * Autenticação: chave de API da organização em Authorization: Bearer
+     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+     * requisição. Respostas em JSON no envelope data; erros com error, message
+     * e fields.
+     *
      * @param product the product
      * @param options another organization's key for this call, or null
      * @return the product
@@ -148,6 +193,14 @@ public final class ProductsService {
 
     /**
      * Ler um produto.
+     *
+     * Devolve um produto pelo ID.
+     *
+     * Autenticação: chave de API da organização em Authorization: Bearer
+     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+     * requisição. Respostas em JSON no envelope data; erros com error, message
+     * e fields.
+     *
      * @param product the product
      * @return the product
      * @throws PerataException when the API refuses the call
@@ -158,6 +211,14 @@ public final class ProductsService {
 
     /**
      * Listar produtos. One page; {@link #listIter} walks every page.
+     *
+     * Devolve uma página dos produtos da organização, no ambiente da chave.
+     *
+     * Autenticação: chave de API da organização em Authorization: Bearer
+     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+     * requisição. Respostas em JSON no envelope data; erros com error, message
+     * e fields.
+     *
      * @param params the page, its size and the filters, or null
      * @param options options for this call, or null
      * @return the page
@@ -170,6 +231,14 @@ public final class ProductsService {
 
     /**
      * Listar produtos. One page.
+     *
+     * Devolve uma página dos produtos da organização, no ambiente da chave.
+     *
+     * Autenticação: chave de API da organização em Authorization: Bearer
+     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+     * requisição. Respostas em JSON no envelope data; erros com error, message
+     * e fields.
+     *
      * @param params the page, its size and the filters, or null
      * @return the page
      */
@@ -179,6 +248,14 @@ public final class ProductsService {
 
     /**
      * Listar produtos. The first page.
+     *
+     * Devolve uma página dos produtos da organização, no ambiente da chave.
+     *
+     * Autenticação: chave de API da organização em Authorization: Bearer
+     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+     * requisição. Respostas em JSON no envelope data; erros com error, message
+     * e fields.
+     *
      * @return the page
      */
     public Page<Product> list() {
@@ -287,7 +364,16 @@ public final class ProductsService {
     }
 
     /**
-     * Atualizar o nome ou a descrição de um produto ativo.
+     * Atualizar um produto.
+     *
+     * Muda o nome ou a descrição de um produto ativo. O que você não enviar
+     * fica como está.
+     *
+     * Autenticação: chave de API da organização em Authorization: Bearer
+     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+     * requisição. Respostas em JSON no envelope data; erros com error, message
+     * e fields.
+     *
      * @param product the product
      * @param params the request
      * @param options an idempotency key or another organization's key for this call, or null
@@ -300,7 +386,16 @@ public final class ProductsService {
     }
 
     /**
-     * Atualizar o nome ou a descrição de um produto ativo.
+     * Atualizar um produto.
+     *
+     * Muda o nome ou a descrição de um produto ativo. O que você não enviar
+     * fica como está.
+     *
+     * Autenticação: chave de API da organização em Authorization: Bearer
+     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+     * requisição. Respostas em JSON no envelope data; erros com error, message
+     * e fields.
+     *
      * @param product the product
      * @param params the request
      * @return the product

@@ -6,6 +6,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.TreeMap;
 
 /** The API's webhooks. */
 public final class WebhooksService {
@@ -16,7 +17,16 @@ public final class WebhooksService {
     }
 
     /**
-     * Criar um endpoint de webhook; o segredo que assina as mensagens vem só nesta resposta.
+     * Criar um endpoint de webhook.
+     *
+     * Cria um endpoint de webhook. O segredo que assina as mensagens vem só
+     * nesta resposta; guarde-o.
+     *
+     * Autenticação: chave de API da organização em Authorization: Bearer
+     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+     * requisição. Respostas em JSON no envelope data; erros com error, message
+     * e fields.
+     *
      * @param params the request
      * @param options an idempotency key or another organization's key for this call, or null
      * @return the webhookendpointcreated
@@ -28,7 +38,16 @@ public final class WebhooksService {
     }
 
     /**
-     * Criar um endpoint de webhook; o segredo que assina as mensagens vem só nesta resposta.
+     * Criar um endpoint de webhook.
+     *
+     * Cria um endpoint de webhook. O segredo que assina as mensagens vem só
+     * nesta resposta; guarde-o.
+     *
+     * Autenticação: chave de API da organização em Authorization: Bearer
+     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+     * requisição. Respostas em JSON no envelope data; erros com error, message
+     * e fields.
+     *
      * @param params the request
      * @return the webhookendpointcreated
      * @throws PerataException when the API refuses the call
@@ -159,7 +178,16 @@ public final class WebhooksService {
 
 
     /**
-     * Excluir um endpoint de webhook; as entregas que ainda esperavam por ele falham.
+     * Excluir um endpoint de webhook.
+     *
+     * Exclui um endpoint de webhook. As entregas que ainda esperavam por ele
+     * falham.
+     *
+     * Autenticação: chave de API da organização em Authorization: Bearer
+     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+     * requisição. Respostas em JSON no envelope data; erros com error, message
+     * e fields.
+     *
      * @param endpoint the endpoint
      * @param options an idempotency key or another organization's key for this call, or null
      * @throws PerataException when the API refuses the call
@@ -169,7 +197,16 @@ public final class WebhooksService {
     }
 
     /**
-     * Excluir um endpoint de webhook; as entregas que ainda esperavam por ele falham.
+     * Excluir um endpoint de webhook.
+     *
+     * Exclui um endpoint de webhook. As entregas que ainda esperavam por ele
+     * falham.
+     *
+     * Autenticação: chave de API da organização em Authorization: Bearer
+     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+     * requisição. Respostas em JSON no envelope data; erros com error, message
+     * e fields.
+     *
      * @param endpoint the endpoint
      * @throws PerataException when the API refuses the call
      */
@@ -179,6 +216,14 @@ public final class WebhooksService {
 
     /**
      * Ler um endpoint de webhook.
+     *
+     * Devolve um endpoint de webhook pelo ID.
+     *
+     * Autenticação: chave de API da organização em Authorization: Bearer
+     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+     * requisição. Respostas em JSON no envelope data; erros com error, message
+     * e fields.
+     *
      * @param endpoint the endpoint
      * @param options another organization's key for this call, or null
      * @return the webhookendpoint
@@ -191,6 +236,14 @@ public final class WebhooksService {
 
     /**
      * Ler um endpoint de webhook.
+     *
+     * Devolve um endpoint de webhook pelo ID.
+     *
+     * Autenticação: chave de API da organização em Authorization: Bearer
+     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+     * requisição. Respostas em JSON no envelope data; erros com error, message
+     * e fields.
+     *
      * @param endpoint the endpoint
      * @return the webhookendpoint
      * @throws PerataException when the API refuses the call
@@ -200,7 +253,16 @@ public final class WebhooksService {
     }
 
     /**
-     * Listar as últimas 100 entregas de eventos aos endpoints, opcionalmente de um endpoint (endpoint_id) ou de uma situação (status). One page; {@link #listDeliveriesIter} walks every page.
+     * Listar entregas de webhook. One page; {@link #listDeliveriesIter} walks every page.
+     *
+     * Devolve as últimas 100 entregas de eventos aos endpoints. Com
+     * endpoint_id, só as de um endpoint; com status, só as de uma situação.
+     *
+     * Autenticação: chave de API da organização em Authorization: Bearer
+     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+     * requisição. Respostas em JSON no envelope data; erros com error, message
+     * e fields.
+     *
      * @param params the page, its size and the filters, or null
      * @param options options for this call, or null
      * @return the page
@@ -212,7 +274,16 @@ public final class WebhooksService {
     }
 
     /**
-     * Listar as últimas 100 entregas de eventos aos endpoints, opcionalmente de um endpoint (endpoint_id) ou de uma situação (status). One page.
+     * Listar entregas de webhook. One page.
+     *
+     * Devolve as últimas 100 entregas de eventos aos endpoints. Com
+     * endpoint_id, só as de um endpoint; com status, só as de uma situação.
+     *
+     * Autenticação: chave de API da organização em Authorization: Bearer
+     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+     * requisição. Respostas em JSON no envelope data; erros com error, message
+     * e fields.
+     *
      * @param params the page, its size and the filters, or null
      * @return the page
      */
@@ -221,7 +292,16 @@ public final class WebhooksService {
     }
 
     /**
-     * Listar as últimas 100 entregas de eventos aos endpoints, opcionalmente de um endpoint (endpoint_id) ou de uma situação (status). The first page.
+     * Listar entregas de webhook. The first page.
+     *
+     * Devolve as últimas 100 entregas de eventos aos endpoints. Com
+     * endpoint_id, só as de um endpoint; com status, só as de uma situação.
+     *
+     * Autenticação: chave de API da organização em Authorization: Bearer
+     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+     * requisição. Respostas em JSON no envelope data; erros com error, message
+     * e fields.
+     *
      * @return the page
      */
     public Page<WebhookDelivery> listDeliveries() {
@@ -368,7 +448,15 @@ public final class WebhooksService {
     }
 
     /**
-     * Listar os endpoints de webhook do lojista. One page; {@link #listEndpointsIter} walks every page.
+     * Listar endpoints de webhook. One page; {@link #listEndpointsIter} walks every page.
+     *
+     * Devolve uma página dos endpoints de webhook da organização.
+     *
+     * Autenticação: chave de API da organização em Authorization: Bearer
+     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+     * requisição. Respostas em JSON no envelope data; erros com error, message
+     * e fields.
+     *
      * @param params the page, its size and the filters, or null
      * @param options options for this call, or null
      * @return the page
@@ -380,7 +468,15 @@ public final class WebhooksService {
     }
 
     /**
-     * Listar os endpoints de webhook do lojista. One page.
+     * Listar endpoints de webhook. One page.
+     *
+     * Devolve uma página dos endpoints de webhook da organização.
+     *
+     * Autenticação: chave de API da organização em Authorization: Bearer
+     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+     * requisição. Respostas em JSON no envelope data; erros com error, message
+     * e fields.
+     *
      * @param params the page, its size and the filters, or null
      * @return the page
      */
@@ -389,7 +485,15 @@ public final class WebhooksService {
     }
 
     /**
-     * Listar os endpoints de webhook do lojista. The first page.
+     * Listar endpoints de webhook. The first page.
+     *
+     * Devolve uma página dos endpoints de webhook da organização.
+     *
+     * Autenticação: chave de API da organização em Authorization: Bearer
+     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+     * requisição. Respostas em JSON no envelope data; erros com error, message
+     * e fields.
+     *
      * @return the page
      */
     public Page<WebhookEndpoint> listEndpoints() {
@@ -498,7 +602,16 @@ public final class WebhooksService {
     }
 
     /**
-     * Atualizar o endereço, o formato, os eventos ou a descrição de um endpoint, ou ligar e desligar o envio (enabled); o segredo não muda.
+     * Atualizar um endpoint de webhook.
+     *
+     * Muda o endereço, o formato, os eventos ou a descrição de um endpoint, ou
+     * liga e desliga o envio (enabled). O segredo não muda.
+     *
+     * Autenticação: chave de API da organização em Authorization: Bearer
+     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+     * requisição. Respostas em JSON no envelope data; erros com error, message
+     * e fields.
+     *
      * @param endpoint the endpoint
      * @param params the request
      * @param options an idempotency key or another organization's key for this call, or null
@@ -511,7 +624,16 @@ public final class WebhooksService {
     }
 
     /**
-     * Atualizar o endereço, o formato, os eventos ou a descrição de um endpoint, ou ligar e desligar o envio (enabled); o segredo não muda.
+     * Atualizar um endpoint de webhook.
+     *
+     * Muda o endereço, o formato, os eventos ou a descrição de um endpoint, ou
+     * liga e desliga o envio (enabled). O segredo não muda.
+     *
+     * Autenticação: chave de API da organização em Authorization: Bearer
+     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
+     * requisição. Respostas em JSON no envelope data; erros com error, message
+     * e fields.
+     *
      * @param endpoint the endpoint
      * @param params the request
      * @return the webhookendpoint

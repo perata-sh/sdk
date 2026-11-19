@@ -4370,8 +4370,10 @@ final class BenefitsCreateParams {
 
   final String? description;
 
-  /// Até 50 pares; valor em texto, número ou booleano. No feature_flag, os
-  /// valores da flag.
+  /// Pares guardados no benefício. No feature_flag, são os valores da flag. Até
+  /// 50 pares de chave e valor: a chave tem de 1 a 40 caracteres, e o valor é
+  /// um texto de 1 a 500 caracteres, um número ou um booleano. Texto sem
+  /// caracteres de controle nem de direção invisível.
   final Map<String, Object?>? metadata;
 
   /// Como o benefício aparece nos produtos e para o cliente; até 80 caracteres.
@@ -4409,7 +4411,10 @@ final class BenefitsUpdateParams {
     this.visibility,
   });
 
-  /// Substitui os metadados; {} os limpa.
+  /// Substitui os metadados; {} os limpa. Até 50 pares de chave e valor: a
+  /// chave tem de 1 a 40 caracteres, e o valor é um texto de 1 a 500
+  /// caracteres, um número ou um booleano. Texto sem caracteres de controle nem
+  /// de direção invisível.
   final Map<String, Object?>? metadata;
 
   final String? name;
@@ -4469,7 +4474,9 @@ final class CheckoutLinksCreateParams {
   /// De 0 a 12; 0 segue a organização.
   final int? maxInstallments;
 
-  /// Até 50 pares; valor em texto, número ou booleano.
+  /// Pares guardados no link. Até 50 pares de chave e valor: a chave tem de 1 a
+  /// 40 caracteres, e o valor é um texto de 1 a 500 caracteres, um número ou um
+  /// booleano. Texto sem caracteres de controle nem de direção invisível.
   final Map<String, Object?>? metadata;
 
   final String? priceId;
@@ -4527,7 +4534,10 @@ final class CheckoutLinksUpdateParams {
 
   final String? label;
 
-  /// Substitui os metadados; {} os limpa.
+  /// Substitui os metadados; {} os limpa. Até 50 pares de chave e valor: a
+  /// chave tem de 1 a 40 caracteres, e o valor é um texto de 1 a 500
+  /// caracteres, um número ou um booleano. Texto sem caracteres de controle nem
+  /// de direção invisível.
   final Map<String, Object?>? metadata;
 
   /// Substitui os produtos do link.
@@ -4621,8 +4631,11 @@ final class CheckoutsCreateParams {
 
   final String? label;
 
-  /// Até 50 pares guardados no link do checkout; valor em texto, número ou
-  /// booleano.
+  /// Pares guardados no link do checkout e devolvidos no checkout, no pedido,
+  /// no pagamento e nos eventos da venda. Até 50 pares de chave e valor: a
+  /// chave tem de 1 a 40 caracteres, e o valor é um texto de 1 a 500
+  /// caracteres, um número ou um booleano. Texto sem caracteres de controle nem
+  /// de direção invisível.
   final Map<String, Object?>? metadata;
 
   final String priceId;

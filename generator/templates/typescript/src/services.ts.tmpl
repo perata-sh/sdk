@@ -12,7 +12,7 @@ export interface {{pascal $service.Name}}{{pascal .Name}}Params {
   /** Items a page, 1 to 100 (10 by default). */
   limit?: number;
 {{- range .Query}}
-{{tsDoc "  " .Description}}  {{.Name}}?: string;
+{{tsDoc "  " .Description}}  {{.Name}}?: {{if .Map}}Record<string, string>{{else}}string{{end}};
 {{- end}}
 }
 {{end}}{{end}}
@@ -25,7 +25,9 @@ export class {{pascal .Name}}Service {
   }
 {{range .Methods}}
 {{- if .Paginated}}
-  /** {{.Summary}}. One page; `{{camel .Name}}Iter` walks every page. */
+  /**
+   * {{.Summary}}. One page; `{{camel .Name}}Iter` walks every page.{{template "doc" .}}
+   */
   {{camel .Name}}({{range .PathParams}}{{camel .}}: string, {{end}}params: {{pascal $service.Name}}{{pascal .Name}}Params = {}, options?: RequestOptions): Promise<Page<models.{{.Item}}>> {
     return this.#client.request({{quote .HTTPMethod}}, {{template "path" .}}, { query: { ...params }, options });
   }
@@ -35,16 +37,23 @@ export class {{pascal .Name}}Service {
     return iterate((page) => this.{{camel .Name}}({{range .PathParams}}{{camel .}}, {{end}}{ ...params, page }, options), params.page);
   }
 {{- else if .NoContent}}
-  /** {{.Summary}}. The API answers 204, so there is nothing to return. */
+  /**
+   * {{.Summary}}. The API answers 204, so there is nothing to return.{{template "doc" .}}
+   */
   async {{camel .Name}}({{range .PathParams}}{{camel .}}: string, {{end}}{{if .Body}}params: models.{{.Body.Name}}, {{end}}options?: RequestOptions): Promise<void> {
     await this.#client.request<undefined>({{quote .HTTPMethod}}, {{template "path" .}}, { {{if .Body}}body: params, {{end}}options });
   }
 {{- else}}
-  /** {{.Summary}}. */
+  /**
+   * {{.Summary}}.{{template "doc" .}}
+   */
   {{camel .Name}}({{range .PathParams}}{{camel .}}: string, {{end}}{{if .Body}}params: models.{{.Body.Name}}, {{end}}options?: RequestOptions): Promise<models.{{.Response}}> {
     return this.#client.request({{quote .HTTPMethod}}, {{template "path" .}}, { {{if .Body}}body: params, {{end}}options });
   }
 {{- end}}
 {{end}}}
 {{end}}
+{{- define "doc"}}{{with .Description}}
+   *
+{{docBlock "   * " .}}{{end}}{{end}}
 {{- define "path"}}`{{range pathParts .Path}}{{if .Param}}${encodeURIComponent({{camel .Param}})}{{else}}{{.Literal}}{{end}}{{end}}`{{end}}

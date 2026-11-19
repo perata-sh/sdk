@@ -189,3 +189,50 @@ var (
 
 // inner is a literal without its delimiters, to be spliced into a larger one.
 func inner(literal string) string { return literal[1 : len(literal)-1] }
+
+// wrapDoc breaks text into lines of at most width columns, at spaces. A blank
+// line in text is kept as one, so paragraphs stay paragraphs; a word longer
+// than width keeps a line of its own. Lines inside a paragraph are joined, as a
+// doc comment reads them.
+func wrapDoc(text string, width int) []string {
+	var out []string
+	for i, paragraph := range strings.Split(strings.TrimSpace(text), "\n\n") {
+		if i > 0 {
+			out = append(out, "")
+		}
+		line := ""
+		for _, word := range strings.Fields(paragraph) {
+			if line != "" && len([]rune(line))+1+len([]rune(word)) > width {
+				out = append(out, line)
+				line = ""
+			}
+			if line != "" {
+				line += " "
+			}
+			line += word
+		}
+		if line != "" {
+			out = append(out, line)
+		}
+	}
+	return out
+}
+
+// docBlock writes text as the lines of a comment, each starting with prefix
+// (the comment marker and the indentation), wrapped so a line stays within 80
+// columns; an empty line carries the prefix without its trailing space. escape
+// is the language's own, applied to each line, or nil. It is empty when text is.
+func docBlock(prefix, text string, escape func(string) string) string {
+	width := 80 - len([]rune(prefix))
+	if width < 40 {
+		width = 40
+	}
+	lines := wrapDoc(text, width)
+	for i, line := range lines {
+		if escape != nil {
+			line = escape(line)
+		}
+		lines[i] = strings.TrimRight(prefix+line, " ")
+	}
+	return strings.Join(lines, "\n")
+}

@@ -3,6 +3,7 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Linq;
 using System.Net.Http;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -18,7 +19,16 @@ public sealed class RefundsService
 
     internal RefundsService(PerataClient client) => this.client = client;
 
-    /// <summary>Reembolsar parte ou todo um pagamento.</summary>
+    /// <summary>Reembolsar um pagamento.</summary>
+    /// <remarks>
+    /// <para>Devolve parte ou todo o valor de um pagamento. A Idempotency-Key é
+    /// obrigatória: sem ela, repetir a chamada depois de um tempo esgotado
+    /// seria devolver duas vezes.</para>
+    /// <para>Autenticação: chave de API da organização em Authorization: Bearer
+    /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
+    /// da requisição. Respostas em JSON no envelope data; erros com error,
+    /// message e fields.</para>
+    /// </remarks>
     /// <param name="parameters">The request.</param>
     /// <param name="options">An idempotency key, or another organization's key for this call.</param>
     /// <param name="cancellationToken">Cancels the call.</param>
@@ -30,7 +40,15 @@ public sealed class RefundsService
         return client.RequestAsync(HttpMethod.Post, "/api/v1/refunds", null, JsonSerializer.SerializeToUtf8Bytes(parameters, PerataJson.Default.RefundsCreateParams), PerataJson.Default.RefundEnvelope, options?.IdempotencyKey, options, cancellationToken);
     }
 
-    /// <summary>Listar reembolsos, opcionalmente de um pagamento (payment_id), de um status, de um cliente ou de um período. One page; <see cref="ListIterAsync"/> walks every page.</summary>
+    /// <summary>Listar reembolsos. One page; <see cref="ListIterAsync"/> walks every page.</summary>
+    /// <remarks>
+    /// <para>Devolve uma página dos reembolsos. Filtre por pagamento
+    /// (payment_id), status, cliente ou período.</para>
+    /// <para>Autenticação: chave de API da organização em Authorization: Bearer
+    /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
+    /// da requisição. Respostas em JSON no envelope data; erros com error,
+    /// message e fields.</para>
+    /// </remarks>
     /// <param name="parameters">The page, its size and the filters; the first page when null.</param>
     /// <param name="options">Another organization's key for this call.</param>
     /// <param name="cancellationToken">Cancels the call.</param>
@@ -120,18 +138,18 @@ public sealed record RefundsListParams
     /// <summary>Ordem da lista: created_at ou amount, e com um - na frente é decrescente (-created_at, o mais novo primeiro, é o padrão).</summary>
     public string? Sorting { get; init; }
 
-    internal IEnumerable<KeyValuePair<string, string?>> Query() =>
-    [
-        new("page", Page?.ToString(CultureInfo.InvariantCulture)),
-        new("limit", Limit?.ToString(CultureInfo.InvariantCulture)),
-        new("payment_id", PaymentId),
-        new("status", Status),
-        new("customer_id", CustomerId),
-        new("external_customer_id", ExternalCustomerId),
-        new("created_after", CreatedAfter),
-        new("created_before", CreatedBefore),
-        new("sorting", Sorting),
-    ];
+    internal IEnumerable<KeyValuePair<string, string?>> Query()
+    {
+        yield return new("page", Page?.ToString(CultureInfo.InvariantCulture));
+        yield return new("limit", Limit?.ToString(CultureInfo.InvariantCulture));
+        yield return new("payment_id", PaymentId);
+        yield return new("status", Status);
+        yield return new("customer_id", CustomerId);
+        yield return new("external_customer_id", ExternalCustomerId);
+        yield return new("created_after", CreatedAfter);
+        yield return new("created_before", CreatedBefore);
+        yield return new("sorting", Sorting);
+    }
 }
 
 
