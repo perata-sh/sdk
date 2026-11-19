@@ -144,16 +144,20 @@ public final class Webhook {
         if (environment == null) {
             environment = "";
         }
+        String showcaseId = Json.optional(event, "showcase_id", Json::asString);
+        if (showcaseId == null) {
+            showcaseId = "";
+        }
         Map<String, Object> data = Json.optional(event, "data", Json::asObject);
         if (data == null) {
             data = Map.of();
         }
 {{- range .Webhooks}}
         if ({{.Name}}WebhookEvent.TYPES.contains(type)) {
-            return {{.Name}}WebhookEvent.fromJson(id, type, timestamp, environment, data);
+            return {{.Name}}WebhookEvent.fromJson(id, type, timestamp, environment, showcaseId, data);
         }
 {{- end}}
-        return new UnknownWebhookEvent(id, type, timestamp, environment, data);
+        return new UnknownWebhookEvent(id, type, timestamp, environment, showcaseId, data);
     }
 
     private static String header(Map<String, ?> headers, String name) {

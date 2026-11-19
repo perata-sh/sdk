@@ -22,9 +22,10 @@ public final class DisputesService {
      * Devolve uma disputa pelo ID.
      *
      * Autenticação: chave de API da organização em Authorization: Bearer
-     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-     * requisição. Respostas em JSON no envelope data; erros com error, message
-     * e fields.
+     * (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+     * chave, nunca da requisição: a chave criada num showcase só alcança o que
+     * é dele. Respostas em JSON no envelope data; erros com error, message e
+     * fields.
      *
      * @param dispute the dispute
      * @param options another organization's key for this call, or null
@@ -42,9 +43,10 @@ public final class DisputesService {
      * Devolve uma disputa pelo ID.
      *
      * Autenticação: chave de API da organização em Authorization: Bearer
-     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-     * requisição. Respostas em JSON no envelope data; erros com error, message
-     * e fields.
+     * (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+     * chave, nunca da requisição: a chave criada num showcase só alcança o que
+     * é dele. Respostas em JSON no envelope data; erros com error, message e
+     * fields.
      *
      * @param dispute the dispute
      * @return the dispute
@@ -60,9 +62,10 @@ public final class DisputesService {
      * Devolve uma página das disputas. Com status, só as que estão nele.
      *
      * Autenticação: chave de API da organização em Authorization: Bearer
-     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-     * requisição. Respostas em JSON no envelope data; erros com error, message
-     * e fields.
+     * (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+     * chave, nunca da requisição: a chave criada num showcase só alcança o que
+     * é dele. Respostas em JSON no envelope data; erros com error, message e
+     * fields.
      *
      * @param params the page, its size and the filters, or null
      * @param options options for this call, or null
@@ -80,9 +83,10 @@ public final class DisputesService {
      * Devolve uma página das disputas. Com status, só as que estão nele.
      *
      * Autenticação: chave de API da organização em Authorization: Bearer
-     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-     * requisição. Respostas em JSON no envelope data; erros com error, message
-     * e fields.
+     * (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+     * chave, nunca da requisição: a chave criada num showcase só alcança o que
+     * é dele. Respostas em JSON no envelope data; erros com error, message e
+     * fields.
      *
      * @param params the page, its size and the filters, or null
      * @return the page
@@ -97,9 +101,10 @@ public final class DisputesService {
      * Devolve uma página das disputas. Com status, só as que estão nele.
      *
      * Autenticação: chave de API da organização em Authorization: Bearer
-     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-     * requisição. Respostas em JSON no envelope data; erros com error, message
-     * e fields.
+     * (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+     * chave, nunca da requisição: a chave criada num showcase só alcança o que
+     * é dele. Respostas em JSON no envelope data; erros com error, message e
+     * fields.
      *
      * @return the page
      */

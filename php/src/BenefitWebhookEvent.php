@@ -16,8 +16,8 @@ final class BenefitWebhookEvent extends WebhookEvent
     /** The event types this class carries. */
     public const TYPES = ['benefit.created', 'benefit.updated'];
 
-    public function __construct(string $id, string $type, string $timestamp, string $environment, public readonly Models\WebhookBenefit $data)
+    public function __construct(string $id, string $type, string $timestamp, string $environment, string $showcaseId, public readonly Models\WebhookBenefit $data)
     {
-        parent::__construct($id, $type, $timestamp, $environment);
+        parent::__construct($id, $type, $timestamp, $environment, $showcaseId);
     }
 }

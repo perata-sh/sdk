@@ -24,9 +24,10 @@ public final class BenefitsService {
      * configuram no painel.
      *
      * Autenticação: chave de API da organização em Authorization: Bearer
-     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-     * requisição. Respostas em JSON no envelope data; erros com error, message
-     * e fields.
+     * (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+     * chave, nunca da requisição: a chave criada num showcase só alcança o que
+     * é dele. Respostas em JSON no envelope data; erros com error, message e
+     * fields.
      *
      * @param params the request
      * @param options an idempotency key or another organization's key for this call, or null
@@ -46,9 +47,10 @@ public final class BenefitsService {
      * configuram no painel.
      *
      * Autenticação: chave de API da organização em Authorization: Bearer
-     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-     * requisição. Respostas em JSON no envelope data; erros com error, message
-     * e fields.
+     * (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+     * chave, nunca da requisição: a chave criada num showcase só alcança o que
+     * é dele. Respostas em JSON no envelope data; erros com error, message e
+     * fields.
      *
      * @param params the request
      * @return the benefit
@@ -233,9 +235,10 @@ public final class BenefitsService {
      * tem.
      *
      * Autenticação: chave de API da organização em Authorization: Bearer
-     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-     * requisição. Respostas em JSON no envelope data; erros com error, message
-     * e fields.
+     * (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+     * chave, nunca da requisição: a chave criada num showcase só alcança o que
+     * é dele. Respostas em JSON no envelope data; erros com error, message e
+     * fields.
      *
      * @param benefit the benefit
      * @param options an idempotency key or another organization's key for this call, or null
@@ -252,9 +255,10 @@ public final class BenefitsService {
      * tem.
      *
      * Autenticação: chave de API da organização em Authorization: Bearer
-     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-     * requisição. Respostas em JSON no envelope data; erros com error, message
-     * e fields.
+     * (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+     * chave, nunca da requisição: a chave criada num showcase só alcança o que
+     * é dele. Respostas em JSON no envelope data; erros com error, message e
+     * fields.
      *
      * @param benefit the benefit
      * @throws PerataException when the API refuses the call
@@ -269,9 +273,10 @@ public final class BenefitsService {
      * Devolve um benefício pelo ID.
      *
      * Autenticação: chave de API da organização em Authorization: Bearer
-     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-     * requisição. Respostas em JSON no envelope data; erros com error, message
-     * e fields.
+     * (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+     * chave, nunca da requisição: a chave criada num showcase só alcança o que
+     * é dele. Respostas em JSON no envelope data; erros com error, message e
+     * fields.
      *
      * @param benefit the benefit
      * @param options another organization's key for this call, or null
@@ -289,9 +294,10 @@ public final class BenefitsService {
      * Devolve um benefício pelo ID.
      *
      * Autenticação: chave de API da organização em Authorization: Bearer
-     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-     * requisição. Respostas em JSON no envelope data; erros com error, message
-     * e fields.
+     * (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+     * chave, nunca da requisição: a chave criada num showcase só alcança o que
+     * é dele. Respostas em JSON no envelope data; erros com error, message e
+     * fields.
      *
      * @param benefit the benefit
      * @return the benefit
@@ -308,9 +314,10 @@ public final class BenefitsService {
      * tipo.
      *
      * Autenticação: chave de API da organização em Authorization: Bearer
-     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-     * requisição. Respostas em JSON no envelope data; erros com error, message
-     * e fields.
+     * (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+     * chave, nunca da requisição: a chave criada num showcase só alcança o que
+     * é dele. Respostas em JSON no envelope data; erros com error, message e
+     * fields.
      *
      * @param params the page, its size and the filters, or null
      * @param options options for this call, or null
@@ -329,9 +336,10 @@ public final class BenefitsService {
      * tipo.
      *
      * Autenticação: chave de API da organização em Authorization: Bearer
-     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-     * requisição. Respostas em JSON no envelope data; erros com error, message
-     * e fields.
+     * (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+     * chave, nunca da requisição: a chave criada num showcase só alcança o que
+     * é dele. Respostas em JSON no envelope data; erros com error, message e
+     * fields.
      *
      * @param params the page, its size and the filters, or null
      * @return the page
@@ -347,9 +355,10 @@ public final class BenefitsService {
      * tipo.
      *
      * Autenticação: chave de API da organização em Authorization: Bearer
-     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-     * requisição. Respostas em JSON no envelope data; erros com error, message
-     * e fields.
+     * (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+     * chave, nunca da requisição: a chave criada num showcase só alcança o que
+     * é dele. Respostas em JSON no envelope data; erros com error, message e
+     * fields.
      *
      * @return the page
      */
@@ -484,9 +493,10 @@ public final class BenefitsService {
      * de um cliente; com is_granted, só as vigentes ou só as revogadas.
      *
      * Autenticação: chave de API da organização em Authorization: Bearer
-     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-     * requisição. Respostas em JSON no envelope data; erros com error, message
-     * e fields.
+     * (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+     * chave, nunca da requisição: a chave criada num showcase só alcança o que
+     * é dele. Respostas em JSON no envelope data; erros com error, message e
+     * fields.
      *
      * @param benefit the benefit
      * @param params the page, its size and the filters, or null
@@ -506,9 +516,10 @@ public final class BenefitsService {
      * de um cliente; com is_granted, só as vigentes ou só as revogadas.
      *
      * Autenticação: chave de API da organização em Authorization: Bearer
-     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-     * requisição. Respostas em JSON no envelope data; erros com error, message
-     * e fields.
+     * (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+     * chave, nunca da requisição: a chave criada num showcase só alcança o que
+     * é dele. Respostas em JSON no envelope data; erros com error, message e
+     * fields.
      *
      * @param benefit the benefit
      * @param params the page, its size and the filters, or null
@@ -525,9 +536,10 @@ public final class BenefitsService {
      * de um cliente; com is_granted, só as vigentes ou só as revogadas.
      *
      * Autenticação: chave de API da organização em Authorization: Bearer
-     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-     * requisição. Respostas em JSON no envelope data; erros com error, message
-     * e fields.
+     * (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+     * chave, nunca da requisição: a chave criada num showcase só alcança o que
+     * é dele. Respostas em JSON no envelope data; erros com error, message e
+     * fields.
      *
      * @param benefit the benefit
      * @return the page
@@ -686,9 +698,10 @@ public final class BenefitsService {
      * concessão já entregou fica como foi entregue.
      *
      * Autenticação: chave de API da organização em Authorization: Bearer
-     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-     * requisição. Respostas em JSON no envelope data; erros com error, message
-     * e fields.
+     * (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+     * chave, nunca da requisição: a chave criada num showcase só alcança o que
+     * é dele. Respostas em JSON no envelope data; erros com error, message e
+     * fields.
      *
      * @param benefit the benefit
      * @param params the request
@@ -709,9 +722,10 @@ public final class BenefitsService {
      * concessão já entregou fica como foi entregue.
      *
      * Autenticação: chave de API da organização em Authorization: Bearer
-     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-     * requisição. Respostas em JSON no envelope data; erros com error, message
-     * e fields.
+     * (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+     * chave, nunca da requisição: a chave criada num showcase só alcança o que
+     * é dele. Respostas em JSON no envelope data; erros com error, message e
+     * fields.
      *
      * @param benefit the benefit
      * @param params the request

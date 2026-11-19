@@ -16,9 +16,9 @@ module Perata
     # configuram no painel.
     #
     # Autenticação: chave de API da organização em Authorization: Bearer
-    # (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-    # requisição. Respostas em JSON no envelope data; erros com error, message e
-    # fields.
+    # (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+    # nunca da requisição: a chave criada num showcase só alcança o que é dele.
+    # Respostas em JSON no envelope data; erros com error, message e fields.
     #
     # @param params [BenefitsCreateParams, Hash]
     # @return [Benefit]
@@ -33,9 +33,9 @@ module Perata
     # tem.
     #
     # Autenticação: chave de API da organização em Authorization: Bearer
-    # (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-    # requisição. Respostas em JSON no envelope data; erros com error, message e
-    # fields.
+    # (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+    # nunca da requisição: a chave criada num showcase só alcança o que é dele.
+    # Respostas em JSON no envelope data; erros com error, message e fields.
     #
     # @return [nil]
     def delete(benefit, idempotency_key: nil, api_key: nil)
@@ -48,9 +48,9 @@ module Perata
     # Devolve um benefício pelo ID.
     #
     # Autenticação: chave de API da organização em Authorization: Bearer
-    # (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-    # requisição. Respostas em JSON no envelope data; erros com error, message e
-    # fields.
+    # (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+    # nunca da requisição: a chave criada num showcase só alcança o que é dele.
+    # Respostas em JSON no envelope data; erros com error, message e fields.
     #
     # @return [Benefit]
     def get(benefit, api_key: nil)
@@ -64,9 +64,9 @@ module Perata
     # tipo.
     #
     # Autenticação: chave de API da organização em Authorization: Bearer
-    # (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-    # requisição. Respostas em JSON no envelope data; erros com error, message e
-    # fields.
+    # (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+    # nunca da requisição: a chave criada num showcase só alcança o que é dele.
+    # Respostas em JSON no envelope data; erros com error, message e fields.
     #
     # @return [Page<Benefit>]
     def list(page: nil, limit: nil, type: nil, api_key: nil)
@@ -91,9 +91,9 @@ module Perata
     # de um cliente; com is_granted, só as vigentes ou só as revogadas.
     #
     # Autenticação: chave de API da organização em Authorization: Bearer
-    # (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-    # requisição. Respostas em JSON no envelope data; erros com error, message e
-    # fields.
+    # (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+    # nunca da requisição: a chave criada num showcase só alcança o que é dele.
+    # Respostas em JSON no envelope data; erros com error, message e fields.
     #
     # @return [Page<BenefitGrant>]
     def list_grants(benefit, page: nil, limit: nil, customer_id: nil, is_granted: nil, api_key: nil)
@@ -119,9 +119,9 @@ module Perata
     # concessão já entregou fica como foi entregue.
     #
     # Autenticação: chave de API da organização em Authorization: Bearer
-    # (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-    # requisição. Respostas em JSON no envelope data; erros com error, message e
-    # fields.
+    # (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+    # nunca da requisição: a chave criada num showcase só alcança o que é dele.
+    # Respostas em JSON no envelope data; erros com error, message e fields.
     #
     # @param params [BenefitsUpdateParams, Hash]
     # @return [Benefit]
@@ -144,9 +144,9 @@ module Perata
     # sessão de compra nova.
     #
     # Autenticação: chave de API da organização em Authorization: Bearer
-    # (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-    # requisição. Respostas em JSON no envelope data; erros com error, message e
-    # fields.
+    # (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+    # nunca da requisição: a chave criada num showcase só alcança o que é dele.
+    # Respostas em JSON no envelope data; erros com error, message e fields.
     #
     # @param params [CheckoutLinksCreateParams, Hash]
     # @return [CheckoutLink]
@@ -161,9 +161,9 @@ module Perata
     # continuam.
     #
     # Autenticação: chave de API da organização em Authorization: Bearer
-    # (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-    # requisição. Respostas em JSON no envelope data; erros com error, message e
-    # fields.
+    # (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+    # nunca da requisição: a chave criada num showcase só alcança o que é dele.
+    # Respostas em JSON no envelope data; erros com error, message e fields.
     #
     # @return [nil]
     def delete(checkout_link, idempotency_key: nil, api_key: nil)
@@ -176,9 +176,9 @@ module Perata
     # Devolve um link de checkout pelo ID.
     #
     # Autenticação: chave de API da organização em Authorization: Bearer
-    # (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-    # requisição. Respostas em JSON no envelope data; erros com error, message e
-    # fields.
+    # (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+    # nunca da requisição: a chave criada num showcase só alcança o que é dele.
+    # Respostas em JSON no envelope data; erros com error, message e fields.
     #
     # @return [CheckoutLink]
     def get(checkout_link, api_key: nil)
@@ -191,9 +191,9 @@ module Perata
     # Devolve uma página dos links de checkout da organização.
     #
     # Autenticação: chave de API da organização em Authorization: Bearer
-    # (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-    # requisição. Respostas em JSON no envelope data; erros com error, message e
-    # fields.
+    # (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+    # nunca da requisição: a chave criada num showcase só alcança o que é dele.
+    # Respostas em JSON no envelope data; erros com error, message e fields.
     #
     # @return [Page<CheckoutLink>]
     def list(page: nil, limit: nil, api_key: nil)
@@ -218,9 +218,9 @@ module Perata
     # link. A quantidade e o desconto ficam como foram publicados.
     #
     # Autenticação: chave de API da organização em Authorization: Bearer
-    # (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-    # requisição. Respostas em JSON no envelope data; erros com error, message e
-    # fields.
+    # (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+    # nunca da requisição: a chave criada num showcase só alcança o que é dele.
+    # Respostas em JSON no envelope data; erros com error, message e fields.
     #
     # @param params [CheckoutLinksUpdateParams, Hash]
     # @return [CheckoutLink]
@@ -243,12 +243,16 @@ module Perata
     # comprador usa para pagar sem chave de API; o client_secret vem só nesta
     # resposta. Para cobrar um valor que o seu servidor define, envie
     # amount_cents e items (preço de valor livre). Envie client_reference_id e
-    # metadata para achar o pedido depois.
+    # metadata para achar o pedido depois. Em uma assinatura, envie as linhas do
+    # pedido em items (só para exibição, com a soma igual ao valor do preço) e o
+    # desconto em discount_id. Para uma assinatura que só começa a cobrar numa
+    # data, envie subscription_start_at com o preço recorrente: o cartão é
+    # guardado sem cobrança e a primeira cobrança acontece nesse dia.
     #
     # Autenticação: chave de API da organização em Authorization: Bearer
-    # (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-    # requisição. Respostas em JSON no envelope data; erros com error, message e
-    # fields.
+    # (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+    # nunca da requisição: a chave criada num showcase só alcança o que é dele.
+    # Respostas em JSON no envelope data; erros com error, message e fields.
     #
     # @param params [CheckoutsCreateParams, Hash]
     # @return [CheckoutCreated]
@@ -265,9 +269,9 @@ module Perata
     # checkout já foi pago ou emitiu um boleto, a resposta é 409.
     #
     # Autenticação: chave de API da organização em Authorization: Bearer
-    # (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-    # requisição. Respostas em JSON no envelope data; erros com error, message e
-    # fields.
+    # (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+    # nunca da requisição: a chave criada num showcase só alcança o que é dele.
+    # Respostas em JSON no envelope data; erros com error, message e fields.
     #
     # @return [CheckoutExpired]
     def expire(checkout, idempotency_key: nil, api_key: nil)
@@ -280,9 +284,9 @@ module Perata
     # Devolve um checkout: o endereço, o estado e as páginas de retorno.
     #
     # Autenticação: chave de API da organização em Authorization: Bearer
-    # (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-    # requisição. Respostas em JSON no envelope data; erros com error, message e
-    # fields.
+    # (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+    # nunca da requisição: a chave criada num showcase só alcança o que é dele.
+    # Respostas em JSON no envelope data; erros com error, message e fields.
     #
     # @return [Checkout]
     def get(checkout, api_key: nil)
@@ -296,9 +300,9 @@ module Perata
     # período ou metadados.
     #
     # Autenticação: chave de API da organização em Authorization: Bearer
-    # (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-    # requisição. Respostas em JSON no envelope data; erros com error, message e
-    # fields.
+    # (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+    # nunca da requisição: a chave criada num showcase só alcança o que é dele.
+    # Respostas em JSON no envelope data; erros com error, message e fields.
     #
     # @return [Page<Checkout>]
     def list(page: nil, limit: nil, client_reference_id: nil, status: nil, created_after: nil, created_before: nil, sorting: nil, metadata: nil, api_key: nil)
@@ -322,9 +326,9 @@ module Perata
     # Muda o rótulo e as páginas de retorno de um checkout ativo.
     #
     # Autenticação: chave de API da organização em Authorization: Bearer
-    # (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-    # requisição. Respostas em JSON no envelope data; erros com error, message e
-    # fields.
+    # (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+    # nunca da requisição: a chave criada num showcase só alcança o que é dele.
+    # Respostas em JSON no envelope data; erros com error, message e fields.
     #
     # @param params [CheckoutsUpdateParams, Hash]
     # @return [Checkout]
@@ -347,9 +351,9 @@ module Perata
     # seu aplicativo, o portal oferece a volta.
     #
     # Autenticação: chave de API da organização em Authorization: Bearer
-    # (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-    # requisição. Respostas em JSON no envelope data; erros com error, message e
-    # fields.
+    # (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+    # nunca da requisição: a chave criada num showcase só alcança o que é dele.
+    # Respostas em JSON no envelope data; erros com error, message e fields.
     #
     # @param params [CustomerSessionsCreateParams, Hash]
     # @return [CustomerSession]
@@ -374,9 +378,9 @@ module Perata
     # Se o e-mail for de um cliente com outro ID externo, a resposta é 422.
     #
     # Autenticação: chave de API da organização em Authorization: Bearer
-    # (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-    # requisição. Respostas em JSON no envelope data; erros com error, message e
-    # fields.
+    # (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+    # nunca da requisição: a chave criada num showcase só alcança o que é dele.
+    # Respostas em JSON no envelope data; erros com error, message e fields.
     #
     # @param params [CustomersCreateParams, Hash]
     # @return [Customer]
@@ -392,9 +396,9 @@ module Perata
     # nos registros.
     #
     # Autenticação: chave de API da organização em Authorization: Bearer
-    # (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-    # requisição. Respostas em JSON no envelope data; erros com error, message e
-    # fields.
+    # (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+    # nunca da requisição: a chave criada num showcase só alcança o que é dele.
+    # Respostas em JSON no envelope data; erros com error, message e fields.
     #
     # @return [nil]
     def delete(customer, idempotency_key: nil, api_key: nil)
@@ -407,9 +411,9 @@ module Perata
     # Devolve um cliente pelo ID.
     #
     # Autenticação: chave de API da organização em Authorization: Bearer
-    # (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-    # requisição. Respostas em JSON no envelope data; erros com error, message e
-    # fields.
+    # (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+    # nunca da requisição: a chave criada num showcase só alcança o que é dele.
+    # Respostas em JSON no envelope data; erros com error, message e fields.
     #
     # @return [Customer]
     def get(customer, api_key: nil)
@@ -423,9 +427,9 @@ module Perata
     # (external_id).
     #
     # Autenticação: chave de API da organização em Authorization: Bearer
-    # (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-    # requisição. Respostas em JSON no envelope data; erros com error, message e
-    # fields.
+    # (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+    # nunca da requisição: a chave criada num showcase só alcança o que é dele.
+    # Respostas em JSON no envelope data; erros com error, message e fields.
     #
     # @return [Customer]
     def get_external(external_id, api_key: nil)
@@ -440,9 +444,9 @@ module Perata
     # para decidir o que o cliente pode usar.
     #
     # Autenticação: chave de API da organização em Authorization: Bearer
-    # (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-    # requisição. Respostas em JSON no envelope data; erros com error, message e
-    # fields.
+    # (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+    # nunca da requisição: a chave criada num showcase só alcança o que é dele.
+    # Respostas em JSON no envelope data; erros com error, message e fields.
     #
     # @return [CustomerState]
     def get_state(customer, api_key: nil)
@@ -456,9 +460,9 @@ module Perata
     # sem diferença entre maiúsculas e minúsculas.
     #
     # Autenticação: chave de API da organização em Authorization: Bearer
-    # (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-    # requisição. Respostas em JSON no envelope data; erros com error, message e
-    # fields.
+    # (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+    # nunca da requisição: a chave criada num showcase só alcança o que é dele.
+    # Respostas em JSON no envelope data; erros com error, message e fields.
     #
     # @return [Page<Customer>]
     def list(page: nil, limit: nil, email: nil, api_key: nil)
@@ -483,9 +487,9 @@ module Perata
     # endereço de cobrança. O ID externo só pode ser definido uma vez.
     #
     # Autenticação: chave de API da organização em Authorization: Bearer
-    # (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-    # requisição. Respostas em JSON no envelope data; erros com error, message e
-    # fields.
+    # (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+    # nunca da requisição: a chave criada num showcase só alcança o que é dele.
+    # Respostas em JSON no envelope data; erros com error, message e fields.
     #
     # @param params [CustomersUpdateParams, Hash]
     # @return [Customer]
@@ -500,9 +504,9 @@ module Perata
     # (external_id). Os campos são os de Atualizar um cliente.
     #
     # Autenticação: chave de API da organização em Authorization: Bearer
-    # (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-    # requisição. Respostas em JSON no envelope data; erros com error, message e
-    # fields.
+    # (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+    # nunca da requisição: a chave criada num showcase só alcança o que é dele.
+    # Respostas em JSON no envelope data; erros com error, message e fields.
     #
     # @param params [CustomersUpdateExternalParams, Hash]
     # @return [Customer]
@@ -525,9 +529,9 @@ module Perata
     # só vale num link de checkout ou pela API.
     #
     # Autenticação: chave de API da organização em Authorization: Bearer
-    # (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-    # requisição. Respostas em JSON no envelope data; erros com error, message e
-    # fields.
+    # (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+    # nunca da requisição: a chave criada num showcase só alcança o que é dele.
+    # Respostas em JSON no envelope data; erros com error, message e fields.
     #
     # @param params [DiscountsCreateParams, Hash]
     # @return [Discount]
@@ -542,9 +546,9 @@ module Perata
     # livre. O que ele já descontou continua nos registros.
     #
     # Autenticação: chave de API da organização em Authorization: Bearer
-    # (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-    # requisição. Respostas em JSON no envelope data; erros com error, message e
-    # fields.
+    # (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+    # nunca da requisição: a chave criada num showcase só alcança o que é dele.
+    # Respostas em JSON no envelope data; erros com error, message e fields.
     #
     # @return [nil]
     def delete(discount, idempotency_key: nil, api_key: nil)
@@ -557,9 +561,9 @@ module Perata
     # Devolve um desconto pelo ID.
     #
     # Autenticação: chave de API da organização em Authorization: Bearer
-    # (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-    # requisição. Respostas em JSON no envelope data; erros com error, message e
-    # fields.
+    # (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+    # nunca da requisição: a chave criada num showcase só alcança o que é dele.
+    # Respostas em JSON no envelope data; erros com error, message e fields.
     #
     # @return [Discount]
     def get(discount, api_key: nil)
@@ -572,9 +576,9 @@ module Perata
     # Devolve uma página dos descontos da organização.
     #
     # Autenticação: chave de API da organização em Authorization: Bearer
-    # (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-    # requisição. Respostas em JSON no envelope data; erros com error, message e
-    # fields.
+    # (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+    # nunca da requisição: a chave criada num showcase só alcança o que é dele.
+    # Respostas em JSON no envelope data; erros com error, message e fields.
     #
     # @return [Page<Discount>]
     def list(page: nil, limit: nil, api_key: nil)
@@ -599,9 +603,9 @@ module Perata
     # valor e os meses também não.
     #
     # Autenticação: chave de API da organização em Authorization: Bearer
-    # (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-    # requisição. Respostas em JSON no envelope data; erros com error, message e
-    # fields.
+    # (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+    # nunca da requisição: a chave criada num showcase só alcança o que é dele.
+    # Respostas em JSON no envelope data; erros com error, message e fields.
     #
     # @param params [DiscountsUpdateParams, Hash]
     # @return [Discount]
@@ -622,9 +626,9 @@ module Perata
     # Devolve uma disputa pelo ID.
     #
     # Autenticação: chave de API da organização em Authorization: Bearer
-    # (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-    # requisição. Respostas em JSON no envelope data; erros com error, message e
-    # fields.
+    # (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+    # nunca da requisição: a chave criada num showcase só alcança o que é dele.
+    # Respostas em JSON no envelope data; erros com error, message e fields.
     #
     # @return [Dispute]
     def get(dispute, api_key: nil)
@@ -637,9 +641,9 @@ module Perata
     # Devolve uma página das disputas. Com status, só as que estão nele.
     #
     # Autenticação: chave de API da organização em Authorization: Bearer
-    # (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-    # requisição. Respostas em JSON no envelope data; erros com error, message e
-    # fields.
+    # (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+    # nunca da requisição: a chave criada num showcase só alcança o que é dele.
+    # Respostas em JSON no envelope data; erros com error, message e fields.
     #
     # @return [Page<Dispute>]
     def list(page: nil, limit: nil, status: nil, api_key: nil)
@@ -671,9 +675,9 @@ module Perata
     # novo ao mais antigo.
     #
     # Autenticação: chave de API da organização em Authorization: Bearer
-    # (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-    # requisição. Respostas em JSON no envelope data; erros com error, message e
-    # fields.
+    # (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+    # nunca da requisição: a chave criada num showcase só alcança o que é dele.
+    # Respostas em JSON no envelope data; erros com error, message e fields.
     #
     # @return [Page<Event>]
     def list(page: nil, limit: nil, customer_id: nil, start: nil, end_: nil, api_key: nil)
@@ -705,9 +709,9 @@ module Perata
     # unidade.
     #
     # Autenticação: chave de API da organização em Authorization: Bearer
-    # (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-    # requisição. Respostas em JSON no envelope data; erros com error, message e
-    # fields.
+    # (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+    # nunca da requisição: a chave criada num showcase só alcança o que é dele.
+    # Respostas em JSON no envelope data; erros com error, message e fields.
     #
     # @return [Meter]
     def get(meter, api_key: nil)
@@ -721,9 +725,9 @@ module Perata
     # is_archived=true.
     #
     # Autenticação: chave de API da organização em Authorization: Bearer
-    # (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-    # requisição. Respostas em JSON no envelope data; erros com error, message e
-    # fields.
+    # (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+    # nunca da requisição: a chave criada num showcase só alcança o que é dele.
+    # Respostas em JSON no envelope data; erros com error, message e fields.
     #
     # @return [Page<Meter>]
     def list(page: nil, limit: nil, is_archived: nil, api_key: nil)
@@ -751,12 +755,13 @@ module Perata
 
     # Ler um pedido.
     #
-    # Devolve um pedido: um checkout pago.
+    # Devolve um pedido: um checkout pago. Se ele pagou um ciclo de assinatura,
+    # traz subscription_id, cycle_sequence, period_start e period_end.
     #
     # Autenticação: chave de API da organização em Authorization: Bearer
-    # (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-    # requisição. Respostas em JSON no envelope data; erros com error, message e
-    # fields.
+    # (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+    # nunca da requisição: a chave criada num showcase só alcança o que é dele.
+    # Respostas em JSON no envelope data; erros com error, message e fields.
     #
     # @return [Order]
     def get(order, api_key: nil)
@@ -770,9 +775,9 @@ module Perata
     # Sem fatura, a resposta é 404.
     #
     # Autenticação: chave de API da organização em Authorization: Bearer
-    # (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-    # requisição. Respostas em JSON no envelope data; erros com error, message e
-    # fields.
+    # (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+    # nunca da requisição: a chave criada num showcase só alcança o que é dele.
+    # Respostas em JSON no envelope data; erros com error, message e fields.
     #
     # @return [OrderInvoice]
     def get_invoice(order, api_key: nil)
@@ -785,9 +790,9 @@ module Perata
     # Devolve o recibo de um pedido: o que foi pago, quando e como.
     #
     # Autenticação: chave de API da organização em Authorization: Bearer
-    # (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-    # requisição. Respostas em JSON no envelope data; erros com error, message e
-    # fields.
+    # (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+    # nunca da requisição: a chave criada num showcase só alcança o que é dele.
+    # Respostas em JSON no envelope data; erros com error, message e fields.
     #
     # @return [OrderReceipt]
     def get_receipt(order, api_key: nil)
@@ -798,16 +803,17 @@ module Perata
     # Listar pedidos. One page; +list_iter+ walks every page.
     #
     # Devolve uma página dos pedidos, que são os checkouts pagos. Filtre por
-    # client_reference_id, cliente, período ou metadados.
+    # client_reference_id, cliente, assinatura (subscription_id), período ou
+    # metadados.
     #
     # Autenticação: chave de API da organização em Authorization: Bearer
-    # (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-    # requisição. Respostas em JSON no envelope data; erros com error, message e
-    # fields.
+    # (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+    # nunca da requisição: a chave criada num showcase só alcança o que é dele.
+    # Respostas em JSON no envelope data; erros com error, message e fields.
     #
     # @return [Page<Order>]
-    def list(page: nil, limit: nil, client_reference_id: nil, status: nil, customer_id: nil, external_customer_id: nil, created_after: nil, created_before: nil, sorting: nil, metadata: nil, api_key: nil)
-      query = { "page" => page, "limit" => limit, "client_reference_id" => client_reference_id, "status" => status, "customer_id" => customer_id, "external_customer_id" => external_customer_id, "created_after" => created_after, "created_before" => created_before, "sorting" => sorting, "metadata" => metadata }
+    def list(page: nil, limit: nil, client_reference_id: nil, status: nil, customer_id: nil, external_customer_id: nil, subscription_id: nil, created_after: nil, created_before: nil, sorting: nil, metadata: nil, api_key: nil)
+      query = { "page" => page, "limit" => limit, "client_reference_id" => client_reference_id, "status" => status, "customer_id" => customer_id, "external_customer_id" => external_customer_id, "subscription_id" => subscription_id, "created_after" => created_after, "created_before" => created_before, "sorting" => sorting, "metadata" => metadata }
       data = @client.request("GET", "/api/v1/orders", query: query, api_key: api_key)
       Page.from_hash(data) { |item| Order.from_hash(item) }
     end
@@ -815,9 +821,9 @@ module Perata
     # Walks every page of orders:list from +page+, item by item.
     #
     # @return [Enumerator<Order>]
-    def list_iter(page: nil, limit: nil, client_reference_id: nil, status: nil, customer_id: nil, external_customer_id: nil, created_after: nil, created_before: nil, sorting: nil, metadata: nil, api_key: nil, &block)
+    def list_iter(page: nil, limit: nil, client_reference_id: nil, status: nil, customer_id: nil, external_customer_id: nil, subscription_id: nil, created_after: nil, created_before: nil, sorting: nil, metadata: nil, api_key: nil, &block)
       items = Page.iterate(page) do |at|
-        list(page: at, limit: limit, client_reference_id: client_reference_id, status: status, customer_id: customer_id, external_customer_id: external_customer_id, created_after: created_after, created_before: created_before, sorting: sorting, metadata: metadata, api_key: api_key)
+        list(page: at, limit: limit, client_reference_id: client_reference_id, status: status, customer_id: customer_id, external_customer_id: external_customer_id, subscription_id: subscription_id, created_after: created_after, created_before: created_before, sorting: sorting, metadata: metadata, api_key: api_key)
       end
       block ? items.each(&block) : items
     end
@@ -835,9 +841,9 @@ module Perata
     # assinatura ativa o cobra.
     #
     # Autenticação: chave de API da organização em Authorization: Bearer
-    # (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-    # requisição. Respostas em JSON no envelope data; erros com error, message e
-    # fields.
+    # (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+    # nunca da requisição: a chave criada num showcase só alcança o que é dele.
+    # Respostas em JSON no envelope data; erros com error, message e fields.
     #
     # @return [PaymentMethodDetached]
     def detach(payment_method, idempotency_key: nil, api_key: nil)
@@ -851,9 +857,9 @@ module Perata
     # dígitos e validade. O número do cartão nunca aparece.
     #
     # Autenticação: chave de API da organização em Authorization: Bearer
-    # (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-    # requisição. Respostas em JSON no envelope data; erros com error, message e
-    # fields.
+    # (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+    # nunca da requisição: a chave criada num showcase só alcança o que é dele.
+    # Respostas em JSON no envelope data; erros com error, message e fields.
     #
     # @return [Page<PaymentMethod>]
     def list(customer, page: nil, limit: nil, api_key: nil)
@@ -884,9 +890,9 @@ module Perata
     # Devolve um pagamento pelo ID.
     #
     # Autenticação: chave de API da organização em Authorization: Bearer
-    # (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-    # requisição. Respostas em JSON no envelope data; erros com error, message e
-    # fields.
+    # (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+    # nunca da requisição: a chave criada num showcase só alcança o que é dele.
+    # Respostas em JSON no envelope data; erros com error, message e fields.
     #
     # @return [Payment]
     def get(payment, api_key: nil)
@@ -897,16 +903,16 @@ module Perata
     # Listar pagamentos. One page; +list_iter+ walks every page.
     #
     # Devolve uma página dos pagamentos. Filtre por client_reference_id, estado,
-    # cliente, período ou metadados.
+    # cliente, assinatura (subscription_id), período ou metadados.
     #
     # Autenticação: chave de API da organização em Authorization: Bearer
-    # (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-    # requisição. Respostas em JSON no envelope data; erros com error, message e
-    # fields.
+    # (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+    # nunca da requisição: a chave criada num showcase só alcança o que é dele.
+    # Respostas em JSON no envelope data; erros com error, message e fields.
     #
     # @return [Page<Payment>]
-    def list(page: nil, limit: nil, client_reference_id: nil, status: nil, customer_id: nil, external_customer_id: nil, created_after: nil, created_before: nil, sorting: nil, metadata: nil, api_key: nil)
-      query = { "page" => page, "limit" => limit, "client_reference_id" => client_reference_id, "status" => status, "customer_id" => customer_id, "external_customer_id" => external_customer_id, "created_after" => created_after, "created_before" => created_before, "sorting" => sorting, "metadata" => metadata }
+    def list(page: nil, limit: nil, client_reference_id: nil, status: nil, customer_id: nil, external_customer_id: nil, subscription_id: nil, created_after: nil, created_before: nil, sorting: nil, metadata: nil, api_key: nil)
+      query = { "page" => page, "limit" => limit, "client_reference_id" => client_reference_id, "status" => status, "customer_id" => customer_id, "external_customer_id" => external_customer_id, "subscription_id" => subscription_id, "created_after" => created_after, "created_before" => created_before, "sorting" => sorting, "metadata" => metadata }
       data = @client.request("GET", "/api/v1/payments", query: query, api_key: api_key)
       Page.from_hash(data) { |item| Payment.from_hash(item) }
     end
@@ -914,9 +920,9 @@ module Perata
     # Walks every page of payments:list from +page+, item by item.
     #
     # @return [Enumerator<Payment>]
-    def list_iter(page: nil, limit: nil, client_reference_id: nil, status: nil, customer_id: nil, external_customer_id: nil, created_after: nil, created_before: nil, sorting: nil, metadata: nil, api_key: nil, &block)
+    def list_iter(page: nil, limit: nil, client_reference_id: nil, status: nil, customer_id: nil, external_customer_id: nil, subscription_id: nil, created_after: nil, created_before: nil, sorting: nil, metadata: nil, api_key: nil, &block)
       items = Page.iterate(page) do |at|
-        list(page: at, limit: limit, client_reference_id: client_reference_id, status: status, customer_id: customer_id, external_customer_id: external_customer_id, created_after: created_after, created_before: created_before, sorting: sorting, metadata: metadata, api_key: api_key)
+        list(page: at, limit: limit, client_reference_id: client_reference_id, status: status, customer_id: customer_id, external_customer_id: external_customer_id, subscription_id: subscription_id, created_after: created_after, created_before: created_before, sorting: sorting, metadata: metadata, api_key: api_key)
       end
       block ? items.each(&block) : items
     end
@@ -935,9 +941,9 @@ module Perata
     # quanto tempo ele renova: month com 3 é trimestral.
     #
     # Autenticação: chave de API da organização em Authorization: Bearer
-    # (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-    # requisição. Respostas em JSON no envelope data; erros com error, message e
-    # fields.
+    # (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+    # nunca da requisição: a chave criada num showcase só alcança o que é dele.
+    # Respostas em JSON no envelope data; erros com error, message e fields.
     #
     # @param params [PricesCreateParams, Hash]
     # @return [Price]
@@ -952,9 +958,9 @@ module Perata
     # produto.
     #
     # Autenticação: chave de API da organização em Authorization: Bearer
-    # (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-    # requisição. Respostas em JSON no envelope data; erros com error, message e
-    # fields.
+    # (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+    # nunca da requisição: a chave criada num showcase só alcança o que é dele.
+    # Respostas em JSON no envelope data; erros com error, message e fields.
     #
     # @return [Page<Price>]
     def list(page: nil, limit: nil, product_id: nil, api_key: nil)
@@ -986,9 +992,9 @@ module Perata
     # continua apontando para ele.
     #
     # Autenticação: chave de API da organização em Authorization: Bearer
-    # (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-    # requisição. Respostas em JSON no envelope data; erros com error, message e
-    # fields.
+    # (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+    # nunca da requisição: a chave criada num showcase só alcança o que é dele.
+    # Respostas em JSON no envelope data; erros com error, message e fields.
     #
     # @return [Product]
     def archive(product, idempotency_key: nil, api_key: nil)
@@ -1002,9 +1008,9 @@ module Perata
     # preço.
     #
     # Autenticação: chave de API da organização em Authorization: Bearer
-    # (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-    # requisição. Respostas em JSON no envelope data; erros com error, message e
-    # fields.
+    # (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+    # nunca da requisição: a chave criada num showcase só alcança o que é dele.
+    # Respostas em JSON no envelope data; erros com error, message e fields.
     #
     # @param params [ProductsCreateParams, Hash]
     # @return [Product]
@@ -1018,9 +1024,9 @@ module Perata
     # Devolve um produto pelo ID.
     #
     # Autenticação: chave de API da organização em Authorization: Bearer
-    # (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-    # requisição. Respostas em JSON no envelope data; erros com error, message e
-    # fields.
+    # (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+    # nunca da requisição: a chave criada num showcase só alcança o que é dele.
+    # Respostas em JSON no envelope data; erros com error, message e fields.
     #
     # @return [Product]
     def get(product, api_key: nil)
@@ -1033,9 +1039,9 @@ module Perata
     # Devolve uma página dos produtos da organização, no ambiente da chave.
     #
     # Autenticação: chave de API da organização em Authorization: Bearer
-    # (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-    # requisição. Respostas em JSON no envelope data; erros com error, message e
-    # fields.
+    # (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+    # nunca da requisição: a chave criada num showcase só alcança o que é dele.
+    # Respostas em JSON no envelope data; erros com error, message e fields.
     #
     # @return [Page<Product>]
     def list(page: nil, limit: nil, api_key: nil)
@@ -1060,9 +1066,9 @@ module Perata
     # como está.
     #
     # Autenticação: chave de API da organização em Authorization: Bearer
-    # (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-    # requisição. Respostas em JSON no envelope data; erros com error, message e
-    # fields.
+    # (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+    # nunca da requisição: a chave criada num showcase só alcança o que é dele.
+    # Respostas em JSON no envelope data; erros com error, message e fields.
     #
     # @param params [ProductsUpdateParams, Hash]
     # @return [Product]
@@ -1078,16 +1084,21 @@ module Perata
       @client = client
     end
 
-    # Reembolsar um pagamento.
+    # Reembolsar um pagamento ou um pedido.
     #
-    # Devolve parte ou todo o valor de um pagamento. A Idempotency-Key é
-    # obrigatória: sem ela, repetir a chamada depois de um tempo esgotado seria
-    # devolver duas vezes.
+    # Devolve dinheiro de um pagamento, que você nomeia pelo payment_id ou pelo
+    # order_id do pedido que ele pagou (os dois, só se forem do mesmo
+    # pagamento). Sem amount_cents devolve tudo o que ainda pode ser devolvido;
+    # com ele, uma parte, até esse limite. O reason, sem ele, é
+    # requested_by_customer. O metadata fica no reembolso e volta nele e nos
+    # eventos refund.*. A Idempotency-Key é obrigatória: sem ela, repetir a
+    # chamada depois de um tempo esgotado seria devolver duas vezes; repetida
+    # com a mesma chave, devolve o mesmo reembolso.
     #
     # Autenticação: chave de API da organização em Authorization: Bearer
-    # (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-    # requisição. Respostas em JSON no envelope data; erros com error, message e
-    # fields.
+    # (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+    # nunca da requisição: a chave criada num showcase só alcança o que é dele.
+    # Respostas em JSON no envelope data; erros com error, message e fields.
     #
     # @param params [RefundsCreateParams, Hash]
     # @return [Refund]
@@ -1096,19 +1107,36 @@ module Perata
       Refund.from_hash(data)
     end
 
+    # Ler um reembolso.
+    #
+    # Devolve um reembolso pelo ID, com o pedido de onde veio (order_id), o
+    # client_reference_id desse pedido e o status: requested e pending esperam a
+    # Cielo, succeeded devolveu o dinheiro.
+    #
+    # Autenticação: chave de API da organização em Authorization: Bearer
+    # (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+    # nunca da requisição: a chave criada num showcase só alcança o que é dele.
+    # Respostas em JSON no envelope data; erros com error, message e fields.
+    #
+    # @return [Refund]
+    def get(refund, api_key: nil)
+      data = @client.request("GET", "/api/v1/refunds/#{Perata.segment(refund)}", api_key: api_key)
+      Refund.from_hash(data)
+    end
+
     # Listar reembolsos. One page; +list_iter+ walks every page.
     #
     # Devolve uma página dos reembolsos. Filtre por pagamento (payment_id),
-    # status, cliente ou período.
+    # status, cliente, período ou metadados do reembolso.
     #
     # Autenticação: chave de API da organização em Authorization: Bearer
-    # (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-    # requisição. Respostas em JSON no envelope data; erros com error, message e
-    # fields.
+    # (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+    # nunca da requisição: a chave criada num showcase só alcança o que é dele.
+    # Respostas em JSON no envelope data; erros com error, message e fields.
     #
     # @return [Page<Refund>]
-    def list(page: nil, limit: nil, payment_id: nil, status: nil, customer_id: nil, external_customer_id: nil, created_after: nil, created_before: nil, sorting: nil, api_key: nil)
-      query = { "page" => page, "limit" => limit, "payment_id" => payment_id, "status" => status, "customer_id" => customer_id, "external_customer_id" => external_customer_id, "created_after" => created_after, "created_before" => created_before, "sorting" => sorting }
+    def list(page: nil, limit: nil, payment_id: nil, status: nil, customer_id: nil, external_customer_id: nil, created_after: nil, created_before: nil, sorting: nil, metadata: nil, api_key: nil)
+      query = { "page" => page, "limit" => limit, "payment_id" => payment_id, "status" => status, "customer_id" => customer_id, "external_customer_id" => external_customer_id, "created_after" => created_after, "created_before" => created_before, "sorting" => sorting, "metadata" => metadata }
       data = @client.request("GET", "/api/v1/refunds", query: query, api_key: api_key)
       Page.from_hash(data) { |item| Refund.from_hash(item) }
     end
@@ -1116,11 +1144,36 @@ module Perata
     # Walks every page of refunds:list from +page+, item by item.
     #
     # @return [Enumerator<Refund>]
-    def list_iter(page: nil, limit: nil, payment_id: nil, status: nil, customer_id: nil, external_customer_id: nil, created_after: nil, created_before: nil, sorting: nil, api_key: nil, &block)
+    def list_iter(page: nil, limit: nil, payment_id: nil, status: nil, customer_id: nil, external_customer_id: nil, created_after: nil, created_before: nil, sorting: nil, metadata: nil, api_key: nil, &block)
       items = Page.iterate(page) do |at|
-        list(page: at, limit: limit, payment_id: payment_id, status: status, customer_id: customer_id, external_customer_id: external_customer_id, created_after: created_after, created_before: created_before, sorting: sorting, api_key: api_key)
+        list(page: at, limit: limit, payment_id: payment_id, status: status, customer_id: customer_id, external_customer_id: external_customer_id, created_after: created_after, created_before: created_before, sorting: sorting, metadata: metadata, api_key: api_key)
       end
       block ? items.each(&block) : items
+    end
+  end
+
+  # The API's showcase.
+  class ShowcaseService
+    def initialize(client)
+      @client = client
+    end
+
+    # Ler o showcase da chave.
+    #
+    # Devolve o showcase em que a chave foi criada: o ID (o showcase_id dos
+    # objetos e dos eventos), o nome, se é o principal da organização e se tem
+    # logo. Serve para o seu sistema, ou um assistente, saber onde está. Um
+    # showcase se abre e se muda no painel, nunca por esta API.
+    #
+    # Autenticação: chave de API da organização em Authorization: Bearer
+    # (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+    # nunca da requisição: a chave criada num showcase só alcança o que é dele.
+    # Respostas em JSON no envelope data; erros com error, message e fields.
+    #
+    # @return [Showcase]
+    def get(api_key: nil)
+      data = @client.request("GET", "/api/v1/showcase", api_key: api_key)
+      Showcase.from_hash(data)
     end
   end
 
@@ -1136,9 +1189,9 @@ module Perata
     # já pago.
     #
     # Autenticação: chave de API da organização em Authorization: Bearer
-    # (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-    # requisição. Respostas em JSON no envelope data; erros com error, message e
-    # fields.
+    # (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+    # nunca da requisição: a chave criada num showcase só alcança o que é dele.
+    # Respostas em JSON no envelope data; erros com error, message e fields.
     #
     # @param params [SubscriptionsCancelParams, Hash]
     # @return [Subscription]
@@ -1152,9 +1205,9 @@ module Perata
     # Devolve uma assinatura pelo ID.
     #
     # Autenticação: chave de API da organização em Authorization: Bearer
-    # (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-    # requisição. Respostas em JSON no envelope data; erros com error, message e
-    # fields.
+    # (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+    # nunca da requisição: a chave criada num showcase só alcança o que é dele.
+    # Respostas em JSON no envelope data; erros com error, message e fields.
     #
     # @return [Subscription]
     def get(subscription, api_key: nil)
@@ -1168,9 +1221,9 @@ module Perata
     # external_customer_id), status, período ou metadados.
     #
     # Autenticação: chave de API da organização em Authorization: Bearer
-    # (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-    # requisição. Respostas em JSON no envelope data; erros com error, message e
-    # fields.
+    # (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+    # nunca da requisição: a chave criada num showcase só alcança o que é dele.
+    # Respostas em JSON no envelope data; erros com error, message e fields.
     #
     # @return [Page<Subscription>]
     def list(page: nil, limit: nil, status: nil, customer_id: nil, external_customer_id: nil, created_after: nil, created_before: nil, sorting: nil, metadata: nil, api_key: nil)
@@ -1196,9 +1249,9 @@ module Perata
     # assinatura recebe 409.
     #
     # Autenticação: chave de API da organização em Authorization: Bearer
-    # (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-    # requisição. Respostas em JSON no envelope data; erros com error, message e
-    # fields.
+    # (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+    # nunca da requisição: a chave criada num showcase só alcança o que é dele.
+    # Respostas em JSON no envelope data; erros com error, message e fields.
     #
     # @return [Subscription]
     def resume(subscription, idempotency_key: nil, api_key: nil)
@@ -1212,9 +1265,9 @@ module Perata
     # quantidade. O proration_behavior diz como ratear a diferença.
     #
     # Autenticação: chave de API da organização em Authorization: Bearer
-    # (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-    # requisição. Respostas em JSON no envelope data; erros com error, message e
-    # fields.
+    # (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+    # nunca da requisição: a chave criada num showcase só alcança o que é dele.
+    # Respostas em JSON no envelope data; erros com error, message e fields.
     #
     # @param params [SubscriptionsUpdateParams, Hash]
     # @return [Subscription]
@@ -1272,9 +1325,9 @@ module Perata
     # nesta resposta; guarde-o.
     #
     # Autenticação: chave de API da organização em Authorization: Bearer
-    # (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-    # requisição. Respostas em JSON no envelope data; erros com error, message e
-    # fields.
+    # (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+    # nunca da requisição: a chave criada num showcase só alcança o que é dele.
+    # Respostas em JSON no envelope data; erros com error, message e fields.
     #
     # @param params [WebhooksCreateEndpointParams, Hash]
     # @return [WebhookEndpointCreated]
@@ -1289,9 +1342,9 @@ module Perata
     # falham.
     #
     # Autenticação: chave de API da organização em Authorization: Bearer
-    # (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-    # requisição. Respostas em JSON no envelope data; erros com error, message e
-    # fields.
+    # (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+    # nunca da requisição: a chave criada num showcase só alcança o que é dele.
+    # Respostas em JSON no envelope data; erros com error, message e fields.
     #
     # @return [nil]
     def delete_endpoint(endpoint, idempotency_key: nil, api_key: nil)
@@ -1304,9 +1357,9 @@ module Perata
     # Devolve um endpoint de webhook pelo ID.
     #
     # Autenticação: chave de API da organização em Authorization: Bearer
-    # (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-    # requisição. Respostas em JSON no envelope data; erros com error, message e
-    # fields.
+    # (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+    # nunca da requisição: a chave criada num showcase só alcança o que é dele.
+    # Respostas em JSON no envelope data; erros com error, message e fields.
     #
     # @return [WebhookEndpoint]
     def get_endpoint(endpoint, api_key: nil)
@@ -1320,9 +1373,9 @@ module Perata
     # só as de um endpoint; com status, só as de uma situação.
     #
     # Autenticação: chave de API da organização em Authorization: Bearer
-    # (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-    # requisição. Respostas em JSON no envelope data; erros com error, message e
-    # fields.
+    # (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+    # nunca da requisição: a chave criada num showcase só alcança o que é dele.
+    # Respostas em JSON no envelope data; erros com error, message e fields.
     #
     # @return [Page<WebhookDelivery>]
     def list_deliveries(page: nil, limit: nil, endpoint_id: nil, status: nil, api_key: nil)
@@ -1346,9 +1399,9 @@ module Perata
     # Devolve uma página dos endpoints de webhook da organização.
     #
     # Autenticação: chave de API da organização em Authorization: Bearer
-    # (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-    # requisição. Respostas em JSON no envelope data; erros com error, message e
-    # fields.
+    # (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+    # nunca da requisição: a chave criada num showcase só alcança o que é dele.
+    # Respostas em JSON no envelope data; erros com error, message e fields.
     #
     # @return [Page<WebhookEndpoint>]
     def list_endpoints(page: nil, limit: nil, api_key: nil)
@@ -1373,9 +1426,9 @@ module Perata
     # liga e desliga o envio (enabled). O segredo não muda.
     #
     # Autenticação: chave de API da organização em Authorization: Bearer
-    # (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-    # requisição. Respostas em JSON no envelope data; erros com error, message e
-    # fields.
+    # (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+    # nunca da requisição: a chave criada num showcase só alcança o que é dele.
+    # Respostas em JSON no envelope data; erros com error, message e fields.
     #
     # @param params [WebhooksUpdateEndpointParams, Hash]
     # @return [WebhookEndpoint]

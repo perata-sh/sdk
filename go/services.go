@@ -32,6 +32,7 @@ func (c *Client) initServices() {
 	c.Prices = &PricesService{client: c}
 	c.Products = &ProductsService{client: c}
 	c.Refunds = &RefundsService{client: c}
+	c.Showcase = &ShowcaseService{client: c}
 	c.Subscriptions = &SubscriptionsService{client: c}
 	c.Usage = &UsageService{client: c}
 	c.Webhooks = &WebhooksService{client: c}
@@ -46,9 +47,9 @@ type BenefitsService struct{ client *Client }
 // Os downloads e os benefícios do Discord e do GitHub se configuram no painel.
 //
 // Autenticação: chave de API da organização em Authorization: Bearer
-// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-// requisição. Respostas em JSON no envelope data; erros com error, message e
-// fields.
+// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+// nunca da requisição: a chave criada num showcase só alcança o que é dele.
+// Respostas em JSON no envelope data; erros com error, message e fields.
 func (s *BenefitsService) Create(ctx context.Context, params BenefitsCreateParams, opts ...RequestOption) (*Benefit, error) {
 	var out Benefit
 	err := s.client.do(ctx, http.MethodPost, "/api/v1/benefits", nil, params, &out, opts)
@@ -63,9 +64,9 @@ func (s *BenefitsService) Create(ctx context.Context, params BenefitsCreateParam
 // Exclui um benefício: ele sai de todos os produtos e é revogado de quem o tem.
 //
 // Autenticação: chave de API da organização em Authorization: Bearer
-// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-// requisição. Respostas em JSON no envelope data; erros com error, message e
-// fields.
+// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+// nunca da requisição: a chave criada num showcase só alcança o que é dele.
+// Respostas em JSON no envelope data; erros com error, message e fields.
 func (s *BenefitsService) Delete(ctx context.Context, benefit string, opts ...RequestOption) error {
 	return s.client.do(ctx, http.MethodDelete, "/api/v1/benefits/"+url.PathEscape(benefit), nil, nil, nil, opts)
 }
@@ -75,9 +76,9 @@ func (s *BenefitsService) Delete(ctx context.Context, benefit string, opts ...Re
 // Devolve um benefício pelo ID.
 //
 // Autenticação: chave de API da organização em Authorization: Bearer
-// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-// requisição. Respostas em JSON no envelope data; erros com error, message e
-// fields.
+// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+// nunca da requisição: a chave criada num showcase só alcança o que é dele.
+// Respostas em JSON no envelope data; erros com error, message e fields.
 func (s *BenefitsService) Get(ctx context.Context, benefit string, opts ...RequestOption) (*Benefit, error) {
 	var out Benefit
 	err := s.client.do(ctx, http.MethodGet, "/api/v1/benefits/"+url.PathEscape(benefit), nil, nil, &out, opts)
@@ -117,9 +118,9 @@ func (p *BenefitsListParams) query() url.Values {
 // Devolve uma página dos benefícios da organização. Com type, só os de um tipo.
 //
 // Autenticação: chave de API da organização em Authorization: Bearer
-// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-// requisição. Respostas em JSON no envelope data; erros com error, message e
-// fields.
+// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+// nunca da requisição: a chave criada num showcase só alcança o que é dele.
+// Respostas em JSON no envelope data; erros com error, message e fields.
 func (s *BenefitsService) List(ctx context.Context, params *BenefitsListParams, opts ...RequestOption) (*Page[Benefit], error) {
 	var page Page[Benefit]
 	err := s.client.do(ctx, http.MethodGet, "/api/v1/benefits", params.query(), nil, &page, opts)
@@ -177,9 +178,9 @@ func (p *BenefitsListGrantsParams) query() url.Values {
 // um cliente; com is_granted, só as vigentes ou só as revogadas.
 //
 // Autenticação: chave de API da organização em Authorization: Bearer
-// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-// requisição. Respostas em JSON no envelope data; erros com error, message e
-// fields.
+// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+// nunca da requisição: a chave criada num showcase só alcança o que é dele.
+// Respostas em JSON no envelope data; erros com error, message e fields.
 func (s *BenefitsService) ListGrants(ctx context.Context, benefit string, params *BenefitsListGrantsParams, opts ...RequestOption) (*Page[BenefitGrant], error) {
 	var page Page[BenefitGrant]
 	err := s.client.do(ctx, http.MethodGet, "/api/v1/benefits/"+url.PathEscape(benefit)+"/grants", params.query(), nil, &page, opts)
@@ -208,9 +209,9 @@ func (s *BenefitsService) ListGrantsIter(ctx context.Context, benefit string, pa
 // entregou fica como foi entregue.
 //
 // Autenticação: chave de API da organização em Authorization: Bearer
-// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-// requisição. Respostas em JSON no envelope data; erros com error, message e
-// fields.
+// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+// nunca da requisição: a chave criada num showcase só alcança o que é dele.
+// Respostas em JSON no envelope data; erros com error, message e fields.
 func (s *BenefitsService) Update(ctx context.Context, benefit string, params BenefitsUpdateParams, opts ...RequestOption) (*Benefit, error) {
 	var out Benefit
 	err := s.client.do(ctx, http.MethodPatch, "/api/v1/benefits/"+url.PathEscape(benefit), nil, params, &out, opts)
@@ -230,9 +231,9 @@ type CheckoutLinksService struct{ client *Client }
 // sessão de compra nova.
 //
 // Autenticação: chave de API da organização em Authorization: Bearer
-// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-// requisição. Respostas em JSON no envelope data; erros com error, message e
-// fields.
+// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+// nunca da requisição: a chave criada num showcase só alcança o que é dele.
+// Respostas em JSON no envelope data; erros com error, message e fields.
 func (s *CheckoutLinksService) Create(ctx context.Context, params CheckoutLinksCreateParams, opts ...RequestOption) (*CheckoutLink, error) {
 	var out CheckoutLink
 	err := s.client.do(ctx, http.MethodPost, "/api/v1/checkout-links", nil, params, &out, opts)
@@ -248,9 +249,9 @@ func (s *CheckoutLinksService) Create(ctx context.Context, params CheckoutLinksC
 // continuam.
 //
 // Autenticação: chave de API da organização em Authorization: Bearer
-// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-// requisição. Respostas em JSON no envelope data; erros com error, message e
-// fields.
+// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+// nunca da requisição: a chave criada num showcase só alcança o que é dele.
+// Respostas em JSON no envelope data; erros com error, message e fields.
 func (s *CheckoutLinksService) Delete(ctx context.Context, checkoutLink string, opts ...RequestOption) error {
 	return s.client.do(ctx, http.MethodDelete, "/api/v1/checkout-links/"+url.PathEscape(checkoutLink), nil, nil, nil, opts)
 }
@@ -260,9 +261,9 @@ func (s *CheckoutLinksService) Delete(ctx context.Context, checkoutLink string, 
 // Devolve um link de checkout pelo ID.
 //
 // Autenticação: chave de API da organização em Authorization: Bearer
-// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-// requisição. Respostas em JSON no envelope data; erros com error, message e
-// fields.
+// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+// nunca da requisição: a chave criada num showcase só alcança o que é dele.
+// Respostas em JSON no envelope data; erros com error, message e fields.
 func (s *CheckoutLinksService) Get(ctx context.Context, checkoutLink string, opts ...RequestOption) (*CheckoutLink, error) {
 	var out CheckoutLink
 	err := s.client.do(ctx, http.MethodGet, "/api/v1/checkout-links/"+url.PathEscape(checkoutLink), nil, nil, &out, opts)
@@ -297,9 +298,9 @@ func (p *CheckoutLinksListParams) query() url.Values {
 // Devolve uma página dos links de checkout da organização.
 //
 // Autenticação: chave de API da organização em Authorization: Bearer
-// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-// requisição. Respostas em JSON no envelope data; erros com error, message e
-// fields.
+// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+// nunca da requisição: a chave criada num showcase só alcança o que é dele.
+// Respostas em JSON no envelope data; erros com error, message e fields.
 func (s *CheckoutLinksService) List(ctx context.Context, params *CheckoutLinksListParams, opts ...RequestOption) (*Page[CheckoutLink], error) {
 	var page Page[CheckoutLink]
 	err := s.client.do(ctx, http.MethodGet, "/api/v1/checkout-links", params.query(), nil, &page, opts)
@@ -327,9 +328,9 @@ func (s *CheckoutLinksService) ListIter(ctx context.Context, params *CheckoutLin
 // A quantidade e o desconto ficam como foram publicados.
 //
 // Autenticação: chave de API da organização em Authorization: Bearer
-// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-// requisição. Respostas em JSON no envelope data; erros com error, message e
-// fields.
+// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+// nunca da requisição: a chave criada num showcase só alcança o que é dele.
+// Respostas em JSON no envelope data; erros com error, message e fields.
 func (s *CheckoutLinksService) Update(ctx context.Context, checkoutLink string, params CheckoutLinksUpdateParams, opts ...RequestOption) (*CheckoutLink, error) {
 	var out CheckoutLink
 	err := s.client.do(ctx, http.MethodPatch, "/api/v1/checkout-links/"+url.PathEscape(checkoutLink), nil, params, &out, opts)
@@ -349,12 +350,16 @@ type CheckoutsService struct{ client *Client }
 // usa para pagar sem chave de API; o client_secret vem só nesta resposta. Para
 // cobrar um valor que o seu servidor define, envie amount_cents e items (preço
 // de valor livre). Envie client_reference_id e metadata para achar o pedido
-// depois.
+// depois. Em uma assinatura, envie as linhas do pedido em items (só para
+// exibição, com a soma igual ao valor do preço) e o desconto em discount_id.
+// Para uma assinatura que só começa a cobrar numa data, envie
+// subscription_start_at com o preço recorrente: o cartão é guardado sem
+// cobrança e a primeira cobrança acontece nesse dia.
 //
 // Autenticação: chave de API da organização em Authorization: Bearer
-// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-// requisição. Respostas em JSON no envelope data; erros com error, message e
-// fields.
+// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+// nunca da requisição: a chave criada num showcase só alcança o que é dele.
+// Respostas em JSON no envelope data; erros com error, message e fields.
 func (s *CheckoutsService) Create(ctx context.Context, params CheckoutsCreateParams, opts ...RequestOption) (*CheckoutCreated, error) {
 	var out CheckoutCreated
 	err := s.client.do(ctx, http.MethodPost, "/api/v1/checkouts", nil, params, &out, opts)
@@ -372,9 +377,9 @@ func (s *CheckoutsService) Create(ctx context.Context, params CheckoutsCreatePar
 // pago ou emitiu um boleto, a resposta é 409.
 //
 // Autenticação: chave de API da organização em Authorization: Bearer
-// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-// requisição. Respostas em JSON no envelope data; erros com error, message e
-// fields.
+// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+// nunca da requisição: a chave criada num showcase só alcança o que é dele.
+// Respostas em JSON no envelope data; erros com error, message e fields.
 func (s *CheckoutsService) Expire(ctx context.Context, checkout string, opts ...RequestOption) (*CheckoutExpired, error) {
 	var out CheckoutExpired
 	err := s.client.do(ctx, http.MethodPost, "/api/v1/checkouts/"+url.PathEscape(checkout)+"/expire", nil, nil, &out, opts)
@@ -389,9 +394,9 @@ func (s *CheckoutsService) Expire(ctx context.Context, checkout string, opts ...
 // Devolve um checkout: o endereço, o estado e as páginas de retorno.
 //
 // Autenticação: chave de API da organização em Authorization: Bearer
-// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-// requisição. Respostas em JSON no envelope data; erros com error, message e
-// fields.
+// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+// nunca da requisição: a chave criada num showcase só alcança o que é dele.
+// Respostas em JSON no envelope data; erros com error, message e fields.
 func (s *CheckoutsService) Get(ctx context.Context, checkout string, opts ...RequestOption) (*Checkout, error) {
 	var out Checkout
 	err := s.client.do(ctx, http.MethodGet, "/api/v1/checkouts/"+url.PathEscape(checkout), nil, nil, &out, opts)
@@ -460,9 +465,9 @@ func (p *CheckoutsListParams) query() url.Values {
 // período ou metadados.
 //
 // Autenticação: chave de API da organização em Authorization: Bearer
-// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-// requisição. Respostas em JSON no envelope data; erros com error, message e
-// fields.
+// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+// nunca da requisição: a chave criada num showcase só alcança o que é dele.
+// Respostas em JSON no envelope data; erros com error, message e fields.
 func (s *CheckoutsService) List(ctx context.Context, params *CheckoutsListParams, opts ...RequestOption) (*Page[Checkout], error) {
 	var page Page[Checkout]
 	err := s.client.do(ctx, http.MethodGet, "/api/v1/checkouts", params.query(), nil, &page, opts)
@@ -489,9 +494,9 @@ func (s *CheckoutsService) ListIter(ctx context.Context, params *CheckoutsListPa
 // Muda o rótulo e as páginas de retorno de um checkout ativo.
 //
 // Autenticação: chave de API da organização em Authorization: Bearer
-// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-// requisição. Respostas em JSON no envelope data; erros com error, message e
-// fields.
+// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+// nunca da requisição: a chave criada num showcase só alcança o que é dele.
+// Respostas em JSON no envelope data; erros com error, message e fields.
 func (s *CheckoutsService) Update(ctx context.Context, checkout string, params CheckoutsUpdateParams, opts ...RequestOption) (*Checkout, error) {
 	var out Checkout
 	err := s.client.do(ctx, http.MethodPatch, "/api/v1/checkouts/"+url.PathEscape(checkout), nil, params, &out, opts)
@@ -511,9 +516,9 @@ type CustomerSessionsService struct{ client *Client }
 // aplicativo, o portal oferece a volta.
 //
 // Autenticação: chave de API da organização em Authorization: Bearer
-// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-// requisição. Respostas em JSON no envelope data; erros com error, message e
-// fields.
+// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+// nunca da requisição: a chave criada num showcase só alcança o que é dele.
+// Respostas em JSON no envelope data; erros com error, message e fields.
 func (s *CustomerSessionsService) Create(ctx context.Context, params CustomerSessionsCreateParams, opts ...RequestOption) (*CustomerSession, error) {
 	var out CustomerSession
 	err := s.client.do(ctx, http.MethodPost, "/api/v1/customer-sessions", nil, params, &out, opts)
@@ -535,9 +540,9 @@ type CustomersService struct{ client *Client }
 // um cliente com outro ID externo, a resposta é 422.
 //
 // Autenticação: chave de API da organização em Authorization: Bearer
-// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-// requisição. Respostas em JSON no envelope data; erros com error, message e
-// fields.
+// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+// nunca da requisição: a chave criada num showcase só alcança o que é dele.
+// Respostas em JSON no envelope data; erros com error, message e fields.
 func (s *CustomersService) Create(ctx context.Context, params CustomersCreateParams, opts ...RequestOption) (*Customer, error) {
 	var out Customer
 	err := s.client.do(ctx, http.MethodPost, "/api/v1/customers", nil, params, &out, opts)
@@ -554,9 +559,9 @@ func (s *CustomersService) Create(ctx context.Context, params CustomersCreatePar
 // registros.
 //
 // Autenticação: chave de API da organização em Authorization: Bearer
-// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-// requisição. Respostas em JSON no envelope data; erros com error, message e
-// fields.
+// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+// nunca da requisição: a chave criada num showcase só alcança o que é dele.
+// Respostas em JSON no envelope data; erros com error, message e fields.
 func (s *CustomersService) Delete(ctx context.Context, customer string, opts ...RequestOption) error {
 	return s.client.do(ctx, http.MethodDelete, "/api/v1/customers/"+url.PathEscape(customer), nil, nil, nil, opts)
 }
@@ -566,9 +571,9 @@ func (s *CustomersService) Delete(ctx context.Context, customer string, opts ...
 // Devolve um cliente pelo ID.
 //
 // Autenticação: chave de API da organização em Authorization: Bearer
-// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-// requisição. Respostas em JSON no envelope data; erros com error, message e
-// fields.
+// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+// nunca da requisição: a chave criada num showcase só alcança o que é dele.
+// Respostas em JSON no envelope data; erros com error, message e fields.
 func (s *CustomersService) Get(ctx context.Context, customer string, opts ...RequestOption) (*Customer, error) {
 	var out Customer
 	err := s.client.do(ctx, http.MethodGet, "/api/v1/customers/"+url.PathEscape(customer), nil, nil, &out, opts)
@@ -584,9 +589,9 @@ func (s *CustomersService) Get(ctx context.Context, customer string, opts ...Req
 // (external_id).
 //
 // Autenticação: chave de API da organização em Authorization: Bearer
-// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-// requisição. Respostas em JSON no envelope data; erros com error, message e
-// fields.
+// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+// nunca da requisição: a chave criada num showcase só alcança o que é dele.
+// Respostas em JSON no envelope data; erros com error, message e fields.
 func (s *CustomersService) GetExternal(ctx context.Context, externalID string, opts ...RequestOption) (*Customer, error) {
 	var out Customer
 	err := s.client.do(ctx, http.MethodGet, "/api/v1/external-customers/"+url.PathEscape(externalID), nil, nil, &out, opts)
@@ -603,9 +608,9 @@ func (s *CustomersService) GetExternal(ctx context.Context, externalID string, o
 // para decidir o que o cliente pode usar.
 //
 // Autenticação: chave de API da organização em Authorization: Bearer
-// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-// requisição. Respostas em JSON no envelope data; erros com error, message e
-// fields.
+// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+// nunca da requisição: a chave criada num showcase só alcança o que é dele.
+// Respostas em JSON no envelope data; erros com error, message e fields.
 func (s *CustomersService) GetState(ctx context.Context, customer string, opts ...RequestOption) (*CustomerState, error) {
 	var out CustomerState
 	err := s.client.do(ctx, http.MethodGet, "/api/v1/customers/"+url.PathEscape(customer)+"/state", nil, nil, &out, opts)
@@ -646,9 +651,9 @@ func (p *CustomersListParams) query() url.Values {
 // diferença entre maiúsculas e minúsculas.
 //
 // Autenticação: chave de API da organização em Authorization: Bearer
-// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-// requisição. Respostas em JSON no envelope data; erros com error, message e
-// fields.
+// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+// nunca da requisição: a chave criada num showcase só alcança o que é dele.
+// Respostas em JSON no envelope data; erros com error, message e fields.
 func (s *CustomersService) List(ctx context.Context, params *CustomersListParams, opts ...RequestOption) (*Page[Customer], error) {
 	var page Page[Customer]
 	err := s.client.do(ctx, http.MethodGet, "/api/v1/customers", params.query(), nil, &page, opts)
@@ -676,9 +681,9 @@ func (s *CustomersService) ListIter(ctx context.Context, params *CustomersListPa
 // de cobrança. O ID externo só pode ser definido uma vez.
 //
 // Autenticação: chave de API da organização em Authorization: Bearer
-// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-// requisição. Respostas em JSON no envelope data; erros com error, message e
-// fields.
+// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+// nunca da requisição: a chave criada num showcase só alcança o que é dele.
+// Respostas em JSON no envelope data; erros com error, message e fields.
 func (s *CustomersService) Update(ctx context.Context, customer string, params CustomersUpdateParams, opts ...RequestOption) (*Customer, error) {
 	var out Customer
 	err := s.client.do(ctx, http.MethodPatch, "/api/v1/customers/"+url.PathEscape(customer), nil, params, &out, opts)
@@ -694,9 +699,9 @@ func (s *CustomersService) Update(ctx context.Context, customer string, params C
 // Os campos são os de Atualizar um cliente.
 //
 // Autenticação: chave de API da organização em Authorization: Bearer
-// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-// requisição. Respostas em JSON no envelope data; erros com error, message e
-// fields.
+// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+// nunca da requisição: a chave criada num showcase só alcança o que é dele.
+// Respostas em JSON no envelope data; erros com error, message e fields.
 func (s *CustomersService) UpdateExternal(ctx context.Context, externalID string, params CustomersUpdateExternalParams, opts ...RequestOption) (*Customer, error) {
 	var out Customer
 	err := s.client.do(ctx, http.MethodPatch, "/api/v1/external-customers/"+url.PathEscape(externalID), nil, params, &out, opts)
@@ -716,9 +721,9 @@ type DiscountsService struct{ client *Client }
 // vale num link de checkout ou pela API.
 //
 // Autenticação: chave de API da organização em Authorization: Bearer
-// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-// requisição. Respostas em JSON no envelope data; erros com error, message e
-// fields.
+// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+// nunca da requisição: a chave criada num showcase só alcança o que é dele.
+// Respostas em JSON no envelope data; erros com error, message e fields.
 func (s *DiscountsService) Create(ctx context.Context, params DiscountsCreateParams, opts ...RequestOption) (*Discount, error) {
 	var out Discount
 	err := s.client.do(ctx, http.MethodPost, "/api/v1/discounts", nil, params, &out, opts)
@@ -734,9 +739,9 @@ func (s *DiscountsService) Create(ctx context.Context, params DiscountsCreatePar
 // livre. O que ele já descontou continua nos registros.
 //
 // Autenticação: chave de API da organização em Authorization: Bearer
-// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-// requisição. Respostas em JSON no envelope data; erros com error, message e
-// fields.
+// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+// nunca da requisição: a chave criada num showcase só alcança o que é dele.
+// Respostas em JSON no envelope data; erros com error, message e fields.
 func (s *DiscountsService) Delete(ctx context.Context, discount string, opts ...RequestOption) error {
 	return s.client.do(ctx, http.MethodDelete, "/api/v1/discounts/"+url.PathEscape(discount), nil, nil, nil, opts)
 }
@@ -746,9 +751,9 @@ func (s *DiscountsService) Delete(ctx context.Context, discount string, opts ...
 // Devolve um desconto pelo ID.
 //
 // Autenticação: chave de API da organização em Authorization: Bearer
-// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-// requisição. Respostas em JSON no envelope data; erros com error, message e
-// fields.
+// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+// nunca da requisição: a chave criada num showcase só alcança o que é dele.
+// Respostas em JSON no envelope data; erros com error, message e fields.
 func (s *DiscountsService) Get(ctx context.Context, discount string, opts ...RequestOption) (*Discount, error) {
 	var out Discount
 	err := s.client.do(ctx, http.MethodGet, "/api/v1/discounts/"+url.PathEscape(discount), nil, nil, &out, opts)
@@ -783,9 +788,9 @@ func (p *DiscountsListParams) query() url.Values {
 // Devolve uma página dos descontos da organização.
 //
 // Autenticação: chave de API da organização em Authorization: Bearer
-// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-// requisição. Respostas em JSON no envelope data; erros com error, message e
-// fields.
+// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+// nunca da requisição: a chave criada num showcase só alcança o que é dele.
+// Respostas em JSON no envelope data; erros com error, message e fields.
 func (s *DiscountsService) List(ctx context.Context, params *DiscountsListParams, opts ...RequestOption) (*Page[Discount], error) {
 	var page Page[Discount]
 	err := s.client.do(ctx, http.MethodGet, "/api/v1/discounts", params.query(), nil, &page, opts)
@@ -813,9 +818,9 @@ func (s *DiscountsService) ListIter(ctx context.Context, params *DiscountsListPa
 // valor e os meses também não.
 //
 // Autenticação: chave de API da organização em Authorization: Bearer
-// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-// requisição. Respostas em JSON no envelope data; erros com error, message e
-// fields.
+// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+// nunca da requisição: a chave criada num showcase só alcança o que é dele.
+// Respostas em JSON no envelope data; erros com error, message e fields.
 func (s *DiscountsService) Update(ctx context.Context, discount string, params DiscountsUpdateParams, opts ...RequestOption) (*Discount, error) {
 	var out Discount
 	err := s.client.do(ctx, http.MethodPatch, "/api/v1/discounts/"+url.PathEscape(discount), nil, params, &out, opts)
@@ -833,9 +838,9 @@ type DisputesService struct{ client *Client }
 // Devolve uma disputa pelo ID.
 //
 // Autenticação: chave de API da organização em Authorization: Bearer
-// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-// requisição. Respostas em JSON no envelope data; erros com error, message e
-// fields.
+// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+// nunca da requisição: a chave criada num showcase só alcança o que é dele.
+// Respostas em JSON no envelope data; erros com error, message e fields.
 func (s *DisputesService) Get(ctx context.Context, dispute string, opts ...RequestOption) (*Dispute, error) {
 	var out Dispute
 	err := s.client.do(ctx, http.MethodGet, "/api/v1/disputes/"+url.PathEscape(dispute), nil, nil, &out, opts)
@@ -875,9 +880,9 @@ func (p *DisputesListParams) query() url.Values {
 // Devolve uma página das disputas. Com status, só as que estão nele.
 //
 // Autenticação: chave de API da organização em Authorization: Bearer
-// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-// requisição. Respostas em JSON no envelope data; erros com error, message e
-// fields.
+// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+// nunca da requisição: a chave criada num showcase só alcança o que é dele.
+// Respostas em JSON no envelope data; erros com error, message e fields.
 func (s *DisputesService) List(ctx context.Context, params *DisputesListParams, opts ...RequestOption) (*Page[Dispute], error) {
 	var page Page[Dispute]
 	err := s.client.do(ctx, http.MethodGet, "/api/v1/disputes", params.query(), nil, &page, opts)
@@ -943,9 +948,9 @@ func (p *EventsListParams) query() url.Values {
 // novo ao mais antigo.
 //
 // Autenticação: chave de API da organização em Authorization: Bearer
-// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-// requisição. Respostas em JSON no envelope data; erros com error, message e
-// fields.
+// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+// nunca da requisição: a chave criada num showcase só alcança o que é dele.
+// Respostas em JSON no envelope data; erros com error, message e fields.
 func (s *EventsService) List(ctx context.Context, params *EventsListParams, opts ...RequestOption) (*Page[Event], error) {
 	var page Page[Event]
 	err := s.client.do(ctx, http.MethodGet, "/api/v1/events", params.query(), nil, &page, opts)
@@ -976,9 +981,9 @@ type MetersService struct{ client *Client }
 // unidade.
 //
 // Autenticação: chave de API da organização em Authorization: Bearer
-// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-// requisição. Respostas em JSON no envelope data; erros com error, message e
-// fields.
+// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+// nunca da requisição: a chave criada num showcase só alcança o que é dele.
+// Respostas em JSON no envelope data; erros com error, message e fields.
 func (s *MetersService) Get(ctx context.Context, meter string, opts ...RequestOption) (*Meter, error) {
 	var out Meter
 	err := s.client.do(ctx, http.MethodGet, "/api/v1/meters/"+url.PathEscape(meter), nil, nil, &out, opts)
@@ -1019,9 +1024,9 @@ func (p *MetersListParams) query() url.Values {
 // is_archived=true.
 //
 // Autenticação: chave de API da organização em Authorization: Bearer
-// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-// requisição. Respostas em JSON no envelope data; erros com error, message e
-// fields.
+// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+// nunca da requisição: a chave criada num showcase só alcança o que é dele.
+// Respostas em JSON no envelope data; erros com error, message e fields.
 func (s *MetersService) List(ctx context.Context, params *MetersListParams, opts ...RequestOption) (*Page[Meter], error) {
 	var page Page[Meter]
 	err := s.client.do(ctx, http.MethodGet, "/api/v1/meters", params.query(), nil, &page, opts)
@@ -1048,12 +1053,13 @@ type OrdersService struct{ client *Client }
 
 // Get: Ler um pedido.
 //
-// Devolve um pedido: um checkout pago.
+// Devolve um pedido: um checkout pago. Se ele pagou um ciclo de assinatura,
+// traz subscription_id, cycle_sequence, period_start e period_end.
 //
 // Autenticação: chave de API da organização em Authorization: Bearer
-// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-// requisição. Respostas em JSON no envelope data; erros com error, message e
-// fields.
+// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+// nunca da requisição: a chave criada num showcase só alcança o que é dele.
+// Respostas em JSON no envelope data; erros com error, message e fields.
 func (s *OrdersService) Get(ctx context.Context, order string, opts ...RequestOption) (*Order, error) {
 	var out Order
 	err := s.client.do(ctx, http.MethodGet, "/api/v1/orders/"+url.PathEscape(order), nil, nil, &out, opts)
@@ -1069,9 +1075,9 @@ func (s *OrdersService) Get(ctx context.Context, order string, opts ...RequestOp
 // fatura, a resposta é 404.
 //
 // Autenticação: chave de API da organização em Authorization: Bearer
-// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-// requisição. Respostas em JSON no envelope data; erros com error, message e
-// fields.
+// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+// nunca da requisição: a chave criada num showcase só alcança o que é dele.
+// Respostas em JSON no envelope data; erros com error, message e fields.
 func (s *OrdersService) GetInvoice(ctx context.Context, order string, opts ...RequestOption) (*OrderInvoice, error) {
 	var out OrderInvoice
 	err := s.client.do(ctx, http.MethodGet, "/api/v1/orders/"+url.PathEscape(order)+"/invoice", nil, nil, &out, opts)
@@ -1086,9 +1092,9 @@ func (s *OrdersService) GetInvoice(ctx context.Context, order string, opts ...Re
 // Devolve o recibo de um pedido: o que foi pago, quando e como.
 //
 // Autenticação: chave de API da organização em Authorization: Bearer
-// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-// requisição. Respostas em JSON no envelope data; erros com error, message e
-// fields.
+// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+// nunca da requisição: a chave criada num showcase só alcança o que é dele.
+// Respostas em JSON no envelope data; erros com error, message e fields.
 func (s *OrdersService) GetReceipt(ctx context.Context, order string, opts ...RequestOption) (*OrderReceipt, error) {
 	var out OrderReceipt
 	err := s.client.do(ctx, http.MethodGet, "/api/v1/orders/"+url.PathEscape(order)+"/receipt", nil, nil, &out, opts)
@@ -1110,6 +1116,8 @@ type OrdersListParams struct {
 	CustomerID string
 	// Só os do cliente que você identifica por este ID externo; um ID que não existe não acha nada.
 	ExternalCustomerID string
+	// Só as vendas desta assinatura: o pedido que pagou o primeiro ciclo e cada renovação paga. Um ID que não existe não acha nada.
+	SubscriptionID string
 	// Só os criados a partir deste instante, inclusive (RFC 3339, como 2026-11-17T00:00:00-03:00).
 	CreatedAfter string
 	// Só os criados antes deste instante (RFC 3339); com created_after, o período é [created_after, created_before).
@@ -1143,6 +1151,9 @@ func (p *OrdersListParams) query() url.Values {
 	if p.ExternalCustomerID != "" {
 		q.Set("external_customer_id", p.ExternalCustomerID)
 	}
+	if p.SubscriptionID != "" {
+		q.Set("subscription_id", p.SubscriptionID)
+	}
 	if p.CreatedAfter != "" {
 		q.Set("created_after", p.CreatedAfter)
 	}
@@ -1164,12 +1175,13 @@ func (p *OrdersListParams) query() url.Values {
 // List: Listar pedidos. It answers one page; ListIter walks every page.
 //
 // Devolve uma página dos pedidos, que são os checkouts pagos. Filtre por
-// client_reference_id, cliente, período ou metadados.
+// client_reference_id, cliente, assinatura (subscription_id), período ou
+// metadados.
 //
 // Autenticação: chave de API da organização em Authorization: Bearer
-// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-// requisição. Respostas em JSON no envelope data; erros com error, message e
-// fields.
+// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+// nunca da requisição: a chave criada num showcase só alcança o que é dele.
+// Respostas em JSON no envelope data; erros com error, message e fields.
 func (s *OrdersService) List(ctx context.Context, params *OrdersListParams, opts ...RequestOption) (*Page[Order], error) {
 	var page Page[Order]
 	err := s.client.do(ctx, http.MethodGet, "/api/v1/orders", params.query(), nil, &page, opts)
@@ -1200,9 +1212,9 @@ type PaymentMethodsService struct{ client *Client }
 // ativa o cobra.
 //
 // Autenticação: chave de API da organização em Authorization: Bearer
-// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-// requisição. Respostas em JSON no envelope data; erros com error, message e
-// fields.
+// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+// nunca da requisição: a chave criada num showcase só alcança o que é dele.
+// Respostas em JSON no envelope data; erros com error, message e fields.
 func (s *PaymentMethodsService) Detach(ctx context.Context, paymentMethod string, opts ...RequestOption) (*PaymentMethodDetached, error) {
 	var out PaymentMethodDetached
 	err := s.client.do(ctx, http.MethodPost, "/api/v1/payment_methods/"+url.PathEscape(paymentMethod)+"/detach", nil, nil, &out, opts)
@@ -1238,9 +1250,9 @@ func (p *PaymentMethodsListParams) query() url.Values {
 // e validade. O número do cartão nunca aparece.
 //
 // Autenticação: chave de API da organização em Authorization: Bearer
-// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-// requisição. Respostas em JSON no envelope data; erros com error, message e
-// fields.
+// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+// nunca da requisição: a chave criada num showcase só alcança o que é dele.
+// Respostas em JSON no envelope data; erros com error, message e fields.
 func (s *PaymentMethodsService) List(ctx context.Context, customer string, params *PaymentMethodsListParams, opts ...RequestOption) (*Page[PaymentMethod], error) {
 	var page Page[PaymentMethod]
 	err := s.client.do(ctx, http.MethodGet, "/api/v1/customers/"+url.PathEscape(customer)+"/payment_methods", params.query(), nil, &page, opts)
@@ -1270,9 +1282,9 @@ type PaymentsService struct{ client *Client }
 // Devolve um pagamento pelo ID.
 //
 // Autenticação: chave de API da organização em Authorization: Bearer
-// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-// requisição. Respostas em JSON no envelope data; erros com error, message e
-// fields.
+// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+// nunca da requisição: a chave criada num showcase só alcança o que é dele.
+// Respostas em JSON no envelope data; erros com error, message e fields.
 func (s *PaymentsService) Get(ctx context.Context, payment string, opts ...RequestOption) (*Payment, error) {
 	var out Payment
 	err := s.client.do(ctx, http.MethodGet, "/api/v1/payments/"+url.PathEscape(payment), nil, nil, &out, opts)
@@ -1294,6 +1306,8 @@ type PaymentsListParams struct {
 	CustomerID string
 	// Só os do cliente que você identifica por este ID externo; um ID que não existe não acha nada.
 	ExternalCustomerID string
+	// Só as vendas desta assinatura: o pedido que pagou o primeiro ciclo e cada renovação paga. Um ID que não existe não acha nada.
+	SubscriptionID string
 	// Só os criados a partir deste instante, inclusive (RFC 3339, como 2026-11-17T00:00:00-03:00).
 	CreatedAfter string
 	// Só os criados antes deste instante (RFC 3339); com created_after, o período é [created_after, created_before).
@@ -1327,6 +1341,9 @@ func (p *PaymentsListParams) query() url.Values {
 	if p.ExternalCustomerID != "" {
 		q.Set("external_customer_id", p.ExternalCustomerID)
 	}
+	if p.SubscriptionID != "" {
+		q.Set("subscription_id", p.SubscriptionID)
+	}
 	if p.CreatedAfter != "" {
 		q.Set("created_after", p.CreatedAfter)
 	}
@@ -1348,12 +1365,12 @@ func (p *PaymentsListParams) query() url.Values {
 // List: Listar pagamentos. It answers one page; ListIter walks every page.
 //
 // Devolve uma página dos pagamentos. Filtre por client_reference_id, estado,
-// cliente, período ou metadados.
+// cliente, assinatura (subscription_id), período ou metadados.
 //
 // Autenticação: chave de API da organização em Authorization: Bearer
-// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-// requisição. Respostas em JSON no envelope data; erros com error, message e
-// fields.
+// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+// nunca da requisição: a chave criada num showcase só alcança o que é dele.
+// Respostas em JSON no envelope data; erros com error, message e fields.
 func (s *PaymentsService) List(ctx context.Context, params *PaymentsListParams, opts ...RequestOption) (*Page[Payment], error) {
 	var page Page[Payment]
 	err := s.client.do(ctx, http.MethodGet, "/api/v1/payments", params.query(), nil, &page, opts)
@@ -1385,9 +1402,9 @@ type PricesService struct{ client *Client }
 // quanto tempo ele renova: month com 3 é trimestral.
 //
 // Autenticação: chave de API da organização em Authorization: Bearer
-// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-// requisição. Respostas em JSON no envelope data; erros com error, message e
-// fields.
+// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+// nunca da requisição: a chave criada num showcase só alcança o que é dele.
+// Respostas em JSON no envelope data; erros com error, message e fields.
 func (s *PricesService) Create(ctx context.Context, params PricesCreateParams, opts ...RequestOption) (*Price, error) {
 	var out Price
 	err := s.client.do(ctx, http.MethodPost, "/api/v1/prices", nil, params, &out, opts)
@@ -1428,9 +1445,9 @@ func (p *PricesListParams) query() url.Values {
 // produto.
 //
 // Autenticação: chave de API da organização em Authorization: Bearer
-// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-// requisição. Respostas em JSON no envelope data; erros com error, message e
-// fields.
+// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+// nunca da requisição: a chave criada num showcase só alcança o que é dele.
+// Respostas em JSON no envelope data; erros com error, message e fields.
 func (s *PricesService) List(ctx context.Context, params *PricesListParams, opts ...RequestOption) (*Page[Price], error) {
 	var page Page[Price]
 	err := s.client.do(ctx, http.MethodGet, "/api/v1/prices", params.query(), nil, &page, opts)
@@ -1461,9 +1478,9 @@ type ProductsService struct{ client *Client }
 // apontando para ele.
 //
 // Autenticação: chave de API da organização em Authorization: Bearer
-// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-// requisição. Respostas em JSON no envelope data; erros com error, message e
-// fields.
+// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+// nunca da requisição: a chave criada num showcase só alcança o que é dele.
+// Respostas em JSON no envelope data; erros com error, message e fields.
 func (s *ProductsService) Archive(ctx context.Context, product string, opts ...RequestOption) (*Product, error) {
 	var out Product
 	err := s.client.do(ctx, http.MethodPost, "/api/v1/products/"+url.PathEscape(product)+"/archive", nil, nil, &out, opts)
@@ -1479,9 +1496,9 @@ func (s *ProductsService) Archive(ctx context.Context, product string, opts ...R
 // preço.
 //
 // Autenticação: chave de API da organização em Authorization: Bearer
-// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-// requisição. Respostas em JSON no envelope data; erros com error, message e
-// fields.
+// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+// nunca da requisição: a chave criada num showcase só alcança o que é dele.
+// Respostas em JSON no envelope data; erros com error, message e fields.
 func (s *ProductsService) Create(ctx context.Context, params ProductsCreateParams, opts ...RequestOption) (*Product, error) {
 	var out Product
 	err := s.client.do(ctx, http.MethodPost, "/api/v1/products", nil, params, &out, opts)
@@ -1496,9 +1513,9 @@ func (s *ProductsService) Create(ctx context.Context, params ProductsCreateParam
 // Devolve um produto pelo ID.
 //
 // Autenticação: chave de API da organização em Authorization: Bearer
-// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-// requisição. Respostas em JSON no envelope data; erros com error, message e
-// fields.
+// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+// nunca da requisição: a chave criada num showcase só alcança o que é dele.
+// Respostas em JSON no envelope data; erros com error, message e fields.
 func (s *ProductsService) Get(ctx context.Context, product string, opts ...RequestOption) (*Product, error) {
 	var out Product
 	err := s.client.do(ctx, http.MethodGet, "/api/v1/products/"+url.PathEscape(product), nil, nil, &out, opts)
@@ -1533,9 +1550,9 @@ func (p *ProductsListParams) query() url.Values {
 // Devolve uma página dos produtos da organização, no ambiente da chave.
 //
 // Autenticação: chave de API da organização em Authorization: Bearer
-// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-// requisição. Respostas em JSON no envelope data; erros com error, message e
-// fields.
+// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+// nunca da requisição: a chave criada num showcase só alcança o que é dele.
+// Respostas em JSON no envelope data; erros com error, message e fields.
 func (s *ProductsService) List(ctx context.Context, params *ProductsListParams, opts ...RequestOption) (*Page[Product], error) {
 	var page Page[Product]
 	err := s.client.do(ctx, http.MethodGet, "/api/v1/products", params.query(), nil, &page, opts)
@@ -1563,9 +1580,9 @@ func (s *ProductsService) ListIter(ctx context.Context, params *ProductsListPara
 // como está.
 //
 // Autenticação: chave de API da organização em Authorization: Bearer
-// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-// requisição. Respostas em JSON no envelope data; erros com error, message e
-// fields.
+// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+// nunca da requisição: a chave criada num showcase só alcança o que é dele.
+// Respostas em JSON no envelope data; erros com error, message e fields.
 func (s *ProductsService) Update(ctx context.Context, product string, params ProductsUpdateParams, opts ...RequestOption) (*Product, error) {
 	var out Product
 	err := s.client.do(ctx, http.MethodPatch, "/api/v1/products/"+url.PathEscape(product), nil, params, &out, opts)
@@ -1578,19 +1595,43 @@ func (s *ProductsService) Update(ctx context.Context, product string, params Pro
 // RefundsService is the API's refunds.
 type RefundsService struct{ client *Client }
 
-// Create: Reembolsar um pagamento.
+// Create: Reembolsar um pagamento ou um pedido.
 //
-// Devolve parte ou todo o valor de um pagamento. A Idempotency-Key é
-// obrigatória: sem ela, repetir a chamada depois de um tempo esgotado seria
-// devolver duas vezes.
+// Devolve dinheiro de um pagamento, que você nomeia pelo payment_id ou pelo
+// order_id do pedido que ele pagou (os dois, só se forem do mesmo pagamento).
+// Sem amount_cents devolve tudo o que ainda pode ser devolvido; com ele, uma
+// parte, até esse limite. O reason, sem ele, é requested_by_customer. O
+// metadata fica no reembolso e volta nele e nos eventos refund.*. A
+// Idempotency-Key é obrigatória: sem ela, repetir a chamada depois de um tempo
+// esgotado seria devolver duas vezes; repetida com a mesma chave, devolve o
+// mesmo reembolso.
 //
 // Autenticação: chave de API da organização em Authorization: Bearer
-// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-// requisição. Respostas em JSON no envelope data; erros com error, message e
-// fields.
+// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+// nunca da requisição: a chave criada num showcase só alcança o que é dele.
+// Respostas em JSON no envelope data; erros com error, message e fields.
 func (s *RefundsService) Create(ctx context.Context, params RefundsCreateParams, opts ...RequestOption) (*Refund, error) {
 	var out Refund
 	err := s.client.do(ctx, http.MethodPost, "/api/v1/refunds", nil, params, &out, opts)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+// Get: Ler um reembolso.
+//
+// Devolve um reembolso pelo ID, com o pedido de onde veio (order_id), o
+// client_reference_id desse pedido e o status: requested e pending esperam a
+// Cielo, succeeded devolveu o dinheiro.
+//
+// Autenticação: chave de API da organização em Authorization: Bearer
+// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+// nunca da requisição: a chave criada num showcase só alcança o que é dele.
+// Respostas em JSON no envelope data; erros com error, message e fields.
+func (s *RefundsService) Get(ctx context.Context, refund string, opts ...RequestOption) (*Refund, error) {
+	var out Refund
+	err := s.client.do(ctx, http.MethodGet, "/api/v1/refunds/"+url.PathEscape(refund), nil, nil, &out, opts)
 	if err != nil {
 		return nil, err
 	}
@@ -1615,6 +1656,8 @@ type RefundsListParams struct {
 	CreatedBefore string
 	// Ordem da lista: created_at ou amount, e com um - na frente é decrescente (-created_at, o mais novo primeiro, é o padrão).
 	Sorting string
+	// Filtro por metadados: metadata[chave]=valor, uma vez para cada par (até 10); a linha precisa ter todos. Um valor que parece número ou booleano também casa com o número ou o booleano guardado.
+	Metadata map[string]string
 }
 
 func (p *RefundsListParams) query() url.Values {
@@ -1649,18 +1692,24 @@ func (p *RefundsListParams) query() url.Values {
 	if p.Sorting != "" {
 		q.Set("sorting", p.Sorting)
 	}
+	// A map filter is sent once for each pair, as metadata[key]=value; Encode writes the pairs sorted.
+	for key, value := range p.Metadata {
+		if value != "" {
+			q.Set("metadata"+"["+key+"]", value)
+		}
+	}
 	return q
 }
 
 // List: Listar reembolsos. It answers one page; ListIter walks every page.
 //
 // Devolve uma página dos reembolsos. Filtre por pagamento (payment_id), status,
-// cliente ou período.
+// cliente, período ou metadados do reembolso.
 //
 // Autenticação: chave de API da organização em Authorization: Bearer
-// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-// requisição. Respostas em JSON no envelope data; erros com error, message e
-// fields.
+// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+// nunca da requisição: a chave criada num showcase só alcança o que é dele.
+// Respostas em JSON no envelope data; erros com error, message e fields.
 func (s *RefundsService) List(ctx context.Context, params *RefundsListParams, opts ...RequestOption) (*Page[Refund], error) {
 	var page Page[Refund]
 	err := s.client.do(ctx, http.MethodGet, "/api/v1/refunds", params.query(), nil, &page, opts)
@@ -1682,6 +1731,29 @@ func (s *RefundsService) ListIter(ctx context.Context, params *RefundsListParams
 	}, walk.Page)
 }
 
+// ShowcaseService is the API's showcase.
+type ShowcaseService struct{ client *Client }
+
+// Get: Ler o showcase da chave.
+//
+// Devolve o showcase em que a chave foi criada: o ID (o showcase_id dos objetos
+// e dos eventos), o nome, se é o principal da organização e se tem logo. Serve
+// para o seu sistema, ou um assistente, saber onde está. Um showcase se abre e
+// se muda no painel, nunca por esta API.
+//
+// Autenticação: chave de API da organização em Authorization: Bearer
+// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+// nunca da requisição: a chave criada num showcase só alcança o que é dele.
+// Respostas em JSON no envelope data; erros com error, message e fields.
+func (s *ShowcaseService) Get(ctx context.Context, opts ...RequestOption) (*Showcase, error) {
+	var out Showcase
+	err := s.client.do(ctx, http.MethodGet, "/api/v1/showcase", nil, nil, &out, opts)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
 // SubscriptionsService is the API's subscriptions.
 type SubscriptionsService struct{ client *Client }
 
@@ -1691,9 +1763,9 @@ type SubscriptionsService struct{ client *Client }
 // pago.
 //
 // Autenticação: chave de API da organização em Authorization: Bearer
-// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-// requisição. Respostas em JSON no envelope data; erros com error, message e
-// fields.
+// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+// nunca da requisição: a chave criada num showcase só alcança o que é dele.
+// Respostas em JSON no envelope data; erros com error, message e fields.
 func (s *SubscriptionsService) Cancel(ctx context.Context, subscription string, params SubscriptionsCancelParams, opts ...RequestOption) (*Subscription, error) {
 	var out Subscription
 	err := s.client.do(ctx, http.MethodPost, "/api/v1/subscriptions/"+url.PathEscape(subscription)+"/cancel", nil, params, &out, opts)
@@ -1708,9 +1780,9 @@ func (s *SubscriptionsService) Cancel(ctx context.Context, subscription string, 
 // Devolve uma assinatura pelo ID.
 //
 // Autenticação: chave de API da organização em Authorization: Bearer
-// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-// requisição. Respostas em JSON no envelope data; erros com error, message e
-// fields.
+// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+// nunca da requisição: a chave criada num showcase só alcança o que é dele.
+// Respostas em JSON no envelope data; erros com error, message e fields.
 func (s *SubscriptionsService) Get(ctx context.Context, subscription string, opts ...RequestOption) (*Subscription, error) {
 	var out Subscription
 	err := s.client.do(ctx, http.MethodGet, "/api/v1/subscriptions/"+url.PathEscape(subscription), nil, nil, &out, opts)
@@ -1784,9 +1856,9 @@ func (p *SubscriptionsListParams) query() url.Values {
 // external_customer_id), status, período ou metadados.
 //
 // Autenticação: chave de API da organização em Authorization: Bearer
-// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-// requisição. Respostas em JSON no envelope data; erros com error, message e
-// fields.
+// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+// nunca da requisição: a chave criada num showcase só alcança o que é dele.
+// Respostas em JSON no envelope data; erros com error, message e fields.
 func (s *SubscriptionsService) List(ctx context.Context, params *SubscriptionsListParams, opts ...RequestOption) (*Page[Subscription], error) {
 	var page Page[Subscription]
 	err := s.client.do(ctx, http.MethodGet, "/api/v1/subscriptions", params.query(), nil, &page, opts)
@@ -1815,9 +1887,9 @@ func (s *SubscriptionsService) ListIter(ctx context.Context, params *Subscriptio
 // 409.
 //
 // Autenticação: chave de API da organização em Authorization: Bearer
-// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-// requisição. Respostas em JSON no envelope data; erros com error, message e
-// fields.
+// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+// nunca da requisição: a chave criada num showcase só alcança o que é dele.
+// Respostas em JSON no envelope data; erros com error, message e fields.
 func (s *SubscriptionsService) Resume(ctx context.Context, subscription string, opts ...RequestOption) (*Subscription, error) {
 	var out Subscription
 	err := s.client.do(ctx, http.MethodPost, "/api/v1/subscriptions/"+url.PathEscape(subscription)+"/resume", nil, nil, &out, opts)
@@ -1833,9 +1905,9 @@ func (s *SubscriptionsService) Resume(ctx context.Context, subscription string, 
 // O proration_behavior diz como ratear a diferença.
 //
 // Autenticação: chave de API da organização em Authorization: Bearer
-// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-// requisição. Respostas em JSON no envelope data; erros com error, message e
-// fields.
+// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+// nunca da requisição: a chave criada num showcase só alcança o que é dele.
+// Respostas em JSON no envelope data; erros com error, message e fields.
 func (s *SubscriptionsService) Update(ctx context.Context, subscription string, params SubscriptionsUpdateParams, opts ...RequestOption) (*Subscription, error) {
 	var out Subscription
 	err := s.client.do(ctx, http.MethodPatch, "/api/v1/subscriptions/"+url.PathEscape(subscription), nil, params, &out, opts)
@@ -1886,9 +1958,9 @@ type WebhooksService struct{ client *Client }
 // resposta; guarde-o.
 //
 // Autenticação: chave de API da organização em Authorization: Bearer
-// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-// requisição. Respostas em JSON no envelope data; erros com error, message e
-// fields.
+// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+// nunca da requisição: a chave criada num showcase só alcança o que é dele.
+// Respostas em JSON no envelope data; erros com error, message e fields.
 func (s *WebhooksService) CreateEndpoint(ctx context.Context, params WebhooksCreateEndpointParams, opts ...RequestOption) (*WebhookEndpointCreated, error) {
 	var out WebhookEndpointCreated
 	err := s.client.do(ctx, http.MethodPost, "/api/v1/webhooks/endpoints", nil, params, &out, opts)
@@ -1904,9 +1976,9 @@ func (s *WebhooksService) CreateEndpoint(ctx context.Context, params WebhooksCre
 // falham.
 //
 // Autenticação: chave de API da organização em Authorization: Bearer
-// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-// requisição. Respostas em JSON no envelope data; erros com error, message e
-// fields.
+// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+// nunca da requisição: a chave criada num showcase só alcança o que é dele.
+// Respostas em JSON no envelope data; erros com error, message e fields.
 func (s *WebhooksService) DeleteEndpoint(ctx context.Context, endpoint string, opts ...RequestOption) error {
 	return s.client.do(ctx, http.MethodDelete, "/api/v1/webhooks/endpoints/"+url.PathEscape(endpoint), nil, nil, nil, opts)
 }
@@ -1916,9 +1988,9 @@ func (s *WebhooksService) DeleteEndpoint(ctx context.Context, endpoint string, o
 // Devolve um endpoint de webhook pelo ID.
 //
 // Autenticação: chave de API da organização em Authorization: Bearer
-// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-// requisição. Respostas em JSON no envelope data; erros com error, message e
-// fields.
+// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+// nunca da requisição: a chave criada num showcase só alcança o que é dele.
+// Respostas em JSON no envelope data; erros com error, message e fields.
 func (s *WebhooksService) GetEndpoint(ctx context.Context, endpoint string, opts ...RequestOption) (*WebhookEndpoint, error) {
 	var out WebhookEndpoint
 	err := s.client.do(ctx, http.MethodGet, "/api/v1/webhooks/endpoints/"+url.PathEscape(endpoint), nil, nil, &out, opts)
@@ -1964,9 +2036,9 @@ func (p *WebhooksListDeliveriesParams) query() url.Values {
 // as de um endpoint; com status, só as de uma situação.
 //
 // Autenticação: chave de API da organização em Authorization: Bearer
-// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-// requisição. Respostas em JSON no envelope data; erros com error, message e
-// fields.
+// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+// nunca da requisição: a chave criada num showcase só alcança o que é dele.
+// Respostas em JSON no envelope data; erros com error, message e fields.
 func (s *WebhooksService) ListDeliveries(ctx context.Context, params *WebhooksListDeliveriesParams, opts ...RequestOption) (*Page[WebhookDelivery], error) {
 	var page Page[WebhookDelivery]
 	err := s.client.do(ctx, http.MethodGet, "/api/v1/webhooks/deliveries", params.query(), nil, &page, opts)
@@ -2013,9 +2085,9 @@ func (p *WebhooksListEndpointsParams) query() url.Values {
 // Devolve uma página dos endpoints de webhook da organização.
 //
 // Autenticação: chave de API da organização em Authorization: Bearer
-// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-// requisição. Respostas em JSON no envelope data; erros com error, message e
-// fields.
+// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+// nunca da requisição: a chave criada num showcase só alcança o que é dele.
+// Respostas em JSON no envelope data; erros com error, message e fields.
 func (s *WebhooksService) ListEndpoints(ctx context.Context, params *WebhooksListEndpointsParams, opts ...RequestOption) (*Page[WebhookEndpoint], error) {
 	var page Page[WebhookEndpoint]
 	err := s.client.do(ctx, http.MethodGet, "/api/v1/webhooks/endpoints", params.query(), nil, &page, opts)
@@ -2043,9 +2115,9 @@ func (s *WebhooksService) ListEndpointsIter(ctx context.Context, params *Webhook
 // e desliga o envio (enabled). O segredo não muda.
 //
 // Autenticação: chave de API da organização em Authorization: Bearer
-// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-// requisição. Respostas em JSON no envelope data; erros com error, message e
-// fields.
+// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+// nunca da requisição: a chave criada num showcase só alcança o que é dele.
+// Respostas em JSON no envelope data; erros com error, message e fields.
 func (s *WebhooksService) UpdateEndpoint(ctx context.Context, endpoint string, params WebhooksUpdateEndpointParams, opts ...RequestOption) (*WebhookEndpoint, error) {
 	var out WebhookEndpoint
 	err := s.client.do(ctx, http.MethodPatch, "/api/v1/webhooks/endpoints/"+url.PathEscape(endpoint), nil, params, &out, opts)

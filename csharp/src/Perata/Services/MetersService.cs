@@ -24,9 +24,10 @@ public sealed class MetersService
     /// <para>Devolve um medidor: o filtro dos eventos que ele conta, a
     /// agregação e a unidade.</para>
     /// <para>Autenticação: chave de API da organização em Authorization: Bearer
-    /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
-    /// da requisição. Respostas em JSON no envelope data; erros com error,
-    /// message e fields.</para>
+    /// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+    /// chave, nunca da requisição: a chave criada num showcase só alcança o que
+    /// é dele. Respostas em JSON no envelope data; erros com error, message e
+    /// fields.</para>
     /// </remarks>
     /// <param name="meter">The meter.</param>
     /// <param name="options">Another organization's key for this call.</param>
@@ -43,9 +44,10 @@ public sealed class MetersService
     /// <para>Devolve uma página dos medidores. Os arquivados só aparecem com
     /// is_archived=true.</para>
     /// <para>Autenticação: chave de API da organização em Authorization: Bearer
-    /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
-    /// da requisição. Respostas em JSON no envelope data; erros com error,
-    /// message e fields.</para>
+    /// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+    /// chave, nunca da requisição: a chave criada num showcase só alcança o que
+    /// é dele. Respostas em JSON no envelope data; erros com error, message e
+    /// fields.</para>
     /// </remarks>
     /// <param name="parameters">The page, its size and the filters; the first page when null.</param>
     /// <param name="options">Another organization's key for this call.</param>

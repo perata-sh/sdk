@@ -73,6 +73,10 @@ public sealed record Payment
     [JsonPropertyName("customer_id")]
     public required string CustomerId { get; init; }
 
+    /// <summary>Qual ciclo da assinatura o pagamento pagou: 1 é o primeiro; nulo fora de uma assinatura. Null when the API sends none.</summary>
+    [JsonPropertyName("cycle_sequence")]
+    public long? CycleSequence { get; init; }
+
     /// <summary>The API's <c>id</c>.</summary>
     [JsonPropertyName("id")]
     public required string Id { get; init; }
@@ -97,11 +101,27 @@ public sealed record Payment
     [JsonPropertyName("method")]
     public required string Method { get; init; }
 
+    /// <summary>O fim do período que o ciclo paga; nulo fora de uma assinatura. Null when the API sends none.</summary>
+    [JsonPropertyName("period_end")]
+    public string? PeriodEnd { get; init; }
+
+    /// <summary>O começo do período que o ciclo paga; nulo fora de uma assinatura. Null when the API sends none.</summary>
+    [JsonPropertyName("period_start")]
+    public string? PeriodStart { get; init; }
+
     /// <summary>The API's <c>refunded_cents</c>.</summary>
     [JsonPropertyName("refunded_cents")]
     public required long RefundedCents { get; init; }
 
+    /// <summary>O showcase a que pertence: o da chave de API que fez a chamada. Uma chave só alcança o seu showcase.</summary>
+    [JsonPropertyName("showcase_id")]
+    public required string ShowcaseId { get; init; }
+
     /// <summary>The API's <c>state</c>.</summary>
     [JsonPropertyName("state")]
     public required string State { get; init; }
+
+    /// <summary>A assinatura que este pagamento cobrou (a primeira ou uma renovação); nulo quando o pagamento não é de uma assinatura. Null when the API sends none.</summary>
+    [JsonPropertyName("subscription_id")]
+    public string? SubscriptionId { get; init; }
 }

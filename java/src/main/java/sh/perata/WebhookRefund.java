@@ -25,16 +25,24 @@ public final class WebhookRefund {
     private final String clientReferenceId;
     private final String id;
     private final Map<String, Object> metadata;
+    private final String orderId;
     private final String paymentId;
+    private final String reason;
+    private final Map<String, Object> refundMetadata;
+    private final String showcaseId;
     private final String status;
 
-    WebhookRefund(long amountCents, String checkoutId, String clientReferenceId, String id, Map<String, Object> metadata, String paymentId, String status) {
+    WebhookRefund(long amountCents, String checkoutId, String clientReferenceId, String id, Map<String, Object> metadata, String orderId, String paymentId, String reason, Map<String, Object> refundMetadata, String showcaseId, String status) {
         this.amountCents = amountCents;
         this.checkoutId = checkoutId;
         this.clientReferenceId = clientReferenceId;
         this.id = id;
         this.metadata = metadata;
+        this.orderId = orderId;
         this.paymentId = paymentId;
+        this.reason = reason;
+        this.refundMetadata = refundMetadata;
+        this.showcaseId = showcaseId;
         this.status = status;
     }
 
@@ -42,10 +50,14 @@ public final class WebhookRefund {
         return new WebhookRefund(
                 Json.required(data, "amount_cents", Json::asLong),
                 Json.optional(data, "checkout_id", Json::asString),
-                Json.optional(data, "client_reference_id", Json::asString),
+                Json.required(data, "client_reference_id", Json::asString),
                 Json.required(data, "id", Json::asString),
                 Json.required(data, "metadata", Json.map(Json::any)),
+                Json.optional(data, "order_id", Json::asString),
                 Json.required(data, "payment_id", Json::asString),
+                Json.optional(data, "reason", Json::asString),
+                Json.required(data, "refund_metadata", Json.map(Json::any)),
+                Json.required(data, "showcase_id", Json::asString),
                 Json.required(data, "status", Json::asString));
     }
 
@@ -59,7 +71,7 @@ public final class WebhookRefund {
         return checkoutId;
     }
 
-    /** @return O id do pedido no sistema do lojista; vazio sem ele. (null when the API sends none) */
+    /** @return O id do pedido no sistema do lojista; vazio sem ele. */
     public String getClientReferenceId() {
         return clientReferenceId;
     }
@@ -74,9 +86,29 @@ public final class WebhookRefund {
         return metadata;
     }
 
+    /** @return O mesmo pedido, com o nome que a API de reembolsos dá a ele; igual a checkout_id. (null when the API sends none) */
+    public String getOrderId() {
+        return orderId;
+    }
+
     /** @return the API's {@code payment_id} */
     public String getPaymentId() {
         return paymentId;
+    }
+
+    /** @return Por que o dinheiro voltou. (null when the API sends none) */
+    public String getReason() {
+        return reason;
+    }
+
+    /** @return Os pares que o servidor do lojista enviou no campo metadata ao pedir este reembolso; vazio sem eles. */
+    public Map<String, Object> getRefundMetadata() {
+        return refundMetadata;
+    }
+
+    /** @return O showcase da venda. */
+    public String getShowcaseId() {
+        return showcaseId;
     }
 
     /** @return the API's {@code status} */
@@ -86,6 +118,6 @@ public final class WebhookRefund {
 
     @Override
     public String toString() {
-        return "WebhookRefund{" + "amountCents=" + amountCents + ", checkoutId=" + checkoutId + ", clientReferenceId=" + clientReferenceId + ", id=" + id + ", metadata=" + metadata + ", paymentId=" + paymentId + ", status=" + status + "}";
+        return "WebhookRefund{" + "amountCents=" + amountCents + ", checkoutId=" + checkoutId + ", clientReferenceId=" + clientReferenceId + ", id=" + id + ", metadata=" + metadata + ", orderId=" + orderId + ", paymentId=" + paymentId + ", reason=" + reason + ", refundMetadata=" + refundMetadata + ", showcaseId=" + showcaseId + ", status=" + status + "}";
     }
 }

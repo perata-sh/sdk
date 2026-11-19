@@ -26,6 +26,8 @@ final class Subscription
         public readonly array $metadata,
         public readonly string $priceId,
         public readonly string $productId,
+        /** O showcase a que pertence: o da chave de API que fez a chamada. Uma chave só alcança o seu showcase. */
+        public readonly string $showcaseId,
         /** @var 'trialing'|'active'|'past_due'|'suspended'|'paused'|'canceled' */
         public readonly string $status,
         /** Quando a assinatura foi suspensa; nulo enquanto não está suspensa. */
@@ -57,6 +59,7 @@ final class Subscription
             metadata: $data['metadata'],
             priceId: $data['price_id'],
             productId: $data['product_id'],
+            showcaseId: $data['showcase_id'],
             status: $data['status'],
             suspendedAt: $data['suspended_at'] ?? null,
             suspensionReason: $data['suspension_reason'] ?? null,

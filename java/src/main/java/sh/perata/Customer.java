@@ -24,11 +24,12 @@ public final class Customer {
     private final String id;
     private final String name;
     private final String phone;
+    private final String showcaseId;
     private final String status;
     private final String taxId;
     private final String taxIdKind;
 
-    Customer(BillingAddress billingAddress, String billingName, String createdAt, String email, String externalId, String id, String name, String phone, String status, String taxId, String taxIdKind) {
+    Customer(BillingAddress billingAddress, String billingName, String createdAt, String email, String externalId, String id, String name, String phone, String showcaseId, String status, String taxId, String taxIdKind) {
         this.billingAddress = billingAddress;
         this.billingName = billingName;
         this.createdAt = createdAt;
@@ -37,6 +38,7 @@ public final class Customer {
         this.id = id;
         this.name = name;
         this.phone = phone;
+        this.showcaseId = showcaseId;
         this.status = status;
         this.taxId = taxId;
         this.taxIdKind = taxIdKind;
@@ -52,6 +54,7 @@ public final class Customer {
                 Json.required(data, "id", Json::asString),
                 Json.required(data, "name", Json::asString),
                 Json.optional(data, "phone", Json::asString),
+                Json.required(data, "showcase_id", Json::asString),
                 Json.required(data, "status", Json::asString),
                 Json.optional(data, "tax_id", Json::asString),
                 Json.optional(data, "tax_id_kind", Json::asString));
@@ -97,6 +100,11 @@ public final class Customer {
         return phone;
     }
 
+    /** @return O showcase a que pertence: o da chave de API que fez a chamada. Uma chave só alcança o seu showcase. */
+    public String getShowcaseId() {
+        return showcaseId;
+    }
+
     /** @return the API's {@code status} */
     public String getStatus() {
         return status;
@@ -114,6 +122,6 @@ public final class Customer {
 
     @Override
     public String toString() {
-        return "Customer{" + "billingAddress=" + billingAddress + ", billingName=" + billingName + ", createdAt=" + createdAt + ", email=" + email + ", externalId=" + externalId + ", id=" + id + ", name=" + name + ", phone=" + phone + ", status=" + status + ", taxId=" + taxId + ", taxIdKind=" + taxIdKind + "}";
+        return "Customer{" + "billingAddress=" + billingAddress + ", billingName=" + billingName + ", createdAt=" + createdAt + ", email=" + email + ", externalId=" + externalId + ", id=" + id + ", name=" + name + ", phone=" + phone + ", showcaseId=" + showcaseId + ", status=" + status + ", taxId=" + taxId + ", taxIdKind=" + taxIdKind + "}";
     }
 }

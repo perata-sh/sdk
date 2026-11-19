@@ -14,13 +14,13 @@ public final class RefundWebhookEvent extends WebhookEvent {
 
     private final WebhookRefund data;
 
-    RefundWebhookEvent(String id, String type, String timestamp, String environment, WebhookRefund data) {
-        super(id, type, timestamp, environment);
+    RefundWebhookEvent(String id, String type, String timestamp, String environment, String showcaseId, WebhookRefund data) {
+        super(id, type, timestamp, environment, showcaseId);
         this.data = data;
     }
 
-    static RefundWebhookEvent fromJson(String id, String type, String timestamp, String environment, Map<String, Object> data) {
-        return new RefundWebhookEvent(id, type, timestamp, environment, WebhookRefund.fromJson(data));
+    static RefundWebhookEvent fromJson(String id, String type, String timestamp, String environment, String showcaseId, Map<String, Object> data) {
+        return new RefundWebhookEvent(id, type, timestamp, environment, showcaseId, WebhookRefund.fromJson(data));
     }
 
     /** @return what the event carries */

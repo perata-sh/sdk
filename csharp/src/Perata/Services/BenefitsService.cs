@@ -25,9 +25,10 @@ public sealed class BenefitsService
     /// meter_credit. Os downloads e os benefícios do Discord e do GitHub se
     /// configuram no painel.</para>
     /// <para>Autenticação: chave de API da organização em Authorization: Bearer
-    /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
-    /// da requisição. Respostas em JSON no envelope data; erros com error,
-    /// message e fields.</para>
+    /// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+    /// chave, nunca da requisição: a chave criada num showcase só alcança o que
+    /// é dele. Respostas em JSON no envelope data; erros com error, message e
+    /// fields.</para>
     /// </remarks>
     /// <param name="parameters">The request.</param>
     /// <param name="options">An idempotency key, or another organization's key for this call.</param>
@@ -45,9 +46,10 @@ public sealed class BenefitsService
     /// <para>Exclui um benefício: ele sai de todos os produtos e é revogado de
     /// quem o tem.</para>
     /// <para>Autenticação: chave de API da organização em Authorization: Bearer
-    /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
-    /// da requisição. Respostas em JSON no envelope data; erros com error,
-    /// message e fields.</para>
+    /// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+    /// chave, nunca da requisição: a chave criada num showcase só alcança o que
+    /// é dele. Respostas em JSON no envelope data; erros com error, message e
+    /// fields.</para>
     /// </remarks>
     /// <param name="benefit">The benefit.</param>
     /// <param name="options">An idempotency key, or another organization's key for this call.</param>
@@ -62,9 +64,10 @@ public sealed class BenefitsService
     /// <remarks>
     /// <para>Devolve um benefício pelo ID.</para>
     /// <para>Autenticação: chave de API da organização em Authorization: Bearer
-    /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
-    /// da requisição. Respostas em JSON no envelope data; erros com error,
-    /// message e fields.</para>
+    /// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+    /// chave, nunca da requisição: a chave criada num showcase só alcança o que
+    /// é dele. Respostas em JSON no envelope data; erros com error, message e
+    /// fields.</para>
     /// </remarks>
     /// <param name="benefit">The benefit.</param>
     /// <param name="options">Another organization's key for this call.</param>
@@ -81,9 +84,10 @@ public sealed class BenefitsService
     /// <para>Devolve uma página dos benefícios da organização. Com type, só os
     /// de um tipo.</para>
     /// <para>Autenticação: chave de API da organização em Authorization: Bearer
-    /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
-    /// da requisição. Respostas em JSON no envelope data; erros com error,
-    /// message e fields.</para>
+    /// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+    /// chave, nunca da requisição: a chave criada num showcase só alcança o que
+    /// é dele. Respostas em JSON no envelope data; erros com error, message e
+    /// fields.</para>
     /// </remarks>
     /// <param name="parameters">The page, its size and the filters; the first page when null.</param>
     /// <param name="options">Another organization's key for this call.</param>
@@ -110,9 +114,10 @@ public sealed class BenefitsService
     /// customer_id, só as de um cliente; com is_granted, só as vigentes ou só
     /// as revogadas.</para>
     /// <para>Autenticação: chave de API da organização em Authorization: Bearer
-    /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
-    /// da requisição. Respostas em JSON no envelope data; erros com error,
-    /// message e fields.</para>
+    /// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+    /// chave, nunca da requisição: a chave criada num showcase só alcança o que
+    /// é dele. Respostas em JSON no envelope data; erros com error, message e
+    /// fields.</para>
     /// </remarks>
     /// <param name="benefit">The benefit.</param>
     /// <param name="parameters">The page, its size and the filters; the first page when null.</param>
@@ -141,9 +146,10 @@ public sealed class BenefitsService
     /// benefício. O tipo e a descrição dada na criação não mudam, e o que a
     /// concessão já entregou fica como foi entregue.</para>
     /// <para>Autenticação: chave de API da organização em Authorization: Bearer
-    /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
-    /// da requisição. Respostas em JSON no envelope data; erros com error,
-    /// message e fields.</para>
+    /// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+    /// chave, nunca da requisição: a chave criada num showcase só alcança o que
+    /// é dele. Respostas em JSON no envelope data; erros com error, message e
+    /// fields.</para>
     /// </remarks>
     /// <param name="benefit">The benefit.</param>
     /// <param name="parameters">The request.</param>

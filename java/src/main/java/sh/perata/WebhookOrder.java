@@ -47,10 +47,11 @@ public final class WebhookOrder {
     private final Long refundAmountCents;
     private final String refundId;
     private final long refundedAmountCents;
+    private final String showcaseId;
     private final String status;
     private final String subscriptionId;
 
-    WebhookOrder(long amountCents, String clientReferenceId, String currency, String customerId, Long cycleSequence, String id, long installmentInterestCents, long installments, List<CheckoutLine> items, Map<String, Object> metadata, String orderStatus, String paidAt, String periodEnd, String periodStart, String priceId, String productId, Long refundAmountCents, String refundId, long refundedAmountCents, String status, String subscriptionId) {
+    WebhookOrder(long amountCents, String clientReferenceId, String currency, String customerId, Long cycleSequence, String id, long installmentInterestCents, long installments, List<CheckoutLine> items, Map<String, Object> metadata, String orderStatus, String paidAt, String periodEnd, String periodStart, String priceId, String productId, Long refundAmountCents, String refundId, long refundedAmountCents, String showcaseId, String status, String subscriptionId) {
         this.amountCents = amountCents;
         this.clientReferenceId = clientReferenceId;
         this.currency = currency;
@@ -70,6 +71,7 @@ public final class WebhookOrder {
         this.refundAmountCents = refundAmountCents;
         this.refundId = refundId;
         this.refundedAmountCents = refundedAmountCents;
+        this.showcaseId = showcaseId;
         this.status = status;
         this.subscriptionId = subscriptionId;
     }
@@ -95,6 +97,7 @@ public final class WebhookOrder {
                 Json.optional(data, "refund_amount_cents", Json::asLong),
                 Json.optional(data, "refund_id", Json::asString),
                 Json.required(data, "refunded_amount_cents", Json::asLong),
+                Json.required(data, "showcase_id", Json::asString),
                 Json.required(data, "status", Json::asString),
                 Json.optional(data, "subscription_id", Json::asString));
     }
@@ -194,6 +197,11 @@ public final class WebhookOrder {
         return refundedAmountCents;
     }
 
+    /** @return O showcase da venda. */
+    public String getShowcaseId() {
+        return showcaseId;
+    }
+
     /** @return the API's {@code status} */
     public String getStatus() {
         return status;
@@ -206,6 +214,6 @@ public final class WebhookOrder {
 
     @Override
     public String toString() {
-        return "WebhookOrder{" + "amountCents=" + amountCents + ", clientReferenceId=" + clientReferenceId + ", currency=" + currency + ", customerId=" + customerId + ", cycleSequence=" + cycleSequence + ", id=" + id + ", installmentInterestCents=" + installmentInterestCents + ", installments=" + installments + ", items=" + items + ", metadata=" + metadata + ", orderStatus=" + orderStatus + ", paidAt=" + paidAt + ", periodEnd=" + periodEnd + ", periodStart=" + periodStart + ", priceId=" + priceId + ", productId=" + productId + ", refundAmountCents=" + refundAmountCents + ", refundId=" + refundId + ", refundedAmountCents=" + refundedAmountCents + ", status=" + status + ", subscriptionId=" + subscriptionId + "}";
+        return "WebhookOrder{" + "amountCents=" + amountCents + ", clientReferenceId=" + clientReferenceId + ", currency=" + currency + ", customerId=" + customerId + ", cycleSequence=" + cycleSequence + ", id=" + id + ", installmentInterestCents=" + installmentInterestCents + ", installments=" + installments + ", items=" + items + ", metadata=" + metadata + ", orderStatus=" + orderStatus + ", paidAt=" + paidAt + ", periodEnd=" + periodEnd + ", periodStart=" + periodStart + ", priceId=" + priceId + ", productId=" + productId + ", refundAmountCents=" + refundAmountCents + ", refundId=" + refundId + ", refundedAmountCents=" + refundedAmountCents + ", showcaseId=" + showcaseId + ", status=" + status + ", subscriptionId=" + subscriptionId + "}";
     }
 }

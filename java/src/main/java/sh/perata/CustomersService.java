@@ -27,9 +27,10 @@ public final class CustomersService {
      * 422.
      *
      * Autenticação: chave de API da organização em Authorization: Bearer
-     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-     * requisição. Respostas em JSON no envelope data; erros com error, message
-     * e fields.
+     * (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+     * chave, nunca da requisição: a chave criada num showcase só alcança o que
+     * é dele. Respostas em JSON no envelope data; erros com error, message e
+     * fields.
      *
      * @param params the request
      * @param options an idempotency key or another organization's key for this call, or null
@@ -52,9 +53,10 @@ public final class CustomersService {
      * 422.
      *
      * Autenticação: chave de API da organização em Authorization: Bearer
-     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-     * requisição. Respostas em JSON no envelope data; erros com error, message
-     * e fields.
+     * (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+     * chave, nunca da requisição: a chave criada num showcase só alcança o que
+     * é dele. Respostas em JSON no envelope data; erros com error, message e
+     * fields.
      *
      * @param params the request
      * @return the customer
@@ -426,9 +428,10 @@ public final class CustomersService {
      * nos registros.
      *
      * Autenticação: chave de API da organização em Authorization: Bearer
-     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-     * requisição. Respostas em JSON no envelope data; erros com error, message
-     * e fields.
+     * (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+     * chave, nunca da requisição: a chave criada num showcase só alcança o que
+     * é dele. Respostas em JSON no envelope data; erros com error, message e
+     * fields.
      *
      * @param customer the customer
      * @param options an idempotency key or another organization's key for this call, or null
@@ -446,9 +449,10 @@ public final class CustomersService {
      * nos registros.
      *
      * Autenticação: chave de API da organização em Authorization: Bearer
-     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-     * requisição. Respostas em JSON no envelope data; erros com error, message
-     * e fields.
+     * (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+     * chave, nunca da requisição: a chave criada num showcase só alcança o que
+     * é dele. Respostas em JSON no envelope data; erros com error, message e
+     * fields.
      *
      * @param customer the customer
      * @throws PerataException when the API refuses the call
@@ -463,9 +467,10 @@ public final class CustomersService {
      * Devolve um cliente pelo ID.
      *
      * Autenticação: chave de API da organização em Authorization: Bearer
-     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-     * requisição. Respostas em JSON no envelope data; erros com error, message
-     * e fields.
+     * (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+     * chave, nunca da requisição: a chave criada num showcase só alcança o que
+     * é dele. Respostas em JSON no envelope data; erros com error, message e
+     * fields.
      *
      * @param customer the customer
      * @param options another organization's key for this call, or null
@@ -483,9 +488,10 @@ public final class CustomersService {
      * Devolve um cliente pelo ID.
      *
      * Autenticação: chave de API da organização em Authorization: Bearer
-     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-     * requisição. Respostas em JSON no envelope data; erros com error, message
-     * e fields.
+     * (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+     * chave, nunca da requisição: a chave criada num showcase só alcança o que
+     * é dele. Respostas em JSON no envelope data; erros com error, message e
+     * fields.
      *
      * @param customer the customer
      * @return the customer
@@ -502,9 +508,10 @@ public final class CustomersService {
      * (external_id).
      *
      * Autenticação: chave de API da organização em Authorization: Bearer
-     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-     * requisição. Respostas em JSON no envelope data; erros com error, message
-     * e fields.
+     * (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+     * chave, nunca da requisição: a chave criada num showcase só alcança o que
+     * é dele. Respostas em JSON no envelope data; erros com error, message e
+     * fields.
      *
      * @param externalId the external_id
      * @param options another organization's key for this call, or null
@@ -523,9 +530,10 @@ public final class CustomersService {
      * (external_id).
      *
      * Autenticação: chave de API da organização em Authorization: Bearer
-     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-     * requisição. Respostas em JSON no envelope data; erros com error, message
-     * e fields.
+     * (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+     * chave, nunca da requisição: a chave criada num showcase só alcança o que
+     * é dele. Respostas em JSON no envelope data; erros com error, message e
+     * fields.
      *
      * @param externalId the external_id
      * @return the customer
@@ -543,9 +551,10 @@ public final class CustomersService {
      * faz para decidir o que o cliente pode usar.
      *
      * Autenticação: chave de API da organização em Authorization: Bearer
-     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-     * requisição. Respostas em JSON no envelope data; erros com error, message
-     * e fields.
+     * (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+     * chave, nunca da requisição: a chave criada num showcase só alcança o que
+     * é dele. Respostas em JSON no envelope data; erros com error, message e
+     * fields.
      *
      * @param customer the customer
      * @param options another organization's key for this call, or null
@@ -565,9 +574,10 @@ public final class CustomersService {
      * faz para decidir o que o cliente pode usar.
      *
      * Autenticação: chave de API da organização em Authorization: Bearer
-     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-     * requisição. Respostas em JSON no envelope data; erros com error, message
-     * e fields.
+     * (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+     * chave, nunca da requisição: a chave criada num showcase só alcança o que
+     * é dele. Respostas em JSON no envelope data; erros com error, message e
+     * fields.
      *
      * @param customer the customer
      * @return the customerstate
@@ -584,9 +594,10 @@ public final class CustomersService {
      * sem diferença entre maiúsculas e minúsculas.
      *
      * Autenticação: chave de API da organização em Authorization: Bearer
-     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-     * requisição. Respostas em JSON no envelope data; erros com error, message
-     * e fields.
+     * (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+     * chave, nunca da requisição: a chave criada num showcase só alcança o que
+     * é dele. Respostas em JSON no envelope data; erros com error, message e
+     * fields.
      *
      * @param params the page, its size and the filters, or null
      * @param options options for this call, or null
@@ -605,9 +616,10 @@ public final class CustomersService {
      * sem diferença entre maiúsculas e minúsculas.
      *
      * Autenticação: chave de API da organização em Authorization: Bearer
-     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-     * requisição. Respostas em JSON no envelope data; erros com error, message
-     * e fields.
+     * (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+     * chave, nunca da requisição: a chave criada num showcase só alcança o que
+     * é dele. Respostas em JSON no envelope data; erros com error, message e
+     * fields.
      *
      * @param params the page, its size and the filters, or null
      * @return the page
@@ -623,9 +635,10 @@ public final class CustomersService {
      * sem diferença entre maiúsculas e minúsculas.
      *
      * Autenticação: chave de API da organização em Authorization: Bearer
-     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-     * requisição. Respostas em JSON no envelope data; erros com error, message
-     * e fields.
+     * (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+     * chave, nunca da requisição: a chave criada num showcase só alcança o que
+     * é dele. Respostas em JSON no envelope data; erros com error, message e
+     * fields.
      *
      * @return the page
      */
@@ -760,9 +773,10 @@ public final class CustomersService {
      * endereço de cobrança. O ID externo só pode ser definido uma vez.
      *
      * Autenticação: chave de API da organização em Authorization: Bearer
-     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-     * requisição. Respostas em JSON no envelope data; erros com error, message
-     * e fields.
+     * (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+     * chave, nunca da requisição: a chave criada num showcase só alcança o que
+     * é dele. Respostas em JSON no envelope data; erros com error, message e
+     * fields.
      *
      * @param customer the customer
      * @param params the request
@@ -782,9 +796,10 @@ public final class CustomersService {
      * endereço de cobrança. O ID externo só pode ser definido uma vez.
      *
      * Autenticação: chave de API da organização em Authorization: Bearer
-     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-     * requisição. Respostas em JSON no envelope data; erros com error, message
-     * e fields.
+     * (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+     * chave, nunca da requisição: a chave criada num showcase só alcança o que
+     * é dele. Respostas em JSON no envelope data; erros com error, message e
+     * fields.
      *
      * @param customer the customer
      * @param params the request
@@ -1154,9 +1169,10 @@ public final class CustomersService {
      * (external_id). Os campos são os de Atualizar um cliente.
      *
      * Autenticação: chave de API da organização em Authorization: Bearer
-     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-     * requisição. Respostas em JSON no envelope data; erros com error, message
-     * e fields.
+     * (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+     * chave, nunca da requisição: a chave criada num showcase só alcança o que
+     * é dele. Respostas em JSON no envelope data; erros com error, message e
+     * fields.
      *
      * @param externalId the external_id
      * @param params the request
@@ -1176,9 +1192,10 @@ public final class CustomersService {
      * (external_id). Os campos são os de Atualizar um cliente.
      *
      * Autenticação: chave de API da organização em Authorization: Bearer
-     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-     * requisição. Respostas em JSON no envelope data; erros com error, message
-     * e fields.
+     * (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+     * chave, nunca da requisição: a chave criada num showcase só alcança o que
+     * é dele. Respostas em JSON no envelope data; erros com error, message e
+     * fields.
      *
      * @param externalId the external_id
      * @param params the request

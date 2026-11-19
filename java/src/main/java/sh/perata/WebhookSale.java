@@ -25,6 +25,8 @@ public final class WebhookSale {
     private final Long cycleSequence;
     private final String environment;
     private final String eventId;
+    private final String failureCode;
+    private final String failureReason;
     private final String merchantId;
     private final Map<String, Object> metadata;
     private final String method;
@@ -36,7 +38,7 @@ public final class WebhookSale {
     private final Long refundedAmountCents;
     private final String subscriptionId;
 
-    WebhookSale(String aggregate, String aggregateId, Long amountCents, String checkoutId, String clientReferenceId, String currency, Long cycleSequence, String environment, String eventId, String merchantId, Map<String, Object> metadata, String method, String paymentId, String periodEnd, String periodStart, Long refundAmountCents, String refundId, Long refundedAmountCents, String subscriptionId) {
+    WebhookSale(String aggregate, String aggregateId, Long amountCents, String checkoutId, String clientReferenceId, String currency, Long cycleSequence, String environment, String eventId, String failureCode, String failureReason, String merchantId, Map<String, Object> metadata, String method, String paymentId, String periodEnd, String periodStart, Long refundAmountCents, String refundId, Long refundedAmountCents, String subscriptionId) {
         this.aggregate = aggregate;
         this.aggregateId = aggregateId;
         this.amountCents = amountCents;
@@ -46,6 +48,8 @@ public final class WebhookSale {
         this.cycleSequence = cycleSequence;
         this.environment = environment;
         this.eventId = eventId;
+        this.failureCode = failureCode;
+        this.failureReason = failureReason;
         this.merchantId = merchantId;
         this.metadata = metadata;
         this.method = method;
@@ -69,6 +73,8 @@ public final class WebhookSale {
                 Json.optional(data, "cycle_sequence", Json::asLong),
                 Json.required(data, "environment", Json::asString),
                 Json.required(data, "event_id", Json::asString),
+                Json.optional(data, "failure_code", Json::asString),
+                Json.optional(data, "failure_reason", Json::asString),
                 Json.required(data, "merchant_id", Json::asString),
                 Json.optional(data, "metadata", Json.map(Json::any)),
                 Json.optional(data, "method", Json::asString),
@@ -126,6 +132,16 @@ public final class WebhookSale {
         return eventId;
     }
 
+    /** @return O código que a Cielo deu para a recusa, nos eventos refund.* de um reembolso que falhou; serve ao suporte. (null when the API sends none) */
+    public String getFailureCode() {
+        return failureCode;
+    }
+
+    /** @return Por que o dinheiro não voltou, em português, nos eventos refund.* de um reembolso que falhou (refund.failed). (null when the API sends none) */
+    public String getFailureReason() {
+        return failureReason;
+    }
+
     /** @return the API's {@code merchant_id} */
     public String getMerchantId() {
         return merchantId;
@@ -178,6 +194,6 @@ public final class WebhookSale {
 
     @Override
     public String toString() {
-        return "WebhookSale{" + "aggregate=" + aggregate + ", aggregateId=" + aggregateId + ", amountCents=" + amountCents + ", checkoutId=" + checkoutId + ", clientReferenceId=" + clientReferenceId + ", currency=" + currency + ", cycleSequence=" + cycleSequence + ", environment=" + environment + ", eventId=" + eventId + ", merchantId=" + merchantId + ", metadata=" + metadata + ", method=" + method + ", paymentId=" + paymentId + ", periodEnd=" + periodEnd + ", periodStart=" + periodStart + ", refundAmountCents=" + refundAmountCents + ", refundId=" + refundId + ", refundedAmountCents=" + refundedAmountCents + ", subscriptionId=" + subscriptionId + "}";
+        return "WebhookSale{" + "aggregate=" + aggregate + ", aggregateId=" + aggregateId + ", amountCents=" + amountCents + ", checkoutId=" + checkoutId + ", clientReferenceId=" + clientReferenceId + ", currency=" + currency + ", cycleSequence=" + cycleSequence + ", environment=" + environment + ", eventId=" + eventId + ", failureCode=" + failureCode + ", failureReason=" + failureReason + ", merchantId=" + merchantId + ", metadata=" + metadata + ", method=" + method + ", paymentId=" + paymentId + ", periodEnd=" + periodEnd + ", periodStart=" + periodStart + ", refundAmountCents=" + refundAmountCents + ", refundId=" + refundId + ", refundedAmountCents=" + refundedAmountCents + ", subscriptionId=" + subscriptionId + "}";
     }
 }

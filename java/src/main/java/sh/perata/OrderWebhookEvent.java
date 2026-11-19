@@ -14,13 +14,13 @@ public final class OrderWebhookEvent extends WebhookEvent {
 
     private final WebhookOrder data;
 
-    OrderWebhookEvent(String id, String type, String timestamp, String environment, WebhookOrder data) {
-        super(id, type, timestamp, environment);
+    OrderWebhookEvent(String id, String type, String timestamp, String environment, String showcaseId, WebhookOrder data) {
+        super(id, type, timestamp, environment, showcaseId);
         this.data = data;
     }
 
-    static OrderWebhookEvent fromJson(String id, String type, String timestamp, String environment, Map<String, Object> data) {
-        return new OrderWebhookEvent(id, type, timestamp, environment, WebhookOrder.fromJson(data));
+    static OrderWebhookEvent fromJson(String id, String type, String timestamp, String environment, String showcaseId, Map<String, Object> data) {
+        return new OrderWebhookEvent(id, type, timestamp, environment, showcaseId, WebhookOrder.fromJson(data));
     }
 
     /** @return what the event carries */

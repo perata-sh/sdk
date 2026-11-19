@@ -8,14 +8,15 @@ defmodule Perata.BenefitWebhookEvent do
   @types ~w(benefit.created benefit.updated)
 
   @enforce_keys [:id, :type, :timestamp, :data]
-  defstruct [:id, :type, :timestamp, :data, environment: ""]
+  defstruct [:id, :type, :timestamp, :data, environment: "", showcase_id: ""]
 
-  @typedoc "`environment` is \"test\" or \"live\"; empty when an older server did not send it."
+  @typedoc "`environment` is \"test\" or \"live\", and `showcase_id` is the showcase of the sale; each empty when an older server did not send it."
   @type t :: %__MODULE__{
           id: String.t(),
           type: String.t(),
           timestamp: String.t(),
           environment: String.t(),
+          showcase_id: String.t(),
           data: Perata.WebhookBenefit.t()
         }
 
@@ -32,14 +33,15 @@ defmodule Perata.BenefitGrantWebhookEvent do
   @types ~w(benefit_grant.created benefit_grant.revoked benefit_grant.updated)
 
   @enforce_keys [:id, :type, :timestamp, :data]
-  defstruct [:id, :type, :timestamp, :data, environment: ""]
+  defstruct [:id, :type, :timestamp, :data, environment: "", showcase_id: ""]
 
-  @typedoc "`environment` is \"test\" or \"live\"; empty when an older server did not send it."
+  @typedoc "`environment` is \"test\" or \"live\", and `showcase_id` is the showcase of the sale; each empty when an older server did not send it."
   @type t :: %__MODULE__{
           id: String.t(),
           type: String.t(),
           timestamp: String.t(),
           environment: String.t(),
+          showcase_id: String.t(),
           data: Perata.BenefitGrant.t()
         }
 
@@ -56,14 +58,15 @@ defmodule Perata.CheckoutWebhookEvent do
   @types ~w(checkout.created checkout.expired checkout.updated)
 
   @enforce_keys [:id, :type, :timestamp, :data]
-  defstruct [:id, :type, :timestamp, :data, environment: ""]
+  defstruct [:id, :type, :timestamp, :data, environment: "", showcase_id: ""]
 
-  @typedoc "`environment` is \"test\" or \"live\"; empty when an older server did not send it."
+  @typedoc "`environment` is \"test\" or \"live\", and `showcase_id` is the showcase of the sale; each empty when an older server did not send it."
   @type t :: %__MODULE__{
           id: String.t(),
           type: String.t(),
           timestamp: String.t(),
           environment: String.t(),
+          showcase_id: String.t(),
           data: Perata.WebhookCheckout.t()
         }
 
@@ -80,14 +83,15 @@ defmodule Perata.CustomerWebhookEvent do
   @types ~w(customer.created customer.deleted customer.updated)
 
   @enforce_keys [:id, :type, :timestamp, :data]
-  defstruct [:id, :type, :timestamp, :data, environment: ""]
+  defstruct [:id, :type, :timestamp, :data, environment: "", showcase_id: ""]
 
-  @typedoc "`environment` is \"test\" or \"live\"; empty when an older server did not send it."
+  @typedoc "`environment` is \"test\" or \"live\", and `showcase_id` is the showcase of the sale; each empty when an older server did not send it."
   @type t :: %__MODULE__{
           id: String.t(),
           type: String.t(),
           timestamp: String.t(),
           environment: String.t(),
+          showcase_id: String.t(),
           data: Perata.Customer.t()
         }
 
@@ -104,14 +108,15 @@ defmodule Perata.DiscountWebhookEvent do
   @types ~w(discount.created discount.deleted discount.updated)
 
   @enforce_keys [:id, :type, :timestamp, :data]
-  defstruct [:id, :type, :timestamp, :data, environment: ""]
+  defstruct [:id, :type, :timestamp, :data, environment: "", showcase_id: ""]
 
-  @typedoc "`environment` is \"test\" or \"live\"; empty when an older server did not send it."
+  @typedoc "`environment` is \"test\" or \"live\", and `showcase_id` is the showcase of the sale; each empty when an older server did not send it."
   @type t :: %__MODULE__{
           id: String.t(),
           type: String.t(),
           timestamp: String.t(),
           environment: String.t(),
+          showcase_id: String.t(),
           data: Perata.WebhookDiscount.t()
         }
 
@@ -128,14 +133,15 @@ defmodule Perata.DisputeWebhookEvent do
   @types ~w(dispute.lost dispute.opened dispute.won)
 
   @enforce_keys [:id, :type, :timestamp, :data]
-  defstruct [:id, :type, :timestamp, :data, environment: ""]
+  defstruct [:id, :type, :timestamp, :data, environment: "", showcase_id: ""]
 
-  @typedoc "`environment` is \"test\" or \"live\"; empty when an older server did not send it."
+  @typedoc "`environment` is \"test\" or \"live\", and `showcase_id` is the showcase of the sale; each empty when an older server did not send it."
   @type t :: %__MODULE__{
           id: String.t(),
           type: String.t(),
           timestamp: String.t(),
           environment: String.t(),
+          showcase_id: String.t(),
           data: Perata.WebhookDispute.t()
         }
 
@@ -152,14 +158,15 @@ defmodule Perata.IdentifiersWebhookEvent do
   @types ~w(benefit.archived benefit.version_created benefit_product_link.linked benefit_product_link.unlinked checkout_link.archived checkout_link.created checkout_session.confirmed checkout_session.expired checkout_session.failed checkout_session.opened checkout_session.succeeded customer.archived discount.exhausted discount.expired discount.reactivated discount.redeemed discount_redemption.released invoice.drafted invoice.issued invoice.settled invoice.uncollectible invoice.voided price.archived price.created product.archived seat_allocation.opened seat_allocation.resized seat_assignment.claimed seat_assignment.invited seat_assignment.revoked usage_event.recorded usage_period.closed usage_period.opened usage_period_adjustment.created)
 
   @enforce_keys [:id, :type, :timestamp, :data]
-  defstruct [:id, :type, :timestamp, :data, environment: ""]
+  defstruct [:id, :type, :timestamp, :data, environment: "", showcase_id: ""]
 
-  @typedoc "`environment` is \"test\" or \"live\"; empty when an older server did not send it."
+  @typedoc "`environment` is \"test\" or \"live\", and `showcase_id` is the showcase of the sale; each empty when an older server did not send it."
   @type t :: %__MODULE__{
           id: String.t(),
           type: String.t(),
           timestamp: String.t(),
           environment: String.t(),
+          showcase_id: String.t(),
           data: %{optional(String.t()) => String.t()}
         }
 
@@ -176,14 +183,15 @@ defmodule Perata.OrderWebhookEvent do
   @types ~w(order.created order.paid order.refunded order.updated)
 
   @enforce_keys [:id, :type, :timestamp, :data]
-  defstruct [:id, :type, :timestamp, :data, environment: ""]
+  defstruct [:id, :type, :timestamp, :data, environment: "", showcase_id: ""]
 
-  @typedoc "`environment` is \"test\" or \"live\"; empty when an older server did not send it."
+  @typedoc "`environment` is \"test\" or \"live\", and `showcase_id` is the showcase of the sale; each empty when an older server did not send it."
   @type t :: %__MODULE__{
           id: String.t(),
           type: String.t(),
           timestamp: String.t(),
           environment: String.t(),
+          showcase_id: String.t(),
           data: Perata.WebhookOrder.t()
         }
 
@@ -200,14 +208,15 @@ defmodule Perata.ProductWebhookEvent do
   @types ~w(product.created product.updated)
 
   @enforce_keys [:id, :type, :timestamp, :data]
-  defstruct [:id, :type, :timestamp, :data, environment: ""]
+  defstruct [:id, :type, :timestamp, :data, environment: "", showcase_id: ""]
 
-  @typedoc "`environment` is \"test\" or \"live\"; empty when an older server did not send it."
+  @typedoc "`environment` is \"test\" or \"live\", and `showcase_id` is the showcase of the sale; each empty when an older server did not send it."
   @type t :: %__MODULE__{
           id: String.t(),
           type: String.t(),
           timestamp: String.t(),
           environment: String.t(),
+          showcase_id: String.t(),
           data: Perata.Product.t()
         }
 
@@ -224,14 +233,15 @@ defmodule Perata.RefundWebhookEvent do
   @types ~w(refund.created refund.updated)
 
   @enforce_keys [:id, :type, :timestamp, :data]
-  defstruct [:id, :type, :timestamp, :data, environment: ""]
+  defstruct [:id, :type, :timestamp, :data, environment: "", showcase_id: ""]
 
-  @typedoc "`environment` is \"test\" or \"live\"; empty when an older server did not send it."
+  @typedoc "`environment` is \"test\" or \"live\", and `showcase_id` is the showcase of the sale; each empty when an older server did not send it."
   @type t :: %__MODULE__{
           id: String.t(),
           type: String.t(),
           timestamp: String.t(),
           environment: String.t(),
+          showcase_id: String.t(),
           data: Perata.WebhookRefund.t()
         }
 
@@ -248,14 +258,15 @@ defmodule Perata.SaleWebhookEvent do
   @types ~w(checkout_payment.authorized checkout_payment.canceled checkout_payment.captured checkout_payment.partially_refunded checkout_payment.refunded checkout_payment.refused refund.canceled refund.failed refund.requested refund.succeeded)
 
   @enforce_keys [:id, :type, :timestamp, :data]
-  defstruct [:id, :type, :timestamp, :data, environment: ""]
+  defstruct [:id, :type, :timestamp, :data, environment: "", showcase_id: ""]
 
-  @typedoc "`environment` is \"test\" or \"live\"; empty when an older server did not send it."
+  @typedoc "`environment` is \"test\" or \"live\", and `showcase_id` is the showcase of the sale; each empty when an older server did not send it."
   @type t :: %__MODULE__{
           id: String.t(),
           type: String.t(),
           timestamp: String.t(),
           environment: String.t(),
+          showcase_id: String.t(),
           data: Perata.WebhookSale.t()
         }
 
@@ -272,14 +283,15 @@ defmodule Perata.SubscriptionWebhookEvent do
   @types ~w(subscription.active subscription.canceled subscription.created subscription.cycled subscription.past_due subscription.paused subscription.resumed subscription.revoked subscription.suspended subscription.uncanceled subscription.updated)
 
   @enforce_keys [:id, :type, :timestamp, :data]
-  defstruct [:id, :type, :timestamp, :data, environment: ""]
+  defstruct [:id, :type, :timestamp, :data, environment: "", showcase_id: ""]
 
-  @typedoc "`environment` is \"test\" or \"live\"; empty when an older server did not send it."
+  @typedoc "`environment` is \"test\" or \"live\", and `showcase_id` is the showcase of the sale; each empty when an older server did not send it."
   @type t :: %__MODULE__{
           id: String.t(),
           type: String.t(),
           timestamp: String.t(),
           environment: String.t(),
+          showcase_id: String.t(),
           data: Perata.WebhookSubscription.t()
         }
 
@@ -292,14 +304,15 @@ defmodule Perata.UnknownWebhookEvent do
   @moduledoc "An event of a type this SDK does not know yet, its data as it was sent."
 
   @enforce_keys [:id, :type, :timestamp, :data]
-  defstruct [:id, :type, :timestamp, :data, environment: ""]
+  defstruct [:id, :type, :timestamp, :data, environment: "", showcase_id: ""]
 
-  @typedoc "`environment` is \"test\" or \"live\"; empty when an older server did not send it."
+  @typedoc "`environment` is \"test\" or \"live\", and `showcase_id` is the showcase of the sale; each empty when an older server did not send it."
   @type t :: %__MODULE__{
           id: String.t(),
           type: String.t(),
           timestamp: String.t(),
           environment: String.t(),
+          showcase_id: String.t(),
           data: map()
         }
 end
@@ -334,6 +347,7 @@ defmodule Perata.WebhookEvent do
     id = Map.fetch!(event, "id")
     timestamp = Map.fetch!(event, "timestamp")
     environment = if is_binary(event["environment"]), do: event["environment"], else: ""
+    showcase_id = if is_binary(event["showcase_id"]), do: event["showcase_id"], else: ""
 
     cond do
       type in Perata.BenefitWebhookEvent.types() ->
@@ -342,6 +356,7 @@ defmodule Perata.WebhookEvent do
           type: type,
           timestamp: timestamp,
           environment: environment,
+          showcase_id: showcase_id,
           data: Perata.WebhookBenefit.from_map(data)
         }
 
@@ -351,6 +366,7 @@ defmodule Perata.WebhookEvent do
           type: type,
           timestamp: timestamp,
           environment: environment,
+          showcase_id: showcase_id,
           data: Perata.BenefitGrant.from_map(data)
         }
 
@@ -360,6 +376,7 @@ defmodule Perata.WebhookEvent do
           type: type,
           timestamp: timestamp,
           environment: environment,
+          showcase_id: showcase_id,
           data: Perata.WebhookCheckout.from_map(data)
         }
 
@@ -369,6 +386,7 @@ defmodule Perata.WebhookEvent do
           type: type,
           timestamp: timestamp,
           environment: environment,
+          showcase_id: showcase_id,
           data: Perata.Customer.from_map(data)
         }
 
@@ -378,6 +396,7 @@ defmodule Perata.WebhookEvent do
           type: type,
           timestamp: timestamp,
           environment: environment,
+          showcase_id: showcase_id,
           data: Perata.WebhookDiscount.from_map(data)
         }
 
@@ -387,6 +406,7 @@ defmodule Perata.WebhookEvent do
           type: type,
           timestamp: timestamp,
           environment: environment,
+          showcase_id: showcase_id,
           data: Perata.WebhookDispute.from_map(data)
         }
 
@@ -396,6 +416,7 @@ defmodule Perata.WebhookEvent do
           type: type,
           timestamp: timestamp,
           environment: environment,
+          showcase_id: showcase_id,
           data: data
         }
 
@@ -405,6 +426,7 @@ defmodule Perata.WebhookEvent do
           type: type,
           timestamp: timestamp,
           environment: environment,
+          showcase_id: showcase_id,
           data: Perata.WebhookOrder.from_map(data)
         }
 
@@ -414,6 +436,7 @@ defmodule Perata.WebhookEvent do
           type: type,
           timestamp: timestamp,
           environment: environment,
+          showcase_id: showcase_id,
           data: Perata.Product.from_map(data)
         }
 
@@ -423,6 +446,7 @@ defmodule Perata.WebhookEvent do
           type: type,
           timestamp: timestamp,
           environment: environment,
+          showcase_id: showcase_id,
           data: Perata.WebhookRefund.from_map(data)
         }
 
@@ -432,6 +456,7 @@ defmodule Perata.WebhookEvent do
           type: type,
           timestamp: timestamp,
           environment: environment,
+          showcase_id: showcase_id,
           data: Perata.WebhookSale.from_map(data)
         }
 
@@ -441,6 +466,7 @@ defmodule Perata.WebhookEvent do
           type: type,
           timestamp: timestamp,
           environment: environment,
+          showcase_id: showcase_id,
           data: Perata.WebhookSubscription.from_map(data)
         }
 
@@ -450,6 +476,7 @@ defmodule Perata.WebhookEvent do
           type: type,
           timestamp: timestamp,
           environment: environment,
+          showcase_id: showcase_id,
           data: data
         }
     end

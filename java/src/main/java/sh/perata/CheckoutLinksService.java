@@ -24,9 +24,10 @@ public final class CheckoutLinksService {
      * sessão de compra nova.
      *
      * Autenticação: chave de API da organização em Authorization: Bearer
-     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-     * requisição. Respostas em JSON no envelope data; erros com error, message
-     * e fields.
+     * (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+     * chave, nunca da requisição: a chave criada num showcase só alcança o que
+     * é dele. Respostas em JSON no envelope data; erros com error, message e
+     * fields.
      *
      * @param params the request
      * @param options an idempotency key or another organization's key for this call, or null
@@ -46,9 +47,10 @@ public final class CheckoutLinksService {
      * sessão de compra nova.
      *
      * Autenticação: chave de API da organização em Authorization: Bearer
-     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-     * requisição. Respostas em JSON no envelope data; erros com error, message
-     * e fields.
+     * (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+     * chave, nunca da requisição: a chave criada num showcase só alcança o que
+     * é dele. Respostas em JSON no envelope data; erros com error, message e
+     * fields.
      *
      * @param params the request
      * @return the checkoutlink
@@ -431,9 +433,10 @@ public final class CheckoutLinksService {
      * continuam.
      *
      * Autenticação: chave de API da organização em Authorization: Bearer
-     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-     * requisição. Respostas em JSON no envelope data; erros com error, message
-     * e fields.
+     * (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+     * chave, nunca da requisição: a chave criada num showcase só alcança o que
+     * é dele. Respostas em JSON no envelope data; erros com error, message e
+     * fields.
      *
      * @param checkoutLink the checkout_link
      * @param options an idempotency key or another organization's key for this call, or null
@@ -450,9 +453,10 @@ public final class CheckoutLinksService {
      * continuam.
      *
      * Autenticação: chave de API da organização em Authorization: Bearer
-     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-     * requisição. Respostas em JSON no envelope data; erros com error, message
-     * e fields.
+     * (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+     * chave, nunca da requisição: a chave criada num showcase só alcança o que
+     * é dele. Respostas em JSON no envelope data; erros com error, message e
+     * fields.
      *
      * @param checkoutLink the checkout_link
      * @throws PerataException when the API refuses the call
@@ -467,9 +471,10 @@ public final class CheckoutLinksService {
      * Devolve um link de checkout pelo ID.
      *
      * Autenticação: chave de API da organização em Authorization: Bearer
-     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-     * requisição. Respostas em JSON no envelope data; erros com error, message
-     * e fields.
+     * (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+     * chave, nunca da requisição: a chave criada num showcase só alcança o que
+     * é dele. Respostas em JSON no envelope data; erros com error, message e
+     * fields.
      *
      * @param checkoutLink the checkout_link
      * @param options another organization's key for this call, or null
@@ -487,9 +492,10 @@ public final class CheckoutLinksService {
      * Devolve um link de checkout pelo ID.
      *
      * Autenticação: chave de API da organização em Authorization: Bearer
-     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-     * requisição. Respostas em JSON no envelope data; erros com error, message
-     * e fields.
+     * (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+     * chave, nunca da requisição: a chave criada num showcase só alcança o que
+     * é dele. Respostas em JSON no envelope data; erros com error, message e
+     * fields.
      *
      * @param checkoutLink the checkout_link
      * @return the checkoutlink
@@ -505,9 +511,10 @@ public final class CheckoutLinksService {
      * Devolve uma página dos links de checkout da organização.
      *
      * Autenticação: chave de API da organização em Authorization: Bearer
-     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-     * requisição. Respostas em JSON no envelope data; erros com error, message
-     * e fields.
+     * (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+     * chave, nunca da requisição: a chave criada num showcase só alcança o que
+     * é dele. Respostas em JSON no envelope data; erros com error, message e
+     * fields.
      *
      * @param params the page, its size and the filters, or null
      * @param options options for this call, or null
@@ -525,9 +532,10 @@ public final class CheckoutLinksService {
      * Devolve uma página dos links de checkout da organização.
      *
      * Autenticação: chave de API da organização em Authorization: Bearer
-     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-     * requisição. Respostas em JSON no envelope data; erros com error, message
-     * e fields.
+     * (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+     * chave, nunca da requisição: a chave criada num showcase só alcança o que
+     * é dele. Respostas em JSON no envelope data; erros com error, message e
+     * fields.
      *
      * @param params the page, its size and the filters, or null
      * @return the page
@@ -542,9 +550,10 @@ public final class CheckoutLinksService {
      * Devolve uma página dos links de checkout da organização.
      *
      * Autenticação: chave de API da organização em Authorization: Bearer
-     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-     * requisição. Respostas em JSON no envelope data; erros com error, message
-     * e fields.
+     * (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+     * chave, nunca da requisição: a chave criada num showcase só alcança o que
+     * é dele. Respostas em JSON no envelope data; erros com error, message e
+     * fields.
      *
      * @return the page
      */
@@ -660,9 +669,10 @@ public final class CheckoutLinksService {
      * link. A quantidade e o desconto ficam como foram publicados.
      *
      * Autenticação: chave de API da organização em Authorization: Bearer
-     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-     * requisição. Respostas em JSON no envelope data; erros com error, message
-     * e fields.
+     * (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+     * chave, nunca da requisição: a chave criada num showcase só alcança o que
+     * é dele. Respostas em JSON no envelope data; erros com error, message e
+     * fields.
      *
      * @param checkoutLink the checkout_link
      * @param params the request
@@ -682,9 +692,10 @@ public final class CheckoutLinksService {
      * link. A quantidade e o desconto ficam como foram publicados.
      *
      * Autenticação: chave de API da organização em Authorization: Bearer
-     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-     * requisição. Respostas em JSON no envelope data; erros com error, message
-     * e fields.
+     * (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+     * chave, nunca da requisição: a chave criada num showcase só alcança o que
+     * é dele. Respostas em JSON no envelope data; erros com error, message e
+     * fields.
      *
      * @param checkoutLink the checkout_link
      * @param params the request

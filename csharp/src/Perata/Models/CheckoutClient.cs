@@ -81,6 +81,10 @@ public sealed record CheckoutClient
     [JsonPropertyName("expires_at")]
     public required string ExpiresAt { get; init; }
 
+    /// <summary>O dia da primeira cobrança de uma assinatura que não cobra hoje, a meia-noite desse dia em São Paulo: o fim do teste grátis ou a data que o servidor do lojista pediu (subscription_start_at). Nulo quando o pagamento é cobrado na hora. Null when the API sends none.</summary>
+    [JsonPropertyName("first_charge_at")]
+    public string? FirstChargeAt { get; init; }
+
     /// <summary>O ID da sessão de checkout.</summary>
     [JsonPropertyName("id")]
     public required string Id { get; init; }

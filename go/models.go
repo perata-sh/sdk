@@ -94,6 +94,8 @@ type Checkout struct {
 	// O id do pedido no seu sistema, como o seu servidor o enviou na criação; vazio sem ele. Volta no checkout, no pedido, no pagamento e nos eventos.
 	ClientReferenceID string `json:"client_reference_id"`
 	CreatedAt         string `json:"created_at"`
+	// O desconto que o checkout aplica sozinho, como o seu servidor o enviou na criação; vazio sem ele. O comprador o vê no resumo e ele conta desde a primeira cobrança.
+	DiscountID string `json:"discount_id"`
 	// Quando o checkout deixa de abrir sessões; nulo sem prazo.
 	ExpiresAt *string `json:"expires_at"`
 	ID        string  `json:"id"`
@@ -106,8 +108,12 @@ type Checkout struct {
 	PriceID   string         `json:"price_id"`
 	ProductID string         `json:"product_id"`
 	Quantity  int64          `json:"quantity"`
+	// O showcase a que pertence: o da chave de API que fez a chamada. Uma chave só alcança o seu showcase.
+	ShowcaseID string `json:"showcase_id"`
 	// active abre sessões de compra; archived saiu de circulação.
 	Status string `json:"status"`
+	// O dia da primeira cobrança de uma assinatura que começa numa data (a meia-noite desse dia em São Paulo, com o fuso); nulo quando o checkout cobra na hora ou começa por um teste em dias. O cartão é guardado sem cobrança e a cobrança acontece nesse dia.
+	SubscriptionStartAt *string `json:"subscription_start_at"`
 	// Endereço https para onde o comprador volta depois de pagar; vazio sem ele.
 	SuccessURL string `json:"success_url"`
 	// Endereço para onde o comprador é enviado.
@@ -135,6 +141,8 @@ type CheckoutClient struct {
 	Environment string `json:"environment"`
 	// Quando a sessão e o client_secret deixam de valer.
 	ExpiresAt string `json:"expires_at"`
+	// O dia da primeira cobrança de uma assinatura que não cobra hoje, a meia-noite desse dia em São Paulo: o fim do teste grátis ou a data que o servidor do lojista pediu (subscription_start_at). Nulo quando o pagamento é cobrado na hora.
+	FirstChargeAt *string `json:"first_charge_at"`
 	// O ID da sessão de checkout.
 	ID string `json:"id"`
 	// Os planos de uma venda no cartão de crédito, à vista primeiro; vazio quando a sessão não se paga em parcelas no cartão.
@@ -244,6 +252,8 @@ type CheckoutCreated struct {
 	// Quando a sessão e o client_secret deixam de valer.
 	ClientSecretExpiresAt string `json:"client_secret_expires_at"`
 	CreatedAt             string `json:"created_at"`
+	// O desconto que o checkout aplica sozinho, como o seu servidor o enviou na criação; vazio sem ele. O comprador o vê no resumo e ele conta desde a primeira cobrança.
+	DiscountID string `json:"discount_id"`
 	// Quando o link deixa de abrir sessões; nulo sem prazo.
 	ExpiresAt *string `json:"expires_at"`
 	// O ID do link do checkout, o que GET e PATCH /checkouts/{id} recebem.
@@ -259,10 +269,14 @@ type CheckoutCreated struct {
 	Quantity  int64          `json:"quantity"`
 	// O ID da sessão de checkout; as rotas de cliente dela são /checkouts/client/{client_secret}.
 	SessionID string `json:"session_id"`
+	// O showcase a que pertence: o da chave de API que fez a chamada. Uma chave só alcança o seu showcase.
+	ShowcaseID string `json:"showcase_id"`
 	// active abre sessões de compra; archived saiu de circulação.
 	Status string `json:"status"`
 	// Lê o estado da sessão depois que o client_secret é consumido: GET /checkouts/client/status/{status_key}. Só esta resposta o traz.
 	StatusKey string `json:"status_key"`
+	// O dia da primeira cobrança de uma assinatura que começa numa data (a meia-noite desse dia em São Paulo, com o fuso); nulo quando o checkout cobra na hora ou começa por um teste em dias. O cartão é guardado sem cobrança e a cobrança acontece nesse dia.
+	SubscriptionStartAt *string `json:"subscription_start_at"`
 	// Endereço https para onde o comprador volta depois de pagar; vazio sem ele.
 	SuccessURL string `json:"success_url"`
 	// O endereço hospedado desta sessão: redirecione o comprador para cá, ou abra-o no modal, e ele paga na página da Peráta exatamente a sessão que esta resposta abriu, que aparece no status_key, no GET da sessão e nos webhooks com o mesmo checkout_id. Quem abre o endereço depois do pagamento vê a confirmação e nada é cobrado de novo. Na repetição de uma criação idempotente o segredo não existe mais e o endereço volta a ser o do link, que abre uma sessão nova a cada visita.
@@ -425,8 +439,10 @@ type Customer struct {
 	ID          string  `json:"id"`
 	Name        string  `json:"name"`
 	// Telefone ou celular com DDD, só dígitos.
-	Phone  *string `json:"phone,omitempty"`
-	Status string  `json:"status"`
+	Phone *string `json:"phone,omitempty"`
+	// O showcase a que pertence: o da chave de API que fez a chamada. Uma chave só alcança o seu showcase.
+	ShowcaseID string `json:"showcase_id"`
+	Status     string `json:"status"`
 	// CPF ou CNPJ, só dígitos. O CPF vem inteiro para a chave de um dono ou administrador da organização e mascarado (***.***.789-00) para as demais; o CNPJ vem sempre inteiro.
 	TaxID *string `json:"tax_id,omitempty"`
 	// Qual documento tax_id é.
@@ -453,7 +469,9 @@ type CustomerState struct {
 	GrantedBenefits []CustomerStateBenefitGrant `json:"granted_benefits"`
 	ID              string                      `json:"id"`
 	Name            string                      `json:"name"`
-	Status          string                      `json:"status"`
+	// O showcase a que pertence: o da chave de API que fez a chamada. Uma chave só alcança o seu showcase.
+	ShowcaseID string `json:"showcase_id"`
+	Status     string `json:"status"`
 }
 
 // CustomerStateBenefitGrant is a resource of Peráta's API.
@@ -602,7 +620,9 @@ type Order struct {
 	ClientReferenceID string `json:"client_reference_id"`
 	Currency          string `json:"currency"`
 	CustomerID        string `json:"customer_id"`
-	ID                string `json:"id"`
+	// Qual ciclo da assinatura o pedido pagou: 1 é o primeiro; nulo fora de uma assinatura.
+	CycleSequence *int64 `json:"cycle_sequence"`
+	ID            string `json:"id"`
 	// Juros do parcelamento pagos pelo comprador, cobrados além de amount_cents.
 	InstallmentInterestCents int64 `json:"installment_interest_cents"`
 	// Em quantas parcelas o cartão de crédito foi cobrado; 1 à vista.
@@ -614,11 +634,19 @@ type Order struct {
 	// Onde o pedido está; status é o do checkout e continua succeeded depois de um reembolso, e este vira partially_refunded ou refunded. Nulo antes de haver pagamento.
 	OrderStatus *string `json:"order_status"`
 	PaidAt      *string `json:"paid_at"`
+	// O fim do período que o ciclo paga; nulo fora de uma assinatura.
+	PeriodEnd *string `json:"period_end"`
+	// O começo do período que o ciclo paga; nulo fora de uma assinatura.
+	PeriodStart *string `json:"period_start"`
 	PriceID     string  `json:"price_id"`
 	ProductID   string  `json:"product_id"`
 	// Quanto do pedido já foi devolvido, somando todos os reembolsos que deram certo, em centavos.
-	RefundedAmountCents int64  `json:"refunded_amount_cents"`
-	Status              string `json:"status"`
+	RefundedAmountCents int64 `json:"refunded_amount_cents"`
+	// O showcase a que pertence: o da chave de API que fez a chamada. Uma chave só alcança o seu showcase.
+	ShowcaseID string `json:"showcase_id"`
+	Status     string `json:"status"`
+	// A assinatura de que este pedido é a cobrança (a primeira ou uma renovação); nulo quando o pedido não é de uma assinatura.
+	SubscriptionID *string `json:"subscription_id"`
 }
 
 // OrderInvoice is a resource of Peráta's API.
@@ -681,7 +709,9 @@ type Payment struct {
 	CreatedAt         string `json:"created_at"`
 	Currency          string `json:"currency"`
 	CustomerID        string `json:"customer_id"`
-	ID                string `json:"id"`
+	// Qual ciclo da assinatura o pagamento pagou: 1 é o primeiro; nulo fora de uma assinatura.
+	CycleSequence *int64 `json:"cycle_sequence"`
+	ID            string `json:"id"`
 	// Valor de uma parcela; 0 à vista.
 	InstallmentAmountCents int64 `json:"installment_amount_cents"`
 	// Juros do parcelamento dentro de amount_cents.
@@ -689,10 +719,18 @@ type Payment struct {
 	// Em quantas parcelas o cartão de crédito foi cobrado; 1 à vista.
 	Installments int64 `json:"installments"`
 	// Os pares que o seu servidor enviou ao criar o checkout.
-	Metadata      map[string]any `json:"metadata"`
-	Method        string         `json:"method"`
-	RefundedCents int64          `json:"refunded_cents"`
-	State         string         `json:"state"`
+	Metadata map[string]any `json:"metadata"`
+	Method   string         `json:"method"`
+	// O fim do período que o ciclo paga; nulo fora de uma assinatura.
+	PeriodEnd *string `json:"period_end"`
+	// O começo do período que o ciclo paga; nulo fora de uma assinatura.
+	PeriodStart   *string `json:"period_start"`
+	RefundedCents int64   `json:"refunded_cents"`
+	// O showcase a que pertence: o da chave de API que fez a chamada. Uma chave só alcança o seu showcase.
+	ShowcaseID string `json:"showcase_id"`
+	State      string `json:"state"`
+	// A assinatura que este pagamento cobrou (a primeira ou uma renovação); nulo quando o pagamento não é de uma assinatura.
+	SubscriptionID *string `json:"subscription_id"`
 }
 
 // PaymentMethod is a resource of Peráta's API.
@@ -730,15 +768,48 @@ type Product struct {
 	Description string `json:"description"`
 	ID          string `json:"id"`
 	Name        string `json:"name"`
-	Status      string `json:"status"`
+	// O showcase a que pertence: o da chave de API que fez a chamada. Uma chave só alcança o seu showcase.
+	ShowcaseID string `json:"showcase_id"`
+	Status     string `json:"status"`
 }
 
 // Refund is a resource of Peráta's API.
 type Refund struct {
-	AmountCents int64  `json:"amount_cents"`
-	ID          string `json:"id"`
-	PaymentID   string `json:"payment_id"`
-	Status      string `json:"status"`
+	// O valor deste reembolso, em centavos.
+	AmountCents int64 `json:"amount_cents"`
+	// O id do pedido no seu sistema, enviado ao criar o checkout; vazio sem ele. É o do pedido, não do reembolso.
+	ClientReferenceID string `json:"client_reference_id"`
+	CreatedAt         string `json:"created_at"`
+	ID                string `json:"id"`
+	// Os pares que o seu servidor enviou ao criar o checkout do pedido; vazio sem eles. É o mesmo metadata dos eventos de venda e de reembolso.
+	Metadata map[string]any `json:"metadata"`
+	// O pedido a que o pagamento pertence: o id que GET /orders/{id} recebe. Vazio quando o reembolso não é de um pagamento de checkout.
+	OrderID string `json:"order_id"`
+	// O pagamento de que o dinheiro volta.
+	PaymentID string `json:"payment_id"`
+	// Por que o dinheiro voltou, como o seu servidor informou.
+	Reason string `json:"reason"`
+	// Os pares que o seu servidor enviou no campo metadata ao pedir este reembolso; vazio sem eles.
+	RefundMetadata map[string]any `json:"refund_metadata"`
+	// O showcase a que pertence: o da chave de API que fez a chamada. Uma chave só alcança o seu showcase.
+	ShowcaseID string `json:"showcase_id"`
+	// requested e pending esperam a Cielo; unknown é uma resposta que não chegou, e o valor continua reservado até a Cielo responder; succeeded devolveu o dinheiro; failed e canceled não devolveram.
+	Status string `json:"status"`
+}
+
+// Showcase is a resource of Peráta's API.
+type Showcase struct {
+	CreatedAt string `json:"created_at"`
+	// O ambiente da chave.
+	Environment string `json:"environment"`
+	// true quando o showcase tem logo. A logo é privada e não sai pela API: quem a mostra é o painel.
+	HasLogo bool `json:"has_logo"`
+	// O ID do showcase: o showcase_id que os objetos e os eventos de webhook trazem.
+	ID string `json:"id"`
+	// true no showcase com que a organização começou; os outros foram abertos depois, no painel.
+	IsPrincipal bool `json:"is_principal"`
+	// O nome do showcase, como o lojista o vê no painel.
+	Name string `json:"name"`
 }
 
 // Subscription is a resource of Peráta's API.
@@ -755,7 +826,9 @@ type Subscription struct {
 	Metadata  map[string]any `json:"metadata"`
 	PriceID   string         `json:"price_id"`
 	ProductID string         `json:"product_id"`
-	Status    string         `json:"status"`
+	// O showcase a que pertence: o da chave de API que fez a chamada. Uma chave só alcança o seu showcase.
+	ShowcaseID string `json:"showcase_id"`
+	Status     string `json:"status"`
 	// Quando a assinatura foi suspensa; nulo enquanto não está suspensa.
 	SuspendedAt *string `json:"suspended_at"`
 	// Por que foi suspensa: retries_exhausted (o cartão foi recusado em todas as tentativas), declined_not_retryable (o emissor recusou sem permitir nova tentativa) ou dispute (o comprador contestou o pagamento); nulo enquanto não está suspensa.
@@ -813,7 +886,9 @@ type WebhookCheckout struct {
 	PeriodStart *string `json:"period_start,omitempty"`
 	PriceID     string  `json:"price_id"`
 	ProductID   string  `json:"product_id"`
-	Status      string  `json:"status"`
+	// O showcase da venda.
+	ShowcaseID string `json:"showcase_id"`
+	Status     string `json:"status"`
 	// A assinatura que este pagamento cobra; nulo quando a venda não é de uma assinatura.
 	SubscriptionID *string `json:"subscription_id,omitempty"`
 	TotalCents     int64   `json:"total_cents"`
@@ -959,8 +1034,10 @@ type WebhookOrder struct {
 	// O reembolso que causou este evento; nulo nos eventos que nenhum reembolso causou.
 	RefundID *string `json:"refund_id"`
 	// Quanto do pedido já foi devolvido, somando todos os reembolsos que deram certo, em centavos.
-	RefundedAmountCents int64  `json:"refunded_amount_cents"`
-	Status              string `json:"status"`
+	RefundedAmountCents int64 `json:"refunded_amount_cents"`
+	// O showcase da venda.
+	ShowcaseID string `json:"showcase_id"`
+	Status     string `json:"status"`
 	// A assinatura que este pagamento cobra; nulo quando a venda não é de uma assinatura.
 	SubscriptionID *string `json:"subscription_id,omitempty"`
 }
@@ -971,12 +1048,20 @@ type WebhookRefund struct {
 	// O checkout (o pedido) que o reembolso devolve, quando se sabe.
 	CheckoutID string `json:"checkout_id,omitempty"`
 	// O id do pedido no sistema do lojista; vazio sem ele.
-	ClientReferenceID string `json:"client_reference_id,omitempty"`
+	ClientReferenceID string `json:"client_reference_id"`
 	ID                string `json:"id"`
 	// Os pares que o servidor do lojista enviou ao criar o checkout; vazio sem eles.
-	Metadata  map[string]any `json:"metadata"`
-	PaymentID string         `json:"payment_id"`
-	Status    string         `json:"status"`
+	Metadata map[string]any `json:"metadata"`
+	// O mesmo pedido, com o nome que a API de reembolsos dá a ele; igual a checkout_id.
+	OrderID   string `json:"order_id,omitempty"`
+	PaymentID string `json:"payment_id"`
+	// Por que o dinheiro voltou.
+	Reason string `json:"reason,omitempty"`
+	// Os pares que o servidor do lojista enviou no campo metadata ao pedir este reembolso; vazio sem eles.
+	RefundMetadata map[string]any `json:"refund_metadata"`
+	// O showcase da venda.
+	ShowcaseID string `json:"showcase_id"`
+	Status     string `json:"status"`
 }
 
 // Os eventos da venda (checkout_payment.* e refund.*): os identificadores de sempre e, além deles, o checkout, o valor e o que o servidor do lojista enviou ao criar o checkout.
@@ -994,6 +1079,10 @@ type WebhookSale struct {
 	CycleSequence *int64 `json:"cycle_sequence,omitempty"`
 	Environment   string `json:"environment"`
 	EventID       string `json:"event_id"`
+	// O código que a Cielo deu para a recusa, nos eventos refund.* de um reembolso que falhou; serve ao suporte.
+	FailureCode string `json:"failure_code,omitempty"`
+	// Por que o dinheiro não voltou, em português, nos eventos refund.* de um reembolso que falhou (refund.failed).
+	FailureReason string `json:"failure_reason,omitempty"`
 	MerchantID    string `json:"merchant_id"`
 	// Os pares que o servidor do lojista enviou ao criar o checkout; vazio sem eles. Na renovação de uma assinatura são os da assinatura.
 	Metadata map[string]any `json:"metadata,omitempty"`
@@ -1031,7 +1120,9 @@ type WebhookSubscription struct {
 	PaymentFailure WebhookSubscriptionPaymentFailure `json:"payment_failure,omitempty"`
 	PriceID        string                            `json:"price_id"`
 	ProductID      string                            `json:"product_id"`
-	Status         string                            `json:"status"`
+	// O showcase da venda.
+	ShowcaseID string `json:"showcase_id"`
+	Status     string `json:"status"`
 	// Quando a assinatura foi suspensa; nulo enquanto não está suspensa.
 	SuspendedAt *string `json:"suspended_at"`
 	// Por que foi suspensa; nulo enquanto não está suspensa.
@@ -1138,11 +1229,13 @@ type CheckoutsCreateParams struct {
 	CustomerID *string `json:"customer_id,omitempty"`
 	// O nome do comprador, quando você o conhece.
 	CustomerName *string `json:"customer_name,omitempty"`
+	// O desconto do catálogo que o checkout aplica sozinho, sem o comprador digitar código: o valor dele (percentual ou fixo) é tirado do total e vale como o desconto foi criado, uma vez, por alguns meses ou para sempre. Um desconto limitado a produtos (product_ids na criação do desconto) só vale para esses produtos: num checkout de uma câmera, o desconto de uma câmera. Um id que não é de um desconto ativo do catálogo é recusado com 422.
+	DiscountID *string `json:"discount_id,omitempty"`
 	// Segundos em que a sessão e o client_secret continuam valendo, de um minuto a três dias; 1800 (30 minutos) quando fica de fora. Uma sessão paga com Pix pode ser aberta até esse prazo e, aberta, o Pix gerado vale 24 horas.
 	ExpiresIn *int64 `json:"expires_in,omitempty"`
 	// O mesmo cliente, pelo ID que você deu a ele.
 	ExternalCustomerID *string `json:"external_customer_id,omitempty"`
-	// As linhas do pedido, até 50, para o comprador ler o detalhe: aparecem no checkout (página, modal, componentes e transparente), no pedido, no recibo, no portal do cliente e nos eventos. A soma de quantity vezes unit_amount_cents precisa ser igual a amount_cents, ou a resposta é 422; enviadas sem amount_cents, a soma é o valor.
+	// As linhas do pedido, até 50, para o comprador ler o detalhe: aparecem no checkout (página, modal, componentes e transparente), no pedido, no recibo, no portal do cliente e nos eventos. Em um preço de valor livre, a soma de quantity vezes unit_amount_cents precisa ser igual a amount_cents, ou a resposta é 422; enviadas sem amount_cents, a soma é o valor. Em um preço com valor próprio, como o de uma assinatura, as linhas só mostram ao comprador do que o valor é feito e fixam nada: envie-as sem amount_cents, com a soma igual ao valor do preço vezes a quantidade (senão 422), e o preço continua sendo quem define o que se cobra.
 	Items []CheckoutsCreateItem `json:"items,omitempty"`
 	Label *string               `json:"label,omitempty"`
 	// Pares guardados no link do checkout e devolvidos no checkout, no pedido, no pagamento e nos eventos da venda. Até 50 pares de chave e valor: a chave tem de 1 a 40 caracteres, e o valor é um texto de 1 a 500 caracteres, um número ou um booleano. Texto sem caracteres de controle nem de direção invisível.
@@ -1154,8 +1247,10 @@ type CheckoutsCreateParams struct {
 	// Pede o endereço de cobrança completo de todo comprador, não só no boleto; desligado quando fica de fora.
 	RequireBillingAddress *bool `json:"require_billing_address,omitempty"`
 	// Outro nome de cancel_url: a página https a que o comprador volta sem pagar. Enviada com um cancel_url diferente, é recusada.
-	ReturnURL  *string `json:"return_url,omitempty"`
-	SuccessURL *string `json:"success_url,omitempty"`
+	ReturnURL *string `json:"return_url,omitempty"`
+	// O dia da primeira cobrança de uma assinatura, como o trial_end do Stripe: o cartão é guardado e conferido com o emissor, nada é cobrado hoje e a primeira cobrança acontece nesse dia, no cartão guardado; as seguintes seguem a periodicidade do preço a partir dele. Só vale em um preço recorrente com valor, e só no cartão de crédito: a página não oferece Pix nem boleto. Vale o dia no horário de São Paulo, da meia-noite dele, qualquer que seja o fuso enviado; a hora não conta. Tem de ser de amanhã a um ano, senão a resposta é 422. A resposta devolve o instante como a Peráta o guarda, em subscription_start_at. Quem abre o checkout depois da data recebe 410.
+	SubscriptionStartAt *string `json:"subscription_start_at,omitempty"`
+	SuccessURL          *string `json:"success_url,omitempty"`
 }
 
 // One item of items in CheckoutsCreateParams.
@@ -1350,10 +1445,18 @@ type ProductsUpdateParams struct {
 
 // The body of refunds:create.
 type RefundsCreateParams struct {
-	AmountCents int64   `json:"amount_cents"`
-	Note        *string `json:"note,omitempty"`
-	PaymentID   string  `json:"payment_id"`
-	Reason      string  `json:"reason"`
+	// Quanto devolver, em centavos, de 1 até o que ainda pode ser devolvido. Sem ele, devolve tudo o que ainda pode ser devolvido.
+	AmountCents *int64 `json:"amount_cents,omitempty"`
+	// Pares seus guardados no reembolso; voltam como refund_metadata no reembolso e nos eventos refund.created e refund.updated, onde metadata é o do pedido. O filtro metadata[chave]=valor de GET /refunds procura estes pares. Até 50 pares de chave e valor: a chave tem de 1 a 40 caracteres, e o valor é um texto de 1 a 500 caracteres, um número ou um booleano. Texto sem caracteres de controle nem de direção invisível.
+	Metadata map[string]any `json:"metadata,omitempty"`
+	// Uma observação sua, de até 500 caracteres.
+	Note *string `json:"note,omitempty"`
+	// O pedido (o id que GET /orders/{id} recebe) cujo pagamento capturado é devolvido. Dispensa o payment_id.
+	OrderID *string `json:"order_id,omitempty"`
+	// O pagamento de que o dinheiro volta. Envie este ou o order_id; os dois juntos só se forem do mesmo pagamento.
+	PaymentID *string `json:"payment_id,omitempty"`
+	// Por que o dinheiro volta. Sem ele, requested_by_customer; com other a note é obrigatória.
+	Reason *string `json:"reason,omitempty"`
 }
 
 // The body of subscriptions:update.
@@ -1591,6 +1694,8 @@ const (
 	RefundStatusSucceeded                                   = "succeeded"
 	RefundStatusFailed                                      = "failed"
 	RefundStatusCanceled                                    = "canceled"
+	ShowcaseEnvironmentTest                                 = "test"
+	ShowcaseEnvironmentLive                                 = "live"
 	SubscriptionCurrencyBRL                                 = "BRL"
 	SubscriptionStatusTrialing                              = "trialing"
 	SubscriptionStatusActive                                = "active"

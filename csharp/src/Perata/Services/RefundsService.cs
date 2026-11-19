@@ -19,15 +19,21 @@ public sealed class RefundsService
 
     internal RefundsService(PerataClient client) => this.client = client;
 
-    /// <summary>Reembolsar um pagamento.</summary>
+    /// <summary>Reembolsar um pagamento ou um pedido.</summary>
     /// <remarks>
-    /// <para>Devolve parte ou todo o valor de um pagamento. A Idempotency-Key é
-    /// obrigatória: sem ela, repetir a chamada depois de um tempo esgotado
-    /// seria devolver duas vezes.</para>
+    /// <para>Devolve dinheiro de um pagamento, que você nomeia pelo payment_id
+    /// ou pelo order_id do pedido que ele pagou (os dois, só se forem do mesmo
+    /// pagamento). Sem amount_cents devolve tudo o que ainda pode ser
+    /// devolvido; com ele, uma parte, até esse limite. O reason, sem ele, é
+    /// requested_by_customer. O metadata fica no reembolso e volta nele e nos
+    /// eventos refund.*. A Idempotency-Key é obrigatória: sem ela, repetir a
+    /// chamada depois de um tempo esgotado seria devolver duas vezes; repetida
+    /// com a mesma chave, devolve o mesmo reembolso.</para>
     /// <para>Autenticação: chave de API da organização em Authorization: Bearer
-    /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
-    /// da requisição. Respostas em JSON no envelope data; erros com error,
-    /// message e fields.</para>
+    /// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+    /// chave, nunca da requisição: a chave criada num showcase só alcança o que
+    /// é dele. Respostas em JSON no envelope data; erros com error, message e
+    /// fields.</para>
     /// </remarks>
     /// <param name="parameters">The request.</param>
     /// <param name="options">An idempotency key, or another organization's key for this call.</param>
@@ -40,14 +46,36 @@ public sealed class RefundsService
         return client.RequestAsync(HttpMethod.Post, "/api/v1/refunds", null, JsonSerializer.SerializeToUtf8Bytes(parameters, PerataJson.Default.RefundsCreateParams), PerataJson.Default.RefundEnvelope, options?.IdempotencyKey, options, cancellationToken);
     }
 
+    /// <summary>Ler um reembolso.</summary>
+    /// <remarks>
+    /// <para>Devolve um reembolso pelo ID, com o pedido de onde veio
+    /// (order_id), o client_reference_id desse pedido e o status: requested e
+    /// pending esperam a Cielo, succeeded devolveu o dinheiro.</para>
+    /// <para>Autenticação: chave de API da organização em Authorization: Bearer
+    /// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+    /// chave, nunca da requisição: a chave criada num showcase só alcança o que
+    /// é dele. Respostas em JSON no envelope data; erros com error, message e
+    /// fields.</para>
+    /// </remarks>
+    /// <param name="refund">The refund.</param>
+    /// <param name="options">Another organization's key for this call.</param>
+    /// <param name="cancellationToken">Cancels the call.</param>
+    /// <returns>The refund.</returns>
+    /// <exception cref="PerataException">The API refused the call.</exception>
+    public Task<Refund> GetAsync(string refund, RequestOptions? options = null, CancellationToken cancellationToken = default)
+    {
+        return client.RequestAsync(HttpMethod.Get, "/api/v1/refunds/" + PerataClient.Segment(refund), null, null, PerataJson.Default.RefundEnvelope, null, options, cancellationToken);
+    }
+
     /// <summary>Listar reembolsos. One page; <see cref="ListIterAsync"/> walks every page.</summary>
     /// <remarks>
     /// <para>Devolve uma página dos reembolsos. Filtre por pagamento
-    /// (payment_id), status, cliente ou período.</para>
+    /// (payment_id), status, cliente, período ou metadados do reembolso.</para>
     /// <para>Autenticação: chave de API da organização em Authorization: Bearer
-    /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
-    /// da requisição. Respostas em JSON no envelope data; erros com error,
-    /// message e fields.</para>
+    /// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+    /// chave, nunca da requisição: a chave criada num showcase só alcança o que
+    /// é dele. Respostas em JSON no envelope data; erros com error, message e
+    /// fields.</para>
     /// </remarks>
     /// <param name="parameters">The page, its size and the filters; the first page when null.</param>
     /// <param name="options">Another organization's key for this call.</param>
@@ -90,21 +118,29 @@ public sealed record RefundsCreateParams
     /// <summary>A value of <see cref="Reason"/>.</summary>
     public const string ReasonOther = "other";
 
-    /// <summary>The <c>amount_cents</c> to send.</summary>
+    /// <summary>Quanto devolver, em centavos, de 1 até o que ainda pode ser devolvido. Sem ele, devolve tudo o que ainda pode ser devolvido. Left out of the request when null.</summary>
     [JsonPropertyName("amount_cents")]
-    public required long AmountCents { get; init; }
+    public long? AmountCents { get; init; }
 
-    /// <summary>The <c>note</c> to send. Left out of the request when null.</summary>
+    /// <summary>Pares seus guardados no reembolso; voltam como refund_metadata no reembolso e nos eventos refund.created e refund.updated, onde metadata é o do pedido. O filtro metadata[chave]=valor de GET /refunds procura estes pares. Até 50 pares de chave e valor: a chave tem de 1 a 40 caracteres, e o valor é um texto de 1 a 500 caracteres, um número ou um booleano. Texto sem caracteres de controle nem de direção invisível. Left out of the request when null.</summary>
+    [JsonPropertyName("metadata")]
+    public IReadOnlyDictionary<string, JsonElement>? Metadata { get; init; }
+
+    /// <summary>Uma observação sua, de até 500 caracteres. Left out of the request when null.</summary>
     [JsonPropertyName("note")]
     public string? Note { get; init; }
 
-    /// <summary>The <c>payment_id</c> to send.</summary>
-    [JsonPropertyName("payment_id")]
-    public required string PaymentId { get; init; }
+    /// <summary>O pedido (o id que GET /orders/{id} recebe) cujo pagamento capturado é devolvido. Dispensa o payment_id. Left out of the request when null.</summary>
+    [JsonPropertyName("order_id")]
+    public string? OrderId { get; init; }
 
-    /// <summary>The <c>reason</c> to send.</summary>
+    /// <summary>O pagamento de que o dinheiro volta. Envie este ou o order_id; os dois juntos só se forem do mesmo pagamento. Left out of the request when null.</summary>
+    [JsonPropertyName("payment_id")]
+    public string? PaymentId { get; init; }
+
+    /// <summary>Por que o dinheiro volta. Sem ele, requested_by_customer; com other a note é obrigatória. Left out of the request when null.</summary>
     [JsonPropertyName("reason")]
-    public required string Reason { get; init; }
+    public string? Reason { get; init; }
 }
 
 
@@ -138,6 +174,9 @@ public sealed record RefundsListParams
     /// <summary>Ordem da lista: created_at ou amount, e com um - na frente é decrescente (-created_at, o mais novo primeiro, é o padrão).</summary>
     public string? Sorting { get; init; }
 
+    /// <summary>Filtro por metadados: metadata[chave]=valor, uma vez para cada par (até 10); a linha precisa ter todos. Um valor que parece número ou booleano também casa com o número ou o booleano guardado.</summary>
+    public IReadOnlyDictionary<string, string>? Metadata { get; init; }
+
     internal IEnumerable<KeyValuePair<string, string?>> Query()
     {
         yield return new("page", Page?.ToString(CultureInfo.InvariantCulture));
@@ -149,6 +188,11 @@ public sealed record RefundsListParams
         yield return new("created_after", CreatedAfter);
         yield return new("created_before", CreatedBefore);
         yield return new("sorting", Sorting);
+        // A map filter is one pair a key: metadata[key]=value, the keys sorted.
+        foreach (var pair in Metadata?.OrderBy(each => each.Key, StringComparer.Ordinal) ?? Enumerable.Empty<KeyValuePair<string, string>>())
+        {
+            yield return new("metadata" + "[" + pair.Key + "]", pair.Value);
+        }
     }
 }
 

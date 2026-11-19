@@ -67,20 +67,21 @@ final class Webhook
         $data = is_array($event['data'] ?? null) ? $event['data'] : [];
         [$id, $type, $timestamp] = [$event['id'], $event['type'], $event['timestamp']];
         $environment = is_string($event['environment'] ?? null) ? $event['environment'] : '';
+        $showcaseId = is_string($event['showcase_id'] ?? null) ? $event['showcase_id'] : '';
         return match (true) {
-            in_array($type, BenefitWebhookEvent::TYPES, true) => new BenefitWebhookEvent($id, $type, $timestamp, $environment, Models\WebhookBenefit::fromArray($data)),
-            in_array($type, BenefitGrantWebhookEvent::TYPES, true) => new BenefitGrantWebhookEvent($id, $type, $timestamp, $environment, Models\BenefitGrant::fromArray($data)),
-            in_array($type, CheckoutWebhookEvent::TYPES, true) => new CheckoutWebhookEvent($id, $type, $timestamp, $environment, Models\WebhookCheckout::fromArray($data)),
-            in_array($type, CustomerWebhookEvent::TYPES, true) => new CustomerWebhookEvent($id, $type, $timestamp, $environment, Models\Customer::fromArray($data)),
-            in_array($type, DiscountWebhookEvent::TYPES, true) => new DiscountWebhookEvent($id, $type, $timestamp, $environment, Models\WebhookDiscount::fromArray($data)),
-            in_array($type, DisputeWebhookEvent::TYPES, true) => new DisputeWebhookEvent($id, $type, $timestamp, $environment, Models\WebhookDispute::fromArray($data)),
-            in_array($type, IdentifiersWebhookEvent::TYPES, true) => new IdentifiersWebhookEvent($id, $type, $timestamp, $environment, array_map(static fn (mixed $value): string => is_scalar($value) ? (string) $value : '', $data)),
-            in_array($type, OrderWebhookEvent::TYPES, true) => new OrderWebhookEvent($id, $type, $timestamp, $environment, Models\WebhookOrder::fromArray($data)),
-            in_array($type, ProductWebhookEvent::TYPES, true) => new ProductWebhookEvent($id, $type, $timestamp, $environment, Models\Product::fromArray($data)),
-            in_array($type, RefundWebhookEvent::TYPES, true) => new RefundWebhookEvent($id, $type, $timestamp, $environment, Models\WebhookRefund::fromArray($data)),
-            in_array($type, SaleWebhookEvent::TYPES, true) => new SaleWebhookEvent($id, $type, $timestamp, $environment, Models\WebhookSale::fromArray($data)),
-            in_array($type, SubscriptionWebhookEvent::TYPES, true) => new SubscriptionWebhookEvent($id, $type, $timestamp, $environment, Models\WebhookSubscription::fromArray($data)),
-            default => new UnknownWebhookEvent($id, $type, $timestamp, $environment, $data),
+            in_array($type, BenefitWebhookEvent::TYPES, true) => new BenefitWebhookEvent($id, $type, $timestamp, $environment, $showcaseId, Models\WebhookBenefit::fromArray($data)),
+            in_array($type, BenefitGrantWebhookEvent::TYPES, true) => new BenefitGrantWebhookEvent($id, $type, $timestamp, $environment, $showcaseId, Models\BenefitGrant::fromArray($data)),
+            in_array($type, CheckoutWebhookEvent::TYPES, true) => new CheckoutWebhookEvent($id, $type, $timestamp, $environment, $showcaseId, Models\WebhookCheckout::fromArray($data)),
+            in_array($type, CustomerWebhookEvent::TYPES, true) => new CustomerWebhookEvent($id, $type, $timestamp, $environment, $showcaseId, Models\Customer::fromArray($data)),
+            in_array($type, DiscountWebhookEvent::TYPES, true) => new DiscountWebhookEvent($id, $type, $timestamp, $environment, $showcaseId, Models\WebhookDiscount::fromArray($data)),
+            in_array($type, DisputeWebhookEvent::TYPES, true) => new DisputeWebhookEvent($id, $type, $timestamp, $environment, $showcaseId, Models\WebhookDispute::fromArray($data)),
+            in_array($type, IdentifiersWebhookEvent::TYPES, true) => new IdentifiersWebhookEvent($id, $type, $timestamp, $environment, $showcaseId, array_map(static fn (mixed $value): string => is_scalar($value) ? (string) $value : '', $data)),
+            in_array($type, OrderWebhookEvent::TYPES, true) => new OrderWebhookEvent($id, $type, $timestamp, $environment, $showcaseId, Models\WebhookOrder::fromArray($data)),
+            in_array($type, ProductWebhookEvent::TYPES, true) => new ProductWebhookEvent($id, $type, $timestamp, $environment, $showcaseId, Models\Product::fromArray($data)),
+            in_array($type, RefundWebhookEvent::TYPES, true) => new RefundWebhookEvent($id, $type, $timestamp, $environment, $showcaseId, Models\WebhookRefund::fromArray($data)),
+            in_array($type, SaleWebhookEvent::TYPES, true) => new SaleWebhookEvent($id, $type, $timestamp, $environment, $showcaseId, Models\WebhookSale::fromArray($data)),
+            in_array($type, SubscriptionWebhookEvent::TYPES, true) => new SubscriptionWebhookEvent($id, $type, $timestamp, $environment, $showcaseId, Models\WebhookSubscription::fromArray($data)),
+            default => new UnknownWebhookEvent($id, $type, $timestamp, $environment, $showcaseId, $data),
         };
     }
 

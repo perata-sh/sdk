@@ -188,6 +188,8 @@ class Checkout:
     client_reference_id: str
     """O id do pedido no seu sistema, como o seu servidor o enviou na criação; vazio sem ele. Volta no checkout, no pedido, no pagamento e nos eventos."""
     created_at: str
+    discount_id: str
+    """O desconto que o checkout aplica sozinho, como o seu servidor o enviou na criação; vazio sem ele. O comprador o vê no resumo e ele conta desde a primeira cobrança."""
     expires_at: str | None
     """Quando o checkout deixa de abrir sessões; nulo sem prazo."""
     id: str
@@ -200,8 +202,12 @@ class Checkout:
     price_id: str
     product_id: str
     quantity: int
+    showcase_id: str
+    """O showcase a que pertence: o da chave de API que fez a chamada. Uma chave só alcança o seu showcase."""
     status: Literal["active", "archived"]
     """active abre sessões de compra; archived saiu de circulação."""
+    subscription_start_at: str | None
+    """O dia da primeira cobrança de uma assinatura que começa numa data (a meia-noite desse dia em São Paulo, com o fuso); nulo quando o checkout cobra na hora ou começa por um teste em dias. O cartão é guardado sem cobrança e a cobrança acontece nesse dia."""
     success_url: str
     """Endereço https para onde o comprador volta depois de pagar; vazio sem ele."""
     url: str
@@ -214,6 +220,7 @@ class Checkout:
             cancel_url=data["cancel_url"],
             client_reference_id=data["client_reference_id"],
             created_at=data["created_at"],
+            discount_id=data["discount_id"],
             expires_at=data.get("expires_at"),
             id=data["id"],
             items=[CheckoutLine.from_dict(item) for item in data["items"]],
@@ -222,7 +229,9 @@ class Checkout:
             price_id=data["price_id"],
             product_id=data["product_id"],
             quantity=data["quantity"],
+            showcase_id=data["showcase_id"],
             status=data["status"],
+            subscription_start_at=data.get("subscription_start_at"),
             success_url=data["success_url"],
             url=data["url"],
         )
@@ -251,6 +260,8 @@ class CheckoutClient:
     environment: Literal["test", "live"]
     expires_at: str
     """Quando a sessão e o client_secret deixam de valer."""
+    first_charge_at: str | None
+    """O dia da primeira cobrança de uma assinatura que não cobra hoje, a meia-noite desse dia em São Paulo: o fim do teste grátis ou a data que o servidor do lojista pediu (subscription_start_at). Nulo quando o pagamento é cobrado na hora."""
     id: str
     """O ID da sessão de checkout."""
     installments: list[CheckoutInstallment]
@@ -290,6 +301,7 @@ class CheckoutClient:
             editable=data["editable"],
             environment=data["environment"],
             expires_at=data["expires_at"],
+            first_charge_at=data.get("first_charge_at"),
             id=data["id"],
             installments=[CheckoutInstallment.from_dict(item) for item in data["installments"]],
             items=[CheckoutClientItem.from_dict(item) for item in data["items"]],
@@ -466,6 +478,8 @@ class CheckoutCreated:
     client_secret_expires_at: str
     """Quando a sessão e o client_secret deixam de valer."""
     created_at: str
+    discount_id: str
+    """O desconto que o checkout aplica sozinho, como o seu servidor o enviou na criação; vazio sem ele. O comprador o vê no resumo e ele conta desde a primeira cobrança."""
     expires_at: str | None
     """Quando o link deixa de abrir sessões; nulo sem prazo."""
     id: str
@@ -481,10 +495,14 @@ class CheckoutCreated:
     quantity: int
     session_id: str
     """O ID da sessão de checkout; as rotas de cliente dela são /checkouts/client/{client_secret}."""
+    showcase_id: str
+    """O showcase a que pertence: o da chave de API que fez a chamada. Uma chave só alcança o seu showcase."""
     status: Literal["active", "archived"]
     """active abre sessões de compra; archived saiu de circulação."""
     status_key: str
     """Lê o estado da sessão depois que o client_secret é consumido: GET /checkouts/client/status/{status_key}. Só esta resposta o traz."""
+    subscription_start_at: str | None
+    """O dia da primeira cobrança de uma assinatura que começa numa data (a meia-noite desse dia em São Paulo, com o fuso); nulo quando o checkout cobra na hora ou começa por um teste em dias. O cartão é guardado sem cobrança e a cobrança acontece nesse dia."""
     success_url: str
     """Endereço https para onde o comprador volta depois de pagar; vazio sem ele."""
     url: str
@@ -499,6 +517,7 @@ class CheckoutCreated:
             client_secret=data["client_secret"],
             client_secret_expires_at=data["client_secret_expires_at"],
             created_at=data["created_at"],
+            discount_id=data["discount_id"],
             expires_at=data.get("expires_at"),
             id=data["id"],
             items=[CheckoutLine.from_dict(item) for item in data["items"]],
@@ -508,8 +527,10 @@ class CheckoutCreated:
             product_id=data["product_id"],
             quantity=data["quantity"],
             session_id=data["session_id"],
+            showcase_id=data["showcase_id"],
             status=data["status"],
             status_key=data["status_key"],
+            subscription_start_at=data.get("subscription_start_at"),
             success_url=data["success_url"],
             url=data["url"],
         )
@@ -814,6 +835,8 @@ class Customer:
     name: str
     phone: str | None
     """Telefone ou celular com DDD, só dígitos."""
+    showcase_id: str
+    """O showcase a que pertence: o da chave de API que fez a chamada. Uma chave só alcança o seu showcase."""
     status: Literal["active", "archived"]
     tax_id: str | None
     """CPF ou CNPJ, só dígitos. O CPF vem inteiro para a chave de um dono ou administrador da organização e mascarado (***.***.789-00) para as demais; o CNPJ vem sempre inteiro."""
@@ -831,6 +854,7 @@ class Customer:
             id=data["id"],
             name=data["name"],
             phone=data.get("phone"),
+            showcase_id=data["showcase_id"],
             status=data["status"],
             tax_id=data.get("tax_id"),
             tax_id_kind=data.get("tax_id_kind"),
@@ -869,6 +893,8 @@ class CustomerState:
     """Os benefícios que o cliente tem agora."""
     id: str
     name: str
+    showcase_id: str
+    """O showcase a que pertence: o da chave de API que fez a chamada. Uma chave só alcança o seu showcase."""
     status: Literal["active", "archived"]
 
     @classmethod
@@ -881,6 +907,7 @@ class CustomerState:
             granted_benefits=[CustomerStateBenefitGrant.from_dict(item) for item in data["granted_benefits"]],
             id=data["id"],
             name=data["name"],
+            showcase_id=data["showcase_id"],
             status=data["status"],
         )
 
@@ -1156,6 +1183,8 @@ class Order:
     """O id do pedido no seu sistema, enviado ao criar o checkout; vazio sem ele."""
     currency: Literal["BRL"]
     customer_id: str
+    cycle_sequence: int | None
+    """Qual ciclo da assinatura o pedido pagou: 1 é o primeiro; nulo fora de uma assinatura."""
     id: str
     installment_interest_cents: int
     """Juros do parcelamento pagos pelo comprador, cobrados além de amount_cents."""
@@ -1168,11 +1197,19 @@ class Order:
     order_status: Literal["pending", "paid", "partially_refunded", "refunded"] | None
     """Onde o pedido está; status é o do checkout e continua succeeded depois de um reembolso, e este vira partially_refunded ou refunded. Nulo antes de haver pagamento."""
     paid_at: str | None
+    period_end: str | None
+    """O fim do período que o ciclo paga; nulo fora de uma assinatura."""
+    period_start: str | None
+    """O começo do período que o ciclo paga; nulo fora de uma assinatura."""
     price_id: str
     product_id: str
     refunded_amount_cents: int
     """Quanto do pedido já foi devolvido, somando todos os reembolsos que deram certo, em centavos."""
+    showcase_id: str
+    """O showcase a que pertence: o da chave de API que fez a chamada. Uma chave só alcança o seu showcase."""
     status: Literal["open", "confirmed", "succeeded", "failed", "expired"]
+    subscription_id: str | None
+    """A assinatura de que este pedido é a cobrança (a primeira ou uma renovação); nulo quando o pedido não é de uma assinatura."""
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> Order:
@@ -1181,6 +1218,7 @@ class Order:
             client_reference_id=data["client_reference_id"],
             currency=data["currency"],
             customer_id=data["customer_id"],
+            cycle_sequence=data.get("cycle_sequence"),
             id=data["id"],
             installment_interest_cents=data["installment_interest_cents"],
             installments=data["installments"],
@@ -1188,10 +1226,14 @@ class Order:
             metadata=data["metadata"],
             order_status=data.get("order_status"),
             paid_at=data.get("paid_at"),
+            period_end=data.get("period_end"),
+            period_start=data.get("period_start"),
             price_id=data["price_id"],
             product_id=data["product_id"],
             refunded_amount_cents=data["refunded_amount_cents"],
+            showcase_id=data["showcase_id"],
             status=data["status"],
+            subscription_id=data.get("subscription_id"),
         )
 
 
@@ -1308,6 +1350,8 @@ class Payment:
     created_at: str
     currency: Literal["BRL"]
     customer_id: str
+    cycle_sequence: int | None
+    """Qual ciclo da assinatura o pagamento pagou: 1 é o primeiro; nulo fora de uma assinatura."""
     id: str
     installment_amount_cents: int
     """Valor de uma parcela; 0 à vista."""
@@ -1318,8 +1362,16 @@ class Payment:
     metadata: dict[str, Any]
     """Os pares que o seu servidor enviou ao criar o checkout."""
     method: Literal["card", "pix", "boleto"]
+    period_end: str | None
+    """O fim do período que o ciclo paga; nulo fora de uma assinatura."""
+    period_start: str | None
+    """O começo do período que o ciclo paga; nulo fora de uma assinatura."""
     refunded_cents: int
+    showcase_id: str
+    """O showcase a que pertence: o da chave de API que fez a chamada. Uma chave só alcança o seu showcase."""
     state: Literal["unknown", "pending", "authorized", "captured", "refused", "canceled", "refunded", "partially_refunded"]
+    subscription_id: str | None
+    """A assinatura que este pagamento cobrou (a primeira ou uma renovação); nulo quando o pagamento não é de uma assinatura."""
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> Payment:
@@ -1331,14 +1383,19 @@ class Payment:
             created_at=data["created_at"],
             currency=data["currency"],
             customer_id=data["customer_id"],
+            cycle_sequence=data.get("cycle_sequence"),
             id=data["id"],
             installment_amount_cents=data["installment_amount_cents"],
             installment_interest_cents=data["installment_interest_cents"],
             installments=data["installments"],
             metadata=data["metadata"],
             method=data["method"],
+            period_end=data.get("period_end"),
+            period_start=data.get("period_start"),
             refunded_cents=data["refunded_cents"],
+            showcase_id=data["showcase_id"],
             state=data["state"],
+            subscription_id=data.get("subscription_id"),
         )
 
 
@@ -1415,6 +1472,8 @@ class Product:
     description: str
     id: str
     name: str
+    showcase_id: str
+    """O showcase a que pertence: o da chave de API que fez a chamada. Uma chave só alcança o seu showcase."""
     status: Literal["active", "archived"]
 
     @classmethod
@@ -1424,6 +1483,7 @@ class Product:
             description=data["description"],
             id=data["id"],
             name=data["name"],
+            showcase_id=data["showcase_id"],
             status=data["status"],
         )
 
@@ -1433,17 +1493,68 @@ class Refund:
     """Refund is a resource of Peráta's API."""
 
     amount_cents: int
+    """O valor deste reembolso, em centavos."""
+    client_reference_id: str
+    """O id do pedido no seu sistema, enviado ao criar o checkout; vazio sem ele. É o do pedido, não do reembolso."""
+    created_at: str
     id: str
+    metadata: dict[str, Any]
+    """Os pares que o seu servidor enviou ao criar o checkout do pedido; vazio sem eles. É o mesmo metadata dos eventos de venda e de reembolso."""
+    order_id: str
+    """O pedido a que o pagamento pertence: o id que GET /orders/{id} recebe. Vazio quando o reembolso não é de um pagamento de checkout."""
     payment_id: str
+    """O pagamento de que o dinheiro volta."""
+    reason: str
+    """Por que o dinheiro voltou, como o seu servidor informou."""
+    refund_metadata: dict[str, Any]
+    """Os pares que o seu servidor enviou no campo metadata ao pedir este reembolso; vazio sem eles."""
+    showcase_id: str
+    """O showcase a que pertence: o da chave de API que fez a chamada. Uma chave só alcança o seu showcase."""
     status: Literal["requested", "pending", "unknown", "succeeded", "failed", "canceled"]
+    """requested e pending esperam a Cielo; unknown é uma resposta que não chegou, e o valor continua reservado até a Cielo responder; succeeded devolveu o dinheiro; failed e canceled não devolveram."""
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> Refund:
         return cls(
             amount_cents=data["amount_cents"],
+            client_reference_id=data["client_reference_id"],
+            created_at=data["created_at"],
             id=data["id"],
+            metadata=data["metadata"],
+            order_id=data["order_id"],
             payment_id=data["payment_id"],
+            reason=data["reason"],
+            refund_metadata=data["refund_metadata"],
+            showcase_id=data["showcase_id"],
             status=data["status"],
+        )
+
+
+@dataclass(frozen=True)
+class Showcase:
+    """Showcase is a resource of Peráta's API."""
+
+    created_at: str
+    environment: Literal["test", "live"]
+    """O ambiente da chave."""
+    has_logo: bool
+    """true quando o showcase tem logo. A logo é privada e não sai pela API: quem a mostra é o painel."""
+    id: str
+    """O ID do showcase: o showcase_id que os objetos e os eventos de webhook trazem."""
+    is_principal: bool
+    """true no showcase com que a organização começou; os outros foram abertos depois, no painel."""
+    name: str
+    """O nome do showcase, como o lojista o vê no painel."""
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> Showcase:
+        return cls(
+            created_at=data["created_at"],
+            environment=data["environment"],
+            has_logo=data["has_logo"],
+            id=data["id"],
+            is_principal=data["is_principal"],
+            name=data["name"],
         )
 
 
@@ -1463,6 +1574,8 @@ class Subscription:
     """Metadados do lojista: pares chave e valor (texto, número ou booleano); objeto vazio quando não há."""
     price_id: str
     product_id: str
+    showcase_id: str
+    """O showcase a que pertence: o da chave de API que fez a chamada. Uma chave só alcança o seu showcase."""
     status: Literal["trialing", "active", "past_due", "suspended", "paused", "canceled"]
     suspended_at: str | None
     """Quando a assinatura foi suspensa; nulo enquanto não está suspensa."""
@@ -1485,6 +1598,7 @@ class Subscription:
             metadata=data["metadata"],
             price_id=data["price_id"],
             product_id=data["product_id"],
+            showcase_id=data["showcase_id"],
             status=data["status"],
             suspended_at=data.get("suspended_at"),
             suspension_reason=data.get("suspension_reason"),
@@ -1570,6 +1684,8 @@ class WebhookCheckout:
     """O início do período do ciclo que o pagamento cobra."""
     price_id: str
     product_id: str
+    showcase_id: str
+    """O showcase da venda."""
     status: Literal["open", "confirmed", "succeeded", "failed", "expired"]
     subscription_id: str | None
     """A assinatura que este pagamento cobra; nulo quando a venda não é de uma assinatura."""
@@ -1594,6 +1710,7 @@ class WebhookCheckout:
             period_start=data.get("period_start"),
             price_id=data["price_id"],
             product_id=data["product_id"],
+            showcase_id=data["showcase_id"],
             status=data["status"],
             subscription_id=data.get("subscription_id"),
             total_cents=data["total_cents"],
@@ -1844,6 +1961,8 @@ class WebhookOrder:
     """O reembolso que causou este evento; nulo nos eventos que nenhum reembolso causou."""
     refunded_amount_cents: int
     """Quanto do pedido já foi devolvido, somando todos os reembolsos que deram certo, em centavos."""
+    showcase_id: str
+    """O showcase da venda."""
     status: Literal["open", "confirmed", "succeeded", "failed", "expired"]
     subscription_id: str | None
     """A assinatura que este pagamento cobra; nulo quando a venda não é de uma assinatura."""
@@ -1870,6 +1989,7 @@ class WebhookOrder:
             refund_amount_cents=data.get("refund_amount_cents"),
             refund_id=data.get("refund_id"),
             refunded_amount_cents=data["refunded_amount_cents"],
+            showcase_id=data["showcase_id"],
             status=data["status"],
             subscription_id=data.get("subscription_id"),
         )
@@ -1882,12 +2002,20 @@ class WebhookRefund:
     amount_cents: int
     checkout_id: str | None
     """O checkout (o pedido) que o reembolso devolve, quando se sabe."""
-    client_reference_id: str | None
+    client_reference_id: str
     """O id do pedido no sistema do lojista; vazio sem ele."""
     id: str
     metadata: dict[str, Any]
     """Os pares que o servidor do lojista enviou ao criar o checkout; vazio sem eles."""
+    order_id: str | None
+    """O mesmo pedido, com o nome que a API de reembolsos dá a ele; igual a checkout_id."""
     payment_id: str
+    reason: str | None
+    """Por que o dinheiro voltou."""
+    refund_metadata: dict[str, Any]
+    """Os pares que o servidor do lojista enviou no campo metadata ao pedir este reembolso; vazio sem eles."""
+    showcase_id: str
+    """O showcase da venda."""
     status: Literal["requested", "pending", "unknown", "succeeded", "failed", "canceled"]
 
     @classmethod
@@ -1895,10 +2023,14 @@ class WebhookRefund:
         return cls(
             amount_cents=data["amount_cents"],
             checkout_id=data.get("checkout_id"),
-            client_reference_id=data.get("client_reference_id"),
+            client_reference_id=data["client_reference_id"],
             id=data["id"],
             metadata=data["metadata"],
+            order_id=data.get("order_id"),
             payment_id=data["payment_id"],
+            reason=data.get("reason"),
+            refund_metadata=data["refund_metadata"],
+            showcase_id=data["showcase_id"],
             status=data["status"],
         )
 
@@ -1920,6 +2052,10 @@ class WebhookSale:
     """O ciclo da assinatura que o pagamento cobra: 1 é o primeiro, 2 é a primeira renovação."""
     environment: str
     event_id: str
+    failure_code: str | None
+    """O código que a Cielo deu para a recusa, nos eventos refund.* de um reembolso que falhou; serve ao suporte."""
+    failure_reason: str | None
+    """Por que o dinheiro não voltou, em português, nos eventos refund.* de um reembolso que falhou (refund.failed)."""
     merchant_id: str
     metadata: dict[str, Any] | None
     """Os pares que o servidor do lojista enviou ao criar o checkout; vazio sem eles. Na renovação de uma assinatura são os da assinatura."""
@@ -1952,6 +2088,8 @@ class WebhookSale:
             cycle_sequence=data.get("cycle_sequence"),
             environment=data["environment"],
             event_id=data["event_id"],
+            failure_code=data.get("failure_code"),
+            failure_reason=data.get("failure_reason"),
             merchant_id=data["merchant_id"],
             metadata=data.get("metadata"),
             method=data.get("method"),
@@ -1983,6 +2121,8 @@ class WebhookSubscription:
     """A cobrança recusada que causou o evento; só nos eventos de cobrança recusada."""
     price_id: str
     product_id: str
+    showcase_id: str
+    """O showcase da venda."""
     status: Literal["trialing", "active", "past_due", "suspended", "paused", "canceled"]
     suspended_at: str | None
     """Quando a assinatura foi suspensa; nulo enquanto não está suspensa."""
@@ -2006,6 +2146,7 @@ class WebhookSubscription:
             payment_failure=None if data.get("payment_failure") is None else WebhookSubscriptionPaymentFailure.from_dict(data["payment_failure"]),
             price_id=data["price_id"],
             product_id=data["product_id"],
+            showcase_id=data["showcase_id"],
             status=data["status"],
             suspended_at=data.get("suspended_at"),
             suspension_reason=data.get("suspension_reason"),
@@ -2149,12 +2290,14 @@ class CheckoutsCreateParams(TypedDict):
     """Um cliente seu: o checkout abre com o nome, o e-mail e os dados de cobrança dele. Não junto com external_customer_id, customer_email ou customer_name."""
     customer_name: NotRequired[str]
     """O nome do comprador, quando você o conhece."""
+    discount_id: NotRequired[str]
+    """O desconto do catálogo que o checkout aplica sozinho, sem o comprador digitar código: o valor dele (percentual ou fixo) é tirado do total e vale como o desconto foi criado, uma vez, por alguns meses ou para sempre. Um desconto limitado a produtos (product_ids na criação do desconto) só vale para esses produtos: num checkout de uma câmera, o desconto de uma câmera. Um id que não é de um desconto ativo do catálogo é recusado com 422."""
     expires_in: NotRequired[int]
     """Segundos em que a sessão e o client_secret continuam valendo, de um minuto a três dias; 1800 (30 minutos) quando fica de fora. Uma sessão paga com Pix pode ser aberta até esse prazo e, aberta, o Pix gerado vale 24 horas."""
     external_customer_id: NotRequired[str]
     """O mesmo cliente, pelo ID que você deu a ele."""
     items: NotRequired[list[CheckoutsCreateItem]]
-    """As linhas do pedido, até 50, para o comprador ler o detalhe: aparecem no checkout (página, modal, componentes e transparente), no pedido, no recibo, no portal do cliente e nos eventos. A soma de quantity vezes unit_amount_cents precisa ser igual a amount_cents, ou a resposta é 422; enviadas sem amount_cents, a soma é o valor."""
+    """As linhas do pedido, até 50, para o comprador ler o detalhe: aparecem no checkout (página, modal, componentes e transparente), no pedido, no recibo, no portal do cliente e nos eventos. Em um preço de valor livre, a soma de quantity vezes unit_amount_cents precisa ser igual a amount_cents, ou a resposta é 422; enviadas sem amount_cents, a soma é o valor. Em um preço com valor próprio, como o de uma assinatura, as linhas só mostram ao comprador do que o valor é feito e fixam nada: envie-as sem amount_cents, com a soma igual ao valor do preço vezes a quantidade (senão 422), e o preço continua sendo quem define o que se cobra."""
     label: NotRequired[str]
     metadata: NotRequired[dict[str, Any]]
     """Pares guardados no link do checkout e devolvidos no checkout, no pedido, no pagamento e nos eventos da venda. Até 50 pares de chave e valor: a chave tem de 1 a 40 caracteres, e o valor é um texto de 1 a 500 caracteres, um número ou um booleano. Texto sem caracteres de controle nem de direção invisível."""
@@ -2166,6 +2309,8 @@ class CheckoutsCreateParams(TypedDict):
     """Pede o endereço de cobrança completo de todo comprador, não só no boleto; desligado quando fica de fora."""
     return_url: NotRequired[str]
     """Outro nome de cancel_url: a página https a que o comprador volta sem pagar. Enviada com um cancel_url diferente, é recusada."""
+    subscription_start_at: NotRequired[str]
+    """O dia da primeira cobrança de uma assinatura, como o trial_end do Stripe: o cartão é guardado e conferido com o emissor, nada é cobrado hoje e a primeira cobrança acontece nesse dia, no cartão guardado; as seguintes seguem a periodicidade do preço a partir dele. Só vale em um preço recorrente com valor, e só no cartão de crédito: a página não oferece Pix nem boleto. Vale o dia no horário de São Paulo, da meia-noite dele, qualquer que seja o fuso enviado; a hora não conta. Tem de ser de amanhã a um ano, senão a resposta é 422. A resposta devolve o instante como a Peráta o guarda, em subscription_start_at. Quem abre o checkout depois da data recebe 410."""
     success_url: NotRequired[str]
 
 
@@ -2376,10 +2521,18 @@ class ProductsUpdateParams(TypedDict):
 class RefundsCreateParams(TypedDict):
     """The body of refunds:create."""
 
-    amount_cents: int
+    amount_cents: NotRequired[int]
+    """Quanto devolver, em centavos, de 1 até o que ainda pode ser devolvido. Sem ele, devolve tudo o que ainda pode ser devolvido."""
+    metadata: NotRequired[dict[str, Any]]
+    """Pares seus guardados no reembolso; voltam como refund_metadata no reembolso e nos eventos refund.created e refund.updated, onde metadata é o do pedido. O filtro metadata[chave]=valor de GET /refunds procura estes pares. Até 50 pares de chave e valor: a chave tem de 1 a 40 caracteres, e o valor é um texto de 1 a 500 caracteres, um número ou um booleano. Texto sem caracteres de controle nem de direção invisível."""
     note: NotRequired[str]
-    payment_id: str
-    reason: Literal["requested_by_customer", "duplicate", "fraudulent", "product_unavailable", "service_disruption", "other"]
+    """Uma observação sua, de até 500 caracteres."""
+    order_id: NotRequired[str]
+    """O pedido (o id que GET /orders/{id} recebe) cujo pagamento capturado é devolvido. Dispensa o payment_id."""
+    payment_id: NotRequired[str]
+    """O pagamento de que o dinheiro volta. Envie este ou o order_id; os dois juntos só se forem do mesmo pagamento."""
+    reason: NotRequired[Literal["requested_by_customer", "duplicate", "fraudulent", "product_unavailable", "service_disruption", "other"]]
+    """Por que o dinheiro volta. Sem ele, requested_by_customer; com other a note é obrigatória."""
 
 
 class SubscriptionsUpdateParams(TypedDict):

@@ -27,19 +27,47 @@ public sealed record Refund
     /// <summary>A value of <see cref="Status"/>.</summary>
     public const string StatusCanceled = "canceled";
 
-    /// <summary>The API's <c>amount_cents</c>.</summary>
+    /// <summary>O valor deste reembolso, em centavos.</summary>
     [JsonPropertyName("amount_cents")]
     public required long AmountCents { get; init; }
+
+    /// <summary>O id do pedido no seu sistema, enviado ao criar o checkout; vazio sem ele. É o do pedido, não do reembolso.</summary>
+    [JsonPropertyName("client_reference_id")]
+    public required string ClientReferenceId { get; init; }
+
+    /// <summary>The API's <c>created_at</c>.</summary>
+    [JsonPropertyName("created_at")]
+    public required string CreatedAt { get; init; }
 
     /// <summary>The API's <c>id</c>.</summary>
     [JsonPropertyName("id")]
     public required string Id { get; init; }
 
-    /// <summary>The API's <c>payment_id</c>.</summary>
+    /// <summary>Os pares que o seu servidor enviou ao criar o checkout do pedido; vazio sem eles. É o mesmo metadata dos eventos de venda e de reembolso.</summary>
+    [JsonPropertyName("metadata")]
+    public required IReadOnlyDictionary<string, JsonElement> Metadata { get; init; }
+
+    /// <summary>O pedido a que o pagamento pertence: o id que GET /orders/{id} recebe. Vazio quando o reembolso não é de um pagamento de checkout.</summary>
+    [JsonPropertyName("order_id")]
+    public required string OrderId { get; init; }
+
+    /// <summary>O pagamento de que o dinheiro volta.</summary>
     [JsonPropertyName("payment_id")]
     public required string PaymentId { get; init; }
 
-    /// <summary>The API's <c>status</c>.</summary>
+    /// <summary>Por que o dinheiro voltou, como o seu servidor informou.</summary>
+    [JsonPropertyName("reason")]
+    public required string Reason { get; init; }
+
+    /// <summary>Os pares que o seu servidor enviou no campo metadata ao pedir este reembolso; vazio sem eles.</summary>
+    [JsonPropertyName("refund_metadata")]
+    public required IReadOnlyDictionary<string, JsonElement> RefundMetadata { get; init; }
+
+    /// <summary>O showcase a que pertence: o da chave de API que fez a chamada. Uma chave só alcança o seu showcase.</summary>
+    [JsonPropertyName("showcase_id")]
+    public required string ShowcaseId { get; init; }
+
+    /// <summary>requested e pending esperam a Cielo; unknown é uma resposta que não chegou, e o valor continua reservado até a Cielo responder; succeeded devolveu o dinheiro; failed e canceled não devolveram.</summary>
     [JsonPropertyName("status")]
     public required string Status { get; init; }
 }

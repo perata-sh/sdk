@@ -21,28 +21,59 @@ public final class Refund {
     public static final String STATUS_CANCELED = "canceled";
 
     private final long amountCents;
+    private final String clientReferenceId;
+    private final String createdAt;
     private final String id;
+    private final Map<String, Object> metadata;
+    private final String orderId;
     private final String paymentId;
+    private final String reason;
+    private final Map<String, Object> refundMetadata;
+    private final String showcaseId;
     private final String status;
 
-    Refund(long amountCents, String id, String paymentId, String status) {
+    Refund(long amountCents, String clientReferenceId, String createdAt, String id, Map<String, Object> metadata, String orderId, String paymentId, String reason, Map<String, Object> refundMetadata, String showcaseId, String status) {
         this.amountCents = amountCents;
+        this.clientReferenceId = clientReferenceId;
+        this.createdAt = createdAt;
         this.id = id;
+        this.metadata = metadata;
+        this.orderId = orderId;
         this.paymentId = paymentId;
+        this.reason = reason;
+        this.refundMetadata = refundMetadata;
+        this.showcaseId = showcaseId;
         this.status = status;
     }
 
     static Refund fromJson(Map<String, Object> data) {
         return new Refund(
                 Json.required(data, "amount_cents", Json::asLong),
+                Json.required(data, "client_reference_id", Json::asString),
+                Json.required(data, "created_at", Json::asString),
                 Json.required(data, "id", Json::asString),
+                Json.required(data, "metadata", Json.map(Json::any)),
+                Json.required(data, "order_id", Json::asString),
                 Json.required(data, "payment_id", Json::asString),
+                Json.required(data, "reason", Json::asString),
+                Json.required(data, "refund_metadata", Json.map(Json::any)),
+                Json.required(data, "showcase_id", Json::asString),
                 Json.required(data, "status", Json::asString));
     }
 
-    /** @return the API's {@code amount_cents} */
+    /** @return O valor deste reembolso, em centavos. */
     public long getAmountCents() {
         return amountCents;
+    }
+
+    /** @return O id do pedido no seu sistema, enviado ao criar o checkout; vazio sem ele. É o do pedido, não do reembolso. */
+    public String getClientReferenceId() {
+        return clientReferenceId;
+    }
+
+    /** @return the API's {@code created_at} */
+    public String getCreatedAt() {
+        return createdAt;
     }
 
     /** @return the API's {@code id} */
@@ -50,18 +81,43 @@ public final class Refund {
         return id;
     }
 
-    /** @return the API's {@code payment_id} */
+    /** @return Os pares que o seu servidor enviou ao criar o checkout do pedido; vazio sem eles. É o mesmo metadata dos eventos de venda e de reembolso. */
+    public Map<String, Object> getMetadata() {
+        return metadata;
+    }
+
+    /** @return O pedido a que o pagamento pertence: o id que GET /orders/{id} recebe. Vazio quando o reembolso não é de um pagamento de checkout. */
+    public String getOrderId() {
+        return orderId;
+    }
+
+    /** @return O pagamento de que o dinheiro volta. */
     public String getPaymentId() {
         return paymentId;
     }
 
-    /** @return the API's {@code status} */
+    /** @return Por que o dinheiro voltou, como o seu servidor informou. */
+    public String getReason() {
+        return reason;
+    }
+
+    /** @return Os pares que o seu servidor enviou no campo metadata ao pedir este reembolso; vazio sem eles. */
+    public Map<String, Object> getRefundMetadata() {
+        return refundMetadata;
+    }
+
+    /** @return O showcase a que pertence: o da chave de API que fez a chamada. Uma chave só alcança o seu showcase. */
+    public String getShowcaseId() {
+        return showcaseId;
+    }
+
+    /** @return requested e pending esperam a Cielo; unknown é uma resposta que não chegou, e o valor continua reservado até a Cielo responder; succeeded devolveu o dinheiro; failed e canceled não devolveram. */
     public String getStatus() {
         return status;
     }
 
     @Override
     public String toString() {
-        return "Refund{" + "amountCents=" + amountCents + ", id=" + id + ", paymentId=" + paymentId + ", status=" + status + "}";
+        return "Refund{" + "amountCents=" + amountCents + ", clientReferenceId=" + clientReferenceId + ", createdAt=" + createdAt + ", id=" + id + ", metadata=" + metadata + ", orderId=" + orderId + ", paymentId=" + paymentId + ", reason=" + reason + ", refundMetadata=" + refundMetadata + ", showcaseId=" + showcaseId + ", status=" + status + "}";
     }
 }

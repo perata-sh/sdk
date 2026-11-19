@@ -51,6 +51,8 @@ final class WebhookOrder
         public readonly ?string $refundId,
         /** Quanto do pedido já foi devolvido, somando todos os reembolsos que deram certo, em centavos. */
         public readonly int $refundedAmountCents,
+        /** O showcase da venda. */
+        public readonly string $showcaseId,
         /** @var 'open'|'confirmed'|'succeeded'|'failed'|'expired' */
         public readonly string $status,
         /** A assinatura que este pagamento cobra; nulo quando a venda não é de uma assinatura. */
@@ -83,6 +85,7 @@ final class WebhookOrder
             refundAmountCents: $data['refund_amount_cents'] ?? null,
             refundId: $data['refund_id'] ?? null,
             refundedAmountCents: $data['refunded_amount_cents'],
+            showcaseId: $data['showcase_id'],
             status: $data['status'],
             subscriptionId: $data['subscription_id'] ?? null,
         );

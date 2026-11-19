@@ -16,7 +16,7 @@ pub const WEBHOOK_TOLERANCE: Duration = Duration::from_secs(300);
 
 /// What every webhook carries: the message's id, the same as the webhook-id
 /// header; the event's type; when it happened, in RFC 3339; the environment it
-/// happened in, `"test"` or `"live"`; and its data.
+/// happened in, `"test"` or `"live"`; the showcase of the sale; and its data.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[non_exhaustive]
 pub struct WebhookMessage<T> {
@@ -31,6 +31,10 @@ pub struct WebhookMessage<T> {
     /// older server did not send it.
     #[serde(default)]
     pub environment: String,
+    /// The showcase of the sale, the same `showcase_id` the API's objects
+    /// carry; empty when an older server did not send it.
+    #[serde(default)]
+    pub showcase_id: String,
     /// What the event carries.
     pub data: T,
 }
@@ -183,6 +187,26 @@ impl WebhookEvent {
             WebhookEvent::Sale(event) => &event.environment,
             WebhookEvent::Subscription(event) => &event.environment,
             WebhookEvent::Unknown(event) => &event.environment,
+        }
+    }
+
+    /// The showcase of the sale, the same `showcase_id` the API's objects
+    /// carry; empty when an older server did not send it.
+    pub fn showcase_id(&self) -> &str {
+        match self {
+            WebhookEvent::Benefit(event) => &event.showcase_id,
+            WebhookEvent::BenefitGrant(event) => &event.showcase_id,
+            WebhookEvent::Checkout(event) => &event.showcase_id,
+            WebhookEvent::Customer(event) => &event.showcase_id,
+            WebhookEvent::Discount(event) => &event.showcase_id,
+            WebhookEvent::Dispute(event) => &event.showcase_id,
+            WebhookEvent::Identifiers(event) => &event.showcase_id,
+            WebhookEvent::Order(event) => &event.showcase_id,
+            WebhookEvent::Product(event) => &event.showcase_id,
+            WebhookEvent::Refund(event) => &event.showcase_id,
+            WebhookEvent::Sale(event) => &event.showcase_id,
+            WebhookEvent::Subscription(event) => &event.showcase_id,
+            WebhookEvent::Unknown(event) => &event.showcase_id,
         }
     }
 

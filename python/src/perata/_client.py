@@ -12,7 +12,7 @@ from typing import Any
 from urllib.parse import urlencode, urlsplit
 
 from ._errors import PerataError
-from ._services import BenefitsService, CheckoutLinksService, CheckoutsService, CustomerSessionsService, CustomersService, DiscountsService, DisputesService, EventsService, MetersService, OrdersService, PaymentMethodsService, PaymentsService, PricesService, ProductsService, RefundsService, SubscriptionsService, UsageService, WebhooksService
+from ._services import BenefitsService, CheckoutLinksService, CheckoutsService, CustomerSessionsService, CustomersService, DiscountsService, DisputesService, EventsService, MetersService, OrdersService, PaymentMethodsService, PaymentsService, PricesService, ProductsService, RefundsService, ShowcaseService, SubscriptionsService, UsageService, WebhooksService
 from ._version import DEFAULT_BASE_URL, VERSION
 
 Transport = Callable[[str, str, dict[str, str], "bytes | None", float], "tuple[int, dict[str, str], bytes]"]
@@ -87,6 +87,7 @@ class Perata:
         self.prices = PricesService(self)
         self.products = ProductsService(self)
         self.refunds = RefundsService(self)
+        self.showcase = ShowcaseService(self)
         self.subscriptions = SubscriptionsService(self)
         self.usage = UsageService(self)
         self.webhooks = WebhooksService(self)

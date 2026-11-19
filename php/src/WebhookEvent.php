@@ -20,6 +20,8 @@ abstract class WebhookEvent
         public readonly string $timestamp,
         /** The environment it happened in, "test" or "live"; empty when an older server did not send it. */
         public readonly string $environment = '',
+        /** The showcase of the sale, the same showcase_id the API's objects carry; empty when an older server did not send it. */
+        public readonly string $showcaseId = '',
     ) {
     }
 }

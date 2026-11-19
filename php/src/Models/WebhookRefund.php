@@ -14,14 +14,25 @@ final class WebhookRefund
         /** O checkout (o pedido) que o reembolso devolve, quando se sabe. */
         public readonly ?string $checkoutId,
         /** O id do pedido no sistema do lojista; vazio sem ele. */
-        public readonly ?string $clientReferenceId,
+        public readonly string $clientReferenceId,
         public readonly string $id,
         /**
          * Os pares que o servidor do lojista enviou ao criar o checkout; vazio sem eles.
          * @var array<string, mixed>
          */
         public readonly array $metadata,
+        /** O mesmo pedido, com o nome que a API de reembolsos dá a ele; igual a checkout_id. */
+        public readonly ?string $orderId,
         public readonly string $paymentId,
+        /** Por que o dinheiro voltou. */
+        public readonly ?string $reason,
+        /**
+         * Os pares que o servidor do lojista enviou no campo metadata ao pedir este reembolso; vazio sem eles.
+         * @var array<string, mixed>
+         */
+        public readonly array $refundMetadata,
+        /** O showcase da venda. */
+        public readonly string $showcaseId,
         /** @var 'requested'|'pending'|'unknown'|'succeeded'|'failed'|'canceled' */
         public readonly string $status,
     ) {
@@ -35,10 +46,14 @@ final class WebhookRefund
         return new self(
             amountCents: $data['amount_cents'],
             checkoutId: $data['checkout_id'] ?? null,
-            clientReferenceId: $data['client_reference_id'] ?? null,
+            clientReferenceId: $data['client_reference_id'],
             id: $data['id'],
             metadata: $data['metadata'],
+            orderId: $data['order_id'] ?? null,
             paymentId: $data['payment_id'],
+            reason: $data['reason'] ?? null,
+            refundMetadata: $data['refund_metadata'],
+            showcaseId: $data['showcase_id'],
             status: $data['status'],
         );
     }

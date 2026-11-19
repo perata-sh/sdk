@@ -28,9 +28,10 @@ final class CustomersService
      * 422.
      *
      * Autenticação: chave de API da organização em Authorization: Bearer
-     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-     * requisição. Respostas em JSON no envelope data; erros com error, message
-     * e fields.
+     * (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+     * chave, nunca da requisição: a chave criada num showcase só alcança o que
+     * é dele. Respostas em JSON no envelope data; erros com error, message e
+     * fields.
      *
      * @param array{billing_address?: array{city?: string, district?: string, line1?: string, line2?: string, postal_code?: string, state?: string}, billing_name?: string, email: string, external_id?: string, name: string, phone?: string, tax_id?: string, tax_id_kind?: 'cpf'|'cnpj'} $params
      */
@@ -48,9 +49,10 @@ final class CustomersService
      * nos registros.
      *
      * Autenticação: chave de API da organização em Authorization: Bearer
-     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-     * requisição. Respostas em JSON no envelope data; erros com error, message
-     * e fields.
+     * (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+     * chave, nunca da requisição: a chave criada num showcase só alcança o que
+     * é dele. Respostas em JSON no envelope data; erros com error, message e
+     * fields.
      */
     public function delete(string $customer, ?string $idempotencyKey = null, ?string $apiKey = null): void
     {
@@ -63,9 +65,10 @@ final class CustomersService
      * Devolve um cliente pelo ID.
      *
      * Autenticação: chave de API da organização em Authorization: Bearer
-     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-     * requisição. Respostas em JSON no envelope data; erros com error, message
-     * e fields.
+     * (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+     * chave, nunca da requisição: a chave criada num showcase só alcança o que
+     * é dele. Respostas em JSON no envelope data; erros com error, message e
+     * fields.
      */
     public function get(string $customer, ?string $apiKey = null): Models\Customer
     {
@@ -80,9 +83,10 @@ final class CustomersService
      * (external_id).
      *
      * Autenticação: chave de API da organização em Authorization: Bearer
-     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-     * requisição. Respostas em JSON no envelope data; erros com error, message
-     * e fields.
+     * (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+     * chave, nunca da requisição: a chave criada num showcase só alcança o que
+     * é dele. Respostas em JSON no envelope data; erros com error, message e
+     * fields.
      */
     public function getExternal(string $externalId, ?string $apiKey = null): Models\Customer
     {
@@ -98,9 +102,10 @@ final class CustomersService
      * faz para decidir o que o cliente pode usar.
      *
      * Autenticação: chave de API da organização em Authorization: Bearer
-     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-     * requisição. Respostas em JSON no envelope data; erros com error, message
-     * e fields.
+     * (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+     * chave, nunca da requisição: a chave criada num showcase só alcança o que
+     * é dele. Respostas em JSON no envelope data; erros com error, message e
+     * fields.
      */
     public function getState(string $customer, ?string $apiKey = null): Models\CustomerState
     {
@@ -115,9 +120,10 @@ final class CustomersService
      * sem diferença entre maiúsculas e minúsculas.
      *
      * Autenticação: chave de API da organização em Authorization: Bearer
-     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-     * requisição. Respostas em JSON no envelope data; erros com error, message
-     * e fields.
+     * (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+     * chave, nunca da requisição: a chave criada num showcase só alcança o que
+     * é dele. Respostas em JSON no envelope data; erros com error, message e
+     * fields.
      *
      * @param array{page?: int, limit?: int, email?: string} $params
      * @return Page<Models\Customer>
@@ -146,9 +152,10 @@ final class CustomersService
      * endereço de cobrança. O ID externo só pode ser definido uma vez.
      *
      * Autenticação: chave de API da organização em Authorization: Bearer
-     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-     * requisição. Respostas em JSON no envelope data; erros com error, message
-     * e fields.
+     * (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+     * chave, nunca da requisição: a chave criada num showcase só alcança o que
+     * é dele. Respostas em JSON no envelope data; erros com error, message e
+     * fields.
      *
      * @param array{billing_address?: array{city?: string, district?: string, line1?: string, line2?: string, postal_code?: string, state?: string}, billing_name?: string, email?: string, external_id?: string, name?: string, phone?: string, tax_id?: string, tax_id_kind?: 'cpf'|'cnpj'} $params
      */
@@ -165,9 +172,10 @@ final class CustomersService
      * (external_id). Os campos são os de Atualizar um cliente.
      *
      * Autenticação: chave de API da organização em Authorization: Bearer
-     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-     * requisição. Respostas em JSON no envelope data; erros com error, message
-     * e fields.
+     * (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+     * chave, nunca da requisição: a chave criada num showcase só alcança o que
+     * é dele. Respostas em JSON no envelope data; erros com error, message e
+     * fields.
      *
      * @param array{billing_address?: array{city?: string, district?: string, line1?: string, line2?: string, postal_code?: string, state?: string}, billing_name?: string, email?: string, external_id?: string, name?: string, phone?: string, tax_id?: string, tax_id_kind?: 'cpf'|'cnpj'} $params
      */

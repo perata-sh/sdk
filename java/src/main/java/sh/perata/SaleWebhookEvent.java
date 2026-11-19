@@ -14,13 +14,13 @@ public final class SaleWebhookEvent extends WebhookEvent {
 
     private final WebhookSale data;
 
-    SaleWebhookEvent(String id, String type, String timestamp, String environment, WebhookSale data) {
-        super(id, type, timestamp, environment);
+    SaleWebhookEvent(String id, String type, String timestamp, String environment, String showcaseId, WebhookSale data) {
+        super(id, type, timestamp, environment, showcaseId);
         this.data = data;
     }
 
-    static SaleWebhookEvent fromJson(String id, String type, String timestamp, String environment, Map<String, Object> data) {
-        return new SaleWebhookEvent(id, type, timestamp, environment, WebhookSale.fromJson(data));
+    static SaleWebhookEvent fromJson(String id, String type, String timestamp, String environment, String showcaseId, Map<String, Object> data) {
+        return new SaleWebhookEvent(id, type, timestamp, environment, showcaseId, WebhookSale.fromJson(data));
     }
 
     /** @return what the event carries */

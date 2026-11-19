@@ -92,6 +92,8 @@ export interface Checkout {
   /** O id do pedido no seu sistema, como o seu servidor o enviou na criação; vazio sem ele. Volta no checkout, no pedido, no pagamento e nos eventos. */
   client_reference_id: string;
   created_at: string;
+  /** O desconto que o checkout aplica sozinho, como o seu servidor o enviou na criação; vazio sem ele. O comprador o vê no resumo e ele conta desde a primeira cobrança. */
+  discount_id: string;
   /** Quando o checkout deixa de abrir sessões; nulo sem prazo. */
   expires_at: string | null;
   id: string;
@@ -104,8 +106,12 @@ export interface Checkout {
   price_id: string;
   product_id: string;
   quantity: number;
+  /** O showcase a que pertence: o da chave de API que fez a chamada. Uma chave só alcança o seu showcase. */
+  showcase_id: string;
   /** active abre sessões de compra; archived saiu de circulação. */
   status: "active" | "archived";
+  /** O dia da primeira cobrança de uma assinatura que começa numa data (a meia-noite desse dia em São Paulo, com o fuso); nulo quando o checkout cobra na hora ou começa por um teste em dias. O cartão é guardado sem cobrança e a cobrança acontece nesse dia. */
+  subscription_start_at: string | null;
   /** Endereço https para onde o comprador volta depois de pagar; vazio sem ele. */
   success_url: string;
   /** Endereço para onde o comprador é enviado. */
@@ -133,6 +139,8 @@ export interface CheckoutClient {
   environment: "test" | "live";
   /** Quando a sessão e o client_secret deixam de valer. */
   expires_at: string;
+  /** O dia da primeira cobrança de uma assinatura que não cobra hoje, a meia-noite desse dia em São Paulo: o fim do teste grátis ou a data que o servidor do lojista pediu (subscription_start_at). Nulo quando o pagamento é cobrado na hora. */
+  first_charge_at: string | null;
   /** O ID da sessão de checkout. */
   id: string;
   /** Os planos de uma venda no cartão de crédito, à vista primeiro; vazio quando a sessão não se paga em parcelas no cartão. */
@@ -242,6 +250,8 @@ export interface CheckoutCreated {
   /** Quando a sessão e o client_secret deixam de valer. */
   client_secret_expires_at: string;
   created_at: string;
+  /** O desconto que o checkout aplica sozinho, como o seu servidor o enviou na criação; vazio sem ele. O comprador o vê no resumo e ele conta desde a primeira cobrança. */
+  discount_id: string;
   /** Quando o link deixa de abrir sessões; nulo sem prazo. */
   expires_at: string | null;
   /** O ID do link do checkout, o que GET e PATCH /checkouts/{id} recebem. */
@@ -257,10 +267,14 @@ export interface CheckoutCreated {
   quantity: number;
   /** O ID da sessão de checkout; as rotas de cliente dela são /checkouts/client/{client_secret}. */
   session_id: string;
+  /** O showcase a que pertence: o da chave de API que fez a chamada. Uma chave só alcança o seu showcase. */
+  showcase_id: string;
   /** active abre sessões de compra; archived saiu de circulação. */
   status: "active" | "archived";
   /** Lê o estado da sessão depois que o client_secret é consumido: GET /checkouts/client/status/{status_key}. Só esta resposta o traz. */
   status_key: string;
+  /** O dia da primeira cobrança de uma assinatura que começa numa data (a meia-noite desse dia em São Paulo, com o fuso); nulo quando o checkout cobra na hora ou começa por um teste em dias. O cartão é guardado sem cobrança e a cobrança acontece nesse dia. */
+  subscription_start_at: string | null;
   /** Endereço https para onde o comprador volta depois de pagar; vazio sem ele. */
   success_url: string;
   /** O endereço hospedado desta sessão: redirecione o comprador para cá, ou abra-o no modal, e ele paga na página da Peráta exatamente a sessão que esta resposta abriu, que aparece no status_key, no GET da sessão e nos webhooks com o mesmo checkout_id. Quem abre o endereço depois do pagamento vê a confirmação e nada é cobrado de novo. Na repetição de uma criação idempotente o segredo não existe mais e o endereço volta a ser o do link, que abre uma sessão nova a cada visita. */
@@ -424,6 +438,8 @@ export interface Customer {
   name: string;
   /** Telefone ou celular com DDD, só dígitos. */
   phone?: string | null;
+  /** O showcase a que pertence: o da chave de API que fez a chamada. Uma chave só alcança o seu showcase. */
+  showcase_id: string;
   status: "active" | "archived";
   /** CPF ou CNPJ, só dígitos. O CPF vem inteiro para a chave de um dono ou administrador da organização e mascarado (***.***.789-00) para as demais; o CNPJ vem sempre inteiro. */
   tax_id?: string | null;
@@ -451,6 +467,8 @@ export interface CustomerState {
   granted_benefits: CustomerStateBenefitGrant[];
   id: string;
   name: string;
+  /** O showcase a que pertence: o da chave de API que fez a chamada. Uma chave só alcança o seu showcase. */
+  showcase_id: string;
   status: "active" | "archived";
 }
 
@@ -600,6 +618,8 @@ export interface Order {
   client_reference_id: string;
   currency: "BRL";
   customer_id: string;
+  /** Qual ciclo da assinatura o pedido pagou: 1 é o primeiro; nulo fora de uma assinatura. */
+  cycle_sequence: number | null;
   id: string;
   /** Juros do parcelamento pagos pelo comprador, cobrados além de amount_cents. */
   installment_interest_cents: number;
@@ -612,11 +632,19 @@ export interface Order {
   /** Onde o pedido está; status é o do checkout e continua succeeded depois de um reembolso, e este vira partially_refunded ou refunded. Nulo antes de haver pagamento. */
   order_status: "pending" | "paid" | "partially_refunded" | "refunded" | null;
   paid_at: string | null;
+  /** O fim do período que o ciclo paga; nulo fora de uma assinatura. */
+  period_end: string | null;
+  /** O começo do período que o ciclo paga; nulo fora de uma assinatura. */
+  period_start: string | null;
   price_id: string;
   product_id: string;
   /** Quanto do pedido já foi devolvido, somando todos os reembolsos que deram certo, em centavos. */
   refunded_amount_cents: number;
+  /** O showcase a que pertence: o da chave de API que fez a chamada. Uma chave só alcança o seu showcase. */
+  showcase_id: string;
   status: "open" | "confirmed" | "succeeded" | "failed" | "expired";
+  /** A assinatura de que este pedido é a cobrança (a primeira ou uma renovação); nulo quando o pedido não é de uma assinatura. */
+  subscription_id: string | null;
 }
 
 /** OrderInvoice is a resource of Peráta's API. */
@@ -679,6 +707,8 @@ export interface Payment {
   created_at: string;
   currency: "BRL";
   customer_id: string;
+  /** Qual ciclo da assinatura o pagamento pagou: 1 é o primeiro; nulo fora de uma assinatura. */
+  cycle_sequence: number | null;
   id: string;
   /** Valor de uma parcela; 0 à vista. */
   installment_amount_cents: number;
@@ -689,8 +719,16 @@ export interface Payment {
   /** Os pares que o seu servidor enviou ao criar o checkout. */
   metadata: Record<string, unknown>;
   method: "card" | "pix" | "boleto";
+  /** O fim do período que o ciclo paga; nulo fora de uma assinatura. */
+  period_end: string | null;
+  /** O começo do período que o ciclo paga; nulo fora de uma assinatura. */
+  period_start: string | null;
   refunded_cents: number;
+  /** O showcase a que pertence: o da chave de API que fez a chamada. Uma chave só alcança o seu showcase. */
+  showcase_id: string;
   state: "unknown" | "pending" | "authorized" | "captured" | "refused" | "canceled" | "refunded" | "partially_refunded";
+  /** A assinatura que este pagamento cobrou (a primeira ou uma renovação); nulo quando o pagamento não é de uma assinatura. */
+  subscription_id: string | null;
 }
 
 /** PaymentMethod is a resource of Peráta's API. */
@@ -728,15 +766,48 @@ export interface Product {
   description: string;
   id: string;
   name: string;
+  /** O showcase a que pertence: o da chave de API que fez a chamada. Uma chave só alcança o seu showcase. */
+  showcase_id: string;
   status: "active" | "archived";
 }
 
 /** Refund is a resource of Peráta's API. */
 export interface Refund {
+  /** O valor deste reembolso, em centavos. */
   amount_cents: number;
+  /** O id do pedido no seu sistema, enviado ao criar o checkout; vazio sem ele. É o do pedido, não do reembolso. */
+  client_reference_id: string;
+  created_at: string;
   id: string;
+  /** Os pares que o seu servidor enviou ao criar o checkout do pedido; vazio sem eles. É o mesmo metadata dos eventos de venda e de reembolso. */
+  metadata: Record<string, unknown>;
+  /** O pedido a que o pagamento pertence: o id que GET /orders/{id} recebe. Vazio quando o reembolso não é de um pagamento de checkout. */
+  order_id: string;
+  /** O pagamento de que o dinheiro volta. */
   payment_id: string;
+  /** Por que o dinheiro voltou, como o seu servidor informou. */
+  reason: string;
+  /** Os pares que o seu servidor enviou no campo metadata ao pedir este reembolso; vazio sem eles. */
+  refund_metadata: Record<string, unknown>;
+  /** O showcase a que pertence: o da chave de API que fez a chamada. Uma chave só alcança o seu showcase. */
+  showcase_id: string;
+  /** requested e pending esperam a Cielo; unknown é uma resposta que não chegou, e o valor continua reservado até a Cielo responder; succeeded devolveu o dinheiro; failed e canceled não devolveram. */
   status: "requested" | "pending" | "unknown" | "succeeded" | "failed" | "canceled";
+}
+
+/** Showcase is a resource of Peráta's API. */
+export interface Showcase {
+  created_at: string;
+  /** O ambiente da chave. */
+  environment: "test" | "live";
+  /** true quando o showcase tem logo. A logo é privada e não sai pela API: quem a mostra é o painel. */
+  has_logo: boolean;
+  /** O ID do showcase: o showcase_id que os objetos e os eventos de webhook trazem. */
+  id: string;
+  /** true no showcase com que a organização começou; os outros foram abertos depois, no painel. */
+  is_principal: boolean;
+  /** O nome do showcase, como o lojista o vê no painel. */
+  name: string;
 }
 
 /** Subscription is a resource of Peráta's API. */
@@ -753,6 +824,8 @@ export interface Subscription {
   metadata: Record<string, unknown>;
   price_id: string;
   product_id: string;
+  /** O showcase a que pertence: o da chave de API que fez a chamada. Uma chave só alcança o seu showcase. */
+  showcase_id: string;
   status: "trialing" | "active" | "past_due" | "suspended" | "paused" | "canceled";
   /** Quando a assinatura foi suspensa; nulo enquanto não está suspensa. */
   suspended_at: string | null;
@@ -811,6 +884,8 @@ export interface WebhookCheckout {
   period_start?: string | null;
   price_id: string;
   product_id: string;
+  /** O showcase da venda. */
+  showcase_id: string;
   status: "open" | "confirmed" | "succeeded" | "failed" | "expired";
   /** A assinatura que este pagamento cobra; nulo quando a venda não é de uma assinatura. */
   subscription_id?: string | null;
@@ -958,6 +1033,8 @@ export interface WebhookOrder {
   refund_id: string | null;
   /** Quanto do pedido já foi devolvido, somando todos os reembolsos que deram certo, em centavos. */
   refunded_amount_cents: number;
+  /** O showcase da venda. */
+  showcase_id: string;
   status: "open" | "confirmed" | "succeeded" | "failed" | "expired";
   /** A assinatura que este pagamento cobra; nulo quando a venda não é de uma assinatura. */
   subscription_id?: string | null;
@@ -969,11 +1046,19 @@ export interface WebhookRefund {
   /** O checkout (o pedido) que o reembolso devolve, quando se sabe. */
   checkout_id?: string;
   /** O id do pedido no sistema do lojista; vazio sem ele. */
-  client_reference_id?: string;
+  client_reference_id: string;
   id: string;
   /** Os pares que o servidor do lojista enviou ao criar o checkout; vazio sem eles. */
   metadata: Record<string, unknown>;
+  /** O mesmo pedido, com o nome que a API de reembolsos dá a ele; igual a checkout_id. */
+  order_id?: string;
   payment_id: string;
+  /** Por que o dinheiro voltou. */
+  reason?: string;
+  /** Os pares que o servidor do lojista enviou no campo metadata ao pedir este reembolso; vazio sem eles. */
+  refund_metadata: Record<string, unknown>;
+  /** O showcase da venda. */
+  showcase_id: string;
   status: "requested" | "pending" | "unknown" | "succeeded" | "failed" | "canceled";
 }
 
@@ -992,6 +1077,10 @@ export interface WebhookSale {
   cycle_sequence?: number | null;
   environment: string;
   event_id: string;
+  /** O código que a Cielo deu para a recusa, nos eventos refund.* de um reembolso que falhou; serve ao suporte. */
+  failure_code?: string;
+  /** Por que o dinheiro não voltou, em português, nos eventos refund.* de um reembolso que falhou (refund.failed). */
+  failure_reason?: string;
   merchant_id: string;
   /** Os pares que o servidor do lojista enviou ao criar o checkout; vazio sem eles. Na renovação de uma assinatura são os da assinatura. */
   metadata?: Record<string, unknown>;
@@ -1029,6 +1118,8 @@ export interface WebhookSubscription {
   payment_failure?: WebhookSubscriptionPaymentFailure;
   price_id: string;
   product_id: string;
+  /** O showcase da venda. */
+  showcase_id: string;
   status: "trialing" | "active" | "past_due" | "suspended" | "paused" | "canceled";
   /** Quando a assinatura foi suspensa; nulo enquanto não está suspensa. */
   suspended_at: string | null;
@@ -1136,11 +1227,13 @@ export interface CheckoutsCreateParams {
   customer_id?: string;
   /** O nome do comprador, quando você o conhece. */
   customer_name?: string;
+  /** O desconto do catálogo que o checkout aplica sozinho, sem o comprador digitar código: o valor dele (percentual ou fixo) é tirado do total e vale como o desconto foi criado, uma vez, por alguns meses ou para sempre. Um desconto limitado a produtos (product_ids na criação do desconto) só vale para esses produtos: num checkout de uma câmera, o desconto de uma câmera. Um id que não é de um desconto ativo do catálogo é recusado com 422. */
+  discount_id?: string;
   /** Segundos em que a sessão e o client_secret continuam valendo, de um minuto a três dias; 1800 (30 minutos) quando fica de fora. Uma sessão paga com Pix pode ser aberta até esse prazo e, aberta, o Pix gerado vale 24 horas. */
   expires_in?: number;
   /** O mesmo cliente, pelo ID que você deu a ele. */
   external_customer_id?: string;
-  /** As linhas do pedido, até 50, para o comprador ler o detalhe: aparecem no checkout (página, modal, componentes e transparente), no pedido, no recibo, no portal do cliente e nos eventos. A soma de quantity vezes unit_amount_cents precisa ser igual a amount_cents, ou a resposta é 422; enviadas sem amount_cents, a soma é o valor. */
+  /** As linhas do pedido, até 50, para o comprador ler o detalhe: aparecem no checkout (página, modal, componentes e transparente), no pedido, no recibo, no portal do cliente e nos eventos. Em um preço de valor livre, a soma de quantity vezes unit_amount_cents precisa ser igual a amount_cents, ou a resposta é 422; enviadas sem amount_cents, a soma é o valor. Em um preço com valor próprio, como o de uma assinatura, as linhas só mostram ao comprador do que o valor é feito e fixam nada: envie-as sem amount_cents, com a soma igual ao valor do preço vezes a quantidade (senão 422), e o preço continua sendo quem define o que se cobra. */
   items?: CheckoutsCreateItem[];
   label?: string;
   /** Pares guardados no link do checkout e devolvidos no checkout, no pedido, no pagamento e nos eventos da venda. Até 50 pares de chave e valor: a chave tem de 1 a 40 caracteres, e o valor é um texto de 1 a 500 caracteres, um número ou um booleano. Texto sem caracteres de controle nem de direção invisível. */
@@ -1153,6 +1246,8 @@ export interface CheckoutsCreateParams {
   require_billing_address?: boolean;
   /** Outro nome de cancel_url: a página https a que o comprador volta sem pagar. Enviada com um cancel_url diferente, é recusada. */
   return_url?: string;
+  /** O dia da primeira cobrança de uma assinatura, como o trial_end do Stripe: o cartão é guardado e conferido com o emissor, nada é cobrado hoje e a primeira cobrança acontece nesse dia, no cartão guardado; as seguintes seguem a periodicidade do preço a partir dele. Só vale em um preço recorrente com valor, e só no cartão de crédito: a página não oferece Pix nem boleto. Vale o dia no horário de São Paulo, da meia-noite dele, qualquer que seja o fuso enviado; a hora não conta. Tem de ser de amanhã a um ano, senão a resposta é 422. A resposta devolve o instante como a Peráta o guarda, em subscription_start_at. Quem abre o checkout depois da data recebe 410. */
+  subscription_start_at?: string;
   success_url?: string;
 }
 
@@ -1348,10 +1443,18 @@ export interface ProductsUpdateParams {
 
 /** The body of refunds:create. */
 export interface RefundsCreateParams {
-  amount_cents: number;
+  /** Quanto devolver, em centavos, de 1 até o que ainda pode ser devolvido. Sem ele, devolve tudo o que ainda pode ser devolvido. */
+  amount_cents?: number;
+  /** Pares seus guardados no reembolso; voltam como refund_metadata no reembolso e nos eventos refund.created e refund.updated, onde metadata é o do pedido. O filtro metadata[chave]=valor de GET /refunds procura estes pares. Até 50 pares de chave e valor: a chave tem de 1 a 40 caracteres, e o valor é um texto de 1 a 500 caracteres, um número ou um booleano. Texto sem caracteres de controle nem de direção invisível. */
+  metadata?: Record<string, unknown>;
+  /** Uma observação sua, de até 500 caracteres. */
   note?: string;
-  payment_id: string;
-  reason: "requested_by_customer" | "duplicate" | "fraudulent" | "product_unavailable" | "service_disruption" | "other";
+  /** O pedido (o id que GET /orders/{id} recebe) cujo pagamento capturado é devolvido. Dispensa o payment_id. */
+  order_id?: string;
+  /** O pagamento de que o dinheiro volta. Envie este ou o order_id; os dois juntos só se forem do mesmo pagamento. */
+  payment_id?: string;
+  /** Por que o dinheiro volta. Sem ele, requested_by_customer; com other a note é obrigatória. */
+  reason?: "requested_by_customer" | "duplicate" | "fraudulent" | "product_unavailable" | "service_disruption" | "other";
 }
 
 /** The body of subscriptions:update. */

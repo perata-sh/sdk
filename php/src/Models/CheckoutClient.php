@@ -34,6 +34,8 @@ final class CheckoutClient
         public readonly string $environment,
         /** Quando a sessão e o client_secret deixam de valer. */
         public readonly string $expiresAt,
+        /** O dia da primeira cobrança de uma assinatura que não cobra hoje, a meia-noite desse dia em São Paulo: o fim do teste grátis ou a data que o servidor do lojista pediu (subscription_start_at). Nulo quando o pagamento é cobrado na hora. */
+        public readonly ?string $firstChargeAt,
         /** O ID da sessão de checkout. */
         public readonly string $id,
         /**
@@ -91,6 +93,7 @@ final class CheckoutClient
             editable: $data['editable'],
             environment: $data['environment'],
             expiresAt: $data['expires_at'],
+            firstChargeAt: $data['first_charge_at'] ?? null,
             id: $data['id'],
             installments: array_values(array_map(static fn (array $item) => CheckoutInstallment::fromArray($item), $data['installments'])),
             items: array_values(array_map(static fn (array $item) => CheckoutClientItem::fromArray($item), $data['items'])),

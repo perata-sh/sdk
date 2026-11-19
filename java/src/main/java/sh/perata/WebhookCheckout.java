@@ -36,11 +36,12 @@ public final class WebhookCheckout {
     private final String periodStart;
     private final String priceId;
     private final String productId;
+    private final String showcaseId;
     private final String status;
     private final String subscriptionId;
     private final long totalCents;
 
-    WebhookCheckout(long amountCents, String checkoutLinkId, String clientReferenceId, String createdAt, String currency, String customerId, Long cycleSequence, long discountCents, String expiresAt, String id, List<CheckoutLine> items, Map<String, Object> metadata, String periodEnd, String periodStart, String priceId, String productId, String status, String subscriptionId, long totalCents) {
+    WebhookCheckout(long amountCents, String checkoutLinkId, String clientReferenceId, String createdAt, String currency, String customerId, Long cycleSequence, long discountCents, String expiresAt, String id, List<CheckoutLine> items, Map<String, Object> metadata, String periodEnd, String periodStart, String priceId, String productId, String showcaseId, String status, String subscriptionId, long totalCents) {
         this.amountCents = amountCents;
         this.checkoutLinkId = checkoutLinkId;
         this.clientReferenceId = clientReferenceId;
@@ -57,6 +58,7 @@ public final class WebhookCheckout {
         this.periodStart = periodStart;
         this.priceId = priceId;
         this.productId = productId;
+        this.showcaseId = showcaseId;
         this.status = status;
         this.subscriptionId = subscriptionId;
         this.totalCents = totalCents;
@@ -80,6 +82,7 @@ public final class WebhookCheckout {
                 Json.optional(data, "period_start", Json::asString),
                 Json.required(data, "price_id", Json::asString),
                 Json.required(data, "product_id", Json::asString),
+                Json.required(data, "showcase_id", Json::asString),
                 Json.required(data, "status", Json::asString),
                 Json.optional(data, "subscription_id", Json::asString),
                 Json.required(data, "total_cents", Json::asLong));
@@ -165,6 +168,11 @@ public final class WebhookCheckout {
         return productId;
     }
 
+    /** @return O showcase da venda. */
+    public String getShowcaseId() {
+        return showcaseId;
+    }
+
     /** @return the API's {@code status} */
     public String getStatus() {
         return status;
@@ -182,6 +190,6 @@ public final class WebhookCheckout {
 
     @Override
     public String toString() {
-        return "WebhookCheckout{" + "amountCents=" + amountCents + ", checkoutLinkId=" + checkoutLinkId + ", clientReferenceId=" + clientReferenceId + ", createdAt=" + createdAt + ", currency=" + currency + ", customerId=" + customerId + ", cycleSequence=" + cycleSequence + ", discountCents=" + discountCents + ", expiresAt=" + expiresAt + ", id=" + id + ", items=" + items + ", metadata=" + metadata + ", periodEnd=" + periodEnd + ", periodStart=" + periodStart + ", priceId=" + priceId + ", productId=" + productId + ", status=" + status + ", subscriptionId=" + subscriptionId + ", totalCents=" + totalCents + "}";
+        return "WebhookCheckout{" + "amountCents=" + amountCents + ", checkoutLinkId=" + checkoutLinkId + ", clientReferenceId=" + clientReferenceId + ", createdAt=" + createdAt + ", currency=" + currency + ", customerId=" + customerId + ", cycleSequence=" + cycleSequence + ", discountCents=" + discountCents + ", expiresAt=" + expiresAt + ", id=" + id + ", items=" + items + ", metadata=" + metadata + ", periodEnd=" + periodEnd + ", periodStart=" + periodStart + ", priceId=" + priceId + ", productId=" + productId + ", showcaseId=" + showcaseId + ", status=" + status + ", subscriptionId=" + subscriptionId + ", totalCents=" + totalCents + "}";
     }
 }

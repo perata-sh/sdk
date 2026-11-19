@@ -2,9 +2,30 @@
 
 Todos os SDKs da Peráta saem com a mesma versão; as mudanças de cada uma estão também nas [releases de perata-sh/sdk](https://github.com/perata-sh/sdk/releases).
 
-## {{.Version}} (18/11/2026)
+## {{.Version}} (19/11/2026)
 
-Gerado a partir do contrato da API {{.APIVersion}}.
+Gerado a partir do contrato da API {{.APIVersion}} (perata.sh 6950e1fe). É a primeira versão publicada depois da 0.5.4: a 0.5.5 nunca saiu, e tudo o que ela trazia está aqui, junto com o que vem abaixo.
+
+- Showcase: todo objeto traz `showcaseId` (`Checkout`, `CheckoutCreated`, `Customer`, `CustomerState`, `Order`, `Payment`, `Product`, `Refund`, `Subscription` e os modelos de webhook), e o envelope de todo webhook também (`event.showcaseId`, vazio quando um servidor antigo não o mandou). Novo `perata.showcase.get()` lê o showcase da chave: `id`, `name`, `isPrincipal`, `hasLogo` e `environment`.
+- Reembolso: `refunds.create` aceita `orderId` no lugar de `paymentId` e `amountCents` opcional (sem ele devolve tudo o que ainda pode ser devolvido); `paymentId` deixa de ser obrigatório em `RefundsCreateParams`. `metadata` do pedido de reembolso volta como `refundMetadata`; `reason` e `note` são opcionais. Novo `refunds.get`. O `Refund` ganha `orderId`, `clientReferenceId`, `metadata`, `refundMetadata`, `reason` e `createdAt`, e `refunds.list` aceita `metadata`. `WebhookRefund` ganha `orderId`, `reason` e `refundMetadata`, e os eventos de um reembolso que falhou trazem `failureReason` e `failureCode`.
+- Assinatura numa data: `checkouts.create` aceita `subscriptionStartAt` (o dia da primeira cobrança; nada é cobrado hoje) e `discountId`; `Checkout` e `CheckoutCreated` devolvem os dois, e `CheckoutClient` traz `firstChargeAt`.
+- `Order` e `Payment` trazem `subscriptionId`, `cycleSequence`, `periodStart` e `periodEnd` (nulos fora de assinatura), e `orders.list` e `payments.list` aceitam `subscriptionId`.
+- O 403 diz, no texto do erro, o escopo que falta.
+- README: reembolso pelo pedido, assinatura com data e leitura do showcase.
+- Da 0.5.5 (não publicada):
+  - Filtro por metadata nas listas: `checkouts.list`, `orders.list`, `payments.list` e `subscriptions.list` aceitam `metadata` (`Map<String, String>`), enviado como um par por chave, `metadata[chave]=valor` (até 10 pares; a linha precisa ter todos), com as chaves em ordem e escapadas. `listIter` leva o filtro em todas as páginas.
+  - `customers.list` aceita `email`.
+  - `customers.create` responde 200, e não 201, quando liga ao `externalId` um cliente que já existia (um e-mail criado por um checkout); o corpo é o mesmo `Customer`.
+  - Regra da `Idempotency-Key`: uma resposta 2xx fica guardada sob a chave; uma recusa 4xx ou uma falha 5xx a libera, e a mesma chave pode ser enviada de novo.
+  - Documentação: o resumo de cada método é curto, e a descrição da operação vem logo abaixo, em parágrafos.
+  - `metadata` dos corpos declarado no contrato como objeto livre: até 50 pares, chave de 1 a 40 caracteres, valor texto, número ou booleano. O tipo continua `Map<String, Object?>`.
+  - README: exemplos de `checkouts.expire`, de listas com `clientReferenceId` e `metadata`, de `subscriptions.resume` e dos eventos `subscription.past_due` e `subscription.suspended`.
+
+## 0.5.5 (18/11/2026)
+
+Não foi publicada: tudo o que ela trazia está na 0.5.6, acima.
+
+Gerado a partir do contrato da API 0.1.0.
 
 - Filtro por metadata nas listas: `checkouts.list`, `orders.list`, `payments.list` e `subscriptions.list` aceitam `metadata` (`Map<String, String>`), enviado como um par por chave, `metadata[chave]=valor` (até 10 pares; a linha precisa ter todos), com as chaves em ordem e escapadas. `listIter` leva o filtro em todas as páginas.
 - `customers.list` aceita `email`.

@@ -17,16 +17,22 @@ public final class RefundsService {
     }
 
     /**
-     * Reembolsar um pagamento.
+     * Reembolsar um pagamento ou um pedido.
      *
-     * Devolve parte ou todo o valor de um pagamento. A Idempotency-Key é
-     * obrigatória: sem ela, repetir a chamada depois de um tempo esgotado seria
-     * devolver duas vezes.
+     * Devolve dinheiro de um pagamento, que você nomeia pelo payment_id ou pelo
+     * order_id do pedido que ele pagou (os dois, só se forem do mesmo
+     * pagamento). Sem amount_cents devolve tudo o que ainda pode ser devolvido;
+     * com ele, uma parte, até esse limite. O reason, sem ele, é
+     * requested_by_customer. O metadata fica no reembolso e volta nele e nos
+     * eventos refund.*. A Idempotency-Key é obrigatória: sem ela, repetir a
+     * chamada depois de um tempo esgotado seria devolver duas vezes; repetida
+     * com a mesma chave, devolve o mesmo reembolso.
      *
      * Autenticação: chave de API da organização em Authorization: Bearer
-     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-     * requisição. Respostas em JSON no envelope data; erros com error, message
-     * e fields.
+     * (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+     * chave, nunca da requisição: a chave criada num showcase só alcança o que
+     * é dele. Respostas em JSON no envelope data; erros com error, message e
+     * fields.
      *
      * @param params the request
      * @param options an idempotency key or another organization's key for this call, or null
@@ -39,16 +45,22 @@ public final class RefundsService {
     }
 
     /**
-     * Reembolsar um pagamento.
+     * Reembolsar um pagamento ou um pedido.
      *
-     * Devolve parte ou todo o valor de um pagamento. A Idempotency-Key é
-     * obrigatória: sem ela, repetir a chamada depois de um tempo esgotado seria
-     * devolver duas vezes.
+     * Devolve dinheiro de um pagamento, que você nomeia pelo payment_id ou pelo
+     * order_id do pedido que ele pagou (os dois, só se forem do mesmo
+     * pagamento). Sem amount_cents devolve tudo o que ainda pode ser devolvido;
+     * com ele, uma parte, até esse limite. O reason, sem ele, é
+     * requested_by_customer. O metadata fica no reembolso e volta nele e nos
+     * eventos refund.*. A Idempotency-Key é obrigatória: sem ela, repetir a
+     * chamada depois de um tempo esgotado seria devolver duas vezes; repetida
+     * com a mesma chave, devolve o mesmo reembolso.
      *
      * Autenticação: chave de API da organização em Authorization: Bearer
-     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-     * requisição. Respostas em JSON no envelope data; erros com error, message
-     * e fields.
+     * (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+     * chave, nunca da requisição: a chave criada num showcase só alcança o que
+     * é dele. Respostas em JSON no envelope data; erros com error, message e
+     * fields.
      *
      * @param params the request
      * @return the refund
@@ -73,14 +85,18 @@ public final class RefundsService {
         /** A value of {@link #getReason()}. */
         public static final String REASON_OTHER = "other";
 
-        private final long amountCents;
+        private final Long amountCents;
+        private final Map<String, Object> metadata;
         private final String note;
+        private final String orderId;
         private final String paymentId;
         private final String reason;
 
         private CreateParams(Builder builder) {
             this.amountCents = builder.amountCents;
+            this.metadata = builder.metadata;
             this.note = builder.note;
+            this.orderId = builder.orderId;
             this.paymentId = builder.paymentId;
             this.reason = builder.reason;
         }
@@ -90,41 +106,65 @@ public final class RefundsService {
             return new Builder();
         }
 
-        /** @return the {@code amount_cents} sent */
-        public long getAmountCents() {
+        /** @return Quanto devolver, em centavos, de 1 até o que ainda pode ser devolvido. Sem ele, devolve tudo o que ainda pode ser devolvido. (null when left out) */
+        public Long getAmountCents() {
             return amountCents;
         }
 
-        /** @return the {@code note} sent (null when left out) */
+        /** @return Pares seus guardados no reembolso; voltam como refund_metadata no reembolso e nos eventos refund.created e refund.updated, onde metadata é o do pedido. O filtro metadata[chave]=valor de GET /refunds procura estes pares. Até 50 pares de chave e valor: a chave tem de 1 a 40 caracteres, e o valor é um texto de 1 a 500 caracteres, um número ou um booleano. Texto sem caracteres de controle nem de direção invisível. (null when left out) */
+        public Map<String, Object> getMetadata() {
+            return metadata;
+        }
+
+        /** @return Uma observação sua, de até 500 caracteres. (null when left out) */
         public String getNote() {
             return note;
         }
 
-        /** @return the {@code payment_id} sent */
+        /** @return O pedido (o id que GET /orders/{id} recebe) cujo pagamento capturado é devolvido. Dispensa o payment_id. (null when left out) */
+        public String getOrderId() {
+            return orderId;
+        }
+
+        /** @return O pagamento de que o dinheiro volta. Envie este ou o order_id; os dois juntos só se forem do mesmo pagamento. (null when left out) */
         public String getPaymentId() {
             return paymentId;
         }
 
-        /** @return the {@code reason} sent */
+        /** @return Por que o dinheiro volta. Sem ele, requested_by_customer; com other a note é obrigatória. (null when left out) */
         public String getReason() {
             return reason;
         }
 
         Map<String, Object> toJson() {
             Map<String, Object> body = new LinkedHashMap<>();
-            body.put("amount_cents", amountCents);
+            if (amountCents != null) {
+                body.put("amount_cents", amountCents);
+            }
+            if (metadata != null) {
+                body.put("metadata", metadata);
+            }
             if (note != null) {
                 body.put("note", note);
             }
-            body.put("payment_id", paymentId);
-            body.put("reason", reason);
+            if (orderId != null) {
+                body.put("order_id", orderId);
+            }
+            if (paymentId != null) {
+                body.put("payment_id", paymentId);
+            }
+            if (reason != null) {
+                body.put("reason", reason);
+            }
             return body;
         }
 
         /** Builds {@link CreateParams}; the fields left unset are left out of the request. */
         public static final class Builder {
             private Long amountCents;
+            private Map<String, Object> metadata;
             private String note;
+            private String orderId;
             private String paymentId;
             private String reason;
 
@@ -132,16 +172,25 @@ public final class RefundsService {
             }
 
             /**
-             * @param amountCents the {@code amount_cents} to send (required)
+             * @param amountCents Quanto devolver, em centavos, de 1 até o que ainda pode ser devolvido. Sem ele, devolve tudo o que ainda pode ser devolvido.
              * @return this builder
              */
-            public Builder amountCents(long amountCents) {
+            public Builder amountCents(Long amountCents) {
                 this.amountCents = amountCents;
                 return this;
             }
 
             /**
-             * @param note the {@code note} to send
+             * @param metadata Pares seus guardados no reembolso; voltam como refund_metadata no reembolso e nos eventos refund.created e refund.updated, onde metadata é o do pedido. O filtro metadata[chave]=valor de GET /refunds procura estes pares. Até 50 pares de chave e valor: a chave tem de 1 a 40 caracteres, e o valor é um texto de 1 a 500 caracteres, um número ou um booleano. Texto sem caracteres de controle nem de direção invisível.
+             * @return this builder
+             */
+            public Builder metadata(Map<String, Object> metadata) {
+                this.metadata = metadata;
+                return this;
+            }
+
+            /**
+             * @param note Uma observação sua, de até 500 caracteres.
              * @return this builder
              */
             public Builder note(String note) {
@@ -150,7 +199,16 @@ public final class RefundsService {
             }
 
             /**
-             * @param paymentId the {@code payment_id} to send (required)
+             * @param orderId O pedido (o id que GET /orders/{id} recebe) cujo pagamento capturado é devolvido. Dispensa o payment_id.
+             * @return this builder
+             */
+            public Builder orderId(String orderId) {
+                this.orderId = orderId;
+                return this;
+            }
+
+            /**
+             * @param paymentId O pagamento de que o dinheiro volta. Envie este ou o order_id; os dois juntos só se forem do mesmo pagamento.
              * @return this builder
              */
             public Builder paymentId(String paymentId) {
@@ -159,7 +217,7 @@ public final class RefundsService {
             }
 
             /**
-             * @param reason the {@code reason} to send (required)
+             * @param reason Por que o dinheiro volta. Sem ele, requested_by_customer; com other a note é obrigatória.
              * @return this builder
              */
             public Builder reason(String reason) {
@@ -172,15 +230,6 @@ public final class RefundsService {
              * @throws IllegalStateException when a required field is unset
              */
             public CreateParams build() {
-                if (amountCents == null) {
-                    throw new IllegalStateException("perata: CreateParams needs amountCents");
-                }
-                if (paymentId == null) {
-                    throw new IllegalStateException("perata: CreateParams needs paymentId");
-                }
-                if (reason == null) {
-                    throw new IllegalStateException("perata: CreateParams needs reason");
-                }
                 return new CreateParams(this);
             }
         }
@@ -188,15 +237,60 @@ public final class RefundsService {
 
 
     /**
+     * Ler um reembolso.
+     *
+     * Devolve um reembolso pelo ID, com o pedido de onde veio (order_id), o
+     * client_reference_id desse pedido e o status: requested e pending esperam
+     * a Cielo, succeeded devolveu o dinheiro.
+     *
+     * Autenticação: chave de API da organização em Authorization: Bearer
+     * (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+     * chave, nunca da requisição: a chave criada num showcase só alcança o que
+     * é dele. Respostas em JSON no envelope data; erros com error, message e
+     * fields.
+     *
+     * @param refund the refund
+     * @param options another organization's key for this call, or null
+     * @return the refund
+     * @throws PerataException when the API refuses the call
+     */
+    public Refund get(String refund, RequestOptions options) {
+        Object data = client.request("GET", "/api/v1/refunds/" + Perata.segment(refund), null, null, null, options);
+        return Refund.fromJson(Json.asObject(data));
+    }
+
+    /**
+     * Ler um reembolso.
+     *
+     * Devolve um reembolso pelo ID, com o pedido de onde veio (order_id), o
+     * client_reference_id desse pedido e o status: requested e pending esperam
+     * a Cielo, succeeded devolveu o dinheiro.
+     *
+     * Autenticação: chave de API da organização em Authorization: Bearer
+     * (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+     * chave, nunca da requisição: a chave criada num showcase só alcança o que
+     * é dele. Respostas em JSON no envelope data; erros com error, message e
+     * fields.
+     *
+     * @param refund the refund
+     * @return the refund
+     * @throws PerataException when the API refuses the call
+     */
+    public Refund get(String refund) {
+        return get(refund, null);
+    }
+
+    /**
      * Listar reembolsos. One page; {@link #listIter} walks every page.
      *
      * Devolve uma página dos reembolsos. Filtre por pagamento (payment_id),
-     * status, cliente ou período.
+     * status, cliente, período ou metadados do reembolso.
      *
      * Autenticação: chave de API da organização em Authorization: Bearer
-     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-     * requisição. Respostas em JSON no envelope data; erros com error, message
-     * e fields.
+     * (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+     * chave, nunca da requisição: a chave criada num showcase só alcança o que
+     * é dele. Respostas em JSON no envelope data; erros com error, message e
+     * fields.
      *
      * @param params the page, its size and the filters, or null
      * @param options options for this call, or null
@@ -212,12 +306,13 @@ public final class RefundsService {
      * Listar reembolsos. One page.
      *
      * Devolve uma página dos reembolsos. Filtre por pagamento (payment_id),
-     * status, cliente ou período.
+     * status, cliente, período ou metadados do reembolso.
      *
      * Autenticação: chave de API da organização em Authorization: Bearer
-     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-     * requisição. Respostas em JSON no envelope data; erros com error, message
-     * e fields.
+     * (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+     * chave, nunca da requisição: a chave criada num showcase só alcança o que
+     * é dele. Respostas em JSON no envelope data; erros com error, message e
+     * fields.
      *
      * @param params the page, its size and the filters, or null
      * @return the page
@@ -230,12 +325,13 @@ public final class RefundsService {
      * Listar reembolsos. The first page.
      *
      * Devolve uma página dos reembolsos. Filtre por pagamento (payment_id),
-     * status, cliente ou período.
+     * status, cliente, período ou metadados do reembolso.
      *
      * Autenticação: chave de API da organização em Authorization: Bearer
-     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-     * requisição. Respostas em JSON no envelope data; erros com error, message
-     * e fields.
+     * (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+     * chave, nunca da requisição: a chave criada num showcase só alcança o que
+     * é dele. Respostas em JSON no envelope data; erros com error, message e
+     * fields.
      *
      * @return the page
      */
@@ -284,6 +380,7 @@ public final class RefundsService {
         private final String createdAfter;
         private final String createdBefore;
         private final String sorting;
+        private final Map<String, String> metadata;
 
         private ListParams(Builder builder) {
             this.page = builder.page;
@@ -295,6 +392,7 @@ public final class RefundsService {
             this.createdAfter = builder.createdAfter;
             this.createdBefore = builder.createdBefore;
             this.sorting = builder.sorting;
+            this.metadata = builder.metadata;
         }
 
         /** @return a builder of the page and filters */
@@ -347,6 +445,11 @@ public final class RefundsService {
             return sorting;
         }
 
+        /** @return Filtro por metadados: metadata[chave]=valor, uma vez para cada par (até 10); a linha precisa ter todos. Um valor que parece número ou booleano também casa com o número ou o booleano guardado. (null when not filtered) */
+        public Map<String, String> getMetadata() {
+            return metadata;
+        }
+
         ListParams withPage(int page) {
             Builder builder = builder().page(page);
             builder.limit = limit;
@@ -357,6 +460,7 @@ public final class RefundsService {
             builder.createdAfter = createdAfter;
             builder.createdBefore = createdBefore;
             builder.sorting = sorting;
+            builder.metadata = metadata;
             return builder.build();
         }
 
@@ -371,6 +475,12 @@ public final class RefundsService {
             query.put("created_after", createdAfter);
             query.put("created_before", createdBefore);
             query.put("sorting", sorting);
+            if (metadata != null) {
+                // A map filter is one pair a key: metadata[key]=value, the keys sorted.
+                for (Map.Entry<String, String> pair : new TreeMap<>(metadata).entrySet()) {
+                    query.put("metadata" + "[" + pair.getKey() + "]", pair.getValue());
+                }
+            }
             return query;
         }
 
@@ -385,6 +495,7 @@ public final class RefundsService {
             private String createdAfter;
             private String createdBefore;
             private String sorting;
+            private Map<String, String> metadata;
 
             private Builder() {
             }
@@ -467,6 +578,15 @@ public final class RefundsService {
              */
             public Builder sorting(String sorting) {
                 this.sorting = sorting;
+                return this;
+            }
+
+            /**
+             * @param metadata Filtro por metadados: metadata[chave]=valor, uma vez para cada par (até 10); a linha precisa ter todos. Um valor que parece número ou booleano também casa com o número ou o booleano guardado.
+             * @return this builder
+             */
+            public Builder metadata(Map<String, String> metadata) {
+                this.metadata = metadata == null ? null : new TreeMap<>(metadata);
                 return this;
             }
 

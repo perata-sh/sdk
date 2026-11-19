@@ -17,8 +17,8 @@ final class CustomerWebhookEvent extends WebhookEvent
     /** The event types this class carries. */
     public const TYPES = ['customer.created', 'customer.deleted', 'customer.updated'];
 
-    public function __construct(string $id, string $type, string $timestamp, string $environment, public readonly Models\Customer $data)
+    public function __construct(string $id, string $type, string $timestamp, string $environment, string $showcaseId, public readonly Models\Customer $data)
     {
-        parent::__construct($id, $type, $timestamp, $environment);
+        parent::__construct($id, $type, $timestamp, $environment, $showcaseId);
     }
 }

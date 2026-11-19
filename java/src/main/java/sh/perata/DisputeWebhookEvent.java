@@ -14,13 +14,13 @@ public final class DisputeWebhookEvent extends WebhookEvent {
 
     private final WebhookDispute data;
 
-    DisputeWebhookEvent(String id, String type, String timestamp, String environment, WebhookDispute data) {
-        super(id, type, timestamp, environment);
+    DisputeWebhookEvent(String id, String type, String timestamp, String environment, String showcaseId, WebhookDispute data) {
+        super(id, type, timestamp, environment, showcaseId);
         this.data = data;
     }
 
-    static DisputeWebhookEvent fromJson(String id, String type, String timestamp, String environment, Map<String, Object> data) {
-        return new DisputeWebhookEvent(id, type, timestamp, environment, WebhookDispute.fromJson(data));
+    static DisputeWebhookEvent fromJson(String id, String type, String timestamp, String environment, String showcaseId, Map<String, Object> data) {
+        return new DisputeWebhookEvent(id, type, timestamp, environment, showcaseId, WebhookDispute.fromJson(data));
     }
 
     /** @return what the event carries */

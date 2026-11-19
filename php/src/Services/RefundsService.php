@@ -18,18 +18,24 @@ final class RefundsService
     }
 
     /**
-     * Reembolsar um pagamento.
+     * Reembolsar um pagamento ou um pedido.
      *
-     * Devolve parte ou todo o valor de um pagamento. A Idempotency-Key é
-     * obrigatória: sem ela, repetir a chamada depois de um tempo esgotado seria
-     * devolver duas vezes.
+     * Devolve dinheiro de um pagamento, que você nomeia pelo payment_id ou pelo
+     * order_id do pedido que ele pagou (os dois, só se forem do mesmo
+     * pagamento). Sem amount_cents devolve tudo o que ainda pode ser devolvido;
+     * com ele, uma parte, até esse limite. O reason, sem ele, é
+     * requested_by_customer. O metadata fica no reembolso e volta nele e nos
+     * eventos refund.*. A Idempotency-Key é obrigatória: sem ela, repetir a
+     * chamada depois de um tempo esgotado seria devolver duas vezes; repetida
+     * com a mesma chave, devolve o mesmo reembolso.
      *
      * Autenticação: chave de API da organização em Authorization: Bearer
-     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-     * requisição. Respostas em JSON no envelope data; erros com error, message
-     * e fields.
+     * (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+     * chave, nunca da requisição: a chave criada num showcase só alcança o que
+     * é dele. Respostas em JSON no envelope data; erros com error, message e
+     * fields.
      *
-     * @param array{amount_cents: int, note?: string, payment_id: string, reason: 'requested_by_customer'|'duplicate'|'fraudulent'|'product_unavailable'|'service_disruption'|'other'} $params
+     * @param array{amount_cents?: int, metadata?: array<string, mixed>, note?: string, order_id?: string, payment_id?: string, reason?: 'requested_by_customer'|'duplicate'|'fraudulent'|'product_unavailable'|'service_disruption'|'other'} $params
      */
     public function create(array $params, ?string $idempotencyKey = null, ?string $apiKey = null): Models\Refund
     {
@@ -38,17 +44,37 @@ final class RefundsService
     }
 
     /**
+     * Ler um reembolso.
+     *
+     * Devolve um reembolso pelo ID, com o pedido de onde veio (order_id), o
+     * client_reference_id desse pedido e o status: requested e pending esperam
+     * a Cielo, succeeded devolveu o dinheiro.
+     *
+     * Autenticação: chave de API da organização em Authorization: Bearer
+     * (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+     * chave, nunca da requisição: a chave criada num showcase só alcança o que
+     * é dele. Respostas em JSON no envelope data; erros com error, message e
+     * fields.
+     */
+    public function get(string $refund, ?string $apiKey = null): Models\Refund
+    {
+        $data = $this->client->request('GET', '/api/v1/refunds/' . rawurlencode($refund), apiKey: $apiKey);
+        return Models\Refund::fromArray($data);
+    }
+
+    /**
      * Listar reembolsos. One page; listIter() walks every page.
      *
      * Devolve uma página dos reembolsos. Filtre por pagamento (payment_id),
-     * status, cliente ou período.
+     * status, cliente, período ou metadados do reembolso.
      *
      * Autenticação: chave de API da organização em Authorization: Bearer
-     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-     * requisição. Respostas em JSON no envelope data; erros com error, message
-     * e fields.
+     * (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+     * chave, nunca da requisição: a chave criada num showcase só alcança o que
+     * é dele. Respostas em JSON no envelope data; erros com error, message e
+     * fields.
      *
-     * @param array{page?: int, limit?: int, payment_id?: string, status?: string, customer_id?: string, external_customer_id?: string, created_after?: string, created_before?: string, sorting?: string} $params
+     * @param array{page?: int, limit?: int, payment_id?: string, status?: string, customer_id?: string, external_customer_id?: string, created_after?: string, created_before?: string, sorting?: string, metadata?: array<string, string>} $params
      * @return Page<Models\Refund>
      */
     public function list(array $params = [], ?string $apiKey = null): Page
@@ -60,7 +86,7 @@ final class RefundsService
     /**
      * Walks every page of refunds:list, item by item.
      *
-     * @param array{page?: int, limit?: int, payment_id?: string, status?: string, customer_id?: string, external_customer_id?: string, created_after?: string, created_before?: string, sorting?: string} $params
+     * @param array{page?: int, limit?: int, payment_id?: string, status?: string, customer_id?: string, external_customer_id?: string, created_after?: string, created_before?: string, sorting?: string, metadata?: array<string, string>} $params
      * @return \Generator<int, Models\Refund>
      */
     public function listIter(array $params = [], ?string $apiKey = null): \Generator

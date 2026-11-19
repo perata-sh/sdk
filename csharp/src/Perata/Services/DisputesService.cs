@@ -23,9 +23,10 @@ public sealed class DisputesService
     /// <remarks>
     /// <para>Devolve uma disputa pelo ID.</para>
     /// <para>Autenticação: chave de API da organização em Authorization: Bearer
-    /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
-    /// da requisição. Respostas em JSON no envelope data; erros com error,
-    /// message e fields.</para>
+    /// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+    /// chave, nunca da requisição: a chave criada num showcase só alcança o que
+    /// é dele. Respostas em JSON no envelope data; erros com error, message e
+    /// fields.</para>
     /// </remarks>
     /// <param name="dispute">The dispute.</param>
     /// <param name="options">Another organization's key for this call.</param>
@@ -42,9 +43,10 @@ public sealed class DisputesService
     /// <para>Devolve uma página das disputas. Com status, só as que estão
     /// nele.</para>
     /// <para>Autenticação: chave de API da organização em Authorization: Bearer
-    /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
-    /// da requisição. Respostas em JSON no envelope data; erros com error,
-    /// message e fields.</para>
+    /// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+    /// chave, nunca da requisição: a chave criada num showcase só alcança o que
+    /// é dele. Respostas em JSON no envelope data; erros com error, message e
+    /// fields.</para>
     /// </remarks>
     /// <param name="parameters">The page, its size and the filters; the first page when null.</param>
     /// <param name="options">Another organization's key for this call.</param>

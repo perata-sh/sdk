@@ -14,13 +14,13 @@ public final class CheckoutWebhookEvent extends WebhookEvent {
 
     private final WebhookCheckout data;
 
-    CheckoutWebhookEvent(String id, String type, String timestamp, String environment, WebhookCheckout data) {
-        super(id, type, timestamp, environment);
+    CheckoutWebhookEvent(String id, String type, String timestamp, String environment, String showcaseId, WebhookCheckout data) {
+        super(id, type, timestamp, environment, showcaseId);
         this.data = data;
     }
 
-    static CheckoutWebhookEvent fromJson(String id, String type, String timestamp, String environment, Map<String, Object> data) {
-        return new CheckoutWebhookEvent(id, type, timestamp, environment, WebhookCheckout.fromJson(data));
+    static CheckoutWebhookEvent fromJson(String id, String type, String timestamp, String environment, String showcaseId, Map<String, Object> data) {
+        return new CheckoutWebhookEvent(id, type, timestamp, environment, showcaseId, WebhookCheckout.fromJson(data));
     }
 
     /** @return what the event carries */

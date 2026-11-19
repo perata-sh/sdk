@@ -39,13 +39,14 @@ public final class Subscription {
     private final Map<String, Object> metadata;
     private final String priceId;
     private final String productId;
+    private final String showcaseId;
     private final String status;
     private final String suspendedAt;
     private final String suspensionReason;
     private final String trialEnd;
     private final String trialStart;
 
-    Subscription(long amountCents, boolean cancelAtPeriodEnd, String currency, String currentPeriodEnd, String currentPeriodStart, String customerId, String id, String interval, Map<String, Object> metadata, String priceId, String productId, String status, String suspendedAt, String suspensionReason, String trialEnd, String trialStart) {
+    Subscription(long amountCents, boolean cancelAtPeriodEnd, String currency, String currentPeriodEnd, String currentPeriodStart, String customerId, String id, String interval, Map<String, Object> metadata, String priceId, String productId, String showcaseId, String status, String suspendedAt, String suspensionReason, String trialEnd, String trialStart) {
         this.amountCents = amountCents;
         this.cancelAtPeriodEnd = cancelAtPeriodEnd;
         this.currency = currency;
@@ -57,6 +58,7 @@ public final class Subscription {
         this.metadata = metadata;
         this.priceId = priceId;
         this.productId = productId;
+        this.showcaseId = showcaseId;
         this.status = status;
         this.suspendedAt = suspendedAt;
         this.suspensionReason = suspensionReason;
@@ -77,6 +79,7 @@ public final class Subscription {
                 Json.required(data, "metadata", Json.map(Json::any)),
                 Json.required(data, "price_id", Json::asString),
                 Json.required(data, "product_id", Json::asString),
+                Json.required(data, "showcase_id", Json::asString),
                 Json.required(data, "status", Json::asString),
                 Json.optional(data, "suspended_at", Json::asString),
                 Json.optional(data, "suspension_reason", Json::asString),
@@ -139,6 +142,11 @@ public final class Subscription {
         return productId;
     }
 
+    /** @return O showcase a que pertence: o da chave de API que fez a chamada. Uma chave só alcança o seu showcase. */
+    public String getShowcaseId() {
+        return showcaseId;
+    }
+
     /** @return the API's {@code status} */
     public String getStatus() {
         return status;
@@ -166,6 +174,6 @@ public final class Subscription {
 
     @Override
     public String toString() {
-        return "Subscription{" + "amountCents=" + amountCents + ", cancelAtPeriodEnd=" + cancelAtPeriodEnd + ", currency=" + currency + ", currentPeriodEnd=" + currentPeriodEnd + ", currentPeriodStart=" + currentPeriodStart + ", customerId=" + customerId + ", id=" + id + ", interval=" + interval + ", metadata=" + metadata + ", priceId=" + priceId + ", productId=" + productId + ", status=" + status + ", suspendedAt=" + suspendedAt + ", suspensionReason=" + suspensionReason + ", trialEnd=" + trialEnd + ", trialStart=" + trialStart + "}";
+        return "Subscription{" + "amountCents=" + amountCents + ", cancelAtPeriodEnd=" + cancelAtPeriodEnd + ", currency=" + currency + ", currentPeriodEnd=" + currentPeriodEnd + ", currentPeriodStart=" + currentPeriodStart + ", customerId=" + customerId + ", id=" + id + ", interval=" + interval + ", metadata=" + metadata + ", priceId=" + priceId + ", productId=" + productId + ", showcaseId=" + showcaseId + ", status=" + status + ", suspendedAt=" + suspendedAt + ", suspensionReason=" + suspensionReason + ", trialEnd=" + trialEnd + ", trialStart=" + trialStart + "}";
     }
 }

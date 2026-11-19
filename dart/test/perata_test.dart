@@ -37,6 +37,7 @@ Map<String, Object?> product(String id) => {
   'name': 'Curso',
   'description': '',
   'status': 'active',
+  'showcase_id': 'shw_1',
   'created_at': '2026-10-17T00:00:00Z',
 };
 
@@ -52,7 +53,7 @@ const orderPaid =
     'us":"succeeded","paid_at":"2026-10-22T12:00:00Z","order_status":"p'
     'aid","refunded_amount_cents":0,"refund_id":null,"refund_amount_cen'
     'ts":null,"installments":3,"installment_interest_cents":360,"items"'
-    ':[],"metadata":{},"client_reference_id":""}}';
+    ':[],"metadata":{},"client_reference_id":"","showcase_id":"shw_1"}}';
 const usageRecorded =
     '{"id":"msg_3","type":"usage_event.recorded",'
     '"timestamp":"2026-10-22T12:00:00Z","data":{"event_id":"ue_1",'
@@ -63,12 +64,12 @@ const payoutSent =
     '"data":{"payout_id":"po_1","amount_cents":5000}}';
 const orderPaidLive =
     '{"id":"msg_5","type":"order.paid","timestamp":"2026-10-22T12:00:00'
-    'Z","environment":"live","data":{"id":"ord_1","customer_id":"cus_1"'
+    'Z","environment":"live","showcase_id":"shw_1","data":{"id":"ord_1","customer_id":"cus_1"'
     ',"product_id":"prod_1","price_id":"price_1","amount_cents":12000,"'
     'currency":"BRL","status":"succeeded","paid_at":"2026-10-22T12:00:0'
     '0Z","order_status":"paid","refunded_amount_cents":0,"refund_id":nu'
     'll,"refund_amount_cents":null,"installments":3,"installment_intere'
-    'st_cents":360,"items":[],"metadata":{},"client_reference_id":""}}';
+    'st_cents":360,"items":[],"metadata":{},"client_reference_id":"","showcase_id":"shw_1"}}';
 const payoutSentTest =
     '{"id":"msg_6","type":"payout.sent","timestamp":"2026-10-22T12:00:0'
     '0Z","environment":"test","data":{"payout_id":"po_1","amount_cents"'
@@ -133,6 +134,9 @@ void main() {
         'items': <dynamic>[],
         'metadata': <String, dynamic>{},
         'client_reference_id': '',
+        'discount_id': '',
+        'showcase_id': 'shw_1',
+        'subscription_start_at': null,
       };
       var calls = 0;
       final (perata, seen) = client(
@@ -292,7 +296,7 @@ void main() {
 
   test('a free-form value decodes nested', () async {
     final state = jsonDecode(
-      '''{"id":"cus_1","name":"Ana","email":"ana@example.com","external_id":"","status":"active","created_at":"2026-10-17T00:00:00Z","active_subscriptions":[],"granted_benefits":[{"id":"gr_1","granted_at":"2026-10-17T00:00:00Z","benefit_id":"ben_1","benefit_type":"feature_flag","benefit_metadata":{"flags":{"beta":true,"limits":{"seats":5,"tiers":["a",2,null,1.5]}}},"properties":{"links":[{"url":"https://example.com","expires":null}]}}]}''',
+      '''{"id":"cus_1","showcase_id":"shw_1","name":"Ana","email":"ana@example.com","external_id":"","status":"active","created_at":"2026-10-17T00:00:00Z","active_subscriptions":[],"granted_benefits":[{"id":"gr_1","granted_at":"2026-10-17T00:00:00Z","benefit_id":"ben_1","benefit_type":"feature_flag","benefit_metadata":{"flags":{"beta":true,"limits":{"seats":5,"tiers":["a",2,null,1.5]}}},"properties":{"links":[{"url":"https://example.com","expires":null}]}}]}''',
     );
     final (perata, _) = client((_) => json(200, {'data': state}));
     final grant = (await perata.customers.getState('cus_1')).grantedBenefits[0];
@@ -623,7 +627,7 @@ void main() {
     final older = [
       (
         'msg_2',
-        'v1,XI92+fzspBAwIZD8XhEF5PwZNFrKbyAaykAydn3pPzY= v1,G2ijkhNO0sP+dkoMlsU1sOLmtbpIw9SYOwC2XTqMKdw=',
+        'v1,fvRLETNjaSQOVbSs/eVRV/C17ysRHoubzX3idpGAifI= v1,ZsKtmVTp/mXCeW5qAiaLJY1TjyXwUyS7RxRVa3RIQQo=',
         orderPaid,
       ),
       (
@@ -641,19 +645,22 @@ void main() {
         now: now,
       );
       expect(event.environment, '', reason: id);
+      expect(event.showcaseId, '', reason: id);
     }
     final order = verifyWebhook(
       newSecret,
       webhookHeaders(
         'msg_5',
         signedAt,
-        'v1,JECjRi5yt5jEJZSUqpIxpxCJ/OfRgUBipIRj1b2lsUk=',
+        'v1,9CgfDokxQ7tBEd7vvv32TI4QUdqkaHrxgUo2UUNQpOY=',
       ),
       orderPaidLive,
       now: now,
     );
     expect(order, isA<OrderWebhookEvent>());
     expect(order.environment, 'live');
+    expect(order.showcaseId, 'shw_1');
+    expect((order as OrderWebhookEvent).data.showcaseId, 'shw_1');
     final unknown = verifyWebhook(
       newSecret,
       webhookHeaders(
@@ -666,6 +673,7 @@ void main() {
     );
     expect(unknown, isA<UnknownWebhookEvent>());
     expect(unknown.environment, 'test');
+    expect(unknown.showcaseId, '');
   });
 
   test('a webhook answers its typed event', () {
@@ -676,8 +684,8 @@ void main() {
     final headers = webhookHeaders(
       'msg_2',
       signedAt,
-      'v1,XI92+fzspBAwIZD8XhEF5PwZNFrKbyAaykAydn3pPzY= '
-          'v1,G2ijkhNO0sP+dkoMlsU1sOLmtbpIw9SYOwC2XTqMKdw=',
+      'v1,fvRLETNjaSQOVbSs/eVRV/C17ysRHoubzX3idpGAifI= '
+          'v1,ZsKtmVTp/mXCeW5qAiaLJY1TjyXwUyS7RxRVa3RIQQo=',
     );
     for (final secret in [newSecret, oldSecret]) {
       final event = verifyWebhook(secret, headers, orderPaid, now: now);

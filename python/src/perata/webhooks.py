@@ -40,6 +40,8 @@ class BenefitWebhookEvent:
     """When it happened, in RFC 3339."""
     environment: str
     """The environment it happened in, ``"test"`` or ``"live"``; empty when an older server did not send it."""
+    showcase_id: str
+    """The showcase of the sale, the same ``showcase_id`` the API's objects carry; empty when an older server did not send it."""
     data: WebhookBenefit
 
 
@@ -57,6 +59,8 @@ class BenefitGrantWebhookEvent:
     """When it happened, in RFC 3339."""
     environment: str
     """The environment it happened in, ``"test"`` or ``"live"``; empty when an older server did not send it."""
+    showcase_id: str
+    """The showcase of the sale, the same ``showcase_id`` the API's objects carry; empty when an older server did not send it."""
     data: BenefitGrant
 
 
@@ -74,6 +78,8 @@ class CheckoutWebhookEvent:
     """When it happened, in RFC 3339."""
     environment: str
     """The environment it happened in, ``"test"`` or ``"live"``; empty when an older server did not send it."""
+    showcase_id: str
+    """The showcase of the sale, the same ``showcase_id`` the API's objects carry; empty when an older server did not send it."""
     data: WebhookCheckout
 
 
@@ -91,6 +97,8 @@ class CustomerWebhookEvent:
     """When it happened, in RFC 3339."""
     environment: str
     """The environment it happened in, ``"test"`` or ``"live"``; empty when an older server did not send it."""
+    showcase_id: str
+    """The showcase of the sale, the same ``showcase_id`` the API's objects carry; empty when an older server did not send it."""
     data: Customer
 
 
@@ -108,6 +116,8 @@ class DiscountWebhookEvent:
     """When it happened, in RFC 3339."""
     environment: str
     """The environment it happened in, ``"test"`` or ``"live"``; empty when an older server did not send it."""
+    showcase_id: str
+    """The showcase of the sale, the same ``showcase_id`` the API's objects carry; empty when an older server did not send it."""
     data: WebhookDiscount
 
 
@@ -125,6 +135,8 @@ class DisputeWebhookEvent:
     """When it happened, in RFC 3339."""
     environment: str
     """The environment it happened in, ``"test"`` or ``"live"``; empty when an older server did not send it."""
+    showcase_id: str
+    """The showcase of the sale, the same ``showcase_id`` the API's objects carry; empty when an older server did not send it."""
     data: WebhookDispute
 
 
@@ -142,6 +154,8 @@ class IdentifiersWebhookEvent:
     """When it happened, in RFC 3339."""
     environment: str
     """The environment it happened in, ``"test"`` or ``"live"``; empty when an older server did not send it."""
+    showcase_id: str
+    """The showcase of the sale, the same ``showcase_id`` the API's objects carry; empty when an older server did not send it."""
     data: dict[str, str]
 
 
@@ -159,6 +173,8 @@ class OrderWebhookEvent:
     """When it happened, in RFC 3339."""
     environment: str
     """The environment it happened in, ``"test"`` or ``"live"``; empty when an older server did not send it."""
+    showcase_id: str
+    """The showcase of the sale, the same ``showcase_id`` the API's objects carry; empty when an older server did not send it."""
     data: WebhookOrder
 
 
@@ -176,6 +192,8 @@ class ProductWebhookEvent:
     """When it happened, in RFC 3339."""
     environment: str
     """The environment it happened in, ``"test"`` or ``"live"``; empty when an older server did not send it."""
+    showcase_id: str
+    """The showcase of the sale, the same ``showcase_id`` the API's objects carry; empty when an older server did not send it."""
     data: Product
 
 
@@ -193,6 +211,8 @@ class RefundWebhookEvent:
     """When it happened, in RFC 3339."""
     environment: str
     """The environment it happened in, ``"test"`` or ``"live"``; empty when an older server did not send it."""
+    showcase_id: str
+    """The showcase of the sale, the same ``showcase_id`` the API's objects carry; empty when an older server did not send it."""
     data: WebhookRefund
 
 
@@ -210,6 +230,8 @@ class SaleWebhookEvent:
     """When it happened, in RFC 3339."""
     environment: str
     """The environment it happened in, ``"test"`` or ``"live"``; empty when an older server did not send it."""
+    showcase_id: str
+    """The showcase of the sale, the same ``showcase_id`` the API's objects carry; empty when an older server did not send it."""
     data: WebhookSale
 
 
@@ -227,6 +249,8 @@ class SubscriptionWebhookEvent:
     """When it happened, in RFC 3339."""
     environment: str
     """The environment it happened in, ``"test"`` or ``"live"``; empty when an older server did not send it."""
+    showcase_id: str
+    """The showcase of the sale, the same ``showcase_id`` the API's objects carry; empty when an older server did not send it."""
     data: WebhookSubscription
 
 
@@ -238,6 +262,7 @@ class UnknownWebhookEvent:
     type: str
     timestamp: str
     environment: str
+    showcase_id: str
     data: dict[str, Any]
 
 
@@ -269,12 +294,15 @@ def _event(raw: bytes) -> WebhookEvent:
     data: dict[str, Any] = sent if isinstance(sent, dict) else {}
     sent_environment = event.get("environment")
     environment = sent_environment if isinstance(sent_environment, str) else ""
+    sent_showcase = event.get("showcase_id")
+    showcase_id = sent_showcase if isinstance(sent_showcase, str) else ""
     if kind in get_args(BenefitWebhookEventType):
         return BenefitWebhookEvent(
             id=event["id"],
             type=cast(BenefitWebhookEventType, kind),
             timestamp=event["timestamp"],
             environment=environment,
+            showcase_id=showcase_id,
             data=WebhookBenefit.from_dict(data),
         )
     if kind in get_args(BenefitGrantWebhookEventType):
@@ -283,6 +311,7 @@ def _event(raw: bytes) -> WebhookEvent:
             type=cast(BenefitGrantWebhookEventType, kind),
             timestamp=event["timestamp"],
             environment=environment,
+            showcase_id=showcase_id,
             data=BenefitGrant.from_dict(data),
         )
     if kind in get_args(CheckoutWebhookEventType):
@@ -291,6 +320,7 @@ def _event(raw: bytes) -> WebhookEvent:
             type=cast(CheckoutWebhookEventType, kind),
             timestamp=event["timestamp"],
             environment=environment,
+            showcase_id=showcase_id,
             data=WebhookCheckout.from_dict(data),
         )
     if kind in get_args(CustomerWebhookEventType):
@@ -299,6 +329,7 @@ def _event(raw: bytes) -> WebhookEvent:
             type=cast(CustomerWebhookEventType, kind),
             timestamp=event["timestamp"],
             environment=environment,
+            showcase_id=showcase_id,
             data=Customer.from_dict(data),
         )
     if kind in get_args(DiscountWebhookEventType):
@@ -307,6 +338,7 @@ def _event(raw: bytes) -> WebhookEvent:
             type=cast(DiscountWebhookEventType, kind),
             timestamp=event["timestamp"],
             environment=environment,
+            showcase_id=showcase_id,
             data=WebhookDiscount.from_dict(data),
         )
     if kind in get_args(DisputeWebhookEventType):
@@ -315,6 +347,7 @@ def _event(raw: bytes) -> WebhookEvent:
             type=cast(DisputeWebhookEventType, kind),
             timestamp=event["timestamp"],
             environment=environment,
+            showcase_id=showcase_id,
             data=WebhookDispute.from_dict(data),
         )
     if kind in get_args(IdentifiersWebhookEventType):
@@ -323,6 +356,7 @@ def _event(raw: bytes) -> WebhookEvent:
             type=cast(IdentifiersWebhookEventType, kind),
             timestamp=event["timestamp"],
             environment=environment,
+            showcase_id=showcase_id,
             data=data,
         )
     if kind in get_args(OrderWebhookEventType):
@@ -331,6 +365,7 @@ def _event(raw: bytes) -> WebhookEvent:
             type=cast(OrderWebhookEventType, kind),
             timestamp=event["timestamp"],
             environment=environment,
+            showcase_id=showcase_id,
             data=WebhookOrder.from_dict(data),
         )
     if kind in get_args(ProductWebhookEventType):
@@ -339,6 +374,7 @@ def _event(raw: bytes) -> WebhookEvent:
             type=cast(ProductWebhookEventType, kind),
             timestamp=event["timestamp"],
             environment=environment,
+            showcase_id=showcase_id,
             data=Product.from_dict(data),
         )
     if kind in get_args(RefundWebhookEventType):
@@ -347,6 +383,7 @@ def _event(raw: bytes) -> WebhookEvent:
             type=cast(RefundWebhookEventType, kind),
             timestamp=event["timestamp"],
             environment=environment,
+            showcase_id=showcase_id,
             data=WebhookRefund.from_dict(data),
         )
     if kind in get_args(SaleWebhookEventType):
@@ -355,6 +392,7 @@ def _event(raw: bytes) -> WebhookEvent:
             type=cast(SaleWebhookEventType, kind),
             timestamp=event["timestamp"],
             environment=environment,
+            showcase_id=showcase_id,
             data=WebhookSale.from_dict(data),
         )
     if kind in get_args(SubscriptionWebhookEventType):
@@ -363,9 +401,10 @@ def _event(raw: bytes) -> WebhookEvent:
             type=cast(SubscriptionWebhookEventType, kind),
             timestamp=event["timestamp"],
             environment=environment,
+            showcase_id=showcase_id,
             data=WebhookSubscription.from_dict(data),
         )
-    return UnknownWebhookEvent(id=event["id"], type=kind, timestamp=event["timestamp"], environment=environment, data=data)
+    return UnknownWebhookEvent(id=event["id"], type=kind, timestamp=event["timestamp"], environment=environment, showcase_id=showcase_id, data=data)
 
 
 def _header(headers: Mapping[str, str], name: str) -> str:

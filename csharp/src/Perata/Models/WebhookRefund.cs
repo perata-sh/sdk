@@ -35,9 +35,9 @@ public sealed record WebhookRefund
     [JsonPropertyName("checkout_id")]
     public string? CheckoutId { get; init; }
 
-    /// <summary>O id do pedido no sistema do lojista; vazio sem ele. Null when the API sends none.</summary>
+    /// <summary>O id do pedido no sistema do lojista; vazio sem ele.</summary>
     [JsonPropertyName("client_reference_id")]
-    public string? ClientReferenceId { get; init; }
+    public required string ClientReferenceId { get; init; }
 
     /// <summary>The API's <c>id</c>.</summary>
     [JsonPropertyName("id")]
@@ -47,9 +47,25 @@ public sealed record WebhookRefund
     [JsonPropertyName("metadata")]
     public required IReadOnlyDictionary<string, JsonElement> Metadata { get; init; }
 
+    /// <summary>O mesmo pedido, com o nome que a API de reembolsos dá a ele; igual a checkout_id. Null when the API sends none.</summary>
+    [JsonPropertyName("order_id")]
+    public string? OrderId { get; init; }
+
     /// <summary>The API's <c>payment_id</c>.</summary>
     [JsonPropertyName("payment_id")]
     public required string PaymentId { get; init; }
+
+    /// <summary>Por que o dinheiro voltou. Null when the API sends none.</summary>
+    [JsonPropertyName("reason")]
+    public string? Reason { get; init; }
+
+    /// <summary>Os pares que o servidor do lojista enviou no campo metadata ao pedir este reembolso; vazio sem eles.</summary>
+    [JsonPropertyName("refund_metadata")]
+    public required IReadOnlyDictionary<string, JsonElement> RefundMetadata { get; init; }
+
+    /// <summary>O showcase da venda.</summary>
+    [JsonPropertyName("showcase_id")]
+    public required string ShowcaseId { get; init; }
 
     /// <summary>The API's <c>status</c>.</summary>
     [JsonPropertyName("status")]

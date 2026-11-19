@@ -19,9 +19,10 @@ public final class CustomerState {
     private final List<CustomerStateBenefitGrant> grantedBenefits;
     private final String id;
     private final String name;
+    private final String showcaseId;
     private final String status;
 
-    CustomerState(List<Subscription> activeSubscriptions, String createdAt, String email, String externalId, List<CustomerStateBenefitGrant> grantedBenefits, String id, String name, String status) {
+    CustomerState(List<Subscription> activeSubscriptions, String createdAt, String email, String externalId, List<CustomerStateBenefitGrant> grantedBenefits, String id, String name, String showcaseId, String status) {
         this.activeSubscriptions = activeSubscriptions;
         this.createdAt = createdAt;
         this.email = email;
@@ -29,6 +30,7 @@ public final class CustomerState {
         this.grantedBenefits = grantedBenefits;
         this.id = id;
         this.name = name;
+        this.showcaseId = showcaseId;
         this.status = status;
     }
 
@@ -41,6 +43,7 @@ public final class CustomerState {
                 Json.required(data, "granted_benefits", Json.list(Json.model(CustomerStateBenefitGrant::fromJson))),
                 Json.required(data, "id", Json::asString),
                 Json.required(data, "name", Json::asString),
+                Json.required(data, "showcase_id", Json::asString),
                 Json.required(data, "status", Json::asString));
     }
 
@@ -79,6 +82,11 @@ public final class CustomerState {
         return name;
     }
 
+    /** @return O showcase a que pertence: o da chave de API que fez a chamada. Uma chave só alcança o seu showcase. */
+    public String getShowcaseId() {
+        return showcaseId;
+    }
+
     /** @return the API's {@code status} */
     public String getStatus() {
         return status;
@@ -86,6 +94,6 @@ public final class CustomerState {
 
     @Override
     public String toString() {
-        return "CustomerState{" + "activeSubscriptions=" + activeSubscriptions + ", createdAt=" + createdAt + ", email=" + email + ", externalId=" + externalId + ", grantedBenefits=" + grantedBenefits + ", id=" + id + ", name=" + name + ", status=" + status + "}";
+        return "CustomerState{" + "activeSubscriptions=" + activeSubscriptions + ", createdAt=" + createdAt + ", email=" + email + ", externalId=" + externalId + ", grantedBenefits=" + grantedBenefits + ", id=" + id + ", name=" + name + ", showcaseId=" + showcaseId + ", status=" + status + "}";
     }
 }

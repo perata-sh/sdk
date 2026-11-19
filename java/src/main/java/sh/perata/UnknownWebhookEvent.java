@@ -8,8 +8,8 @@ import java.util.Map;
 public final class UnknownWebhookEvent extends WebhookEvent {
     private final Map<String, Object> data;
 
-    UnknownWebhookEvent(String id, String type, String timestamp, String environment, Map<String, Object> data) {
-        super(id, type, timestamp, environment);
+    UnknownWebhookEvent(String id, String type, String timestamp, String environment, String showcaseId, Map<String, Object> data) {
+        super(id, type, timestamp, environment, showcaseId);
         this.data = Collections.unmodifiableMap(new LinkedHashMap<>(data));
     }
 

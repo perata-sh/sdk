@@ -20,12 +20,14 @@ final class OrdersService
     /**
      * Ler um pedido.
      *
-     * Devolve um pedido: um checkout pago.
+     * Devolve um pedido: um checkout pago. Se ele pagou um ciclo de assinatura,
+     * traz subscription_id, cycle_sequence, period_start e period_end.
      *
      * Autenticação: chave de API da organização em Authorization: Bearer
-     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-     * requisição. Respostas em JSON no envelope data; erros com error, message
-     * e fields.
+     * (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+     * chave, nunca da requisição: a chave criada num showcase só alcança o que
+     * é dele. Respostas em JSON no envelope data; erros com error, message e
+     * fields.
      */
     public function get(string $order, ?string $apiKey = null): Models\Order
     {
@@ -40,9 +42,10 @@ final class OrdersService
      * Sem fatura, a resposta é 404.
      *
      * Autenticação: chave de API da organização em Authorization: Bearer
-     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-     * requisição. Respostas em JSON no envelope data; erros com error, message
-     * e fields.
+     * (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+     * chave, nunca da requisição: a chave criada num showcase só alcança o que
+     * é dele. Respostas em JSON no envelope data; erros com error, message e
+     * fields.
      */
     public function getInvoice(string $order, ?string $apiKey = null): Models\OrderInvoice
     {
@@ -56,9 +59,10 @@ final class OrdersService
      * Devolve o recibo de um pedido: o que foi pago, quando e como.
      *
      * Autenticação: chave de API da organização em Authorization: Bearer
-     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-     * requisição. Respostas em JSON no envelope data; erros com error, message
-     * e fields.
+     * (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+     * chave, nunca da requisição: a chave criada num showcase só alcança o que
+     * é dele. Respostas em JSON no envelope data; erros com error, message e
+     * fields.
      */
     public function getReceipt(string $order, ?string $apiKey = null): Models\OrderReceipt
     {
@@ -70,14 +74,16 @@ final class OrdersService
      * Listar pedidos. One page; listIter() walks every page.
      *
      * Devolve uma página dos pedidos, que são os checkouts pagos. Filtre por
-     * client_reference_id, cliente, período ou metadados.
+     * client_reference_id, cliente, assinatura (subscription_id), período ou
+     * metadados.
      *
      * Autenticação: chave de API da organização em Authorization: Bearer
-     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-     * requisição. Respostas em JSON no envelope data; erros com error, message
-     * e fields.
+     * (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+     * chave, nunca da requisição: a chave criada num showcase só alcança o que
+     * é dele. Respostas em JSON no envelope data; erros com error, message e
+     * fields.
      *
-     * @param array{page?: int, limit?: int, client_reference_id?: string, status?: string, customer_id?: string, external_customer_id?: string, created_after?: string, created_before?: string, sorting?: string, metadata?: array<string, string>} $params
+     * @param array{page?: int, limit?: int, client_reference_id?: string, status?: string, customer_id?: string, external_customer_id?: string, subscription_id?: string, created_after?: string, created_before?: string, sorting?: string, metadata?: array<string, string>} $params
      * @return Page<Models\Order>
      */
     public function list(array $params = [], ?string $apiKey = null): Page
@@ -89,7 +95,7 @@ final class OrdersService
     /**
      * Walks every page of orders:list, item by item.
      *
-     * @param array{page?: int, limit?: int, client_reference_id?: string, status?: string, customer_id?: string, external_customer_id?: string, created_after?: string, created_before?: string, sorting?: string, metadata?: array<string, string>} $params
+     * @param array{page?: int, limit?: int, client_reference_id?: string, status?: string, customer_id?: string, external_customer_id?: string, subscription_id?: string, created_after?: string, created_before?: string, sorting?: string, metadata?: array<string, string>} $params
      * @return \Generator<int, Models\Order>
      */
     public function listIter(array $params = [], ?string $apiKey = null): \Generator

@@ -11,9 +11,10 @@ public struct BenefitsService: Sendable {
     /// configuram no painel.
     ///
     /// Autenticação: chave de API da organização em Authorization: Bearer
-    /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
-    /// da requisição. Respostas em JSON no envelope data; erros com error,
-    /// message e fields.
+    /// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+    /// chave, nunca da requisição: a chave criada num showcase só alcança o que
+    /// é dele. Respostas em JSON no envelope data; erros com error, message e
+    /// fields.
     public func create(_ params: BenefitsCreateParams, idempotencyKey: String? = nil, apiKey: String? = nil) async throws -> Benefit {
         try await requester.request(
             "POST", "/api/v1/benefits", body: params, idempotencyKey: idempotencyKey, apiKey: apiKey
@@ -26,9 +27,10 @@ public struct BenefitsService: Sendable {
     /// tem.
     ///
     /// Autenticação: chave de API da organização em Authorization: Bearer
-    /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
-    /// da requisição. Respostas em JSON no envelope data; erros com error,
-    /// message e fields.
+    /// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+    /// chave, nunca da requisição: a chave criada num showcase só alcança o que
+    /// é dele. Respostas em JSON no envelope data; erros com error, message e
+    /// fields.
     public func delete(_ benefit: String, idempotencyKey: String? = nil, apiKey: String? = nil) async throws {
         try await requester.requestNoContent(
             "DELETE", "/api/v1/benefits/\(escape(benefit))", idempotencyKey: idempotencyKey, apiKey: apiKey
@@ -40,9 +42,10 @@ public struct BenefitsService: Sendable {
     /// Devolve um benefício pelo ID.
     ///
     /// Autenticação: chave de API da organização em Authorization: Bearer
-    /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
-    /// da requisição. Respostas em JSON no envelope data; erros com error,
-    /// message e fields.
+    /// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+    /// chave, nunca da requisição: a chave criada num showcase só alcança o que
+    /// é dele. Respostas em JSON no envelope data; erros com error, message e
+    /// fields.
     public func get(_ benefit: String, apiKey: String? = nil) async throws -> Benefit {
         try await requester.request(
             "GET", "/api/v1/benefits/\(escape(benefit))", apiKey: apiKey
@@ -55,9 +58,10 @@ public struct BenefitsService: Sendable {
     /// tipo.
     ///
     /// Autenticação: chave de API da organização em Authorization: Bearer
-    /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
-    /// da requisição. Respostas em JSON no envelope data; erros com error,
-    /// message e fields.
+    /// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+    /// chave, nunca da requisição: a chave criada num showcase só alcança o que
+    /// é dele. Respostas em JSON no envelope data; erros com error, message e
+    /// fields.
     ///
     /// - Parameters:
     ///   - page: the page, from 1.
@@ -85,9 +89,10 @@ public struct BenefitsService: Sendable {
     /// as de um cliente; com is_granted, só as vigentes ou só as revogadas.
     ///
     /// Autenticação: chave de API da organização em Authorization: Bearer
-    /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
-    /// da requisição. Respostas em JSON no envelope data; erros com error,
-    /// message e fields.
+    /// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+    /// chave, nunca da requisição: a chave criada num showcase só alcança o que
+    /// é dele. Respostas em JSON no envelope data; erros com error, message e
+    /// fields.
     ///
     /// - Parameters:
     ///   - page: the page, from 1.
@@ -116,9 +121,10 @@ public struct BenefitsService: Sendable {
     /// concessão já entregou fica como foi entregue.
     ///
     /// Autenticação: chave de API da organização em Authorization: Bearer
-    /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
-    /// da requisição. Respostas em JSON no envelope data; erros com error,
-    /// message e fields.
+    /// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+    /// chave, nunca da requisição: a chave criada num showcase só alcança o que
+    /// é dele. Respostas em JSON no envelope data; erros com error, message e
+    /// fields.
     public func update(_ benefit: String, _ params: BenefitsUpdateParams, idempotencyKey: String? = nil, apiKey: String? = nil) async throws -> Benefit {
         try await requester.request(
             "PATCH", "/api/v1/benefits/\(escape(benefit))", body: params, idempotencyKey: idempotencyKey, apiKey: apiKey
@@ -137,9 +143,10 @@ public struct CheckoutLinksService: Sendable {
     /// sessão de compra nova.
     ///
     /// Autenticação: chave de API da organização em Authorization: Bearer
-    /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
-    /// da requisição. Respostas em JSON no envelope data; erros com error,
-    /// message e fields.
+    /// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+    /// chave, nunca da requisição: a chave criada num showcase só alcança o que
+    /// é dele. Respostas em JSON no envelope data; erros com error, message e
+    /// fields.
     public func create(_ params: CheckoutLinksCreateParams, idempotencyKey: String? = nil, apiKey: String? = nil) async throws -> CheckoutLink {
         try await requester.request(
             "POST", "/api/v1/checkout-links", body: params, idempotencyKey: idempotencyKey, apiKey: apiKey
@@ -152,9 +159,10 @@ public struct CheckoutLinksService: Sendable {
     /// abriu continuam.
     ///
     /// Autenticação: chave de API da organização em Authorization: Bearer
-    /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
-    /// da requisição. Respostas em JSON no envelope data; erros com error,
-    /// message e fields.
+    /// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+    /// chave, nunca da requisição: a chave criada num showcase só alcança o que
+    /// é dele. Respostas em JSON no envelope data; erros com error, message e
+    /// fields.
     public func delete(_ checkoutLink: String, idempotencyKey: String? = nil, apiKey: String? = nil) async throws {
         try await requester.requestNoContent(
             "DELETE", "/api/v1/checkout-links/\(escape(checkoutLink))", idempotencyKey: idempotencyKey, apiKey: apiKey
@@ -166,9 +174,10 @@ public struct CheckoutLinksService: Sendable {
     /// Devolve um link de checkout pelo ID.
     ///
     /// Autenticação: chave de API da organização em Authorization: Bearer
-    /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
-    /// da requisição. Respostas em JSON no envelope data; erros com error,
-    /// message e fields.
+    /// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+    /// chave, nunca da requisição: a chave criada num showcase só alcança o que
+    /// é dele. Respostas em JSON no envelope data; erros com error, message e
+    /// fields.
     public func get(_ checkoutLink: String, apiKey: String? = nil) async throws -> CheckoutLink {
         try await requester.request(
             "GET", "/api/v1/checkout-links/\(escape(checkoutLink))", apiKey: apiKey
@@ -180,9 +189,10 @@ public struct CheckoutLinksService: Sendable {
     /// Devolve uma página dos links de checkout da organização.
     ///
     /// Autenticação: chave de API da organização em Authorization: Bearer
-    /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
-    /// da requisição. Respostas em JSON no envelope data; erros com error,
-    /// message e fields.
+    /// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+    /// chave, nunca da requisição: a chave criada num showcase só alcança o que
+    /// é dele. Respostas em JSON no envelope data; erros com error, message e
+    /// fields.
     ///
     /// - Parameters:
     ///   - page: the page, from 1.
@@ -210,9 +220,10 @@ public struct CheckoutLinksService: Sendable {
     /// link. A quantidade e o desconto ficam como foram publicados.
     ///
     /// Autenticação: chave de API da organização em Authorization: Bearer
-    /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
-    /// da requisição. Respostas em JSON no envelope data; erros com error,
-    /// message e fields.
+    /// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+    /// chave, nunca da requisição: a chave criada num showcase só alcança o que
+    /// é dele. Respostas em JSON no envelope data; erros com error, message e
+    /// fields.
     public func update(_ checkoutLink: String, _ params: CheckoutLinksUpdateParams, idempotencyKey: String? = nil, apiKey: String? = nil) async throws -> CheckoutLink {
         try await requester.request(
             "PATCH", "/api/v1/checkout-links/\(escape(checkoutLink))", body: params, idempotencyKey: idempotencyKey, apiKey: apiKey
@@ -231,12 +242,17 @@ public struct CheckoutsService: Sendable {
     /// comprador usa para pagar sem chave de API; o client_secret vem só nesta
     /// resposta. Para cobrar um valor que o seu servidor define, envie
     /// amount_cents e items (preço de valor livre). Envie client_reference_id e
-    /// metadata para achar o pedido depois.
+    /// metadata para achar o pedido depois. Em uma assinatura, envie as linhas
+    /// do pedido em items (só para exibição, com a soma igual ao valor do
+    /// preço) e o desconto em discount_id. Para uma assinatura que só começa a
+    /// cobrar numa data, envie subscription_start_at com o preço recorrente: o
+    /// cartão é guardado sem cobrança e a primeira cobrança acontece nesse dia.
     ///
     /// Autenticação: chave de API da organização em Authorization: Bearer
-    /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
-    /// da requisição. Respostas em JSON no envelope data; erros com error,
-    /// message e fields.
+    /// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+    /// chave, nunca da requisição: a chave criada num showcase só alcança o que
+    /// é dele. Respostas em JSON no envelope data; erros com error, message e
+    /// fields.
     public func create(_ params: CheckoutsCreateParams, idempotencyKey: String? = nil, apiKey: String? = nil) async throws -> CheckoutCreated {
         try await requester.request(
             "POST", "/api/v1/checkouts", body: params, idempotencyKey: idempotencyKey, apiKey: apiKey
@@ -251,9 +267,10 @@ public struct CheckoutsService: Sendable {
     /// seguro. Se o checkout já foi pago ou emitiu um boleto, a resposta é 409.
     ///
     /// Autenticação: chave de API da organização em Authorization: Bearer
-    /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
-    /// da requisição. Respostas em JSON no envelope data; erros com error,
-    /// message e fields.
+    /// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+    /// chave, nunca da requisição: a chave criada num showcase só alcança o que
+    /// é dele. Respostas em JSON no envelope data; erros com error, message e
+    /// fields.
     public func expire(_ checkout: String, idempotencyKey: String? = nil, apiKey: String? = nil) async throws -> CheckoutExpired {
         try await requester.request(
             "POST", "/api/v1/checkouts/\(escape(checkout))/expire", idempotencyKey: idempotencyKey, apiKey: apiKey
@@ -265,9 +282,10 @@ public struct CheckoutsService: Sendable {
     /// Devolve um checkout: o endereço, o estado e as páginas de retorno.
     ///
     /// Autenticação: chave de API da organização em Authorization: Bearer
-    /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
-    /// da requisição. Respostas em JSON no envelope data; erros com error,
-    /// message e fields.
+    /// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+    /// chave, nunca da requisição: a chave criada num showcase só alcança o que
+    /// é dele. Respostas em JSON no envelope data; erros com error, message e
+    /// fields.
     public func get(_ checkout: String, apiKey: String? = nil) async throws -> Checkout {
         try await requester.request(
             "GET", "/api/v1/checkouts/\(escape(checkout))", apiKey: apiKey
@@ -280,9 +298,10 @@ public struct CheckoutsService: Sendable {
     /// status, período ou metadados.
     ///
     /// Autenticação: chave de API da organização em Authorization: Bearer
-    /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
-    /// da requisição. Respostas em JSON no envelope data; erros com error,
-    /// message e fields.
+    /// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+    /// chave, nunca da requisição: a chave criada num showcase só alcança o que
+    /// é dele. Respostas em JSON no envelope data; erros com error, message e
+    /// fields.
     ///
     /// - Parameters:
     ///   - page: the page, from 1.
@@ -310,9 +329,10 @@ public struct CheckoutsService: Sendable {
     /// Muda o rótulo e as páginas de retorno de um checkout ativo.
     ///
     /// Autenticação: chave de API da organização em Authorization: Bearer
-    /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
-    /// da requisição. Respostas em JSON no envelope data; erros com error,
-    /// message e fields.
+    /// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+    /// chave, nunca da requisição: a chave criada num showcase só alcança o que
+    /// é dele. Respostas em JSON no envelope data; erros com error, message e
+    /// fields.
     public func update(_ checkout: String, _ params: CheckoutsUpdateParams, idempotencyKey: String? = nil, apiKey: String? = nil) async throws -> Checkout {
         try await requester.request(
             "PATCH", "/api/v1/checkouts/\(escape(checkout))", body: params, idempotencyKey: idempotencyKey, apiKey: apiKey
@@ -331,9 +351,10 @@ public struct CustomerSessionsService: Sendable {
     /// do seu aplicativo, o portal oferece a volta.
     ///
     /// Autenticação: chave de API da organização em Authorization: Bearer
-    /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
-    /// da requisição. Respostas em JSON no envelope data; erros com error,
-    /// message e fields.
+    /// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+    /// chave, nunca da requisição: a chave criada num showcase só alcança o que
+    /// é dele. Respostas em JSON no envelope data; erros com error, message e
+    /// fields.
     public func create(_ params: CustomerSessionsCreateParams, idempotencyKey: String? = nil, apiKey: String? = nil) async throws -> CustomerSession {
         try await requester.request(
             "POST", "/api/v1/customer-sessions", body: params, idempotencyKey: idempotencyKey, apiKey: apiKey
@@ -355,9 +376,10 @@ public struct CustomersService: Sendable {
     /// 422.
     ///
     /// Autenticação: chave de API da organização em Authorization: Bearer
-    /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
-    /// da requisição. Respostas em JSON no envelope data; erros com error,
-    /// message e fields.
+    /// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+    /// chave, nunca da requisição: a chave criada num showcase só alcança o que
+    /// é dele. Respostas em JSON no envelope data; erros com error, message e
+    /// fields.
     public func create(_ params: CustomersCreateParams, idempotencyKey: String? = nil, apiKey: String? = nil) async throws -> Customer {
         try await requester.request(
             "POST", "/api/v1/customers", body: params, idempotencyKey: idempotencyKey, apiKey: apiKey
@@ -371,9 +393,10 @@ public struct CustomersService: Sendable {
     /// continuam nos registros.
     ///
     /// Autenticação: chave de API da organização em Authorization: Bearer
-    /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
-    /// da requisição. Respostas em JSON no envelope data; erros com error,
-    /// message e fields.
+    /// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+    /// chave, nunca da requisição: a chave criada num showcase só alcança o que
+    /// é dele. Respostas em JSON no envelope data; erros com error, message e
+    /// fields.
     public func delete(_ customer: String, idempotencyKey: String? = nil, apiKey: String? = nil) async throws {
         try await requester.requestNoContent(
             "DELETE", "/api/v1/customers/\(escape(customer))", idempotencyKey: idempotencyKey, apiKey: apiKey
@@ -385,9 +408,10 @@ public struct CustomersService: Sendable {
     /// Devolve um cliente pelo ID.
     ///
     /// Autenticação: chave de API da organização em Authorization: Bearer
-    /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
-    /// da requisição. Respostas em JSON no envelope data; erros com error,
-    /// message e fields.
+    /// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+    /// chave, nunca da requisição: a chave criada num showcase só alcança o que
+    /// é dele. Respostas em JSON no envelope data; erros com error, message e
+    /// fields.
     public func get(_ customer: String, apiKey: String? = nil) async throws -> Customer {
         try await requester.request(
             "GET", "/api/v1/customers/\(escape(customer))", apiKey: apiKey
@@ -400,9 +424,10 @@ public struct CustomersService: Sendable {
     /// (external_id).
     ///
     /// Autenticação: chave de API da organização em Authorization: Bearer
-    /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
-    /// da requisição. Respostas em JSON no envelope data; erros com error,
-    /// message e fields.
+    /// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+    /// chave, nunca da requisição: a chave criada num showcase só alcança o que
+    /// é dele. Respostas em JSON no envelope data; erros com error, message e
+    /// fields.
     public func getExternal(_ externalID: String, apiKey: String? = nil) async throws -> Customer {
         try await requester.request(
             "GET", "/api/v1/external-customers/\(escape(externalID))", apiKey: apiKey
@@ -416,9 +441,10 @@ public struct CustomersService: Sendable {
     /// faz para decidir o que o cliente pode usar.
     ///
     /// Autenticação: chave de API da organização em Authorization: Bearer
-    /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
-    /// da requisição. Respostas em JSON no envelope data; erros com error,
-    /// message e fields.
+    /// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+    /// chave, nunca da requisição: a chave criada num showcase só alcança o que
+    /// é dele. Respostas em JSON no envelope data; erros com error, message e
+    /// fields.
     public func getState(_ customer: String, apiKey: String? = nil) async throws -> CustomerState {
         try await requester.request(
             "GET", "/api/v1/customers/\(escape(customer))/state", apiKey: apiKey
@@ -431,9 +457,10 @@ public struct CustomersService: Sendable {
     /// e-mail, sem diferença entre maiúsculas e minúsculas.
     ///
     /// Autenticação: chave de API da organização em Authorization: Bearer
-    /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
-    /// da requisição. Respostas em JSON no envelope data; erros com error,
-    /// message e fields.
+    /// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+    /// chave, nunca da requisição: a chave criada num showcase só alcança o que
+    /// é dele. Respostas em JSON no envelope data; erros com error, message e
+    /// fields.
     ///
     /// - Parameters:
     ///   - page: the page, from 1.
@@ -461,9 +488,10 @@ public struct CustomersService: Sendable {
     /// endereço de cobrança. O ID externo só pode ser definido uma vez.
     ///
     /// Autenticação: chave de API da organização em Authorization: Bearer
-    /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
-    /// da requisição. Respostas em JSON no envelope data; erros com error,
-    /// message e fields.
+    /// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+    /// chave, nunca da requisição: a chave criada num showcase só alcança o que
+    /// é dele. Respostas em JSON no envelope data; erros com error, message e
+    /// fields.
     public func update(_ customer: String, _ params: CustomersUpdateParams, idempotencyKey: String? = nil, apiKey: String? = nil) async throws -> Customer {
         try await requester.request(
             "PATCH", "/api/v1/customers/\(escape(customer))", body: params, idempotencyKey: idempotencyKey, apiKey: apiKey
@@ -476,9 +504,10 @@ public struct CustomersService: Sendable {
     /// (external_id). Os campos são os de Atualizar um cliente.
     ///
     /// Autenticação: chave de API da organização em Authorization: Bearer
-    /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
-    /// da requisição. Respostas em JSON no envelope data; erros com error,
-    /// message e fields.
+    /// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+    /// chave, nunca da requisição: a chave criada num showcase só alcança o que
+    /// é dele. Respostas em JSON no envelope data; erros com error, message e
+    /// fields.
     public func updateExternal(_ externalID: String, _ params: CustomersUpdateExternalParams, idempotencyKey: String? = nil, apiKey: String? = nil) async throws -> Customer {
         try await requester.request(
             "PATCH", "/api/v1/external-customers/\(escape(externalID))", body: params, idempotencyKey: idempotencyKey, apiKey: apiKey
@@ -497,9 +526,10 @@ public struct DiscountsService: Sendable {
     /// só vale num link de checkout ou pela API.
     ///
     /// Autenticação: chave de API da organização em Authorization: Bearer
-    /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
-    /// da requisição. Respostas em JSON no envelope data; erros com error,
-    /// message e fields.
+    /// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+    /// chave, nunca da requisição: a chave criada num showcase só alcança o que
+    /// é dele. Respostas em JSON no envelope data; erros com error, message e
+    /// fields.
     public func create(_ params: DiscountsCreateParams, idempotencyKey: String? = nil, apiKey: String? = nil) async throws -> Discount {
         try await requester.request(
             "POST", "/api/v1/discounts", body: params, idempotencyKey: idempotencyKey, apiKey: apiKey
@@ -512,9 +542,10 @@ public struct DiscountsService: Sendable {
     /// livre. O que ele já descontou continua nos registros.
     ///
     /// Autenticação: chave de API da organização em Authorization: Bearer
-    /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
-    /// da requisição. Respostas em JSON no envelope data; erros com error,
-    /// message e fields.
+    /// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+    /// chave, nunca da requisição: a chave criada num showcase só alcança o que
+    /// é dele. Respostas em JSON no envelope data; erros com error, message e
+    /// fields.
     public func delete(_ discount: String, idempotencyKey: String? = nil, apiKey: String? = nil) async throws {
         try await requester.requestNoContent(
             "DELETE", "/api/v1/discounts/\(escape(discount))", idempotencyKey: idempotencyKey, apiKey: apiKey
@@ -526,9 +557,10 @@ public struct DiscountsService: Sendable {
     /// Devolve um desconto pelo ID.
     ///
     /// Autenticação: chave de API da organização em Authorization: Bearer
-    /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
-    /// da requisição. Respostas em JSON no envelope data; erros com error,
-    /// message e fields.
+    /// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+    /// chave, nunca da requisição: a chave criada num showcase só alcança o que
+    /// é dele. Respostas em JSON no envelope data; erros com error, message e
+    /// fields.
     public func get(_ discount: String, apiKey: String? = nil) async throws -> Discount {
         try await requester.request(
             "GET", "/api/v1/discounts/\(escape(discount))", apiKey: apiKey
@@ -540,9 +572,10 @@ public struct DiscountsService: Sendable {
     /// Devolve uma página dos descontos da organização.
     ///
     /// Autenticação: chave de API da organização em Authorization: Bearer
-    /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
-    /// da requisição. Respostas em JSON no envelope data; erros com error,
-    /// message e fields.
+    /// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+    /// chave, nunca da requisição: a chave criada num showcase só alcança o que
+    /// é dele. Respostas em JSON no envelope data; erros com error, message e
+    /// fields.
     ///
     /// - Parameters:
     ///   - page: the page, from 1.
@@ -570,9 +603,10 @@ public struct DiscountsService: Sendable {
     /// o valor e os meses também não.
     ///
     /// Autenticação: chave de API da organização em Authorization: Bearer
-    /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
-    /// da requisição. Respostas em JSON no envelope data; erros com error,
-    /// message e fields.
+    /// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+    /// chave, nunca da requisição: a chave criada num showcase só alcança o que
+    /// é dele. Respostas em JSON no envelope data; erros com error, message e
+    /// fields.
     public func update(_ discount: String, _ params: DiscountsUpdateParams, idempotencyKey: String? = nil, apiKey: String? = nil) async throws -> Discount {
         try await requester.request(
             "PATCH", "/api/v1/discounts/\(escape(discount))", body: params, idempotencyKey: idempotencyKey, apiKey: apiKey
@@ -589,9 +623,10 @@ public struct DisputesService: Sendable {
     /// Devolve uma disputa pelo ID.
     ///
     /// Autenticação: chave de API da organização em Authorization: Bearer
-    /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
-    /// da requisição. Respostas em JSON no envelope data; erros com error,
-    /// message e fields.
+    /// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+    /// chave, nunca da requisição: a chave criada num showcase só alcança o que
+    /// é dele. Respostas em JSON no envelope data; erros com error, message e
+    /// fields.
     public func get(_ dispute: String, apiKey: String? = nil) async throws -> Dispute {
         try await requester.request(
             "GET", "/api/v1/disputes/\(escape(dispute))", apiKey: apiKey
@@ -603,9 +638,10 @@ public struct DisputesService: Sendable {
     /// Devolve uma página das disputas. Com status, só as que estão nele.
     ///
     /// Autenticação: chave de API da organização em Authorization: Bearer
-    /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
-    /// da requisição. Respostas em JSON no envelope data; erros com error,
-    /// message e fields.
+    /// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+    /// chave, nunca da requisição: a chave criada num showcase só alcança o que
+    /// é dele. Respostas em JSON no envelope data; erros com error, message e
+    /// fields.
     ///
     /// - Parameters:
     ///   - page: the page, from 1.
@@ -638,9 +674,10 @@ public struct EventsService: Sendable {
     /// mais novo ao mais antigo.
     ///
     /// Autenticação: chave de API da organização em Authorization: Bearer
-    /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
-    /// da requisição. Respostas em JSON no envelope data; erros com error,
-    /// message e fields.
+    /// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+    /// chave, nunca da requisição: a chave criada num showcase só alcança o que
+    /// é dele. Respostas em JSON no envelope data; erros com error, message e
+    /// fields.
     ///
     /// - Parameters:
     ///   - page: the page, from 1.
@@ -673,9 +710,10 @@ public struct MetersService: Sendable {
     /// unidade.
     ///
     /// Autenticação: chave de API da organização em Authorization: Bearer
-    /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
-    /// da requisição. Respostas em JSON no envelope data; erros com error,
-    /// message e fields.
+    /// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+    /// chave, nunca da requisição: a chave criada num showcase só alcança o que
+    /// é dele. Respostas em JSON no envelope data; erros com error, message e
+    /// fields.
     public func get(_ meter: String, apiKey: String? = nil) async throws -> Meter {
         try await requester.request(
             "GET", "/api/v1/meters/\(escape(meter))", apiKey: apiKey
@@ -688,9 +726,10 @@ public struct MetersService: Sendable {
     /// is_archived=true.
     ///
     /// Autenticação: chave de API da organização em Authorization: Bearer
-    /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
-    /// da requisição. Respostas em JSON no envelope data; erros com error,
-    /// message e fields.
+    /// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+    /// chave, nunca da requisição: a chave criada num showcase só alcança o que
+    /// é dele. Respostas em JSON no envelope data; erros com error, message e
+    /// fields.
     ///
     /// - Parameters:
     ///   - page: the page, from 1.
@@ -719,12 +758,15 @@ public struct OrdersService: Sendable {
 
     /// Ler um pedido.
     ///
-    /// Devolve um pedido: um checkout pago.
+    /// Devolve um pedido: um checkout pago. Se ele pagou um ciclo de
+    /// assinatura, traz subscription_id, cycle_sequence, period_start e
+    /// period_end.
     ///
     /// Autenticação: chave de API da organização em Authorization: Bearer
-    /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
-    /// da requisição. Respostas em JSON no envelope data; erros com error,
-    /// message e fields.
+    /// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+    /// chave, nunca da requisição: a chave criada num showcase só alcança o que
+    /// é dele. Respostas em JSON no envelope data; erros com error, message e
+    /// fields.
     public func get(_ order: String, apiKey: String? = nil) async throws -> Order {
         try await requester.request(
             "GET", "/api/v1/orders/\(escape(order))", apiKey: apiKey
@@ -737,9 +779,10 @@ public struct OrdersService: Sendable {
     /// gerou. Sem fatura, a resposta é 404.
     ///
     /// Autenticação: chave de API da organização em Authorization: Bearer
-    /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
-    /// da requisição. Respostas em JSON no envelope data; erros com error,
-    /// message e fields.
+    /// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+    /// chave, nunca da requisição: a chave criada num showcase só alcança o que
+    /// é dele. Respostas em JSON no envelope data; erros com error, message e
+    /// fields.
     public func getInvoice(_ order: String, apiKey: String? = nil) async throws -> OrderInvoice {
         try await requester.request(
             "GET", "/api/v1/orders/\(escape(order))/invoice", apiKey: apiKey
@@ -751,9 +794,10 @@ public struct OrdersService: Sendable {
     /// Devolve o recibo de um pedido: o que foi pago, quando e como.
     ///
     /// Autenticação: chave de API da organização em Authorization: Bearer
-    /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
-    /// da requisição. Respostas em JSON no envelope data; erros com error,
-    /// message e fields.
+    /// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+    /// chave, nunca da requisição: a chave criada num showcase só alcança o que
+    /// é dele. Respostas em JSON no envelope data; erros com error, message e
+    /// fields.
     public func getReceipt(_ order: String, apiKey: String? = nil) async throws -> OrderReceipt {
         try await requester.request(
             "GET", "/api/v1/orders/\(escape(order))/receipt", apiKey: apiKey
@@ -763,18 +807,20 @@ public struct OrdersService: Sendable {
     /// Listar pedidos. One page; `listIter` walks every page.
     ///
     /// Devolve uma página dos pedidos, que são os checkouts pagos. Filtre por
-    /// client_reference_id, cliente, período ou metadados.
+    /// client_reference_id, cliente, assinatura (subscription_id), período ou
+    /// metadados.
     ///
     /// Autenticação: chave de API da organização em Authorization: Bearer
-    /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
-    /// da requisição. Respostas em JSON no envelope data; erros com error,
-    /// message e fields.
+    /// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+    /// chave, nunca da requisição: a chave criada num showcase só alcança o que
+    /// é dele. Respostas em JSON no envelope data; erros com error, message e
+    /// fields.
     ///
     /// - Parameters:
     ///   - page: the page, from 1.
     ///   - limit: items a page, 1 to 100 (10 by default).
-    public func list(page: Int? = nil, limit: Int? = nil, clientReferenceID: String? = nil, status: String? = nil, customerID: String? = nil, externalCustomerID: String? = nil, createdAfter: String? = nil, createdBefore: String? = nil, sorting: String? = nil, metadata: [String: String]? = nil, apiKey: String? = nil) async throws -> Page<Order> {
-        var query: [(String, String?)] = [("page", page.map(String.init)), ("limit", limit.map(String.init)), ("client_reference_id", clientReferenceID), ("status", status), ("customer_id", customerID), ("external_customer_id", externalCustomerID), ("created_after", createdAfter), ("created_before", createdBefore), ("sorting", sorting)]
+    public func list(page: Int? = nil, limit: Int? = nil, clientReferenceID: String? = nil, status: String? = nil, customerID: String? = nil, externalCustomerID: String? = nil, subscriptionID: String? = nil, createdAfter: String? = nil, createdBefore: String? = nil, sorting: String? = nil, metadata: [String: String]? = nil, apiKey: String? = nil) async throws -> Page<Order> {
+        var query: [(String, String?)] = [("page", page.map(String.init)), ("limit", limit.map(String.init)), ("client_reference_id", clientReferenceID), ("status", status), ("customer_id", customerID), ("external_customer_id", externalCustomerID), ("subscription_id", subscriptionID), ("created_after", createdAfter), ("created_before", createdBefore), ("sorting", sorting)]
         query += deepObject("metadata", metadata)
         return try await requester.request(
             "GET", "/api/v1/orders",
@@ -785,9 +831,9 @@ public struct OrdersService: Sendable {
 
     /// Walks every page of orders:list, from `page`, item by item:
     /// `for try await item in …`.
-    public func listIter(page: Int? = nil, limit: Int? = nil, clientReferenceID: String? = nil, status: String? = nil, customerID: String? = nil, externalCustomerID: String? = nil, createdAfter: String? = nil, createdBefore: String? = nil, sorting: String? = nil, metadata: [String: String]? = nil, apiKey: String? = nil) -> AsyncThrowingStream<Order, any Error> {
+    public func listIter(page: Int? = nil, limit: Int? = nil, clientReferenceID: String? = nil, status: String? = nil, customerID: String? = nil, externalCustomerID: String? = nil, subscriptionID: String? = nil, createdAfter: String? = nil, createdBefore: String? = nil, sorting: String? = nil, metadata: [String: String]? = nil, apiKey: String? = nil) -> AsyncThrowingStream<Order, any Error> {
         iterate(from: page) { page in
-            try await self.list(page: page, limit: limit, clientReferenceID: clientReferenceID, status: status, customerID: customerID, externalCustomerID: externalCustomerID, createdAfter: createdAfter, createdBefore: createdBefore, sorting: sorting, metadata: metadata, apiKey: apiKey)
+            try await self.list(page: page, limit: limit, clientReferenceID: clientReferenceID, status: status, customerID: customerID, externalCustomerID: externalCustomerID, subscriptionID: subscriptionID, createdAfter: createdAfter, createdBefore: createdBefore, sorting: sorting, metadata: metadata, apiKey: apiKey)
         }
     }
 }
@@ -802,9 +848,10 @@ public struct PaymentMethodsService: Sendable {
     /// assinatura ativa o cobra.
     ///
     /// Autenticação: chave de API da organização em Authorization: Bearer
-    /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
-    /// da requisição. Respostas em JSON no envelope data; erros com error,
-    /// message e fields.
+    /// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+    /// chave, nunca da requisição: a chave criada num showcase só alcança o que
+    /// é dele. Respostas em JSON no envelope data; erros com error, message e
+    /// fields.
     public func detach(_ paymentMethod: String, idempotencyKey: String? = nil, apiKey: String? = nil) async throws -> PaymentMethodDetached {
         try await requester.request(
             "POST", "/api/v1/payment_methods/\(escape(paymentMethod))/detach", idempotencyKey: idempotencyKey, apiKey: apiKey
@@ -817,9 +864,10 @@ public struct PaymentMethodsService: Sendable {
     /// dígitos e validade. O número do cartão nunca aparece.
     ///
     /// Autenticação: chave de API da organização em Authorization: Bearer
-    /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
-    /// da requisição. Respostas em JSON no envelope data; erros com error,
-    /// message e fields.
+    /// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+    /// chave, nunca da requisição: a chave criada num showcase só alcança o que
+    /// é dele. Respostas em JSON no envelope data; erros com error, message e
+    /// fields.
     ///
     /// - Parameters:
     ///   - page: the page, from 1.
@@ -851,9 +899,10 @@ public struct PaymentsService: Sendable {
     /// Devolve um pagamento pelo ID.
     ///
     /// Autenticação: chave de API da organização em Authorization: Bearer
-    /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
-    /// da requisição. Respostas em JSON no envelope data; erros com error,
-    /// message e fields.
+    /// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+    /// chave, nunca da requisição: a chave criada num showcase só alcança o que
+    /// é dele. Respostas em JSON no envelope data; erros com error, message e
+    /// fields.
     public func get(_ payment: String, apiKey: String? = nil) async throws -> Payment {
         try await requester.request(
             "GET", "/api/v1/payments/\(escape(payment))", apiKey: apiKey
@@ -863,18 +912,19 @@ public struct PaymentsService: Sendable {
     /// Listar pagamentos. One page; `listIter` walks every page.
     ///
     /// Devolve uma página dos pagamentos. Filtre por client_reference_id,
-    /// estado, cliente, período ou metadados.
+    /// estado, cliente, assinatura (subscription_id), período ou metadados.
     ///
     /// Autenticação: chave de API da organização em Authorization: Bearer
-    /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
-    /// da requisição. Respostas em JSON no envelope data; erros com error,
-    /// message e fields.
+    /// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+    /// chave, nunca da requisição: a chave criada num showcase só alcança o que
+    /// é dele. Respostas em JSON no envelope data; erros com error, message e
+    /// fields.
     ///
     /// - Parameters:
     ///   - page: the page, from 1.
     ///   - limit: items a page, 1 to 100 (10 by default).
-    public func list(page: Int? = nil, limit: Int? = nil, clientReferenceID: String? = nil, status: String? = nil, customerID: String? = nil, externalCustomerID: String? = nil, createdAfter: String? = nil, createdBefore: String? = nil, sorting: String? = nil, metadata: [String: String]? = nil, apiKey: String? = nil) async throws -> Page<Payment> {
-        var query: [(String, String?)] = [("page", page.map(String.init)), ("limit", limit.map(String.init)), ("client_reference_id", clientReferenceID), ("status", status), ("customer_id", customerID), ("external_customer_id", externalCustomerID), ("created_after", createdAfter), ("created_before", createdBefore), ("sorting", sorting)]
+    public func list(page: Int? = nil, limit: Int? = nil, clientReferenceID: String? = nil, status: String? = nil, customerID: String? = nil, externalCustomerID: String? = nil, subscriptionID: String? = nil, createdAfter: String? = nil, createdBefore: String? = nil, sorting: String? = nil, metadata: [String: String]? = nil, apiKey: String? = nil) async throws -> Page<Payment> {
+        var query: [(String, String?)] = [("page", page.map(String.init)), ("limit", limit.map(String.init)), ("client_reference_id", clientReferenceID), ("status", status), ("customer_id", customerID), ("external_customer_id", externalCustomerID), ("subscription_id", subscriptionID), ("created_after", createdAfter), ("created_before", createdBefore), ("sorting", sorting)]
         query += deepObject("metadata", metadata)
         return try await requester.request(
             "GET", "/api/v1/payments",
@@ -885,9 +935,9 @@ public struct PaymentsService: Sendable {
 
     /// Walks every page of payments:list, from `page`, item by item:
     /// `for try await item in …`.
-    public func listIter(page: Int? = nil, limit: Int? = nil, clientReferenceID: String? = nil, status: String? = nil, customerID: String? = nil, externalCustomerID: String? = nil, createdAfter: String? = nil, createdBefore: String? = nil, sorting: String? = nil, metadata: [String: String]? = nil, apiKey: String? = nil) -> AsyncThrowingStream<Payment, any Error> {
+    public func listIter(page: Int? = nil, limit: Int? = nil, clientReferenceID: String? = nil, status: String? = nil, customerID: String? = nil, externalCustomerID: String? = nil, subscriptionID: String? = nil, createdAfter: String? = nil, createdBefore: String? = nil, sorting: String? = nil, metadata: [String: String]? = nil, apiKey: String? = nil) -> AsyncThrowingStream<Payment, any Error> {
         iterate(from: page) { page in
-            try await self.list(page: page, limit: limit, clientReferenceID: clientReferenceID, status: status, customerID: customerID, externalCustomerID: externalCustomerID, createdAfter: createdAfter, createdBefore: createdBefore, sorting: sorting, metadata: metadata, apiKey: apiKey)
+            try await self.list(page: page, limit: limit, clientReferenceID: clientReferenceID, status: status, customerID: customerID, externalCustomerID: externalCustomerID, subscriptionID: subscriptionID, createdAfter: createdAfter, createdBefore: createdBefore, sorting: sorting, metadata: metadata, apiKey: apiKey)
         }
     }
 }
@@ -903,9 +953,10 @@ public struct PricesService: Sendable {
     /// quanto tempo ele renova: month com 3 é trimestral.
     ///
     /// Autenticação: chave de API da organização em Authorization: Bearer
-    /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
-    /// da requisição. Respostas em JSON no envelope data; erros com error,
-    /// message e fields.
+    /// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+    /// chave, nunca da requisição: a chave criada num showcase só alcança o que
+    /// é dele. Respostas em JSON no envelope data; erros com error, message e
+    /// fields.
     public func create(_ params: PricesCreateParams, idempotencyKey: String? = nil, apiKey: String? = nil) async throws -> Price {
         try await requester.request(
             "POST", "/api/v1/prices", body: params, idempotencyKey: idempotencyKey, apiKey: apiKey
@@ -918,9 +969,10 @@ public struct PricesService: Sendable {
     /// um produto.
     ///
     /// Autenticação: chave de API da organização em Authorization: Bearer
-    /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
-    /// da requisição. Respostas em JSON no envelope data; erros com error,
-    /// message e fields.
+    /// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+    /// chave, nunca da requisição: a chave criada num showcase só alcança o que
+    /// é dele. Respostas em JSON no envelope data; erros com error, message e
+    /// fields.
     ///
     /// - Parameters:
     ///   - page: the page, from 1.
@@ -953,9 +1005,10 @@ public struct ProductsService: Sendable {
     /// continua apontando para ele.
     ///
     /// Autenticação: chave de API da organização em Authorization: Bearer
-    /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
-    /// da requisição. Respostas em JSON no envelope data; erros com error,
-    /// message e fields.
+    /// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+    /// chave, nunca da requisição: a chave criada num showcase só alcança o que
+    /// é dele. Respostas em JSON no envelope data; erros com error, message e
+    /// fields.
     public func archive(_ product: String, idempotencyKey: String? = nil, apiKey: String? = nil) async throws -> Product {
         try await requester.request(
             "POST", "/api/v1/products/\(escape(product))/archive", idempotencyKey: idempotencyKey, apiKey: apiKey
@@ -968,9 +1021,10 @@ public struct ProductsService: Sendable {
     /// um preço.
     ///
     /// Autenticação: chave de API da organização em Authorization: Bearer
-    /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
-    /// da requisição. Respostas em JSON no envelope data; erros com error,
-    /// message e fields.
+    /// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+    /// chave, nunca da requisição: a chave criada num showcase só alcança o que
+    /// é dele. Respostas em JSON no envelope data; erros com error, message e
+    /// fields.
     public func create(_ params: ProductsCreateParams, idempotencyKey: String? = nil, apiKey: String? = nil) async throws -> Product {
         try await requester.request(
             "POST", "/api/v1/products", body: params, idempotencyKey: idempotencyKey, apiKey: apiKey
@@ -982,9 +1036,10 @@ public struct ProductsService: Sendable {
     /// Devolve um produto pelo ID.
     ///
     /// Autenticação: chave de API da organização em Authorization: Bearer
-    /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
-    /// da requisição. Respostas em JSON no envelope data; erros com error,
-    /// message e fields.
+    /// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+    /// chave, nunca da requisição: a chave criada num showcase só alcança o que
+    /// é dele. Respostas em JSON no envelope data; erros com error, message e
+    /// fields.
     public func get(_ product: String, apiKey: String? = nil) async throws -> Product {
         try await requester.request(
             "GET", "/api/v1/products/\(escape(product))", apiKey: apiKey
@@ -996,9 +1051,10 @@ public struct ProductsService: Sendable {
     /// Devolve uma página dos produtos da organização, no ambiente da chave.
     ///
     /// Autenticação: chave de API da organização em Authorization: Bearer
-    /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
-    /// da requisição. Respostas em JSON no envelope data; erros com error,
-    /// message e fields.
+    /// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+    /// chave, nunca da requisição: a chave criada num showcase só alcança o que
+    /// é dele. Respostas em JSON no envelope data; erros com error, message e
+    /// fields.
     ///
     /// - Parameters:
     ///   - page: the page, from 1.
@@ -1026,9 +1082,10 @@ public struct ProductsService: Sendable {
     /// fica como está.
     ///
     /// Autenticação: chave de API da organização em Authorization: Bearer
-    /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
-    /// da requisição. Respostas em JSON no envelope data; erros com error,
-    /// message e fields.
+    /// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+    /// chave, nunca da requisição: a chave criada num showcase só alcança o que
+    /// é dele. Respostas em JSON no envelope data; erros com error, message e
+    /// fields.
     public func update(_ product: String, _ params: ProductsUpdateParams, idempotencyKey: String? = nil, apiKey: String? = nil) async throws -> Product {
         try await requester.request(
             "PATCH", "/api/v1/products/\(escape(product))", body: params, idempotencyKey: idempotencyKey, apiKey: apiKey
@@ -1040,37 +1097,62 @@ public struct ProductsService: Sendable {
 public struct RefundsService: Sendable {
     let requester: Requester
 
-    /// Reembolsar um pagamento.
+    /// Reembolsar um pagamento ou um pedido.
     ///
-    /// Devolve parte ou todo o valor de um pagamento. A Idempotency-Key é
-    /// obrigatória: sem ela, repetir a chamada depois de um tempo esgotado
-    /// seria devolver duas vezes.
+    /// Devolve dinheiro de um pagamento, que você nomeia pelo payment_id ou
+    /// pelo order_id do pedido que ele pagou (os dois, só se forem do mesmo
+    /// pagamento). Sem amount_cents devolve tudo o que ainda pode ser
+    /// devolvido; com ele, uma parte, até esse limite. O reason, sem ele, é
+    /// requested_by_customer. O metadata fica no reembolso e volta nele e nos
+    /// eventos refund.*. A Idempotency-Key é obrigatória: sem ela, repetir a
+    /// chamada depois de um tempo esgotado seria devolver duas vezes; repetida
+    /// com a mesma chave, devolve o mesmo reembolso.
     ///
     /// Autenticação: chave de API da organização em Authorization: Bearer
-    /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
-    /// da requisição. Respostas em JSON no envelope data; erros com error,
-    /// message e fields.
+    /// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+    /// chave, nunca da requisição: a chave criada num showcase só alcança o que
+    /// é dele. Respostas em JSON no envelope data; erros com error, message e
+    /// fields.
     public func create(_ params: RefundsCreateParams, idempotencyKey: String? = nil, apiKey: String? = nil) async throws -> Refund {
         try await requester.request(
             "POST", "/api/v1/refunds", body: params, idempotencyKey: idempotencyKey, apiKey: apiKey
         )
     }
 
+    /// Ler um reembolso.
+    ///
+    /// Devolve um reembolso pelo ID, com o pedido de onde veio (order_id), o
+    /// client_reference_id desse pedido e o status: requested e pending esperam
+    /// a Cielo, succeeded devolveu o dinheiro.
+    ///
+    /// Autenticação: chave de API da organização em Authorization: Bearer
+    /// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+    /// chave, nunca da requisição: a chave criada num showcase só alcança o que
+    /// é dele. Respostas em JSON no envelope data; erros com error, message e
+    /// fields.
+    public func get(_ refund: String, apiKey: String? = nil) async throws -> Refund {
+        try await requester.request(
+            "GET", "/api/v1/refunds/\(escape(refund))", apiKey: apiKey
+        )
+    }
+
     /// Listar reembolsos. One page; `listIter` walks every page.
     ///
     /// Devolve uma página dos reembolsos. Filtre por pagamento (payment_id),
-    /// status, cliente ou período.
+    /// status, cliente, período ou metadados do reembolso.
     ///
     /// Autenticação: chave de API da organização em Authorization: Bearer
-    /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
-    /// da requisição. Respostas em JSON no envelope data; erros com error,
-    /// message e fields.
+    /// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+    /// chave, nunca da requisição: a chave criada num showcase só alcança o que
+    /// é dele. Respostas em JSON no envelope data; erros com error, message e
+    /// fields.
     ///
     /// - Parameters:
     ///   - page: the page, from 1.
     ///   - limit: items a page, 1 to 100 (10 by default).
-    public func list(page: Int? = nil, limit: Int? = nil, paymentID: String? = nil, status: String? = nil, customerID: String? = nil, externalCustomerID: String? = nil, createdAfter: String? = nil, createdBefore: String? = nil, sorting: String? = nil, apiKey: String? = nil) async throws -> Page<Refund> {
-        let query: [(String, String?)] = [("page", page.map(String.init)), ("limit", limit.map(String.init)), ("payment_id", paymentID), ("status", status), ("customer_id", customerID), ("external_customer_id", externalCustomerID), ("created_after", createdAfter), ("created_before", createdBefore), ("sorting", sorting)]
+    public func list(page: Int? = nil, limit: Int? = nil, paymentID: String? = nil, status: String? = nil, customerID: String? = nil, externalCustomerID: String? = nil, createdAfter: String? = nil, createdBefore: String? = nil, sorting: String? = nil, metadata: [String: String]? = nil, apiKey: String? = nil) async throws -> Page<Refund> {
+        var query: [(String, String?)] = [("page", page.map(String.init)), ("limit", limit.map(String.init)), ("payment_id", paymentID), ("status", status), ("customer_id", customerID), ("external_customer_id", externalCustomerID), ("created_after", createdAfter), ("created_before", createdBefore), ("sorting", sorting)]
+        query += deepObject("metadata", metadata)
         return try await requester.request(
             "GET", "/api/v1/refunds",
             query: query,
@@ -1080,10 +1162,33 @@ public struct RefundsService: Sendable {
 
     /// Walks every page of refunds:list, from `page`, item by item:
     /// `for try await item in …`.
-    public func listIter(page: Int? = nil, limit: Int? = nil, paymentID: String? = nil, status: String? = nil, customerID: String? = nil, externalCustomerID: String? = nil, createdAfter: String? = nil, createdBefore: String? = nil, sorting: String? = nil, apiKey: String? = nil) -> AsyncThrowingStream<Refund, any Error> {
+    public func listIter(page: Int? = nil, limit: Int? = nil, paymentID: String? = nil, status: String? = nil, customerID: String? = nil, externalCustomerID: String? = nil, createdAfter: String? = nil, createdBefore: String? = nil, sorting: String? = nil, metadata: [String: String]? = nil, apiKey: String? = nil) -> AsyncThrowingStream<Refund, any Error> {
         iterate(from: page) { page in
-            try await self.list(page: page, limit: limit, paymentID: paymentID, status: status, customerID: customerID, externalCustomerID: externalCustomerID, createdAfter: createdAfter, createdBefore: createdBefore, sorting: sorting, apiKey: apiKey)
+            try await self.list(page: page, limit: limit, paymentID: paymentID, status: status, customerID: customerID, externalCustomerID: externalCustomerID, createdAfter: createdAfter, createdBefore: createdBefore, sorting: sorting, metadata: metadata, apiKey: apiKey)
         }
+    }
+}
+
+/// The API's showcase: `perata.showcase`.
+public struct ShowcaseService: Sendable {
+    let requester: Requester
+
+    /// Ler o showcase da chave.
+    ///
+    /// Devolve o showcase em que a chave foi criada: o ID (o showcase_id dos
+    /// objetos e dos eventos), o nome, se é o principal da organização e se tem
+    /// logo. Serve para o seu sistema, ou um assistente, saber onde está. Um
+    /// showcase se abre e se muda no painel, nunca por esta API.
+    ///
+    /// Autenticação: chave de API da organização em Authorization: Bearer
+    /// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+    /// chave, nunca da requisição: a chave criada num showcase só alcança o que
+    /// é dele. Respostas em JSON no envelope data; erros com error, message e
+    /// fields.
+    public func get(apiKey: String? = nil) async throws -> Showcase {
+        try await requester.request(
+            "GET", "/api/v1/showcase", apiKey: apiKey
+        )
     }
 }
 
@@ -1097,9 +1202,10 @@ public struct SubscriptionsService: Sendable {
     /// já pago.
     ///
     /// Autenticação: chave de API da organização em Authorization: Bearer
-    /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
-    /// da requisição. Respostas em JSON no envelope data; erros com error,
-    /// message e fields.
+    /// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+    /// chave, nunca da requisição: a chave criada num showcase só alcança o que
+    /// é dele. Respostas em JSON no envelope data; erros com error, message e
+    /// fields.
     public func cancel(_ subscription: String, _ params: SubscriptionsCancelParams, idempotencyKey: String? = nil, apiKey: String? = nil) async throws -> Subscription {
         try await requester.request(
             "POST", "/api/v1/subscriptions/\(escape(subscription))/cancel", body: params, idempotencyKey: idempotencyKey, apiKey: apiKey
@@ -1111,9 +1217,10 @@ public struct SubscriptionsService: Sendable {
     /// Devolve uma assinatura pelo ID.
     ///
     /// Autenticação: chave de API da organização em Authorization: Bearer
-    /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
-    /// da requisição. Respostas em JSON no envelope data; erros com error,
-    /// message e fields.
+    /// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+    /// chave, nunca da requisição: a chave criada num showcase só alcança o que
+    /// é dele. Respostas em JSON no envelope data; erros com error, message e
+    /// fields.
     public func get(_ subscription: String, apiKey: String? = nil) async throws -> Subscription {
         try await requester.request(
             "GET", "/api/v1/subscriptions/\(escape(subscription))", apiKey: apiKey
@@ -1126,9 +1233,10 @@ public struct SubscriptionsService: Sendable {
     /// external_customer_id), status, período ou metadados.
     ///
     /// Autenticação: chave de API da organização em Authorization: Bearer
-    /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
-    /// da requisição. Respostas em JSON no envelope data; erros com error,
-    /// message e fields.
+    /// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+    /// chave, nunca da requisição: a chave criada num showcase só alcança o que
+    /// é dele. Respostas em JSON no envelope data; erros com error, message e
+    /// fields.
     ///
     /// - Parameters:
     ///   - page: the page, from 1.
@@ -1158,9 +1266,10 @@ public struct SubscriptionsService: Sendable {
     /// assinatura recebe 409.
     ///
     /// Autenticação: chave de API da organização em Authorization: Bearer
-    /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
-    /// da requisição. Respostas em JSON no envelope data; erros com error,
-    /// message e fields.
+    /// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+    /// chave, nunca da requisição: a chave criada num showcase só alcança o que
+    /// é dele. Respostas em JSON no envelope data; erros com error, message e
+    /// fields.
     public func resume(_ subscription: String, idempotencyKey: String? = nil, apiKey: String? = nil) async throws -> Subscription {
         try await requester.request(
             "POST", "/api/v1/subscriptions/\(escape(subscription))/resume", idempotencyKey: idempotencyKey, apiKey: apiKey
@@ -1173,9 +1282,10 @@ public struct SubscriptionsService: Sendable {
     /// quantidade. O proration_behavior diz como ratear a diferença.
     ///
     /// Autenticação: chave de API da organização em Authorization: Bearer
-    /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
-    /// da requisição. Respostas em JSON no envelope data; erros com error,
-    /// message e fields.
+    /// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+    /// chave, nunca da requisição: a chave criada num showcase só alcança o que
+    /// é dele. Respostas em JSON no envelope data; erros com error, message e
+    /// fields.
     public func update(_ subscription: String, _ params: SubscriptionsUpdateParams, idempotencyKey: String? = nil, apiKey: String? = nil) async throws -> Subscription {
         try await requester.request(
             "PATCH", "/api/v1/subscriptions/\(escape(subscription))", body: params, idempotencyKey: idempotencyKey, apiKey: apiKey
@@ -1226,9 +1336,10 @@ public struct WebhooksService: Sendable {
     /// nesta resposta; guarde-o.
     ///
     /// Autenticação: chave de API da organização em Authorization: Bearer
-    /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
-    /// da requisição. Respostas em JSON no envelope data; erros com error,
-    /// message e fields.
+    /// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+    /// chave, nunca da requisição: a chave criada num showcase só alcança o que
+    /// é dele. Respostas em JSON no envelope data; erros com error, message e
+    /// fields.
     public func createEndpoint(_ params: WebhooksCreateEndpointParams, idempotencyKey: String? = nil, apiKey: String? = nil) async throws -> WebhookEndpointCreated {
         try await requester.request(
             "POST", "/api/v1/webhooks/endpoints", body: params, idempotencyKey: idempotencyKey, apiKey: apiKey
@@ -1241,9 +1352,10 @@ public struct WebhooksService: Sendable {
     /// falham.
     ///
     /// Autenticação: chave de API da organização em Authorization: Bearer
-    /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
-    /// da requisição. Respostas em JSON no envelope data; erros com error,
-    /// message e fields.
+    /// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+    /// chave, nunca da requisição: a chave criada num showcase só alcança o que
+    /// é dele. Respostas em JSON no envelope data; erros com error, message e
+    /// fields.
     public func deleteEndpoint(_ endpoint: String, idempotencyKey: String? = nil, apiKey: String? = nil) async throws {
         try await requester.requestNoContent(
             "DELETE", "/api/v1/webhooks/endpoints/\(escape(endpoint))", idempotencyKey: idempotencyKey, apiKey: apiKey
@@ -1255,9 +1367,10 @@ public struct WebhooksService: Sendable {
     /// Devolve um endpoint de webhook pelo ID.
     ///
     /// Autenticação: chave de API da organização em Authorization: Bearer
-    /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
-    /// da requisição. Respostas em JSON no envelope data; erros com error,
-    /// message e fields.
+    /// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+    /// chave, nunca da requisição: a chave criada num showcase só alcança o que
+    /// é dele. Respostas em JSON no envelope data; erros com error, message e
+    /// fields.
     public func getEndpoint(_ endpoint: String, apiKey: String? = nil) async throws -> WebhookEndpoint {
         try await requester.request(
             "GET", "/api/v1/webhooks/endpoints/\(escape(endpoint))", apiKey: apiKey
@@ -1270,9 +1383,10 @@ public struct WebhooksService: Sendable {
     /// endpoint_id, só as de um endpoint; com status, só as de uma situação.
     ///
     /// Autenticação: chave de API da organização em Authorization: Bearer
-    /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
-    /// da requisição. Respostas em JSON no envelope data; erros com error,
-    /// message e fields.
+    /// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+    /// chave, nunca da requisição: a chave criada num showcase só alcança o que
+    /// é dele. Respostas em JSON no envelope data; erros com error, message e
+    /// fields.
     ///
     /// - Parameters:
     ///   - page: the page, from 1.
@@ -1299,9 +1413,10 @@ public struct WebhooksService: Sendable {
     /// Devolve uma página dos endpoints de webhook da organização.
     ///
     /// Autenticação: chave de API da organização em Authorization: Bearer
-    /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
-    /// da requisição. Respostas em JSON no envelope data; erros com error,
-    /// message e fields.
+    /// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+    /// chave, nunca da requisição: a chave criada num showcase só alcança o que
+    /// é dele. Respostas em JSON no envelope data; erros com error, message e
+    /// fields.
     ///
     /// - Parameters:
     ///   - page: the page, from 1.
@@ -1329,9 +1444,10 @@ public struct WebhooksService: Sendable {
     /// liga e desliga o envio (enabled). O segredo não muda.
     ///
     /// Autenticação: chave de API da organização em Authorization: Bearer
-    /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
-    /// da requisição. Respostas em JSON no envelope data; erros com error,
-    /// message e fields.
+    /// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+    /// chave, nunca da requisição: a chave criada num showcase só alcança o que
+    /// é dele. Respostas em JSON no envelope data; erros com error, message e
+    /// fields.
     public func updateEndpoint(_ endpoint: String, _ params: WebhooksUpdateEndpointParams, idempotencyKey: String? = nil, apiKey: String? = nil) async throws -> WebhookEndpoint {
         try await requester.request(
             "PATCH", "/api/v1/webhooks/endpoints/\(escape(endpoint))", body: params, idempotencyKey: idempotencyKey, apiKey: apiKey

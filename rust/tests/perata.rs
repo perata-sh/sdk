@@ -31,7 +31,7 @@ fn client(answer: impl Fn(&HttpRequest) -> HttpResponse + Send + Sync + 'static)
 }
 
 fn product(id: &str) -> serde_json::Value {
-    serde_json::json!({"id": id, "name": "Curso", "description": "", "status": "active", "created_at": "2026-10-17T00:00:00Z"})
+    serde_json::json!({"id": id, "name": "Curso", "description": "", "status": "active", "showcase_id": "shw_1", "created_at": "2026-10-17T00:00:00Z"})
 }
 
 fn json(status: u16, body: serde_json::Value) -> HttpResponse {
@@ -88,7 +88,8 @@ fn a_checkout_session_hands_back_the_client_secret_for_the_browser() {
             "status": "active", "label": "", "quantity": 1, "success_url": "https://loja.example/obrigado", "cancel_url": "",
             "expires_at": null, "created_at": "2026-11-16T12:00:00Z", "session_id": "cs_1", "client_secret": secret,
             "client_secret_expires_at": "2026-11-16T12:30:00Z", "status_key": "sk_1",
-            "amount_cents": null, "items": [], "metadata": {}, "client_reference_id": ""
+            "amount_cents": null, "items": [], "metadata": {}, "client_reference_id": "",
+            "discount_id": "", "showcase_id": "shw_1", "subscription_start_at": null
         }})
     };
     let calls = std::sync::atomic::AtomicUsize::new(0);
@@ -262,7 +263,7 @@ fn a_discount_goes_through_create_get_list_and_delete() {
 #[test]
 fn a_free_form_value_decodes_nested() {
     let state: serde_json::Value = serde_json::from_str(
-        r#"{"id":"cus_1","name":"Ana","email":"ana@example.com","external_id":"","status":"active","created_at":"2026-10-17T00:00:00Z","active_subscriptions":[],"granted_benefits":[{"id":"gr_1","granted_at":"2026-10-17T00:00:00Z","benefit_id":"ben_1","benefit_type":"feature_flag","benefit_metadata":{"flags":{"beta":true,"limits":{"seats":5,"tiers":["a",2,null,1.5]}}},"properties":{"links":[{"url":"https://example.com","expires":null}]}}]}"#,
+        r#"{"id":"cus_1","showcase_id":"shw_1","name":"Ana","email":"ana@example.com","external_id":"","status":"active","created_at":"2026-10-17T00:00:00Z","active_subscriptions":[],"granted_benefits":[{"id":"gr_1","granted_at":"2026-10-17T00:00:00Z","benefit_id":"ben_1","benefit_type":"feature_flag","benefit_metadata":{"flags":{"beta":true,"limits":{"seats":5,"tiers":["a",2,null,1.5]}}},"properties":{"links":[{"url":"https://example.com","expires":null}]}}]}"#,
     )
     .unwrap();
     let (client, _) = client(move |_| json(200, serde_json::json!({ "data": state.clone() })));
@@ -546,9 +547,9 @@ fn a_refusal_is_a_typed_error() {
 const REFERENCE_SECRET: &str = "whsec_MfKQ9r8GKYqrTwjUPD8ILPZIo2LaLaSw";
 const OLD_SECRET: &str = "whsec_cGVyYXRhLXNkay1vbGQta2V5LTAxMjM0NTY3ODlhYmM=";
 const NEW_SECRET: &str = "whsec_cGVyYXRhLXNkay1uZXcta2V5LTAxMjM0NTY3ODlhYmM=";
-const ORDER_PAID: &[u8] = br#"{"id":"msg_2","type":"order.paid","timestamp":"2026-10-22T12:00:00Z","data":{"id":"ord_1","customer_id":"cus_1","product_id":"prod_1","price_id":"price_1","amount_cents":12000,"currency":"BRL","status":"succeeded","paid_at":"2026-10-22T12:00:00Z","order_status":"paid","refunded_amount_cents":0,"refund_id":null,"refund_amount_cents":null,"installments":3,"installment_interest_cents":360,"items":[],"metadata":{},"client_reference_id":""}}"#;
+const ORDER_PAID: &[u8] = br#"{"id":"msg_2","type":"order.paid","timestamp":"2026-10-22T12:00:00Z","data":{"id":"ord_1","customer_id":"cus_1","product_id":"prod_1","price_id":"price_1","amount_cents":12000,"currency":"BRL","status":"succeeded","paid_at":"2026-10-22T12:00:00Z","order_status":"paid","refunded_amount_cents":0,"refund_id":null,"refund_amount_cents":null,"installments":3,"installment_interest_cents":360,"items":[],"metadata":{},"client_reference_id":"","showcase_id":"shw_1"}}"#;
 const USAGE_RECORDED: &[u8] = br#"{"id":"msg_3","type":"usage_event.recorded","timestamp":"2026-10-22T12:00:00Z","data":{"event_id":"ue_1","aggregate":"usage_event","aggregate_id":"ue_1","merchant_id":"mer_1","environment":"test"}}"#;
-const ORDER_PAID_LIVE: &[u8] = br#"{"id":"msg_5","type":"order.paid","timestamp":"2026-10-22T12:00:00Z","environment":"live","data":{"id":"ord_1","customer_id":"cus_1","product_id":"prod_1","price_id":"price_1","amount_cents":12000,"currency":"BRL","status":"succeeded","paid_at":"2026-10-22T12:00:00Z","order_status":"paid","refunded_amount_cents":0,"refund_id":null,"refund_amount_cents":null,"installments":3,"installment_interest_cents":360,"items":[],"metadata":{},"client_reference_id":""}}"#;
+const ORDER_PAID_LIVE: &[u8] = br#"{"id":"msg_5","type":"order.paid","timestamp":"2026-10-22T12:00:00Z","environment":"live","showcase_id":"shw_1","data":{"id":"ord_1","customer_id":"cus_1","product_id":"prod_1","price_id":"price_1","amount_cents":12000,"currency":"BRL","status":"succeeded","paid_at":"2026-10-22T12:00:00Z","order_status":"paid","refunded_amount_cents":0,"refund_id":null,"refund_amount_cents":null,"installments":3,"installment_interest_cents":360,"items":[],"metadata":{},"client_reference_id":"","showcase_id":"shw_1"}}"#;
 const PAYOUT_SENT_TEST: &[u8] = br#"{"id":"msg_6","type":"payout.sent","timestamp":"2026-10-22T12:00:00Z","environment":"test","data":{"payout_id":"po_1","amount_cents":5000}}"#;
 const PAYOUT_SENT: &[u8] = br#"{"id":"msg_4","type":"payout.sent","timestamp":"2026-10-22T12:00:00Z","data":{"payout_id":"po_1","amount_cents":5000}}"#;
 const SIGNED_AT: u64 = 1_792_670_400;
@@ -619,7 +620,7 @@ fn a_timestamp_that_is_not_plain_digits_is_refused() {
 fn a_webhook_carries_the_environment_it_happened_in() {
     let now = UNIX_EPOCH + Duration::from_secs(SIGNED_AT + 120);
     let older: [(&str, &str, &[u8]); 3] = [
-        ("msg_2", "v1,XI92+fzspBAwIZD8XhEF5PwZNFrKbyAaykAydn3pPzY= v1,G2ijkhNO0sP+dkoMlsU1sOLmtbpIw9SYOwC2XTqMKdw=", ORDER_PAID),
+        ("msg_2", "v1,fvRLETNjaSQOVbSs/eVRV/C17ysRHoubzX3idpGAifI= v1,ZsKtmVTp/mXCeW5qAiaLJY1TjyXwUyS7RxRVa3RIQQo=", ORDER_PAID),
         ("msg_3", "v1,Z3E2vTbczigiySfkzakxuZotPn9FlBY1KAET6hPEZoU=", USAGE_RECORDED),
         ("msg_4", "v1,Sa/yofA3h/58pFR+rIiWdIc8qXfcuqvyJSjxn4oJ1ZY=", PAYOUT_SENT),
     ];
@@ -632,13 +633,14 @@ fn a_webhook_carries_the_environment_it_happened_in() {
         )
         .unwrap();
         assert_eq!(event.environment(), "", "{id}");
+        assert_eq!(event.showcase_id(), "", "{id}");
     }
     let order = verify_webhook_at(
         NEW_SECRET,
         webhook_headers(
             "msg_5",
             SIGNED_AT,
-            "v1,JECjRi5yt5jEJZSUqpIxpxCJ/OfRgUBipIRj1b2lsUk=",
+            "v1,9CgfDokxQ7tBEd7vvv32TI4QUdqkaHrxgUo2UUNQpOY=",
         ),
         ORDER_PAID_LIVE,
         now,
@@ -646,6 +648,11 @@ fn a_webhook_carries_the_environment_it_happened_in() {
     .unwrap();
     assert!(matches!(order, WebhookEvent::Order(_)));
     assert_eq!(order.environment(), "live");
+    assert_eq!(order.showcase_id(), "shw_1");
+    let WebhookEvent::Order(sale) = &order else {
+        panic!("not an order event");
+    };
+    assert_eq!(sale.data.showcase_id, "shw_1");
     let unknown = verify_webhook_at(
         NEW_SECRET,
         webhook_headers(
@@ -659,6 +666,7 @@ fn a_webhook_carries_the_environment_it_happened_in() {
     .unwrap();
     assert!(matches!(unknown, WebhookEvent::Unknown(_)));
     assert_eq!(unknown.environment(), "test");
+    assert_eq!(unknown.showcase_id(), "");
 }
 
 #[test]
@@ -667,7 +675,7 @@ fn a_webhook_answers_its_typed_event() {
     let headers = webhook_headers(
         "msg_2",
         SIGNED_AT,
-        "v1,XI92+fzspBAwIZD8XhEF5PwZNFrKbyAaykAydn3pPzY= v1,G2ijkhNO0sP+dkoMlsU1sOLmtbpIw9SYOwC2XTqMKdw=",
+        "v1,fvRLETNjaSQOVbSs/eVRV/C17ysRHoubzX3idpGAifI= v1,ZsKtmVTp/mXCeW5qAiaLJY1TjyXwUyS7RxRVa3RIQQo=",
     );
     for secret in [NEW_SECRET, OLD_SECRET] {
         let WebhookEvent::Order(order) =
@@ -774,6 +782,7 @@ fn echo_server() -> String {
                     "name": sent["name"].as_str().unwrap_or(""),
                     "description": idempotency,
                     "status": "active",
+                    "showcase_id": "shw_1",
                     "created_at": format!("{method} {target}"),
                 });
                 ("201 Created", "", serde_json::json!({ "data": data }))

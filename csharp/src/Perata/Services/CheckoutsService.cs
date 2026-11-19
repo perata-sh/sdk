@@ -26,11 +26,17 @@ public sealed class CheckoutsService
     /// navegador do comprador usa para pagar sem chave de API; o client_secret
     /// vem só nesta resposta. Para cobrar um valor que o seu servidor define,
     /// envie amount_cents e items (preço de valor livre). Envie
-    /// client_reference_id e metadata para achar o pedido depois.</para>
+    /// client_reference_id e metadata para achar o pedido depois. Em uma
+    /// assinatura, envie as linhas do pedido em items (só para exibição, com a
+    /// soma igual ao valor do preço) e o desconto em discount_id. Para uma
+    /// assinatura que só começa a cobrar numa data, envie subscription_start_at
+    /// com o preço recorrente: o cartão é guardado sem cobrança e a primeira
+    /// cobrança acontece nesse dia.</para>
     /// <para>Autenticação: chave de API da organização em Authorization: Bearer
-    /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
-    /// da requisição. Respostas em JSON no envelope data; erros com error,
-    /// message e fields.</para>
+    /// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+    /// chave, nunca da requisição: a chave criada num showcase só alcança o que
+    /// é dele. Respostas em JSON no envelope data; erros com error, message e
+    /// fields.</para>
     /// </remarks>
     /// <param name="parameters">The request.</param>
     /// <param name="options">An idempotency key, or another organization's key for this call.</param>
@@ -51,9 +57,10 @@ public sealed class CheckoutsService
     /// seguro. Se o checkout já foi pago ou emitiu um boleto, a resposta é
     /// 409.</para>
     /// <para>Autenticação: chave de API da organização em Authorization: Bearer
-    /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
-    /// da requisição. Respostas em JSON no envelope data; erros com error,
-    /// message e fields.</para>
+    /// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+    /// chave, nunca da requisição: a chave criada num showcase só alcança o que
+    /// é dele. Respostas em JSON no envelope data; erros com error, message e
+    /// fields.</para>
     /// </remarks>
     /// <param name="checkout">The checkout.</param>
     /// <param name="options">An idempotency key, or another organization's key for this call.</param>
@@ -70,9 +77,10 @@ public sealed class CheckoutsService
     /// <para>Devolve um checkout: o endereço, o estado e as páginas de
     /// retorno.</para>
     /// <para>Autenticação: chave de API da organização em Authorization: Bearer
-    /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
-    /// da requisição. Respostas em JSON no envelope data; erros com error,
-    /// message e fields.</para>
+    /// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+    /// chave, nunca da requisição: a chave criada num showcase só alcança o que
+    /// é dele. Respostas em JSON no envelope data; erros com error, message e
+    /// fields.</para>
     /// </remarks>
     /// <param name="checkout">The checkout.</param>
     /// <param name="options">Another organization's key for this call.</param>
@@ -89,9 +97,10 @@ public sealed class CheckoutsService
     /// <para>Devolve uma página dos checkouts. Filtre por client_reference_id,
     /// status, período ou metadados.</para>
     /// <para>Autenticação: chave de API da organização em Authorization: Bearer
-    /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
-    /// da requisição. Respostas em JSON no envelope data; erros com error,
-    /// message e fields.</para>
+    /// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+    /// chave, nunca da requisição: a chave criada num showcase só alcança o que
+    /// é dele. Respostas em JSON no envelope data; erros com error, message e
+    /// fields.</para>
     /// </remarks>
     /// <param name="parameters">The page, its size and the filters; the first page when null.</param>
     /// <param name="options">Another organization's key for this call.</param>
@@ -116,9 +125,10 @@ public sealed class CheckoutsService
     /// <remarks>
     /// <para>Muda o rótulo e as páginas de retorno de um checkout ativo.</para>
     /// <para>Autenticação: chave de API da organização em Authorization: Bearer
-    /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
-    /// da requisição. Respostas em JSON no envelope data; erros com error,
-    /// message e fields.</para>
+    /// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+    /// chave, nunca da requisição: a chave criada num showcase só alcança o que
+    /// é dele. Respostas em JSON no envelope data; erros com error, message e
+    /// fields.</para>
     /// </remarks>
     /// <param name="checkout">The checkout.</param>
     /// <param name="parameters">The request.</param>
@@ -164,6 +174,10 @@ public sealed record CheckoutsCreateParams
     [JsonPropertyName("customer_name")]
     public string? CustomerName { get; init; }
 
+    /// <summary>O desconto do catálogo que o checkout aplica sozinho, sem o comprador digitar código: o valor dele (percentual ou fixo) é tirado do total e vale como o desconto foi criado, uma vez, por alguns meses ou para sempre. Um desconto limitado a produtos (product_ids na criação do desconto) só vale para esses produtos: num checkout de uma câmera, o desconto de uma câmera. Um id que não é de um desconto ativo do catálogo é recusado com 422. Left out of the request when null.</summary>
+    [JsonPropertyName("discount_id")]
+    public string? DiscountId { get; init; }
+
     /// <summary>Segundos em que a sessão e o client_secret continuam valendo, de um minuto a três dias; 1800 (30 minutos) quando fica de fora. Uma sessão paga com Pix pode ser aberta até esse prazo e, aberta, o Pix gerado vale 24 horas. Left out of the request when null.</summary>
     [JsonPropertyName("expires_in")]
     public long? ExpiresIn { get; init; }
@@ -172,7 +186,7 @@ public sealed record CheckoutsCreateParams
     [JsonPropertyName("external_customer_id")]
     public string? ExternalCustomerId { get; init; }
 
-    /// <summary>As linhas do pedido, até 50, para o comprador ler o detalhe: aparecem no checkout (página, modal, componentes e transparente), no pedido, no recibo, no portal do cliente e nos eventos. A soma de quantity vezes unit_amount_cents precisa ser igual a amount_cents, ou a resposta é 422; enviadas sem amount_cents, a soma é o valor. Left out of the request when null.</summary>
+    /// <summary>As linhas do pedido, até 50, para o comprador ler o detalhe: aparecem no checkout (página, modal, componentes e transparente), no pedido, no recibo, no portal do cliente e nos eventos. Em um preço de valor livre, a soma de quantity vezes unit_amount_cents precisa ser igual a amount_cents, ou a resposta é 422; enviadas sem amount_cents, a soma é o valor. Em um preço com valor próprio, como o de uma assinatura, as linhas só mostram ao comprador do que o valor é feito e fixam nada: envie-as sem amount_cents, com a soma igual ao valor do preço vezes a quantidade (senão 422), e o preço continua sendo quem define o que se cobra. Left out of the request when null.</summary>
     [JsonPropertyName("items")]
     public IReadOnlyList<CheckoutsCreateItem>? Items { get; init; }
 
@@ -203,6 +217,10 @@ public sealed record CheckoutsCreateParams
     /// <summary>Outro nome de cancel_url: a página https a que o comprador volta sem pagar. Enviada com um cancel_url diferente, é recusada. Left out of the request when null.</summary>
     [JsonPropertyName("return_url")]
     public string? ReturnUrl { get; init; }
+
+    /// <summary>O dia da primeira cobrança de uma assinatura, como o trial_end do Stripe: o cartão é guardado e conferido com o emissor, nada é cobrado hoje e a primeira cobrança acontece nesse dia, no cartão guardado; as seguintes seguem a periodicidade do preço a partir dele. Só vale em um preço recorrente com valor, e só no cartão de crédito: a página não oferece Pix nem boleto. Vale o dia no horário de São Paulo, da meia-noite dele, qualquer que seja o fuso enviado; a hora não conta. Tem de ser de amanhã a um ano, senão a resposta é 422. A resposta devolve o instante como a Peráta o guarda, em subscription_start_at. Quem abre o checkout depois da data recebe 410. Left out of the request when null.</summary>
+    [JsonPropertyName("subscription_start_at")]
+    public string? SubscriptionStartAt { get; init; }
 
     /// <summary>The <c>success_url</c> to send. Left out of the request when null.</summary>
     [JsonPropertyName("success_url")]

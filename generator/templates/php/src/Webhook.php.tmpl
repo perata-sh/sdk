@@ -67,15 +67,16 @@ final class Webhook
         $data = is_array($event['data'] ?? null) ? $event['data'] : [];
         [$id, $type, $timestamp] = [$event['id'], $event['type'], $event['timestamp']];
         $environment = is_string($event['environment'] ?? null) ? $event['environment'] : '';
+        $showcaseId = is_string($event['showcase_id'] ?? null) ? $event['showcase_id'] : '';
         return match (true) {
 {{- range .Webhooks}}
 {{- if eq .Data.Kind "model"}}
-            in_array($type, {{.Name}}WebhookEvent::TYPES, true) => new {{.Name}}WebhookEvent($id, $type, $timestamp, $environment, Models\{{.Data.Model}}::fromArray($data)),
+            in_array($type, {{.Name}}WebhookEvent::TYPES, true) => new {{.Name}}WebhookEvent($id, $type, $timestamp, $environment, $showcaseId, Models\{{.Data.Model}}::fromArray($data)),
 {{- else}}
-            in_array($type, {{.Name}}WebhookEvent::TYPES, true) => new {{.Name}}WebhookEvent($id, $type, $timestamp, $environment, array_map(static fn (mixed $value): string => is_scalar($value) ? (string) $value : '', $data)),
+            in_array($type, {{.Name}}WebhookEvent::TYPES, true) => new {{.Name}}WebhookEvent($id, $type, $timestamp, $environment, $showcaseId, array_map(static fn (mixed $value): string => is_scalar($value) ? (string) $value : '', $data)),
 {{- end}}
 {{- end}}
-            default => new UnknownWebhookEvent($id, $type, $timestamp, $environment, $data),
+            default => new UnknownWebhookEvent($id, $type, $timestamp, $environment, $showcaseId, $data),
         };
     }
 

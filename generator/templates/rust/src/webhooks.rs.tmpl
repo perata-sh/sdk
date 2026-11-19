@@ -16,7 +16,7 @@ pub const WEBHOOK_TOLERANCE: Duration = Duration::from_secs(300);
 
 /// What every webhook carries: the message's id, the same as the webhook-id
 /// header; the event's type; when it happened, in RFC 3339; the environment it
-/// happened in, `"test"` or `"live"`; and its data.
+/// happened in, `"test"` or `"live"`; the showcase of the sale; and its data.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[non_exhaustive]
 pub struct WebhookMessage<T> {
@@ -31,6 +31,10 @@ pub struct WebhookMessage<T> {
     /// older server did not send it.
     #[serde(default)]
     pub environment: String,
+    /// The showcase of the sale, the same `showcase_id` the API's objects
+    /// carry; empty when an older server did not send it.
+    #[serde(default)]
+    pub showcase_id: String,
     /// What the event carries.
     pub data: T,
 }
@@ -94,6 +98,17 @@ impl WebhookEvent {
             WebhookEvent::{{.Name}}(event) => &event.environment,
 {{- end}}
             WebhookEvent::Unknown(event) => &event.environment,
+        }
+    }
+
+    /// The showcase of the sale, the same `showcase_id` the API's objects
+    /// carry; empty when an older server did not send it.
+    pub fn showcase_id(&self) -> &str {
+        match self {
+{{- range .Webhooks}}
+            WebhookEvent::{{.Name}}(event) => &event.showcase_id,
+{{- end}}
+            WebhookEvent::Unknown(event) => &event.showcase_id,
         }
     }
 

@@ -19,6 +19,8 @@ final class Payment
         /** @var 'BRL' */
         public readonly string $currency,
         public readonly string $customerId,
+        /** Qual ciclo da assinatura o pagamento pagou: 1 é o primeiro; nulo fora de uma assinatura. */
+        public readonly ?int $cycleSequence,
         public readonly string $id,
         /** Valor de uma parcela; 0 à vista. */
         public readonly int $installmentAmountCents,
@@ -33,9 +35,17 @@ final class Payment
         public readonly array $metadata,
         /** @var 'card'|'pix'|'boleto' */
         public readonly string $method,
+        /** O fim do período que o ciclo paga; nulo fora de uma assinatura. */
+        public readonly ?string $periodEnd,
+        /** O começo do período que o ciclo paga; nulo fora de uma assinatura. */
+        public readonly ?string $periodStart,
         public readonly int $refundedCents,
+        /** O showcase a que pertence: o da chave de API que fez a chamada. Uma chave só alcança o seu showcase. */
+        public readonly string $showcaseId,
         /** @var 'unknown'|'pending'|'authorized'|'captured'|'refused'|'canceled'|'refunded'|'partially_refunded' */
         public readonly string $state,
+        /** A assinatura que este pagamento cobrou (a primeira ou uma renovação); nulo quando o pagamento não é de uma assinatura. */
+        public readonly ?string $subscriptionId,
     ) {
     }
 
@@ -52,14 +62,19 @@ final class Payment
             createdAt: $data['created_at'],
             currency: $data['currency'],
             customerId: $data['customer_id'],
+            cycleSequence: $data['cycle_sequence'] ?? null,
             id: $data['id'],
             installmentAmountCents: $data['installment_amount_cents'],
             installmentInterestCents: $data['installment_interest_cents'],
             installments: $data['installments'],
             metadata: $data['metadata'],
             method: $data['method'],
+            periodEnd: $data['period_end'] ?? null,
+            periodStart: $data['period_start'] ?? null,
             refundedCents: $data['refunded_cents'],
+            showcaseId: $data['showcase_id'],
             state: $data['state'],
+            subscriptionId: $data['subscription_id'] ?? null,
         );
     }
 }

@@ -138,17 +138,20 @@ public static class Webhook
         var environment = root.TryGetProperty("environment", out var sentEnvironment) && sentEnvironment.ValueKind == JsonValueKind.String
             ? sentEnvironment.GetString()!
             : "";
+        var showcaseId = root.TryGetProperty("showcase_id", out var sentShowcase) && sentShowcase.ValueKind == JsonValueKind.String
+            ? sentShowcase.GetString()!
+            : "";
         var data = root.TryGetProperty("data", out var sent) && sent.ValueKind == JsonValueKind.Object
             ? sent.Clone()
             : EmptyObject;
 {{- range .Webhooks}}
         if ({{.Name}}WebhookEvent.Types.Contains(type))
         {
-            return new {{.Name}}WebhookEvent(id, type, timestamp, environment, data.Deserialize(PerataJson.Default.{{csTypeInfo .Data}})
+            return new {{.Name}}WebhookEvent(id, type, timestamp, environment, showcaseId, data.Deserialize(PerataJson.Default.{{csTypeInfo .Data}})
                 ?? throw new JsonException("perata: the webhook has no data"));
         }
 {{- end}}
-        return new UnknownWebhookEvent(id, type, timestamp, environment, data);
+        return new UnknownWebhookEvent(id, type, timestamp, environment, showcaseId, data);
     }
 
     private static readonly JsonElement EmptyObject = JsonDocument.Parse("{}").RootElement.Clone();

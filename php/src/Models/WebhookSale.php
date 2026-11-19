@@ -24,6 +24,10 @@ final class WebhookSale
         public readonly ?int $cycleSequence,
         public readonly string $environment,
         public readonly string $eventId,
+        /** O código que a Cielo deu para a recusa, nos eventos refund.* de um reembolso que falhou; serve ao suporte. */
+        public readonly ?string $failureCode,
+        /** Por que o dinheiro não voltou, em português, nos eventos refund.* de um reembolso que falhou (refund.failed). */
+        public readonly ?string $failureReason,
         public readonly string $merchantId,
         /**
          * Os pares que o servidor do lojista enviou ao criar o checkout; vazio sem eles. Na renovação de uma assinatura são os da assinatura.
@@ -67,6 +71,8 @@ final class WebhookSale
             cycleSequence: $data['cycle_sequence'] ?? null,
             environment: $data['environment'],
             eventId: $data['event_id'],
+            failureCode: $data['failure_code'] ?? null,
+            failureReason: $data['failure_reason'] ?? null,
             merchantId: $data['merchant_id'],
             metadata: $data['metadata'] ?? null,
             method: $data['method'] ?? null,

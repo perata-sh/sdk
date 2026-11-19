@@ -17,9 +17,9 @@ class BenefitsService {
   /// configuram no painel.
   ///
   /// Autenticação: chave de API da organização em Authorization: Bearer
-  /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-  /// requisição. Respostas em JSON no envelope data; erros com error, message e
-  /// fields.
+  /// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+  /// nunca da requisição: a chave criada num showcase só alcança o que é dele.
+  /// Respostas em JSON no envelope data; erros com error, message e fields.
   Future<Benefit> create(
     BenefitsCreateParams params, {
     String? idempotencyKey,
@@ -41,9 +41,9 @@ class BenefitsService {
   /// tem.
   ///
   /// Autenticação: chave de API da organização em Authorization: Bearer
-  /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-  /// requisição. Respostas em JSON no envelope data; erros com error, message e
-  /// fields.
+  /// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+  /// nunca da requisição: a chave criada num showcase só alcança o que é dele.
+  /// Respostas em JSON no envelope data; erros com error, message e fields.
   Future<void> delete(
     String benefit, {
     String? idempotencyKey,
@@ -62,9 +62,9 @@ class BenefitsService {
   /// Devolve um benefício pelo ID.
   ///
   /// Autenticação: chave de API da organização em Authorization: Bearer
-  /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-  /// requisição. Respostas em JSON no envelope data; erros com error, message e
-  /// fields.
+  /// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+  /// nunca da requisição: a chave criada num showcase só alcança o que é dele.
+  /// Respostas em JSON no envelope data; erros com error, message e fields.
   Future<Benefit> get(
     String benefit, {
     String? apiKey,
@@ -83,9 +83,9 @@ class BenefitsService {
   /// tipo.
   ///
   /// Autenticação: chave de API da organização em Authorization: Bearer
-  /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-  /// requisição. Respostas em JSON no envelope data; erros com error, message e
-  /// fields.
+  /// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+  /// nunca da requisição: a chave criada num showcase só alcança o que é dele.
+  /// Respostas em JSON no envelope data; erros com error, message e fields.
   ///
   /// One page, from 1, of [limit] items (1 to 100, 10 by default);
   /// [listIter] walks every page.
@@ -132,9 +132,9 @@ class BenefitsService {
   /// de um cliente; com is_granted, só as vigentes ou só as revogadas.
   ///
   /// Autenticação: chave de API da organização em Authorization: Bearer
-  /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-  /// requisição. Respostas em JSON no envelope data; erros com error, message e
-  /// fields.
+  /// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+  /// nunca da requisição: a chave criada num showcase só alcança o que é dele.
+  /// Respostas em JSON no envelope data; erros com error, message e fields.
   ///
   /// One page, from 1, of [limit] items (1 to 100, 10 by default);
   /// [listGrantsIter] walks every page.
@@ -189,9 +189,9 @@ class BenefitsService {
   /// concessão já entregou fica como foi entregue.
   ///
   /// Autenticação: chave de API da organização em Authorization: Bearer
-  /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-  /// requisição. Respostas em JSON no envelope data; erros com error, message e
-  /// fields.
+  /// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+  /// nunca da requisição: a chave criada num showcase só alcança o que é dele.
+  /// Respostas em JSON no envelope data; erros com error, message e fields.
   Future<Benefit> update(
     String benefit,
     BenefitsUpdateParams params, {
@@ -222,9 +222,9 @@ class CheckoutLinksService {
   /// sessão de compra nova.
   ///
   /// Autenticação: chave de API da organização em Authorization: Bearer
-  /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-  /// requisição. Respostas em JSON no envelope data; erros com error, message e
-  /// fields.
+  /// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+  /// nunca da requisição: a chave criada num showcase só alcança o que é dele.
+  /// Respostas em JSON no envelope data; erros com error, message e fields.
   Future<CheckoutLink> create(
     CheckoutLinksCreateParams params, {
     String? idempotencyKey,
@@ -246,9 +246,9 @@ class CheckoutLinksService {
   /// continuam.
   ///
   /// Autenticação: chave de API da organização em Authorization: Bearer
-  /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-  /// requisição. Respostas em JSON no envelope data; erros com error, message e
-  /// fields.
+  /// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+  /// nunca da requisição: a chave criada num showcase só alcança o que é dele.
+  /// Respostas em JSON no envelope data; erros com error, message e fields.
   Future<void> delete(
     String checkoutLink, {
     String? idempotencyKey,
@@ -267,9 +267,9 @@ class CheckoutLinksService {
   /// Devolve um link de checkout pelo ID.
   ///
   /// Autenticação: chave de API da organização em Authorization: Bearer
-  /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-  /// requisição. Respostas em JSON no envelope data; erros com error, message e
-  /// fields.
+  /// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+  /// nunca da requisição: a chave criada num showcase só alcança o que é dele.
+  /// Respostas em JSON no envelope data; erros com error, message e fields.
   Future<CheckoutLink> get(
     String checkoutLink, {
     String? apiKey,
@@ -287,9 +287,9 @@ class CheckoutLinksService {
   /// Devolve uma página dos links de checkout da organização.
   ///
   /// Autenticação: chave de API da organização em Authorization: Bearer
-  /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-  /// requisição. Respostas em JSON no envelope data; erros com error, message e
-  /// fields.
+  /// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+  /// nunca da requisição: a chave criada num showcase só alcança o que é dele.
+  /// Respostas em JSON no envelope data; erros com error, message e fields.
   ///
   /// One page, from 1, of [limit] items (1 to 100, 10 by default);
   /// [listIter] walks every page.
@@ -332,9 +332,9 @@ class CheckoutLinksService {
   /// link. A quantidade e o desconto ficam como foram publicados.
   ///
   /// Autenticação: chave de API da organização em Authorization: Bearer
-  /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-  /// requisição. Respostas em JSON no envelope data; erros com error, message e
-  /// fields.
+  /// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+  /// nunca da requisição: a chave criada num showcase só alcança o que é dele.
+  /// Respostas em JSON no envelope data; erros com error, message e fields.
   Future<CheckoutLink> update(
     String checkoutLink,
     CheckoutLinksUpdateParams params, {
@@ -365,12 +365,16 @@ class CheckoutsService {
   /// comprador usa para pagar sem chave de API; o client_secret vem só nesta
   /// resposta. Para cobrar um valor que o seu servidor define, envie
   /// amount_cents e items (preço de valor livre). Envie client_reference_id e
-  /// metadata para achar o pedido depois.
+  /// metadata para achar o pedido depois. Em uma assinatura, envie as linhas do
+  /// pedido em items (só para exibição, com a soma igual ao valor do preço) e o
+  /// desconto em discount_id. Para uma assinatura que só começa a cobrar numa
+  /// data, envie subscription_start_at com o preço recorrente: o cartão é
+  /// guardado sem cobrança e a primeira cobrança acontece nesse dia.
   ///
   /// Autenticação: chave de API da organização em Authorization: Bearer
-  /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-  /// requisição. Respostas em JSON no envelope data; erros com error, message e
-  /// fields.
+  /// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+  /// nunca da requisição: a chave criada num showcase só alcança o que é dele.
+  /// Respostas em JSON no envelope data; erros com error, message e fields.
   Future<CheckoutCreated> create(
     CheckoutsCreateParams params, {
     String? idempotencyKey,
@@ -394,9 +398,9 @@ class CheckoutsService {
   /// checkout já foi pago ou emitiu um boleto, a resposta é 409.
   ///
   /// Autenticação: chave de API da organização em Authorization: Bearer
-  /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-  /// requisição. Respostas em JSON no envelope data; erros com error, message e
-  /// fields.
+  /// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+  /// nunca da requisição: a chave criada num showcase só alcança o que é dele.
+  /// Respostas em JSON no envelope data; erros com error, message e fields.
   Future<CheckoutExpired> expire(
     String checkout, {
     String? idempotencyKey,
@@ -416,9 +420,9 @@ class CheckoutsService {
   /// Devolve um checkout: o endereço, o estado e as páginas de retorno.
   ///
   /// Autenticação: chave de API da organização em Authorization: Bearer
-  /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-  /// requisição. Respostas em JSON no envelope data; erros com error, message e
-  /// fields.
+  /// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+  /// nunca da requisição: a chave criada num showcase só alcança o que é dele.
+  /// Respostas em JSON no envelope data; erros com error, message e fields.
   Future<Checkout> get(
     String checkout, {
     String? apiKey,
@@ -437,9 +441,9 @@ class CheckoutsService {
   /// período ou metadados.
   ///
   /// Autenticação: chave de API da organização em Authorization: Bearer
-  /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-  /// requisição. Respostas em JSON no envelope data; erros com error, message e
-  /// fields.
+  /// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+  /// nunca da requisição: a chave criada num showcase só alcança o que é dele.
+  /// Respostas em JSON no envelope data; erros com error, message e fields.
   ///
   /// One page, from 1, of [limit] items (1 to 100, 10 by default);
   /// [listIter] walks every page.
@@ -505,9 +509,9 @@ class CheckoutsService {
   /// Muda o rótulo e as páginas de retorno de um checkout ativo.
   ///
   /// Autenticação: chave de API da organização em Authorization: Bearer
-  /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-  /// requisição. Respostas em JSON no envelope data; erros com error, message e
-  /// fields.
+  /// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+  /// nunca da requisição: a chave criada num showcase só alcança o que é dele.
+  /// Respostas em JSON no envelope data; erros com error, message e fields.
   Future<Checkout> update(
     String checkout,
     CheckoutsUpdateParams params, {
@@ -538,9 +542,9 @@ class CustomerSessionsService {
   /// seu aplicativo, o portal oferece a volta.
   ///
   /// Autenticação: chave de API da organização em Authorization: Bearer
-  /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-  /// requisição. Respostas em JSON no envelope data; erros com error, message e
-  /// fields.
+  /// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+  /// nunca da requisição: a chave criada num showcase só alcança o que é dele.
+  /// Respostas em JSON no envelope data; erros com error, message e fields.
   Future<CustomerSession> create(
     CustomerSessionsCreateParams params, {
     String? idempotencyKey,
@@ -572,9 +576,9 @@ class CustomersService {
   /// Se o e-mail for de um cliente com outro ID externo, a resposta é 422.
   ///
   /// Autenticação: chave de API da organização em Authorization: Bearer
-  /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-  /// requisição. Respostas em JSON no envelope data; erros com error, message e
-  /// fields.
+  /// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+  /// nunca da requisição: a chave criada num showcase só alcança o que é dele.
+  /// Respostas em JSON no envelope data; erros com error, message e fields.
   Future<Customer> create(
     CustomersCreateParams params, {
     String? idempotencyKey,
@@ -597,9 +601,9 @@ class CustomersService {
   /// nos registros.
   ///
   /// Autenticação: chave de API da organização em Authorization: Bearer
-  /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-  /// requisição. Respostas em JSON no envelope data; erros com error, message e
-  /// fields.
+  /// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+  /// nunca da requisição: a chave criada num showcase só alcança o que é dele.
+  /// Respostas em JSON no envelope data; erros com error, message e fields.
   Future<void> delete(
     String customer, {
     String? idempotencyKey,
@@ -618,9 +622,9 @@ class CustomersService {
   /// Devolve um cliente pelo ID.
   ///
   /// Autenticação: chave de API da organização em Authorization: Bearer
-  /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-  /// requisição. Respostas em JSON no envelope data; erros com error, message e
-  /// fields.
+  /// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+  /// nunca da requisição: a chave criada num showcase só alcança o que é dele.
+  /// Respostas em JSON no envelope data; erros com error, message e fields.
   Future<Customer> get(
     String customer, {
     String? apiKey,
@@ -639,9 +643,9 @@ class CustomersService {
   /// (external_id).
   ///
   /// Autenticação: chave de API da organização em Authorization: Bearer
-  /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-  /// requisição. Respostas em JSON no envelope data; erros com error, message e
-  /// fields.
+  /// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+  /// nunca da requisição: a chave criada num showcase só alcança o que é dele.
+  /// Respostas em JSON no envelope data; erros com error, message e fields.
   Future<Customer> getExternal(
     String externalId, {
     String? apiKey,
@@ -661,9 +665,9 @@ class CustomersService {
   /// para decidir o que o cliente pode usar.
   ///
   /// Autenticação: chave de API da organização em Authorization: Bearer
-  /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-  /// requisição. Respostas em JSON no envelope data; erros com error, message e
-  /// fields.
+  /// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+  /// nunca da requisição: a chave criada num showcase só alcança o que é dele.
+  /// Respostas em JSON no envelope data; erros com error, message e fields.
   Future<CustomerState> getState(
     String customer, {
     String? apiKey,
@@ -682,9 +686,9 @@ class CustomersService {
   /// sem diferença entre maiúsculas e minúsculas.
   ///
   /// Autenticação: chave de API da organização em Authorization: Bearer
-  /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-  /// requisição. Respostas em JSON no envelope data; erros com error, message e
-  /// fields.
+  /// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+  /// nunca da requisição: a chave criada num showcase só alcança o que é dele.
+  /// Respostas em JSON no envelope data; erros com error, message e fields.
   ///
   /// One page, from 1, of [limit] items (1 to 100, 10 by default);
   /// [listIter] walks every page.
@@ -731,9 +735,9 @@ class CustomersService {
   /// endereço de cobrança. O ID externo só pode ser definido uma vez.
   ///
   /// Autenticação: chave de API da organização em Authorization: Bearer
-  /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-  /// requisição. Respostas em JSON no envelope data; erros com error, message e
-  /// fields.
+  /// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+  /// nunca da requisição: a chave criada num showcase só alcança o que é dele.
+  /// Respostas em JSON no envelope data; erros com error, message e fields.
   Future<Customer> update(
     String customer,
     CustomersUpdateParams params, {
@@ -756,9 +760,9 @@ class CustomersService {
   /// (external_id). Os campos são os de Atualizar um cliente.
   ///
   /// Autenticação: chave de API da organização em Authorization: Bearer
-  /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-  /// requisição. Respostas em JSON no envelope data; erros com error, message e
-  /// fields.
+  /// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+  /// nunca da requisição: a chave criada num showcase só alcança o que é dele.
+  /// Respostas em JSON no envelope data; erros com error, message e fields.
   Future<Customer> updateExternal(
     String externalId,
     CustomersUpdateExternalParams params, {
@@ -789,9 +793,9 @@ class DiscountsService {
   /// só vale num link de checkout ou pela API.
   ///
   /// Autenticação: chave de API da organização em Authorization: Bearer
-  /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-  /// requisição. Respostas em JSON no envelope data; erros com error, message e
-  /// fields.
+  /// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+  /// nunca da requisição: a chave criada num showcase só alcança o que é dele.
+  /// Respostas em JSON no envelope data; erros com error, message e fields.
   Future<Discount> create(
     DiscountsCreateParams params, {
     String? idempotencyKey,
@@ -813,9 +817,9 @@ class DiscountsService {
   /// livre. O que ele já descontou continua nos registros.
   ///
   /// Autenticação: chave de API da organização em Authorization: Bearer
-  /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-  /// requisição. Respostas em JSON no envelope data; erros com error, message e
-  /// fields.
+  /// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+  /// nunca da requisição: a chave criada num showcase só alcança o que é dele.
+  /// Respostas em JSON no envelope data; erros com error, message e fields.
   Future<void> delete(
     String discount, {
     String? idempotencyKey,
@@ -834,9 +838,9 @@ class DiscountsService {
   /// Devolve um desconto pelo ID.
   ///
   /// Autenticação: chave de API da organização em Authorization: Bearer
-  /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-  /// requisição. Respostas em JSON no envelope data; erros com error, message e
-  /// fields.
+  /// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+  /// nunca da requisição: a chave criada num showcase só alcança o que é dele.
+  /// Respostas em JSON no envelope data; erros com error, message e fields.
   Future<Discount> get(
     String discount, {
     String? apiKey,
@@ -854,9 +858,9 @@ class DiscountsService {
   /// Devolve uma página dos descontos da organização.
   ///
   /// Autenticação: chave de API da organização em Authorization: Bearer
-  /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-  /// requisição. Respostas em JSON no envelope data; erros com error, message e
-  /// fields.
+  /// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+  /// nunca da requisição: a chave criada num showcase só alcança o que é dele.
+  /// Respostas em JSON no envelope data; erros com error, message e fields.
   ///
   /// One page, from 1, of [limit] items (1 to 100, 10 by default);
   /// [listIter] walks every page.
@@ -899,9 +903,9 @@ class DiscountsService {
   /// valor e os meses também não.
   ///
   /// Autenticação: chave de API da organização em Authorization: Bearer
-  /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-  /// requisição. Respostas em JSON no envelope data; erros com error, message e
-  /// fields.
+  /// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+  /// nunca da requisição: a chave criada num showcase só alcança o que é dele.
+  /// Respostas em JSON no envelope data; erros com error, message e fields.
   Future<Discount> update(
     String discount,
     DiscountsUpdateParams params, {
@@ -930,9 +934,9 @@ class DisputesService {
   /// Devolve uma disputa pelo ID.
   ///
   /// Autenticação: chave de API da organização em Authorization: Bearer
-  /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-  /// requisição. Respostas em JSON no envelope data; erros com error, message e
-  /// fields.
+  /// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+  /// nunca da requisição: a chave criada num showcase só alcança o que é dele.
+  /// Respostas em JSON no envelope data; erros com error, message e fields.
   Future<Dispute> get(
     String dispute, {
     String? apiKey,
@@ -950,9 +954,9 @@ class DisputesService {
   /// Devolve uma página das disputas. Com status, só as que estão nele.
   ///
   /// Autenticação: chave de API da organização em Authorization: Bearer
-  /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-  /// requisição. Respostas em JSON no envelope data; erros com error, message e
-  /// fields.
+  /// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+  /// nunca da requisição: a chave criada num showcase só alcança o que é dele.
+  /// Respostas em JSON no envelope data; erros com error, message e fields.
   ///
   /// One page, from 1, of [limit] items (1 to 100, 10 by default);
   /// [listIter] walks every page.
@@ -1006,9 +1010,9 @@ class EventsService {
   /// novo ao mais antigo.
   ///
   /// Autenticação: chave de API da organização em Authorization: Bearer
-  /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-  /// requisição. Respostas em JSON no envelope data; erros com error, message e
-  /// fields.
+  /// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+  /// nunca da requisição: a chave criada num showcase só alcança o que é dele.
+  /// Respostas em JSON no envelope data; erros com error, message e fields.
   ///
   /// One page, from 1, of [limit] items (1 to 100, 10 by default);
   /// [listIter] walks every page.
@@ -1070,9 +1074,9 @@ class MetersService {
   /// unidade.
   ///
   /// Autenticação: chave de API da organização em Authorization: Bearer
-  /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-  /// requisição. Respostas em JSON no envelope data; erros com error, message e
-  /// fields.
+  /// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+  /// nunca da requisição: a chave criada num showcase só alcança o que é dele.
+  /// Respostas em JSON no envelope data; erros com error, message e fields.
   Future<Meter> get(
     String meter, {
     String? apiKey,
@@ -1091,9 +1095,9 @@ class MetersService {
   /// is_archived=true.
   ///
   /// Autenticação: chave de API da organização em Authorization: Bearer
-  /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-  /// requisição. Respostas em JSON no envelope data; erros com error, message e
-  /// fields.
+  /// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+  /// nunca da requisição: a chave criada num showcase só alcança o que é dele.
+  /// Respostas em JSON no envelope data; erros com error, message e fields.
   ///
   /// One page, from 1, of [limit] items (1 to 100, 10 by default);
   /// [listIter] walks every page.
@@ -1143,12 +1147,13 @@ class OrdersService {
 
   /// Ler um pedido.
   ///
-  /// Devolve um pedido: um checkout pago.
+  /// Devolve um pedido: um checkout pago. Se ele pagou um ciclo de assinatura,
+  /// traz subscription_id, cycle_sequence, period_start e period_end.
   ///
   /// Autenticação: chave de API da organização em Authorization: Bearer
-  /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-  /// requisição. Respostas em JSON no envelope data; erros com error, message e
-  /// fields.
+  /// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+  /// nunca da requisição: a chave criada num showcase só alcança o que é dele.
+  /// Respostas em JSON no envelope data; erros com error, message e fields.
   Future<Order> get(
     String order, {
     String? apiKey,
@@ -1167,9 +1172,9 @@ class OrdersService {
   /// Sem fatura, a resposta é 404.
   ///
   /// Autenticação: chave de API da organização em Authorization: Bearer
-  /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-  /// requisição. Respostas em JSON no envelope data; erros com error, message e
-  /// fields.
+  /// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+  /// nunca da requisição: a chave criada num showcase só alcança o que é dele.
+  /// Respostas em JSON no envelope data; erros com error, message e fields.
   Future<OrderInvoice> getInvoice(
     String order, {
     String? apiKey,
@@ -1187,9 +1192,9 @@ class OrdersService {
   /// Devolve o recibo de um pedido: o que foi pago, quando e como.
   ///
   /// Autenticação: chave de API da organização em Authorization: Bearer
-  /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-  /// requisição. Respostas em JSON no envelope data; erros com error, message e
-  /// fields.
+  /// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+  /// nunca da requisição: a chave criada num showcase só alcança o que é dele.
+  /// Respostas em JSON no envelope data; erros com error, message e fields.
   Future<OrderReceipt> getReceipt(
     String order, {
     String? apiKey,
@@ -1205,12 +1210,13 @@ class OrdersService {
   /// Listar pedidos.
   ///
   /// Devolve uma página dos pedidos, que são os checkouts pagos. Filtre por
-  /// client_reference_id, cliente, período ou metadados.
+  /// client_reference_id, cliente, assinatura (subscription_id), período ou
+  /// metadados.
   ///
   /// Autenticação: chave de API da organização em Authorization: Bearer
-  /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-  /// requisição. Respostas em JSON no envelope data; erros com error, message e
-  /// fields.
+  /// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+  /// nunca da requisição: a chave criada num showcase só alcança o que é dele.
+  /// Respostas em JSON no envelope data; erros com error, message e fields.
   ///
   /// One page, from 1, of [limit] items (1 to 100, 10 by default);
   /// [listIter] walks every page.
@@ -1221,6 +1227,7 @@ class OrdersService {
     String? status,
     String? customerId,
     String? externalCustomerId,
+    String? subscriptionId,
     String? createdAfter,
     String? createdBefore,
     String? sorting,
@@ -1237,6 +1244,7 @@ class OrdersService {
         'status': status,
         'customer_id': customerId,
         'external_customer_id': externalCustomerId,
+        'subscription_id': subscriptionId,
         'created_after': createdAfter,
         'created_before': createdBefore,
         'sorting': sorting,
@@ -1255,6 +1263,7 @@ class OrdersService {
     String? status,
     String? customerId,
     String? externalCustomerId,
+    String? subscriptionId,
     String? createdAfter,
     String? createdBefore,
     String? sorting,
@@ -1269,6 +1278,7 @@ class OrdersService {
         status: status,
         customerId: customerId,
         externalCustomerId: externalCustomerId,
+        subscriptionId: subscriptionId,
         createdAfter: createdAfter,
         createdBefore: createdBefore,
         sorting: sorting,
@@ -1292,9 +1302,9 @@ class PaymentMethodsService {
   /// assinatura ativa o cobra.
   ///
   /// Autenticação: chave de API da organização em Authorization: Bearer
-  /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-  /// requisição. Respostas em JSON no envelope data; erros com error, message e
-  /// fields.
+  /// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+  /// nunca da requisição: a chave criada num showcase só alcança o que é dele.
+  /// Respostas em JSON no envelope data; erros com error, message e fields.
   Future<PaymentMethodDetached> detach(
     String paymentMethod, {
     String? idempotencyKey,
@@ -1315,9 +1325,9 @@ class PaymentMethodsService {
   /// dígitos e validade. O número do cartão nunca aparece.
   ///
   /// Autenticação: chave de API da organização em Authorization: Bearer
-  /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-  /// requisição. Respostas em JSON no envelope data; erros com error, message e
-  /// fields.
+  /// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+  /// nunca da requisição: a chave criada num showcase só alcança o que é dele.
+  /// Respostas em JSON no envelope data; erros com error, message e fields.
   ///
   /// One page, from 1, of [limit] items (1 to 100, 10 by default);
   /// [listIter] walks every page.
@@ -1369,9 +1379,9 @@ class PaymentsService {
   /// Devolve um pagamento pelo ID.
   ///
   /// Autenticação: chave de API da organização em Authorization: Bearer
-  /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-  /// requisição. Respostas em JSON no envelope data; erros com error, message e
-  /// fields.
+  /// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+  /// nunca da requisição: a chave criada num showcase só alcança o que é dele.
+  /// Respostas em JSON no envelope data; erros com error, message e fields.
   Future<Payment> get(
     String payment, {
     String? apiKey,
@@ -1387,12 +1397,12 @@ class PaymentsService {
   /// Listar pagamentos.
   ///
   /// Devolve uma página dos pagamentos. Filtre por client_reference_id, estado,
-  /// cliente, período ou metadados.
+  /// cliente, assinatura (subscription_id), período ou metadados.
   ///
   /// Autenticação: chave de API da organização em Authorization: Bearer
-  /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-  /// requisição. Respostas em JSON no envelope data; erros com error, message e
-  /// fields.
+  /// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+  /// nunca da requisição: a chave criada num showcase só alcança o que é dele.
+  /// Respostas em JSON no envelope data; erros com error, message e fields.
   ///
   /// One page, from 1, of [limit] items (1 to 100, 10 by default);
   /// [listIter] walks every page.
@@ -1403,6 +1413,7 @@ class PaymentsService {
     String? status,
     String? customerId,
     String? externalCustomerId,
+    String? subscriptionId,
     String? createdAfter,
     String? createdBefore,
     String? sorting,
@@ -1419,6 +1430,7 @@ class PaymentsService {
         'status': status,
         'customer_id': customerId,
         'external_customer_id': externalCustomerId,
+        'subscription_id': subscriptionId,
         'created_after': createdAfter,
         'created_before': createdBefore,
         'sorting': sorting,
@@ -1437,6 +1449,7 @@ class PaymentsService {
     String? status,
     String? customerId,
     String? externalCustomerId,
+    String? subscriptionId,
     String? createdAfter,
     String? createdBefore,
     String? sorting,
@@ -1451,6 +1464,7 @@ class PaymentsService {
         status: status,
         customerId: customerId,
         externalCustomerId: externalCustomerId,
+        subscriptionId: subscriptionId,
         createdAfter: createdAfter,
         createdBefore: createdBefore,
         sorting: sorting,
@@ -1475,9 +1489,9 @@ class PricesService {
   /// quanto tempo ele renova: month com 3 é trimestral.
   ///
   /// Autenticação: chave de API da organização em Authorization: Bearer
-  /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-  /// requisição. Respostas em JSON no envelope data; erros com error, message e
-  /// fields.
+  /// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+  /// nunca da requisição: a chave criada num showcase só alcança o que é dele.
+  /// Respostas em JSON no envelope data; erros com error, message e fields.
   Future<Price> create(
     PricesCreateParams params, {
     String? idempotencyKey,
@@ -1499,9 +1513,9 @@ class PricesService {
   /// produto.
   ///
   /// Autenticação: chave de API da organização em Authorization: Bearer
-  /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-  /// requisição. Respostas em JSON no envelope data; erros com error, message e
-  /// fields.
+  /// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+  /// nunca da requisição: a chave criada num showcase só alcança o que é dele.
+  /// Respostas em JSON no envelope data; erros com error, message e fields.
   ///
   /// One page, from 1, of [limit] items (1 to 100, 10 by default);
   /// [listIter] walks every page.
@@ -1555,9 +1569,9 @@ class ProductsService {
   /// continua apontando para ele.
   ///
   /// Autenticação: chave de API da organização em Authorization: Bearer
-  /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-  /// requisição. Respostas em JSON no envelope data; erros com error, message e
-  /// fields.
+  /// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+  /// nunca da requisição: a chave criada num showcase só alcança o que é dele.
+  /// Respostas em JSON no envelope data; erros com error, message e fields.
   Future<Product> archive(
     String product, {
     String? idempotencyKey,
@@ -1578,9 +1592,9 @@ class ProductsService {
   /// preço.
   ///
   /// Autenticação: chave de API da organização em Authorization: Bearer
-  /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-  /// requisição. Respostas em JSON no envelope data; erros com error, message e
-  /// fields.
+  /// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+  /// nunca da requisição: a chave criada num showcase só alcança o que é dele.
+  /// Respostas em JSON no envelope data; erros com error, message e fields.
   Future<Product> create(
     ProductsCreateParams params, {
     String? idempotencyKey,
@@ -1601,9 +1615,9 @@ class ProductsService {
   /// Devolve um produto pelo ID.
   ///
   /// Autenticação: chave de API da organização em Authorization: Bearer
-  /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-  /// requisição. Respostas em JSON no envelope data; erros com error, message e
-  /// fields.
+  /// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+  /// nunca da requisição: a chave criada num showcase só alcança o que é dele.
+  /// Respostas em JSON no envelope data; erros com error, message e fields.
   Future<Product> get(
     String product, {
     String? apiKey,
@@ -1621,9 +1635,9 @@ class ProductsService {
   /// Devolve uma página dos produtos da organização, no ambiente da chave.
   ///
   /// Autenticação: chave de API da organização em Authorization: Bearer
-  /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-  /// requisição. Respostas em JSON no envelope data; erros com error, message e
-  /// fields.
+  /// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+  /// nunca da requisição: a chave criada num showcase só alcança o que é dele.
+  /// Respostas em JSON no envelope data; erros com error, message e fields.
   ///
   /// One page, from 1, of [limit] items (1 to 100, 10 by default);
   /// [listIter] walks every page.
@@ -1666,9 +1680,9 @@ class ProductsService {
   /// como está.
   ///
   /// Autenticação: chave de API da organização em Authorization: Bearer
-  /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-  /// requisição. Respostas em JSON no envelope data; erros com error, message e
-  /// fields.
+  /// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+  /// nunca da requisição: a chave criada num showcase só alcança o que é dele.
+  /// Respostas em JSON no envelope data; erros com error, message e fields.
   Future<Product> update(
     String product,
     ProductsUpdateParams params, {
@@ -1692,16 +1706,21 @@ class RefundsService {
 
   final Requester _client;
 
-  /// Reembolsar um pagamento.
+  /// Reembolsar um pagamento ou um pedido.
   ///
-  /// Devolve parte ou todo o valor de um pagamento. A Idempotency-Key é
-  /// obrigatória: sem ela, repetir a chamada depois de um tempo esgotado seria
-  /// devolver duas vezes.
+  /// Devolve dinheiro de um pagamento, que você nomeia pelo payment_id ou pelo
+  /// order_id do pedido que ele pagou (os dois, só se forem do mesmo
+  /// pagamento). Sem amount_cents devolve tudo o que ainda pode ser devolvido;
+  /// com ele, uma parte, até esse limite. O reason, sem ele, é
+  /// requested_by_customer. O metadata fica no reembolso e volta nele e nos
+  /// eventos refund.*. A Idempotency-Key é obrigatória: sem ela, repetir a
+  /// chamada depois de um tempo esgotado seria devolver duas vezes; repetida
+  /// com a mesma chave, devolve o mesmo reembolso.
   ///
   /// Autenticação: chave de API da organização em Authorization: Bearer
-  /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-  /// requisição. Respostas em JSON no envelope data; erros com error, message e
-  /// fields.
+  /// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+  /// nunca da requisição: a chave criada num showcase só alcança o que é dele.
+  /// Respostas em JSON no envelope data; erros com error, message e fields.
   Future<Refund> create(
     RefundsCreateParams params, {
     String? idempotencyKey,
@@ -1717,15 +1736,37 @@ class RefundsService {
     return Refund.fromJson(data);
   }
 
+  /// Ler um reembolso.
+  ///
+  /// Devolve um reembolso pelo ID, com o pedido de onde veio (order_id), o
+  /// client_reference_id desse pedido e o status: requested e pending esperam a
+  /// Cielo, succeeded devolveu o dinheiro.
+  ///
+  /// Autenticação: chave de API da organização em Authorization: Bearer
+  /// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+  /// nunca da requisição: a chave criada num showcase só alcança o que é dele.
+  /// Respostas em JSON no envelope data; erros com error, message e fields.
+  Future<Refund> get(
+    String refund, {
+    String? apiKey,
+  }) async {
+    final data = await _client.request(
+      'GET',
+      '/api/v1/refunds/${Uri.encodeComponent(refund)}',
+      apiKey: apiKey,
+    );
+    return Refund.fromJson(data);
+  }
+
   /// Listar reembolsos.
   ///
   /// Devolve uma página dos reembolsos. Filtre por pagamento (payment_id),
-  /// status, cliente ou período.
+  /// status, cliente, período ou metadados do reembolso.
   ///
   /// Autenticação: chave de API da organização em Authorization: Bearer
-  /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-  /// requisição. Respostas em JSON no envelope data; erros com error, message e
-  /// fields.
+  /// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+  /// nunca da requisição: a chave criada num showcase só alcança o que é dele.
+  /// Respostas em JSON no envelope data; erros com error, message e fields.
   ///
   /// One page, from 1, of [limit] items (1 to 100, 10 by default);
   /// [listIter] walks every page.
@@ -1739,6 +1780,7 @@ class RefundsService {
     String? createdAfter,
     String? createdBefore,
     String? sorting,
+    Map<String, String>? metadata,
     String? apiKey,
   }) async {
     final data = await _client.request(
@@ -1754,6 +1796,7 @@ class RefundsService {
         'created_after': createdAfter,
         'created_before': createdBefore,
         'sorting': sorting,
+        'metadata': metadata,
       },
       apiKey: apiKey,
     );
@@ -1771,6 +1814,7 @@ class RefundsService {
     String? createdAfter,
     String? createdBefore,
     String? sorting,
+    Map<String, String>? metadata,
     String? apiKey,
   }) {
     return iterate(
@@ -1784,10 +1828,40 @@ class RefundsService {
         createdAfter: createdAfter,
         createdBefore: createdBefore,
         sorting: sorting,
+        metadata: metadata,
         apiKey: apiKey,
       ),
       page,
     );
+  }
+}
+
+/// The API's showcase.
+class ShowcaseService {
+  const ShowcaseService(this._client);
+
+  final Requester _client;
+
+  /// Ler o showcase da chave.
+  ///
+  /// Devolve o showcase em que a chave foi criada: o ID (o showcase_id dos
+  /// objetos e dos eventos), o nome, se é o principal da organização e se tem
+  /// logo. Serve para o seu sistema, ou um assistente, saber onde está. Um
+  /// showcase se abre e se muda no painel, nunca por esta API.
+  ///
+  /// Autenticação: chave de API da organização em Authorization: Bearer
+  /// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+  /// nunca da requisição: a chave criada num showcase só alcança o que é dele.
+  /// Respostas em JSON no envelope data; erros com error, message e fields.
+  Future<Showcase> get({
+    String? apiKey,
+  }) async {
+    final data = await _client.request(
+      'GET',
+      '/api/v1/showcase',
+      apiKey: apiKey,
+    );
+    return Showcase.fromJson(data);
   }
 }
 
@@ -1803,9 +1877,9 @@ class SubscriptionsService {
   /// já pago.
   ///
   /// Autenticação: chave de API da organização em Authorization: Bearer
-  /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-  /// requisição. Respostas em JSON no envelope data; erros com error, message e
-  /// fields.
+  /// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+  /// nunca da requisição: a chave criada num showcase só alcança o que é dele.
+  /// Respostas em JSON no envelope data; erros com error, message e fields.
   Future<Subscription> cancel(
     String subscription,
     SubscriptionsCancelParams params, {
@@ -1827,9 +1901,9 @@ class SubscriptionsService {
   /// Devolve uma assinatura pelo ID.
   ///
   /// Autenticação: chave de API da organização em Authorization: Bearer
-  /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-  /// requisição. Respostas em JSON no envelope data; erros com error, message e
-  /// fields.
+  /// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+  /// nunca da requisição: a chave criada num showcase só alcança o que é dele.
+  /// Respostas em JSON no envelope data; erros com error, message e fields.
   Future<Subscription> get(
     String subscription, {
     String? apiKey,
@@ -1848,9 +1922,9 @@ class SubscriptionsService {
   /// external_customer_id), status, período ou metadados.
   ///
   /// Autenticação: chave de API da organização em Authorization: Bearer
-  /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-  /// requisição. Respostas em JSON no envelope data; erros com error, message e
-  /// fields.
+  /// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+  /// nunca da requisição: a chave criada num showcase só alcança o que é dele.
+  /// Respostas em JSON no envelope data; erros com error, message e fields.
   ///
   /// One page, from 1, of [limit] items (1 to 100, 10 by default);
   /// [listIter] walks every page.
@@ -1922,9 +1996,9 @@ class SubscriptionsService {
   /// assinatura recebe 409.
   ///
   /// Autenticação: chave de API da organização em Authorization: Bearer
-  /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-  /// requisição. Respostas em JSON no envelope data; erros com error, message e
-  /// fields.
+  /// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+  /// nunca da requisição: a chave criada num showcase só alcança o que é dele.
+  /// Respostas em JSON no envelope data; erros com error, message e fields.
   Future<Subscription> resume(
     String subscription, {
     String? idempotencyKey,
@@ -1945,9 +2019,9 @@ class SubscriptionsService {
   /// quantidade. O proration_behavior diz como ratear a diferença.
   ///
   /// Autenticação: chave de API da organização em Authorization: Bearer
-  /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-  /// requisição. Respostas em JSON no envelope data; erros com error, message e
-  /// fields.
+  /// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+  /// nunca da requisição: a chave criada num showcase só alcança o que é dele.
+  /// Respostas em JSON no envelope data; erros com error, message e fields.
   Future<Subscription> update(
     String subscription,
     SubscriptionsUpdateParams params, {
@@ -2018,9 +2092,9 @@ class WebhooksService {
   /// nesta resposta; guarde-o.
   ///
   /// Autenticação: chave de API da organização em Authorization: Bearer
-  /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-  /// requisição. Respostas em JSON no envelope data; erros com error, message e
-  /// fields.
+  /// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+  /// nunca da requisição: a chave criada num showcase só alcança o que é dele.
+  /// Respostas em JSON no envelope data; erros com error, message e fields.
   Future<WebhookEndpointCreated> createEndpoint(
     WebhooksCreateEndpointParams params, {
     String? idempotencyKey,
@@ -2042,9 +2116,9 @@ class WebhooksService {
   /// falham.
   ///
   /// Autenticação: chave de API da organização em Authorization: Bearer
-  /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-  /// requisição. Respostas em JSON no envelope data; erros com error, message e
-  /// fields.
+  /// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+  /// nunca da requisição: a chave criada num showcase só alcança o que é dele.
+  /// Respostas em JSON no envelope data; erros com error, message e fields.
   Future<void> deleteEndpoint(
     String endpoint, {
     String? idempotencyKey,
@@ -2063,9 +2137,9 @@ class WebhooksService {
   /// Devolve um endpoint de webhook pelo ID.
   ///
   /// Autenticação: chave de API da organização em Authorization: Bearer
-  /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-  /// requisição. Respostas em JSON no envelope data; erros com error, message e
-  /// fields.
+  /// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+  /// nunca da requisição: a chave criada num showcase só alcança o que é dele.
+  /// Respostas em JSON no envelope data; erros com error, message e fields.
   Future<WebhookEndpoint> getEndpoint(
     String endpoint, {
     String? apiKey,
@@ -2084,9 +2158,9 @@ class WebhooksService {
   /// só as de um endpoint; com status, só as de uma situação.
   ///
   /// Autenticação: chave de API da organização em Authorization: Bearer
-  /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-  /// requisição. Respostas em JSON no envelope data; erros com error, message e
-  /// fields.
+  /// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+  /// nunca da requisição: a chave criada num showcase só alcança o que é dele.
+  /// Respostas em JSON no envelope data; erros com error, message e fields.
   ///
   /// One page, from 1, of [limit] items (1 to 100, 10 by default);
   /// [listDeliveriesIter] walks every page.
@@ -2136,9 +2210,9 @@ class WebhooksService {
   /// Devolve uma página dos endpoints de webhook da organização.
   ///
   /// Autenticação: chave de API da organização em Authorization: Bearer
-  /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-  /// requisição. Respostas em JSON no envelope data; erros com error, message e
-  /// fields.
+  /// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+  /// nunca da requisição: a chave criada num showcase só alcança o que é dele.
+  /// Respostas em JSON no envelope data; erros com error, message e fields.
   ///
   /// One page, from 1, of [limit] items (1 to 100, 10 by default);
   /// [listEndpointsIter] walks every page.
@@ -2181,9 +2255,9 @@ class WebhooksService {
   /// liga e desliga o envio (enabled). O segredo não muda.
   ///
   /// Autenticação: chave de API da organização em Authorization: Bearer
-  /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-  /// requisição. Respostas em JSON no envelope data; erros com error, message e
-  /// fields.
+  /// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+  /// nunca da requisição: a chave criada num showcase só alcança o que é dele.
+  /// Respostas em JSON no envelope data; erros com error, message e fields.
   Future<WebhookEndpoint> updateEndpoint(
     String endpoint,
     WebhooksUpdateEndpointParams params, {

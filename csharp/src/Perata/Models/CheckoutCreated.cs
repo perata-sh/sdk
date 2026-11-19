@@ -39,6 +39,10 @@ public sealed record CheckoutCreated
     [JsonPropertyName("created_at")]
     public required string CreatedAt { get; init; }
 
+    /// <summary>O desconto que o checkout aplica sozinho, como o seu servidor o enviou na criação; vazio sem ele. O comprador o vê no resumo e ele conta desde a primeira cobrança.</summary>
+    [JsonPropertyName("discount_id")]
+    public required string DiscountId { get; init; }
+
     /// <summary>Quando o link deixa de abrir sessões; nulo sem prazo. Null when the API sends none.</summary>
     [JsonPropertyName("expires_at")]
     public string? ExpiresAt { get; init; }
@@ -75,6 +79,10 @@ public sealed record CheckoutCreated
     [JsonPropertyName("session_id")]
     public required string SessionId { get; init; }
 
+    /// <summary>O showcase a que pertence: o da chave de API que fez a chamada. Uma chave só alcança o seu showcase.</summary>
+    [JsonPropertyName("showcase_id")]
+    public required string ShowcaseId { get; init; }
+
     /// <summary>active abre sessões de compra; archived saiu de circulação.</summary>
     [JsonPropertyName("status")]
     public required string Status { get; init; }
@@ -82,6 +90,10 @@ public sealed record CheckoutCreated
     /// <summary>Lê o estado da sessão depois que o client_secret é consumido: GET /checkouts/client/status/{status_key}. Só esta resposta o traz.</summary>
     [JsonPropertyName("status_key")]
     public required string StatusKey { get; init; }
+
+    /// <summary>O dia da primeira cobrança de uma assinatura que começa numa data (a meia-noite desse dia em São Paulo, com o fuso); nulo quando o checkout cobra na hora ou começa por um teste em dias. O cartão é guardado sem cobrança e a cobrança acontece nesse dia. Null when the API sends none.</summary>
+    [JsonPropertyName("subscription_start_at")]
+    public string? SubscriptionStartAt { get; init; }
 
     /// <summary>Endereço https para onde o comprador volta depois de pagar; vazio sem ele.</summary>
     [JsonPropertyName("success_url")]

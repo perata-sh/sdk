@@ -51,8 +51,8 @@ final class IdentifiersWebhookEvent extends WebhookEvent
     /**
      * @param array<string, string> $data
      */
-    public function __construct(string $id, string $type, string $timestamp, string $environment, public readonly array $data)
+    public function __construct(string $id, string $type, string $timestamp, string $environment, string $showcaseId, public readonly array $data)
     {
-        parent::__construct($id, $type, $timestamp, $environment);
+        parent::__construct($id, $type, $timestamp, $environment, $showcaseId);
     }
 }

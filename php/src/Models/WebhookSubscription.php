@@ -28,6 +28,8 @@ final class WebhookSubscription
         public readonly ?WebhookSubscriptionPaymentFailure $paymentFailure,
         public readonly string $priceId,
         public readonly string $productId,
+        /** O showcase da venda. */
+        public readonly string $showcaseId,
         /** @var 'trialing'|'active'|'past_due'|'suspended'|'paused'|'canceled' */
         public readonly string $status,
         /** Quando a assinatura foi suspensa; nulo enquanto não está suspensa. */
@@ -60,6 +62,7 @@ final class WebhookSubscription
             paymentFailure: isset($data['payment_failure']) ? WebhookSubscriptionPaymentFailure::fromArray($data['payment_failure']) : null,
             priceId: $data['price_id'],
             productId: $data['product_id'],
+            showcaseId: $data['showcase_id'],
             status: $data['status'],
             suspendedAt: $data['suspended_at'] ?? null,
             suspensionReason: $data['suspension_reason'] ?? null,

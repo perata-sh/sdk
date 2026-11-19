@@ -21,7 +21,7 @@ module Perata
   # (OrderWebhookEvent carries a WebhookOrder…), or UnknownWebhookEvent for a type
   # this SDK does not know yet. Within a class, +type+ says what happened.
   class WebhookEvent < Model
-    MEMBERS = %i[id type timestamp environment data].freeze
+    MEMBERS = %i[id type timestamp environment showcase_id data].freeze
 
     # @return [String] the message's id, the same as the webhook-id header
     attr_reader :id
@@ -32,14 +32,18 @@ module Perata
     # @return [String] the environment it happened in, "test" or "live"; empty
     #   when an older server did not send it
     attr_reader :environment
+    # @return [String] the showcase of the sale, the same +showcase_id+ the
+    #   API's objects carry; empty when an older server did not send it
+    attr_reader :showcase_id
     # @return [Object] what the event carries
     attr_reader :data
 
-    def initialize(id:, type:, timestamp:, data:, environment: "")
+    def initialize(id:, type:, timestamp:, data:, environment: "", showcase_id: "")
       @id = id
       @type = type
       @timestamp = timestamp
       @environment = environment
+      @showcase_id = showcase_id
       @data = data
       freeze
     end
@@ -163,7 +167,8 @@ module Perata
     event = JSON.parse(raw)
     data = event["data"] || {}
     environment = event["environment"].is_a?(String) ? event["environment"] : ""
-    message = { id: event.fetch("id"), type: event.fetch("type"), timestamp: event.fetch("timestamp"), environment: environment }
+    showcase_id = event["showcase_id"].is_a?(String) ? event["showcase_id"] : ""
+    message = { id: event.fetch("id"), type: event.fetch("type"), timestamp: event.fetch("timestamp"), environment: environment, showcase_id: showcase_id }
     case message[:type]
     when *BenefitWebhookEvent::TYPES then BenefitWebhookEvent.new(**message, data: WebhookBenefit.from_hash(data))
     when *BenefitGrantWebhookEvent::TYPES then BenefitGrantWebhookEvent.new(**message, data: BenefitGrant.from_hash(data))

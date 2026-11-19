@@ -39,16 +39,21 @@ public final class Payment {
     private final String createdAt;
     private final String currency;
     private final String customerId;
+    private final Long cycleSequence;
     private final String id;
     private final long installmentAmountCents;
     private final long installmentInterestCents;
     private final long installments;
     private final Map<String, Object> metadata;
     private final String method;
+    private final String periodEnd;
+    private final String periodStart;
     private final long refundedCents;
+    private final String showcaseId;
     private final String state;
+    private final String subscriptionId;
 
-    Payment(long amountCents, long capturedCents, String checkoutId, String clientReferenceId, String createdAt, String currency, String customerId, String id, long installmentAmountCents, long installmentInterestCents, long installments, Map<String, Object> metadata, String method, long refundedCents, String state) {
+    Payment(long amountCents, long capturedCents, String checkoutId, String clientReferenceId, String createdAt, String currency, String customerId, Long cycleSequence, String id, long installmentAmountCents, long installmentInterestCents, long installments, Map<String, Object> metadata, String method, String periodEnd, String periodStart, long refundedCents, String showcaseId, String state, String subscriptionId) {
         this.amountCents = amountCents;
         this.capturedCents = capturedCents;
         this.checkoutId = checkoutId;
@@ -56,14 +61,19 @@ public final class Payment {
         this.createdAt = createdAt;
         this.currency = currency;
         this.customerId = customerId;
+        this.cycleSequence = cycleSequence;
         this.id = id;
         this.installmentAmountCents = installmentAmountCents;
         this.installmentInterestCents = installmentInterestCents;
         this.installments = installments;
         this.metadata = metadata;
         this.method = method;
+        this.periodEnd = periodEnd;
+        this.periodStart = periodStart;
         this.refundedCents = refundedCents;
+        this.showcaseId = showcaseId;
         this.state = state;
+        this.subscriptionId = subscriptionId;
     }
 
     static Payment fromJson(Map<String, Object> data) {
@@ -75,14 +85,19 @@ public final class Payment {
                 Json.required(data, "created_at", Json::asString),
                 Json.required(data, "currency", Json::asString),
                 Json.required(data, "customer_id", Json::asString),
+                Json.optional(data, "cycle_sequence", Json::asLong),
                 Json.required(data, "id", Json::asString),
                 Json.required(data, "installment_amount_cents", Json::asLong),
                 Json.required(data, "installment_interest_cents", Json::asLong),
                 Json.required(data, "installments", Json::asLong),
                 Json.required(data, "metadata", Json.map(Json::any)),
                 Json.required(data, "method", Json::asString),
+                Json.optional(data, "period_end", Json::asString),
+                Json.optional(data, "period_start", Json::asString),
                 Json.required(data, "refunded_cents", Json::asLong),
-                Json.required(data, "state", Json::asString));
+                Json.required(data, "showcase_id", Json::asString),
+                Json.required(data, "state", Json::asString),
+                Json.optional(data, "subscription_id", Json::asString));
     }
 
     /** @return the API's {@code amount_cents} */
@@ -120,6 +135,11 @@ public final class Payment {
         return customerId;
     }
 
+    /** @return Qual ciclo da assinatura o pagamento pagou: 1 é o primeiro; nulo fora de uma assinatura. (null when the API sends none) */
+    public Long getCycleSequence() {
+        return cycleSequence;
+    }
+
     /** @return the API's {@code id} */
     public String getId() {
         return id;
@@ -150,9 +170,24 @@ public final class Payment {
         return method;
     }
 
+    /** @return O fim do período que o ciclo paga; nulo fora de uma assinatura. (null when the API sends none) */
+    public String getPeriodEnd() {
+        return periodEnd;
+    }
+
+    /** @return O começo do período que o ciclo paga; nulo fora de uma assinatura. (null when the API sends none) */
+    public String getPeriodStart() {
+        return periodStart;
+    }
+
     /** @return the API's {@code refunded_cents} */
     public long getRefundedCents() {
         return refundedCents;
+    }
+
+    /** @return O showcase a que pertence: o da chave de API que fez a chamada. Uma chave só alcança o seu showcase. */
+    public String getShowcaseId() {
+        return showcaseId;
     }
 
     /** @return the API's {@code state} */
@@ -160,8 +195,13 @@ public final class Payment {
         return state;
     }
 
+    /** @return A assinatura que este pagamento cobrou (a primeira ou uma renovação); nulo quando o pagamento não é de uma assinatura. (null when the API sends none) */
+    public String getSubscriptionId() {
+        return subscriptionId;
+    }
+
     @Override
     public String toString() {
-        return "Payment{" + "amountCents=" + amountCents + ", capturedCents=" + capturedCents + ", checkoutId=" + checkoutId + ", clientReferenceId=" + clientReferenceId + ", createdAt=" + createdAt + ", currency=" + currency + ", customerId=" + customerId + ", id=" + id + ", installmentAmountCents=" + installmentAmountCents + ", installmentInterestCents=" + installmentInterestCents + ", installments=" + installments + ", metadata=" + metadata + ", method=" + method + ", refundedCents=" + refundedCents + ", state=" + state + "}";
+        return "Payment{" + "amountCents=" + amountCents + ", capturedCents=" + capturedCents + ", checkoutId=" + checkoutId + ", clientReferenceId=" + clientReferenceId + ", createdAt=" + createdAt + ", currency=" + currency + ", customerId=" + customerId + ", cycleSequence=" + cycleSequence + ", id=" + id + ", installmentAmountCents=" + installmentAmountCents + ", installmentInterestCents=" + installmentInterestCents + ", installments=" + installments + ", metadata=" + metadata + ", method=" + method + ", periodEnd=" + periodEnd + ", periodStart=" + periodStart + ", refundedCents=" + refundedCents + ", showcaseId=" + showcaseId + ", state=" + state + ", subscriptionId=" + subscriptionId + "}";
     }
 }

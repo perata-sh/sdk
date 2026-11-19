@@ -23,9 +23,10 @@ public sealed class PaymentsService
     /// <remarks>
     /// <para>Devolve um pagamento pelo ID.</para>
     /// <para>Autenticação: chave de API da organização em Authorization: Bearer
-    /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
-    /// da requisição. Respostas em JSON no envelope data; erros com error,
-    /// message e fields.</para>
+    /// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+    /// chave, nunca da requisição: a chave criada num showcase só alcança o que
+    /// é dele. Respostas em JSON no envelope data; erros com error, message e
+    /// fields.</para>
     /// </remarks>
     /// <param name="payment">The payment.</param>
     /// <param name="options">Another organization's key for this call.</param>
@@ -40,11 +41,13 @@ public sealed class PaymentsService
     /// <summary>Listar pagamentos. One page; <see cref="ListIterAsync"/> walks every page.</summary>
     /// <remarks>
     /// <para>Devolve uma página dos pagamentos. Filtre por client_reference_id,
-    /// estado, cliente, período ou metadados.</para>
+    /// estado, cliente, assinatura (subscription_id), período ou
+    /// metadados.</para>
     /// <para>Autenticação: chave de API da organização em Authorization: Bearer
-    /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
-    /// da requisição. Respostas em JSON no envelope data; erros com error,
-    /// message e fields.</para>
+    /// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+    /// chave, nunca da requisição: a chave criada num showcase só alcança o que
+    /// é dele. Respostas em JSON no envelope data; erros com error, message e
+    /// fields.</para>
     /// </remarks>
     /// <param name="parameters">The page, its size and the filters; the first page when null.</param>
     /// <param name="options">Another organization's key for this call.</param>
@@ -87,6 +90,9 @@ public sealed record PaymentsListParams
     /// <summary>Só os do cliente que você identifica por este ID externo; um ID que não existe não acha nada.</summary>
     public string? ExternalCustomerId { get; init; }
 
+    /// <summary>Só as vendas desta assinatura: o pedido que pagou o primeiro ciclo e cada renovação paga. Um ID que não existe não acha nada.</summary>
+    public string? SubscriptionId { get; init; }
+
     /// <summary>Só os criados a partir deste instante, inclusive (RFC 3339, como 2026-11-17T00:00:00-03:00).</summary>
     public string? CreatedAfter { get; init; }
 
@@ -107,6 +113,7 @@ public sealed record PaymentsListParams
         yield return new("status", Status);
         yield return new("customer_id", CustomerId);
         yield return new("external_customer_id", ExternalCustomerId);
+        yield return new("subscription_id", SubscriptionId);
         yield return new("created_after", CreatedAfter);
         yield return new("created_before", CreatedBefore);
         yield return new("sorting", Sorting);

@@ -34,7 +34,7 @@ import java.util.UUID;
  */
 public final class Perata {
     /** This SDK's version. */
-    public static final String VERSION = "0.5.5";
+    public static final String VERSION = "0.5.6";
 
     /** The contract this SDK was generated from. */
     public static final String API_VERSION = "0.1.0";
@@ -61,6 +61,7 @@ public final class Perata {
     private final PricesService prices;
     private final ProductsService products;
     private final RefundsService refunds;
+    private final ShowcaseService showcase;
     private final SubscriptionsService subscriptions;
     private final UsageService usage;
     private final WebhooksService webhooks;
@@ -95,6 +96,7 @@ public final class Perata {
         this.prices = new PricesService(this);
         this.products = new ProductsService(this);
         this.refunds = new RefundsService(this);
+        this.showcase = new ShowcaseService(this);
         this.subscriptions = new SubscriptionsService(this);
         this.usage = new UsageService(this);
         this.webhooks = new WebhooksService(this);
@@ -183,6 +185,11 @@ public final class Perata {
     /** @return the API's refunds */
     public RefundsService refunds() {
         return refunds;
+    }
+
+    /** @return the API's showcase */
+    public ShowcaseService showcase() {
+        return showcase;
     }
 
     /** @return the API's subscriptions */

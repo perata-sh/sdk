@@ -57,6 +57,14 @@ public sealed record WebhookSale
     [JsonPropertyName("event_id")]
     public required string EventId { get; init; }
 
+    /// <summary>O código que a Cielo deu para a recusa, nos eventos refund.* de um reembolso que falhou; serve ao suporte. Null when the API sends none.</summary>
+    [JsonPropertyName("failure_code")]
+    public string? FailureCode { get; init; }
+
+    /// <summary>Por que o dinheiro não voltou, em português, nos eventos refund.* de um reembolso que falhou (refund.failed). Null when the API sends none.</summary>
+    [JsonPropertyName("failure_reason")]
+    public string? FailureReason { get; init; }
+
     /// <summary>The API's <c>merchant_id</c>.</summary>
     [JsonPropertyName("merchant_id")]
     public required string MerchantId { get; init; }

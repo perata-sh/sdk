@@ -115,6 +115,10 @@ public sealed record WebhookOrder
     [JsonPropertyName("refunded_amount_cents")]
     public required long RefundedAmountCents { get; init; }
 
+    /// <summary>O showcase da venda.</summary>
+    [JsonPropertyName("showcase_id")]
+    public required string ShowcaseId { get; init; }
+
     /// <summary>The API's <c>status</c>.</summary>
     [JsonPropertyName("status")]
     public required string Status { get; init; }

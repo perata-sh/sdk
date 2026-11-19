@@ -32,6 +32,7 @@ public final class Order {
     private final String clientReferenceId;
     private final String currency;
     private final String customerId;
+    private final Long cycleSequence;
     private final String id;
     private final long installmentInterestCents;
     private final long installments;
@@ -39,16 +40,21 @@ public final class Order {
     private final Map<String, Object> metadata;
     private final String orderStatus;
     private final String paidAt;
+    private final String periodEnd;
+    private final String periodStart;
     private final String priceId;
     private final String productId;
     private final long refundedAmountCents;
+    private final String showcaseId;
     private final String status;
+    private final String subscriptionId;
 
-    Order(long amountCents, String clientReferenceId, String currency, String customerId, String id, long installmentInterestCents, long installments, List<CheckoutLine> items, Map<String, Object> metadata, String orderStatus, String paidAt, String priceId, String productId, long refundedAmountCents, String status) {
+    Order(long amountCents, String clientReferenceId, String currency, String customerId, Long cycleSequence, String id, long installmentInterestCents, long installments, List<CheckoutLine> items, Map<String, Object> metadata, String orderStatus, String paidAt, String periodEnd, String periodStart, String priceId, String productId, long refundedAmountCents, String showcaseId, String status, String subscriptionId) {
         this.amountCents = amountCents;
         this.clientReferenceId = clientReferenceId;
         this.currency = currency;
         this.customerId = customerId;
+        this.cycleSequence = cycleSequence;
         this.id = id;
         this.installmentInterestCents = installmentInterestCents;
         this.installments = installments;
@@ -56,10 +62,14 @@ public final class Order {
         this.metadata = metadata;
         this.orderStatus = orderStatus;
         this.paidAt = paidAt;
+        this.periodEnd = periodEnd;
+        this.periodStart = periodStart;
         this.priceId = priceId;
         this.productId = productId;
         this.refundedAmountCents = refundedAmountCents;
+        this.showcaseId = showcaseId;
         this.status = status;
+        this.subscriptionId = subscriptionId;
     }
 
     static Order fromJson(Map<String, Object> data) {
@@ -68,6 +78,7 @@ public final class Order {
                 Json.required(data, "client_reference_id", Json::asString),
                 Json.required(data, "currency", Json::asString),
                 Json.required(data, "customer_id", Json::asString),
+                Json.optional(data, "cycle_sequence", Json::asLong),
                 Json.required(data, "id", Json::asString),
                 Json.required(data, "installment_interest_cents", Json::asLong),
                 Json.required(data, "installments", Json::asLong),
@@ -75,10 +86,14 @@ public final class Order {
                 Json.required(data, "metadata", Json.map(Json::any)),
                 Json.optional(data, "order_status", Json::asString),
                 Json.optional(data, "paid_at", Json::asString),
+                Json.optional(data, "period_end", Json::asString),
+                Json.optional(data, "period_start", Json::asString),
                 Json.required(data, "price_id", Json::asString),
                 Json.required(data, "product_id", Json::asString),
                 Json.required(data, "refunded_amount_cents", Json::asLong),
-                Json.required(data, "status", Json::asString));
+                Json.required(data, "showcase_id", Json::asString),
+                Json.required(data, "status", Json::asString),
+                Json.optional(data, "subscription_id", Json::asString));
     }
 
     /** @return the API's {@code amount_cents} */
@@ -99,6 +114,11 @@ public final class Order {
     /** @return the API's {@code customer_id} */
     public String getCustomerId() {
         return customerId;
+    }
+
+    /** @return Qual ciclo da assinatura o pedido pagou: 1 é o primeiro; nulo fora de uma assinatura. (null when the API sends none) */
+    public Long getCycleSequence() {
+        return cycleSequence;
     }
 
     /** @return the API's {@code id} */
@@ -136,6 +156,16 @@ public final class Order {
         return paidAt;
     }
 
+    /** @return O fim do período que o ciclo paga; nulo fora de uma assinatura. (null when the API sends none) */
+    public String getPeriodEnd() {
+        return periodEnd;
+    }
+
+    /** @return O começo do período que o ciclo paga; nulo fora de uma assinatura. (null when the API sends none) */
+    public String getPeriodStart() {
+        return periodStart;
+    }
+
     /** @return the API's {@code price_id} */
     public String getPriceId() {
         return priceId;
@@ -151,13 +181,23 @@ public final class Order {
         return refundedAmountCents;
     }
 
+    /** @return O showcase a que pertence: o da chave de API que fez a chamada. Uma chave só alcança o seu showcase. */
+    public String getShowcaseId() {
+        return showcaseId;
+    }
+
     /** @return the API's {@code status} */
     public String getStatus() {
         return status;
     }
 
+    /** @return A assinatura de que este pedido é a cobrança (a primeira ou uma renovação); nulo quando o pedido não é de uma assinatura. (null when the API sends none) */
+    public String getSubscriptionId() {
+        return subscriptionId;
+    }
+
     @Override
     public String toString() {
-        return "Order{" + "amountCents=" + amountCents + ", clientReferenceId=" + clientReferenceId + ", currency=" + currency + ", customerId=" + customerId + ", id=" + id + ", installmentInterestCents=" + installmentInterestCents + ", installments=" + installments + ", items=" + items + ", metadata=" + metadata + ", orderStatus=" + orderStatus + ", paidAt=" + paidAt + ", priceId=" + priceId + ", productId=" + productId + ", refundedAmountCents=" + refundedAmountCents + ", status=" + status + "}";
+        return "Order{" + "amountCents=" + amountCents + ", clientReferenceId=" + clientReferenceId + ", currency=" + currency + ", customerId=" + customerId + ", cycleSequence=" + cycleSequence + ", id=" + id + ", installmentInterestCents=" + installmentInterestCents + ", installments=" + installments + ", items=" + items + ", metadata=" + metadata + ", orderStatus=" + orderStatus + ", paidAt=" + paidAt + ", periodEnd=" + periodEnd + ", periodStart=" + periodStart + ", priceId=" + priceId + ", productId=" + productId + ", refundedAmountCents=" + refundedAmountCents + ", showcaseId=" + showcaseId + ", status=" + status + ", subscriptionId=" + subscriptionId + "}";
     }
 }

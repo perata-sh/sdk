@@ -21,6 +21,8 @@ final class CheckoutCreated
         /** Quando a sessão e o client_secret deixam de valer. */
         public readonly string $clientSecretExpiresAt,
         public readonly string $createdAt,
+        /** O desconto que o checkout aplica sozinho, como o seu servidor o enviou na criação; vazio sem ele. O comprador o vê no resumo e ele conta desde a primeira cobrança. */
+        public readonly string $discountId,
         /** Quando o link deixa de abrir sessões; nulo sem prazo. */
         public readonly ?string $expiresAt,
         /** O ID do link do checkout, o que GET e PATCH /checkouts/{id} recebem. */
@@ -42,6 +44,8 @@ final class CheckoutCreated
         public readonly int $quantity,
         /** O ID da sessão de checkout; as rotas de cliente dela são /checkouts/client/{client_secret}. */
         public readonly string $sessionId,
+        /** O showcase a que pertence: o da chave de API que fez a chamada. Uma chave só alcança o seu showcase. */
+        public readonly string $showcaseId,
         /**
          * active abre sessões de compra; archived saiu de circulação.
          * @var 'active'|'archived'
@@ -49,6 +53,8 @@ final class CheckoutCreated
         public readonly string $status,
         /** Lê o estado da sessão depois que o client_secret é consumido: GET /checkouts/client/status/{status_key}. Só esta resposta o traz. */
         public readonly string $statusKey,
+        /** O dia da primeira cobrança de uma assinatura que começa numa data (a meia-noite desse dia em São Paulo, com o fuso); nulo quando o checkout cobra na hora ou começa por um teste em dias. O cartão é guardado sem cobrança e a cobrança acontece nesse dia. */
+        public readonly ?string $subscriptionStartAt,
         /** Endereço https para onde o comprador volta depois de pagar; vazio sem ele. */
         public readonly string $successUrl,
         /** O endereço hospedado desta sessão: redirecione o comprador para cá, ou abra-o no modal, e ele paga na página da Peráta exatamente a sessão que esta resposta abriu, que aparece no status_key, no GET da sessão e nos webhooks com o mesmo checkout_id. Quem abre o endereço depois do pagamento vê a confirmação e nada é cobrado de novo. Na repetição de uma criação idempotente o segredo não existe mais e o endereço volta a ser o do link, que abre uma sessão nova a cada visita. */
@@ -68,6 +74,7 @@ final class CheckoutCreated
             clientSecret: $data['client_secret'],
             clientSecretExpiresAt: $data['client_secret_expires_at'],
             createdAt: $data['created_at'],
+            discountId: $data['discount_id'],
             expiresAt: $data['expires_at'] ?? null,
             id: $data['id'],
             items: array_values(array_map(static fn (array $item) => CheckoutLine::fromArray($item), $data['items'])),
@@ -77,8 +84,10 @@ final class CheckoutCreated
             productId: $data['product_id'],
             quantity: $data['quantity'],
             sessionId: $data['session_id'],
+            showcaseId: $data['showcase_id'],
             status: $data['status'],
             statusKey: $data['status_key'],
+            subscriptionStartAt: $data['subscription_start_at'] ?? null,
             successUrl: $data['success_url'],
             url: $data['url'],
         );

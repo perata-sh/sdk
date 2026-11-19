@@ -18,8 +18,8 @@ final class OrderWebhookEvent extends WebhookEvent
     /** The event types this class carries. */
     public const TYPES = ['order.created', 'order.paid', 'order.refunded', 'order.updated'];
 
-    public function __construct(string $id, string $type, string $timestamp, string $environment, public readonly Models\WebhookOrder $data)
+    public function __construct(string $id, string $type, string $timestamp, string $environment, string $showcaseId, public readonly Models\WebhookOrder $data)
     {
-        parent::__construct($id, $type, $timestamp, $environment);
+        parent::__construct($id, $type, $timestamp, $environment, $showcaseId);
     }
 }

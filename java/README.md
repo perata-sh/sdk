@@ -6,12 +6,12 @@ SDK oficial da API da Peráta para Java 11+, sem dependências: só `java.net.ht
 <dependency>
     <groupId>sh.perata</groupId>
     <artifactId>sdk</artifactId>
-    <version>0.5.5</version>
+    <version>0.5.6</version>
 </dependency>
 ```
 
 ```kotlin
-implementation("sh.perata:sdk:0.5.5") // Gradle
+implementation("sh.perata:sdk:0.5.6") // Gradle
 ```
 
 ```java
@@ -51,7 +51,8 @@ for (Product each : perata.products().listIter()) {
 | `perata.payments()` | `get`, `list`, `listIter` |
 | `perata.prices()` | `create`, `list`, `listIter` |
 | `perata.products()` | `archive`, `create`, `get`, `list`, `listIter`, `update` |
-| `perata.refunds()` | `create`, `list`, `listIter` |
+| `perata.refunds()` | `create`, `get`, `list`, `listIter` |
+| `perata.showcase()` | `get` |
 | `perata.subscriptions()` | `cancel`, `get`, `list`, `listIter`, `resume`, `update` |
 | `perata.usage()` | `ingest` |
 | `perata.webhooks()` | `createEndpoint`, `deleteEndpoint`, `getEndpoint`, `listDeliveries`, `listDeliveriesIter`, `listEndpoints`, `listEndpointsIter`, `updateEndpoint` |
@@ -113,6 +114,38 @@ Reativar uma assinatura suspensa, que volta a ser cobrada, ou retomar uma pausad
 Subscription subscription = perata.subscriptions().resume(subscriptionId);
 ```
 
+## Reembolso, assinatura com data e showcase
+
+Reembolsar o pedido, sem o `payment_id`: envie o `order_id` (o id que `orders.get` recebe). Sem `amount_cents` devolve tudo o que ainda pode ser devolvido; com ele, só essa parte, em centavos (de 1 até o que resta). O `metadata` do pedido de reembolso guarda pares seus, que voltam como `refund_metadata` no reembolso e nos eventos `refund.created` e `refund.updated`; `reason` e `note` dizem o motivo. O reembolso traz `order_id`, `client_reference_id` e o `metadata` do pedido, e `refunds.get` lê um pelo id. Um reembolso que falha emite `refund.failed`, com `failure_reason` (em português) e `failure_code` (o código da Cielo, para o suporte).
+
+```java
+Refund refund = perata.refunds().create(RefundsService.CreateParams.builder().orderId(orderId).build());
+// refund.getOrderId(), refund.getStatus(), refund.getAmountCents()
+
+Refund part = perata.refunds().create(
+        RefundsService.CreateParams.builder().orderId(orderId).amountCents(2500L).build());
+Refund found = perata.refunds().get(refund.getId());
+```
+
+Assinatura que começa numa data: `subscription_start_at` em `checkouts.create` é o dia da primeira cobrança, como o `trial_end` do Stripe. O cartão é guardado e conferido com o emissor, nada é cobrado hoje, e a cobrança acontece nesse dia (vale a meia-noite dele em São Paulo, qualquer que seja o fuso enviado). Só vale em um preço recorrente com valor, e só no cartão de crédito; tem de ser de amanhã a um ano, senão a resposta é 422. `items` e `discount_id` também valem num checkout de assinatura, e um pedido ou pagamento de assinatura traz `subscription_id`, `cycle_sequence`, `period_start` e `period_end`; as listas de pedidos e pagamentos aceitam o filtro `subscription_id`.
+
+```java
+CheckoutCreated checkout = perata.checkouts().create(
+        CheckoutsService.CreateParams.builder()
+                .productId(productId)
+                .priceId(priceId)
+                .subscriptionStartAt("2026-12-15T00:00:00-03:00")
+                .build());
+// checkout.getSubscriptionStartAt(): o instante da primeira cobrança
+```
+
+Showcase: toda chave de API é de um showcase, e todo objeto da API traz o `showcase_id` dele. `showcase.get` lê o showcase da chave: o `id`, o `name`, se é o principal da organização (`is_principal`), se tem logo (`has_logo`) e o `environment` (`test` ou `live`). Uma chave só alcança o que é do seu showcase, e um 403 diz qual escopo faltou.
+
+```java
+Showcase showcase = perata.showcase().get();
+// showcase.getId(), getName(), getIsPrincipal(), getHasLogo(), getEnvironment()
+```
+
 ## Consumo (ingestão de eventos)
 
 A ingestão de consumo usa outra credencial: a de uma fonte de ingestão (**Configurações › Fontes de ingestão**), `pus_test_…` em teste e `pus_live_…` em produção. Monte um cliente com ela; a chave de API da organização (`prk_…`) é recusada aqui com 401, e uma credencial de um ambiente nunca escreve no outro.
@@ -163,6 +196,6 @@ A assinatura é a do Standard Webhooks (`webhook-id`, `webhook-timestamp`, `webh
 
 O evento é tipado: um tipo para cada dado que o webhook carrega (`OrderWebhookEvent` traz um `WebhookOrder`, `DisputeWebhookEvent` a disputa, `IdentifiersWebhookEvent` os identificadores…), e o `type` diz o que aconteceu; um tipo que esta versão do SDK ainda não conhece chega como `UnknownWebhookEvent`, com os dados como vieram. Durante a rotação do segredo o cabeçalho traz mais de uma assinatura, e basta uma conferir. `Webhook.verifySignature` só confere a assinatura.
 
-Todo evento traz o ambiente em que aconteceu, em `getEnvironment()`: `"test"` ou `"live"` (vazio se um servidor antigo não mandou). Recuse o evento do ambiente errado: um endpoint de produção deve responder 400 a um evento `"test"`, para que um teste não dê baixa em um pedido real.
+Todo evento traz o ambiente em que aconteceu, em `getEnvironment()`: `"test"` ou `"live"` (vazio se um servidor antigo não mandou). Recuse o evento do ambiente errado: um endpoint de produção deve responder 400 a um evento `"test"`, para que um teste não dê baixa em um pedido real. O showcase da venda vem em `getShowcaseId()` (vazio se um servidor antigo não mandou): um endpoint é de um showcase só, e o mesmo `showcase_id` está nos objetos do evento.
 
-Versão do SDK: 0.5.5 · contrato da API: 0.1.0
+Versão do SDK: 0.5.6 · contrato da API: 0.1.0

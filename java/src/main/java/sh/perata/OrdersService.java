@@ -19,12 +19,14 @@ public final class OrdersService {
     /**
      * Ler um pedido.
      *
-     * Devolve um pedido: um checkout pago.
+     * Devolve um pedido: um checkout pago. Se ele pagou um ciclo de assinatura,
+     * traz subscription_id, cycle_sequence, period_start e period_end.
      *
      * Autenticação: chave de API da organização em Authorization: Bearer
-     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-     * requisição. Respostas em JSON no envelope data; erros com error, message
-     * e fields.
+     * (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+     * chave, nunca da requisição: a chave criada num showcase só alcança o que
+     * é dele. Respostas em JSON no envelope data; erros com error, message e
+     * fields.
      *
      * @param order the order
      * @param options another organization's key for this call, or null
@@ -39,12 +41,14 @@ public final class OrdersService {
     /**
      * Ler um pedido.
      *
-     * Devolve um pedido: um checkout pago.
+     * Devolve um pedido: um checkout pago. Se ele pagou um ciclo de assinatura,
+     * traz subscription_id, cycle_sequence, period_start e period_end.
      *
      * Autenticação: chave de API da organização em Authorization: Bearer
-     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-     * requisição. Respostas em JSON no envelope data; erros com error, message
-     * e fields.
+     * (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+     * chave, nunca da requisição: a chave criada num showcase só alcança o que
+     * é dele. Respostas em JSON no envelope data; erros com error, message e
+     * fields.
      *
      * @param order the order
      * @return the order
@@ -61,9 +65,10 @@ public final class OrdersService {
      * Sem fatura, a resposta é 404.
      *
      * Autenticação: chave de API da organização em Authorization: Bearer
-     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-     * requisição. Respostas em JSON no envelope data; erros com error, message
-     * e fields.
+     * (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+     * chave, nunca da requisição: a chave criada num showcase só alcança o que
+     * é dele. Respostas em JSON no envelope data; erros com error, message e
+     * fields.
      *
      * @param order the order
      * @param options another organization's key for this call, or null
@@ -82,9 +87,10 @@ public final class OrdersService {
      * Sem fatura, a resposta é 404.
      *
      * Autenticação: chave de API da organização em Authorization: Bearer
-     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-     * requisição. Respostas em JSON no envelope data; erros com error, message
-     * e fields.
+     * (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+     * chave, nunca da requisição: a chave criada num showcase só alcança o que
+     * é dele. Respostas em JSON no envelope data; erros com error, message e
+     * fields.
      *
      * @param order the order
      * @return the orderinvoice
@@ -100,9 +106,10 @@ public final class OrdersService {
      * Devolve o recibo de um pedido: o que foi pago, quando e como.
      *
      * Autenticação: chave de API da organização em Authorization: Bearer
-     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-     * requisição. Respostas em JSON no envelope data; erros com error, message
-     * e fields.
+     * (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+     * chave, nunca da requisição: a chave criada num showcase só alcança o que
+     * é dele. Respostas em JSON no envelope data; erros com error, message e
+     * fields.
      *
      * @param order the order
      * @param options another organization's key for this call, or null
@@ -120,9 +127,10 @@ public final class OrdersService {
      * Devolve o recibo de um pedido: o que foi pago, quando e como.
      *
      * Autenticação: chave de API da organização em Authorization: Bearer
-     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-     * requisição. Respostas em JSON no envelope data; erros com error, message
-     * e fields.
+     * (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+     * chave, nunca da requisição: a chave criada num showcase só alcança o que
+     * é dele. Respostas em JSON no envelope data; erros com error, message e
+     * fields.
      *
      * @param order the order
      * @return the orderreceipt
@@ -136,12 +144,14 @@ public final class OrdersService {
      * Listar pedidos. One page; {@link #listIter} walks every page.
      *
      * Devolve uma página dos pedidos, que são os checkouts pagos. Filtre por
-     * client_reference_id, cliente, período ou metadados.
+     * client_reference_id, cliente, assinatura (subscription_id), período ou
+     * metadados.
      *
      * Autenticação: chave de API da organização em Authorization: Bearer
-     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-     * requisição. Respostas em JSON no envelope data; erros com error, message
-     * e fields.
+     * (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+     * chave, nunca da requisição: a chave criada num showcase só alcança o que
+     * é dele. Respostas em JSON no envelope data; erros com error, message e
+     * fields.
      *
      * @param params the page, its size and the filters, or null
      * @param options options for this call, or null
@@ -157,12 +167,14 @@ public final class OrdersService {
      * Listar pedidos. One page.
      *
      * Devolve uma página dos pedidos, que são os checkouts pagos. Filtre por
-     * client_reference_id, cliente, período ou metadados.
+     * client_reference_id, cliente, assinatura (subscription_id), período ou
+     * metadados.
      *
      * Autenticação: chave de API da organização em Authorization: Bearer
-     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-     * requisição. Respostas em JSON no envelope data; erros com error, message
-     * e fields.
+     * (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+     * chave, nunca da requisição: a chave criada num showcase só alcança o que
+     * é dele. Respostas em JSON no envelope data; erros com error, message e
+     * fields.
      *
      * @param params the page, its size and the filters, or null
      * @return the page
@@ -175,12 +187,14 @@ public final class OrdersService {
      * Listar pedidos. The first page.
      *
      * Devolve uma página dos pedidos, que são os checkouts pagos. Filtre por
-     * client_reference_id, cliente, período ou metadados.
+     * client_reference_id, cliente, assinatura (subscription_id), período ou
+     * metadados.
      *
      * Autenticação: chave de API da organização em Authorization: Bearer
-     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-     * requisição. Respostas em JSON no envelope data; erros com error, message
-     * e fields.
+     * (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+     * chave, nunca da requisição: a chave criada num showcase só alcança o que
+     * é dele. Respostas em JSON no envelope data; erros com error, message e
+     * fields.
      *
      * @return the page
      */
@@ -226,6 +240,7 @@ public final class OrdersService {
         private final String status;
         private final String customerId;
         private final String externalCustomerId;
+        private final String subscriptionId;
         private final String createdAfter;
         private final String createdBefore;
         private final String sorting;
@@ -238,6 +253,7 @@ public final class OrdersService {
             this.status = builder.status;
             this.customerId = builder.customerId;
             this.externalCustomerId = builder.externalCustomerId;
+            this.subscriptionId = builder.subscriptionId;
             this.createdAfter = builder.createdAfter;
             this.createdBefore = builder.createdBefore;
             this.sorting = builder.sorting;
@@ -279,6 +295,11 @@ public final class OrdersService {
             return externalCustomerId;
         }
 
+        /** @return Só as vendas desta assinatura: o pedido que pagou o primeiro ciclo e cada renovação paga. Um ID que não existe não acha nada. (null when not filtered) */
+        public String getSubscriptionId() {
+            return subscriptionId;
+        }
+
         /** @return Só os criados a partir deste instante, inclusive (RFC 3339, como 2026-11-17T00:00:00-03:00). (null when not filtered) */
         public String getCreatedAfter() {
             return createdAfter;
@@ -306,6 +327,7 @@ public final class OrdersService {
             builder.status = status;
             builder.customerId = customerId;
             builder.externalCustomerId = externalCustomerId;
+            builder.subscriptionId = subscriptionId;
             builder.createdAfter = createdAfter;
             builder.createdBefore = createdBefore;
             builder.sorting = sorting;
@@ -321,6 +343,7 @@ public final class OrdersService {
             query.put("status", status);
             query.put("customer_id", customerId);
             query.put("external_customer_id", externalCustomerId);
+            query.put("subscription_id", subscriptionId);
             query.put("created_after", createdAfter);
             query.put("created_before", createdBefore);
             query.put("sorting", sorting);
@@ -341,6 +364,7 @@ public final class OrdersService {
             private String status;
             private String customerId;
             private String externalCustomerId;
+            private String subscriptionId;
             private String createdAfter;
             private String createdBefore;
             private String sorting;
@@ -400,6 +424,15 @@ public final class OrdersService {
              */
             public Builder externalCustomerId(String externalCustomerId) {
                 this.externalCustomerId = externalCustomerId;
+                return this;
+            }
+
+            /**
+             * @param subscriptionId Só as vendas desta assinatura: o pedido que pagou o primeiro ciclo e cada renovação paga. Um ID que não existe não acha nada.
+             * @return this builder
+             */
+            public Builder subscriptionId(String subscriptionId) {
+                this.subscriptionId = subscriptionId;
                 return this;
             }
 

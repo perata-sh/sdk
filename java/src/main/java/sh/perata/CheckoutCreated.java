@@ -18,6 +18,7 @@ public final class CheckoutCreated {
     private final String clientSecret;
     private final String clientSecretExpiresAt;
     private final String createdAt;
+    private final String discountId;
     private final String expiresAt;
     private final String id;
     private final List<CheckoutLine> items;
@@ -27,18 +28,21 @@ public final class CheckoutCreated {
     private final String productId;
     private final long quantity;
     private final String sessionId;
+    private final String showcaseId;
     private final String status;
     private final String statusKey;
+    private final String subscriptionStartAt;
     private final String successUrl;
     private final String url;
 
-    CheckoutCreated(Long amountCents, String cancelUrl, String clientReferenceId, String clientSecret, String clientSecretExpiresAt, String createdAt, String expiresAt, String id, List<CheckoutLine> items, String label, Map<String, Object> metadata, String priceId, String productId, long quantity, String sessionId, String status, String statusKey, String successUrl, String url) {
+    CheckoutCreated(Long amountCents, String cancelUrl, String clientReferenceId, String clientSecret, String clientSecretExpiresAt, String createdAt, String discountId, String expiresAt, String id, List<CheckoutLine> items, String label, Map<String, Object> metadata, String priceId, String productId, long quantity, String sessionId, String showcaseId, String status, String statusKey, String subscriptionStartAt, String successUrl, String url) {
         this.amountCents = amountCents;
         this.cancelUrl = cancelUrl;
         this.clientReferenceId = clientReferenceId;
         this.clientSecret = clientSecret;
         this.clientSecretExpiresAt = clientSecretExpiresAt;
         this.createdAt = createdAt;
+        this.discountId = discountId;
         this.expiresAt = expiresAt;
         this.id = id;
         this.items = items;
@@ -48,8 +52,10 @@ public final class CheckoutCreated {
         this.productId = productId;
         this.quantity = quantity;
         this.sessionId = sessionId;
+        this.showcaseId = showcaseId;
         this.status = status;
         this.statusKey = statusKey;
+        this.subscriptionStartAt = subscriptionStartAt;
         this.successUrl = successUrl;
         this.url = url;
     }
@@ -62,6 +68,7 @@ public final class CheckoutCreated {
                 Json.required(data, "client_secret", Json::asString),
                 Json.required(data, "client_secret_expires_at", Json::asString),
                 Json.required(data, "created_at", Json::asString),
+                Json.required(data, "discount_id", Json::asString),
                 Json.optional(data, "expires_at", Json::asString),
                 Json.required(data, "id", Json::asString),
                 Json.required(data, "items", Json.list(Json.model(CheckoutLine::fromJson))),
@@ -71,8 +78,10 @@ public final class CheckoutCreated {
                 Json.required(data, "product_id", Json::asString),
                 Json.required(data, "quantity", Json::asLong),
                 Json.required(data, "session_id", Json::asString),
+                Json.required(data, "showcase_id", Json::asString),
                 Json.required(data, "status", Json::asString),
                 Json.required(data, "status_key", Json::asString),
+                Json.optional(data, "subscription_start_at", Json::asString),
                 Json.required(data, "success_url", Json::asString),
                 Json.required(data, "url", Json::asString));
     }
@@ -105,6 +114,11 @@ public final class CheckoutCreated {
     /** @return the API's {@code created_at} */
     public String getCreatedAt() {
         return createdAt;
+    }
+
+    /** @return O desconto que o checkout aplica sozinho, como o seu servidor o enviou na criação; vazio sem ele. O comprador o vê no resumo e ele conta desde a primeira cobrança. */
+    public String getDiscountId() {
+        return discountId;
     }
 
     /** @return Quando o link deixa de abrir sessões; nulo sem prazo. (null when the API sends none) */
@@ -152,6 +166,11 @@ public final class CheckoutCreated {
         return sessionId;
     }
 
+    /** @return O showcase a que pertence: o da chave de API que fez a chamada. Uma chave só alcança o seu showcase. */
+    public String getShowcaseId() {
+        return showcaseId;
+    }
+
     /** @return active abre sessões de compra; archived saiu de circulação. */
     public String getStatus() {
         return status;
@@ -160,6 +179,11 @@ public final class CheckoutCreated {
     /** @return Lê o estado da sessão depois que o client_secret é consumido: GET /checkouts/client/status/{status_key}. Só esta resposta o traz. */
     public String getStatusKey() {
         return statusKey;
+    }
+
+    /** @return O dia da primeira cobrança de uma assinatura que começa numa data (a meia-noite desse dia em São Paulo, com o fuso); nulo quando o checkout cobra na hora ou começa por um teste em dias. O cartão é guardado sem cobrança e a cobrança acontece nesse dia. (null when the API sends none) */
+    public String getSubscriptionStartAt() {
+        return subscriptionStartAt;
     }
 
     /** @return Endereço https para onde o comprador volta depois de pagar; vazio sem ele. */
@@ -174,6 +198,6 @@ public final class CheckoutCreated {
 
     @Override
     public String toString() {
-        return "CheckoutCreated{" + "amountCents=" + amountCents + ", cancelUrl=" + cancelUrl + ", clientReferenceId=" + clientReferenceId + ", clientSecret=" + clientSecret + ", clientSecretExpiresAt=" + clientSecretExpiresAt + ", createdAt=" + createdAt + ", expiresAt=" + expiresAt + ", id=" + id + ", items=" + items + ", label=" + label + ", metadata=" + metadata + ", priceId=" + priceId + ", productId=" + productId + ", quantity=" + quantity + ", sessionId=" + sessionId + ", status=" + status + ", statusKey=" + statusKey + ", successUrl=" + successUrl + ", url=" + url + "}";
+        return "CheckoutCreated{" + "amountCents=" + amountCents + ", cancelUrl=" + cancelUrl + ", clientReferenceId=" + clientReferenceId + ", clientSecret=" + clientSecret + ", clientSecretExpiresAt=" + clientSecretExpiresAt + ", createdAt=" + createdAt + ", discountId=" + discountId + ", expiresAt=" + expiresAt + ", id=" + id + ", items=" + items + ", label=" + label + ", metadata=" + metadata + ", priceId=" + priceId + ", productId=" + productId + ", quantity=" + quantity + ", sessionId=" + sessionId + ", showcaseId=" + showcaseId + ", status=" + status + ", statusKey=" + statusKey + ", subscriptionStartAt=" + subscriptionStartAt + ", successUrl=" + successUrl + ", url=" + url + "}";
     }
 }

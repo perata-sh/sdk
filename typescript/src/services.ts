@@ -42,9 +42,9 @@ export class BenefitsService {
    * configuram no painel.
    *
    * Autenticação: chave de API da organização em Authorization: Bearer
-   * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-   * requisição. Respostas em JSON no envelope data; erros com error, message e
-   * fields.
+   * (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+   * nunca da requisição: a chave criada num showcase só alcança o que é dele.
+   * Respostas em JSON no envelope data; erros com error, message e fields.
    */
   create(params: models.BenefitsCreateParams, options?: RequestOptions): Promise<models.Benefit> {
     return this.#client.request("POST", `/api/v1/benefits`, { body: params, options });
@@ -57,9 +57,9 @@ export class BenefitsService {
    * tem.
    *
    * Autenticação: chave de API da organização em Authorization: Bearer
-   * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-   * requisição. Respostas em JSON no envelope data; erros com error, message e
-   * fields.
+   * (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+   * nunca da requisição: a chave criada num showcase só alcança o que é dele.
+   * Respostas em JSON no envelope data; erros com error, message e fields.
    */
   async delete(benefit: string, options?: RequestOptions): Promise<void> {
     await this.#client.request<undefined>("DELETE", `/api/v1/benefits/${encodeURIComponent(benefit)}`, { options });
@@ -71,9 +71,9 @@ export class BenefitsService {
    * Devolve um benefício pelo ID.
    *
    * Autenticação: chave de API da organização em Authorization: Bearer
-   * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-   * requisição. Respostas em JSON no envelope data; erros com error, message e
-   * fields.
+   * (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+   * nunca da requisição: a chave criada num showcase só alcança o que é dele.
+   * Respostas em JSON no envelope data; erros com error, message e fields.
    */
   get(benefit: string, options?: RequestOptions): Promise<models.Benefit> {
     return this.#client.request("GET", `/api/v1/benefits/${encodeURIComponent(benefit)}`, { options });
@@ -86,9 +86,9 @@ export class BenefitsService {
    * tipo.
    *
    * Autenticação: chave de API da organização em Authorization: Bearer
-   * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-   * requisição. Respostas em JSON no envelope data; erros com error, message e
-   * fields.
+   * (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+   * nunca da requisição: a chave criada num showcase só alcança o que é dele.
+   * Respostas em JSON no envelope data; erros com error, message e fields.
    */
   list(params: BenefitsListParams = {}, options?: RequestOptions): Promise<Page<models.Benefit>> {
     return this.#client.request("GET", `/api/v1/benefits`, { query: { ...params }, options });
@@ -106,9 +106,9 @@ export class BenefitsService {
    * de um cliente; com is_granted, só as vigentes ou só as revogadas.
    *
    * Autenticação: chave de API da organização em Authorization: Bearer
-   * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-   * requisição. Respostas em JSON no envelope data; erros com error, message e
-   * fields.
+   * (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+   * nunca da requisição: a chave criada num showcase só alcança o que é dele.
+   * Respostas em JSON no envelope data; erros com error, message e fields.
    */
   listGrants(benefit: string, params: BenefitsListGrantsParams = {}, options?: RequestOptions): Promise<Page<models.BenefitGrant>> {
     return this.#client.request("GET", `/api/v1/benefits/${encodeURIComponent(benefit)}/grants`, { query: { ...params }, options });
@@ -127,9 +127,9 @@ export class BenefitsService {
    * concessão já entregou fica como foi entregue.
    *
    * Autenticação: chave de API da organização em Authorization: Bearer
-   * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-   * requisição. Respostas em JSON no envelope data; erros com error, message e
-   * fields.
+   * (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+   * nunca da requisição: a chave criada num showcase só alcança o que é dele.
+   * Respostas em JSON no envelope data; erros com error, message e fields.
    */
   update(benefit: string, params: models.BenefitsUpdateParams, options?: RequestOptions): Promise<models.Benefit> {
     return this.#client.request("PATCH", `/api/v1/benefits/${encodeURIComponent(benefit)}`, { body: params, options });
@@ -160,9 +160,9 @@ export class CheckoutLinksService {
    * sessão de compra nova.
    *
    * Autenticação: chave de API da organização em Authorization: Bearer
-   * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-   * requisição. Respostas em JSON no envelope data; erros com error, message e
-   * fields.
+   * (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+   * nunca da requisição: a chave criada num showcase só alcança o que é dele.
+   * Respostas em JSON no envelope data; erros com error, message e fields.
    */
   create(params: models.CheckoutLinksCreateParams, options?: RequestOptions): Promise<models.CheckoutLink> {
     return this.#client.request("POST", `/api/v1/checkout-links`, { body: params, options });
@@ -175,9 +175,9 @@ export class CheckoutLinksService {
    * continuam.
    *
    * Autenticação: chave de API da organização em Authorization: Bearer
-   * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-   * requisição. Respostas em JSON no envelope data; erros com error, message e
-   * fields.
+   * (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+   * nunca da requisição: a chave criada num showcase só alcança o que é dele.
+   * Respostas em JSON no envelope data; erros com error, message e fields.
    */
   async delete(checkoutLink: string, options?: RequestOptions): Promise<void> {
     await this.#client.request<undefined>("DELETE", `/api/v1/checkout-links/${encodeURIComponent(checkoutLink)}`, { options });
@@ -189,9 +189,9 @@ export class CheckoutLinksService {
    * Devolve um link de checkout pelo ID.
    *
    * Autenticação: chave de API da organização em Authorization: Bearer
-   * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-   * requisição. Respostas em JSON no envelope data; erros com error, message e
-   * fields.
+   * (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+   * nunca da requisição: a chave criada num showcase só alcança o que é dele.
+   * Respostas em JSON no envelope data; erros com error, message e fields.
    */
   get(checkoutLink: string, options?: RequestOptions): Promise<models.CheckoutLink> {
     return this.#client.request("GET", `/api/v1/checkout-links/${encodeURIComponent(checkoutLink)}`, { options });
@@ -203,9 +203,9 @@ export class CheckoutLinksService {
    * Devolve uma página dos links de checkout da organização.
    *
    * Autenticação: chave de API da organização em Authorization: Bearer
-   * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-   * requisição. Respostas em JSON no envelope data; erros com error, message e
-   * fields.
+   * (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+   * nunca da requisição: a chave criada num showcase só alcança o que é dele.
+   * Respostas em JSON no envelope data; erros com error, message e fields.
    */
   list(params: CheckoutLinksListParams = {}, options?: RequestOptions): Promise<Page<models.CheckoutLink>> {
     return this.#client.request("GET", `/api/v1/checkout-links`, { query: { ...params }, options });
@@ -223,9 +223,9 @@ export class CheckoutLinksService {
    * link. A quantidade e o desconto ficam como foram publicados.
    *
    * Autenticação: chave de API da organização em Authorization: Bearer
-   * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-   * requisição. Respostas em JSON no envelope data; erros com error, message e
-   * fields.
+   * (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+   * nunca da requisição: a chave criada num showcase só alcança o que é dele.
+   * Respostas em JSON no envelope data; erros com error, message e fields.
    */
   update(checkoutLink: string, params: models.CheckoutLinksUpdateParams, options?: RequestOptions): Promise<models.CheckoutLink> {
     return this.#client.request("PATCH", `/api/v1/checkout-links/${encodeURIComponent(checkoutLink)}`, { body: params, options });
@@ -268,12 +268,16 @@ export class CheckoutsService {
    * comprador usa para pagar sem chave de API; o client_secret vem só nesta
    * resposta. Para cobrar um valor que o seu servidor define, envie
    * amount_cents e items (preço de valor livre). Envie client_reference_id e
-   * metadata para achar o pedido depois.
+   * metadata para achar o pedido depois. Em uma assinatura, envie as linhas do
+   * pedido em items (só para exibição, com a soma igual ao valor do preço) e o
+   * desconto em discount_id. Para uma assinatura que só começa a cobrar numa
+   * data, envie subscription_start_at com o preço recorrente: o cartão é
+   * guardado sem cobrança e a primeira cobrança acontece nesse dia.
    *
    * Autenticação: chave de API da organização em Authorization: Bearer
-   * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-   * requisição. Respostas em JSON no envelope data; erros com error, message e
-   * fields.
+   * (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+   * nunca da requisição: a chave criada num showcase só alcança o que é dele.
+   * Respostas em JSON no envelope data; erros com error, message e fields.
    */
   create(params: models.CheckoutsCreateParams, options?: RequestOptions): Promise<models.CheckoutCreated> {
     return this.#client.request("POST", `/api/v1/checkouts`, { body: params, options });
@@ -288,9 +292,9 @@ export class CheckoutsService {
    * checkout já foi pago ou emitiu um boleto, a resposta é 409.
    *
    * Autenticação: chave de API da organização em Authorization: Bearer
-   * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-   * requisição. Respostas em JSON no envelope data; erros com error, message e
-   * fields.
+   * (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+   * nunca da requisição: a chave criada num showcase só alcança o que é dele.
+   * Respostas em JSON no envelope data; erros com error, message e fields.
    */
   expire(checkout: string, options?: RequestOptions): Promise<models.CheckoutExpired> {
     return this.#client.request("POST", `/api/v1/checkouts/${encodeURIComponent(checkout)}/expire`, { options });
@@ -302,9 +306,9 @@ export class CheckoutsService {
    * Devolve um checkout: o endereço, o estado e as páginas de retorno.
    *
    * Autenticação: chave de API da organização em Authorization: Bearer
-   * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-   * requisição. Respostas em JSON no envelope data; erros com error, message e
-   * fields.
+   * (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+   * nunca da requisição: a chave criada num showcase só alcança o que é dele.
+   * Respostas em JSON no envelope data; erros com error, message e fields.
    */
   get(checkout: string, options?: RequestOptions): Promise<models.Checkout> {
     return this.#client.request("GET", `/api/v1/checkouts/${encodeURIComponent(checkout)}`, { options });
@@ -317,9 +321,9 @@ export class CheckoutsService {
    * período ou metadados.
    *
    * Autenticação: chave de API da organização em Authorization: Bearer
-   * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-   * requisição. Respostas em JSON no envelope data; erros com error, message e
-   * fields.
+   * (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+   * nunca da requisição: a chave criada num showcase só alcança o que é dele.
+   * Respostas em JSON no envelope data; erros com error, message e fields.
    */
   list(params: CheckoutsListParams = {}, options?: RequestOptions): Promise<Page<models.Checkout>> {
     return this.#client.request("GET", `/api/v1/checkouts`, { query: { ...params }, options });
@@ -336,9 +340,9 @@ export class CheckoutsService {
    * Muda o rótulo e as páginas de retorno de um checkout ativo.
    *
    * Autenticação: chave de API da organização em Authorization: Bearer
-   * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-   * requisição. Respostas em JSON no envelope data; erros com error, message e
-   * fields.
+   * (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+   * nunca da requisição: a chave criada num showcase só alcança o que é dele.
+   * Respostas em JSON no envelope data; erros com error, message e fields.
    */
   update(checkout: string, params: models.CheckoutsUpdateParams, options?: RequestOptions): Promise<models.Checkout> {
     return this.#client.request("PATCH", `/api/v1/checkouts/${encodeURIComponent(checkout)}`, { body: params, options });
@@ -361,9 +365,9 @@ export class CustomerSessionsService {
    * seu aplicativo, o portal oferece a volta.
    *
    * Autenticação: chave de API da organização em Authorization: Bearer
-   * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-   * requisição. Respostas em JSON no envelope data; erros com error, message e
-   * fields.
+   * (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+   * nunca da requisição: a chave criada num showcase só alcança o que é dele.
+   * Respostas em JSON no envelope data; erros com error, message e fields.
    */
   create(params: models.CustomerSessionsCreateParams, options?: RequestOptions): Promise<models.CustomerSession> {
     return this.#client.request("POST", `/api/v1/customer-sessions`, { body: params, options });
@@ -398,9 +402,9 @@ export class CustomersService {
    * Se o e-mail for de um cliente com outro ID externo, a resposta é 422.
    *
    * Autenticação: chave de API da organização em Authorization: Bearer
-   * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-   * requisição. Respostas em JSON no envelope data; erros com error, message e
-   * fields.
+   * (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+   * nunca da requisição: a chave criada num showcase só alcança o que é dele.
+   * Respostas em JSON no envelope data; erros com error, message e fields.
    */
   create(params: models.CustomersCreateParams, options?: RequestOptions): Promise<models.Customer> {
     return this.#client.request("POST", `/api/v1/customers`, { body: params, options });
@@ -414,9 +418,9 @@ export class CustomersService {
    * nos registros.
    *
    * Autenticação: chave de API da organização em Authorization: Bearer
-   * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-   * requisição. Respostas em JSON no envelope data; erros com error, message e
-   * fields.
+   * (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+   * nunca da requisição: a chave criada num showcase só alcança o que é dele.
+   * Respostas em JSON no envelope data; erros com error, message e fields.
    */
   async delete(customer: string, options?: RequestOptions): Promise<void> {
     await this.#client.request<undefined>("DELETE", `/api/v1/customers/${encodeURIComponent(customer)}`, { options });
@@ -428,9 +432,9 @@ export class CustomersService {
    * Devolve um cliente pelo ID.
    *
    * Autenticação: chave de API da organização em Authorization: Bearer
-   * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-   * requisição. Respostas em JSON no envelope data; erros com error, message e
-   * fields.
+   * (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+   * nunca da requisição: a chave criada num showcase só alcança o que é dele.
+   * Respostas em JSON no envelope data; erros com error, message e fields.
    */
   get(customer: string, options?: RequestOptions): Promise<models.Customer> {
     return this.#client.request("GET", `/api/v1/customers/${encodeURIComponent(customer)}`, { options });
@@ -443,9 +447,9 @@ export class CustomersService {
    * (external_id).
    *
    * Autenticação: chave de API da organização em Authorization: Bearer
-   * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-   * requisição. Respostas em JSON no envelope data; erros com error, message e
-   * fields.
+   * (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+   * nunca da requisição: a chave criada num showcase só alcança o que é dele.
+   * Respostas em JSON no envelope data; erros com error, message e fields.
    */
   getExternal(externalID: string, options?: RequestOptions): Promise<models.Customer> {
     return this.#client.request("GET", `/api/v1/external-customers/${encodeURIComponent(externalID)}`, { options });
@@ -459,9 +463,9 @@ export class CustomersService {
    * para decidir o que o cliente pode usar.
    *
    * Autenticação: chave de API da organização em Authorization: Bearer
-   * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-   * requisição. Respostas em JSON no envelope data; erros com error, message e
-   * fields.
+   * (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+   * nunca da requisição: a chave criada num showcase só alcança o que é dele.
+   * Respostas em JSON no envelope data; erros com error, message e fields.
    */
   getState(customer: string, options?: RequestOptions): Promise<models.CustomerState> {
     return this.#client.request("GET", `/api/v1/customers/${encodeURIComponent(customer)}/state`, { options });
@@ -474,9 +478,9 @@ export class CustomersService {
    * sem diferença entre maiúsculas e minúsculas.
    *
    * Autenticação: chave de API da organização em Authorization: Bearer
-   * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-   * requisição. Respostas em JSON no envelope data; erros com error, message e
-   * fields.
+   * (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+   * nunca da requisição: a chave criada num showcase só alcança o que é dele.
+   * Respostas em JSON no envelope data; erros com error, message e fields.
    */
   list(params: CustomersListParams = {}, options?: RequestOptions): Promise<Page<models.Customer>> {
     return this.#client.request("GET", `/api/v1/customers`, { query: { ...params }, options });
@@ -494,9 +498,9 @@ export class CustomersService {
    * endereço de cobrança. O ID externo só pode ser definido uma vez.
    *
    * Autenticação: chave de API da organização em Authorization: Bearer
-   * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-   * requisição. Respostas em JSON no envelope data; erros com error, message e
-   * fields.
+   * (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+   * nunca da requisição: a chave criada num showcase só alcança o que é dele.
+   * Respostas em JSON no envelope data; erros com error, message e fields.
    */
   update(customer: string, params: models.CustomersUpdateParams, options?: RequestOptions): Promise<models.Customer> {
     return this.#client.request("PATCH", `/api/v1/customers/${encodeURIComponent(customer)}`, { body: params, options });
@@ -509,9 +513,9 @@ export class CustomersService {
    * (external_id). Os campos são os de Atualizar um cliente.
    *
    * Autenticação: chave de API da organização em Authorization: Bearer
-   * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-   * requisição. Respostas em JSON no envelope data; erros com error, message e
-   * fields.
+   * (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+   * nunca da requisição: a chave criada num showcase só alcança o que é dele.
+   * Respostas em JSON no envelope data; erros com error, message e fields.
    */
   updateExternal(externalID: string, params: models.CustomersUpdateExternalParams, options?: RequestOptions): Promise<models.Customer> {
     return this.#client.request("PATCH", `/api/v1/external-customers/${encodeURIComponent(externalID)}`, { body: params, options });
@@ -542,9 +546,9 @@ export class DiscountsService {
    * vale num link de checkout ou pela API.
    *
    * Autenticação: chave de API da organização em Authorization: Bearer
-   * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-   * requisição. Respostas em JSON no envelope data; erros com error, message e
-   * fields.
+   * (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+   * nunca da requisição: a chave criada num showcase só alcança o que é dele.
+   * Respostas em JSON no envelope data; erros com error, message e fields.
    */
   create(params: models.DiscountsCreateParams, options?: RequestOptions): Promise<models.Discount> {
     return this.#client.request("POST", `/api/v1/discounts`, { body: params, options });
@@ -557,9 +561,9 @@ export class DiscountsService {
    * livre. O que ele já descontou continua nos registros.
    *
    * Autenticação: chave de API da organização em Authorization: Bearer
-   * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-   * requisição. Respostas em JSON no envelope data; erros com error, message e
-   * fields.
+   * (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+   * nunca da requisição: a chave criada num showcase só alcança o que é dele.
+   * Respostas em JSON no envelope data; erros com error, message e fields.
    */
   async delete(discount: string, options?: RequestOptions): Promise<void> {
     await this.#client.request<undefined>("DELETE", `/api/v1/discounts/${encodeURIComponent(discount)}`, { options });
@@ -571,9 +575,9 @@ export class DiscountsService {
    * Devolve um desconto pelo ID.
    *
    * Autenticação: chave de API da organização em Authorization: Bearer
-   * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-   * requisição. Respostas em JSON no envelope data; erros com error, message e
-   * fields.
+   * (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+   * nunca da requisição: a chave criada num showcase só alcança o que é dele.
+   * Respostas em JSON no envelope data; erros com error, message e fields.
    */
   get(discount: string, options?: RequestOptions): Promise<models.Discount> {
     return this.#client.request("GET", `/api/v1/discounts/${encodeURIComponent(discount)}`, { options });
@@ -585,9 +589,9 @@ export class DiscountsService {
    * Devolve uma página dos descontos da organização.
    *
    * Autenticação: chave de API da organização em Authorization: Bearer
-   * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-   * requisição. Respostas em JSON no envelope data; erros com error, message e
-   * fields.
+   * (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+   * nunca da requisição: a chave criada num showcase só alcança o que é dele.
+   * Respostas em JSON no envelope data; erros com error, message e fields.
    */
   list(params: DiscountsListParams = {}, options?: RequestOptions): Promise<Page<models.Discount>> {
     return this.#client.request("GET", `/api/v1/discounts`, { query: { ...params }, options });
@@ -605,9 +609,9 @@ export class DiscountsService {
    * valor e os meses também não.
    *
    * Autenticação: chave de API da organização em Authorization: Bearer
-   * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-   * requisição. Respostas em JSON no envelope data; erros com error, message e
-   * fields.
+   * (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+   * nunca da requisição: a chave criada num showcase só alcança o que é dele.
+   * Respostas em JSON no envelope data; erros com error, message e fields.
    */
   update(discount: string, params: models.DiscountsUpdateParams, options?: RequestOptions): Promise<models.Discount> {
     return this.#client.request("PATCH", `/api/v1/discounts/${encodeURIComponent(discount)}`, { body: params, options });
@@ -638,9 +642,9 @@ export class DisputesService {
    * Devolve uma disputa pelo ID.
    *
    * Autenticação: chave de API da organização em Authorization: Bearer
-   * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-   * requisição. Respostas em JSON no envelope data; erros com error, message e
-   * fields.
+   * (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+   * nunca da requisição: a chave criada num showcase só alcança o que é dele.
+   * Respostas em JSON no envelope data; erros com error, message e fields.
    */
   get(dispute: string, options?: RequestOptions): Promise<models.Dispute> {
     return this.#client.request("GET", `/api/v1/disputes/${encodeURIComponent(dispute)}`, { options });
@@ -652,9 +656,9 @@ export class DisputesService {
    * Devolve uma página das disputas. Com status, só as que estão nele.
    *
    * Autenticação: chave de API da organização em Authorization: Bearer
-   * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-   * requisição. Respostas em JSON no envelope data; erros com error, message e
-   * fields.
+   * (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+   * nunca da requisição: a chave criada num showcase só alcança o que é dele.
+   * Respostas em JSON no envelope data; erros com error, message e fields.
    */
   list(params: DisputesListParams = {}, options?: RequestOptions): Promise<Page<models.Dispute>> {
     return this.#client.request("GET", `/api/v1/disputes`, { query: { ...params }, options });
@@ -695,9 +699,9 @@ export class EventsService {
    * novo ao mais antigo.
    *
    * Autenticação: chave de API da organização em Authorization: Bearer
-   * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-   * requisição. Respostas em JSON no envelope data; erros com error, message e
-   * fields.
+   * (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+   * nunca da requisição: a chave criada num showcase só alcança o que é dele.
+   * Respostas em JSON no envelope data; erros com error, message e fields.
    */
   list(params: EventsListParams = {}, options?: RequestOptions): Promise<Page<models.Event>> {
     return this.#client.request("GET", `/api/v1/events`, { query: { ...params }, options });
@@ -734,9 +738,9 @@ export class MetersService {
    * unidade.
    *
    * Autenticação: chave de API da organização em Authorization: Bearer
-   * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-   * requisição. Respostas em JSON no envelope data; erros com error, message e
-   * fields.
+   * (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+   * nunca da requisição: a chave criada num showcase só alcança o que é dele.
+   * Respostas em JSON no envelope data; erros com error, message e fields.
    */
   get(meter: string, options?: RequestOptions): Promise<models.Meter> {
     return this.#client.request("GET", `/api/v1/meters/${encodeURIComponent(meter)}`, { options });
@@ -749,9 +753,9 @@ export class MetersService {
    * is_archived=true.
    *
    * Autenticação: chave de API da organização em Authorization: Bearer
-   * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-   * requisição. Respostas em JSON no envelope data; erros com error, message e
-   * fields.
+   * (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+   * nunca da requisição: a chave criada num showcase só alcança o que é dele.
+   * Respostas em JSON no envelope data; erros com error, message e fields.
    */
   list(params: MetersListParams = {}, options?: RequestOptions): Promise<Page<models.Meter>> {
     return this.#client.request("GET", `/api/v1/meters`, { query: { ...params }, options });
@@ -777,6 +781,8 @@ export interface OrdersListParams {
   customer_id?: string;
   /** Só os do cliente que você identifica por este ID externo; um ID que não existe não acha nada. */
   external_customer_id?: string;
+  /** Só as vendas desta assinatura: o pedido que pagou o primeiro ciclo e cada renovação paga. Um ID que não existe não acha nada. */
+  subscription_id?: string;
   /** Só os criados a partir deste instante, inclusive (RFC 3339, como 2026-11-17T00:00:00-03:00). */
   created_after?: string;
   /** Só os criados antes deste instante (RFC 3339); com created_after, o período é [created_after, created_before). */
@@ -798,12 +804,13 @@ export class OrdersService {
   /**
    * Ler um pedido.
    *
-   * Devolve um pedido: um checkout pago.
+   * Devolve um pedido: um checkout pago. Se ele pagou um ciclo de assinatura,
+   * traz subscription_id, cycle_sequence, period_start e period_end.
    *
    * Autenticação: chave de API da organização em Authorization: Bearer
-   * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-   * requisição. Respostas em JSON no envelope data; erros com error, message e
-   * fields.
+   * (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+   * nunca da requisição: a chave criada num showcase só alcança o que é dele.
+   * Respostas em JSON no envelope data; erros com error, message e fields.
    */
   get(order: string, options?: RequestOptions): Promise<models.Order> {
     return this.#client.request("GET", `/api/v1/orders/${encodeURIComponent(order)}`, { options });
@@ -816,9 +823,9 @@ export class OrdersService {
    * Sem fatura, a resposta é 404.
    *
    * Autenticação: chave de API da organização em Authorization: Bearer
-   * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-   * requisição. Respostas em JSON no envelope data; erros com error, message e
-   * fields.
+   * (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+   * nunca da requisição: a chave criada num showcase só alcança o que é dele.
+   * Respostas em JSON no envelope data; erros com error, message e fields.
    */
   getInvoice(order: string, options?: RequestOptions): Promise<models.OrderInvoice> {
     return this.#client.request("GET", `/api/v1/orders/${encodeURIComponent(order)}/invoice`, { options });
@@ -830,9 +837,9 @@ export class OrdersService {
    * Devolve o recibo de um pedido: o que foi pago, quando e como.
    *
    * Autenticação: chave de API da organização em Authorization: Bearer
-   * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-   * requisição. Respostas em JSON no envelope data; erros com error, message e
-   * fields.
+   * (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+   * nunca da requisição: a chave criada num showcase só alcança o que é dele.
+   * Respostas em JSON no envelope data; erros com error, message e fields.
    */
   getReceipt(order: string, options?: RequestOptions): Promise<models.OrderReceipt> {
     return this.#client.request("GET", `/api/v1/orders/${encodeURIComponent(order)}/receipt`, { options });
@@ -842,12 +849,13 @@ export class OrdersService {
    * Listar pedidos. One page; `listIter` walks every page.
    *
    * Devolve uma página dos pedidos, que são os checkouts pagos. Filtre por
-   * client_reference_id, cliente, período ou metadados.
+   * client_reference_id, cliente, assinatura (subscription_id), período ou
+   * metadados.
    *
    * Autenticação: chave de API da organização em Authorization: Bearer
-   * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-   * requisição. Respostas em JSON no envelope data; erros com error, message e
-   * fields.
+   * (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+   * nunca da requisição: a chave criada num showcase só alcança o que é dele.
+   * Respostas em JSON no envelope data; erros com error, message e fields.
    */
   list(params: OrdersListParams = {}, options?: RequestOptions): Promise<Page<models.Order>> {
     return this.#client.request("GET", `/api/v1/orders`, { query: { ...params }, options });
@@ -882,9 +890,9 @@ export class PaymentMethodsService {
    * ativa o cobra.
    *
    * Autenticação: chave de API da organização em Authorization: Bearer
-   * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-   * requisição. Respostas em JSON no envelope data; erros com error, message e
-   * fields.
+   * (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+   * nunca da requisição: a chave criada num showcase só alcança o que é dele.
+   * Respostas em JSON no envelope data; erros com error, message e fields.
    */
   detach(paymentMethod: string, options?: RequestOptions): Promise<models.PaymentMethodDetached> {
     return this.#client.request("POST", `/api/v1/payment_methods/${encodeURIComponent(paymentMethod)}/detach`, { options });
@@ -897,9 +905,9 @@ export class PaymentMethodsService {
    * dígitos e validade. O número do cartão nunca aparece.
    *
    * Autenticação: chave de API da organização em Authorization: Bearer
-   * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-   * requisição. Respostas em JSON no envelope data; erros com error, message e
-   * fields.
+   * (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+   * nunca da requisição: a chave criada num showcase só alcança o que é dele.
+   * Respostas em JSON no envelope data; erros com error, message e fields.
    */
   list(customer: string, params: PaymentMethodsListParams = {}, options?: RequestOptions): Promise<Page<models.PaymentMethod>> {
     return this.#client.request("GET", `/api/v1/customers/${encodeURIComponent(customer)}/payment_methods`, { query: { ...params }, options });
@@ -925,6 +933,8 @@ export interface PaymentsListParams {
   customer_id?: string;
   /** Só os do cliente que você identifica por este ID externo; um ID que não existe não acha nada. */
   external_customer_id?: string;
+  /** Só as vendas desta assinatura: o pedido que pagou o primeiro ciclo e cada renovação paga. Um ID que não existe não acha nada. */
+  subscription_id?: string;
   /** Só os criados a partir deste instante, inclusive (RFC 3339, como 2026-11-17T00:00:00-03:00). */
   created_after?: string;
   /** Só os criados antes deste instante (RFC 3339); com created_after, o período é [created_after, created_before). */
@@ -949,9 +959,9 @@ export class PaymentsService {
    * Devolve um pagamento pelo ID.
    *
    * Autenticação: chave de API da organização em Authorization: Bearer
-   * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-   * requisição. Respostas em JSON no envelope data; erros com error, message e
-   * fields.
+   * (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+   * nunca da requisição: a chave criada num showcase só alcança o que é dele.
+   * Respostas em JSON no envelope data; erros com error, message e fields.
    */
   get(payment: string, options?: RequestOptions): Promise<models.Payment> {
     return this.#client.request("GET", `/api/v1/payments/${encodeURIComponent(payment)}`, { options });
@@ -961,12 +971,12 @@ export class PaymentsService {
    * Listar pagamentos. One page; `listIter` walks every page.
    *
    * Devolve uma página dos pagamentos. Filtre por client_reference_id, estado,
-   * cliente, período ou metadados.
+   * cliente, assinatura (subscription_id), período ou metadados.
    *
    * Autenticação: chave de API da organização em Authorization: Bearer
-   * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-   * requisição. Respostas em JSON no envelope data; erros com error, message e
-   * fields.
+   * (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+   * nunca da requisição: a chave criada num showcase só alcança o que é dele.
+   * Respostas em JSON no envelope data; erros com error, message e fields.
    */
   list(params: PaymentsListParams = {}, options?: RequestOptions): Promise<Page<models.Payment>> {
     return this.#client.request("GET", `/api/v1/payments`, { query: { ...params }, options });
@@ -1004,9 +1014,9 @@ export class PricesService {
    * quanto tempo ele renova: month com 3 é trimestral.
    *
    * Autenticação: chave de API da organização em Authorization: Bearer
-   * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-   * requisição. Respostas em JSON no envelope data; erros com error, message e
-   * fields.
+   * (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+   * nunca da requisição: a chave criada num showcase só alcança o que é dele.
+   * Respostas em JSON no envelope data; erros com error, message e fields.
    */
   create(params: models.PricesCreateParams, options?: RequestOptions): Promise<models.Price> {
     return this.#client.request("POST", `/api/v1/prices`, { body: params, options });
@@ -1019,9 +1029,9 @@ export class PricesService {
    * produto.
    *
    * Autenticação: chave de API da organização em Authorization: Bearer
-   * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-   * requisição. Respostas em JSON no envelope data; erros com error, message e
-   * fields.
+   * (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+   * nunca da requisição: a chave criada num showcase só alcança o que é dele.
+   * Respostas em JSON no envelope data; erros com error, message e fields.
    */
   list(params: PricesListParams = {}, options?: RequestOptions): Promise<Page<models.Price>> {
     return this.#client.request("GET", `/api/v1/prices`, { query: { ...params }, options });
@@ -1056,9 +1066,9 @@ export class ProductsService {
    * continua apontando para ele.
    *
    * Autenticação: chave de API da organização em Authorization: Bearer
-   * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-   * requisição. Respostas em JSON no envelope data; erros com error, message e
-   * fields.
+   * (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+   * nunca da requisição: a chave criada num showcase só alcança o que é dele.
+   * Respostas em JSON no envelope data; erros com error, message e fields.
    */
   archive(product: string, options?: RequestOptions): Promise<models.Product> {
     return this.#client.request("POST", `/api/v1/products/${encodeURIComponent(product)}/archive`, { options });
@@ -1071,9 +1081,9 @@ export class ProductsService {
    * preço.
    *
    * Autenticação: chave de API da organização em Authorization: Bearer
-   * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-   * requisição. Respostas em JSON no envelope data; erros com error, message e
-   * fields.
+   * (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+   * nunca da requisição: a chave criada num showcase só alcança o que é dele.
+   * Respostas em JSON no envelope data; erros com error, message e fields.
    */
   create(params: models.ProductsCreateParams, options?: RequestOptions): Promise<models.Product> {
     return this.#client.request("POST", `/api/v1/products`, { body: params, options });
@@ -1085,9 +1095,9 @@ export class ProductsService {
    * Devolve um produto pelo ID.
    *
    * Autenticação: chave de API da organização em Authorization: Bearer
-   * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-   * requisição. Respostas em JSON no envelope data; erros com error, message e
-   * fields.
+   * (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+   * nunca da requisição: a chave criada num showcase só alcança o que é dele.
+   * Respostas em JSON no envelope data; erros com error, message e fields.
    */
   get(product: string, options?: RequestOptions): Promise<models.Product> {
     return this.#client.request("GET", `/api/v1/products/${encodeURIComponent(product)}`, { options });
@@ -1099,9 +1109,9 @@ export class ProductsService {
    * Devolve uma página dos produtos da organização, no ambiente da chave.
    *
    * Autenticação: chave de API da organização em Authorization: Bearer
-   * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-   * requisição. Respostas em JSON no envelope data; erros com error, message e
-   * fields.
+   * (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+   * nunca da requisição: a chave criada num showcase só alcança o que é dele.
+   * Respostas em JSON no envelope data; erros com error, message e fields.
    */
   list(params: ProductsListParams = {}, options?: RequestOptions): Promise<Page<models.Product>> {
     return this.#client.request("GET", `/api/v1/products`, { query: { ...params }, options });
@@ -1119,9 +1129,9 @@ export class ProductsService {
    * como está.
    *
    * Autenticação: chave de API da organização em Authorization: Bearer
-   * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-   * requisição. Respostas em JSON no envelope data; erros com error, message e
-   * fields.
+   * (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+   * nunca da requisição: a chave criada num showcase só alcança o que é dele.
+   * Respostas em JSON no envelope data; erros com error, message e fields.
    */
   update(product: string, params: models.ProductsUpdateParams, options?: RequestOptions): Promise<models.Product> {
     return this.#client.request("PATCH", `/api/v1/products/${encodeURIComponent(product)}`, { body: params, options });
@@ -1148,6 +1158,8 @@ export interface RefundsListParams {
   created_before?: string;
   /** Ordem da lista: created_at ou amount, e com um - na frente é decrescente (-created_at, o mais novo primeiro, é o padrão). */
   sorting?: string;
+  /** Filtro por metadados: metadata[chave]=valor, uma vez para cada par (até 10); a linha precisa ter todos. Um valor que parece número ou booleano também casa com o número ou o booleano guardado. */
+  metadata?: Record<string, string>;
 }
 
 /** The API's refunds. */
@@ -1159,31 +1171,52 @@ export class RefundsService {
   }
 
   /**
-   * Reembolsar um pagamento.
+   * Reembolsar um pagamento ou um pedido.
    *
-   * Devolve parte ou todo o valor de um pagamento. A Idempotency-Key é
-   * obrigatória: sem ela, repetir a chamada depois de um tempo esgotado seria
-   * devolver duas vezes.
+   * Devolve dinheiro de um pagamento, que você nomeia pelo payment_id ou pelo
+   * order_id do pedido que ele pagou (os dois, só se forem do mesmo pagamento).
+   * Sem amount_cents devolve tudo o que ainda pode ser devolvido; com ele, uma
+   * parte, até esse limite. O reason, sem ele, é requested_by_customer. O
+   * metadata fica no reembolso e volta nele e nos eventos refund.*. A
+   * Idempotency-Key é obrigatória: sem ela, repetir a chamada depois de um
+   * tempo esgotado seria devolver duas vezes; repetida com a mesma chave,
+   * devolve o mesmo reembolso.
    *
    * Autenticação: chave de API da organização em Authorization: Bearer
-   * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-   * requisição. Respostas em JSON no envelope data; erros com error, message e
-   * fields.
+   * (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+   * nunca da requisição: a chave criada num showcase só alcança o que é dele.
+   * Respostas em JSON no envelope data; erros com error, message e fields.
    */
   create(params: models.RefundsCreateParams, options?: RequestOptions): Promise<models.Refund> {
     return this.#client.request("POST", `/api/v1/refunds`, { body: params, options });
   }
 
   /**
+   * Ler um reembolso.
+   *
+   * Devolve um reembolso pelo ID, com o pedido de onde veio (order_id), o
+   * client_reference_id desse pedido e o status: requested e pending esperam a
+   * Cielo, succeeded devolveu o dinheiro.
+   *
+   * Autenticação: chave de API da organização em Authorization: Bearer
+   * (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+   * nunca da requisição: a chave criada num showcase só alcança o que é dele.
+   * Respostas em JSON no envelope data; erros com error, message e fields.
+   */
+  get(refund: string, options?: RequestOptions): Promise<models.Refund> {
+    return this.#client.request("GET", `/api/v1/refunds/${encodeURIComponent(refund)}`, { options });
+  }
+
+  /**
    * Listar reembolsos. One page; `listIter` walks every page.
    *
    * Devolve uma página dos reembolsos. Filtre por pagamento (payment_id),
-   * status, cliente ou período.
+   * status, cliente, período ou metadados do reembolso.
    *
    * Autenticação: chave de API da organização em Authorization: Bearer
-   * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-   * requisição. Respostas em JSON no envelope data; erros com error, message e
-   * fields.
+   * (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+   * nunca da requisição: a chave criada num showcase só alcança o que é dele.
+   * Respostas em JSON no envelope data; erros com error, message e fields.
    */
   list(params: RefundsListParams = {}, options?: RequestOptions): Promise<Page<models.Refund>> {
     return this.#client.request("GET", `/api/v1/refunds`, { query: { ...params }, options });
@@ -1192,6 +1225,32 @@ export class RefundsService {
   /** Walks every page of refunds:list, item by item: `for await (const item of …)`. */
   listIter(params: RefundsListParams = {}, options?: RequestOptions): AsyncGenerator<models.Refund, void, undefined> {
     return iterate((page) => this.list({ ...params, page }, options), params.page);
+  }
+}
+
+/** The API's showcase. */
+export class ShowcaseService {
+  readonly #client: Requester;
+
+  constructor(client: Requester) {
+    this.#client = client;
+  }
+
+  /**
+   * Ler o showcase da chave.
+   *
+   * Devolve o showcase em que a chave foi criada: o ID (o showcase_id dos
+   * objetos e dos eventos), o nome, se é o principal da organização e se tem
+   * logo. Serve para o seu sistema, ou um assistente, saber onde está. Um
+   * showcase se abre e se muda no painel, nunca por esta API.
+   *
+   * Autenticação: chave de API da organização em Authorization: Bearer
+   * (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+   * nunca da requisição: a chave criada num showcase só alcança o que é dele.
+   * Respostas em JSON no envelope data; erros com error, message e fields.
+   */
+  get(options?: RequestOptions): Promise<models.Showcase> {
+    return this.#client.request("GET", `/api/v1/showcase`, { options });
   }
 }
 
@@ -1232,9 +1291,9 @@ export class SubscriptionsService {
    * pago.
    *
    * Autenticação: chave de API da organização em Authorization: Bearer
-   * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-   * requisição. Respostas em JSON no envelope data; erros com error, message e
-   * fields.
+   * (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+   * nunca da requisição: a chave criada num showcase só alcança o que é dele.
+   * Respostas em JSON no envelope data; erros com error, message e fields.
    */
   cancel(subscription: string, params: models.SubscriptionsCancelParams, options?: RequestOptions): Promise<models.Subscription> {
     return this.#client.request("POST", `/api/v1/subscriptions/${encodeURIComponent(subscription)}/cancel`, { body: params, options });
@@ -1246,9 +1305,9 @@ export class SubscriptionsService {
    * Devolve uma assinatura pelo ID.
    *
    * Autenticação: chave de API da organização em Authorization: Bearer
-   * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-   * requisição. Respostas em JSON no envelope data; erros com error, message e
-   * fields.
+   * (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+   * nunca da requisição: a chave criada num showcase só alcança o que é dele.
+   * Respostas em JSON no envelope data; erros com error, message e fields.
    */
   get(subscription: string, options?: RequestOptions): Promise<models.Subscription> {
     return this.#client.request("GET", `/api/v1/subscriptions/${encodeURIComponent(subscription)}`, { options });
@@ -1261,9 +1320,9 @@ export class SubscriptionsService {
    * external_customer_id), status, período ou metadados.
    *
    * Autenticação: chave de API da organização em Authorization: Bearer
-   * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-   * requisição. Respostas em JSON no envelope data; erros com error, message e
-   * fields.
+   * (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+   * nunca da requisição: a chave criada num showcase só alcança o que é dele.
+   * Respostas em JSON no envelope data; erros com error, message e fields.
    */
   list(params: SubscriptionsListParams = {}, options?: RequestOptions): Promise<Page<models.Subscription>> {
     return this.#client.request("GET", `/api/v1/subscriptions`, { query: { ...params }, options });
@@ -1282,9 +1341,9 @@ export class SubscriptionsService {
    * recebe 409.
    *
    * Autenticação: chave de API da organização em Authorization: Bearer
-   * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-   * requisição. Respostas em JSON no envelope data; erros com error, message e
-   * fields.
+   * (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+   * nunca da requisição: a chave criada num showcase só alcança o que é dele.
+   * Respostas em JSON no envelope data; erros com error, message e fields.
    */
   resume(subscription: string, options?: RequestOptions): Promise<models.Subscription> {
     return this.#client.request("POST", `/api/v1/subscriptions/${encodeURIComponent(subscription)}/resume`, { options });
@@ -1297,9 +1356,9 @@ export class SubscriptionsService {
    * quantidade. O proration_behavior diz como ratear a diferença.
    *
    * Autenticação: chave de API da organização em Authorization: Bearer
-   * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-   * requisição. Respostas em JSON no envelope data; erros com error, message e
-   * fields.
+   * (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+   * nunca da requisição: a chave criada num showcase só alcança o que é dele.
+   * Respostas em JSON no envelope data; erros com error, message e fields.
    */
   update(subscription: string, params: models.SubscriptionsUpdateParams, options?: RequestOptions): Promise<models.Subscription> {
     return this.#client.request("PATCH", `/api/v1/subscriptions/${encodeURIComponent(subscription)}`, { body: params, options });
@@ -1377,9 +1436,9 @@ export class WebhooksService {
    * resposta; guarde-o.
    *
    * Autenticação: chave de API da organização em Authorization: Bearer
-   * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-   * requisição. Respostas em JSON no envelope data; erros com error, message e
-   * fields.
+   * (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+   * nunca da requisição: a chave criada num showcase só alcança o que é dele.
+   * Respostas em JSON no envelope data; erros com error, message e fields.
    */
   createEndpoint(params: models.WebhooksCreateEndpointParams, options?: RequestOptions): Promise<models.WebhookEndpointCreated> {
     return this.#client.request("POST", `/api/v1/webhooks/endpoints`, { body: params, options });
@@ -1392,9 +1451,9 @@ export class WebhooksService {
    * falham.
    *
    * Autenticação: chave de API da organização em Authorization: Bearer
-   * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-   * requisição. Respostas em JSON no envelope data; erros com error, message e
-   * fields.
+   * (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+   * nunca da requisição: a chave criada num showcase só alcança o que é dele.
+   * Respostas em JSON no envelope data; erros com error, message e fields.
    */
   async deleteEndpoint(endpoint: string, options?: RequestOptions): Promise<void> {
     await this.#client.request<undefined>("DELETE", `/api/v1/webhooks/endpoints/${encodeURIComponent(endpoint)}`, { options });
@@ -1406,9 +1465,9 @@ export class WebhooksService {
    * Devolve um endpoint de webhook pelo ID.
    *
    * Autenticação: chave de API da organização em Authorization: Bearer
-   * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-   * requisição. Respostas em JSON no envelope data; erros com error, message e
-   * fields.
+   * (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+   * nunca da requisição: a chave criada num showcase só alcança o que é dele.
+   * Respostas em JSON no envelope data; erros com error, message e fields.
    */
   getEndpoint(endpoint: string, options?: RequestOptions): Promise<models.WebhookEndpoint> {
     return this.#client.request("GET", `/api/v1/webhooks/endpoints/${encodeURIComponent(endpoint)}`, { options });
@@ -1421,9 +1480,9 @@ export class WebhooksService {
    * só as de um endpoint; com status, só as de uma situação.
    *
    * Autenticação: chave de API da organização em Authorization: Bearer
-   * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-   * requisição. Respostas em JSON no envelope data; erros com error, message e
-   * fields.
+   * (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+   * nunca da requisição: a chave criada num showcase só alcança o que é dele.
+   * Respostas em JSON no envelope data; erros com error, message e fields.
    */
   listDeliveries(params: WebhooksListDeliveriesParams = {}, options?: RequestOptions): Promise<Page<models.WebhookDelivery>> {
     return this.#client.request("GET", `/api/v1/webhooks/deliveries`, { query: { ...params }, options });
@@ -1440,9 +1499,9 @@ export class WebhooksService {
    * Devolve uma página dos endpoints de webhook da organização.
    *
    * Autenticação: chave de API da organização em Authorization: Bearer
-   * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-   * requisição. Respostas em JSON no envelope data; erros com error, message e
-   * fields.
+   * (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+   * nunca da requisição: a chave criada num showcase só alcança o que é dele.
+   * Respostas em JSON no envelope data; erros com error, message e fields.
    */
   listEndpoints(params: WebhooksListEndpointsParams = {}, options?: RequestOptions): Promise<Page<models.WebhookEndpoint>> {
     return this.#client.request("GET", `/api/v1/webhooks/endpoints`, { query: { ...params }, options });
@@ -1460,9 +1519,9 @@ export class WebhooksService {
    * liga e desliga o envio (enabled). O segredo não muda.
    *
    * Autenticação: chave de API da organização em Authorization: Bearer
-   * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-   * requisição. Respostas em JSON no envelope data; erros com error, message e
-   * fields.
+   * (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+   * nunca da requisição: a chave criada num showcase só alcança o que é dele.
+   * Respostas em JSON no envelope data; erros com error, message e fields.
    */
   updateEndpoint(endpoint: string, params: models.WebhooksUpdateEndpointParams, options?: RequestOptions): Promise<models.WebhookEndpoint> {
     return this.#client.request("PATCH", `/api/v1/webhooks/endpoints/${encodeURIComponent(endpoint)}`, { body: params, options });

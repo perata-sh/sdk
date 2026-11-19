@@ -25,9 +25,10 @@ final class DiscountsService
      * só vale num link de checkout ou pela API.
      *
      * Autenticação: chave de API da organização em Authorization: Bearer
-     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-     * requisição. Respostas em JSON no envelope data; erros com error, message
-     * e fields.
+     * (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+     * chave, nunca da requisição: a chave criada num showcase só alcança o que
+     * é dele. Respostas em JSON no envelope data; erros com error, message e
+     * fields.
      *
      * @param array{amount_cents?: int, basis_points?: int, code?: string, duration: 'once'|'repeating'|'forever', duration_in_months?: int, ends_at?: string, max_redemptions?: int, max_redemptions_per_customer?: int, name: string, product_ids?: list<string>, starts_at?: string, type: 'percentage'|'fixed'} $params
      */
@@ -44,9 +45,10 @@ final class DiscountsService
      * livre. O que ele já descontou continua nos registros.
      *
      * Autenticação: chave de API da organização em Authorization: Bearer
-     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-     * requisição. Respostas em JSON no envelope data; erros com error, message
-     * e fields.
+     * (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+     * chave, nunca da requisição: a chave criada num showcase só alcança o que
+     * é dele. Respostas em JSON no envelope data; erros com error, message e
+     * fields.
      */
     public function delete(string $discount, ?string $idempotencyKey = null, ?string $apiKey = null): void
     {
@@ -59,9 +61,10 @@ final class DiscountsService
      * Devolve um desconto pelo ID.
      *
      * Autenticação: chave de API da organização em Authorization: Bearer
-     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-     * requisição. Respostas em JSON no envelope data; erros com error, message
-     * e fields.
+     * (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+     * chave, nunca da requisição: a chave criada num showcase só alcança o que
+     * é dele. Respostas em JSON no envelope data; erros com error, message e
+     * fields.
      */
     public function get(string $discount, ?string $apiKey = null): Models\Discount
     {
@@ -75,9 +78,10 @@ final class DiscountsService
      * Devolve uma página dos descontos da organização.
      *
      * Autenticação: chave de API da organização em Authorization: Bearer
-     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-     * requisição. Respostas em JSON no envelope data; erros com error, message
-     * e fields.
+     * (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+     * chave, nunca da requisição: a chave criada num showcase só alcança o que
+     * é dele. Respostas em JSON no envelope data; erros com error, message e
+     * fields.
      *
      * @param array{page?: int, limit?: int} $params
      * @return Page<Models\Discount>
@@ -106,9 +110,10 @@ final class DiscountsService
      * valor e os meses também não.
      *
      * Autenticação: chave de API da organização em Authorization: Bearer
-     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-     * requisição. Respostas em JSON no envelope data; erros com error, message
-     * e fields.
+     * (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+     * chave, nunca da requisição: a chave criada num showcase só alcança o que
+     * é dele. Respostas em JSON no envelope data; erros com error, message e
+     * fields.
      *
      * @param array{amount_cents?: int, basis_points?: int, code?: string, duration_in_months?: int, ends_at?: string, max_redemptions?: int, max_redemptions_per_customer?: int, name?: string, product_ids?: list<string>, starts_at?: string} $params
      */

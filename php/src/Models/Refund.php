@@ -10,10 +10,34 @@ namespace Perata\Models;
 final class Refund
 {
     public function __construct(
+        /** O valor deste reembolso, em centavos. */
         public readonly int $amountCents,
+        /** O id do pedido no seu sistema, enviado ao criar o checkout; vazio sem ele. É o do pedido, não do reembolso. */
+        public readonly string $clientReferenceId,
+        public readonly string $createdAt,
         public readonly string $id,
+        /**
+         * Os pares que o seu servidor enviou ao criar o checkout do pedido; vazio sem eles. É o mesmo metadata dos eventos de venda e de reembolso.
+         * @var array<string, mixed>
+         */
+        public readonly array $metadata,
+        /** O pedido a que o pagamento pertence: o id que GET /orders/{id} recebe. Vazio quando o reembolso não é de um pagamento de checkout. */
+        public readonly string $orderId,
+        /** O pagamento de que o dinheiro volta. */
         public readonly string $paymentId,
-        /** @var 'requested'|'pending'|'unknown'|'succeeded'|'failed'|'canceled' */
+        /** Por que o dinheiro voltou, como o seu servidor informou. */
+        public readonly string $reason,
+        /**
+         * Os pares que o seu servidor enviou no campo metadata ao pedir este reembolso; vazio sem eles.
+         * @var array<string, mixed>
+         */
+        public readonly array $refundMetadata,
+        /** O showcase a que pertence: o da chave de API que fez a chamada. Uma chave só alcança o seu showcase. */
+        public readonly string $showcaseId,
+        /**
+         * requested e pending esperam a Cielo; unknown é uma resposta que não chegou, e o valor continua reservado até a Cielo responder; succeeded devolveu o dinheiro; failed e canceled não devolveram.
+         * @var 'requested'|'pending'|'unknown'|'succeeded'|'failed'|'canceled'
+         */
         public readonly string $status,
     ) {
     }
@@ -25,8 +49,15 @@ final class Refund
     {
         return new self(
             amountCents: $data['amount_cents'],
+            clientReferenceId: $data['client_reference_id'],
+            createdAt: $data['created_at'],
             id: $data['id'],
+            metadata: $data['metadata'],
+            orderId: $data['order_id'],
             paymentId: $data['payment_id'],
+            reason: $data['reason'],
+            refundMetadata: $data['refund_metadata'],
+            showcaseId: $data['showcase_id'],
             status: $data['status'],
         );
     }

@@ -16,6 +16,8 @@ final class Order
         /** @var 'BRL' */
         public readonly string $currency,
         public readonly string $customerId,
+        /** Qual ciclo da assinatura o pedido pagou: 1 é o primeiro; nulo fora de uma assinatura. */
+        public readonly ?int $cycleSequence,
         public readonly string $id,
         /** Juros do parcelamento pagos pelo comprador, cobrados além de amount_cents. */
         public readonly int $installmentInterestCents,
@@ -37,12 +39,20 @@ final class Order
          */
         public readonly ?string $orderStatus,
         public readonly ?string $paidAt,
+        /** O fim do período que o ciclo paga; nulo fora de uma assinatura. */
+        public readonly ?string $periodEnd,
+        /** O começo do período que o ciclo paga; nulo fora de uma assinatura. */
+        public readonly ?string $periodStart,
         public readonly string $priceId,
         public readonly string $productId,
         /** Quanto do pedido já foi devolvido, somando todos os reembolsos que deram certo, em centavos. */
         public readonly int $refundedAmountCents,
+        /** O showcase a que pertence: o da chave de API que fez a chamada. Uma chave só alcança o seu showcase. */
+        public readonly string $showcaseId,
         /** @var 'open'|'confirmed'|'succeeded'|'failed'|'expired' */
         public readonly string $status,
+        /** A assinatura de que este pedido é a cobrança (a primeira ou uma renovação); nulo quando o pedido não é de uma assinatura. */
+        public readonly ?string $subscriptionId,
     ) {
     }
 
@@ -56,6 +66,7 @@ final class Order
             clientReferenceId: $data['client_reference_id'],
             currency: $data['currency'],
             customerId: $data['customer_id'],
+            cycleSequence: $data['cycle_sequence'] ?? null,
             id: $data['id'],
             installmentInterestCents: $data['installment_interest_cents'],
             installments: $data['installments'],
@@ -63,10 +74,14 @@ final class Order
             metadata: $data['metadata'],
             orderStatus: $data['order_status'] ?? null,
             paidAt: $data['paid_at'] ?? null,
+            periodEnd: $data['period_end'] ?? null,
+            periodStart: $data['period_start'] ?? null,
             priceId: $data['price_id'],
             productId: $data['product_id'],
             refundedAmountCents: $data['refunded_amount_cents'],
+            showcaseId: $data['showcase_id'],
             status: $data['status'],
+            subscriptionId: $data['subscription_id'] ?? null,
         );
     }
 }

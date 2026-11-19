@@ -17,8 +17,8 @@ final class DiscountWebhookEvent extends WebhookEvent
     /** The event types this class carries. */
     public const TYPES = ['discount.created', 'discount.deleted', 'discount.updated'];
 
-    public function __construct(string $id, string $type, string $timestamp, string $environment, public readonly Models\WebhookDiscount $data)
+    public function __construct(string $id, string $type, string $timestamp, string $environment, string $showcaseId, public readonly Models\WebhookDiscount $data)
     {
-        parent::__construct($id, $type, $timestamp, $environment);
+        parent::__construct($id, $type, $timestamp, $environment, $showcaseId);
     }
 }

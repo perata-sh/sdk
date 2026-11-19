@@ -21,6 +21,8 @@ final class Customer
         public readonly string $name,
         /** Telefone ou celular com DDD, só dígitos. */
         public readonly ?string $phone,
+        /** O showcase a que pertence: o da chave de API que fez a chamada. Uma chave só alcança o seu showcase. */
+        public readonly string $showcaseId,
         /** @var 'active'|'archived' */
         public readonly string $status,
         /** CPF ou CNPJ, só dígitos. O CPF vem inteiro para a chave de um dono ou administrador da organização e mascarado (***.***.789-00) para as demais; o CNPJ vem sempre inteiro. */
@@ -47,6 +49,7 @@ final class Customer
             id: $data['id'],
             name: $data['name'],
             phone: $data['phone'] ?? null,
+            showcaseId: $data['showcase_id'],
             status: $data['status'],
             taxId: $data['tax_id'] ?? null,
             taxIdKind: $data['tax_id_kind'] ?? null,

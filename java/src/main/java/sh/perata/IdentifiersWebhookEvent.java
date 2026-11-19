@@ -14,13 +14,13 @@ public final class IdentifiersWebhookEvent extends WebhookEvent {
 
     private final Map<String, String> data;
 
-    IdentifiersWebhookEvent(String id, String type, String timestamp, String environment, Map<String, String> data) {
-        super(id, type, timestamp, environment);
+    IdentifiersWebhookEvent(String id, String type, String timestamp, String environment, String showcaseId, Map<String, String> data) {
+        super(id, type, timestamp, environment, showcaseId);
         this.data = data;
     }
 
-    static IdentifiersWebhookEvent fromJson(String id, String type, String timestamp, String environment, Map<String, Object> data) {
-        return new IdentifiersWebhookEvent(id, type, timestamp, environment, Json.map(Json::asString).apply(data));
+    static IdentifiersWebhookEvent fromJson(String id, String type, String timestamp, String environment, String showcaseId, Map<String, Object> data) {
+        return new IdentifiersWebhookEvent(id, type, timestamp, environment, showcaseId, Json.map(Json::asString).apply(data));
     }
 
     /** @return what the event carries */

@@ -83,6 +83,11 @@ impl Client {
         RefundsService::new(self)
     }
 
+    /// The API's showcase.
+    pub fn showcase(&self) -> ShowcaseService<'_> {
+        ShowcaseService::new(self)
+    }
+
     /// The API's subscriptions.
     pub fn subscriptions(&self) -> SubscriptionsService<'_> {
         SubscriptionsService::new(self)
@@ -256,9 +261,10 @@ impl<'a> BenefitsService<'a> {
     /// configuram no painel.
     ///
     /// Autenticação: chave de API da organização em Authorization: Bearer
-    /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
-    /// da requisição. Respostas em JSON no envelope data; erros com error,
-    /// message e fields.
+    /// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+    /// chave, nunca da requisição: a chave criada num showcase só alcança o que
+    /// é dele. Respostas em JSON no envelope data; erros com error, message e
+    /// fields.
     pub fn create(&self, params: &BenefitsCreateParams) -> Result<Benefit, Error> {
         self.client.request("POST", "/api/v1/benefits", &[], Some(params), &self.options)
     }
@@ -269,9 +275,10 @@ impl<'a> BenefitsService<'a> {
     /// tem.
     ///
     /// Autenticação: chave de API da organização em Authorization: Bearer
-    /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
-    /// da requisição. Respostas em JSON no envelope data; erros com error,
-    /// message e fields.
+    /// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+    /// chave, nunca da requisição: a chave criada num showcase só alcança o que
+    /// é dele. Respostas em JSON no envelope data; erros com error, message e
+    /// fields.
     pub fn delete(&self, benefit: &str) -> Result<(), Error> {
         self.client.request("DELETE", &format!("/api/v1/benefits/{}", crate::client::escape(benefit)), &[], None::<&()>, &self.options)
     }
@@ -281,9 +288,10 @@ impl<'a> BenefitsService<'a> {
     /// Devolve um benefício pelo ID.
     ///
     /// Autenticação: chave de API da organização em Authorization: Bearer
-    /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
-    /// da requisição. Respostas em JSON no envelope data; erros com error,
-    /// message e fields.
+    /// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+    /// chave, nunca da requisição: a chave criada num showcase só alcança o que
+    /// é dele. Respostas em JSON no envelope data; erros com error, message e
+    /// fields.
     pub fn get(&self, benefit: &str) -> Result<Benefit, Error> {
         self.client.request("GET", &format!("/api/v1/benefits/{}", crate::client::escape(benefit)), &[], None::<&()>, &self.options)
     }
@@ -294,9 +302,10 @@ impl<'a> BenefitsService<'a> {
     /// tipo.
     ///
     /// Autenticação: chave de API da organização em Authorization: Bearer
-    /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
-    /// da requisição. Respostas em JSON no envelope data; erros com error,
-    /// message e fields.
+    /// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+    /// chave, nunca da requisição: a chave criada num showcase só alcança o que
+    /// é dele. Respostas em JSON no envelope data; erros com error, message e
+    /// fields.
     pub fn list(&self, params: &BenefitsListParams) -> Result<Page<Benefit>, Error> {
         self.client.request("GET", "/api/v1/benefits", &params.query(), None::<&()>, &self.options)
     }
@@ -319,9 +328,10 @@ impl<'a> BenefitsService<'a> {
     /// as de um cliente; com is_granted, só as vigentes ou só as revogadas.
     ///
     /// Autenticação: chave de API da organização em Authorization: Bearer
-    /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
-    /// da requisição. Respostas em JSON no envelope data; erros com error,
-    /// message e fields.
+    /// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+    /// chave, nunca da requisição: a chave criada num showcase só alcança o que
+    /// é dele. Respostas em JSON no envelope data; erros com error, message e
+    /// fields.
     pub fn list_grants(&self, benefit: &str, params: &BenefitsListGrantsParams) -> Result<Page<BenefitGrant>, Error> {
         self.client.request("GET", &format!("/api/v1/benefits/{}/grants", crate::client::escape(benefit)), &params.query(), None::<&()>, &self.options)
     }
@@ -345,9 +355,10 @@ impl<'a> BenefitsService<'a> {
     /// concessão já entregou fica como foi entregue.
     ///
     /// Autenticação: chave de API da organização em Authorization: Bearer
-    /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
-    /// da requisição. Respostas em JSON no envelope data; erros com error,
-    /// message e fields.
+    /// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+    /// chave, nunca da requisição: a chave criada num showcase só alcança o que
+    /// é dele. Respostas em JSON no envelope data; erros com error, message e
+    /// fields.
     pub fn update(&self, benefit: &str, params: &BenefitsUpdateParams) -> Result<Benefit, Error> {
         self.client.request("PATCH", &format!("/api/v1/benefits/{}", crate::client::escape(benefit)), &[], Some(params), &self.options)
     }
@@ -436,9 +447,10 @@ impl<'a> CheckoutLinksService<'a> {
     /// sessão de compra nova.
     ///
     /// Autenticação: chave de API da organização em Authorization: Bearer
-    /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
-    /// da requisição. Respostas em JSON no envelope data; erros com error,
-    /// message e fields.
+    /// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+    /// chave, nunca da requisição: a chave criada num showcase só alcança o que
+    /// é dele. Respostas em JSON no envelope data; erros com error, message e
+    /// fields.
     pub fn create(&self, params: &CheckoutLinksCreateParams) -> Result<CheckoutLink, Error> {
         self.client.request("POST", "/api/v1/checkout-links", &[], Some(params), &self.options)
     }
@@ -449,9 +461,10 @@ impl<'a> CheckoutLinksService<'a> {
     /// abriu continuam.
     ///
     /// Autenticação: chave de API da organização em Authorization: Bearer
-    /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
-    /// da requisição. Respostas em JSON no envelope data; erros com error,
-    /// message e fields.
+    /// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+    /// chave, nunca da requisição: a chave criada num showcase só alcança o que
+    /// é dele. Respostas em JSON no envelope data; erros com error, message e
+    /// fields.
     pub fn delete(&self, checkout_link: &str) -> Result<(), Error> {
         self.client.request("DELETE", &format!("/api/v1/checkout-links/{}", crate::client::escape(checkout_link)), &[], None::<&()>, &self.options)
     }
@@ -461,9 +474,10 @@ impl<'a> CheckoutLinksService<'a> {
     /// Devolve um link de checkout pelo ID.
     ///
     /// Autenticação: chave de API da organização em Authorization: Bearer
-    /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
-    /// da requisição. Respostas em JSON no envelope data; erros com error,
-    /// message e fields.
+    /// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+    /// chave, nunca da requisição: a chave criada num showcase só alcança o que
+    /// é dele. Respostas em JSON no envelope data; erros com error, message e
+    /// fields.
     pub fn get(&self, checkout_link: &str) -> Result<CheckoutLink, Error> {
         self.client.request("GET", &format!("/api/v1/checkout-links/{}", crate::client::escape(checkout_link)), &[], None::<&()>, &self.options)
     }
@@ -473,9 +487,10 @@ impl<'a> CheckoutLinksService<'a> {
     /// Devolve uma página dos links de checkout da organização.
     ///
     /// Autenticação: chave de API da organização em Authorization: Bearer
-    /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
-    /// da requisição. Respostas em JSON no envelope data; erros com error,
-    /// message e fields.
+    /// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+    /// chave, nunca da requisição: a chave criada num showcase só alcança o que
+    /// é dele. Respostas em JSON no envelope data; erros com error, message e
+    /// fields.
     pub fn list(&self, params: &CheckoutLinksListParams) -> Result<Page<CheckoutLink>, Error> {
         self.client.request("GET", "/api/v1/checkout-links", &params.query(), None::<&()>, &self.options)
     }
@@ -498,9 +513,10 @@ impl<'a> CheckoutLinksService<'a> {
     /// link. A quantidade e o desconto ficam como foram publicados.
     ///
     /// Autenticação: chave de API da organização em Authorization: Bearer
-    /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
-    /// da requisição. Respostas em JSON no envelope data; erros com error,
-    /// message e fields.
+    /// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+    /// chave, nunca da requisição: a chave criada num showcase só alcança o que
+    /// é dele. Respostas em JSON no envelope data; erros com error, message e
+    /// fields.
     pub fn update(&self, checkout_link: &str, params: &CheckoutLinksUpdateParams) -> Result<CheckoutLink, Error> {
         self.client.request("PATCH", &format!("/api/v1/checkout-links/{}", crate::client::escape(checkout_link)), &[], Some(params), &self.options)
     }
@@ -656,12 +672,17 @@ impl<'a> CheckoutsService<'a> {
     /// comprador usa para pagar sem chave de API; o client_secret vem só nesta
     /// resposta. Para cobrar um valor que o seu servidor define, envie
     /// amount_cents e items (preço de valor livre). Envie client_reference_id e
-    /// metadata para achar o pedido depois.
+    /// metadata para achar o pedido depois. Em uma assinatura, envie as linhas
+    /// do pedido em items (só para exibição, com a soma igual ao valor do
+    /// preço) e o desconto em discount_id. Para uma assinatura que só começa a
+    /// cobrar numa data, envie subscription_start_at com o preço recorrente: o
+    /// cartão é guardado sem cobrança e a primeira cobrança acontece nesse dia.
     ///
     /// Autenticação: chave de API da organização em Authorization: Bearer
-    /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
-    /// da requisição. Respostas em JSON no envelope data; erros com error,
-    /// message e fields.
+    /// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+    /// chave, nunca da requisição: a chave criada num showcase só alcança o que
+    /// é dele. Respostas em JSON no envelope data; erros com error, message e
+    /// fields.
     pub fn create(&self, params: &CheckoutsCreateParams) -> Result<CheckoutCreated, Error> {
         self.client.request("POST", "/api/v1/checkouts", &[], Some(params), &self.options)
     }
@@ -674,9 +695,10 @@ impl<'a> CheckoutsService<'a> {
     /// seguro. Se o checkout já foi pago ou emitiu um boleto, a resposta é 409.
     ///
     /// Autenticação: chave de API da organização em Authorization: Bearer
-    /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
-    /// da requisição. Respostas em JSON no envelope data; erros com error,
-    /// message e fields.
+    /// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+    /// chave, nunca da requisição: a chave criada num showcase só alcança o que
+    /// é dele. Respostas em JSON no envelope data; erros com error, message e
+    /// fields.
     pub fn expire(&self, checkout: &str) -> Result<CheckoutExpired, Error> {
         self.client.request("POST", &format!("/api/v1/checkouts/{}/expire", crate::client::escape(checkout)), &[], None::<&()>, &self.options)
     }
@@ -686,9 +708,10 @@ impl<'a> CheckoutsService<'a> {
     /// Devolve um checkout: o endereço, o estado e as páginas de retorno.
     ///
     /// Autenticação: chave de API da organização em Authorization: Bearer
-    /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
-    /// da requisição. Respostas em JSON no envelope data; erros com error,
-    /// message e fields.
+    /// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+    /// chave, nunca da requisição: a chave criada num showcase só alcança o que
+    /// é dele. Respostas em JSON no envelope data; erros com error, message e
+    /// fields.
     pub fn get(&self, checkout: &str) -> Result<Checkout, Error> {
         self.client.request("GET", &format!("/api/v1/checkouts/{}", crate::client::escape(checkout)), &[], None::<&()>, &self.options)
     }
@@ -699,9 +722,10 @@ impl<'a> CheckoutsService<'a> {
     /// status, período ou metadados.
     ///
     /// Autenticação: chave de API da organização em Authorization: Bearer
-    /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
-    /// da requisição. Respostas em JSON no envelope data; erros com error,
-    /// message e fields.
+    /// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+    /// chave, nunca da requisição: a chave criada num showcase só alcança o que
+    /// é dele. Respostas em JSON no envelope data; erros com error, message e
+    /// fields.
     pub fn list(&self, params: &CheckoutsListParams) -> Result<Page<Checkout>, Error> {
         self.client.request("GET", "/api/v1/checkouts", &params.query(), None::<&()>, &self.options)
     }
@@ -723,9 +747,10 @@ impl<'a> CheckoutsService<'a> {
     /// Muda o rótulo e as páginas de retorno de um checkout ativo.
     ///
     /// Autenticação: chave de API da organização em Authorization: Bearer
-    /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
-    /// da requisição. Respostas em JSON no envelope data; erros com error,
-    /// message e fields.
+    /// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+    /// chave, nunca da requisição: a chave criada num showcase só alcança o que
+    /// é dele. Respostas em JSON no envelope data; erros com error, message e
+    /// fields.
     pub fn update(&self, checkout: &str, params: &CheckoutsUpdateParams) -> Result<Checkout, Error> {
         self.client.request("PATCH", &format!("/api/v1/checkouts/{}", crate::client::escape(checkout)), &[], Some(params), &self.options)
     }
@@ -774,9 +799,10 @@ impl<'a> CustomerSessionsService<'a> {
     /// do seu aplicativo, o portal oferece a volta.
     ///
     /// Autenticação: chave de API da organização em Authorization: Bearer
-    /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
-    /// da requisição. Respostas em JSON no envelope data; erros com error,
-    /// message e fields.
+    /// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+    /// chave, nunca da requisição: a chave criada num showcase só alcança o que
+    /// é dele. Respostas em JSON no envelope data; erros com error, message e
+    /// fields.
     pub fn create(&self, params: &CustomerSessionsCreateParams) -> Result<CustomerSession, Error> {
         self.client.request("POST", "/api/v1/customer-sessions", &[], Some(params), &self.options)
     }
@@ -879,9 +905,10 @@ impl<'a> CustomersService<'a> {
     /// 422.
     ///
     /// Autenticação: chave de API da organização em Authorization: Bearer
-    /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
-    /// da requisição. Respostas em JSON no envelope data; erros com error,
-    /// message e fields.
+    /// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+    /// chave, nunca da requisição: a chave criada num showcase só alcança o que
+    /// é dele. Respostas em JSON no envelope data; erros com error, message e
+    /// fields.
     pub fn create(&self, params: &CustomersCreateParams) -> Result<Customer, Error> {
         self.client.request("POST", "/api/v1/customers", &[], Some(params), &self.options)
     }
@@ -893,9 +920,10 @@ impl<'a> CustomersService<'a> {
     /// continuam nos registros.
     ///
     /// Autenticação: chave de API da organização em Authorization: Bearer
-    /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
-    /// da requisição. Respostas em JSON no envelope data; erros com error,
-    /// message e fields.
+    /// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+    /// chave, nunca da requisição: a chave criada num showcase só alcança o que
+    /// é dele. Respostas em JSON no envelope data; erros com error, message e
+    /// fields.
     pub fn delete(&self, customer: &str) -> Result<(), Error> {
         self.client.request("DELETE", &format!("/api/v1/customers/{}", crate::client::escape(customer)), &[], None::<&()>, &self.options)
     }
@@ -905,9 +933,10 @@ impl<'a> CustomersService<'a> {
     /// Devolve um cliente pelo ID.
     ///
     /// Autenticação: chave de API da organização em Authorization: Bearer
-    /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
-    /// da requisição. Respostas em JSON no envelope data; erros com error,
-    /// message e fields.
+    /// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+    /// chave, nunca da requisição: a chave criada num showcase só alcança o que
+    /// é dele. Respostas em JSON no envelope data; erros com error, message e
+    /// fields.
     pub fn get(&self, customer: &str) -> Result<Customer, Error> {
         self.client.request("GET", &format!("/api/v1/customers/{}", crate::client::escape(customer)), &[], None::<&()>, &self.options)
     }
@@ -918,9 +947,10 @@ impl<'a> CustomersService<'a> {
     /// (external_id).
     ///
     /// Autenticação: chave de API da organização em Authorization: Bearer
-    /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
-    /// da requisição. Respostas em JSON no envelope data; erros com error,
-    /// message e fields.
+    /// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+    /// chave, nunca da requisição: a chave criada num showcase só alcança o que
+    /// é dele. Respostas em JSON no envelope data; erros com error, message e
+    /// fields.
     pub fn get_external(&self, external_id: &str) -> Result<Customer, Error> {
         self.client.request("GET", &format!("/api/v1/external-customers/{}", crate::client::escape(external_id)), &[], None::<&()>, &self.options)
     }
@@ -932,9 +962,10 @@ impl<'a> CustomersService<'a> {
     /// faz para decidir o que o cliente pode usar.
     ///
     /// Autenticação: chave de API da organização em Authorization: Bearer
-    /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
-    /// da requisição. Respostas em JSON no envelope data; erros com error,
-    /// message e fields.
+    /// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+    /// chave, nunca da requisição: a chave criada num showcase só alcança o que
+    /// é dele. Respostas em JSON no envelope data; erros com error, message e
+    /// fields.
     pub fn get_state(&self, customer: &str) -> Result<CustomerState, Error> {
         self.client.request("GET", &format!("/api/v1/customers/{}/state", crate::client::escape(customer)), &[], None::<&()>, &self.options)
     }
@@ -945,9 +976,10 @@ impl<'a> CustomersService<'a> {
     /// e-mail, sem diferença entre maiúsculas e minúsculas.
     ///
     /// Autenticação: chave de API da organização em Authorization: Bearer
-    /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
-    /// da requisição. Respostas em JSON no envelope data; erros com error,
-    /// message e fields.
+    /// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+    /// chave, nunca da requisição: a chave criada num showcase só alcança o que
+    /// é dele. Respostas em JSON no envelope data; erros com error, message e
+    /// fields.
     pub fn list(&self, params: &CustomersListParams) -> Result<Page<Customer>, Error> {
         self.client.request("GET", "/api/v1/customers", &params.query(), None::<&()>, &self.options)
     }
@@ -970,9 +1002,10 @@ impl<'a> CustomersService<'a> {
     /// endereço de cobrança. O ID externo só pode ser definido uma vez.
     ///
     /// Autenticação: chave de API da organização em Authorization: Bearer
-    /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
-    /// da requisição. Respostas em JSON no envelope data; erros com error,
-    /// message e fields.
+    /// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+    /// chave, nunca da requisição: a chave criada num showcase só alcança o que
+    /// é dele. Respostas em JSON no envelope data; erros com error, message e
+    /// fields.
     pub fn update(&self, customer: &str, params: &CustomersUpdateParams) -> Result<Customer, Error> {
         self.client.request("PATCH", &format!("/api/v1/customers/{}", crate::client::escape(customer)), &[], Some(params), &self.options)
     }
@@ -983,9 +1016,10 @@ impl<'a> CustomersService<'a> {
     /// (external_id). Os campos são os de Atualizar um cliente.
     ///
     /// Autenticação: chave de API da organização em Authorization: Bearer
-    /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
-    /// da requisição. Respostas em JSON no envelope data; erros com error,
-    /// message e fields.
+    /// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+    /// chave, nunca da requisição: a chave criada num showcase só alcança o que
+    /// é dele. Respostas em JSON no envelope data; erros com error, message e
+    /// fields.
     pub fn update_external(&self, external_id: &str, params: &CustomersUpdateExternalParams) -> Result<Customer, Error> {
         self.client.request("PATCH", &format!("/api/v1/external-customers/{}", crate::client::escape(external_id)), &[], Some(params), &self.options)
     }
@@ -1074,9 +1108,10 @@ impl<'a> DiscountsService<'a> {
     /// só vale num link de checkout ou pela API.
     ///
     /// Autenticação: chave de API da organização em Authorization: Bearer
-    /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
-    /// da requisição. Respostas em JSON no envelope data; erros com error,
-    /// message e fields.
+    /// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+    /// chave, nunca da requisição: a chave criada num showcase só alcança o que
+    /// é dele. Respostas em JSON no envelope data; erros com error, message e
+    /// fields.
     pub fn create(&self, params: &DiscountsCreateParams) -> Result<Discount, Error> {
         self.client.request("POST", "/api/v1/discounts", &[], Some(params), &self.options)
     }
@@ -1087,9 +1122,10 @@ impl<'a> DiscountsService<'a> {
     /// livre. O que ele já descontou continua nos registros.
     ///
     /// Autenticação: chave de API da organização em Authorization: Bearer
-    /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
-    /// da requisição. Respostas em JSON no envelope data; erros com error,
-    /// message e fields.
+    /// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+    /// chave, nunca da requisição: a chave criada num showcase só alcança o que
+    /// é dele. Respostas em JSON no envelope data; erros com error, message e
+    /// fields.
     pub fn delete(&self, discount: &str) -> Result<(), Error> {
         self.client.request("DELETE", &format!("/api/v1/discounts/{}", crate::client::escape(discount)), &[], None::<&()>, &self.options)
     }
@@ -1099,9 +1135,10 @@ impl<'a> DiscountsService<'a> {
     /// Devolve um desconto pelo ID.
     ///
     /// Autenticação: chave de API da organização em Authorization: Bearer
-    /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
-    /// da requisição. Respostas em JSON no envelope data; erros com error,
-    /// message e fields.
+    /// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+    /// chave, nunca da requisição: a chave criada num showcase só alcança o que
+    /// é dele. Respostas em JSON no envelope data; erros com error, message e
+    /// fields.
     pub fn get(&self, discount: &str) -> Result<Discount, Error> {
         self.client.request("GET", &format!("/api/v1/discounts/{}", crate::client::escape(discount)), &[], None::<&()>, &self.options)
     }
@@ -1111,9 +1148,10 @@ impl<'a> DiscountsService<'a> {
     /// Devolve uma página dos descontos da organização.
     ///
     /// Autenticação: chave de API da organização em Authorization: Bearer
-    /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
-    /// da requisição. Respostas em JSON no envelope data; erros com error,
-    /// message e fields.
+    /// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+    /// chave, nunca da requisição: a chave criada num showcase só alcança o que
+    /// é dele. Respostas em JSON no envelope data; erros com error, message e
+    /// fields.
     pub fn list(&self, params: &DiscountsListParams) -> Result<Page<Discount>, Error> {
         self.client.request("GET", "/api/v1/discounts", &params.query(), None::<&()>, &self.options)
     }
@@ -1136,9 +1174,10 @@ impl<'a> DiscountsService<'a> {
     /// o valor e os meses também não.
     ///
     /// Autenticação: chave de API da organização em Authorization: Bearer
-    /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
-    /// da requisição. Respostas em JSON no envelope data; erros com error,
-    /// message e fields.
+    /// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+    /// chave, nunca da requisição: a chave criada num showcase só alcança o que
+    /// é dele. Respostas em JSON no envelope data; erros com error, message e
+    /// fields.
     pub fn update(&self, discount: &str, params: &DiscountsUpdateParams) -> Result<Discount, Error> {
         self.client.request("PATCH", &format!("/api/v1/discounts/{}", crate::client::escape(discount)), &[], Some(params), &self.options)
     }
@@ -1236,9 +1275,10 @@ impl<'a> DisputesService<'a> {
     /// Devolve uma disputa pelo ID.
     ///
     /// Autenticação: chave de API da organização em Authorization: Bearer
-    /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
-    /// da requisição. Respostas em JSON no envelope data; erros com error,
-    /// message e fields.
+    /// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+    /// chave, nunca da requisição: a chave criada num showcase só alcança o que
+    /// é dele. Respostas em JSON no envelope data; erros com error, message e
+    /// fields.
     pub fn get(&self, dispute: &str) -> Result<Dispute, Error> {
         self.client.request("GET", &format!("/api/v1/disputes/{}", crate::client::escape(dispute)), &[], None::<&()>, &self.options)
     }
@@ -1248,9 +1288,10 @@ impl<'a> DisputesService<'a> {
     /// Devolve uma página das disputas. Com status, só as que estão nele.
     ///
     /// Autenticação: chave de API da organização em Authorization: Bearer
-    /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
-    /// da requisição. Respostas em JSON no envelope data; erros com error,
-    /// message e fields.
+    /// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+    /// chave, nunca da requisição: a chave criada num showcase só alcança o que
+    /// é dele. Respostas em JSON no envelope data; erros com error, message e
+    /// fields.
     pub fn list(&self, params: &DisputesListParams) -> Result<Page<Dispute>, Error> {
         self.client.request("GET", "/api/v1/disputes", &params.query(), None::<&()>, &self.options)
     }
@@ -1383,9 +1424,10 @@ impl<'a> EventsService<'a> {
     /// mais novo ao mais antigo.
     ///
     /// Autenticação: chave de API da organização em Authorization: Bearer
-    /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
-    /// da requisição. Respostas em JSON no envelope data; erros com error,
-    /// message e fields.
+    /// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+    /// chave, nunca da requisição: a chave criada num showcase só alcança o que
+    /// é dele. Respostas em JSON no envelope data; erros com error, message e
+    /// fields.
     pub fn list(&self, params: &EventsListParams) -> Result<Page<Event>, Error> {
         self.client.request("GET", "/api/v1/events", &params.query(), None::<&()>, &self.options)
     }
@@ -1496,9 +1538,10 @@ impl<'a> MetersService<'a> {
     /// unidade.
     ///
     /// Autenticação: chave de API da organização em Authorization: Bearer
-    /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
-    /// da requisição. Respostas em JSON no envelope data; erros com error,
-    /// message e fields.
+    /// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+    /// chave, nunca da requisição: a chave criada num showcase só alcança o que
+    /// é dele. Respostas em JSON no envelope data; erros com error, message e
+    /// fields.
     pub fn get(&self, meter: &str) -> Result<Meter, Error> {
         self.client.request("GET", &format!("/api/v1/meters/{}", crate::client::escape(meter)), &[], None::<&()>, &self.options)
     }
@@ -1509,9 +1552,10 @@ impl<'a> MetersService<'a> {
     /// is_archived=true.
     ///
     /// Autenticação: chave de API da organização em Authorization: Bearer
-    /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
-    /// da requisição. Respostas em JSON no envelope data; erros com error,
-    /// message e fields.
+    /// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+    /// chave, nunca da requisição: a chave criada num showcase só alcança o que
+    /// é dele. Respostas em JSON no envelope data; erros com error, message e
+    /// fields.
     pub fn list(&self, params: &MetersListParams) -> Result<Page<Meter>, Error> {
         self.client.request("GET", "/api/v1/meters", &params.query(), None::<&()>, &self.options)
     }
@@ -1545,6 +1589,8 @@ pub struct OrdersListParams {
     pub customer_id: Option<String>,
     /// Só os do cliente que você identifica por este ID externo; um ID que não existe não acha nada.
     pub external_customer_id: Option<String>,
+    /// Só as vendas desta assinatura: o pedido que pagou o primeiro ciclo e cada renovação paga. Um ID que não existe não acha nada.
+    pub subscription_id: Option<String>,
     /// Só os criados a partir deste instante, inclusive (RFC 3339, como 2026-11-17T00:00:00-03:00).
     pub created_after: Option<String>,
     /// Só os criados antes deste instante (RFC 3339); com created_after, o período é [created_after, created_before).
@@ -1597,6 +1643,12 @@ impl OrdersListParams {
         self
     }
 
+    /// Só as vendas desta assinatura: o pedido que pagou o primeiro ciclo e cada renovação paga. Um ID que não existe não acha nada.
+    pub fn subscription_id(mut self, subscription_id: impl Into<String>) -> Self {
+        self.subscription_id = Some(subscription_id.into());
+        self
+    }
+
     /// Só os criados a partir deste instante, inclusive (RFC 3339, como 2026-11-17T00:00:00-03:00).
     pub fn created_after(mut self, created_after: impl Into<String>) -> Self {
         self.created_after = Some(created_after.into());
@@ -1640,6 +1692,9 @@ impl OrdersListParams {
         }
         if let Some(value) = &self.external_customer_id {
             query.push(("external_customer_id".to_owned(), value.clone()));
+        }
+        if let Some(value) = &self.subscription_id {
+            query.push(("subscription_id".to_owned(), value.clone()));
         }
         if let Some(value) = &self.created_after {
             query.push(("created_after".to_owned(), value.clone()));
@@ -1696,12 +1751,15 @@ impl<'a> OrdersService<'a> {
 
     /// Ler um pedido.
     ///
-    /// Devolve um pedido: um checkout pago.
+    /// Devolve um pedido: um checkout pago. Se ele pagou um ciclo de
+    /// assinatura, traz subscription_id, cycle_sequence, period_start e
+    /// period_end.
     ///
     /// Autenticação: chave de API da organização em Authorization: Bearer
-    /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
-    /// da requisição. Respostas em JSON no envelope data; erros com error,
-    /// message e fields.
+    /// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+    /// chave, nunca da requisição: a chave criada num showcase só alcança o que
+    /// é dele. Respostas em JSON no envelope data; erros com error, message e
+    /// fields.
     pub fn get(&self, order: &str) -> Result<Order, Error> {
         self.client.request("GET", &format!("/api/v1/orders/{}", crate::client::escape(order)), &[], None::<&()>, &self.options)
     }
@@ -1712,9 +1770,10 @@ impl<'a> OrdersService<'a> {
     /// gerou. Sem fatura, a resposta é 404.
     ///
     /// Autenticação: chave de API da organização em Authorization: Bearer
-    /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
-    /// da requisição. Respostas em JSON no envelope data; erros com error,
-    /// message e fields.
+    /// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+    /// chave, nunca da requisição: a chave criada num showcase só alcança o que
+    /// é dele. Respostas em JSON no envelope data; erros com error, message e
+    /// fields.
     pub fn get_invoice(&self, order: &str) -> Result<OrderInvoice, Error> {
         self.client.request("GET", &format!("/api/v1/orders/{}/invoice", crate::client::escape(order)), &[], None::<&()>, &self.options)
     }
@@ -1724,9 +1783,10 @@ impl<'a> OrdersService<'a> {
     /// Devolve o recibo de um pedido: o que foi pago, quando e como.
     ///
     /// Autenticação: chave de API da organização em Authorization: Bearer
-    /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
-    /// da requisição. Respostas em JSON no envelope data; erros com error,
-    /// message e fields.
+    /// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+    /// chave, nunca da requisição: a chave criada num showcase só alcança o que
+    /// é dele. Respostas em JSON no envelope data; erros com error, message e
+    /// fields.
     pub fn get_receipt(&self, order: &str) -> Result<OrderReceipt, Error> {
         self.client.request("GET", &format!("/api/v1/orders/{}/receipt", crate::client::escape(order)), &[], None::<&()>, &self.options)
     }
@@ -1734,12 +1794,14 @@ impl<'a> OrdersService<'a> {
     /// Listar pedidos. One page; [`list_iter`](Self::list_iter) walks every page.
     ///
     /// Devolve uma página dos pedidos, que são os checkouts pagos. Filtre por
-    /// client_reference_id, cliente, período ou metadados.
+    /// client_reference_id, cliente, assinatura (subscription_id), período ou
+    /// metadados.
     ///
     /// Autenticação: chave de API da organização em Authorization: Bearer
-    /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
-    /// da requisição. Respostas em JSON no envelope data; erros com error,
-    /// message e fields.
+    /// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+    /// chave, nunca da requisição: a chave criada num showcase só alcança o que
+    /// é dele. Respostas em JSON no envelope data; erros com error, message e
+    /// fields.
     pub fn list(&self, params: &OrdersListParams) -> Result<Page<Order>, Error> {
         self.client.request("GET", "/api/v1/orders", &params.query(), None::<&()>, &self.options)
     }
@@ -1839,9 +1901,10 @@ impl<'a> PaymentMethodsService<'a> {
     /// assinatura ativa o cobra.
     ///
     /// Autenticação: chave de API da organização em Authorization: Bearer
-    /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
-    /// da requisição. Respostas em JSON no envelope data; erros com error,
-    /// message e fields.
+    /// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+    /// chave, nunca da requisição: a chave criada num showcase só alcança o que
+    /// é dele. Respostas em JSON no envelope data; erros com error, message e
+    /// fields.
     pub fn detach(&self, payment_method: &str) -> Result<PaymentMethodDetached, Error> {
         self.client.request("POST", &format!("/api/v1/payment_methods/{}/detach", crate::client::escape(payment_method)), &[], None::<&()>, &self.options)
     }
@@ -1852,9 +1915,10 @@ impl<'a> PaymentMethodsService<'a> {
     /// dígitos e validade. O número do cartão nunca aparece.
     ///
     /// Autenticação: chave de API da organização em Authorization: Bearer
-    /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
-    /// da requisição. Respostas em JSON no envelope data; erros com error,
-    /// message e fields.
+    /// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+    /// chave, nunca da requisição: a chave criada num showcase só alcança o que
+    /// é dele. Respostas em JSON no envelope data; erros com error, message e
+    /// fields.
     pub fn list(&self, customer: &str, params: &PaymentMethodsListParams) -> Result<Page<PaymentMethod>, Error> {
         self.client.request("GET", &format!("/api/v1/customers/{}/payment_methods", crate::client::escape(customer)), &params.query(), None::<&()>, &self.options)
     }
@@ -1888,6 +1952,8 @@ pub struct PaymentsListParams {
     pub customer_id: Option<String>,
     /// Só os do cliente que você identifica por este ID externo; um ID que não existe não acha nada.
     pub external_customer_id: Option<String>,
+    /// Só as vendas desta assinatura: o pedido que pagou o primeiro ciclo e cada renovação paga. Um ID que não existe não acha nada.
+    pub subscription_id: Option<String>,
     /// Só os criados a partir deste instante, inclusive (RFC 3339, como 2026-11-17T00:00:00-03:00).
     pub created_after: Option<String>,
     /// Só os criados antes deste instante (RFC 3339); com created_after, o período é [created_after, created_before).
@@ -1940,6 +2006,12 @@ impl PaymentsListParams {
         self
     }
 
+    /// Só as vendas desta assinatura: o pedido que pagou o primeiro ciclo e cada renovação paga. Um ID que não existe não acha nada.
+    pub fn subscription_id(mut self, subscription_id: impl Into<String>) -> Self {
+        self.subscription_id = Some(subscription_id.into());
+        self
+    }
+
     /// Só os criados a partir deste instante, inclusive (RFC 3339, como 2026-11-17T00:00:00-03:00).
     pub fn created_after(mut self, created_after: impl Into<String>) -> Self {
         self.created_after = Some(created_after.into());
@@ -1983,6 +2055,9 @@ impl PaymentsListParams {
         }
         if let Some(value) = &self.external_customer_id {
             query.push(("external_customer_id".to_owned(), value.clone()));
+        }
+        if let Some(value) = &self.subscription_id {
+            query.push(("subscription_id".to_owned(), value.clone()));
         }
         if let Some(value) = &self.created_after {
             query.push(("created_after".to_owned(), value.clone()));
@@ -2042,9 +2117,10 @@ impl<'a> PaymentsService<'a> {
     /// Devolve um pagamento pelo ID.
     ///
     /// Autenticação: chave de API da organização em Authorization: Bearer
-    /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
-    /// da requisição. Respostas em JSON no envelope data; erros com error,
-    /// message e fields.
+    /// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+    /// chave, nunca da requisição: a chave criada num showcase só alcança o que
+    /// é dele. Respostas em JSON no envelope data; erros com error, message e
+    /// fields.
     pub fn get(&self, payment: &str) -> Result<Payment, Error> {
         self.client.request("GET", &format!("/api/v1/payments/{}", crate::client::escape(payment)), &[], None::<&()>, &self.options)
     }
@@ -2052,12 +2128,13 @@ impl<'a> PaymentsService<'a> {
     /// Listar pagamentos. One page; [`list_iter`](Self::list_iter) walks every page.
     ///
     /// Devolve uma página dos pagamentos. Filtre por client_reference_id,
-    /// estado, cliente, período ou metadados.
+    /// estado, cliente, assinatura (subscription_id), período ou metadados.
     ///
     /// Autenticação: chave de API da organização em Authorization: Bearer
-    /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
-    /// da requisição. Respostas em JSON no envelope data; erros com error,
-    /// message e fields.
+    /// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+    /// chave, nunca da requisição: a chave criada num showcase só alcança o que
+    /// é dele. Respostas em JSON no envelope data; erros com error, message e
+    /// fields.
     pub fn list(&self, params: &PaymentsListParams) -> Result<Page<Payment>, Error> {
         self.client.request("GET", "/api/v1/payments", &params.query(), None::<&()>, &self.options)
     }
@@ -2169,9 +2246,10 @@ impl<'a> PricesService<'a> {
     /// quanto tempo ele renova: month com 3 é trimestral.
     ///
     /// Autenticação: chave de API da organização em Authorization: Bearer
-    /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
-    /// da requisição. Respostas em JSON no envelope data; erros com error,
-    /// message e fields.
+    /// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+    /// chave, nunca da requisição: a chave criada num showcase só alcança o que
+    /// é dele. Respostas em JSON no envelope data; erros com error, message e
+    /// fields.
     pub fn create(&self, params: &PricesCreateParams) -> Result<Price, Error> {
         self.client.request("POST", "/api/v1/prices", &[], Some(params), &self.options)
     }
@@ -2182,9 +2260,10 @@ impl<'a> PricesService<'a> {
     /// um produto.
     ///
     /// Autenticação: chave de API da organização em Authorization: Bearer
-    /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
-    /// da requisição. Respostas em JSON no envelope data; erros com error,
-    /// message e fields.
+    /// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+    /// chave, nunca da requisição: a chave criada num showcase só alcança o que
+    /// é dele. Respostas em JSON no envelope data; erros com error, message e
+    /// fields.
     pub fn list(&self, params: &PricesListParams) -> Result<Page<Price>, Error> {
         self.client.request("GET", "/api/v1/prices", &params.query(), None::<&()>, &self.options)
     }
@@ -2284,9 +2363,10 @@ impl<'a> ProductsService<'a> {
     /// continua apontando para ele.
     ///
     /// Autenticação: chave de API da organização em Authorization: Bearer
-    /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
-    /// da requisição. Respostas em JSON no envelope data; erros com error,
-    /// message e fields.
+    /// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+    /// chave, nunca da requisição: a chave criada num showcase só alcança o que
+    /// é dele. Respostas em JSON no envelope data; erros com error, message e
+    /// fields.
     pub fn archive(&self, product: &str) -> Result<Product, Error> {
         self.client.request("POST", &format!("/api/v1/products/{}/archive", crate::client::escape(product)), &[], None::<&()>, &self.options)
     }
@@ -2297,9 +2377,10 @@ impl<'a> ProductsService<'a> {
     /// um preço.
     ///
     /// Autenticação: chave de API da organização em Authorization: Bearer
-    /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
-    /// da requisição. Respostas em JSON no envelope data; erros com error,
-    /// message e fields.
+    /// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+    /// chave, nunca da requisição: a chave criada num showcase só alcança o que
+    /// é dele. Respostas em JSON no envelope data; erros com error, message e
+    /// fields.
     pub fn create(&self, params: &ProductsCreateParams) -> Result<Product, Error> {
         self.client.request("POST", "/api/v1/products", &[], Some(params), &self.options)
     }
@@ -2309,9 +2390,10 @@ impl<'a> ProductsService<'a> {
     /// Devolve um produto pelo ID.
     ///
     /// Autenticação: chave de API da organização em Authorization: Bearer
-    /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
-    /// da requisição. Respostas em JSON no envelope data; erros com error,
-    /// message e fields.
+    /// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+    /// chave, nunca da requisição: a chave criada num showcase só alcança o que
+    /// é dele. Respostas em JSON no envelope data; erros com error, message e
+    /// fields.
     pub fn get(&self, product: &str) -> Result<Product, Error> {
         self.client.request("GET", &format!("/api/v1/products/{}", crate::client::escape(product)), &[], None::<&()>, &self.options)
     }
@@ -2321,9 +2403,10 @@ impl<'a> ProductsService<'a> {
     /// Devolve uma página dos produtos da organização, no ambiente da chave.
     ///
     /// Autenticação: chave de API da organização em Authorization: Bearer
-    /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
-    /// da requisição. Respostas em JSON no envelope data; erros com error,
-    /// message e fields.
+    /// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+    /// chave, nunca da requisição: a chave criada num showcase só alcança o que
+    /// é dele. Respostas em JSON no envelope data; erros com error, message e
+    /// fields.
     pub fn list(&self, params: &ProductsListParams) -> Result<Page<Product>, Error> {
         self.client.request("GET", "/api/v1/products", &params.query(), None::<&()>, &self.options)
     }
@@ -2346,9 +2429,10 @@ impl<'a> ProductsService<'a> {
     /// fica como está.
     ///
     /// Autenticação: chave de API da organização em Authorization: Bearer
-    /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
-    /// da requisição. Respostas em JSON no envelope data; erros com error,
-    /// message e fields.
+    /// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+    /// chave, nunca da requisição: a chave criada num showcase só alcança o que
+    /// é dele. Respostas em JSON no envelope data; erros com error, message e
+    /// fields.
     pub fn update(&self, product: &str, params: &ProductsUpdateParams) -> Result<Product, Error> {
         self.client.request("PATCH", &format!("/api/v1/products/{}", crate::client::escape(product)), &[], Some(params), &self.options)
     }
@@ -2376,6 +2460,8 @@ pub struct RefundsListParams {
     pub created_before: Option<String>,
     /// Ordem da lista: created_at ou amount, e com um - na frente é decrescente (-created_at, o mais novo primeiro, é o padrão).
     pub sorting: Option<String>,
+    /// Filtro por metadados: metadata[chave]=valor, uma vez para cada par (até 10); a linha precisa ter todos. Um valor que parece número ou booleano também casa com o número ou o booleano guardado.
+    pub metadata: BTreeMap<String, String>,
 }
 
 impl RefundsListParams {
@@ -2438,6 +2524,12 @@ impl RefundsListParams {
         self
     }
 
+    /// Filtro por metadados: metadata[chave]=valor, uma vez para cada par (até 10); a linha precisa ter todos. Um valor que parece número ou booleano também casa com o número ou o booleano guardado.
+    pub fn metadata<K: Into<String>, V: Into<String>>(mut self, metadata: impl IntoIterator<Item = (K, V)>) -> Self {
+        self.metadata = metadata.into_iter().map(|(key, value)| (key.into(), value.into())).collect();
+        self
+    }
+
     fn query(&self) -> Vec<(String, String)> {
         let mut query = Vec::new();
         if let Some(page) = self.page {
@@ -2466,6 +2558,10 @@ impl RefundsListParams {
         }
         if let Some(value) = &self.sorting {
             query.push(("sorting".to_owned(), value.clone()));
+        }
+        // A map filter is one pair a key: metadata[key]=value, the keys sorted.
+        for (key, value) in &self.metadata {
+            query.push((format!("metadata[{key}]"), value.clone()));
         }
         query
     }
@@ -2507,29 +2603,51 @@ impl<'a> RefundsService<'a> {
         self
     }
 
-    /// Reembolsar um pagamento.
+    /// Reembolsar um pagamento ou um pedido.
     ///
-    /// Devolve parte ou todo o valor de um pagamento. A Idempotency-Key é
-    /// obrigatória: sem ela, repetir a chamada depois de um tempo esgotado
-    /// seria devolver duas vezes.
+    /// Devolve dinheiro de um pagamento, que você nomeia pelo payment_id ou
+    /// pelo order_id do pedido que ele pagou (os dois, só se forem do mesmo
+    /// pagamento). Sem amount_cents devolve tudo o que ainda pode ser
+    /// devolvido; com ele, uma parte, até esse limite. O reason, sem ele, é
+    /// requested_by_customer. O metadata fica no reembolso e volta nele e nos
+    /// eventos refund.*. A Idempotency-Key é obrigatória: sem ela, repetir a
+    /// chamada depois de um tempo esgotado seria devolver duas vezes; repetida
+    /// com a mesma chave, devolve o mesmo reembolso.
     ///
     /// Autenticação: chave de API da organização em Authorization: Bearer
-    /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
-    /// da requisição. Respostas em JSON no envelope data; erros com error,
-    /// message e fields.
+    /// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+    /// chave, nunca da requisição: a chave criada num showcase só alcança o que
+    /// é dele. Respostas em JSON no envelope data; erros com error, message e
+    /// fields.
     pub fn create(&self, params: &RefundsCreateParams) -> Result<Refund, Error> {
         self.client.request("POST", "/api/v1/refunds", &[], Some(params), &self.options)
+    }
+
+    /// Ler um reembolso.
+    ///
+    /// Devolve um reembolso pelo ID, com o pedido de onde veio (order_id), o
+    /// client_reference_id desse pedido e o status: requested e pending esperam
+    /// a Cielo, succeeded devolveu o dinheiro.
+    ///
+    /// Autenticação: chave de API da organização em Authorization: Bearer
+    /// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+    /// chave, nunca da requisição: a chave criada num showcase só alcança o que
+    /// é dele. Respostas em JSON no envelope data; erros com error, message e
+    /// fields.
+    pub fn get(&self, refund: &str) -> Result<Refund, Error> {
+        self.client.request("GET", &format!("/api/v1/refunds/{}", crate::client::escape(refund)), &[], None::<&()>, &self.options)
     }
 
     /// Listar reembolsos. One page; [`list_iter`](Self::list_iter) walks every page.
     ///
     /// Devolve uma página dos reembolsos. Filtre por pagamento (payment_id),
-    /// status, cliente ou período.
+    /// status, cliente, período ou metadados do reembolso.
     ///
     /// Autenticação: chave de API da organização em Authorization: Bearer
-    /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
-    /// da requisição. Respostas em JSON no envelope data; erros com error,
-    /// message e fields.
+    /// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+    /// chave, nunca da requisição: a chave criada num showcase só alcança o que
+    /// é dele. Respostas em JSON no envelope data; erros com error, message e
+    /// fields.
     pub fn list(&self, params: &RefundsListParams) -> Result<Page<Refund>, Error> {
         self.client.request("GET", "/api/v1/refunds", &params.query(), None::<&()>, &self.options)
     }
@@ -2544,6 +2662,59 @@ impl<'a> RefundsService<'a> {
             let query = params.clone().page(page).query();
             client.request("GET", &path, &query, None::<&()>, &options)
         })
+    }
+}
+
+/// The API's showcase: `client.showcase()`.
+///
+/// [`idempotency_key`](Self::idempotency_key) and [`api_key`](Self::api_key)
+/// set the options of the call made through it.
+#[derive(Debug, Clone)]
+pub struct ShowcaseService<'a> {
+    client: &'a Client,
+    options: RequestOptions,
+}
+
+impl<'a> ShowcaseService<'a> {
+    pub(crate) fn new(client: &'a Client) -> Self {
+        Self { client, options: RequestOptions::default() }
+    }
+
+    /// Makes the write safe to repeat: the same key with the same body
+    /// answers the first response again; with another body, a 409. A 2xx
+    /// answer stays under the key; a 4xx or 5xx frees it, so the same key can
+    /// be sent again.
+    pub fn idempotency_key(mut self, key: impl Into<String>) -> Self {
+        self.options.idempotency_key = Some(key.into());
+        self
+    }
+
+    /// Calls with another organization's key.
+    pub fn api_key(mut self, key: impl Into<String>) -> Self {
+        self.options.api_key = Some(key.into());
+        self
+    }
+
+    /// Calls with these options.
+    pub fn options(mut self, options: RequestOptions) -> Self {
+        self.options = options;
+        self
+    }
+
+    /// Ler o showcase da chave.
+    ///
+    /// Devolve o showcase em que a chave foi criada: o ID (o showcase_id dos
+    /// objetos e dos eventos), o nome, se é o principal da organização e se tem
+    /// logo. Serve para o seu sistema, ou um assistente, saber onde está. Um
+    /// showcase se abre e se muda no painel, nunca por esta API.
+    ///
+    /// Autenticação: chave de API da organização em Authorization: Bearer
+    /// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+    /// chave, nunca da requisição: a chave criada num showcase só alcança o que
+    /// é dele. Respostas em JSON no envelope data; erros com error, message e
+    /// fields.
+    pub fn get(&self) -> Result<Showcase, Error> {
+        self.client.request("GET", "/api/v1/showcase", &[], None::<&()>, &self.options)
     }
 }
 
@@ -2707,9 +2878,10 @@ impl<'a> SubscriptionsService<'a> {
     /// já pago.
     ///
     /// Autenticação: chave de API da organização em Authorization: Bearer
-    /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
-    /// da requisição. Respostas em JSON no envelope data; erros com error,
-    /// message e fields.
+    /// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+    /// chave, nunca da requisição: a chave criada num showcase só alcança o que
+    /// é dele. Respostas em JSON no envelope data; erros com error, message e
+    /// fields.
     pub fn cancel(&self, subscription: &str, params: &SubscriptionsCancelParams) -> Result<Subscription, Error> {
         self.client.request("POST", &format!("/api/v1/subscriptions/{}/cancel", crate::client::escape(subscription)), &[], Some(params), &self.options)
     }
@@ -2719,9 +2891,10 @@ impl<'a> SubscriptionsService<'a> {
     /// Devolve uma assinatura pelo ID.
     ///
     /// Autenticação: chave de API da organização em Authorization: Bearer
-    /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
-    /// da requisição. Respostas em JSON no envelope data; erros com error,
-    /// message e fields.
+    /// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+    /// chave, nunca da requisição: a chave criada num showcase só alcança o que
+    /// é dele. Respostas em JSON no envelope data; erros com error, message e
+    /// fields.
     pub fn get(&self, subscription: &str) -> Result<Subscription, Error> {
         self.client.request("GET", &format!("/api/v1/subscriptions/{}", crate::client::escape(subscription)), &[], None::<&()>, &self.options)
     }
@@ -2732,9 +2905,10 @@ impl<'a> SubscriptionsService<'a> {
     /// external_customer_id), status, período ou metadados.
     ///
     /// Autenticação: chave de API da organização em Authorization: Bearer
-    /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
-    /// da requisição. Respostas em JSON no envelope data; erros com error,
-    /// message e fields.
+    /// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+    /// chave, nunca da requisição: a chave criada num showcase só alcança o que
+    /// é dele. Respostas em JSON no envelope data; erros com error, message e
+    /// fields.
     pub fn list(&self, params: &SubscriptionsListParams) -> Result<Page<Subscription>, Error> {
         self.client.request("GET", "/api/v1/subscriptions", &params.query(), None::<&()>, &self.options)
     }
@@ -2758,9 +2932,10 @@ impl<'a> SubscriptionsService<'a> {
     /// assinatura recebe 409.
     ///
     /// Autenticação: chave de API da organização em Authorization: Bearer
-    /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
-    /// da requisição. Respostas em JSON no envelope data; erros com error,
-    /// message e fields.
+    /// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+    /// chave, nunca da requisição: a chave criada num showcase só alcança o que
+    /// é dele. Respostas em JSON no envelope data; erros com error, message e
+    /// fields.
     pub fn resume(&self, subscription: &str) -> Result<Subscription, Error> {
         self.client.request("POST", &format!("/api/v1/subscriptions/{}/resume", crate::client::escape(subscription)), &[], None::<&()>, &self.options)
     }
@@ -2771,9 +2946,10 @@ impl<'a> SubscriptionsService<'a> {
     /// quantidade. O proration_behavior diz como ratear a diferença.
     ///
     /// Autenticação: chave de API da organização em Authorization: Bearer
-    /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
-    /// da requisição. Respostas em JSON no envelope data; erros com error,
-    /// message e fields.
+    /// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+    /// chave, nunca da requisição: a chave criada num showcase só alcança o que
+    /// é dele. Respostas em JSON no envelope data; erros com error, message e
+    /// fields.
     pub fn update(&self, subscription: &str, params: &SubscriptionsUpdateParams) -> Result<Subscription, Error> {
         self.client.request("PATCH", &format!("/api/v1/subscriptions/{}", crate::client::escape(subscription)), &[], Some(params), &self.options)
     }
@@ -2986,9 +3162,10 @@ impl<'a> WebhooksService<'a> {
     /// nesta resposta; guarde-o.
     ///
     /// Autenticação: chave de API da organização em Authorization: Bearer
-    /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
-    /// da requisição. Respostas em JSON no envelope data; erros com error,
-    /// message e fields.
+    /// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+    /// chave, nunca da requisição: a chave criada num showcase só alcança o que
+    /// é dele. Respostas em JSON no envelope data; erros com error, message e
+    /// fields.
     pub fn create_endpoint(&self, params: &WebhooksCreateEndpointParams) -> Result<WebhookEndpointCreated, Error> {
         self.client.request("POST", "/api/v1/webhooks/endpoints", &[], Some(params), &self.options)
     }
@@ -2999,9 +3176,10 @@ impl<'a> WebhooksService<'a> {
     /// falham.
     ///
     /// Autenticação: chave de API da organização em Authorization: Bearer
-    /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
-    /// da requisição. Respostas em JSON no envelope data; erros com error,
-    /// message e fields.
+    /// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+    /// chave, nunca da requisição: a chave criada num showcase só alcança o que
+    /// é dele. Respostas em JSON no envelope data; erros com error, message e
+    /// fields.
     pub fn delete_endpoint(&self, endpoint: &str) -> Result<(), Error> {
         self.client.request("DELETE", &format!("/api/v1/webhooks/endpoints/{}", crate::client::escape(endpoint)), &[], None::<&()>, &self.options)
     }
@@ -3011,9 +3189,10 @@ impl<'a> WebhooksService<'a> {
     /// Devolve um endpoint de webhook pelo ID.
     ///
     /// Autenticação: chave de API da organização em Authorization: Bearer
-    /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
-    /// da requisição. Respostas em JSON no envelope data; erros com error,
-    /// message e fields.
+    /// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+    /// chave, nunca da requisição: a chave criada num showcase só alcança o que
+    /// é dele. Respostas em JSON no envelope data; erros com error, message e
+    /// fields.
     pub fn get_endpoint(&self, endpoint: &str) -> Result<WebhookEndpoint, Error> {
         self.client.request("GET", &format!("/api/v1/webhooks/endpoints/{}", crate::client::escape(endpoint)), &[], None::<&()>, &self.options)
     }
@@ -3024,9 +3203,10 @@ impl<'a> WebhooksService<'a> {
     /// endpoint_id, só as de um endpoint; com status, só as de uma situação.
     ///
     /// Autenticação: chave de API da organização em Authorization: Bearer
-    /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
-    /// da requisição. Respostas em JSON no envelope data; erros com error,
-    /// message e fields.
+    /// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+    /// chave, nunca da requisição: a chave criada num showcase só alcança o que
+    /// é dele. Respostas em JSON no envelope data; erros com error, message e
+    /// fields.
     pub fn list_deliveries(&self, params: &WebhooksListDeliveriesParams) -> Result<Page<WebhookDelivery>, Error> {
         self.client.request("GET", "/api/v1/webhooks/deliveries", &params.query(), None::<&()>, &self.options)
     }
@@ -3048,9 +3228,10 @@ impl<'a> WebhooksService<'a> {
     /// Devolve uma página dos endpoints de webhook da organização.
     ///
     /// Autenticação: chave de API da organização em Authorization: Bearer
-    /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
-    /// da requisição. Respostas em JSON no envelope data; erros com error,
-    /// message e fields.
+    /// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+    /// chave, nunca da requisição: a chave criada num showcase só alcança o que
+    /// é dele. Respostas em JSON no envelope data; erros com error, message e
+    /// fields.
     pub fn list_endpoints(&self, params: &WebhooksListEndpointsParams) -> Result<Page<WebhookEndpoint>, Error> {
         self.client.request("GET", "/api/v1/webhooks/endpoints", &params.query(), None::<&()>, &self.options)
     }
@@ -3073,9 +3254,10 @@ impl<'a> WebhooksService<'a> {
     /// liga e desliga o envio (enabled). O segredo não muda.
     ///
     /// Autenticação: chave de API da organização em Authorization: Bearer
-    /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
-    /// da requisição. Respostas em JSON no envelope data; erros com error,
-    /// message e fields.
+    /// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+    /// chave, nunca da requisição: a chave criada num showcase só alcança o que
+    /// é dele. Respostas em JSON no envelope data; erros com error, message e
+    /// fields.
     pub fn update_endpoint(&self, endpoint: &str, params: &WebhooksUpdateEndpointParams) -> Result<WebhookEndpoint, Error> {
         self.client.request("PATCH", &format!("/api/v1/webhooks/endpoints/{}", crate::client::escape(endpoint)), &[], Some(params), &self.options)
     }

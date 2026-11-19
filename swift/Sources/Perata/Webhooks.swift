@@ -11,7 +11,7 @@ public let webhookTolerance: TimeInterval = 300
 
 /// What every webhook carries: the message's id, the same as the webhook-id
 /// header; the event's type; when it happened, in RFC 3339; the environment it
-/// happened in, `test` or `live`; and its data.
+/// happened in, `test` or `live`; the showcase of the sale; and its data.
 public struct WebhookMessage<Payload: Codable & Sendable & Hashable>: Codable, Sendable, Hashable {
     /// The message's id, the same on every delivery of it.
     public let id: String
@@ -22,19 +22,24 @@ public struct WebhookMessage<Payload: Codable & Sendable & Hashable>: Codable, S
     /// The environment it happened in, `test` or `live`; empty when an older
     /// server did not send it.
     public let environment: String
+    /// The showcase of the sale, the same `showcase_id` the API's objects
+    /// carry; empty when an older server did not send it.
+    public let showcaseId: String
     /// What the event carries.
     public let data: Payload
 
-    public init(id: String, type: String, timestamp: String, environment: String = "", data: Payload) {
+    public init(id: String, type: String, timestamp: String, environment: String = "", showcaseId: String = "", data: Payload) {
         self.id = id
         self.type = type
         self.timestamp = timestamp
         self.environment = environment
+        self.showcaseId = showcaseId
         self.data = data
     }
 
     private enum CodingKeys: String, CodingKey {
         case id, type, timestamp, environment, data
+        case showcaseId = "showcase_id"
     }
 
     public init(from decoder: Decoder) throws {
@@ -43,6 +48,7 @@ public struct WebhookMessage<Payload: Codable & Sendable & Hashable>: Codable, S
         type = try container.decode(String.self, forKey: .type)
         timestamp = try container.decode(String.self, forKey: .timestamp)
         environment = try container.decodeIfPresent(String.self, forKey: .environment) ?? ""
+        showcaseId = try container.decodeIfPresent(String.self, forKey: .showcaseId) ?? ""
         data = try container.decode(Payload.self, forKey: .data)
     }
 }
@@ -84,12 +90,13 @@ public typealias SaleWebhookEvent = WebhookMessage<WebhookSale>
 public typealias SubscriptionWebhookEvent = WebhookMessage<WebhookSubscription>
 
 /// An event of a type this SDK does not know yet: its id, type, timestamp and
-/// environment, and the body as it was sent.
+/// environment, showcase, and the body as it was sent.
 public struct UnknownWebhookEvent: Sendable, Hashable {
     public let id: String
     public let type: String
     public let timestamp: String
     public let environment: String
+    public let showcaseId: String
     /// The whole body, as JSON.
     public let body: Data
 }
@@ -202,11 +209,32 @@ public enum WebhookEvent: Sendable, Hashable {
         }
     }
 
+    /// The showcase of the sale, the same `showcase_id` the API's objects
+    /// carry; empty when an older server did not send it.
+    public var showcaseId: String {
+        switch self {
+        case let .benefit(event): event.showcaseId
+        case let .benefitGrant(event): event.showcaseId
+        case let .checkout(event): event.showcaseId
+        case let .customer(event): event.showcaseId
+        case let .discount(event): event.showcaseId
+        case let .dispute(event): event.showcaseId
+        case let .identifiers(event): event.showcaseId
+        case let .order(event): event.showcaseId
+        case let .product(event): event.showcaseId
+        case let .refund(event): event.showcaseId
+        case let .sale(event): event.showcaseId
+        case let .subscription(event): event.showcaseId
+        case let .unknown(event): event.showcaseId
+        }
+    }
+
     private struct Header: Decodable {
         let id: String
         let type: String
         let timestamp: String
         let environment: String?
+        let showcase_id: String?
     }
 
     /// Reads a verified body into the event its type names.
@@ -239,7 +267,7 @@ public enum WebhookEvent: Sendable, Hashable {
         case "subscription.active", "subscription.canceled", "subscription.created", "subscription.cycled", "subscription.past_due", "subscription.paused", "subscription.resumed", "subscription.revoked", "subscription.suspended", "subscription.uncanceled", "subscription.updated":
             return try .subscription(decoder.decode(SubscriptionWebhookEvent.self, from: body))
         default:
-            return .unknown(UnknownWebhookEvent(id: header.id, type: header.type, timestamp: header.timestamp, environment: header.environment ?? "", body: body))
+            return .unknown(UnknownWebhookEvent(id: header.id, type: header.type, timestamp: header.timestamp, environment: header.environment ?? "", showcaseId: header.showcase_id ?? "", body: body))
         }
     }
 }

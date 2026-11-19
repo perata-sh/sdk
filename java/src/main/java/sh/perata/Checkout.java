@@ -16,6 +16,7 @@ public final class Checkout {
     private final String cancelUrl;
     private final String clientReferenceId;
     private final String createdAt;
+    private final String discountId;
     private final String expiresAt;
     private final String id;
     private final List<CheckoutLine> items;
@@ -24,15 +25,18 @@ public final class Checkout {
     private final String priceId;
     private final String productId;
     private final long quantity;
+    private final String showcaseId;
     private final String status;
+    private final String subscriptionStartAt;
     private final String successUrl;
     private final String url;
 
-    Checkout(Long amountCents, String cancelUrl, String clientReferenceId, String createdAt, String expiresAt, String id, List<CheckoutLine> items, String label, Map<String, Object> metadata, String priceId, String productId, long quantity, String status, String successUrl, String url) {
+    Checkout(Long amountCents, String cancelUrl, String clientReferenceId, String createdAt, String discountId, String expiresAt, String id, List<CheckoutLine> items, String label, Map<String, Object> metadata, String priceId, String productId, long quantity, String showcaseId, String status, String subscriptionStartAt, String successUrl, String url) {
         this.amountCents = amountCents;
         this.cancelUrl = cancelUrl;
         this.clientReferenceId = clientReferenceId;
         this.createdAt = createdAt;
+        this.discountId = discountId;
         this.expiresAt = expiresAt;
         this.id = id;
         this.items = items;
@@ -41,7 +45,9 @@ public final class Checkout {
         this.priceId = priceId;
         this.productId = productId;
         this.quantity = quantity;
+        this.showcaseId = showcaseId;
         this.status = status;
+        this.subscriptionStartAt = subscriptionStartAt;
         this.successUrl = successUrl;
         this.url = url;
     }
@@ -52,6 +58,7 @@ public final class Checkout {
                 Json.required(data, "cancel_url", Json::asString),
                 Json.required(data, "client_reference_id", Json::asString),
                 Json.required(data, "created_at", Json::asString),
+                Json.required(data, "discount_id", Json::asString),
                 Json.optional(data, "expires_at", Json::asString),
                 Json.required(data, "id", Json::asString),
                 Json.required(data, "items", Json.list(Json.model(CheckoutLine::fromJson))),
@@ -60,7 +67,9 @@ public final class Checkout {
                 Json.required(data, "price_id", Json::asString),
                 Json.required(data, "product_id", Json::asString),
                 Json.required(data, "quantity", Json::asLong),
+                Json.required(data, "showcase_id", Json::asString),
                 Json.required(data, "status", Json::asString),
+                Json.optional(data, "subscription_start_at", Json::asString),
                 Json.required(data, "success_url", Json::asString),
                 Json.required(data, "url", Json::asString));
     }
@@ -83,6 +92,11 @@ public final class Checkout {
     /** @return the API's {@code created_at} */
     public String getCreatedAt() {
         return createdAt;
+    }
+
+    /** @return O desconto que o checkout aplica sozinho, como o seu servidor o enviou na criação; vazio sem ele. O comprador o vê no resumo e ele conta desde a primeira cobrança. */
+    public String getDiscountId() {
+        return discountId;
     }
 
     /** @return Quando o checkout deixa de abrir sessões; nulo sem prazo. (null when the API sends none) */
@@ -125,9 +139,19 @@ public final class Checkout {
         return quantity;
     }
 
+    /** @return O showcase a que pertence: o da chave de API que fez a chamada. Uma chave só alcança o seu showcase. */
+    public String getShowcaseId() {
+        return showcaseId;
+    }
+
     /** @return active abre sessões de compra; archived saiu de circulação. */
     public String getStatus() {
         return status;
+    }
+
+    /** @return O dia da primeira cobrança de uma assinatura que começa numa data (a meia-noite desse dia em São Paulo, com o fuso); nulo quando o checkout cobra na hora ou começa por um teste em dias. O cartão é guardado sem cobrança e a cobrança acontece nesse dia. (null when the API sends none) */
+    public String getSubscriptionStartAt() {
+        return subscriptionStartAt;
     }
 
     /** @return Endereço https para onde o comprador volta depois de pagar; vazio sem ele. */
@@ -142,6 +166,6 @@ public final class Checkout {
 
     @Override
     public String toString() {
-        return "Checkout{" + "amountCents=" + amountCents + ", cancelUrl=" + cancelUrl + ", clientReferenceId=" + clientReferenceId + ", createdAt=" + createdAt + ", expiresAt=" + expiresAt + ", id=" + id + ", items=" + items + ", label=" + label + ", metadata=" + metadata + ", priceId=" + priceId + ", productId=" + productId + ", quantity=" + quantity + ", status=" + status + ", successUrl=" + successUrl + ", url=" + url + "}";
+        return "Checkout{" + "amountCents=" + amountCents + ", cancelUrl=" + cancelUrl + ", clientReferenceId=" + clientReferenceId + ", createdAt=" + createdAt + ", discountId=" + discountId + ", expiresAt=" + expiresAt + ", id=" + id + ", items=" + items + ", label=" + label + ", metadata=" + metadata + ", priceId=" + priceId + ", productId=" + productId + ", quantity=" + quantity + ", showcaseId=" + showcaseId + ", status=" + status + ", subscriptionStartAt=" + subscriptionStartAt + ", successUrl=" + successUrl + ", url=" + url + "}";
     }
 }

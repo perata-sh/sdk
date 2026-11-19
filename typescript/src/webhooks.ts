@@ -2,13 +2,15 @@
 
 import type { BenefitGrant, Customer, Product, WebhookBenefit, WebhookCheckout, WebhookDiscount, WebhookDispute, WebhookOrder, WebhookRefund, WebhookSale, WebhookSubscription } from "./models.ts";
 
-/** What every webhook carries: the message's id, the same as the webhook-id header; the event's type; when it happened, in RFC 3339; the environment it happened in, "test" or "live"; and its data. */
+/** What every webhook carries: the message's id, the same as the webhook-id header; the event's type; when it happened, in RFC 3339; the environment it happened in, "test" or "live"; the showcase of the sale; and its data. */
 export interface WebhookMessage<Type extends string, Data> {
   id: string;
   type: Type;
   timestamp: string;
   /** "test" or "live"; empty when an older server did not send it. */
   environment: string;
+  /** The showcase of the sale, the same `showcase_id` the API's objects carry; empty when an older server did not send it. */
+  showcase_id: string;
   data: Data;
 }
 
@@ -117,9 +119,12 @@ export async function verifyWebhook(secret: string, headers: HeadersLike, body: 
   if (typeof event !== "object" || event === null || typeof (event as { type?: unknown }).type !== "string" || typeof (event as { id?: unknown }).id !== "string") {
     throw new SyntaxError("perata: the webhook body is not an event");
   }
-  const message = event as { environment?: unknown };
+  const message = event as { environment?: unknown; showcase_id?: unknown };
   if (typeof message.environment !== "string") {
     message.environment = "";
+  }
+  if (typeof message.showcase_id !== "string") {
+    message.showcase_id = "";
   }
   return event as WebhookEvent;
 }

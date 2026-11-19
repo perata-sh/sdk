@@ -360,6 +360,7 @@ final class Checkout {
     required this.cancelUrl,
     required this.clientReferenceId,
     required this.createdAt,
+    required this.discountId,
     this.expiresAt,
     required this.id,
     required this.items,
@@ -368,7 +369,9 @@ final class Checkout {
     required this.priceId,
     required this.productId,
     required this.quantity,
+    required this.showcaseId,
     required this.status,
+    this.subscriptionStartAt,
     required this.successUrl,
     required this.url,
   });
@@ -380,6 +383,7 @@ final class Checkout {
       cancelUrl: json['cancel_url'] as String,
       clientReferenceId: json['client_reference_id'] as String,
       createdAt: json['created_at'] as String,
+      discountId: json['discount_id'] as String,
       expiresAt: json['expires_at'] as String?,
       id: json['id'] as String,
       items: readList(
@@ -391,7 +395,9 @@ final class Checkout {
       priceId: json['price_id'] as String,
       productId: json['product_id'] as String,
       quantity: json['quantity'] as int,
+      showcaseId: json['showcase_id'] as String,
       status: json['status'] as String,
+      subscriptionStartAt: json['subscription_start_at'] as String?,
       successUrl: json['success_url'] as String,
       url: json['url'] as String,
     );
@@ -409,6 +415,11 @@ final class Checkout {
   final String clientReferenceId;
 
   final String createdAt;
+
+  /// O desconto que o checkout aplica sozinho, como o seu servidor o enviou na
+  /// criação; vazio sem ele. O comprador o vê no resumo e ele conta desde a
+  /// primeira cobrança.
+  final String discountId;
 
   /// Quando o checkout deixa de abrir sessões; nulo sem prazo.
   final String? expiresAt;
@@ -431,10 +442,20 @@ final class Checkout {
 
   final int quantity;
 
+  /// O showcase a que pertence: o da chave de API que fez a chamada. Uma chave
+  /// só alcança o seu showcase.
+  final String showcaseId;
+
   /// active abre sessões de compra; archived saiu de circulação.
   ///
   /// One of `active`, `archived`.
   final String status;
+
+  /// O dia da primeira cobrança de uma assinatura que começa numa data (a
+  /// meia-noite desse dia em São Paulo, com o fuso); nulo quando o checkout
+  /// cobra na hora ou começa por um teste em dias. O cartão é guardado sem
+  /// cobrança e a cobrança acontece nesse dia.
+  final String? subscriptionStartAt;
 
   /// Endereço https para onde o comprador volta depois de pagar; vazio sem ele.
   final String successUrl;
@@ -448,6 +469,7 @@ final class Checkout {
     'cancel_url': cancelUrl,
     'client_reference_id': clientReferenceId,
     'created_at': createdAt,
+    'discount_id': discountId,
     'expires_at': expiresAt,
     'id': id,
     'items': items.map((item) => item.toJson()).toList(),
@@ -456,7 +478,9 @@ final class Checkout {
     'price_id': priceId,
     'product_id': productId,
     'quantity': quantity,
+    'showcase_id': showcaseId,
     'status': status,
+    'subscription_start_at': subscriptionStartAt,
     'success_url': successUrl,
     'url': url,
   };
@@ -477,6 +501,7 @@ final class CheckoutClient {
     required this.editable,
     required this.environment,
     required this.expiresAt,
+    this.firstChargeAt,
     required this.id,
     required this.installments,
     required this.items,
@@ -513,6 +538,7 @@ final class CheckoutClient {
       editable: json['editable'] as bool,
       environment: json['environment'] as String,
       expiresAt: json['expires_at'] as String,
+      firstChargeAt: json['first_charge_at'] as String?,
       id: json['id'] as String,
       installments: readList(
         json['installments'],
@@ -574,6 +600,12 @@ final class CheckoutClient {
   /// Quando a sessão e o client_secret deixam de valer.
   final String expiresAt;
 
+  /// O dia da primeira cobrança de uma assinatura que não cobra hoje, a
+  /// meia-noite desse dia em São Paulo: o fim do teste grátis ou a data que o
+  /// servidor do lojista pediu (subscription_start_at). Nulo quando o pagamento
+  /// é cobrado na hora.
+  final String? firstChargeAt;
+
   /// O ID da sessão de checkout.
   final String id;
 
@@ -634,6 +666,7 @@ final class CheckoutClient {
     'editable': editable,
     'environment': environment,
     'expires_at': expiresAt,
+    'first_charge_at': firstChargeAt,
     'id': id,
     'installments': installments.map((item) => item.toJson()).toList(),
     'items': items.map((item) => item.toJson()).toList(),
@@ -947,6 +980,7 @@ final class CheckoutCreated {
     required this.clientSecret,
     required this.clientSecretExpiresAt,
     required this.createdAt,
+    required this.discountId,
     this.expiresAt,
     required this.id,
     required this.items,
@@ -956,8 +990,10 @@ final class CheckoutCreated {
     required this.productId,
     required this.quantity,
     required this.sessionId,
+    required this.showcaseId,
     required this.status,
     required this.statusKey,
+    this.subscriptionStartAt,
     required this.successUrl,
     required this.url,
   });
@@ -971,6 +1007,7 @@ final class CheckoutCreated {
       clientSecret: json['client_secret'] as String,
       clientSecretExpiresAt: json['client_secret_expires_at'] as String,
       createdAt: json['created_at'] as String,
+      discountId: json['discount_id'] as String,
       expiresAt: json['expires_at'] as String?,
       id: json['id'] as String,
       items: readList(
@@ -983,8 +1020,10 @@ final class CheckoutCreated {
       productId: json['product_id'] as String,
       quantity: json['quantity'] as int,
       sessionId: json['session_id'] as String,
+      showcaseId: json['showcase_id'] as String,
       status: json['status'] as String,
       statusKey: json['status_key'] as String,
+      subscriptionStartAt: json['subscription_start_at'] as String?,
       successUrl: json['success_url'] as String,
       url: json['url'] as String,
     );
@@ -1012,6 +1051,11 @@ final class CheckoutCreated {
 
   final String createdAt;
 
+  /// O desconto que o checkout aplica sozinho, como o seu servidor o enviou na
+  /// criação; vazio sem ele. O comprador o vê no resumo e ele conta desde a
+  /// primeira cobrança.
+  final String discountId;
+
   /// Quando o link deixa de abrir sessões; nulo sem prazo.
   final String? expiresAt;
 
@@ -1038,6 +1082,10 @@ final class CheckoutCreated {
   /// /checkouts/client/{client_secret}.
   final String sessionId;
 
+  /// O showcase a que pertence: o da chave de API que fez a chamada. Uma chave
+  /// só alcança o seu showcase.
+  final String showcaseId;
+
   /// active abre sessões de compra; archived saiu de circulação.
   ///
   /// One of `active`, `archived`.
@@ -1046,6 +1094,12 @@ final class CheckoutCreated {
   /// Lê o estado da sessão depois que o client_secret é consumido: GET
   /// /checkouts/client/status/{status_key}. Só esta resposta o traz.
   final String statusKey;
+
+  /// O dia da primeira cobrança de uma assinatura que começa numa data (a
+  /// meia-noite desse dia em São Paulo, com o fuso); nulo quando o checkout
+  /// cobra na hora ou começa por um teste em dias. O cartão é guardado sem
+  /// cobrança e a cobrança acontece nesse dia.
+  final String? subscriptionStartAt;
 
   /// Endereço https para onde o comprador volta depois de pagar; vazio sem ele.
   final String successUrl;
@@ -1067,6 +1121,7 @@ final class CheckoutCreated {
     'client_secret': clientSecret,
     'client_secret_expires_at': clientSecretExpiresAt,
     'created_at': createdAt,
+    'discount_id': discountId,
     'expires_at': expiresAt,
     'id': id,
     'items': items.map((item) => item.toJson()).toList(),
@@ -1076,8 +1131,10 @@ final class CheckoutCreated {
     'product_id': productId,
     'quantity': quantity,
     'session_id': sessionId,
+    'showcase_id': showcaseId,
     'status': status,
     'status_key': statusKey,
+    'subscription_start_at': subscriptionStartAt,
     'success_url': successUrl,
     'url': url,
   };
@@ -1656,6 +1713,7 @@ final class Customer {
     required this.id,
     required this.name,
     this.phone,
+    required this.showcaseId,
     required this.status,
     this.taxId,
     this.taxIdKind,
@@ -1675,6 +1733,7 @@ final class Customer {
       id: json['id'] as String,
       name: json['name'] as String,
       phone: json['phone'] as String?,
+      showcaseId: json['showcase_id'] as String,
       status: json['status'] as String,
       taxId: json['tax_id'] as String?,
       taxIdKind: json['tax_id_kind'] as String?,
@@ -1700,6 +1759,10 @@ final class Customer {
   /// Telefone ou celular com DDD, só dígitos.
   final String? phone;
 
+  /// O showcase a que pertence: o da chave de API que fez a chamada. Uma chave
+  /// só alcança o seu showcase.
+  final String showcaseId;
+
   /// One of `active`, `archived`.
   final String status;
 
@@ -1723,6 +1786,7 @@ final class Customer {
     'id': id,
     'name': name,
     'phone': ?phone,
+    'showcase_id': showcaseId,
     'status': status,
     'tax_id': ?taxId,
     'tax_id_kind': ?taxIdKind,
@@ -1772,6 +1836,7 @@ final class CustomerState {
     required this.grantedBenefits,
     required this.id,
     required this.name,
+    required this.showcaseId,
     required this.status,
   });
 
@@ -1791,6 +1856,7 @@ final class CustomerState {
       ),
       id: json['id'] as String,
       name: json['name'] as String,
+      showcaseId: json['showcase_id'] as String,
       status: json['status'] as String,
     );
   }
@@ -1811,6 +1877,10 @@ final class CustomerState {
 
   final String name;
 
+  /// O showcase a que pertence: o da chave de API que fez a chamada. Uma chave
+  /// só alcança o seu showcase.
+  final String showcaseId;
+
   /// One of `active`, `archived`.
   final String status;
 
@@ -1825,6 +1895,7 @@ final class CustomerState {
     'granted_benefits': grantedBenefits.map((item) => item.toJson()).toList(),
     'id': id,
     'name': name,
+    'showcase_id': showcaseId,
     'status': status,
   };
 }
@@ -2379,6 +2450,7 @@ final class Order {
     required this.clientReferenceId,
     required this.currency,
     required this.customerId,
+    this.cycleSequence,
     required this.id,
     required this.installmentInterestCents,
     required this.installments,
@@ -2386,10 +2458,14 @@ final class Order {
     required this.metadata,
     this.orderStatus,
     this.paidAt,
+    this.periodEnd,
+    this.periodStart,
     required this.priceId,
     required this.productId,
     required this.refundedAmountCents,
+    required this.showcaseId,
     required this.status,
+    this.subscriptionId,
   });
 
   /// A Order out of the API's JSON.
@@ -2399,6 +2475,7 @@ final class Order {
       clientReferenceId: json['client_reference_id'] as String,
       currency: json['currency'] as String,
       customerId: json['customer_id'] as String,
+      cycleSequence: json['cycle_sequence'] as int?,
       id: json['id'] as String,
       installmentInterestCents: json['installment_interest_cents'] as int,
       installments: json['installments'] as int,
@@ -2409,10 +2486,14 @@ final class Order {
       metadata: readMap(json['metadata'], (value) => value),
       orderStatus: json['order_status'] as String?,
       paidAt: json['paid_at'] as String?,
+      periodEnd: json['period_end'] as String?,
+      periodStart: json['period_start'] as String?,
       priceId: json['price_id'] as String,
       productId: json['product_id'] as String,
       refundedAmountCents: json['refunded_amount_cents'] as int,
+      showcaseId: json['showcase_id'] as String,
       status: json['status'] as String,
+      subscriptionId: json['subscription_id'] as String?,
     );
   }
 
@@ -2425,6 +2506,10 @@ final class Order {
   final String currency;
 
   final String customerId;
+
+  /// Qual ciclo da assinatura o pedido pagou: 1 é o primeiro; nulo fora de uma
+  /// assinatura.
+  final int? cycleSequence;
 
   final String id;
 
@@ -2450,6 +2535,12 @@ final class Order {
 
   final String? paidAt;
 
+  /// O fim do período que o ciclo paga; nulo fora de uma assinatura.
+  final String? periodEnd;
+
+  /// O começo do período que o ciclo paga; nulo fora de uma assinatura.
+  final String? periodStart;
+
   final String priceId;
 
   final String productId;
@@ -2458,8 +2549,16 @@ final class Order {
   /// certo, em centavos.
   final int refundedAmountCents;
 
+  /// O showcase a que pertence: o da chave de API que fez a chamada. Uma chave
+  /// só alcança o seu showcase.
+  final String showcaseId;
+
   /// One of `open`, `confirmed`, `succeeded`, `failed`, `expired`.
   final String status;
+
+  /// A assinatura de que este pedido é a cobrança (a primeira ou uma
+  /// renovação); nulo quando o pedido não é de uma assinatura.
+  final String? subscriptionId;
 
   /// The JSON the API answers.
   Map<String, Object?> toJson() => {
@@ -2467,6 +2566,7 @@ final class Order {
     'client_reference_id': clientReferenceId,
     'currency': currency,
     'customer_id': customerId,
+    'cycle_sequence': cycleSequence,
     'id': id,
     'installment_interest_cents': installmentInterestCents,
     'installments': installments,
@@ -2474,10 +2574,14 @@ final class Order {
     'metadata': metadata,
     'order_status': orderStatus,
     'paid_at': paidAt,
+    'period_end': periodEnd,
+    'period_start': periodStart,
     'price_id': priceId,
     'product_id': productId,
     'refunded_amount_cents': refundedAmountCents,
+    'showcase_id': showcaseId,
     'status': status,
+    'subscription_id': subscriptionId,
   };
 }
 
@@ -2705,14 +2809,19 @@ final class Payment {
     required this.createdAt,
     required this.currency,
     required this.customerId,
+    this.cycleSequence,
     required this.id,
     required this.installmentAmountCents,
     required this.installmentInterestCents,
     required this.installments,
     required this.metadata,
     required this.method,
+    this.periodEnd,
+    this.periodStart,
     required this.refundedCents,
+    required this.showcaseId,
     required this.state,
+    this.subscriptionId,
   });
 
   /// A Payment out of the API's JSON.
@@ -2725,14 +2834,19 @@ final class Payment {
       createdAt: json['created_at'] as String,
       currency: json['currency'] as String,
       customerId: json['customer_id'] as String,
+      cycleSequence: json['cycle_sequence'] as int?,
       id: json['id'] as String,
       installmentAmountCents: json['installment_amount_cents'] as int,
       installmentInterestCents: json['installment_interest_cents'] as int,
       installments: json['installments'] as int,
       metadata: readMap(json['metadata'], (value) => value),
       method: json['method'] as String,
+      periodEnd: json['period_end'] as String?,
+      periodStart: json['period_start'] as String?,
       refundedCents: json['refunded_cents'] as int,
+      showcaseId: json['showcase_id'] as String,
       state: json['state'] as String,
+      subscriptionId: json['subscription_id'] as String?,
     );
   }
 
@@ -2752,6 +2866,10 @@ final class Payment {
 
   final String customerId;
 
+  /// Qual ciclo da assinatura o pagamento pagou: 1 é o primeiro; nulo fora de
+  /// uma assinatura.
+  final int? cycleSequence;
+
   final String id;
 
   /// Valor de uma parcela; 0 à vista.
@@ -2769,11 +2887,25 @@ final class Payment {
   /// One of `card`, `pix`, `boleto`.
   final String method;
 
+  /// O fim do período que o ciclo paga; nulo fora de uma assinatura.
+  final String? periodEnd;
+
+  /// O começo do período que o ciclo paga; nulo fora de uma assinatura.
+  final String? periodStart;
+
   final int refundedCents;
+
+  /// O showcase a que pertence: o da chave de API que fez a chamada. Uma chave
+  /// só alcança o seu showcase.
+  final String showcaseId;
 
   /// One of `unknown`, `pending`, `authorized`, `captured`, `refused`,
   /// `canceled`, `refunded`, `partially_refunded`.
   final String state;
+
+  /// A assinatura que este pagamento cobrou (a primeira ou uma renovação); nulo
+  /// quando o pagamento não é de uma assinatura.
+  final String? subscriptionId;
 
   /// The JSON the API answers.
   Map<String, Object?> toJson() => {
@@ -2784,14 +2916,19 @@ final class Payment {
     'created_at': createdAt,
     'currency': currency,
     'customer_id': customerId,
+    'cycle_sequence': cycleSequence,
     'id': id,
     'installment_amount_cents': installmentAmountCents,
     'installment_interest_cents': installmentInterestCents,
     'installments': installments,
     'metadata': metadata,
     'method': method,
+    'period_end': periodEnd,
+    'period_start': periodStart,
     'refunded_cents': refundedCents,
+    'showcase_id': showcaseId,
     'state': state,
+    'subscription_id': subscriptionId,
   };
 }
 
@@ -2933,6 +3070,7 @@ final class Product {
     required this.description,
     required this.id,
     required this.name,
+    required this.showcaseId,
     required this.status,
   });
 
@@ -2943,6 +3081,7 @@ final class Product {
       description: json['description'] as String,
       id: json['id'] as String,
       name: json['name'] as String,
+      showcaseId: json['showcase_id'] as String,
       status: json['status'] as String,
     );
   }
@@ -2955,6 +3094,10 @@ final class Product {
 
   final String name;
 
+  /// O showcase a que pertence: o da chave de API que fez a chamada. Uma chave
+  /// só alcança o seu showcase.
+  final String showcaseId;
+
   /// One of `active`, `archived`.
   final String status;
 
@@ -2964,6 +3107,7 @@ final class Product {
     'description': description,
     'id': id,
     'name': name,
+    'showcase_id': showcaseId,
     'status': status,
   };
 }
@@ -2972,8 +3116,15 @@ final class Product {
 final class Refund {
   const Refund({
     required this.amountCents,
+    required this.clientReferenceId,
+    required this.createdAt,
     required this.id,
+    required this.metadata,
+    required this.orderId,
     required this.paymentId,
+    required this.reason,
+    required this.refundMetadata,
+    required this.showcaseId,
     required this.status,
   });
 
@@ -2981,18 +3132,56 @@ final class Refund {
   factory Refund.fromJson(Map<String, Object?> json) {
     return Refund(
       amountCents: json['amount_cents'] as int,
+      clientReferenceId: json['client_reference_id'] as String,
+      createdAt: json['created_at'] as String,
       id: json['id'] as String,
+      metadata: readMap(json['metadata'], (value) => value),
+      orderId: json['order_id'] as String,
       paymentId: json['payment_id'] as String,
+      reason: json['reason'] as String,
+      refundMetadata: readMap(json['refund_metadata'], (value) => value),
+      showcaseId: json['showcase_id'] as String,
       status: json['status'] as String,
     );
   }
 
+  /// O valor deste reembolso, em centavos.
   final int amountCents;
+
+  /// O id do pedido no seu sistema, enviado ao criar o checkout; vazio sem ele.
+  /// É o do pedido, não do reembolso.
+  final String clientReferenceId;
+
+  final String createdAt;
 
   final String id;
 
+  /// Os pares que o seu servidor enviou ao criar o checkout do pedido; vazio
+  /// sem eles. É o mesmo metadata dos eventos de venda e de reembolso.
+  final Map<String, Object?> metadata;
+
+  /// O pedido a que o pagamento pertence: o id que GET /orders/{id} recebe.
+  /// Vazio quando o reembolso não é de um pagamento de checkout.
+  final String orderId;
+
+  /// O pagamento de que o dinheiro volta.
   final String paymentId;
 
+  /// Por que o dinheiro voltou, como o seu servidor informou.
+  final String reason;
+
+  /// Os pares que o seu servidor enviou no campo metadata ao pedir este
+  /// reembolso; vazio sem eles.
+  final Map<String, Object?> refundMetadata;
+
+  /// O showcase a que pertence: o da chave de API que fez a chamada. Uma chave
+  /// só alcança o seu showcase.
+  final String showcaseId;
+
+  /// requested e pending esperam a Cielo; unknown é uma resposta que não
+  /// chegou, e o valor continua reservado até a Cielo responder; succeeded
+  /// devolveu o dinheiro; failed e canceled não devolveram.
+  ///
   /// One of `requested`, `pending`, `unknown`, `succeeded`, `failed`,
   /// `canceled`.
   final String status;
@@ -3000,9 +3189,72 @@ final class Refund {
   /// The JSON the API answers.
   Map<String, Object?> toJson() => {
     'amount_cents': amountCents,
+    'client_reference_id': clientReferenceId,
+    'created_at': createdAt,
     'id': id,
+    'metadata': metadata,
+    'order_id': orderId,
     'payment_id': paymentId,
+    'reason': reason,
+    'refund_metadata': refundMetadata,
+    'showcase_id': showcaseId,
     'status': status,
+  };
+}
+
+/// Showcase is a resource of Peráta's API.
+final class Showcase {
+  const Showcase({
+    required this.createdAt,
+    required this.environment,
+    required this.hasLogo,
+    required this.id,
+    required this.isPrincipal,
+    required this.name,
+  });
+
+  /// A Showcase out of the API's JSON.
+  factory Showcase.fromJson(Map<String, Object?> json) {
+    return Showcase(
+      createdAt: json['created_at'] as String,
+      environment: json['environment'] as String,
+      hasLogo: json['has_logo'] as bool,
+      id: json['id'] as String,
+      isPrincipal: json['is_principal'] as bool,
+      name: json['name'] as String,
+    );
+  }
+
+  final String createdAt;
+
+  /// O ambiente da chave.
+  ///
+  /// One of `test`, `live`.
+  final String environment;
+
+  /// true quando o showcase tem logo. A logo é privada e não sai pela API: quem
+  /// a mostra é o painel.
+  final bool hasLogo;
+
+  /// O ID do showcase: o showcase_id que os objetos e os eventos de webhook
+  /// trazem.
+  final String id;
+
+  /// true no showcase com que a organização começou; os outros foram abertos
+  /// depois, no painel.
+  final bool isPrincipal;
+
+  /// O nome do showcase, como o lojista o vê no painel.
+  final String name;
+
+  /// The JSON the API answers.
+  Map<String, Object?> toJson() => {
+    'created_at': createdAt,
+    'environment': environment,
+    'has_logo': hasLogo,
+    'id': id,
+    'is_principal': isPrincipal,
+    'name': name,
   };
 }
 
@@ -3020,6 +3272,7 @@ final class Subscription {
     required this.metadata,
     required this.priceId,
     required this.productId,
+    required this.showcaseId,
     required this.status,
     this.suspendedAt,
     this.suspensionReason,
@@ -3041,6 +3294,7 @@ final class Subscription {
       metadata: readMap(json['metadata'], (value) => value),
       priceId: json['price_id'] as String,
       productId: json['product_id'] as String,
+      showcaseId: json['showcase_id'] as String,
       status: json['status'] as String,
       suspendedAt: json['suspended_at'] as String?,
       suspensionReason: json['suspension_reason'] as String?,
@@ -3074,6 +3328,10 @@ final class Subscription {
 
   final String productId;
 
+  /// O showcase a que pertence: o da chave de API que fez a chamada. Uma chave
+  /// só alcança o seu showcase.
+  final String showcaseId;
+
   /// One of `trialing`, `active`, `past_due`, `suspended`, `paused`,
   /// `canceled`.
   final String status;
@@ -3106,6 +3364,7 @@ final class Subscription {
     'metadata': metadata,
     'price_id': priceId,
     'product_id': productId,
+    'showcase_id': showcaseId,
     'status': status,
     'suspended_at': suspendedAt,
     'suspension_reason': suspensionReason,
@@ -3236,6 +3495,7 @@ final class WebhookCheckout {
     this.periodStart,
     required this.priceId,
     required this.productId,
+    required this.showcaseId,
     required this.status,
     this.subscriptionId,
     required this.totalCents,
@@ -3269,6 +3529,7 @@ final class WebhookCheckout {
       periodStart: json['period_start'] as String?,
       priceId: json['price_id'] as String,
       productId: json['product_id'] as String,
+      showcaseId: json['showcase_id'] as String,
       status: json['status'] as String,
       subscriptionId: json['subscription_id'] as String?,
       totalCents: json['total_cents'] as int,
@@ -3317,6 +3578,9 @@ final class WebhookCheckout {
 
   final String productId;
 
+  /// O showcase da venda.
+  final String showcaseId;
+
   /// One of `open`, `confirmed`, `succeeded`, `failed`, `expired`.
   final String status;
 
@@ -3344,6 +3608,7 @@ final class WebhookCheckout {
     'period_start': ?periodStart,
     'price_id': priceId,
     'product_id': productId,
+    'showcase_id': showcaseId,
     'status': status,
     'subscription_id': ?subscriptionId,
     'total_cents': totalCents,
@@ -3832,6 +4097,7 @@ final class WebhookOrder {
     this.refundAmountCents,
     this.refundId,
     required this.refundedAmountCents,
+    required this.showcaseId,
     required this.status,
     this.subscriptionId,
   });
@@ -3861,6 +4127,7 @@ final class WebhookOrder {
       refundAmountCents: json['refund_amount_cents'] as int?,
       refundId: json['refund_id'] as String?,
       refundedAmountCents: json['refunded_amount_cents'] as int,
+      showcaseId: json['showcase_id'] as String,
       status: json['status'] as String,
       subscriptionId: json['subscription_id'] as String?,
     );
@@ -3927,6 +4194,9 @@ final class WebhookOrder {
   /// certo, em centavos.
   final int refundedAmountCents;
 
+  /// O showcase da venda.
+  final String showcaseId;
+
   /// One of `open`, `confirmed`, `succeeded`, `failed`, `expired`.
   final String status;
 
@@ -3955,6 +4225,7 @@ final class WebhookOrder {
     'refund_amount_cents': refundAmountCents,
     'refund_id': refundId,
     'refunded_amount_cents': refundedAmountCents,
+    'showcase_id': showcaseId,
     'status': status,
     'subscription_id': ?subscriptionId,
   };
@@ -3965,10 +4236,14 @@ final class WebhookRefund {
   const WebhookRefund({
     required this.amountCents,
     this.checkoutId,
-    this.clientReferenceId,
+    required this.clientReferenceId,
     required this.id,
     required this.metadata,
+    this.orderId,
     required this.paymentId,
+    this.reason,
+    required this.refundMetadata,
+    required this.showcaseId,
     required this.status,
   });
 
@@ -3977,10 +4252,14 @@ final class WebhookRefund {
     return WebhookRefund(
       amountCents: json['amount_cents'] as int,
       checkoutId: json['checkout_id'] as String?,
-      clientReferenceId: json['client_reference_id'] as String?,
+      clientReferenceId: json['client_reference_id'] as String,
       id: json['id'] as String,
       metadata: readMap(json['metadata'], (value) => value),
+      orderId: json['order_id'] as String?,
       paymentId: json['payment_id'] as String,
+      reason: json['reason'] as String?,
+      refundMetadata: readMap(json['refund_metadata'], (value) => value),
+      showcaseId: json['showcase_id'] as String,
       status: json['status'] as String,
     );
   }
@@ -3991,7 +4270,7 @@ final class WebhookRefund {
   final String? checkoutId;
 
   /// O id do pedido no sistema do lojista; vazio sem ele.
-  final String? clientReferenceId;
+  final String clientReferenceId;
 
   final String id;
 
@@ -3999,7 +4278,21 @@ final class WebhookRefund {
   /// eles.
   final Map<String, Object?> metadata;
 
+  /// O mesmo pedido, com o nome que a API de reembolsos dá a ele; igual a
+  /// checkout_id.
+  final String? orderId;
+
   final String paymentId;
+
+  /// Por que o dinheiro voltou.
+  final String? reason;
+
+  /// Os pares que o servidor do lojista enviou no campo metadata ao pedir este
+  /// reembolso; vazio sem eles.
+  final Map<String, Object?> refundMetadata;
+
+  /// O showcase da venda.
+  final String showcaseId;
 
   /// One of `requested`, `pending`, `unknown`, `succeeded`, `failed`,
   /// `canceled`.
@@ -4009,10 +4302,14 @@ final class WebhookRefund {
   Map<String, Object?> toJson() => {
     'amount_cents': amountCents,
     'checkout_id': ?checkoutId,
-    'client_reference_id': ?clientReferenceId,
+    'client_reference_id': clientReferenceId,
     'id': id,
     'metadata': metadata,
+    'order_id': ?orderId,
     'payment_id': paymentId,
+    'reason': ?reason,
+    'refund_metadata': refundMetadata,
+    'showcase_id': showcaseId,
     'status': status,
   };
 }
@@ -4031,6 +4328,8 @@ final class WebhookSale {
     this.cycleSequence,
     required this.environment,
     required this.eventId,
+    this.failureCode,
+    this.failureReason,
     required this.merchantId,
     this.metadata,
     this.method,
@@ -4055,6 +4354,8 @@ final class WebhookSale {
       cycleSequence: json['cycle_sequence'] as int?,
       environment: json['environment'] as String,
       eventId: json['event_id'] as String,
+      failureCode: json['failure_code'] as String?,
+      failureReason: json['failure_reason'] as String?,
       merchantId: json['merchant_id'] as String,
       metadata: readOptional(
         json['metadata'],
@@ -4095,6 +4396,14 @@ final class WebhookSale {
   final String environment;
 
   final String eventId;
+
+  /// O código que a Cielo deu para a recusa, nos eventos refund.* de um
+  /// reembolso que falhou; serve ao suporte.
+  final String? failureCode;
+
+  /// Por que o dinheiro não voltou, em português, nos eventos refund.* de um
+  /// reembolso que falhou (refund.failed).
+  final String? failureReason;
 
   final String merchantId;
 
@@ -4143,6 +4452,8 @@ final class WebhookSale {
     'cycle_sequence': ?cycleSequence,
     'environment': environment,
     'event_id': eventId,
+    'failure_code': ?failureCode,
+    'failure_reason': ?failureReason,
     'merchant_id': merchantId,
     'metadata': ?metadata,
     'method': ?method,
@@ -4174,6 +4485,7 @@ final class WebhookSubscription {
     this.paymentFailure,
     required this.priceId,
     required this.productId,
+    required this.showcaseId,
     required this.status,
     this.suspendedAt,
     this.suspensionReason,
@@ -4201,6 +4513,7 @@ final class WebhookSubscription {
       ),
       priceId: json['price_id'] as String,
       productId: json['product_id'] as String,
+      showcaseId: json['showcase_id'] as String,
       status: json['status'] as String,
       suspendedAt: json['suspended_at'] as String?,
       suspensionReason: json['suspension_reason'] as String?,
@@ -4238,6 +4551,9 @@ final class WebhookSubscription {
 
   final String productId;
 
+  /// O showcase da venda.
+  final String showcaseId;
+
   /// One of `trialing`, `active`, `past_due`, `suspended`, `paused`,
   /// `canceled`.
   final String status;
@@ -4268,6 +4584,7 @@ final class WebhookSubscription {
     'payment_failure': ?paymentFailure?.toJson(),
     'price_id': priceId,
     'product_id': productId,
+    'showcase_id': showcaseId,
     'status': status,
     'suspended_at': suspendedAt,
     'suspension_reason': suspensionReason,
@@ -4568,6 +4885,7 @@ final class CheckoutsCreateParams {
     this.customerEmail,
     this.customerId,
     this.customerName,
+    this.discountId,
     this.expiresIn,
     this.externalCustomerId,
     this.items,
@@ -4578,6 +4896,7 @@ final class CheckoutsCreateParams {
     this.quantity,
     this.requireBillingAddress,
     this.returnUrl,
+    this.subscriptionStartAt,
     this.successUrl,
   });
 
@@ -4614,6 +4933,14 @@ final class CheckoutsCreateParams {
   /// O nome do comprador, quando você o conhece.
   final String? customerName;
 
+  /// O desconto do catálogo que o checkout aplica sozinho, sem o comprador
+  /// digitar código: o valor dele (percentual ou fixo) é tirado do total e vale
+  /// como o desconto foi criado, uma vez, por alguns meses ou para sempre. Um
+  /// desconto limitado a produtos (product_ids na criação do desconto) só vale
+  /// para esses produtos: num checkout de uma câmera, o desconto de uma câmera.
+  /// Um id que não é de um desconto ativo do catálogo é recusado com 422.
+  final String? discountId;
+
   /// Segundos em que a sessão e o client_secret continuam valendo, de um minuto
   /// a três dias; 1800 (30 minutos) quando fica de fora. Uma sessão paga com
   /// Pix pode ser aberta até esse prazo e, aberta, o Pix gerado vale 24 horas.
@@ -4624,9 +4951,13 @@ final class CheckoutsCreateParams {
 
   /// As linhas do pedido, até 50, para o comprador ler o detalhe: aparecem no
   /// checkout (página, modal, componentes e transparente), no pedido, no
-  /// recibo, no portal do cliente e nos eventos. A soma de quantity vezes
-  /// unit_amount_cents precisa ser igual a amount_cents, ou a resposta é 422;
-  /// enviadas sem amount_cents, a soma é o valor.
+  /// recibo, no portal do cliente e nos eventos. Em um preço de valor livre, a
+  /// soma de quantity vezes unit_amount_cents precisa ser igual a amount_cents,
+  /// ou a resposta é 422; enviadas sem amount_cents, a soma é o valor. Em um
+  /// preço com valor próprio, como o de uma assinatura, as linhas só mostram ao
+  /// comprador do que o valor é feito e fixam nada: envie-as sem amount_cents,
+  /// com a soma igual ao valor do preço vezes a quantidade (senão 422), e o
+  /// preço continua sendo quem define o que se cobra.
   final List<CheckoutsCreateItem>? items;
 
   final String? label;
@@ -4654,6 +4985,18 @@ final class CheckoutsCreateParams {
   /// pagar. Enviada com um cancel_url diferente, é recusada.
   final String? returnUrl;
 
+  /// O dia da primeira cobrança de uma assinatura, como o trial_end do Stripe:
+  /// o cartão é guardado e conferido com o emissor, nada é cobrado hoje e a
+  /// primeira cobrança acontece nesse dia, no cartão guardado; as seguintes
+  /// seguem a periodicidade do preço a partir dele. Só vale em um preço
+  /// recorrente com valor, e só no cartão de crédito: a página não oferece Pix
+  /// nem boleto. Vale o dia no horário de São Paulo, da meia-noite dele,
+  /// qualquer que seja o fuso enviado; a hora não conta. Tem de ser de amanhã a
+  /// um ano, senão a resposta é 422. A resposta devolve o instante como a
+  /// Peráta o guarda, em subscription_start_at. Quem abre o checkout depois da
+  /// data recebe 410.
+  final String? subscriptionStartAt;
+
   final String? successUrl;
 
   /// The JSON the API takes; a field left null is left out.
@@ -4665,6 +5008,7 @@ final class CheckoutsCreateParams {
     'customer_email': ?customerEmail,
     'customer_id': ?customerId,
     'customer_name': ?customerName,
+    'discount_id': ?discountId,
     'expires_in': ?expiresIn,
     'external_customer_id': ?externalCustomerId,
     'items': ?items?.map((item) => item.toJson()).toList(),
@@ -4675,6 +5019,7 @@ final class CheckoutsCreateParams {
     'quantity': ?quantity,
     'require_billing_address': ?requireBillingAddress,
     'return_url': ?returnUrl,
+    'subscription_start_at': ?subscriptionStartAt,
     'success_url': ?successUrl,
   };
 }
@@ -5234,28 +5579,52 @@ final class ProductsUpdateParams {
 /// The body of refunds:create.
 final class RefundsCreateParams {
   const RefundsCreateParams({
-    required this.amountCents,
+    this.amountCents,
+    this.metadata,
     this.note,
-    required this.paymentId,
-    required this.reason,
+    this.orderId,
+    this.paymentId,
+    this.reason,
   });
 
-  final int amountCents;
+  /// Quanto devolver, em centavos, de 1 até o que ainda pode ser devolvido. Sem
+  /// ele, devolve tudo o que ainda pode ser devolvido.
+  final int? amountCents;
 
+  /// Pares seus guardados no reembolso; voltam como refund_metadata no
+  /// reembolso e nos eventos refund.created e refund.updated, onde metadata é o
+  /// do pedido. O filtro metadata[chave]=valor de GET /refunds procura estes
+  /// pares. Até 50 pares de chave e valor: a chave tem de 1 a 40 caracteres, e
+  /// o valor é um texto de 1 a 500 caracteres, um número ou um booleano. Texto
+  /// sem caracteres de controle nem de direção invisível.
+  final Map<String, Object?>? metadata;
+
+  /// Uma observação sua, de até 500 caracteres.
   final String? note;
 
-  final String paymentId;
+  /// O pedido (o id que GET /orders/{id} recebe) cujo pagamento capturado é
+  /// devolvido. Dispensa o payment_id.
+  final String? orderId;
 
+  /// O pagamento de que o dinheiro volta. Envie este ou o order_id; os dois
+  /// juntos só se forem do mesmo pagamento.
+  final String? paymentId;
+
+  /// Por que o dinheiro volta. Sem ele, requested_by_customer; com other a note
+  /// é obrigatória.
+  ///
   /// One of `requested_by_customer`, `duplicate`, `fraudulent`,
   /// `product_unavailable`, `service_disruption`, `other`.
-  final String reason;
+  final String? reason;
 
   /// The JSON the API takes; a field left null is left out.
   Map<String, Object?> toJson() => {
-    'amount_cents': amountCents,
+    'amount_cents': ?amountCents,
+    'metadata': ?metadata,
     'note': ?note,
-    'payment_id': paymentId,
-    'reason': reason,
+    'order_id': ?orderId,
+    'payment_id': ?paymentId,
+    'reason': ?reason,
   };
 }
 

@@ -17,6 +17,8 @@ final class Checkout
         /** O id do pedido no seu sistema, como o seu servidor o enviou na criação; vazio sem ele. Volta no checkout, no pedido, no pagamento e nos eventos. */
         public readonly string $clientReferenceId,
         public readonly string $createdAt,
+        /** O desconto que o checkout aplica sozinho, como o seu servidor o enviou na criação; vazio sem ele. O comprador o vê no resumo e ele conta desde a primeira cobrança. */
+        public readonly string $discountId,
         /** Quando o checkout deixa de abrir sessões; nulo sem prazo. */
         public readonly ?string $expiresAt,
         public readonly string $id,
@@ -35,11 +37,15 @@ final class Checkout
         public readonly string $priceId,
         public readonly string $productId,
         public readonly int $quantity,
+        /** O showcase a que pertence: o da chave de API que fez a chamada. Uma chave só alcança o seu showcase. */
+        public readonly string $showcaseId,
         /**
          * active abre sessões de compra; archived saiu de circulação.
          * @var 'active'|'archived'
          */
         public readonly string $status,
+        /** O dia da primeira cobrança de uma assinatura que começa numa data (a meia-noite desse dia em São Paulo, com o fuso); nulo quando o checkout cobra na hora ou começa por um teste em dias. O cartão é guardado sem cobrança e a cobrança acontece nesse dia. */
+        public readonly ?string $subscriptionStartAt,
         /** Endereço https para onde o comprador volta depois de pagar; vazio sem ele. */
         public readonly string $successUrl,
         /** Endereço para onde o comprador é enviado. */
@@ -57,6 +63,7 @@ final class Checkout
             cancelUrl: $data['cancel_url'],
             clientReferenceId: $data['client_reference_id'],
             createdAt: $data['created_at'],
+            discountId: $data['discount_id'],
             expiresAt: $data['expires_at'] ?? null,
             id: $data['id'],
             items: array_values(array_map(static fn (array $item) => CheckoutLine::fromArray($item), $data['items'])),
@@ -65,7 +72,9 @@ final class Checkout
             priceId: $data['price_id'],
             productId: $data['product_id'],
             quantity: $data['quantity'],
+            showcaseId: $data['showcase_id'],
             status: $data['status'],
+            subscriptionStartAt: $data['subscription_start_at'] ?? null,
             successUrl: $data['success_url'],
             url: $data['url'],
         );

@@ -24,12 +24,17 @@ public final class CheckoutsService {
      * comprador usa para pagar sem chave de API; o client_secret vem só nesta
      * resposta. Para cobrar um valor que o seu servidor define, envie
      * amount_cents e items (preço de valor livre). Envie client_reference_id e
-     * metadata para achar o pedido depois.
+     * metadata para achar o pedido depois. Em uma assinatura, envie as linhas
+     * do pedido em items (só para exibição, com a soma igual ao valor do preço)
+     * e o desconto em discount_id. Para uma assinatura que só começa a cobrar
+     * numa data, envie subscription_start_at com o preço recorrente: o cartão é
+     * guardado sem cobrança e a primeira cobrança acontece nesse dia.
      *
      * Autenticação: chave de API da organização em Authorization: Bearer
-     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-     * requisição. Respostas em JSON no envelope data; erros com error, message
-     * e fields.
+     * (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+     * chave, nunca da requisição: a chave criada num showcase só alcança o que
+     * é dele. Respostas em JSON no envelope data; erros com error, message e
+     * fields.
      *
      * @param params the request
      * @param options an idempotency key or another organization's key for this call, or null
@@ -49,12 +54,17 @@ public final class CheckoutsService {
      * comprador usa para pagar sem chave de API; o client_secret vem só nesta
      * resposta. Para cobrar um valor que o seu servidor define, envie
      * amount_cents e items (preço de valor livre). Envie client_reference_id e
-     * metadata para achar o pedido depois.
+     * metadata para achar o pedido depois. Em uma assinatura, envie as linhas
+     * do pedido em items (só para exibição, com a soma igual ao valor do preço)
+     * e o desconto em discount_id. Para uma assinatura que só começa a cobrar
+     * numa data, envie subscription_start_at com o preço recorrente: o cartão é
+     * guardado sem cobrança e a primeira cobrança acontece nesse dia.
      *
      * Autenticação: chave de API da organização em Authorization: Bearer
-     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-     * requisição. Respostas em JSON no envelope data; erros com error, message
-     * e fields.
+     * (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+     * chave, nunca da requisição: a chave criada num showcase só alcança o que
+     * é dele. Respostas em JSON no envelope data; erros com error, message e
+     * fields.
      *
      * @param params the request
      * @return the checkoutcreated
@@ -74,6 +84,7 @@ public final class CheckoutsService {
         private final String customerEmail;
         private final String customerId;
         private final String customerName;
+        private final String discountId;
         private final Long expiresIn;
         private final String externalCustomerId;
         private final List<CheckoutsCreateItem> items;
@@ -84,6 +95,7 @@ public final class CheckoutsService {
         private final Long quantity;
         private final Boolean requireBillingAddress;
         private final String returnUrl;
+        private final String subscriptionStartAt;
         private final String successUrl;
 
         private CreateParams(Builder builder) {
@@ -94,6 +106,7 @@ public final class CheckoutsService {
             this.customerEmail = builder.customerEmail;
             this.customerId = builder.customerId;
             this.customerName = builder.customerName;
+            this.discountId = builder.discountId;
             this.expiresIn = builder.expiresIn;
             this.externalCustomerId = builder.externalCustomerId;
             this.items = builder.items;
@@ -104,6 +117,7 @@ public final class CheckoutsService {
             this.quantity = builder.quantity;
             this.requireBillingAddress = builder.requireBillingAddress;
             this.returnUrl = builder.returnUrl;
+            this.subscriptionStartAt = builder.subscriptionStartAt;
             this.successUrl = builder.successUrl;
         }
 
@@ -147,6 +161,11 @@ public final class CheckoutsService {
             return customerName;
         }
 
+        /** @return O desconto do catálogo que o checkout aplica sozinho, sem o comprador digitar código: o valor dele (percentual ou fixo) é tirado do total e vale como o desconto foi criado, uma vez, por alguns meses ou para sempre. Um desconto limitado a produtos (product_ids na criação do desconto) só vale para esses produtos: num checkout de uma câmera, o desconto de uma câmera. Um id que não é de um desconto ativo do catálogo é recusado com 422. (null when left out) */
+        public String getDiscountId() {
+            return discountId;
+        }
+
         /** @return Segundos em que a sessão e o client_secret continuam valendo, de um minuto a três dias; 1800 (30 minutos) quando fica de fora. Uma sessão paga com Pix pode ser aberta até esse prazo e, aberta, o Pix gerado vale 24 horas. (null when left out) */
         public Long getExpiresIn() {
             return expiresIn;
@@ -157,7 +176,7 @@ public final class CheckoutsService {
             return externalCustomerId;
         }
 
-        /** @return As linhas do pedido, até 50, para o comprador ler o detalhe: aparecem no checkout (página, modal, componentes e transparente), no pedido, no recibo, no portal do cliente e nos eventos. A soma de quantity vezes unit_amount_cents precisa ser igual a amount_cents, ou a resposta é 422; enviadas sem amount_cents, a soma é o valor. (null when left out) */
+        /** @return As linhas do pedido, até 50, para o comprador ler o detalhe: aparecem no checkout (página, modal, componentes e transparente), no pedido, no recibo, no portal do cliente e nos eventos. Em um preço de valor livre, a soma de quantity vezes unit_amount_cents precisa ser igual a amount_cents, ou a resposta é 422; enviadas sem amount_cents, a soma é o valor. Em um preço com valor próprio, como o de uma assinatura, as linhas só mostram ao comprador do que o valor é feito e fixam nada: envie-as sem amount_cents, com a soma igual ao valor do preço vezes a quantidade (senão 422), e o preço continua sendo quem define o que se cobra. (null when left out) */
         public List<CheckoutsCreateItem> getItems() {
             return items;
         }
@@ -197,6 +216,11 @@ public final class CheckoutsService {
             return returnUrl;
         }
 
+        /** @return O dia da primeira cobrança de uma assinatura, como o trial_end do Stripe: o cartão é guardado e conferido com o emissor, nada é cobrado hoje e a primeira cobrança acontece nesse dia, no cartão guardado; as seguintes seguem a periodicidade do preço a partir dele. Só vale em um preço recorrente com valor, e só no cartão de crédito: a página não oferece Pix nem boleto. Vale o dia no horário de São Paulo, da meia-noite dele, qualquer que seja o fuso enviado; a hora não conta. Tem de ser de amanhã a um ano, senão a resposta é 422. A resposta devolve o instante como a Peráta o guarda, em subscription_start_at. Quem abre o checkout depois da data recebe 410. (null when left out) */
+        public String getSubscriptionStartAt() {
+            return subscriptionStartAt;
+        }
+
         /** @return the {@code success_url} sent (null when left out) */
         public String getSuccessUrl() {
             return successUrl;
@@ -225,6 +249,9 @@ public final class CheckoutsService {
             if (customerName != null) {
                 body.put("customer_name", customerName);
             }
+            if (discountId != null) {
+                body.put("discount_id", discountId);
+            }
             if (expiresIn != null) {
                 body.put("expires_in", expiresIn);
             }
@@ -251,6 +278,9 @@ public final class CheckoutsService {
             if (returnUrl != null) {
                 body.put("return_url", returnUrl);
             }
+            if (subscriptionStartAt != null) {
+                body.put("subscription_start_at", subscriptionStartAt);
+            }
             if (successUrl != null) {
                 body.put("success_url", successUrl);
             }
@@ -266,6 +296,7 @@ public final class CheckoutsService {
             private String customerEmail;
             private String customerId;
             private String customerName;
+            private String discountId;
             private Long expiresIn;
             private String externalCustomerId;
             private List<CheckoutsCreateItem> items;
@@ -276,6 +307,7 @@ public final class CheckoutsService {
             private Long quantity;
             private Boolean requireBillingAddress;
             private String returnUrl;
+            private String subscriptionStartAt;
             private String successUrl;
 
             private Builder() {
@@ -345,6 +377,15 @@ public final class CheckoutsService {
             }
 
             /**
+             * @param discountId O desconto do catálogo que o checkout aplica sozinho, sem o comprador digitar código: o valor dele (percentual ou fixo) é tirado do total e vale como o desconto foi criado, uma vez, por alguns meses ou para sempre. Um desconto limitado a produtos (product_ids na criação do desconto) só vale para esses produtos: num checkout de uma câmera, o desconto de uma câmera. Um id que não é de um desconto ativo do catálogo é recusado com 422.
+             * @return this builder
+             */
+            public Builder discountId(String discountId) {
+                this.discountId = discountId;
+                return this;
+            }
+
+            /**
              * @param expiresIn Segundos em que a sessão e o client_secret continuam valendo, de um minuto a três dias; 1800 (30 minutos) quando fica de fora. Uma sessão paga com Pix pode ser aberta até esse prazo e, aberta, o Pix gerado vale 24 horas.
              * @return this builder
              */
@@ -363,7 +404,7 @@ public final class CheckoutsService {
             }
 
             /**
-             * @param items As linhas do pedido, até 50, para o comprador ler o detalhe: aparecem no checkout (página, modal, componentes e transparente), no pedido, no recibo, no portal do cliente e nos eventos. A soma de quantity vezes unit_amount_cents precisa ser igual a amount_cents, ou a resposta é 422; enviadas sem amount_cents, a soma é o valor.
+             * @param items As linhas do pedido, até 50, para o comprador ler o detalhe: aparecem no checkout (página, modal, componentes e transparente), no pedido, no recibo, no portal do cliente e nos eventos. Em um preço de valor livre, a soma de quantity vezes unit_amount_cents precisa ser igual a amount_cents, ou a resposta é 422; enviadas sem amount_cents, a soma é o valor. Em um preço com valor próprio, como o de uma assinatura, as linhas só mostram ao comprador do que o valor é feito e fixam nada: envie-as sem amount_cents, com a soma igual ao valor do preço vezes a quantidade (senão 422), e o preço continua sendo quem define o que se cobra.
              * @return this builder
              */
             public Builder items(List<CheckoutsCreateItem> items) {
@@ -431,6 +472,15 @@ public final class CheckoutsService {
              */
             public Builder returnUrl(String returnUrl) {
                 this.returnUrl = returnUrl;
+                return this;
+            }
+
+            /**
+             * @param subscriptionStartAt O dia da primeira cobrança de uma assinatura, como o trial_end do Stripe: o cartão é guardado e conferido com o emissor, nada é cobrado hoje e a primeira cobrança acontece nesse dia, no cartão guardado; as seguintes seguem a periodicidade do preço a partir dele. Só vale em um preço recorrente com valor, e só no cartão de crédito: a página não oferece Pix nem boleto. Vale o dia no horário de São Paulo, da meia-noite dele, qualquer que seja o fuso enviado; a hora não conta. Tem de ser de amanhã a um ano, senão a resposta é 422. A resposta devolve o instante como a Peráta o guarda, em subscription_start_at. Quem abre o checkout depois da data recebe 410.
+             * @return this builder
+             */
+            public Builder subscriptionStartAt(String subscriptionStartAt) {
+                this.subscriptionStartAt = subscriptionStartAt;
                 return this;
             }
 
@@ -565,9 +615,10 @@ public final class CheckoutsService {
      * checkout já foi pago ou emitiu um boleto, a resposta é 409.
      *
      * Autenticação: chave de API da organização em Authorization: Bearer
-     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-     * requisição. Respostas em JSON no envelope data; erros com error, message
-     * e fields.
+     * (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+     * chave, nunca da requisição: a chave criada num showcase só alcança o que
+     * é dele. Respostas em JSON no envelope data; erros com error, message e
+     * fields.
      *
      * @param checkout the checkout
      * @param options an idempotency key or another organization's key for this call, or null
@@ -588,9 +639,10 @@ public final class CheckoutsService {
      * checkout já foi pago ou emitiu um boleto, a resposta é 409.
      *
      * Autenticação: chave de API da organização em Authorization: Bearer
-     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-     * requisição. Respostas em JSON no envelope data; erros com error, message
-     * e fields.
+     * (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+     * chave, nunca da requisição: a chave criada num showcase só alcança o que
+     * é dele. Respostas em JSON no envelope data; erros com error, message e
+     * fields.
      *
      * @param checkout the checkout
      * @return the checkoutexpired
@@ -606,9 +658,10 @@ public final class CheckoutsService {
      * Devolve um checkout: o endereço, o estado e as páginas de retorno.
      *
      * Autenticação: chave de API da organização em Authorization: Bearer
-     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-     * requisição. Respostas em JSON no envelope data; erros com error, message
-     * e fields.
+     * (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+     * chave, nunca da requisição: a chave criada num showcase só alcança o que
+     * é dele. Respostas em JSON no envelope data; erros com error, message e
+     * fields.
      *
      * @param checkout the checkout
      * @param options another organization's key for this call, or null
@@ -626,9 +679,10 @@ public final class CheckoutsService {
      * Devolve um checkout: o endereço, o estado e as páginas de retorno.
      *
      * Autenticação: chave de API da organização em Authorization: Bearer
-     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-     * requisição. Respostas em JSON no envelope data; erros com error, message
-     * e fields.
+     * (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+     * chave, nunca da requisição: a chave criada num showcase só alcança o que
+     * é dele. Respostas em JSON no envelope data; erros com error, message e
+     * fields.
      *
      * @param checkout the checkout
      * @return the checkout
@@ -645,9 +699,10 @@ public final class CheckoutsService {
      * período ou metadados.
      *
      * Autenticação: chave de API da organização em Authorization: Bearer
-     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-     * requisição. Respostas em JSON no envelope data; erros com error, message
-     * e fields.
+     * (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+     * chave, nunca da requisição: a chave criada num showcase só alcança o que
+     * é dele. Respostas em JSON no envelope data; erros com error, message e
+     * fields.
      *
      * @param params the page, its size and the filters, or null
      * @param options options for this call, or null
@@ -666,9 +721,10 @@ public final class CheckoutsService {
      * período ou metadados.
      *
      * Autenticação: chave de API da organização em Authorization: Bearer
-     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-     * requisição. Respostas em JSON no envelope data; erros com error, message
-     * e fields.
+     * (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+     * chave, nunca da requisição: a chave criada num showcase só alcança o que
+     * é dele. Respostas em JSON no envelope data; erros com error, message e
+     * fields.
      *
      * @param params the page, its size and the filters, or null
      * @return the page
@@ -684,9 +740,10 @@ public final class CheckoutsService {
      * período ou metadados.
      *
      * Autenticação: chave de API da organização em Authorization: Bearer
-     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-     * requisição. Respostas em JSON no envelope data; erros com error, message
-     * e fields.
+     * (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+     * chave, nunca da requisição: a chave criada num showcase só alcança o que
+     * é dele. Respostas em JSON no envelope data; erros com error, message e
+     * fields.
      *
      * @return the page
      */
@@ -920,9 +977,10 @@ public final class CheckoutsService {
      * Muda o rótulo e as páginas de retorno de um checkout ativo.
      *
      * Autenticação: chave de API da organização em Authorization: Bearer
-     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-     * requisição. Respostas em JSON no envelope data; erros com error, message
-     * e fields.
+     * (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+     * chave, nunca da requisição: a chave criada num showcase só alcança o que
+     * é dele. Respostas em JSON no envelope data; erros com error, message e
+     * fields.
      *
      * @param checkout the checkout
      * @param params the request
@@ -941,9 +999,10 @@ public final class CheckoutsService {
      * Muda o rótulo e as páginas de retorno de um checkout ativo.
      *
      * Autenticação: chave de API da organização em Authorization: Bearer
-     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-     * requisição. Respostas em JSON no envelope data; erros com error, message
-     * e fields.
+     * (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+     * chave, nunca da requisição: a chave criada num showcase só alcança o que
+     * é dele. Respostas em JSON no envelope data; erros com error, message e
+     * fields.
      *
      * @param checkout the checkout
      * @param params the request

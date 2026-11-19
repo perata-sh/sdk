@@ -144,47 +144,51 @@ public final class Webhook {
         if (environment == null) {
             environment = "";
         }
+        String showcaseId = Json.optional(event, "showcase_id", Json::asString);
+        if (showcaseId == null) {
+            showcaseId = "";
+        }
         Map<String, Object> data = Json.optional(event, "data", Json::asObject);
         if (data == null) {
             data = Map.of();
         }
         if (BenefitWebhookEvent.TYPES.contains(type)) {
-            return BenefitWebhookEvent.fromJson(id, type, timestamp, environment, data);
+            return BenefitWebhookEvent.fromJson(id, type, timestamp, environment, showcaseId, data);
         }
         if (BenefitGrantWebhookEvent.TYPES.contains(type)) {
-            return BenefitGrantWebhookEvent.fromJson(id, type, timestamp, environment, data);
+            return BenefitGrantWebhookEvent.fromJson(id, type, timestamp, environment, showcaseId, data);
         }
         if (CheckoutWebhookEvent.TYPES.contains(type)) {
-            return CheckoutWebhookEvent.fromJson(id, type, timestamp, environment, data);
+            return CheckoutWebhookEvent.fromJson(id, type, timestamp, environment, showcaseId, data);
         }
         if (CustomerWebhookEvent.TYPES.contains(type)) {
-            return CustomerWebhookEvent.fromJson(id, type, timestamp, environment, data);
+            return CustomerWebhookEvent.fromJson(id, type, timestamp, environment, showcaseId, data);
         }
         if (DiscountWebhookEvent.TYPES.contains(type)) {
-            return DiscountWebhookEvent.fromJson(id, type, timestamp, environment, data);
+            return DiscountWebhookEvent.fromJson(id, type, timestamp, environment, showcaseId, data);
         }
         if (DisputeWebhookEvent.TYPES.contains(type)) {
-            return DisputeWebhookEvent.fromJson(id, type, timestamp, environment, data);
+            return DisputeWebhookEvent.fromJson(id, type, timestamp, environment, showcaseId, data);
         }
         if (IdentifiersWebhookEvent.TYPES.contains(type)) {
-            return IdentifiersWebhookEvent.fromJson(id, type, timestamp, environment, data);
+            return IdentifiersWebhookEvent.fromJson(id, type, timestamp, environment, showcaseId, data);
         }
         if (OrderWebhookEvent.TYPES.contains(type)) {
-            return OrderWebhookEvent.fromJson(id, type, timestamp, environment, data);
+            return OrderWebhookEvent.fromJson(id, type, timestamp, environment, showcaseId, data);
         }
         if (ProductWebhookEvent.TYPES.contains(type)) {
-            return ProductWebhookEvent.fromJson(id, type, timestamp, environment, data);
+            return ProductWebhookEvent.fromJson(id, type, timestamp, environment, showcaseId, data);
         }
         if (RefundWebhookEvent.TYPES.contains(type)) {
-            return RefundWebhookEvent.fromJson(id, type, timestamp, environment, data);
+            return RefundWebhookEvent.fromJson(id, type, timestamp, environment, showcaseId, data);
         }
         if (SaleWebhookEvent.TYPES.contains(type)) {
-            return SaleWebhookEvent.fromJson(id, type, timestamp, environment, data);
+            return SaleWebhookEvent.fromJson(id, type, timestamp, environment, showcaseId, data);
         }
         if (SubscriptionWebhookEvent.TYPES.contains(type)) {
-            return SubscriptionWebhookEvent.fromJson(id, type, timestamp, environment, data);
+            return SubscriptionWebhookEvent.fromJson(id, type, timestamp, environment, showcaseId, data);
         }
-        return new UnknownWebhookEvent(id, type, timestamp, environment, data);
+        return new UnknownWebhookEvent(id, type, timestamp, environment, showcaseId, data);
     }
 
     private static String header(Map<String, ?> headers, String name) {

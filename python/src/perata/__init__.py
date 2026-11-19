@@ -4,9 +4,9 @@
 from ._client import Perata, Transport, urllib_transport
 from ._errors import PerataError
 from ._pagination import Page
-from ._services import BenefitsService, CheckoutLinksService, CheckoutsService, CustomerSessionsService, CustomersService, DiscountsService, DisputesService, EventsService, MetersService, OrdersService, PaymentMethodsService, PaymentsService, PricesService, ProductsService, RefundsService, SubscriptionsService, UsageService, WebhooksService
+from ._services import BenefitsService, CheckoutLinksService, CheckoutsService, CustomerSessionsService, CustomersService, DiscountsService, DisputesService, EventsService, MetersService, OrdersService, PaymentMethodsService, PaymentsService, PricesService, ProductsService, RefundsService, ShowcaseService, SubscriptionsService, UsageService, WebhooksService
 from ._version import API_VERSION, DEFAULT_BASE_URL, VERSION
-from .models import Benefit, BenefitGrant, BillingAddress, Card, CardAuthentication, CardTokenization, Checkout, CheckoutClient, CheckoutClientBoleto, CheckoutClientCustomer, CheckoutClientDiscount, CheckoutClientItem, CheckoutClientPayment, CheckoutClientPix, CheckoutCreated, CheckoutExpired, CheckoutExpiredSession, CheckoutInstallment, CheckoutLine, CheckoutLink, CheckoutLinkProduct, CheckoutNextAction, CheckoutSavedCard, CheckoutSavedData, CheckoutSavedDataSent, CheckoutSavedProfile, Customer, CustomerSession, CustomerState, CustomerStateBenefitGrant, Discount, Dispute, Event, Meter, MeterAggregation, MeterUnit, Order, OrderInvoice, OrderReceipt, Pagination, Payment, PaymentMethod, PaymentMethodDetached, Price, Product, Refund, Subscription, UsageError, WebhookBenefit, WebhookCheckout, WebhookDelivery, WebhookDiscount, WebhookDispute, WebhookEndpoint, WebhookEndpointCreated, WebhookOrder, WebhookRefund, WebhookSale, WebhookSubscription, WebhookSubscriptionPaymentFailure, BenefitsCreateParams, BenefitsUpdateParams, CheckoutLinksCreateParams, CheckoutLinksUpdateParams, CheckoutsCreateParams, CheckoutsCreateItem, CheckoutsUpdateParams, CustomerSessionsCreateParams, CustomersCreateParams, CustomersCreateBillingAddress, CustomersUpdateParams, CustomersUpdateBillingAddress, DiscountsCreateParams, DiscountsUpdateParams, CustomersUpdateExternalParams, CustomersUpdateExternalBillingAddress, PricesCreateParams, ProductsCreateParams, ProductsUpdateParams, RefundsCreateParams, SubscriptionsUpdateParams, SubscriptionsCancelParams, UsageIngestParams, UsageIngestReceipt, UsageIngestEventCost, UsageIngestEventLlm, UsageIngestEvent, WebhooksCreateEndpointParams, WebhooksUpdateEndpointParams
+from .models import Benefit, BenefitGrant, BillingAddress, Card, CardAuthentication, CardTokenization, Checkout, CheckoutClient, CheckoutClientBoleto, CheckoutClientCustomer, CheckoutClientDiscount, CheckoutClientItem, CheckoutClientPayment, CheckoutClientPix, CheckoutCreated, CheckoutExpired, CheckoutExpiredSession, CheckoutInstallment, CheckoutLine, CheckoutLink, CheckoutLinkProduct, CheckoutNextAction, CheckoutSavedCard, CheckoutSavedData, CheckoutSavedDataSent, CheckoutSavedProfile, Customer, CustomerSession, CustomerState, CustomerStateBenefitGrant, Discount, Dispute, Event, Meter, MeterAggregation, MeterUnit, Order, OrderInvoice, OrderReceipt, Pagination, Payment, PaymentMethod, PaymentMethodDetached, Price, Product, Refund, Showcase, Subscription, UsageError, WebhookBenefit, WebhookCheckout, WebhookDelivery, WebhookDiscount, WebhookDispute, WebhookEndpoint, WebhookEndpointCreated, WebhookOrder, WebhookRefund, WebhookSale, WebhookSubscription, WebhookSubscriptionPaymentFailure, BenefitsCreateParams, BenefitsUpdateParams, CheckoutLinksCreateParams, CheckoutLinksUpdateParams, CheckoutsCreateParams, CheckoutsCreateItem, CheckoutsUpdateParams, CustomerSessionsCreateParams, CustomersCreateParams, CustomersCreateBillingAddress, CustomersUpdateParams, CustomersUpdateBillingAddress, DiscountsCreateParams, DiscountsUpdateParams, CustomersUpdateExternalParams, CustomersUpdateExternalBillingAddress, PricesCreateParams, ProductsCreateParams, ProductsUpdateParams, RefundsCreateParams, SubscriptionsUpdateParams, SubscriptionsCancelParams, UsageIngestParams, UsageIngestReceipt, UsageIngestEventCost, UsageIngestEventLlm, UsageIngestEvent, WebhooksCreateEndpointParams, WebhooksUpdateEndpointParams
 from .webhooks import (
     WEBHOOK_TOLERANCE_SECONDS,
     BenefitWebhookEvent,
@@ -94,6 +94,7 @@ __all__ = [
     "PricesService",
     "ProductsService",
     "RefundsService",
+    "ShowcaseService",
     "SubscriptionsService",
     "UsageService",
     "WebhooksService",
@@ -143,6 +144,7 @@ __all__ = [
     "Price",
     "Product",
     "Refund",
+    "Showcase",
     "Subscription",
     "UsageError",
     "WebhookBenefit",

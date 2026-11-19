@@ -15,11 +15,15 @@ var exReserved = map[string]bool{
 func init() {
 	register(Language{Name: "elixir", Funcs: template.FuncMap{
 		// quote writes a string literal, escaped the way elixir reads it.
-		"quote":   elixirQuote,
-		"exName":  exName,
-		"exType":  exType,
-		"exRead":  exRead,
-		"exWrite": exWrite,
+		"quote":  elixirQuote,
+		"exName": exName,
+		// exService names a service's module: its name in Pascal case, with
+		// Service added when a model already owns that module (the showcase
+		// service and the Showcase struct share Perata.Showcase otherwise).
+		"exService": exService,
+		"exType":    exType,
+		"exRead":    exRead,
+		"exWrite":   exWrite,
 		// exDoc writes a description as an Elixir string, quotes escaped.
 		"exDoc": func(text string) string { return strings.ReplaceAll(exDocText(text), "\n", " ") },
 		// exDocBlock writes text as the lines of a @doc heredoc.
@@ -280,4 +284,16 @@ func exDocText(text string) string {
 	text = strings.ReplaceAll(text, `\`, `\\`)
 	text = strings.ReplaceAll(text, `"`, `\"`)
 	return strings.ReplaceAll(text, "#{", `\#{`)
+}
+
+// exService is the module of a service: Perata.<Name>, or Perata.<Name>Service
+// when a model is named the same, as the namespace is shared.
+func exService(name string, models []*Model) string {
+	module := Pascal(name)
+	for _, m := range models {
+		if m.Name == module {
+			return module + "Service"
+		}
+	}
+	return module
 }

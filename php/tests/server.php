@@ -18,5 +18,6 @@ echo json_encode(['data' => [
     'name' => json_decode((string) file_get_contents('php://input'), true)['name'] ?? '',
     'description' => $_SERVER['HTTP_IDEMPOTENCY_KEY'] ?? '',
     'status' => 'active',
+    'showcase_id' => 'shw_1',
     'created_at' => $_SERVER['REQUEST_METHOD'] . ' ' . $_SERVER['REQUEST_URI'],
 ]]);

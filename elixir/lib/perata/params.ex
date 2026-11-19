@@ -245,6 +245,7 @@ defmodule Perata.CheckoutsCreateParams do
     :customer_email,
     :customer_id,
     :customer_name,
+    :discount_id,
     :expires_in,
     :external_customer_id,
     :items,
@@ -255,6 +256,7 @@ defmodule Perata.CheckoutsCreateParams do
     :quantity,
     :require_billing_address,
     :return_url,
+    :subscription_start_at,
     :success_url
   ]
 
@@ -266,14 +268,16 @@ defmodule Perata.CheckoutsCreateParams do
   * `customer_email` (optional): O e-mail do comprador, quando você o conhece; senão o navegador do comprador o pede.
   * `customer_id` (optional): Um cliente seu: o checkout abre com o nome, o e-mail e os dados de cobrança dele. Não junto com external_customer_id, customer_email ou customer_name.
   * `customer_name` (optional): O nome do comprador, quando você o conhece.
+  * `discount_id` (optional): O desconto do catálogo que o checkout aplica sozinho, sem o comprador digitar código: o valor dele (percentual ou fixo) é tirado do total e vale como o desconto foi criado, uma vez, por alguns meses ou para sempre. Um desconto limitado a produtos (product_ids na criação do desconto) só vale para esses produtos: num checkout de uma câmera, o desconto de uma câmera. Um id que não é de um desconto ativo do catálogo é recusado com 422.
   * `expires_in` (optional): Segundos em que a sessão e o client_secret continuam valendo, de um minuto a três dias; 1800 (30 minutos) quando fica de fora. Uma sessão paga com Pix pode ser aberta até esse prazo e, aberta, o Pix gerado vale 24 horas.
   * `external_customer_id` (optional): O mesmo cliente, pelo ID que você deu a ele.
-  * `items` (optional): As linhas do pedido, até 50, para o comprador ler o detalhe: aparecem no checkout (página, modal, componentes e transparente), no pedido, no recibo, no portal do cliente e nos eventos. A soma de quantity vezes unit_amount_cents precisa ser igual a amount_cents, ou a resposta é 422; enviadas sem amount_cents, a soma é o valor.
+  * `items` (optional): As linhas do pedido, até 50, para o comprador ler o detalhe: aparecem no checkout (página, modal, componentes e transparente), no pedido, no recibo, no portal do cliente e nos eventos. Em um preço de valor livre, a soma de quantity vezes unit_amount_cents precisa ser igual a amount_cents, ou a resposta é 422; enviadas sem amount_cents, a soma é o valor. Em um preço com valor próprio, como o de uma assinatura, as linhas só mostram ao comprador do que o valor é feito e fixam nada: envie-as sem amount_cents, com a soma igual ao valor do preço vezes a quantidade (senão 422), e o preço continua sendo quem define o que se cobra.
   * `label` (optional)
   * `metadata` (optional): Pares guardados no link do checkout e devolvidos no checkout, no pedido, no pagamento e nos eventos da venda. Até 50 pares de chave e valor: a chave tem de 1 a 40 caracteres, e o valor é um texto de 1 a 500 caracteres, um número ou um booleano. Texto sem caracteres de controle nem de direção invisível.
   * `quantity` (optional): Quantas unidades. Com amount_cents é sempre 1: envie 1 ou omita; qualquer outro valor é recusado com 422.
   * `require_billing_address` (optional): Pede o endereço de cobrança completo de todo comprador, não só no boleto; desligado quando fica de fora.
   * `return_url` (optional): Outro nome de cancel_url: a página https a que o comprador volta sem pagar. Enviada com um cancel_url diferente, é recusada.
+  * `subscription_start_at` (optional): O dia da primeira cobrança de uma assinatura, como o trial_end do Stripe: o cartão é guardado e conferido com o emissor, nada é cobrado hoje e a primeira cobrança acontece nesse dia, no cartão guardado; as seguintes seguem a periodicidade do preço a partir dele. Só vale em um preço recorrente com valor, e só no cartão de crédito: a página não oferece Pix nem boleto. Vale o dia no horário de São Paulo, da meia-noite dele, qualquer que seja o fuso enviado; a hora não conta. Tem de ser de amanhã a um ano, senão a resposta é 422. A resposta devolve o instante como a Peráta o guarda, em subscription_start_at. Quem abre o checkout depois da data recebe 410.
   * `success_url` (optional)
   """
   @type t :: %__MODULE__{
@@ -284,6 +288,7 @@ defmodule Perata.CheckoutsCreateParams do
           customer_email: String.t() | nil,
           customer_id: String.t() | nil,
           customer_name: String.t() | nil,
+          discount_id: String.t() | nil,
           expires_in: integer() | nil,
           external_customer_id: String.t() | nil,
           items: [Perata.CheckoutsCreateItem.t()] | nil,
@@ -294,6 +299,7 @@ defmodule Perata.CheckoutsCreateParams do
           quantity: integer() | nil,
           require_billing_address: boolean() | nil,
           return_url: String.t() | nil,
+          subscription_start_at: String.t() | nil,
           success_url: String.t() | nil
         }
 
@@ -315,6 +321,7 @@ defmodule Perata.CheckoutsCreateParams do
     |> Perata.Encode.put_optional("customer_email", params.customer_email)
     |> Perata.Encode.put_optional("customer_id", params.customer_id)
     |> Perata.Encode.put_optional("customer_name", params.customer_name)
+    |> Perata.Encode.put_optional("discount_id", params.discount_id)
     |> Perata.Encode.put_optional("expires_in", params.expires_in)
     |> Perata.Encode.put_optional("external_customer_id", params.external_customer_id)
     |> Perata.Encode.put_optional("items", Perata.Encode.value(params.items))
@@ -323,6 +330,7 @@ defmodule Perata.CheckoutsCreateParams do
     |> Perata.Encode.put_optional("quantity", params.quantity)
     |> Perata.Encode.put_optional("require_billing_address", params.require_billing_address)
     |> Perata.Encode.put_optional("return_url", params.return_url)
+    |> Perata.Encode.put_optional("subscription_start_at", params.subscription_start_at)
     |> Perata.Encode.put_optional("success_url", params.success_url)
   end
 end
@@ -1026,18 +1034,23 @@ defmodule Perata.RefundsCreateParams do
   out is left out of the JSON.
   """
 
-  @enforce_keys [:amount_cents, :payment_id, :reason]
-  defstruct [:amount_cents, :note, :payment_id, :reason]
+  defstruct [:amount_cents, :metadata, :note, :order_id, :payment_id, :reason]
 
   @typedoc """
-  * `note` (optional)
-  * `reason` (one of `"requested_by_customer"`, `"duplicate"`, `"fraudulent"`, `"product_unavailable"`, `"service_disruption"`, `"other"`)
+  * `amount_cents` (optional): Quanto devolver, em centavos, de 1 até o que ainda pode ser devolvido. Sem ele, devolve tudo o que ainda pode ser devolvido.
+  * `metadata` (optional): Pares seus guardados no reembolso; voltam como refund_metadata no reembolso e nos eventos refund.created e refund.updated, onde metadata é o do pedido. O filtro metadata[chave]=valor de GET /refunds procura estes pares. Até 50 pares de chave e valor: a chave tem de 1 a 40 caracteres, e o valor é um texto de 1 a 500 caracteres, um número ou um booleano. Texto sem caracteres de controle nem de direção invisível.
+  * `note` (optional): Uma observação sua, de até 500 caracteres.
+  * `order_id` (optional): O pedido (o id que GET /orders/{id} recebe) cujo pagamento capturado é devolvido. Dispensa o payment_id.
+  * `payment_id` (optional): O pagamento de que o dinheiro volta. Envie este ou o order_id; os dois juntos só se forem do mesmo pagamento.
+  * `reason` (optional; one of `"requested_by_customer"`, `"duplicate"`, `"fraudulent"`, `"product_unavailable"`, `"service_disruption"`, `"other"`): Por que o dinheiro volta. Sem ele, requested_by_customer; com other a note é obrigatória.
   """
   @type t :: %__MODULE__{
-          amount_cents: integer(),
+          amount_cents: integer() | nil,
+          metadata: %{optional(String.t()) => term()} | nil,
           note: String.t() | nil,
-          payment_id: String.t(),
-          reason: String.t()
+          order_id: String.t() | nil,
+          payment_id: String.t() | nil,
+          reason: String.t() | nil
         }
 
   @doc "The params as they are, or built from a keyword list or a map with atom keys."
@@ -1050,12 +1063,13 @@ defmodule Perata.RefundsCreateParams do
   def to_map(params) do
     params = new(params)
 
-    %{
-      "amount_cents" => params.amount_cents,
-      "payment_id" => params.payment_id,
-      "reason" => params.reason
-    }
+    %{}
+    |> Perata.Encode.put_optional("amount_cents", params.amount_cents)
+    |> Perata.Encode.put_optional("metadata", Perata.Encode.value(params.metadata))
     |> Perata.Encode.put_optional("note", params.note)
+    |> Perata.Encode.put_optional("order_id", params.order_id)
+    |> Perata.Encode.put_optional("payment_id", params.payment_id)
+    |> Perata.Encode.put_optional("reason", params.reason)
   end
 end
 

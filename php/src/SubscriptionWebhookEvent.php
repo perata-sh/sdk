@@ -25,8 +25,8 @@ final class SubscriptionWebhookEvent extends WebhookEvent
     /** The event types this class carries. */
     public const TYPES = ['subscription.active', 'subscription.canceled', 'subscription.created', 'subscription.cycled', 'subscription.past_due', 'subscription.paused', 'subscription.resumed', 'subscription.revoked', 'subscription.suspended', 'subscription.uncanceled', 'subscription.updated'];
 
-    public function __construct(string $id, string $type, string $timestamp, string $environment, public readonly Models\WebhookSubscription $data)
+    public function __construct(string $id, string $type, string $timestamp, string $environment, string $showcaseId, public readonly Models\WebhookSubscription $data)
     {
-        parent::__construct($id, $type, $timestamp, $environment);
+        parent::__construct($id, $type, $timestamp, $environment, $showcaseId);
     }
 }

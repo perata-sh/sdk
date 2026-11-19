@@ -116,6 +116,8 @@ pub struct Checkout {
     /// O id do pedido no seu sistema, como o seu servidor o enviou na criação; vazio sem ele. Volta no checkout, no pedido, no pagamento e nos eventos.
     pub client_reference_id: String,
     pub created_at: String,
+    /// O desconto que o checkout aplica sozinho, como o seu servidor o enviou na criação; vazio sem ele. O comprador o vê no resumo e ele conta desde a primeira cobrança.
+    pub discount_id: String,
     /// Quando o checkout deixa de abrir sessões; nulo sem prazo.
     pub expires_at: Option<String>,
     pub id: String,
@@ -128,8 +130,12 @@ pub struct Checkout {
     pub price_id: String,
     pub product_id: String,
     pub quantity: i64,
+    /// O showcase a que pertence: o da chave de API que fez a chamada. Uma chave só alcança o seu showcase.
+    pub showcase_id: String,
     /// active abre sessões de compra; archived saiu de circulação.
     pub status: CheckoutStatus,
+    /// O dia da primeira cobrança de uma assinatura que começa numa data (a meia-noite desse dia em São Paulo, com o fuso); nulo quando o checkout cobra na hora ou começa por um teste em dias. O cartão é guardado sem cobrança e a cobrança acontece nesse dia.
+    pub subscription_start_at: Option<String>,
     /// Endereço https para onde o comprador volta depois de pagar; vazio sem ele.
     pub success_url: String,
     /// Endereço para onde o comprador é enviado.
@@ -159,6 +165,8 @@ pub struct CheckoutClient {
     pub environment: CheckoutClientEnvironment,
     /// Quando a sessão e o client_secret deixam de valer.
     pub expires_at: String,
+    /// O dia da primeira cobrança de uma assinatura que não cobra hoje, a meia-noite desse dia em São Paulo: o fim do teste grátis ou a data que o servidor do lojista pediu (subscription_start_at). Nulo quando o pagamento é cobrado na hora.
+    pub first_charge_at: Option<String>,
     /// O ID da sessão de checkout.
     pub id: String,
     /// Os planos de uma venda no cartão de crédito, à vista primeiro; vazio quando a sessão não se paga em parcelas no cartão.
@@ -282,6 +290,8 @@ pub struct CheckoutCreated {
     /// Quando a sessão e o client_secret deixam de valer.
     pub client_secret_expires_at: String,
     pub created_at: String,
+    /// O desconto que o checkout aplica sozinho, como o seu servidor o enviou na criação; vazio sem ele. O comprador o vê no resumo e ele conta desde a primeira cobrança.
+    pub discount_id: String,
     /// Quando o link deixa de abrir sessões; nulo sem prazo.
     pub expires_at: Option<String>,
     /// O ID do link do checkout, o que GET e PATCH /checkouts/{id} recebem.
@@ -297,10 +307,14 @@ pub struct CheckoutCreated {
     pub quantity: i64,
     /// O ID da sessão de checkout; as rotas de cliente dela são /checkouts/client/{client_secret}.
     pub session_id: String,
+    /// O showcase a que pertence: o da chave de API que fez a chamada. Uma chave só alcança o seu showcase.
+    pub showcase_id: String,
     /// active abre sessões de compra; archived saiu de circulação.
     pub status: CheckoutCreatedStatus,
     /// Lê o estado da sessão depois que o client_secret é consumido: GET /checkouts/client/status/{status_key}. Só esta resposta o traz.
     pub status_key: String,
+    /// O dia da primeira cobrança de uma assinatura que começa numa data (a meia-noite desse dia em São Paulo, com o fuso); nulo quando o checkout cobra na hora ou começa por um teste em dias. O cartão é guardado sem cobrança e a cobrança acontece nesse dia.
+    pub subscription_start_at: Option<String>,
     /// Endereço https para onde o comprador volta depois de pagar; vazio sem ele.
     pub success_url: String,
     /// O endereço hospedado desta sessão: redirecione o comprador para cá, ou abra-o no modal, e ele paga na página da Peráta exatamente a sessão que esta resposta abriu, que aparece no status_key, no GET da sessão e nos webhooks com o mesmo checkout_id. Quem abre o endereço depois do pagamento vê a confirmação e nada é cobrado de novo. Na repetição de uma criação idempotente o segredo não existe mais e o endereço volta a ser o do link, que abre uma sessão nova a cada visita.
@@ -492,6 +506,8 @@ pub struct Customer {
     /// Telefone ou celular com DDD, só dígitos.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub phone: Option<String>,
+    /// O showcase a que pertence: o da chave de API que fez a chamada. Uma chave só alcança o seu showcase.
+    pub showcase_id: String,
     pub status: CustomerStatus,
     /// CPF ou CNPJ, só dígitos. O CPF vem inteiro para a chave de um dono ou administrador da organização e mascarado (***.***.789-00) para as demais; o CNPJ vem sempre inteiro.
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -525,6 +541,8 @@ pub struct CustomerState {
     pub granted_benefits: Vec<CustomerStateBenefitGrant>,
     pub id: String,
     pub name: String,
+    /// O showcase a que pertence: o da chave de API que fez a chamada. Uma chave só alcança o seu showcase.
+    pub showcase_id: String,
     pub status: CustomerStateStatus,
 }
 
@@ -692,6 +710,8 @@ pub struct Order {
     pub client_reference_id: String,
     pub currency: OrderCurrency,
     pub customer_id: String,
+    /// Qual ciclo da assinatura o pedido pagou: 1 é o primeiro; nulo fora de uma assinatura.
+    pub cycle_sequence: Option<i64>,
     pub id: String,
     /// Juros do parcelamento pagos pelo comprador, cobrados além de amount_cents.
     pub installment_interest_cents: i64,
@@ -704,11 +724,19 @@ pub struct Order {
     /// Onde o pedido está; status é o do checkout e continua succeeded depois de um reembolso, e este vira partially_refunded ou refunded. Nulo antes de haver pagamento.
     pub order_status: Option<OrderOrderStatus>,
     pub paid_at: Option<String>,
+    /// O fim do período que o ciclo paga; nulo fora de uma assinatura.
+    pub period_end: Option<String>,
+    /// O começo do período que o ciclo paga; nulo fora de uma assinatura.
+    pub period_start: Option<String>,
     pub price_id: String,
     pub product_id: String,
     /// Quanto do pedido já foi devolvido, somando todos os reembolsos que deram certo, em centavos.
     pub refunded_amount_cents: i64,
+    /// O showcase a que pertence: o da chave de API que fez a chamada. Uma chave só alcança o seu showcase.
+    pub showcase_id: String,
     pub status: OrderStatus,
+    /// A assinatura de que este pedido é a cobrança (a primeira ou uma renovação); nulo quando o pedido não é de uma assinatura.
+    pub subscription_id: Option<String>,
 }
 
 /// OrderInvoice is a resource of Peráta's API.
@@ -779,6 +807,8 @@ pub struct Payment {
     pub created_at: String,
     pub currency: PaymentCurrency,
     pub customer_id: String,
+    /// Qual ciclo da assinatura o pagamento pagou: 1 é o primeiro; nulo fora de uma assinatura.
+    pub cycle_sequence: Option<i64>,
     pub id: String,
     /// Valor de uma parcela; 0 à vista.
     pub installment_amount_cents: i64,
@@ -789,8 +819,16 @@ pub struct Payment {
     /// Os pares que o seu servidor enviou ao criar o checkout.
     pub metadata: std::collections::HashMap<String, serde_json::Value>,
     pub method: PaymentMethodKind,
+    /// O fim do período que o ciclo paga; nulo fora de uma assinatura.
+    pub period_end: Option<String>,
+    /// O começo do período que o ciclo paga; nulo fora de uma assinatura.
+    pub period_start: Option<String>,
     pub refunded_cents: i64,
+    /// O showcase a que pertence: o da chave de API que fez a chamada. Uma chave só alcança o seu showcase.
+    pub showcase_id: String,
     pub state: PaymentState,
+    /// A assinatura que este pagamento cobrou (a primeira ou uma renovação); nulo quando o pagamento não é de uma assinatura.
+    pub subscription_id: Option<String>,
 }
 
 /// PaymentMethod is a resource of Peráta's API.
@@ -838,6 +876,8 @@ pub struct Product {
     pub description: String,
     pub id: String,
     pub name: String,
+    /// O showcase a que pertence: o da chave de API que fez a chamada. Uma chave só alcança o seu showcase.
+    pub showcase_id: String,
     pub status: ProductStatus,
 }
 
@@ -845,10 +885,43 @@ pub struct Product {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[non_exhaustive]
 pub struct Refund {
+    /// O valor deste reembolso, em centavos.
     pub amount_cents: i64,
+    /// O id do pedido no seu sistema, enviado ao criar o checkout; vazio sem ele. É o do pedido, não do reembolso.
+    pub client_reference_id: String,
+    pub created_at: String,
     pub id: String,
+    /// Os pares que o seu servidor enviou ao criar o checkout do pedido; vazio sem eles. É o mesmo metadata dos eventos de venda e de reembolso.
+    pub metadata: std::collections::HashMap<String, serde_json::Value>,
+    /// O pedido a que o pagamento pertence: o id que GET /orders/{id} recebe. Vazio quando o reembolso não é de um pagamento de checkout.
+    pub order_id: String,
+    /// O pagamento de que o dinheiro volta.
     pub payment_id: String,
+    /// Por que o dinheiro voltou, como o seu servidor informou.
+    pub reason: String,
+    /// Os pares que o seu servidor enviou no campo metadata ao pedir este reembolso; vazio sem eles.
+    pub refund_metadata: std::collections::HashMap<String, serde_json::Value>,
+    /// O showcase a que pertence: o da chave de API que fez a chamada. Uma chave só alcança o seu showcase.
+    pub showcase_id: String,
+    /// requested e pending esperam a Cielo; unknown é uma resposta que não chegou, e o valor continua reservado até a Cielo responder; succeeded devolveu o dinheiro; failed e canceled não devolveram.
     pub status: RefundStatus,
+}
+
+/// Showcase is a resource of Peráta's API.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct Showcase {
+    pub created_at: String,
+    /// O ambiente da chave.
+    pub environment: ShowcaseEnvironment,
+    /// true quando o showcase tem logo. A logo é privada e não sai pela API: quem a mostra é o painel.
+    pub has_logo: bool,
+    /// O ID do showcase: o showcase_id que os objetos e os eventos de webhook trazem.
+    pub id: String,
+    /// true no showcase com que a organização começou; os outros foram abertos depois, no painel.
+    pub is_principal: bool,
+    /// O nome do showcase, como o lojista o vê no painel.
+    pub name: String,
 }
 
 /// Subscription is a resource of Peráta's API.
@@ -867,6 +940,8 @@ pub struct Subscription {
     pub metadata: std::collections::HashMap<String, serde_json::Value>,
     pub price_id: String,
     pub product_id: String,
+    /// O showcase a que pertence: o da chave de API que fez a chamada. Uma chave só alcança o seu showcase.
+    pub showcase_id: String,
     pub status: SubscriptionStatus,
     /// Quando a assinatura foi suspensa; nulo enquanto não está suspensa.
     pub suspended_at: Option<String>,
@@ -941,6 +1016,8 @@ pub struct WebhookCheckout {
     pub period_start: Option<String>,
     pub price_id: String,
     pub product_id: String,
+    /// O showcase da venda.
+    pub showcase_id: String,
     pub status: WebhookCheckoutStatus,
     /// A assinatura que este pagamento cobra; nulo quando a venda não é de uma assinatura.
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -1112,6 +1189,8 @@ pub struct WebhookOrder {
     pub refund_id: Option<String>,
     /// Quanto do pedido já foi devolvido, somando todos os reembolsos que deram certo, em centavos.
     pub refunded_amount_cents: i64,
+    /// O showcase da venda.
+    pub showcase_id: String,
     pub status: WebhookOrderStatus,
     /// A assinatura que este pagamento cobra; nulo quando a venda não é de uma assinatura.
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -1127,12 +1206,21 @@ pub struct WebhookRefund {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub checkout_id: Option<String>,
     /// O id do pedido no sistema do lojista; vazio sem ele.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub client_reference_id: Option<String>,
+    pub client_reference_id: String,
     pub id: String,
     /// Os pares que o servidor do lojista enviou ao criar o checkout; vazio sem eles.
     pub metadata: std::collections::HashMap<String, serde_json::Value>,
+    /// O mesmo pedido, com o nome que a API de reembolsos dá a ele; igual a checkout_id.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub order_id: Option<String>,
     pub payment_id: String,
+    /// Por que o dinheiro voltou.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub reason: Option<String>,
+    /// Os pares que o servidor do lojista enviou no campo metadata ao pedir este reembolso; vazio sem eles.
+    pub refund_metadata: std::collections::HashMap<String, serde_json::Value>,
+    /// O showcase da venda.
+    pub showcase_id: String,
     pub status: WebhookRefundStatus,
 }
 
@@ -1158,6 +1246,12 @@ pub struct WebhookSale {
     pub cycle_sequence: Option<i64>,
     pub environment: String,
     pub event_id: String,
+    /// O código que a Cielo deu para a recusa, nos eventos refund.* de um reembolso que falhou; serve ao suporte.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub failure_code: Option<String>,
+    /// Por que o dinheiro não voltou, em português, nos eventos refund.* de um reembolso que falhou (refund.failed).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub failure_reason: Option<String>,
     pub merchant_id: String,
     /// Os pares que o servidor do lojista enviou ao criar o checkout; vazio sem eles. Na renovação de uma assinatura são os da assinatura.
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -1207,6 +1301,8 @@ pub struct WebhookSubscription {
     pub payment_failure: Option<WebhookSubscriptionPaymentFailure>,
     pub price_id: String,
     pub product_id: String,
+    /// O showcase da venda.
+    pub showcase_id: String,
     pub status: WebhookSubscriptionStatus,
     /// Quando a assinatura foi suspensa; nulo enquanto não está suspensa.
     pub suspended_at: Option<String>,
@@ -1631,13 +1727,16 @@ pub struct CheckoutsCreateParams {
     /// O nome do comprador, quando você o conhece.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub customer_name: Option<String>,
+    /// O desconto do catálogo que o checkout aplica sozinho, sem o comprador digitar código: o valor dele (percentual ou fixo) é tirado do total e vale como o desconto foi criado, uma vez, por alguns meses ou para sempre. Um desconto limitado a produtos (product_ids na criação do desconto) só vale para esses produtos: num checkout de uma câmera, o desconto de uma câmera. Um id que não é de um desconto ativo do catálogo é recusado com 422.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub discount_id: Option<String>,
     /// Segundos em que a sessão e o client_secret continuam valendo, de um minuto a três dias; 1800 (30 minutos) quando fica de fora. Uma sessão paga com Pix pode ser aberta até esse prazo e, aberta, o Pix gerado vale 24 horas.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub expires_in: Option<i64>,
     /// O mesmo cliente, pelo ID que você deu a ele.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub external_customer_id: Option<String>,
-    /// As linhas do pedido, até 50, para o comprador ler o detalhe: aparecem no checkout (página, modal, componentes e transparente), no pedido, no recibo, no portal do cliente e nos eventos. A soma de quantity vezes unit_amount_cents precisa ser igual a amount_cents, ou a resposta é 422; enviadas sem amount_cents, a soma é o valor.
+    /// As linhas do pedido, até 50, para o comprador ler o detalhe: aparecem no checkout (página, modal, componentes e transparente), no pedido, no recibo, no portal do cliente e nos eventos. Em um preço de valor livre, a soma de quantity vezes unit_amount_cents precisa ser igual a amount_cents, ou a resposta é 422; enviadas sem amount_cents, a soma é o valor. Em um preço com valor próprio, como o de uma assinatura, as linhas só mostram ao comprador do que o valor é feito e fixam nada: envie-as sem amount_cents, com a soma igual ao valor do preço vezes a quantidade (senão 422), e o preço continua sendo quem define o que se cobra.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub items: Option<Vec<CheckoutsCreateItem>>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -1656,6 +1755,9 @@ pub struct CheckoutsCreateParams {
     /// Outro nome de cancel_url: a página https a que o comprador volta sem pagar. Enviada com um cancel_url diferente, é recusada.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub return_url: Option<String>,
+    /// O dia da primeira cobrança de uma assinatura, como o trial_end do Stripe: o cartão é guardado e conferido com o emissor, nada é cobrado hoje e a primeira cobrança acontece nesse dia, no cartão guardado; as seguintes seguem a periodicidade do preço a partir dele. Só vale em um preço recorrente com valor, e só no cartão de crédito: a página não oferece Pix nem boleto. Vale o dia no horário de São Paulo, da meia-noite dele, qualquer que seja o fuso enviado; a hora não conta. Tem de ser de amanhã a um ano, senão a resposta é 422. A resposta devolve o instante como a Peráta o guarda, em subscription_start_at. Quem abre o checkout depois da data recebe 410.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub subscription_start_at: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub success_url: Option<String>,
 }
@@ -1671,6 +1773,7 @@ impl CheckoutsCreateParams {
             customer_email: None,
             customer_id: None,
             customer_name: None,
+            discount_id: None,
             expires_in: None,
             external_customer_id: None,
             items: None,
@@ -1681,6 +1784,7 @@ impl CheckoutsCreateParams {
             quantity: None,
             require_billing_address: None,
             return_url: None,
+            subscription_start_at: None,
             success_url: None,
         }
     }
@@ -1727,6 +1831,12 @@ impl CheckoutsCreateParams {
         self
     }
 
+    /// O desconto do catálogo que o checkout aplica sozinho, sem o comprador digitar código: o valor dele (percentual ou fixo) é tirado do total e vale como o desconto foi criado, uma vez, por alguns meses ou para sempre. Um desconto limitado a produtos (product_ids na criação do desconto) só vale para esses produtos: num checkout de uma câmera, o desconto de uma câmera. Um id que não é de um desconto ativo do catálogo é recusado com 422.
+    pub fn discount_id(mut self, discount_id: impl Into<String>) -> Self {
+        self.discount_id = Some(discount_id.into());
+        self
+    }
+
     /// Segundos em que a sessão e o client_secret continuam valendo, de um minuto a três dias; 1800 (30 minutos) quando fica de fora. Uma sessão paga com Pix pode ser aberta até esse prazo e, aberta, o Pix gerado vale 24 horas.
     pub fn expires_in(mut self, expires_in: i64) -> Self {
         self.expires_in = Some(expires_in);
@@ -1739,7 +1849,7 @@ impl CheckoutsCreateParams {
         self
     }
 
-    /// As linhas do pedido, até 50, para o comprador ler o detalhe: aparecem no checkout (página, modal, componentes e transparente), no pedido, no recibo, no portal do cliente e nos eventos. A soma de quantity vezes unit_amount_cents precisa ser igual a amount_cents, ou a resposta é 422; enviadas sem amount_cents, a soma é o valor.
+    /// As linhas do pedido, até 50, para o comprador ler o detalhe: aparecem no checkout (página, modal, componentes e transparente), no pedido, no recibo, no portal do cliente e nos eventos. Em um preço de valor livre, a soma de quantity vezes unit_amount_cents precisa ser igual a amount_cents, ou a resposta é 422; enviadas sem amount_cents, a soma é o valor. Em um preço com valor próprio, como o de uma assinatura, as linhas só mostram ao comprador do que o valor é feito e fixam nada: envie-as sem amount_cents, com a soma igual ao valor do preço vezes a quantidade (senão 422), e o preço continua sendo quem define o que se cobra.
     pub fn items(mut self, items: Vec<CheckoutsCreateItem>) -> Self {
         self.items = Some(items);
         self
@@ -1772,6 +1882,12 @@ impl CheckoutsCreateParams {
     /// Outro nome de cancel_url: a página https a que o comprador volta sem pagar. Enviada com um cancel_url diferente, é recusada.
     pub fn return_url(mut self, return_url: impl Into<String>) -> Self {
         self.return_url = Some(return_url.into());
+        self
+    }
+
+    /// O dia da primeira cobrança de uma assinatura, como o trial_end do Stripe: o cartão é guardado e conferido com o emissor, nada é cobrado hoje e a primeira cobrança acontece nesse dia, no cartão guardado; as seguintes seguem a periodicidade do preço a partir dele. Só vale em um preço recorrente com valor, e só no cartão de crédito: a página não oferece Pix nem boleto. Vale o dia no horário de São Paulo, da meia-noite dele, qualquer que seja o fuso enviado; a hora não conta. Tem de ser de amanhã a um ano, senão a resposta é 422. A resposta devolve o instante como a Peráta o guarda, em subscription_start_at. Quem abre o checkout depois da data recebe 410.
+    pub fn subscription_start_at(mut self, subscription_start_at: impl Into<String>) -> Self {
+        self.subscription_start_at = Some(subscription_start_at.into());
         self
     }
 
@@ -2724,30 +2840,75 @@ impl ProductsUpdateParams {
 ///
 /// [`RefundsCreateParams::new`] takes the required fields; each optional one is set by
 /// the method of its name.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Default, Serialize, Deserialize)]
 #[non_exhaustive]
 pub struct RefundsCreateParams {
-    pub amount_cents: i64,
+    /// Quanto devolver, em centavos, de 1 até o que ainda pode ser devolvido. Sem ele, devolve tudo o que ainda pode ser devolvido.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub amount_cents: Option<i64>,
+    /// Pares seus guardados no reembolso; voltam como refund_metadata no reembolso e nos eventos refund.created e refund.updated, onde metadata é o do pedido. O filtro metadata[chave]=valor de GET /refunds procura estes pares. Até 50 pares de chave e valor: a chave tem de 1 a 40 caracteres, e o valor é um texto de 1 a 500 caracteres, um número ou um booleano. Texto sem caracteres de controle nem de direção invisível.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub metadata: Option<std::collections::HashMap<String, serde_json::Value>>,
+    /// Uma observação sua, de até 500 caracteres.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub note: Option<String>,
-    pub payment_id: String,
-    pub reason: RefundsCreateParamsReason,
+    /// O pedido (o id que GET /orders/{id} recebe) cujo pagamento capturado é devolvido. Dispensa o payment_id.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub order_id: Option<String>,
+    /// O pagamento de que o dinheiro volta. Envie este ou o order_id; os dois juntos só se forem do mesmo pagamento.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub payment_id: Option<String>,
+    /// Por que o dinheiro volta. Sem ele, requested_by_customer; com other a note é obrigatória.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub reason: Option<RefundsCreateParamsReason>,
 }
 
 impl RefundsCreateParams {
     /// A body with its required fields.
-    pub fn new(amount_cents: i64, payment_id: impl Into<String>, reason: impl Into<RefundsCreateParamsReason>) -> Self {
+    pub fn new() -> Self {
         Self {
-            amount_cents,
+            amount_cents: None,
+            metadata: None,
             note: None,
-            payment_id: payment_id.into(),
-            reason: reason.into(),
+            order_id: None,
+            payment_id: None,
+            reason: None,
         }
     }
 
-    /// Sets `note`.
+    /// Quanto devolver, em centavos, de 1 até o que ainda pode ser devolvido. Sem ele, devolve tudo o que ainda pode ser devolvido.
+    pub fn amount_cents(mut self, amount_cents: i64) -> Self {
+        self.amount_cents = Some(amount_cents);
+        self
+    }
+
+    /// Pares seus guardados no reembolso; voltam como refund_metadata no reembolso e nos eventos refund.created e refund.updated, onde metadata é o do pedido. O filtro metadata[chave]=valor de GET /refunds procura estes pares. Até 50 pares de chave e valor: a chave tem de 1 a 40 caracteres, e o valor é um texto de 1 a 500 caracteres, um número ou um booleano. Texto sem caracteres de controle nem de direção invisível.
+    pub fn metadata(mut self, metadata: std::collections::HashMap<String, serde_json::Value>) -> Self {
+        self.metadata = Some(metadata);
+        self
+    }
+
+    /// Uma observação sua, de até 500 caracteres.
     pub fn note(mut self, note: impl Into<String>) -> Self {
         self.note = Some(note.into());
+        self
+    }
+
+    /// O pedido (o id que GET /orders/{id} recebe) cujo pagamento capturado é devolvido. Dispensa o payment_id.
+    pub fn order_id(mut self, order_id: impl Into<String>) -> Self {
+        self.order_id = Some(order_id.into());
+        self
+    }
+
+    /// O pagamento de que o dinheiro volta. Envie este ou o order_id; os dois juntos só se forem do mesmo pagamento.
+    pub fn payment_id(mut self, payment_id: impl Into<String>) -> Self {
+        self.payment_id = Some(payment_id.into());
+        self
+    }
+
+    /// Por que o dinheiro volta. Sem ele, requested_by_customer; com other a note é obrigatória.
+    pub fn reason(mut self, reason: impl Into<RefundsCreateParamsReason>) -> Self {
+        self.reason = Some(reason.into());
         self
     }
 }
@@ -6245,7 +6406,7 @@ impl<'de> Deserialize<'de> for ProductStatus {
     }
 }
 
-/// The values of `Refund.status`.
+/// The values of `Refund.status`. requested e pending esperam a Cielo; unknown é uma resposta que não chegou, e o valor continua reservado até a Cielo responder; succeeded devolveu o dinheiro; failed e canceled não devolveram.
 ///
 /// A value this SDK does not know yet is kept, as it came, in
 /// [`RefundStatus::Unrecognized`].
@@ -6316,6 +6477,66 @@ impl Serialize for RefundStatus {
 }
 
 impl<'de> Deserialize<'de> for RefundStatus {
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        String::deserialize(deserializer).map(Self::from)
+    }
+}
+
+/// The values of `Showcase.environment`. O ambiente da chave.
+///
+/// A value this SDK does not know yet is kept, as it came, in
+/// [`ShowcaseEnvironment::Unrecognized`].
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[non_exhaustive]
+pub enum ShowcaseEnvironment {
+    /// `test`
+    Test,
+    /// `live`
+    Live,
+    /// A value this SDK does not know yet.
+    Unrecognized(String),
+}
+
+impl ShowcaseEnvironment {
+    /// The value as the API writes it.
+    pub fn as_str(&self) -> &str {
+        match self {
+            ShowcaseEnvironment::Test => "test",
+            ShowcaseEnvironment::Live => "live",
+            ShowcaseEnvironment::Unrecognized(value) => value,
+        }
+    }
+}
+
+impl From<&str> for ShowcaseEnvironment {
+    fn from(value: &str) -> Self {
+        match value {
+            "test" => ShowcaseEnvironment::Test,
+            "live" => ShowcaseEnvironment::Live,
+            other => ShowcaseEnvironment::Unrecognized(other.to_owned()),
+        }
+    }
+}
+
+impl From<String> for ShowcaseEnvironment {
+    fn from(value: String) -> Self {
+        Self::from(value.as_str())
+    }
+}
+
+impl fmt::Display for ShowcaseEnvironment {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
+impl Serialize for ShowcaseEnvironment {
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        serializer.serialize_str(self.as_str())
+    }
+}
+
+impl<'de> Deserialize<'de> for ShowcaseEnvironment {
     fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
         String::deserialize(deserializer).map(Self::from)
     }
@@ -8853,7 +9074,7 @@ impl<'de> Deserialize<'de> for PricesCreateParamsType {
     }
 }
 
-/// The values of `RefundsCreateParams.reason`.
+/// The values of `RefundsCreateParams.reason`. Por que o dinheiro volta. Sem ele, requested_by_customer; com other a note é obrigatória.
 ///
 /// A value this SDK does not know yet is kept, as it came, in
 /// [`RefundsCreateParamsReason::Unrecognized`].

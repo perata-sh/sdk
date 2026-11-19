@@ -25,9 +25,10 @@ final class CheckoutLinksService
      * sessão de compra nova.
      *
      * Autenticação: chave de API da organização em Authorization: Bearer
-     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-     * requisição. Respostas em JSON no envelope data; erros com error, message
-     * e fields.
+     * (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+     * chave, nunca da requisição: a chave criada num showcase só alcança o que
+     * é dele. Respostas em JSON no envelope data; erros com error, message e
+     * fields.
      *
      * @param array{allow_discount_codes?: bool, cancel_url?: string, capture_mode?: 'automatic'|'manual', discount_id?: string, expires_at?: string, label?: string, max_installments?: int, metadata?: array<string, mixed>, price_id?: string, price_ids?: list<string>, product_id?: string, quantity?: int, require_billing_address?: bool, success_url?: string, trial_interval?: 'day'|'week'|'month'|'year', trial_interval_count?: int} $params
      */
@@ -44,9 +45,10 @@ final class CheckoutLinksService
      * continuam.
      *
      * Autenticação: chave de API da organização em Authorization: Bearer
-     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-     * requisição. Respostas em JSON no envelope data; erros com error, message
-     * e fields.
+     * (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+     * chave, nunca da requisição: a chave criada num showcase só alcança o que
+     * é dele. Respostas em JSON no envelope data; erros com error, message e
+     * fields.
      */
     public function delete(string $checkoutLink, ?string $idempotencyKey = null, ?string $apiKey = null): void
     {
@@ -59,9 +61,10 @@ final class CheckoutLinksService
      * Devolve um link de checkout pelo ID.
      *
      * Autenticação: chave de API da organização em Authorization: Bearer
-     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-     * requisição. Respostas em JSON no envelope data; erros com error, message
-     * e fields.
+     * (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+     * chave, nunca da requisição: a chave criada num showcase só alcança o que
+     * é dele. Respostas em JSON no envelope data; erros com error, message e
+     * fields.
      */
     public function get(string $checkoutLink, ?string $apiKey = null): Models\CheckoutLink
     {
@@ -75,9 +78,10 @@ final class CheckoutLinksService
      * Devolve uma página dos links de checkout da organização.
      *
      * Autenticação: chave de API da organização em Authorization: Bearer
-     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-     * requisição. Respostas em JSON no envelope data; erros com error, message
-     * e fields.
+     * (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+     * chave, nunca da requisição: a chave criada num showcase só alcança o que
+     * é dele. Respostas em JSON no envelope data; erros com error, message e
+     * fields.
      *
      * @param array{page?: int, limit?: int} $params
      * @return Page<Models\CheckoutLink>
@@ -106,9 +110,10 @@ final class CheckoutLinksService
      * link. A quantidade e o desconto ficam como foram publicados.
      *
      * Autenticação: chave de API da organização em Authorization: Bearer
-     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-     * requisição. Respostas em JSON no envelope data; erros com error, message
-     * e fields.
+     * (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+     * chave, nunca da requisição: a chave criada num showcase só alcança o que
+     * é dele. Respostas em JSON no envelope data; erros com error, message e
+     * fields.
      *
      * @param array{cancel_url?: string, label?: string, metadata?: array<string, mixed>, price_ids?: list<string>, require_billing_address?: bool, success_url?: string} $params
      */

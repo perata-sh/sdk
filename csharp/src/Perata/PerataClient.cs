@@ -28,7 +28,7 @@ namespace Perata;
 public sealed class PerataClient
 {
     /// <summary>This SDK's version.</summary>
-    public const string Version = "0.5.5";
+    public const string Version = "0.5.6";
 
     /// <summary>The contract this SDK was generated from.</summary>
     public const string ApiVersion = "0.1.0";
@@ -76,6 +76,7 @@ public sealed class PerataClient
         Prices = new PricesService(this);
         Products = new ProductsService(this);
         Refunds = new RefundsService(this);
+        Showcase = new ShowcaseService(this);
         Subscriptions = new SubscriptionsService(this);
         Usage = new UsageService(this);
         Webhooks = new WebhooksService(this);
@@ -125,6 +126,9 @@ public sealed class PerataClient
 
     /// <summary>The API's refunds.</summary>
     public RefundsService Refunds { get; }
+
+    /// <summary>The API's showcase.</summary>
+    public ShowcaseService Showcase { get; }
 
     /// <summary>The API's subscriptions.</summary>
     public SubscriptionsService Subscriptions { get; }

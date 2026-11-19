@@ -16,13 +16,15 @@ public final class Product {
     private final String description;
     private final String id;
     private final String name;
+    private final String showcaseId;
     private final String status;
 
-    Product(String createdAt, String description, String id, String name, String status) {
+    Product(String createdAt, String description, String id, String name, String showcaseId, String status) {
         this.createdAt = createdAt;
         this.description = description;
         this.id = id;
         this.name = name;
+        this.showcaseId = showcaseId;
         this.status = status;
     }
 
@@ -32,6 +34,7 @@ public final class Product {
                 Json.required(data, "description", Json::asString),
                 Json.required(data, "id", Json::asString),
                 Json.required(data, "name", Json::asString),
+                Json.required(data, "showcase_id", Json::asString),
                 Json.required(data, "status", Json::asString));
     }
 
@@ -55,6 +58,11 @@ public final class Product {
         return name;
     }
 
+    /** @return O showcase a que pertence: o da chave de API que fez a chamada. Uma chave só alcança o seu showcase. */
+    public String getShowcaseId() {
+        return showcaseId;
+    }
+
     /** @return the API's {@code status} */
     public String getStatus() {
         return status;
@@ -62,6 +70,6 @@ public final class Product {
 
     @Override
     public String toString() {
-        return "Product{" + "createdAt=" + createdAt + ", description=" + description + ", id=" + id + ", name=" + name + ", status=" + status + "}";
+        return "Product{" + "createdAt=" + createdAt + ", description=" + description + ", id=" + id + ", name=" + name + ", showcaseId=" + showcaseId + ", status=" + status + "}";
     }
 }

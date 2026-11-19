@@ -2,7 +2,7 @@
 
 import type { Requester, RequestSpec } from "./core.ts";
 import { PerataError } from "./errors.ts";
-import { BenefitsService, CheckoutLinksService, CheckoutsService, CustomerSessionsService, CustomersService, DiscountsService, DisputesService, EventsService, MetersService, OrdersService, PaymentMethodsService, PaymentsService, PricesService, ProductsService, RefundsService, SubscriptionsService, UsageService, WebhooksService } from "./services.ts";
+import { BenefitsService, CheckoutLinksService, CheckoutsService, CustomerSessionsService, CustomersService, DiscountsService, DisputesService, EventsService, MetersService, OrdersService, PaymentMethodsService, PaymentsService, PricesService, ProductsService, RefundsService, ShowcaseService, SubscriptionsService, UsageService, WebhooksService } from "./services.ts";
 import { DEFAULT_BASE_URL, VERSION } from "./version.ts";
 
 /** Throws unless baseUrl is https, or http to localhost, 127.0.0.0/8 or ::1. */
@@ -54,6 +54,7 @@ export class Perata implements Requester {
   readonly prices: PricesService;
   readonly products: ProductsService;
   readonly refunds: RefundsService;
+  readonly showcase: ShowcaseService;
   readonly subscriptions: SubscriptionsService;
   readonly usage: UsageService;
   readonly webhooks: WebhooksService;
@@ -85,6 +86,7 @@ export class Perata implements Requester {
     this.prices = new PricesService(this);
     this.products = new ProductsService(this);
     this.refunds = new RefundsService(this);
+    this.showcase = new ShowcaseService(this);
     this.subscriptions = new SubscriptionsService(this);
     this.usage = new UsageService(this);
     this.webhooks = new WebhooksService(this);

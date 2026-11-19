@@ -70,7 +70,7 @@ func TestACheckoutSessionHandsBackTheClientSecretForTheBrowser(t *testing.T) {
 			secret = ""
 		}
 		w.WriteHeader(http.StatusCreated)
-		fmt.Fprintf(w, `{"data":{"id":"pcl_1","url":"https://perata.sh/pagamento/pcl_1","product_id":"prod_1","price_id":"price_1","status":"active","label":"","quantity":1,"success_url":"https://loja.example/obrigado","cancel_url":"","expires_at":null,"created_at":"2026-11-16T12:00:00Z","session_id":"cs_1","client_secret":%q,"client_secret_expires_at":"2026-11-16T12:30:00Z","status_key":"sk_1","amount_cents":null,"items":[],"metadata":{},"client_reference_id":""}}`, secret)
+		fmt.Fprintf(w, `{"data":{"id":"pcl_1","url":"https://perata.sh/pagamento/pcl_1","product_id":"prod_1","price_id":"price_1","status":"active","label":"","quantity":1,"success_url":"https://loja.example/obrigado","cancel_url":"","expires_at":null,"created_at":"2026-11-16T12:00:00Z","session_id":"cs_1","client_secret":%q,"client_secret_expires_at":"2026-11-16T12:30:00Z","status_key":"sk_1","amount_cents":null,"items":[],"metadata":{},"client_reference_id":"","showcase_id":"shw_1"}}`, secret)
 	})
 	ctx := context.Background()
 	successURL := "https://loja.example/obrigado"
@@ -411,10 +411,10 @@ const (
 	referenceSignature = "v1,g0hM9SsE+OTPJTGt/tmIKtSyZlE3uFJELVlNIOLJ1OE="
 	oldSecret          = "whsec_cGVyYXRhLXNkay1vbGQta2V5LTAxMjM0NTY3ODlhYmM="
 	newSecret          = "whsec_cGVyYXRhLXNkay1uZXcta2V5LTAxMjM0NTY3ODlhYmM="
-	orderPaid          = `{"id":"msg_2","type":"order.paid","timestamp":"2026-10-22T12:00:00Z","data":{"id":"ord_1","customer_id":"cus_1","product_id":"prod_1","price_id":"price_1","amount_cents":12000,"currency":"BRL","status":"succeeded","paid_at":"2026-10-22T12:00:00Z","order_status":"paid","refunded_amount_cents":0,"refund_id":null,"refund_amount_cents":null,"installments":3,"installment_interest_cents":360,"items":[],"metadata":{},"client_reference_id":""}}`
+	orderPaid          = `{"id":"msg_2","type":"order.paid","timestamp":"2026-10-22T12:00:00Z","data":{"id":"ord_1","customer_id":"cus_1","product_id":"prod_1","price_id":"price_1","amount_cents":12000,"currency":"BRL","status":"succeeded","paid_at":"2026-10-22T12:00:00Z","order_status":"paid","refunded_amount_cents":0,"refund_id":null,"refund_amount_cents":null,"installments":3,"installment_interest_cents":360,"items":[],"metadata":{},"client_reference_id":"","showcase_id":"shw_1"}}`
 	usageRecorded      = `{"id":"msg_3","type":"usage_event.recorded","timestamp":"2026-10-22T12:00:00Z","data":{"event_id":"ue_1","aggregate":"usage_event","aggregate_id":"ue_1","merchant_id":"mer_1","environment":"test"}}`
 	payoutSent         = `{"id":"msg_4","type":"payout.sent","timestamp":"2026-10-22T12:00:00Z","data":{"payout_id":"po_1","amount_cents":5000}}`
-	orderPaidLive      = `{"id":"msg_5","type":"order.paid","timestamp":"2026-10-22T12:00:00Z","environment":"live","data":{"id":"ord_1","customer_id":"cus_1","product_id":"prod_1","price_id":"price_1","amount_cents":12000,"currency":"BRL","status":"succeeded","paid_at":"2026-10-22T12:00:00Z","order_status":"paid","refunded_amount_cents":0,"refund_id":null,"refund_amount_cents":null,"installments":3,"installment_interest_cents":360,"items":[],"metadata":{},"client_reference_id":""}}`
+	orderPaidLive      = `{"id":"msg_5","type":"order.paid","timestamp":"2026-10-22T12:00:00Z","environment":"live","showcase_id":"shw_1","data":{"id":"ord_1","customer_id":"cus_1","product_id":"prod_1","price_id":"price_1","amount_cents":12000,"currency":"BRL","status":"succeeded","paid_at":"2026-10-22T12:00:00Z","order_status":"paid","refunded_amount_cents":0,"refund_id":null,"refund_amount_cents":null,"installments":3,"installment_interest_cents":360,"items":[],"metadata":{},"client_reference_id":"","showcase_id":"shw_1"}}`
 	payoutSentTest     = `{"id":"msg_6","type":"payout.sent","timestamp":"2026-10-22T12:00:00Z","environment":"test","data":{"payout_id":"po_1","amount_cents":5000}}`
 	signedAt           = 1792670400
 )
@@ -459,7 +459,7 @@ func TestATimestampThatIsNotPlainDigitsIsRefused(t *testing.T) {
 
 func TestAWebhookAnswersItsTypedEvent(t *testing.T) {
 	now := time.Unix(signedAt+120, 0)
-	header := webhookHeader("msg_2", signedAt, "v1,XI92+fzspBAwIZD8XhEF5PwZNFrKbyAaykAydn3pPzY= v1,G2ijkhNO0sP+dkoMlsU1sOLmtbpIw9SYOwC2XTqMKdw=")
+	header := webhookHeader("msg_2", signedAt, "v1,fvRLETNjaSQOVbSs/eVRV/C17ysRHoubzX3idpGAifI= v1,ZsKtmVTp/mXCeW5qAiaLJY1TjyXwUyS7RxRVa3RIQQo=")
 	for _, secret := range []string{newSecret, oldSecret} {
 		event, err := verifyWebhookAt(secret, header, []byte(orderPaid), now)
 		order, ok := event.(*OrderWebhookEvent)
@@ -487,24 +487,24 @@ func TestAWebhookCarriesTheEnvironmentItHappenedIn(t *testing.T) {
 	older := map[string]struct {
 		signature, body string
 	}{
-		"msg_2": {"v1,XI92+fzspBAwIZD8XhEF5PwZNFrKbyAaykAydn3pPzY= v1,G2ijkhNO0sP+dkoMlsU1sOLmtbpIw9SYOwC2XTqMKdw=", orderPaid},
+		"msg_2": {"v1,fvRLETNjaSQOVbSs/eVRV/C17ysRHoubzX3idpGAifI= v1,ZsKtmVTp/mXCeW5qAiaLJY1TjyXwUyS7RxRVa3RIQQo=", orderPaid},
 		"msg_3": {"v1,Z3E2vTbczigiySfkzakxuZotPn9FlBY1KAET6hPEZoU=", usageRecorded},
 		"msg_4": {"v1,Sa/yofA3h/58pFR+rIiWdIc8qXfcuqvyJSjxn4oJ1ZY=", payoutSent},
 	}
 	for id, sent := range older {
 		event, err := verifyWebhookAt(newSecret, webhookHeader(id, signedAt, sent.signature), []byte(sent.body), now)
-		if err != nil || event.Message().Environment != "" {
+		if err != nil || event.Message().Environment != "" || event.Message().ShowcaseID != "" {
 			t.Fatalf("a body without an environment: %#v, %v", event, err)
 		}
 	}
-	event, err := verifyWebhookAt(newSecret, webhookHeader("msg_5", signedAt, "v1,JECjRi5yt5jEJZSUqpIxpxCJ/OfRgUBipIRj1b2lsUk="), []byte(orderPaidLive), now)
+	event, err := verifyWebhookAt(newSecret, webhookHeader("msg_5", signedAt, "v1,9CgfDokxQ7tBEd7vvv32TI4QUdqkaHrxgUo2UUNQpOY="), []byte(orderPaidLive), now)
 	order, ok := event.(*OrderWebhookEvent)
-	if err != nil || !ok || order.Environment != "live" || order.Message().Environment != "live" || order.Data.ID != "ord_1" {
+	if err != nil || !ok || order.Environment != "live" || order.Message().Environment != "live" || order.ShowcaseID != "shw_1" || order.Message().ShowcaseID != "shw_1" || order.Data.ShowcaseID != "shw_1" || order.Data.ID != "ord_1" {
 		t.Fatalf("event %#v, %v", event, err)
 	}
 	event, err = verifyWebhookAt(newSecret, webhookHeader("msg_6", signedAt, "v1,6He63m1rUlB789sgtRAHqex4wyKkzAwdHt6uRsp8YQM="), []byte(payoutSentTest), now)
 	unknown, ok := event.(*UnknownWebhookEvent)
-	if err != nil || !ok || unknown.Environment != "test" {
+	if err != nil || !ok || unknown.Environment != "test" || unknown.ShowcaseID != "" {
 		t.Fatalf("event %#v, %v", event, err)
 	}
 }

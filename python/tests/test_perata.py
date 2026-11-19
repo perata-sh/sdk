@@ -21,10 +21,10 @@ from perata import (
 REFERENCE_SECRET = "whsec_MfKQ9r8GKYqrTwjUPD8ILPZIo2LaLaSw"
 OLD_SECRET = "whsec_cGVyYXRhLXNkay1vbGQta2V5LTAxMjM0NTY3ODlhYmM="
 NEW_SECRET = "whsec_cGVyYXRhLXNkay1uZXcta2V5LTAxMjM0NTY3ODlhYmM="
-ORDER_PAID = b'{"id":"msg_2","type":"order.paid","timestamp":"2026-10-22T12:00:00Z","data":{"id":"ord_1","customer_id":"cus_1","product_id":"prod_1","price_id":"price_1","amount_cents":12000,"currency":"BRL","status":"succeeded","paid_at":"2026-10-22T12:00:00Z","order_status":"paid","refunded_amount_cents":0,"refund_id":null,"refund_amount_cents":null,"installments":3,"installment_interest_cents":360,"items":[],"metadata":{},"client_reference_id":""}}'
+ORDER_PAID = b'{"id":"msg_2","type":"order.paid","timestamp":"2026-10-22T12:00:00Z","data":{"id":"ord_1","customer_id":"cus_1","product_id":"prod_1","price_id":"price_1","amount_cents":12000,"currency":"BRL","status":"succeeded","paid_at":"2026-10-22T12:00:00Z","order_status":"paid","refunded_amount_cents":0,"refund_id":null,"refund_amount_cents":null,"installments":3,"installment_interest_cents":360,"items":[],"metadata":{},"client_reference_id":"","showcase_id":"shw_1"}}'
 USAGE_RECORDED = b'{"id":"msg_3","type":"usage_event.recorded","timestamp":"2026-10-22T12:00:00Z","data":{"event_id":"ue_1","aggregate":"usage_event","aggregate_id":"ue_1","merchant_id":"mer_1","environment":"test"}}'
 PAYOUT_SENT = b'{"id":"msg_4","type":"payout.sent","timestamp":"2026-10-22T12:00:00Z","data":{"payout_id":"po_1","amount_cents":5000}}'
-ORDER_PAID_LIVE = b'{"id":"msg_5","type":"order.paid","timestamp":"2026-10-22T12:00:00Z","environment":"live","data":{"id":"ord_1","customer_id":"cus_1","product_id":"prod_1","price_id":"price_1","amount_cents":12000,"currency":"BRL","status":"succeeded","paid_at":"2026-10-22T12:00:00Z","order_status":"paid","refunded_amount_cents":0,"refund_id":null,"refund_amount_cents":null,"installments":3,"installment_interest_cents":360,"items":[],"metadata":{},"client_reference_id":""}}'
+ORDER_PAID_LIVE = b'{"id":"msg_5","type":"order.paid","timestamp":"2026-10-22T12:00:00Z","environment":"live","showcase_id":"shw_1","data":{"id":"ord_1","customer_id":"cus_1","product_id":"prod_1","price_id":"price_1","amount_cents":12000,"currency":"BRL","status":"succeeded","paid_at":"2026-10-22T12:00:00Z","order_status":"paid","refunded_amount_cents":0,"refund_id":null,"refund_amount_cents":null,"installments":3,"installment_interest_cents":360,"items":[],"metadata":{},"client_reference_id":"","showcase_id":"shw_1"}}'
 PAYOUT_SENT_TEST = b'{"id":"msg_6","type":"payout.sent","timestamp":"2026-10-22T12:00:00Z","environment":"test","data":{"payout_id":"po_1","amount_cents":5000}}'
 SIGNED_AT = 1792670400
 
@@ -34,7 +34,7 @@ def webhook_headers(webhook_id, at, signature):
 
 
 def product(identifier):
-    return {"id": identifier, "name": "Curso", "description": "", "status": "active", "created_at": "2026-10-17T00:00:00Z"}
+    return {"id": identifier, "name": "Curso", "description": "", "status": "active", "showcase_id": "shw_1", "created_at": "2026-10-17T00:00:00Z"}
 
 
 class Recorder:
@@ -81,6 +81,7 @@ class PerataTest(unittest.TestCase):
                 "expires_at": None, "created_at": "2026-11-16T12:00:00Z", "session_id": "cs_1", "client_secret": client_secret,
                 "client_secret_expires_at": "2026-11-16T12:30:00Z", "status_key": "sk_1",
                 "amount_cents": None, "items": [], "metadata": {}, "client_reference_id": "",
+                "discount_id": "", "showcase_id": "shw_1", "subscription_start_at": None,
             }
 
         answers = [(201, {"data": session("cs_secret_1")}, {}), (201, {"data": session("")}, {"Idempotent-Replayed": "true"})]
@@ -144,7 +145,7 @@ class PerataTest(unittest.TestCase):
         self.assertEqual(json.loads(recorder.seen[0]["body"]), {"name": "Black", "type": "percentage", "duration": "once", "basis_points": 1000})
 
     def test_a_free_form_value_decodes_nested(self):
-        state = {"id": "cus_1", "name": "Ana", "email": "ana@example.com", "external_id": "", "status": "active", "created_at": "2026-10-17T00:00:00Z", "active_subscriptions": [], "granted_benefits": [{"id": "gr_1", "granted_at": "2026-10-17T00:00:00Z", "benefit_id": "ben_1", "benefit_type": "feature_flag", "benefit_metadata": {"flags": {"beta": True, "limits": {"seats": 5, "tiers": ["a", 2, None, 1.5]}}}, "properties": {"links": [{"url": "https://example.com", "expires": None}]}}]}
+        state = {"id": "cus_1", "showcase_id": "shw_1", "name": "Ana", "email": "ana@example.com", "external_id": "", "status": "active", "created_at": "2026-10-17T00:00:00Z", "active_subscriptions": [], "granted_benefits": [{"id": "gr_1", "granted_at": "2026-10-17T00:00:00Z", "benefit_id": "ben_1", "benefit_type": "feature_flag", "benefit_metadata": {"flags": {"beta": True, "limits": {"seats": 5, "tiers": ["a", 2, None, 1.5]}}}, "properties": {"links": [{"url": "https://example.com", "expires": None}]}}]}
         perata, _ = client(lambda request: (200, {"data": state}, {}))
         grant = perata.customers.get_state("cus_1").granted_benefits[0]
         self.assertEqual(grant.benefit_metadata, {"flags": {"beta": True, "limits": {"seats": 5, "tiers": ["a", 2, None, 1.5]}}})
@@ -306,19 +307,23 @@ class PerataTest(unittest.TestCase):
 
     def test_a_webhook_carries_the_environment_it_happened_in(self):
         now = SIGNED_AT + 120
-        older = [("msg_2", "v1,XI92+fzspBAwIZD8XhEF5PwZNFrKbyAaykAydn3pPzY= v1,G2ijkhNO0sP+dkoMlsU1sOLmtbpIw9SYOwC2XTqMKdw=", ORDER_PAID), ("msg_3", "v1,Z3E2vTbczigiySfkzakxuZotPn9FlBY1KAET6hPEZoU=", USAGE_RECORDED), ("msg_4", "v1,Sa/yofA3h/58pFR+rIiWdIc8qXfcuqvyJSjxn4oJ1ZY=", PAYOUT_SENT)]
+        older = [("msg_2", "v1,fvRLETNjaSQOVbSs/eVRV/C17ysRHoubzX3idpGAifI= v1,ZsKtmVTp/mXCeW5qAiaLJY1TjyXwUyS7RxRVa3RIQQo=", ORDER_PAID), ("msg_3", "v1,Z3E2vTbczigiySfkzakxuZotPn9FlBY1KAET6hPEZoU=", USAGE_RECORDED), ("msg_4", "v1,Sa/yofA3h/58pFR+rIiWdIc8qXfcuqvyJSjxn4oJ1ZY=", PAYOUT_SENT)]
         for webhook_id, signature, body in older:
             self.assertEqual(verify_webhook(NEW_SECRET, webhook_headers(webhook_id, SIGNED_AT, signature), body, now=now).environment, "", webhook_id)
-        order = verify_webhook(NEW_SECRET, webhook_headers("msg_5", SIGNED_AT, "v1,JECjRi5yt5jEJZSUqpIxpxCJ/OfRgUBipIRj1b2lsUk="), ORDER_PAID_LIVE, now=now)
+            self.assertEqual(verify_webhook(NEW_SECRET, webhook_headers(webhook_id, SIGNED_AT, signature), body, now=now).showcase_id, "", webhook_id)
+        order = verify_webhook(NEW_SECRET, webhook_headers("msg_5", SIGNED_AT, "v1,9CgfDokxQ7tBEd7vvv32TI4QUdqkaHrxgUo2UUNQpOY="), ORDER_PAID_LIVE, now=now)
         self.assertIsInstance(order, OrderWebhookEvent)
         self.assertEqual(order.environment, "live")
+        self.assertEqual(order.showcase_id, "shw_1")
+        self.assertEqual(order.data.showcase_id, "shw_1")
         unknown = verify_webhook(NEW_SECRET, webhook_headers("msg_6", SIGNED_AT, "v1,6He63m1rUlB789sgtRAHqex4wyKkzAwdHt6uRsp8YQM="), PAYOUT_SENT_TEST, now=now)
         self.assertIsInstance(unknown, UnknownWebhookEvent)
         self.assertEqual(unknown.environment, "test")
+        self.assertEqual(unknown.showcase_id, "")
 
     def test_a_webhook_answers_its_typed_event(self):
         now = SIGNED_AT + 120
-        headers = webhook_headers("msg_2", SIGNED_AT, "v1,XI92+fzspBAwIZD8XhEF5PwZNFrKbyAaykAydn3pPzY= v1,G2ijkhNO0sP+dkoMlsU1sOLmtbpIw9SYOwC2XTqMKdw=")
+        headers = webhook_headers("msg_2", SIGNED_AT, "v1,fvRLETNjaSQOVbSs/eVRV/C17ysRHoubzX3idpGAifI= v1,ZsKtmVTp/mXCeW5qAiaLJY1TjyXwUyS7RxRVa3RIQQo=")
         for secret in (NEW_SECRET, OLD_SECRET):
             event = verify_webhook(secret, headers, ORDER_PAID, now=now)
             self.assertIsInstance(event, OrderWebhookEvent)

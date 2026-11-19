@@ -220,6 +220,8 @@ public struct Checkout: Codable, Sendable, Hashable {
     /// O id do pedido no seu sistema, como o seu servidor o enviou na criação; vazio sem ele. Volta no checkout, no pedido, no pagamento e nos eventos.
     public let clientReferenceID: String
     public let createdAt: String
+    /// O desconto que o checkout aplica sozinho, como o seu servidor o enviou na criação; vazio sem ele. O comprador o vê no resumo e ele conta desde a primeira cobrança.
+    public let discountID: String
     /// Quando o checkout deixa de abrir sessões; nulo sem prazo.
     public let expiresAt: String?
     public let id: String
@@ -232,18 +234,23 @@ public struct Checkout: Codable, Sendable, Hashable {
     public let priceID: String
     public let productID: String
     public let quantity: Int
+    /// O showcase a que pertence: o da chave de API que fez a chamada. Uma chave só alcança o seu showcase.
+    public let showcaseID: String
     /// active abre sessões de compra; archived saiu de circulação.
     public let status: CheckoutStatus
+    /// O dia da primeira cobrança de uma assinatura que começa numa data (a meia-noite desse dia em São Paulo, com o fuso); nulo quando o checkout cobra na hora ou começa por um teste em dias. O cartão é guardado sem cobrança e a cobrança acontece nesse dia.
+    public let subscriptionStartAt: String?
     /// Endereço https para onde o comprador volta depois de pagar; vazio sem ele.
     public let successURL: String
     /// Endereço para onde o comprador é enviado.
     public let url: String
 
-    public init(amountCents: Int?, cancelURL: String, clientReferenceID: String, createdAt: String, expiresAt: String?, id: String, items: [CheckoutLine], label: String, metadata: [String: JSONValue], priceID: String, productID: String, quantity: Int, status: CheckoutStatus, successURL: String, url: String) {
+    public init(amountCents: Int?, cancelURL: String, clientReferenceID: String, createdAt: String, discountID: String, expiresAt: String?, id: String, items: [CheckoutLine], label: String, metadata: [String: JSONValue], priceID: String, productID: String, quantity: Int, showcaseID: String, status: CheckoutStatus, subscriptionStartAt: String?, successURL: String, url: String) {
         self.amountCents = amountCents
         self.cancelURL = cancelURL
         self.clientReferenceID = clientReferenceID
         self.createdAt = createdAt
+        self.discountID = discountID
         self.expiresAt = expiresAt
         self.id = id
         self.items = items
@@ -252,7 +259,9 @@ public struct Checkout: Codable, Sendable, Hashable {
         self.priceID = priceID
         self.productID = productID
         self.quantity = quantity
+        self.showcaseID = showcaseID
         self.status = status
+        self.subscriptionStartAt = subscriptionStartAt
         self.successURL = successURL
         self.url = url
     }
@@ -262,6 +271,7 @@ public struct Checkout: Codable, Sendable, Hashable {
         case cancelURL = "cancel_url"
         case clientReferenceID = "client_reference_id"
         case createdAt = "created_at"
+        case discountID = "discount_id"
         case expiresAt = "expires_at"
         case id
         case items
@@ -270,7 +280,9 @@ public struct Checkout: Codable, Sendable, Hashable {
         case priceID = "price_id"
         case productID = "product_id"
         case quantity
+        case showcaseID = "showcase_id"
         case status
+        case subscriptionStartAt = "subscription_start_at"
         case successURL = "success_url"
         case url
     }
@@ -297,6 +309,8 @@ public struct CheckoutClient: Codable, Sendable, Hashable {
     public let environment: CheckoutClientEnvironment
     /// Quando a sessão e o client_secret deixam de valer.
     public let expiresAt: String
+    /// O dia da primeira cobrança de uma assinatura que não cobra hoje, a meia-noite desse dia em São Paulo: o fim do teste grátis ou a data que o servidor do lojista pediu (subscription_start_at). Nulo quando o pagamento é cobrado na hora.
+    public let firstChargeAt: String?
     /// O ID da sessão de checkout.
     public let id: String
     /// Os planos de uma venda no cartão de crédito, à vista primeiro; vazio quando a sessão não se paga em parcelas no cartão.
@@ -321,7 +335,7 @@ public struct CheckoutClient: Codable, Sendable, Hashable {
     /// O que o comprador paga, em centavos.
     public let totalCents: Int
 
-    public init(amountCents: Int, amountLocked: Bool, cancelURL: String, cardKinds: [String], clientReferenceID: String, currency: CheckoutClientCurrency, customer: CheckoutClientCustomer?, discount: CheckoutClientDiscount?, discountCents: Int, editable: Bool, environment: CheckoutClientEnvironment, expiresAt: String, id: String, installments: [CheckoutInstallment], items: [CheckoutClientItem], missing: [String], nextAction: CheckoutNextAction, payment: CheckoutClientPayment?, paymentMethods: [String], requiresBillingAddress: Bool, requiresTaxID: Bool, status: CheckoutClientStatus, statusKey: String, successURL: String, totalCents: Int) {
+    public init(amountCents: Int, amountLocked: Bool, cancelURL: String, cardKinds: [String], clientReferenceID: String, currency: CheckoutClientCurrency, customer: CheckoutClientCustomer?, discount: CheckoutClientDiscount?, discountCents: Int, editable: Bool, environment: CheckoutClientEnvironment, expiresAt: String, firstChargeAt: String?, id: String, installments: [CheckoutInstallment], items: [CheckoutClientItem], missing: [String], nextAction: CheckoutNextAction, payment: CheckoutClientPayment?, paymentMethods: [String], requiresBillingAddress: Bool, requiresTaxID: Bool, status: CheckoutClientStatus, statusKey: String, successURL: String, totalCents: Int) {
         self.amountCents = amountCents
         self.amountLocked = amountLocked
         self.cancelURL = cancelURL
@@ -334,6 +348,7 @@ public struct CheckoutClient: Codable, Sendable, Hashable {
         self.editable = editable
         self.environment = environment
         self.expiresAt = expiresAt
+        self.firstChargeAt = firstChargeAt
         self.id = id
         self.installments = installments
         self.items = items
@@ -362,6 +377,7 @@ public struct CheckoutClient: Codable, Sendable, Hashable {
         case editable
         case environment
         case expiresAt = "expires_at"
+        case firstChargeAt = "first_charge_at"
         case id
         case installments
         case items
@@ -562,6 +578,8 @@ public struct CheckoutCreated: Codable, Sendable, Hashable {
     /// Quando a sessão e o client_secret deixam de valer.
     public let clientSecretExpiresAt: String
     public let createdAt: String
+    /// O desconto que o checkout aplica sozinho, como o seu servidor o enviou na criação; vazio sem ele. O comprador o vê no resumo e ele conta desde a primeira cobrança.
+    public let discountID: String
     /// Quando o link deixa de abrir sessões; nulo sem prazo.
     public let expiresAt: String?
     /// O ID do link do checkout, o que GET e PATCH /checkouts/{id} recebem.
@@ -577,22 +595,27 @@ public struct CheckoutCreated: Codable, Sendable, Hashable {
     public let quantity: Int
     /// O ID da sessão de checkout; as rotas de cliente dela são /checkouts/client/{client_secret}.
     public let sessionID: String
+    /// O showcase a que pertence: o da chave de API que fez a chamada. Uma chave só alcança o seu showcase.
+    public let showcaseID: String
     /// active abre sessões de compra; archived saiu de circulação.
     public let status: CheckoutCreatedStatus
     /// Lê o estado da sessão depois que o client_secret é consumido: GET /checkouts/client/status/{status_key}. Só esta resposta o traz.
     public let statusKey: String
+    /// O dia da primeira cobrança de uma assinatura que começa numa data (a meia-noite desse dia em São Paulo, com o fuso); nulo quando o checkout cobra na hora ou começa por um teste em dias. O cartão é guardado sem cobrança e a cobrança acontece nesse dia.
+    public let subscriptionStartAt: String?
     /// Endereço https para onde o comprador volta depois de pagar; vazio sem ele.
     public let successURL: String
     /// O endereço hospedado desta sessão: redirecione o comprador para cá, ou abra-o no modal, e ele paga na página da Peráta exatamente a sessão que esta resposta abriu, que aparece no status_key, no GET da sessão e nos webhooks com o mesmo checkout_id. Quem abre o endereço depois do pagamento vê a confirmação e nada é cobrado de novo. Na repetição de uma criação idempotente o segredo não existe mais e o endereço volta a ser o do link, que abre uma sessão nova a cada visita.
     public let url: String
 
-    public init(amountCents: Int?, cancelURL: String, clientReferenceID: String, clientSecret: String, clientSecretExpiresAt: String, createdAt: String, expiresAt: String?, id: String, items: [CheckoutLine], label: String, metadata: [String: JSONValue], priceID: String, productID: String, quantity: Int, sessionID: String, status: CheckoutCreatedStatus, statusKey: String, successURL: String, url: String) {
+    public init(amountCents: Int?, cancelURL: String, clientReferenceID: String, clientSecret: String, clientSecretExpiresAt: String, createdAt: String, discountID: String, expiresAt: String?, id: String, items: [CheckoutLine], label: String, metadata: [String: JSONValue], priceID: String, productID: String, quantity: Int, sessionID: String, showcaseID: String, status: CheckoutCreatedStatus, statusKey: String, subscriptionStartAt: String?, successURL: String, url: String) {
         self.amountCents = amountCents
         self.cancelURL = cancelURL
         self.clientReferenceID = clientReferenceID
         self.clientSecret = clientSecret
         self.clientSecretExpiresAt = clientSecretExpiresAt
         self.createdAt = createdAt
+        self.discountID = discountID
         self.expiresAt = expiresAt
         self.id = id
         self.items = items
@@ -602,8 +625,10 @@ public struct CheckoutCreated: Codable, Sendable, Hashable {
         self.productID = productID
         self.quantity = quantity
         self.sessionID = sessionID
+        self.showcaseID = showcaseID
         self.status = status
         self.statusKey = statusKey
+        self.subscriptionStartAt = subscriptionStartAt
         self.successURL = successURL
         self.url = url
     }
@@ -615,6 +640,7 @@ public struct CheckoutCreated: Codable, Sendable, Hashable {
         case clientSecret = "client_secret"
         case clientSecretExpiresAt = "client_secret_expires_at"
         case createdAt = "created_at"
+        case discountID = "discount_id"
         case expiresAt = "expires_at"
         case id
         case items
@@ -624,8 +650,10 @@ public struct CheckoutCreated: Codable, Sendable, Hashable {
         case productID = "product_id"
         case quantity
         case sessionID = "session_id"
+        case showcaseID = "showcase_id"
         case status
         case statusKey = "status_key"
+        case subscriptionStartAt = "subscription_start_at"
         case successURL = "success_url"
         case url
     }
@@ -980,13 +1008,15 @@ public struct Customer: Codable, Sendable, Hashable {
     public let name: String
     /// Telefone ou celular com DDD, só dígitos.
     public let phone: String?
+    /// O showcase a que pertence: o da chave de API que fez a chamada. Uma chave só alcança o seu showcase.
+    public let showcaseID: String
     public let status: CustomerStatus
     /// CPF ou CNPJ, só dígitos. O CPF vem inteiro para a chave de um dono ou administrador da organização e mascarado (***.***.789-00) para as demais; o CNPJ vem sempre inteiro.
     public let taxID: String?
     /// Qual documento tax_id é.
     public let taxIDKind: CustomerTaxIdKind?
 
-    public init(createdAt: String, email: String, externalID: String, id: String, name: String, status: CustomerStatus, billingAddress: BillingAddress? = nil, billingName: String? = nil, phone: String? = nil, taxID: String? = nil, taxIDKind: CustomerTaxIdKind? = nil) {
+    public init(createdAt: String, email: String, externalID: String, id: String, name: String, showcaseID: String, status: CustomerStatus, billingAddress: BillingAddress? = nil, billingName: String? = nil, phone: String? = nil, taxID: String? = nil, taxIDKind: CustomerTaxIdKind? = nil) {
         self.billingAddress = billingAddress
         self.billingName = billingName
         self.createdAt = createdAt
@@ -995,6 +1025,7 @@ public struct Customer: Codable, Sendable, Hashable {
         self.id = id
         self.name = name
         self.phone = phone
+        self.showcaseID = showcaseID
         self.status = status
         self.taxID = taxID
         self.taxIDKind = taxIDKind
@@ -1009,6 +1040,7 @@ public struct Customer: Codable, Sendable, Hashable {
         case id
         case name
         case phone
+        case showcaseID = "showcase_id"
         case status
         case taxID = "tax_id"
         case taxIDKind = "tax_id_kind"
@@ -1047,9 +1079,11 @@ public struct CustomerState: Codable, Sendable, Hashable {
     public let grantedBenefits: [CustomerStateBenefitGrant]
     public let id: String
     public let name: String
+    /// O showcase a que pertence: o da chave de API que fez a chamada. Uma chave só alcança o seu showcase.
+    public let showcaseID: String
     public let status: CustomerStateStatus
 
-    public init(activeSubscriptions: [Subscription], createdAt: String, email: String, externalID: String, grantedBenefits: [CustomerStateBenefitGrant], id: String, name: String, status: CustomerStateStatus) {
+    public init(activeSubscriptions: [Subscription], createdAt: String, email: String, externalID: String, grantedBenefits: [CustomerStateBenefitGrant], id: String, name: String, showcaseID: String, status: CustomerStateStatus) {
         self.activeSubscriptions = activeSubscriptions
         self.createdAt = createdAt
         self.email = email
@@ -1057,6 +1091,7 @@ public struct CustomerState: Codable, Sendable, Hashable {
         self.grantedBenefits = grantedBenefits
         self.id = id
         self.name = name
+        self.showcaseID = showcaseID
         self.status = status
     }
 
@@ -1068,6 +1103,7 @@ public struct CustomerState: Codable, Sendable, Hashable {
         case grantedBenefits = "granted_benefits"
         case id
         case name
+        case showcaseID = "showcase_id"
         case status
     }
 }
@@ -1408,6 +1444,8 @@ public struct Order: Codable, Sendable, Hashable {
     public let clientReferenceID: String
     public let currency: OrderCurrency
     public let customerID: String
+    /// Qual ciclo da assinatura o pedido pagou: 1 é o primeiro; nulo fora de uma assinatura.
+    public let cycleSequence: Int?
     public let id: String
     /// Juros do parcelamento pagos pelo comprador, cobrados além de amount_cents.
     public let installmentInterestCents: Int
@@ -1420,17 +1458,26 @@ public struct Order: Codable, Sendable, Hashable {
     /// Onde o pedido está; status é o do checkout e continua succeeded depois de um reembolso, e este vira partially_refunded ou refunded. Nulo antes de haver pagamento.
     public let orderStatus: OrderOrderStatus?
     public let paidAt: String?
+    /// O fim do período que o ciclo paga; nulo fora de uma assinatura.
+    public let periodEnd: String?
+    /// O começo do período que o ciclo paga; nulo fora de uma assinatura.
+    public let periodStart: String?
     public let priceID: String
     public let productID: String
     /// Quanto do pedido já foi devolvido, somando todos os reembolsos que deram certo, em centavos.
     public let refundedAmountCents: Int
+    /// O showcase a que pertence: o da chave de API que fez a chamada. Uma chave só alcança o seu showcase.
+    public let showcaseID: String
     public let status: OrderStatus
+    /// A assinatura de que este pedido é a cobrança (a primeira ou uma renovação); nulo quando o pedido não é de uma assinatura.
+    public let subscriptionID: String?
 
-    public init(amountCents: Int, clientReferenceID: String, currency: OrderCurrency, customerID: String, id: String, installmentInterestCents: Int, installments: Int, items: [CheckoutLine], metadata: [String: JSONValue], orderStatus: OrderOrderStatus?, paidAt: String?, priceID: String, productID: String, refundedAmountCents: Int, status: OrderStatus) {
+    public init(amountCents: Int, clientReferenceID: String, currency: OrderCurrency, customerID: String, cycleSequence: Int?, id: String, installmentInterestCents: Int, installments: Int, items: [CheckoutLine], metadata: [String: JSONValue], orderStatus: OrderOrderStatus?, paidAt: String?, periodEnd: String?, periodStart: String?, priceID: String, productID: String, refundedAmountCents: Int, showcaseID: String, status: OrderStatus, subscriptionID: String?) {
         self.amountCents = amountCents
         self.clientReferenceID = clientReferenceID
         self.currency = currency
         self.customerID = customerID
+        self.cycleSequence = cycleSequence
         self.id = id
         self.installmentInterestCents = installmentInterestCents
         self.installments = installments
@@ -1438,10 +1485,14 @@ public struct Order: Codable, Sendable, Hashable {
         self.metadata = metadata
         self.orderStatus = orderStatus
         self.paidAt = paidAt
+        self.periodEnd = periodEnd
+        self.periodStart = periodStart
         self.priceID = priceID
         self.productID = productID
         self.refundedAmountCents = refundedAmountCents
+        self.showcaseID = showcaseID
         self.status = status
+        self.subscriptionID = subscriptionID
     }
 
     enum CodingKeys: String, CodingKey {
@@ -1449,6 +1500,7 @@ public struct Order: Codable, Sendable, Hashable {
         case clientReferenceID = "client_reference_id"
         case currency
         case customerID = "customer_id"
+        case cycleSequence = "cycle_sequence"
         case id
         case installmentInterestCents = "installment_interest_cents"
         case installments
@@ -1456,10 +1508,14 @@ public struct Order: Codable, Sendable, Hashable {
         case metadata
         case orderStatus = "order_status"
         case paidAt = "paid_at"
+        case periodEnd = "period_end"
+        case periodStart = "period_start"
         case priceID = "price_id"
         case productID = "product_id"
         case refundedAmountCents = "refunded_amount_cents"
+        case showcaseID = "showcase_id"
         case status
+        case subscriptionID = "subscription_id"
     }
 }
 
@@ -1601,6 +1657,8 @@ public struct Payment: Codable, Sendable, Hashable {
     public let createdAt: String
     public let currency: PaymentCurrency
     public let customerID: String
+    /// Qual ciclo da assinatura o pagamento pagou: 1 é o primeiro; nulo fora de uma assinatura.
+    public let cycleSequence: Int?
     public let id: String
     /// Valor de uma parcela; 0 à vista.
     public let installmentAmountCents: Int
@@ -1611,10 +1669,18 @@ public struct Payment: Codable, Sendable, Hashable {
     /// Os pares que o seu servidor enviou ao criar o checkout.
     public let metadata: [String: JSONValue]
     public let method: PaymentMethodKind
+    /// O fim do período que o ciclo paga; nulo fora de uma assinatura.
+    public let periodEnd: String?
+    /// O começo do período que o ciclo paga; nulo fora de uma assinatura.
+    public let periodStart: String?
     public let refundedCents: Int
+    /// O showcase a que pertence: o da chave de API que fez a chamada. Uma chave só alcança o seu showcase.
+    public let showcaseID: String
     public let state: PaymentState
+    /// A assinatura que este pagamento cobrou (a primeira ou uma renovação); nulo quando o pagamento não é de uma assinatura.
+    public let subscriptionID: String?
 
-    public init(amountCents: Int, capturedCents: Int, checkoutID: String, clientReferenceID: String, createdAt: String, currency: PaymentCurrency, customerID: String, id: String, installmentAmountCents: Int, installmentInterestCents: Int, installments: Int, metadata: [String: JSONValue], method: PaymentMethodKind, refundedCents: Int, state: PaymentState) {
+    public init(amountCents: Int, capturedCents: Int, checkoutID: String, clientReferenceID: String, createdAt: String, currency: PaymentCurrency, customerID: String, cycleSequence: Int?, id: String, installmentAmountCents: Int, installmentInterestCents: Int, installments: Int, metadata: [String: JSONValue], method: PaymentMethodKind, periodEnd: String?, periodStart: String?, refundedCents: Int, showcaseID: String, state: PaymentState, subscriptionID: String?) {
         self.amountCents = amountCents
         self.capturedCents = capturedCents
         self.checkoutID = checkoutID
@@ -1622,14 +1688,19 @@ public struct Payment: Codable, Sendable, Hashable {
         self.createdAt = createdAt
         self.currency = currency
         self.customerID = customerID
+        self.cycleSequence = cycleSequence
         self.id = id
         self.installmentAmountCents = installmentAmountCents
         self.installmentInterestCents = installmentInterestCents
         self.installments = installments
         self.metadata = metadata
         self.method = method
+        self.periodEnd = periodEnd
+        self.periodStart = periodStart
         self.refundedCents = refundedCents
+        self.showcaseID = showcaseID
         self.state = state
+        self.subscriptionID = subscriptionID
     }
 
     enum CodingKeys: String, CodingKey {
@@ -1640,14 +1711,19 @@ public struct Payment: Codable, Sendable, Hashable {
         case createdAt = "created_at"
         case currency
         case customerID = "customer_id"
+        case cycleSequence = "cycle_sequence"
         case id
         case installmentAmountCents = "installment_amount_cents"
         case installmentInterestCents = "installment_interest_cents"
         case installments
         case metadata
         case method
+        case periodEnd = "period_end"
+        case periodStart = "period_start"
         case refundedCents = "refunded_cents"
+        case showcaseID = "showcase_id"
         case state
+        case subscriptionID = "subscription_id"
     }
 }
 
@@ -1734,13 +1810,16 @@ public struct Product: Codable, Sendable, Hashable {
     public let description: String
     public let id: String
     public let name: String
+    /// O showcase a que pertence: o da chave de API que fez a chamada. Uma chave só alcança o seu showcase.
+    public let showcaseID: String
     public let status: ProductStatus
 
-    public init(createdAt: String, description: String, id: String, name: String, status: ProductStatus) {
+    public init(createdAt: String, description: String, id: String, name: String, showcaseID: String, status: ProductStatus) {
         self.createdAt = createdAt
         self.description = description
         self.id = id
         self.name = name
+        self.showcaseID = showcaseID
         self.status = status
     }
 
@@ -1749,29 +1828,93 @@ public struct Product: Codable, Sendable, Hashable {
         case description
         case id
         case name
+        case showcaseID = "showcase_id"
         case status
     }
 }
 
 /// Refund is a resource of Peráta's API.
 public struct Refund: Codable, Sendable, Hashable {
+    /// O valor deste reembolso, em centavos.
     public let amountCents: Int
+    /// O id do pedido no seu sistema, enviado ao criar o checkout; vazio sem ele. É o do pedido, não do reembolso.
+    public let clientReferenceID: String
+    public let createdAt: String
     public let id: String
+    /// Os pares que o seu servidor enviou ao criar o checkout do pedido; vazio sem eles. É o mesmo metadata dos eventos de venda e de reembolso.
+    public let metadata: [String: JSONValue]
+    /// O pedido a que o pagamento pertence: o id que GET /orders/{id} recebe. Vazio quando o reembolso não é de um pagamento de checkout.
+    public let orderID: String
+    /// O pagamento de que o dinheiro volta.
     public let paymentID: String
+    /// Por que o dinheiro voltou, como o seu servidor informou.
+    public let reason: String
+    /// Os pares que o seu servidor enviou no campo metadata ao pedir este reembolso; vazio sem eles.
+    public let refundMetadata: [String: JSONValue]
+    /// O showcase a que pertence: o da chave de API que fez a chamada. Uma chave só alcança o seu showcase.
+    public let showcaseID: String
+    /// requested e pending esperam a Cielo; unknown é uma resposta que não chegou, e o valor continua reservado até a Cielo responder; succeeded devolveu o dinheiro; failed e canceled não devolveram.
     public let status: RefundStatus
 
-    public init(amountCents: Int, id: String, paymentID: String, status: RefundStatus) {
+    public init(amountCents: Int, clientReferenceID: String, createdAt: String, id: String, metadata: [String: JSONValue], orderID: String, paymentID: String, reason: String, refundMetadata: [String: JSONValue], showcaseID: String, status: RefundStatus) {
         self.amountCents = amountCents
+        self.clientReferenceID = clientReferenceID
+        self.createdAt = createdAt
         self.id = id
+        self.metadata = metadata
+        self.orderID = orderID
         self.paymentID = paymentID
+        self.reason = reason
+        self.refundMetadata = refundMetadata
+        self.showcaseID = showcaseID
         self.status = status
     }
 
     enum CodingKeys: String, CodingKey {
         case amountCents = "amount_cents"
+        case clientReferenceID = "client_reference_id"
+        case createdAt = "created_at"
         case id
+        case metadata
+        case orderID = "order_id"
         case paymentID = "payment_id"
+        case reason
+        case refundMetadata = "refund_metadata"
+        case showcaseID = "showcase_id"
         case status
+    }
+}
+
+/// Showcase is a resource of Peráta's API.
+public struct Showcase: Codable, Sendable, Hashable {
+    public let createdAt: String
+    /// O ambiente da chave.
+    public let environment: ShowcaseEnvironment
+    /// true quando o showcase tem logo. A logo é privada e não sai pela API: quem a mostra é o painel.
+    public let hasLogo: Bool
+    /// O ID do showcase: o showcase_id que os objetos e os eventos de webhook trazem.
+    public let id: String
+    /// true no showcase com que a organização começou; os outros foram abertos depois, no painel.
+    public let isPrincipal: Bool
+    /// O nome do showcase, como o lojista o vê no painel.
+    public let name: String
+
+    public init(createdAt: String, environment: ShowcaseEnvironment, hasLogo: Bool, id: String, isPrincipal: Bool, name: String) {
+        self.createdAt = createdAt
+        self.environment = environment
+        self.hasLogo = hasLogo
+        self.id = id
+        self.isPrincipal = isPrincipal
+        self.name = name
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case createdAt = "created_at"
+        case environment
+        case hasLogo = "has_logo"
+        case id
+        case isPrincipal = "is_principal"
+        case name
     }
 }
 
@@ -1789,6 +1932,8 @@ public struct Subscription: Codable, Sendable, Hashable {
     public let metadata: [String: JSONValue]
     public let priceID: String
     public let productID: String
+    /// O showcase a que pertence: o da chave de API que fez a chamada. Uma chave só alcança o seu showcase.
+    public let showcaseID: String
     public let status: SubscriptionStatus
     /// Quando a assinatura foi suspensa; nulo enquanto não está suspensa.
     public let suspendedAt: String?
@@ -1797,7 +1942,7 @@ public struct Subscription: Codable, Sendable, Hashable {
     public let trialEnd: String?
     public let trialStart: String?
 
-    public init(amountCents: Int, cancelAtPeriodEnd: Bool, currency: SubscriptionCurrency, currentPeriodEnd: String, currentPeriodStart: String, customerID: String, id: String, interval: String, metadata: [String: JSONValue], priceID: String, productID: String, status: SubscriptionStatus, suspendedAt: String?, suspensionReason: SubscriptionSuspensionReason?, trialEnd: String?, trialStart: String?) {
+    public init(amountCents: Int, cancelAtPeriodEnd: Bool, currency: SubscriptionCurrency, currentPeriodEnd: String, currentPeriodStart: String, customerID: String, id: String, interval: String, metadata: [String: JSONValue], priceID: String, productID: String, showcaseID: String, status: SubscriptionStatus, suspendedAt: String?, suspensionReason: SubscriptionSuspensionReason?, trialEnd: String?, trialStart: String?) {
         self.amountCents = amountCents
         self.cancelAtPeriodEnd = cancelAtPeriodEnd
         self.currency = currency
@@ -1809,6 +1954,7 @@ public struct Subscription: Codable, Sendable, Hashable {
         self.metadata = metadata
         self.priceID = priceID
         self.productID = productID
+        self.showcaseID = showcaseID
         self.status = status
         self.suspendedAt = suspendedAt
         self.suspensionReason = suspensionReason
@@ -1828,6 +1974,7 @@ public struct Subscription: Codable, Sendable, Hashable {
         case metadata
         case priceID = "price_id"
         case productID = "product_id"
+        case showcaseID = "showcase_id"
         case status
         case suspendedAt = "suspended_at"
         case suspensionReason = "suspension_reason"
@@ -1921,12 +2068,14 @@ public struct WebhookCheckout: Codable, Sendable, Hashable {
     public let periodStart: String?
     public let priceID: String
     public let productID: String
+    /// O showcase da venda.
+    public let showcaseID: String
     public let status: WebhookCheckoutStatus
     /// A assinatura que este pagamento cobra; nulo quando a venda não é de uma assinatura.
     public let subscriptionID: String?
     public let totalCents: Int
 
-    public init(amountCents: Int, checkoutLinkID: String?, createdAt: String, currency: WebhookCheckoutCurrency, customerID: String?, discountCents: Int, expiresAt: String, id: String, priceID: String, productID: String, status: WebhookCheckoutStatus, totalCents: Int, clientReferenceID: String? = nil, cycleSequence: Int? = nil, items: [CheckoutLine]? = nil, metadata: [String: JSONValue]? = nil, periodEnd: String? = nil, periodStart: String? = nil, subscriptionID: String? = nil) {
+    public init(amountCents: Int, checkoutLinkID: String?, createdAt: String, currency: WebhookCheckoutCurrency, customerID: String?, discountCents: Int, expiresAt: String, id: String, priceID: String, productID: String, showcaseID: String, status: WebhookCheckoutStatus, totalCents: Int, clientReferenceID: String? = nil, cycleSequence: Int? = nil, items: [CheckoutLine]? = nil, metadata: [String: JSONValue]? = nil, periodEnd: String? = nil, periodStart: String? = nil, subscriptionID: String? = nil) {
         self.amountCents = amountCents
         self.checkoutLinkID = checkoutLinkID
         self.clientReferenceID = clientReferenceID
@@ -1943,6 +2092,7 @@ public struct WebhookCheckout: Codable, Sendable, Hashable {
         self.periodStart = periodStart
         self.priceID = priceID
         self.productID = productID
+        self.showcaseID = showcaseID
         self.status = status
         self.subscriptionID = subscriptionID
         self.totalCents = totalCents
@@ -1965,6 +2115,7 @@ public struct WebhookCheckout: Codable, Sendable, Hashable {
         case periodStart = "period_start"
         case priceID = "price_id"
         case productID = "product_id"
+        case showcaseID = "showcase_id"
         case status
         case subscriptionID = "subscription_id"
         case totalCents = "total_cents"
@@ -2274,11 +2425,13 @@ public struct WebhookOrder: Codable, Sendable, Hashable {
     public let refundID: String?
     /// Quanto do pedido já foi devolvido, somando todos os reembolsos que deram certo, em centavos.
     public let refundedAmountCents: Int
+    /// O showcase da venda.
+    public let showcaseID: String
     public let status: WebhookOrderStatus
     /// A assinatura que este pagamento cobra; nulo quando a venda não é de uma assinatura.
     public let subscriptionID: String?
 
-    public init(amountCents: Int, clientReferenceID: String, currency: WebhookOrderCurrency, customerID: String, id: String, installmentInterestCents: Int, installments: Int, items: [CheckoutLine], metadata: [String: JSONValue], orderStatus: WebhookOrderOrderStatus?, paidAt: String?, priceID: String, productID: String, refundAmountCents: Int?, refundID: String?, refundedAmountCents: Int, status: WebhookOrderStatus, cycleSequence: Int? = nil, periodEnd: String? = nil, periodStart: String? = nil, subscriptionID: String? = nil) {
+    public init(amountCents: Int, clientReferenceID: String, currency: WebhookOrderCurrency, customerID: String, id: String, installmentInterestCents: Int, installments: Int, items: [CheckoutLine], metadata: [String: JSONValue], orderStatus: WebhookOrderOrderStatus?, paidAt: String?, priceID: String, productID: String, refundAmountCents: Int?, refundID: String?, refundedAmountCents: Int, showcaseID: String, status: WebhookOrderStatus, cycleSequence: Int? = nil, periodEnd: String? = nil, periodStart: String? = nil, subscriptionID: String? = nil) {
         self.amountCents = amountCents
         self.clientReferenceID = clientReferenceID
         self.currency = currency
@@ -2298,6 +2451,7 @@ public struct WebhookOrder: Codable, Sendable, Hashable {
         self.refundAmountCents = refundAmountCents
         self.refundID = refundID
         self.refundedAmountCents = refundedAmountCents
+        self.showcaseID = showcaseID
         self.status = status
         self.subscriptionID = subscriptionID
     }
@@ -2322,6 +2476,7 @@ public struct WebhookOrder: Codable, Sendable, Hashable {
         case refundAmountCents = "refund_amount_cents"
         case refundID = "refund_id"
         case refundedAmountCents = "refunded_amount_cents"
+        case showcaseID = "showcase_id"
         case status
         case subscriptionID = "subscription_id"
     }
@@ -2333,20 +2488,32 @@ public struct WebhookRefund: Codable, Sendable, Hashable {
     /// O checkout (o pedido) que o reembolso devolve, quando se sabe.
     public let checkoutID: String?
     /// O id do pedido no sistema do lojista; vazio sem ele.
-    public let clientReferenceID: String?
+    public let clientReferenceID: String
     public let id: String
     /// Os pares que o servidor do lojista enviou ao criar o checkout; vazio sem eles.
     public let metadata: [String: JSONValue]
+    /// O mesmo pedido, com o nome que a API de reembolsos dá a ele; igual a checkout_id.
+    public let orderID: String?
     public let paymentID: String
+    /// Por que o dinheiro voltou.
+    public let reason: String?
+    /// Os pares que o servidor do lojista enviou no campo metadata ao pedir este reembolso; vazio sem eles.
+    public let refundMetadata: [String: JSONValue]
+    /// O showcase da venda.
+    public let showcaseID: String
     public let status: WebhookRefundStatus
 
-    public init(amountCents: Int, id: String, metadata: [String: JSONValue], paymentID: String, status: WebhookRefundStatus, checkoutID: String? = nil, clientReferenceID: String? = nil) {
+    public init(amountCents: Int, clientReferenceID: String, id: String, metadata: [String: JSONValue], paymentID: String, refundMetadata: [String: JSONValue], showcaseID: String, status: WebhookRefundStatus, checkoutID: String? = nil, orderID: String? = nil, reason: String? = nil) {
         self.amountCents = amountCents
         self.checkoutID = checkoutID
         self.clientReferenceID = clientReferenceID
         self.id = id
         self.metadata = metadata
+        self.orderID = orderID
         self.paymentID = paymentID
+        self.reason = reason
+        self.refundMetadata = refundMetadata
+        self.showcaseID = showcaseID
         self.status = status
     }
 
@@ -2356,7 +2523,11 @@ public struct WebhookRefund: Codable, Sendable, Hashable {
         case clientReferenceID = "client_reference_id"
         case id
         case metadata
+        case orderID = "order_id"
         case paymentID = "payment_id"
+        case reason
+        case refundMetadata = "refund_metadata"
+        case showcaseID = "showcase_id"
         case status
     }
 }
@@ -2376,6 +2547,10 @@ public struct WebhookSale: Codable, Sendable, Hashable {
     public let cycleSequence: Int?
     public let environment: String
     public let eventID: String
+    /// O código que a Cielo deu para a recusa, nos eventos refund.* de um reembolso que falhou; serve ao suporte.
+    public let failureCode: String?
+    /// Por que o dinheiro não voltou, em português, nos eventos refund.* de um reembolso que falhou (refund.failed).
+    public let failureReason: String?
     public let merchantID: String
     /// Os pares que o servidor do lojista enviou ao criar o checkout; vazio sem eles. Na renovação de uma assinatura são os da assinatura.
     public let metadata: [String: JSONValue]?
@@ -2396,7 +2571,7 @@ public struct WebhookSale: Codable, Sendable, Hashable {
     /// A assinatura que este pagamento cobra; nulo quando a venda não é de uma assinatura.
     public let subscriptionID: String?
 
-    public init(aggregate: String, aggregateID: String, environment: String, eventID: String, merchantID: String, amountCents: Int? = nil, checkoutID: String? = nil, clientReferenceID: String? = nil, currency: WebhookSaleCurrency? = nil, cycleSequence: Int? = nil, metadata: [String: JSONValue]? = nil, method: WebhookSaleMethod? = nil, paymentID: String? = nil, periodEnd: String? = nil, periodStart: String? = nil, refundAmountCents: Int? = nil, refundID: String? = nil, refundedAmountCents: Int? = nil, subscriptionID: String? = nil) {
+    public init(aggregate: String, aggregateID: String, environment: String, eventID: String, merchantID: String, amountCents: Int? = nil, checkoutID: String? = nil, clientReferenceID: String? = nil, currency: WebhookSaleCurrency? = nil, cycleSequence: Int? = nil, failureCode: String? = nil, failureReason: String? = nil, metadata: [String: JSONValue]? = nil, method: WebhookSaleMethod? = nil, paymentID: String? = nil, periodEnd: String? = nil, periodStart: String? = nil, refundAmountCents: Int? = nil, refundID: String? = nil, refundedAmountCents: Int? = nil, subscriptionID: String? = nil) {
         self.aggregate = aggregate
         self.aggregateID = aggregateID
         self.amountCents = amountCents
@@ -2406,6 +2581,8 @@ public struct WebhookSale: Codable, Sendable, Hashable {
         self.cycleSequence = cycleSequence
         self.environment = environment
         self.eventID = eventID
+        self.failureCode = failureCode
+        self.failureReason = failureReason
         self.merchantID = merchantID
         self.metadata = metadata
         self.method = method
@@ -2428,6 +2605,8 @@ public struct WebhookSale: Codable, Sendable, Hashable {
         case cycleSequence = "cycle_sequence"
         case environment
         case eventID = "event_id"
+        case failureCode = "failure_code"
+        case failureReason = "failure_reason"
         case merchantID = "merchant_id"
         case metadata
         case method
@@ -2457,6 +2636,8 @@ public struct WebhookSubscription: Codable, Sendable, Hashable {
     public let paymentFailure: WebhookSubscriptionPaymentFailure?
     public let priceID: String
     public let productID: String
+    /// O showcase da venda.
+    public let showcaseID: String
     public let status: WebhookSubscriptionStatus
     /// Quando a assinatura foi suspensa; nulo enquanto não está suspensa.
     public let suspendedAt: String?
@@ -2465,7 +2646,7 @@ public struct WebhookSubscription: Codable, Sendable, Hashable {
     public let trialEnd: String?
     public let trialStart: String?
 
-    public init(amountCents: Int, cancelAtPeriodEnd: Bool, currency: WebhookSubscriptionCurrency, currentPeriodEnd: String, currentPeriodStart: String, customerID: String, id: String, interval: String, metadata: [String: JSONValue], priceID: String, productID: String, status: WebhookSubscriptionStatus, suspendedAt: String?, suspensionReason: WebhookSubscriptionSuspensionReason?, trialEnd: String?, trialStart: String?, paymentFailure: WebhookSubscriptionPaymentFailure? = nil) {
+    public init(amountCents: Int, cancelAtPeriodEnd: Bool, currency: WebhookSubscriptionCurrency, currentPeriodEnd: String, currentPeriodStart: String, customerID: String, id: String, interval: String, metadata: [String: JSONValue], priceID: String, productID: String, showcaseID: String, status: WebhookSubscriptionStatus, suspendedAt: String?, suspensionReason: WebhookSubscriptionSuspensionReason?, trialEnd: String?, trialStart: String?, paymentFailure: WebhookSubscriptionPaymentFailure? = nil) {
         self.amountCents = amountCents
         self.cancelAtPeriodEnd = cancelAtPeriodEnd
         self.currency = currency
@@ -2478,6 +2659,7 @@ public struct WebhookSubscription: Codable, Sendable, Hashable {
         self.paymentFailure = paymentFailure
         self.priceID = priceID
         self.productID = productID
+        self.showcaseID = showcaseID
         self.status = status
         self.suspendedAt = suspendedAt
         self.suspensionReason = suspensionReason
@@ -2498,6 +2680,7 @@ public struct WebhookSubscription: Codable, Sendable, Hashable {
         case paymentFailure = "payment_failure"
         case priceID = "price_id"
         case productID = "product_id"
+        case showcaseID = "showcase_id"
         case status
         case suspendedAt = "suspended_at"
         case suspensionReason = "suspension_reason"
@@ -2797,11 +2980,13 @@ public struct CheckoutsCreateParams: Encodable, Sendable, Hashable {
     public var customerID: String?
     /// O nome do comprador, quando você o conhece.
     public var customerName: String?
+    /// O desconto do catálogo que o checkout aplica sozinho, sem o comprador digitar código: o valor dele (percentual ou fixo) é tirado do total e vale como o desconto foi criado, uma vez, por alguns meses ou para sempre. Um desconto limitado a produtos (product_ids na criação do desconto) só vale para esses produtos: num checkout de uma câmera, o desconto de uma câmera. Um id que não é de um desconto ativo do catálogo é recusado com 422.
+    public var discountID: String?
     /// Segundos em que a sessão e o client_secret continuam valendo, de um minuto a três dias; 1800 (30 minutos) quando fica de fora. Uma sessão paga com Pix pode ser aberta até esse prazo e, aberta, o Pix gerado vale 24 horas.
     public var expiresIn: Int?
     /// O mesmo cliente, pelo ID que você deu a ele.
     public var externalCustomerID: String?
-    /// As linhas do pedido, até 50, para o comprador ler o detalhe: aparecem no checkout (página, modal, componentes e transparente), no pedido, no recibo, no portal do cliente e nos eventos. A soma de quantity vezes unit_amount_cents precisa ser igual a amount_cents, ou a resposta é 422; enviadas sem amount_cents, a soma é o valor.
+    /// As linhas do pedido, até 50, para o comprador ler o detalhe: aparecem no checkout (página, modal, componentes e transparente), no pedido, no recibo, no portal do cliente e nos eventos. Em um preço de valor livre, a soma de quantity vezes unit_amount_cents precisa ser igual a amount_cents, ou a resposta é 422; enviadas sem amount_cents, a soma é o valor. Em um preço com valor próprio, como o de uma assinatura, as linhas só mostram ao comprador do que o valor é feito e fixam nada: envie-as sem amount_cents, com a soma igual ao valor do preço vezes a quantidade (senão 422), e o preço continua sendo quem define o que se cobra.
     public var items: [CheckoutsCreateItem]?
     public var label: String?
     /// Pares guardados no link do checkout e devolvidos no checkout, no pedido, no pagamento e nos eventos da venda. Até 50 pares de chave e valor: a chave tem de 1 a 40 caracteres, e o valor é um texto de 1 a 500 caracteres, um número ou um booleano. Texto sem caracteres de controle nem de direção invisível.
@@ -2814,9 +2999,11 @@ public struct CheckoutsCreateParams: Encodable, Sendable, Hashable {
     public var requireBillingAddress: Bool?
     /// Outro nome de cancel_url: a página https a que o comprador volta sem pagar. Enviada com um cancel_url diferente, é recusada.
     public var returnURL: String?
+    /// O dia da primeira cobrança de uma assinatura, como o trial_end do Stripe: o cartão é guardado e conferido com o emissor, nada é cobrado hoje e a primeira cobrança acontece nesse dia, no cartão guardado; as seguintes seguem a periodicidade do preço a partir dele. Só vale em um preço recorrente com valor, e só no cartão de crédito: a página não oferece Pix nem boleto. Vale o dia no horário de São Paulo, da meia-noite dele, qualquer que seja o fuso enviado; a hora não conta. Tem de ser de amanhã a um ano, senão a resposta é 422. A resposta devolve o instante como a Peráta o guarda, em subscription_start_at. Quem abre o checkout depois da data recebe 410.
+    public var subscriptionStartAt: String?
     public var successURL: String?
 
-    public init(priceID: String, productID: String, allowDiscountCodes: Bool? = nil, amountCents: Int? = nil, cancelURL: String? = nil, clientReferenceID: String? = nil, customerEmail: String? = nil, customerID: String? = nil, customerName: String? = nil, expiresIn: Int? = nil, externalCustomerID: String? = nil, items: [CheckoutsCreateItem]? = nil, label: String? = nil, metadata: [String: JSONValue]? = nil, quantity: Int? = nil, requireBillingAddress: Bool? = nil, returnURL: String? = nil, successURL: String? = nil) {
+    public init(priceID: String, productID: String, allowDiscountCodes: Bool? = nil, amountCents: Int? = nil, cancelURL: String? = nil, clientReferenceID: String? = nil, customerEmail: String? = nil, customerID: String? = nil, customerName: String? = nil, discountID: String? = nil, expiresIn: Int? = nil, externalCustomerID: String? = nil, items: [CheckoutsCreateItem]? = nil, label: String? = nil, metadata: [String: JSONValue]? = nil, quantity: Int? = nil, requireBillingAddress: Bool? = nil, returnURL: String? = nil, subscriptionStartAt: String? = nil, successURL: String? = nil) {
         self.allowDiscountCodes = allowDiscountCodes
         self.amountCents = amountCents
         self.cancelURL = cancelURL
@@ -2824,6 +3011,7 @@ public struct CheckoutsCreateParams: Encodable, Sendable, Hashable {
         self.customerEmail = customerEmail
         self.customerID = customerID
         self.customerName = customerName
+        self.discountID = discountID
         self.expiresIn = expiresIn
         self.externalCustomerID = externalCustomerID
         self.items = items
@@ -2834,6 +3022,7 @@ public struct CheckoutsCreateParams: Encodable, Sendable, Hashable {
         self.quantity = quantity
         self.requireBillingAddress = requireBillingAddress
         self.returnURL = returnURL
+        self.subscriptionStartAt = subscriptionStartAt
         self.successURL = successURL
     }
 
@@ -2845,6 +3034,7 @@ public struct CheckoutsCreateParams: Encodable, Sendable, Hashable {
         case customerEmail = "customer_email"
         case customerID = "customer_id"
         case customerName = "customer_name"
+        case discountID = "discount_id"
         case expiresIn = "expires_in"
         case externalCustomerID = "external_customer_id"
         case items
@@ -2855,6 +3045,7 @@ public struct CheckoutsCreateParams: Encodable, Sendable, Hashable {
         case quantity
         case requireBillingAddress = "require_billing_address"
         case returnURL = "return_url"
+        case subscriptionStartAt = "subscription_start_at"
         case successURL = "success_url"
     }
 
@@ -2867,6 +3058,7 @@ public struct CheckoutsCreateParams: Encodable, Sendable, Hashable {
         try container.encodeIfPresent(customerEmail, forKey: .customerEmail)
         try container.encodeIfPresent(customerID, forKey: .customerID)
         try container.encodeIfPresent(customerName, forKey: .customerName)
+        try container.encodeIfPresent(discountID, forKey: .discountID)
         try container.encodeIfPresent(expiresIn, forKey: .expiresIn)
         try container.encodeIfPresent(externalCustomerID, forKey: .externalCustomerID)
         try container.encodeIfPresent(items, forKey: .items)
@@ -2877,6 +3069,7 @@ public struct CheckoutsCreateParams: Encodable, Sendable, Hashable {
         try container.encodeIfPresent(quantity, forKey: .quantity)
         try container.encodeIfPresent(requireBillingAddress, forKey: .requireBillingAddress)
         try container.encodeIfPresent(returnURL, forKey: .returnURL)
+        try container.encodeIfPresent(subscriptionStartAt, forKey: .subscriptionStartAt)
         try container.encodeIfPresent(successURL, forKey: .successURL)
     }
 }
@@ -3501,31 +3694,45 @@ public struct ProductsUpdateParams: Encodable, Sendable, Hashable {
 /// The initializer takes the required fields first; an optional field left
 /// nil is not sent.
 public struct RefundsCreateParams: Encodable, Sendable, Hashable {
-    public var amountCents: Int
+    /// Quanto devolver, em centavos, de 1 até o que ainda pode ser devolvido. Sem ele, devolve tudo o que ainda pode ser devolvido.
+    public var amountCents: Int?
+    /// Pares seus guardados no reembolso; voltam como refund_metadata no reembolso e nos eventos refund.created e refund.updated, onde metadata é o do pedido. O filtro metadata[chave]=valor de GET /refunds procura estes pares. Até 50 pares de chave e valor: a chave tem de 1 a 40 caracteres, e o valor é um texto de 1 a 500 caracteres, um número ou um booleano. Texto sem caracteres de controle nem de direção invisível.
+    public var metadata: [String: JSONValue]?
+    /// Uma observação sua, de até 500 caracteres.
     public var note: String?
-    public var paymentID: String
-    public var reason: RefundsCreateParamsReason
+    /// O pedido (o id que GET /orders/{id} recebe) cujo pagamento capturado é devolvido. Dispensa o payment_id.
+    public var orderID: String?
+    /// O pagamento de que o dinheiro volta. Envie este ou o order_id; os dois juntos só se forem do mesmo pagamento.
+    public var paymentID: String?
+    /// Por que o dinheiro volta. Sem ele, requested_by_customer; com other a note é obrigatória.
+    public var reason: RefundsCreateParamsReason?
 
-    public init(amountCents: Int, paymentID: String, reason: RefundsCreateParamsReason, note: String? = nil) {
+    public init(amountCents: Int? = nil, metadata: [String: JSONValue]? = nil, note: String? = nil, orderID: String? = nil, paymentID: String? = nil, reason: RefundsCreateParamsReason? = nil) {
         self.amountCents = amountCents
+        self.metadata = metadata
         self.note = note
+        self.orderID = orderID
         self.paymentID = paymentID
         self.reason = reason
     }
 
     enum CodingKeys: String, CodingKey {
         case amountCents = "amount_cents"
+        case metadata
         case note
+        case orderID = "order_id"
         case paymentID = "payment_id"
         case reason
     }
 
     public func encode(to encoder: any Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
-        try container.encode(amountCents, forKey: .amountCents)
+        try container.encodeIfPresent(amountCents, forKey: .amountCents)
+        try container.encodeIfPresent(metadata, forKey: .metadata)
         try container.encodeIfPresent(note, forKey: .note)
-        try container.encode(paymentID, forKey: .paymentID)
-        try container.encode(reason, forKey: .reason)
+        try container.encodeIfPresent(orderID, forKey: .orderID)
+        try container.encodeIfPresent(paymentID, forKey: .paymentID)
+        try container.encodeIfPresent(reason, forKey: .reason)
     }
 }
 
@@ -4883,7 +5090,7 @@ public struct ProductStatus: RawRepresentable, Codable, Sendable, Hashable, Expr
     public static let archived = ProductStatus(rawValue: "archived")
 }
 
-/// The values of `Refund.status`.
+/// The values of `Refund.status`. requested e pending esperam a Cielo; unknown é uma resposta que não chegou, e o valor continua reservado até a Cielo responder; succeeded devolveu o dinheiro; failed e canceled não devolveram.
 ///
 /// A value this SDK does not know yet is kept as it came, in `rawValue`.
 public struct RefundStatus: RawRepresentable, Codable, Sendable, Hashable, ExpressibleByStringLiteral {
@@ -4909,6 +5116,26 @@ public struct RefundStatus: RawRepresentable, Codable, Sendable, Hashable, Expre
     public static let failed = RefundStatus(rawValue: "failed")
     /// `canceled`
     public static let canceled = RefundStatus(rawValue: "canceled")
+}
+
+/// The values of `Showcase.environment`. O ambiente da chave.
+///
+/// A value this SDK does not know yet is kept as it came, in `rawValue`.
+public struct ShowcaseEnvironment: RawRepresentable, Codable, Sendable, Hashable, ExpressibleByStringLiteral {
+    public let rawValue: String
+
+    public init(rawValue: String) {
+        self.rawValue = rawValue
+    }
+
+    public init(stringLiteral value: String) {
+        self.rawValue = value
+    }
+
+    /// `test`
+    public static let test = ShowcaseEnvironment(rawValue: "test")
+    /// `live`
+    public static let live = ShowcaseEnvironment(rawValue: "live")
 }
 
 /// The values of `Subscription.currency`.
@@ -5777,7 +6004,7 @@ public struct PricesCreateParamsType: RawRepresentable, Codable, Sendable, Hasha
     public static let recurring = PricesCreateParamsType(rawValue: "recurring")
 }
 
-/// The values of `RefundsCreateParams.reason`.
+/// The values of `RefundsCreateParams.reason`. Por que o dinheiro volta. Sem ele, requested_by_customer; com other a note é obrigatória.
 ///
 /// A value this SDK does not know yet is kept as it came, in `rawValue`.
 public struct RefundsCreateParamsReason: RawRepresentable, Codable, Sendable, Hashable, ExpressibleByStringLiteral {

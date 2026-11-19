@@ -17,8 +17,8 @@ final class CheckoutWebhookEvent extends WebhookEvent
     /** The event types this class carries. */
     public const TYPES = ['checkout.created', 'checkout.expired', 'checkout.updated'];
 
-    public function __construct(string $id, string $type, string $timestamp, string $environment, public readonly Models\WebhookCheckout $data)
+    public function __construct(string $id, string $type, string $timestamp, string $environment, string $showcaseId, public readonly Models\WebhookCheckout $data)
     {
-        parent::__construct($id, $type, $timestamp, $environment);
+        parent::__construct($id, $type, $timestamp, $environment, $showcaseId);
     }
 }

@@ -12,8 +12,9 @@ defmodule Perata.Benefits do
   Os downloads e os benefícios do Discord e do GitHub se configuram no painel.
 
   Autenticação: chave de API da organização em Authorization: Bearer (prk_test_…
-  ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição.
-  Respostas em JSON no envelope data; erros com error, message e fields.
+  ou prk_live_…). Organização, showcase e ambiente vêm da chave, nunca da
+  requisição: a chave criada num showcase só alcança o que é dele. Respostas em
+  JSON no envelope data; erros com error, message e fields.
 
   Options: `:idempotency_key` and `:api_key`.
   """
@@ -39,8 +40,9 @@ defmodule Perata.Benefits do
   Exclui um benefício: ele sai de todos os produtos e é revogado de quem o tem.
 
   Autenticação: chave de API da organização em Authorization: Bearer (prk_test_…
-  ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição.
-  Respostas em JSON no envelope data; erros com error, message e fields.
+  ou prk_live_…). Organização, showcase e ambiente vêm da chave, nunca da
+  requisição: a chave criada num showcase só alcança o que é dele. Respostas em
+  JSON no envelope data; erros com error, message e fields.
 
   Options: `:idempotency_key` and `:api_key`.
   """
@@ -60,8 +62,9 @@ defmodule Perata.Benefits do
   Devolve um benefício pelo ID.
 
   Autenticação: chave de API da organização em Authorization: Bearer (prk_test_…
-  ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição.
-  Respostas em JSON no envelope data; erros com error, message e fields.
+  ou prk_live_…). Organização, showcase e ambiente vêm da chave, nunca da
+  requisição: a chave criada num showcase só alcança o que é dele. Respostas em
+  JSON no envelope data; erros com error, message e fields.
 
   Options: `:api_key`.
   """
@@ -82,8 +85,9 @@ defmodule Perata.Benefits do
   Devolve uma página dos benefícios da organização. Com type, só os de um tipo.
 
   Autenticação: chave de API da organização em Authorization: Bearer (prk_test_…
-  ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição.
-  Respostas em JSON no envelope data; erros com error, message e fields.
+  ou prk_live_…). Organização, showcase e ambiente vêm da chave, nunca da
+  requisição: a chave criada num showcase só alcança o que é dele. Respostas em
+  JSON no envelope data; erros com error, message e fields.
 
   Options: `:page`, `:limit`, `:type` and `:api_key`.
   """
@@ -118,8 +122,9 @@ defmodule Perata.Benefits do
   um cliente; com is_granted, só as vigentes ou só as revogadas.
 
   Autenticação: chave de API da organização em Authorization: Bearer (prk_test_…
-  ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição.
-  Respostas em JSON no envelope data; erros com error, message e fields.
+  ou prk_live_…). Organização, showcase e ambiente vêm da chave, nunca da
+  requisição: a chave criada num showcase só alcança o que é dele. Respostas em
+  JSON no envelope data; erros com error, message e fields.
 
   Options: `:page`, `:limit`, `:customer_id`, `:is_granted` and `:api_key`.
   """
@@ -161,8 +166,9 @@ defmodule Perata.Benefits do
   fica como foi entregue.
 
   Autenticação: chave de API da organização em Authorization: Bearer (prk_test_…
-  ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição.
-  Respostas em JSON no envelope data; erros com error, message e fields.
+  ou prk_live_…). Organização, showcase e ambiente vêm da chave, nunca da
+  requisição: a chave criada num showcase só alcança o que é dele. Respostas em
+  JSON no envelope data; erros com error, message e fields.
 
   Options: `:idempotency_key` and `:api_key`.
   """
@@ -201,8 +207,9 @@ defmodule Perata.CheckoutLinks do
   de compra nova.
 
   Autenticação: chave de API da organização em Authorization: Bearer (prk_test_…
-  ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição.
-  Respostas em JSON no envelope data; erros com error, message e fields.
+  ou prk_live_…). Organização, showcase e ambiente vêm da chave, nunca da
+  requisição: a chave criada num showcase só alcança o que é dele. Respostas em
+  JSON no envelope data; erros com error, message e fields.
 
   Options: `:idempotency_key` and `:api_key`.
   """
@@ -229,8 +236,9 @@ defmodule Perata.CheckoutLinks do
   continuam.
 
   Autenticação: chave de API da organização em Authorization: Bearer (prk_test_…
-  ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição.
-  Respostas em JSON no envelope data; erros com error, message e fields.
+  ou prk_live_…). Organização, showcase e ambiente vêm da chave, nunca da
+  requisição: a chave criada num showcase só alcança o que é dele. Respostas em
+  JSON no envelope data; erros com error, message e fields.
 
   Options: `:idempotency_key` and `:api_key`.
   """
@@ -250,8 +258,9 @@ defmodule Perata.CheckoutLinks do
   Devolve um link de checkout pelo ID.
 
   Autenticação: chave de API da organização em Authorization: Bearer (prk_test_…
-  ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição.
-  Respostas em JSON no envelope data; erros com error, message e fields.
+  ou prk_live_…). Organização, showcase e ambiente vêm da chave, nunca da
+  requisição: a chave criada num showcase só alcança o que é dele. Respostas em
+  JSON no envelope data; erros com error, message e fields.
 
   Options: `:api_key`.
   """
@@ -272,8 +281,9 @@ defmodule Perata.CheckoutLinks do
   Devolve uma página dos links de checkout da organização.
 
   Autenticação: chave de API da organização em Authorization: Bearer (prk_test_…
-  ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição.
-  Respostas em JSON no envelope data; erros com error, message e fields.
+  ou prk_live_…). Organização, showcase e ambiente vêm da chave, nunca da
+  requisição: a chave criada num showcase só alcança o que é dele. Respostas em
+  JSON no envelope data; erros com error, message e fields.
 
   Options: `:page`, `:limit` and `:api_key`.
   """
@@ -304,8 +314,9 @@ defmodule Perata.CheckoutLinks do
   quantidade e o desconto ficam como foram publicados.
 
   Autenticação: chave de API da organização em Authorization: Bearer (prk_test_…
-  ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição.
-  Respostas em JSON no envelope data; erros com error, message e fields.
+  ou prk_live_…). Organização, showcase e ambiente vêm da chave, nunca da
+  requisição: a chave criada num showcase só alcança o que é dele. Respostas em
+  JSON no envelope data; erros com error, message e fields.
 
   Options: `:idempotency_key` and `:api_key`.
   """
@@ -344,11 +355,16 @@ defmodule Perata.Checkouts do
   usa para pagar sem chave de API; o client_secret vem só nesta resposta. Para
   cobrar um valor que o seu servidor define, envie amount_cents e items (preço
   de valor livre). Envie client_reference_id e metadata para achar o pedido
-  depois.
+  depois. Em uma assinatura, envie as linhas do pedido em items (só para
+  exibição, com a soma igual ao valor do preço) e o desconto em discount_id.
+  Para uma assinatura que só começa a cobrar numa data, envie
+  subscription_start_at com o preço recorrente: o cartão é guardado sem cobrança
+  e a primeira cobrança acontece nesse dia.
 
   Autenticação: chave de API da organização em Authorization: Bearer (prk_test_…
-  ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição.
-  Respostas em JSON no envelope data; erros com error, message e fields.
+  ou prk_live_…). Organização, showcase e ambiente vêm da chave, nunca da
+  requisição: a chave criada num showcase só alcança o que é dele. Respostas em
+  JSON no envelope data; erros com error, message e fields.
 
   Options: `:idempotency_key` and `:api_key`.
   """
@@ -377,8 +393,9 @@ defmodule Perata.Checkouts do
   pago ou emitiu um boleto, a resposta é 409.
 
   Autenticação: chave de API da organização em Authorization: Bearer (prk_test_…
-  ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição.
-  Respostas em JSON no envelope data; erros com error, message e fields.
+  ou prk_live_…). Organização, showcase e ambiente vêm da chave, nunca da
+  requisição: a chave criada num showcase só alcança o que é dele. Respostas em
+  JSON no envelope data; erros com error, message e fields.
 
   Options: `:idempotency_key` and `:api_key`.
   """
@@ -399,8 +416,9 @@ defmodule Perata.Checkouts do
   Devolve um checkout: o endereço, o estado e as páginas de retorno.
 
   Autenticação: chave de API da organização em Authorization: Bearer (prk_test_…
-  ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição.
-  Respostas em JSON no envelope data; erros com error, message e fields.
+  ou prk_live_…). Organização, showcase e ambiente vêm da chave, nunca da
+  requisição: a chave criada num showcase só alcança o que é dele. Respostas em
+  JSON no envelope data; erros com error, message e fields.
 
   Options: `:api_key`.
   """
@@ -422,8 +440,9 @@ defmodule Perata.Checkouts do
   período ou metadados.
 
   Autenticação: chave de API da organização em Authorization: Bearer (prk_test_…
-  ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição.
-  Respostas em JSON no envelope data; erros com error, message e fields.
+  ou prk_live_…). Organização, showcase e ambiente vêm da chave, nunca da
+  requisição: a chave criada num showcase só alcança o que é dele. Respostas em
+  JSON no envelope data; erros com error, message e fields.
 
   Options: `:page`, `:limit`, `:client_reference_id`, `:status`, `:created_after`, `:created_before`, `:sorting`, `:metadata` (a map of strings, sent as `metadata[key]=value`) and `:api_key`.
   """
@@ -466,8 +485,9 @@ defmodule Perata.Checkouts do
   Muda o rótulo e as páginas de retorno de um checkout ativo.
 
   Autenticação: chave de API da organização em Authorization: Bearer (prk_test_…
-  ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição.
-  Respostas em JSON no envelope data; erros com error, message e fields.
+  ou prk_live_…). Organização, showcase e ambiente vêm da chave, nunca da
+  requisição: a chave criada num showcase só alcança o que é dele. Respostas em
+  JSON no envelope data; erros com error, message e fields.
 
   Options: `:idempotency_key` and `:api_key`.
   """
@@ -506,8 +526,9 @@ defmodule Perata.CustomerSessions do
   aplicativo, o portal oferece a volta.
 
   Autenticação: chave de API da organização em Authorization: Bearer (prk_test_…
-  ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição.
-  Respostas em JSON no envelope data; erros com error, message e fields.
+  ou prk_live_…). Organização, showcase e ambiente vêm da chave, nunca da
+  requisição: a chave criada num showcase só alcança o que é dele. Respostas em
+  JSON no envelope data; erros com error, message e fields.
 
   Options: `:idempotency_key` and `:api_key`.
   """
@@ -547,8 +568,9 @@ defmodule Perata.Customers do
   um cliente com outro ID externo, a resposta é 422.
 
   Autenticação: chave de API da organização em Authorization: Bearer (prk_test_…
-  ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição.
-  Respostas em JSON no envelope data; erros com error, message e fields.
+  ou prk_live_…). Organização, showcase e ambiente vêm da chave, nunca da
+  requisição: a chave criada num showcase só alcança o que é dele. Respostas em
+  JSON no envelope data; erros com error, message e fields.
 
   Options: `:idempotency_key` and `:api_key`.
   """
@@ -576,8 +598,9 @@ defmodule Perata.Customers do
   registros.
 
   Autenticação: chave de API da organização em Authorization: Bearer (prk_test_…
-  ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição.
-  Respostas em JSON no envelope data; erros com error, message e fields.
+  ou prk_live_…). Organização, showcase e ambiente vêm da chave, nunca da
+  requisição: a chave criada num showcase só alcança o que é dele. Respostas em
+  JSON no envelope data; erros com error, message e fields.
 
   Options: `:idempotency_key` and `:api_key`.
   """
@@ -597,8 +620,9 @@ defmodule Perata.Customers do
   Devolve um cliente pelo ID.
 
   Autenticação: chave de API da organização em Authorization: Bearer (prk_test_…
-  ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição.
-  Respostas em JSON no envelope data; erros com error, message e fields.
+  ou prk_live_…). Organização, showcase e ambiente vêm da chave, nunca da
+  requisição: a chave criada num showcase só alcança o que é dele. Respostas em
+  JSON no envelope data; erros com error, message e fields.
 
   Options: `:api_key`.
   """
@@ -620,8 +644,9 @@ defmodule Perata.Customers do
   (external_id).
 
   Autenticação: chave de API da organização em Authorization: Bearer (prk_test_…
-  ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição.
-  Respostas em JSON no envelope data; erros com error, message e fields.
+  ou prk_live_…). Organização, showcase e ambiente vêm da chave, nunca da
+  requisição: a chave criada num showcase só alcança o que é dele. Respostas em
+  JSON no envelope data; erros com error, message e fields.
 
   Options: `:api_key`.
   """
@@ -644,8 +669,9 @@ defmodule Perata.Customers do
   para decidir o que o cliente pode usar.
 
   Autenticação: chave de API da organização em Authorization: Bearer (prk_test_…
-  ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição.
-  Respostas em JSON no envelope data; erros com error, message e fields.
+  ou prk_live_…). Organização, showcase e ambiente vêm da chave, nunca da
+  requisição: a chave criada num showcase só alcança o que é dele. Respostas em
+  JSON no envelope data; erros com error, message e fields.
 
   Options: `:api_key`.
   """
@@ -667,8 +693,9 @@ defmodule Perata.Customers do
   diferença entre maiúsculas e minúsculas.
 
   Autenticação: chave de API da organização em Authorization: Bearer (prk_test_…
-  ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição.
-  Respostas em JSON no envelope data; erros com error, message e fields.
+  ou prk_live_…). Organização, showcase e ambiente vêm da chave, nunca da
+  requisição: a chave criada num showcase só alcança o que é dele. Respostas em
+  JSON no envelope data; erros com error, message e fields.
 
   Options: `:page`, `:limit`, `:email` and `:api_key`.
   """
@@ -703,8 +730,9 @@ defmodule Perata.Customers do
   de cobrança. O ID externo só pode ser definido uma vez.
 
   Autenticação: chave de API da organização em Authorization: Bearer (prk_test_…
-  ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição.
-  Respostas em JSON no envelope data; erros com error, message e fields.
+  ou prk_live_…). Organização, showcase e ambiente vêm da chave, nunca da
+  requisição: a chave criada num showcase só alcança o que é dele. Respostas em
+  JSON no envelope data; erros com error, message e fields.
 
   Options: `:idempotency_key` and `:api_key`.
   """
@@ -736,8 +764,9 @@ defmodule Perata.Customers do
   Os campos são os de Atualizar um cliente.
 
   Autenticação: chave de API da organização em Authorization: Bearer (prk_test_…
-  ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição.
-  Respostas em JSON no envelope data; erros com error, message e fields.
+  ou prk_live_…). Organização, showcase e ambiente vêm da chave, nunca da
+  requisição: a chave criada num showcase só alcança o que é dele. Respostas em
+  JSON no envelope data; erros com error, message e fields.
 
   Options: `:idempotency_key` and `:api_key`.
   """
@@ -776,8 +805,9 @@ defmodule Perata.Discounts do
   vale num link de checkout ou pela API.
 
   Autenticação: chave de API da organização em Authorization: Bearer (prk_test_…
-  ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição.
-  Respostas em JSON no envelope data; erros com error, message e fields.
+  ou prk_live_…). Organização, showcase e ambiente vêm da chave, nunca da
+  requisição: a chave criada num showcase só alcança o que é dele. Respostas em
+  JSON no envelope data; erros com error, message e fields.
 
   Options: `:idempotency_key` and `:api_key`.
   """
@@ -804,8 +834,9 @@ defmodule Perata.Discounts do
   O que ele já descontou continua nos registros.
 
   Autenticação: chave de API da organização em Authorization: Bearer (prk_test_…
-  ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição.
-  Respostas em JSON no envelope data; erros com error, message e fields.
+  ou prk_live_…). Organização, showcase e ambiente vêm da chave, nunca da
+  requisição: a chave criada num showcase só alcança o que é dele. Respostas em
+  JSON no envelope data; erros com error, message e fields.
 
   Options: `:idempotency_key` and `:api_key`.
   """
@@ -825,8 +856,9 @@ defmodule Perata.Discounts do
   Devolve um desconto pelo ID.
 
   Autenticação: chave de API da organização em Authorization: Bearer (prk_test_…
-  ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição.
-  Respostas em JSON no envelope data; erros com error, message e fields.
+  ou prk_live_…). Organização, showcase e ambiente vêm da chave, nunca da
+  requisição: a chave criada num showcase só alcança o que é dele. Respostas em
+  JSON no envelope data; erros com error, message e fields.
 
   Options: `:api_key`.
   """
@@ -847,8 +879,9 @@ defmodule Perata.Discounts do
   Devolve uma página dos descontos da organização.
 
   Autenticação: chave de API da organização em Authorization: Bearer (prk_test_…
-  ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição.
-  Respostas em JSON no envelope data; erros com error, message e fields.
+  ou prk_live_…). Organização, showcase e ambiente vêm da chave, nunca da
+  requisição: a chave criada num showcase só alcança o que é dele. Respostas em
+  JSON no envelope data; erros com error, message e fields.
 
   Options: `:page`, `:limit` and `:api_key`.
   """
@@ -879,8 +912,9 @@ defmodule Perata.Discounts do
   valor e os meses também não.
 
   Autenticação: chave de API da organização em Authorization: Bearer (prk_test_…
-  ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição.
-  Respostas em JSON no envelope data; erros com error, message e fields.
+  ou prk_live_…). Organização, showcase e ambiente vêm da chave, nunca da
+  requisição: a chave criada num showcase só alcança o que é dele. Respostas em
+  JSON no envelope data; erros com error, message e fields.
 
   Options: `:idempotency_key` and `:api_key`.
   """
@@ -917,8 +951,9 @@ defmodule Perata.Disputes do
   Devolve uma disputa pelo ID.
 
   Autenticação: chave de API da organização em Authorization: Bearer (prk_test_…
-  ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição.
-  Respostas em JSON no envelope data; erros com error, message e fields.
+  ou prk_live_…). Organização, showcase e ambiente vêm da chave, nunca da
+  requisição: a chave criada num showcase só alcança o que é dele. Respostas em
+  JSON no envelope data; erros com error, message e fields.
 
   Options: `:api_key`.
   """
@@ -939,8 +974,9 @@ defmodule Perata.Disputes do
   Devolve uma página das disputas. Com status, só as que estão nele.
 
   Autenticação: chave de API da organização em Authorization: Bearer (prk_test_…
-  ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição.
-  Respostas em JSON no envelope data; erros com error, message e fields.
+  ou prk_live_…). Organização, showcase e ambiente vêm da chave, nunca da
+  requisição: a chave criada num showcase só alcança o que é dele. Respostas em
+  JSON no envelope data; erros com error, message e fields.
 
   Options: `:page`, `:limit`, `:status` and `:api_key`.
   """
@@ -981,8 +1017,9 @@ defmodule Perata.Events do
   ao mais antigo.
 
   Autenticação: chave de API da organização em Authorization: Bearer (prk_test_…
-  ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição.
-  Respostas em JSON no envelope data; erros com error, message e fields.
+  ou prk_live_…). Organização, showcase e ambiente vêm da chave, nunca da
+  requisição: a chave criada num showcase só alcança o que é dele. Respostas em
+  JSON no envelope data; erros com error, message e fields.
 
   Options: `:page`, `:limit`, `:customer_id`, `:start`, `:end` and `:api_key`.
   """
@@ -1029,8 +1066,9 @@ defmodule Perata.Meters do
   unidade.
 
   Autenticação: chave de API da organização em Authorization: Bearer (prk_test_…
-  ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição.
-  Respostas em JSON no envelope data; erros com error, message e fields.
+  ou prk_live_…). Organização, showcase e ambiente vêm da chave, nunca da
+  requisição: a chave criada num showcase só alcança o que é dele. Respostas em
+  JSON no envelope data; erros com error, message e fields.
 
   Options: `:api_key`.
   """
@@ -1052,8 +1090,9 @@ defmodule Perata.Meters do
   is_archived=true.
 
   Autenticação: chave de API da organização em Authorization: Bearer (prk_test_…
-  ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição.
-  Respostas em JSON no envelope data; erros com error, message e fields.
+  ou prk_live_…). Organização, showcase e ambiente vêm da chave, nunca da
+  requisição: a chave criada num showcase só alcança o que é dele. Respostas em
+  JSON no envelope data; erros com error, message e fields.
 
   Options: `:page`, `:limit`, `:is_archived` and `:api_key`.
   """
@@ -1090,11 +1129,13 @@ defmodule Perata.Orders do
   @doc """
   Ler um pedido.
 
-  Devolve um pedido: um checkout pago.
+  Devolve um pedido: um checkout pago. Se ele pagou um ciclo de assinatura, traz
+  subscription_id, cycle_sequence, period_start e period_end.
 
   Autenticação: chave de API da organização em Authorization: Bearer (prk_test_…
-  ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição.
-  Respostas em JSON no envelope data; erros com error, message e fields.
+  ou prk_live_…). Organização, showcase e ambiente vêm da chave, nunca da
+  requisição: a chave criada num showcase só alcança o que é dele. Respostas em
+  JSON no envelope data; erros com error, message e fields.
 
   Options: `:api_key`.
   """
@@ -1116,8 +1157,9 @@ defmodule Perata.Orders do
   fatura, a resposta é 404.
 
   Autenticação: chave de API da organização em Authorization: Bearer (prk_test_…
-  ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição.
-  Respostas em JSON no envelope data; erros com error, message e fields.
+  ou prk_live_…). Organização, showcase e ambiente vêm da chave, nunca da
+  requisição: a chave criada num showcase só alcança o que é dele. Respostas em
+  JSON no envelope data; erros com error, message e fields.
 
   Options: `:api_key`.
   """
@@ -1138,8 +1180,9 @@ defmodule Perata.Orders do
   Devolve o recibo de um pedido: o que foi pago, quando e como.
 
   Autenticação: chave de API da organização em Authorization: Bearer (prk_test_…
-  ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição.
-  Respostas em JSON no envelope data; erros com error, message e fields.
+  ou prk_live_…). Organização, showcase e ambiente vêm da chave, nunca da
+  requisição: a chave criada num showcase só alcança o que é dele. Respostas em
+  JSON no envelope data; erros com error, message e fields.
 
   Options: `:api_key`.
   """
@@ -1158,13 +1201,15 @@ defmodule Perata.Orders do
   Listar pedidos. One page; `list_stream/2` walks every page.
 
   Devolve uma página dos pedidos, que são os checkouts pagos. Filtre por
-  client_reference_id, cliente, período ou metadados.
+  client_reference_id, cliente, assinatura (subscription_id), período ou
+  metadados.
 
   Autenticação: chave de API da organização em Authorization: Bearer (prk_test_…
-  ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição.
-  Respostas em JSON no envelope data; erros com error, message e fields.
+  ou prk_live_…). Organização, showcase e ambiente vêm da chave, nunca da
+  requisição: a chave criada num showcase só alcança o que é dele. Respostas em
+  JSON no envelope data; erros com error, message e fields.
 
-  Options: `:page`, `:limit`, `:client_reference_id`, `:status`, `:customer_id`, `:external_customer_id`, `:created_after`, `:created_before`, `:sorting`, `:metadata` (a map of strings, sent as `metadata[key]=value`) and `:api_key`.
+  Options: `:page`, `:limit`, `:client_reference_id`, `:status`, `:customer_id`, `:external_customer_id`, `:subscription_id`, `:created_after`, `:created_before`, `:sorting`, `:metadata` (a map of strings, sent as `metadata[key]=value`) and `:api_key`.
   """
   @spec list(Client.t(), keyword()) ::
           {:ok, Perata.Page.t(Perata.Order.t())} | {:error, Perata.Error.t()}
@@ -1179,6 +1224,7 @@ defmodule Perata.Orders do
         status: opts[:status],
         customer_id: opts[:customer_id],
         external_customer_id: opts[:external_customer_id],
+        subscription_id: opts[:subscription_id],
         created_after: opts[:created_after],
         created_before: opts[:created_before],
         sorting: opts[:sorting],
@@ -1214,8 +1260,9 @@ defmodule Perata.PaymentMethods do
   ativa o cobra.
 
   Autenticação: chave de API da organização em Authorization: Bearer (prk_test_…
-  ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição.
-  Respostas em JSON no envelope data; erros com error, message e fields.
+  ou prk_live_…). Organização, showcase e ambiente vêm da chave, nunca da
+  requisição: a chave criada num showcase só alcança o que é dele. Respostas em
+  JSON no envelope data; erros com error, message e fields.
 
   Options: `:idempotency_key` and `:api_key`.
   """
@@ -1237,8 +1284,9 @@ defmodule Perata.PaymentMethods do
   validade. O número do cartão nunca aparece.
 
   Autenticação: chave de API da organização em Authorization: Bearer (prk_test_…
-  ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição.
-  Respostas em JSON no envelope data; erros com error, message e fields.
+  ou prk_live_…). Organização, showcase e ambiente vêm da chave, nunca da
+  requisição: a chave criada num showcase só alcança o que é dele. Respostas em
+  JSON no envelope data; erros com error, message e fields.
 
   Options: `:page`, `:limit` and `:api_key`.
   """
@@ -1274,8 +1322,9 @@ defmodule Perata.Payments do
   Devolve um pagamento pelo ID.
 
   Autenticação: chave de API da organização em Authorization: Bearer (prk_test_…
-  ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição.
-  Respostas em JSON no envelope data; erros com error, message e fields.
+  ou prk_live_…). Organização, showcase e ambiente vêm da chave, nunca da
+  requisição: a chave criada num showcase só alcança o que é dele. Respostas em
+  JSON no envelope data; erros com error, message e fields.
 
   Options: `:api_key`.
   """
@@ -1294,13 +1343,14 @@ defmodule Perata.Payments do
   Listar pagamentos. One page; `list_stream/2` walks every page.
 
   Devolve uma página dos pagamentos. Filtre por client_reference_id, estado,
-  cliente, período ou metadados.
+  cliente, assinatura (subscription_id), período ou metadados.
 
   Autenticação: chave de API da organização em Authorization: Bearer (prk_test_…
-  ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição.
-  Respostas em JSON no envelope data; erros com error, message e fields.
+  ou prk_live_…). Organização, showcase e ambiente vêm da chave, nunca da
+  requisição: a chave criada num showcase só alcança o que é dele. Respostas em
+  JSON no envelope data; erros com error, message e fields.
 
-  Options: `:page`, `:limit`, `:client_reference_id`, `:status`, `:customer_id`, `:external_customer_id`, `:created_after`, `:created_before`, `:sorting`, `:metadata` (a map of strings, sent as `metadata[key]=value`) and `:api_key`.
+  Options: `:page`, `:limit`, `:client_reference_id`, `:status`, `:customer_id`, `:external_customer_id`, `:subscription_id`, `:created_after`, `:created_before`, `:sorting`, `:metadata` (a map of strings, sent as `metadata[key]=value`) and `:api_key`.
   """
   @spec list(Client.t(), keyword()) ::
           {:ok, Perata.Page.t(Perata.Payment.t())} | {:error, Perata.Error.t()}
@@ -1315,6 +1365,7 @@ defmodule Perata.Payments do
         status: opts[:status],
         customer_id: opts[:customer_id],
         external_customer_id: opts[:external_customer_id],
+        subscription_id: opts[:subscription_id],
         created_after: opts[:created_after],
         created_before: opts[:created_before],
         sorting: opts[:sorting],
@@ -1351,8 +1402,9 @@ defmodule Perata.Prices do
   quanto tempo ele renova: month com 3 é trimestral.
 
   Autenticação: chave de API da organização em Authorization: Bearer (prk_test_…
-  ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição.
-  Respostas em JSON no envelope data; erros com error, message e fields.
+  ou prk_live_…). Organização, showcase e ambiente vêm da chave, nunca da
+  requisição: a chave criada num showcase só alcança o que é dele. Respostas em
+  JSON no envelope data; erros com error, message e fields.
 
   Options: `:idempotency_key` and `:api_key`.
   """
@@ -1379,8 +1431,9 @@ defmodule Perata.Prices do
   produto.
 
   Autenticação: chave de API da organização em Authorization: Bearer (prk_test_…
-  ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição.
-  Respostas em JSON no envelope data; erros com error, message e fields.
+  ou prk_live_…). Organização, showcase e ambiente vêm da chave, nunca da
+  requisição: a chave criada num showcase só alcança o que é dele. Respostas em
+  JSON no envelope data; erros com error, message e fields.
 
   Options: `:page`, `:limit`, `:product_id` and `:api_key`.
   """
@@ -1421,8 +1474,9 @@ defmodule Perata.Products do
   apontando para ele.
 
   Autenticação: chave de API da organização em Authorization: Bearer (prk_test_…
-  ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição.
-  Respostas em JSON no envelope data; erros com error, message e fields.
+  ou prk_live_…). Organização, showcase e ambiente vêm da chave, nunca da
+  requisição: a chave criada num showcase só alcança o que é dele. Respostas em
+  JSON no envelope data; erros com error, message e fields.
 
   Options: `:idempotency_key` and `:api_key`.
   """
@@ -1444,8 +1498,9 @@ defmodule Perata.Products do
   preço.
 
   Autenticação: chave de API da organização em Authorization: Bearer (prk_test_…
-  ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição.
-  Respostas em JSON no envelope data; erros com error, message e fields.
+  ou prk_live_…). Organização, showcase e ambiente vêm da chave, nunca da
+  requisição: a chave criada num showcase só alcança o que é dele. Respostas em
+  JSON no envelope data; erros com error, message e fields.
 
   Options: `:idempotency_key` and `:api_key`.
   """
@@ -1471,8 +1526,9 @@ defmodule Perata.Products do
   Devolve um produto pelo ID.
 
   Autenticação: chave de API da organização em Authorization: Bearer (prk_test_…
-  ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição.
-  Respostas em JSON no envelope data; erros com error, message e fields.
+  ou prk_live_…). Organização, showcase e ambiente vêm da chave, nunca da
+  requisição: a chave criada num showcase só alcança o que é dele. Respostas em
+  JSON no envelope data; erros com error, message e fields.
 
   Options: `:api_key`.
   """
@@ -1493,8 +1549,9 @@ defmodule Perata.Products do
   Devolve uma página dos produtos da organização, no ambiente da chave.
 
   Autenticação: chave de API da organização em Authorization: Bearer (prk_test_…
-  ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição.
-  Respostas em JSON no envelope data; erros com error, message e fields.
+  ou prk_live_…). Organização, showcase e ambiente vêm da chave, nunca da
+  requisição: a chave criada num showcase só alcança o que é dele. Respostas em
+  JSON no envelope data; erros com error, message e fields.
 
   Options: `:page`, `:limit` and `:api_key`.
   """
@@ -1525,8 +1582,9 @@ defmodule Perata.Products do
   como está.
 
   Autenticação: chave de API da organização em Authorization: Bearer (prk_test_…
-  ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição.
-  Respostas em JSON no envelope data; erros com error, message e fields.
+  ou prk_live_…). Organização, showcase e ambiente vêm da chave, nunca da
+  requisição: a chave criada num showcase só alcança o que é dele. Respostas em
+  JSON no envelope data; erros com error, message e fields.
 
   Options: `:idempotency_key` and `:api_key`.
   """
@@ -1558,15 +1616,20 @@ defmodule Perata.Refunds do
   alias Perata.Client
 
   @doc """
-  Reembolsar um pagamento.
+  Reembolsar um pagamento ou um pedido.
 
-  Devolve parte ou todo o valor de um pagamento. A Idempotency-Key é
+  Devolve dinheiro de um pagamento, que você nomeia pelo payment_id ou pelo
+  order_id do pedido que ele pagou (os dois, só se forem do mesmo pagamento).
+  Sem amount_cents devolve tudo o que ainda pode ser devolvido; com ele, uma
+  parte, até esse limite. O reason, sem ele, é requested_by_customer. O metadata
+  fica no reembolso e volta nele e nos eventos refund.*. A Idempotency-Key é
   obrigatória: sem ela, repetir a chamada depois de um tempo esgotado seria
-  devolver duas vezes.
+  devolver duas vezes; repetida com a mesma chave, devolve o mesmo reembolso.
 
   Autenticação: chave de API da organização em Authorization: Bearer (prk_test_…
-  ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição.
-  Respostas em JSON no envelope data; erros com error, message e fields.
+  ou prk_live_…). Organização, showcase e ambiente vêm da chave, nunca da
+  requisição: a chave criada num showcase só alcança o que é dele. Respostas em
+  JSON no envelope data; erros com error, message e fields.
 
   Options: `:idempotency_key` and `:api_key`.
   """
@@ -1587,16 +1650,42 @@ defmodule Perata.Refunds do
   end
 
   @doc """
+  Ler um reembolso.
+
+  Devolve um reembolso pelo ID, com o pedido de onde veio (order_id), o
+  client_reference_id desse pedido e o status: requested e pending esperam a
+  Cielo, succeeded devolveu o dinheiro.
+
+  Autenticação: chave de API da organização em Authorization: Bearer (prk_test_…
+  ou prk_live_…). Organização, showcase e ambiente vêm da chave, nunca da
+  requisição: a chave criada num showcase só alcança o que é dele. Respostas em
+  JSON no envelope data; erros com error, message e fields.
+
+  Options: `:api_key`.
+  """
+  @spec get(Client.t(), String.t(), keyword()) ::
+          {:ok, Perata.Refund.t()} | {:error, Perata.Error.t()}
+  def get(%Client{} = client, refund, opts \\ []) do
+    path = "/api/v1/refunds/#{Client.segment(refund)}"
+    request = [api_key: opts[:api_key]]
+
+    with {:ok, data} <- Client.request(client, "GET", path, request) do
+      {:ok, Perata.Refund.from_map(data)}
+    end
+  end
+
+  @doc """
   Listar reembolsos. One page; `list_stream/2` walks every page.
 
   Devolve uma página dos reembolsos. Filtre por pagamento (payment_id), status,
-  cliente ou período.
+  cliente, período ou metadados do reembolso.
 
   Autenticação: chave de API da organização em Authorization: Bearer (prk_test_…
-  ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição.
-  Respostas em JSON no envelope data; erros com error, message e fields.
+  ou prk_live_…). Organização, showcase e ambiente vêm da chave, nunca da
+  requisição: a chave criada num showcase só alcança o que é dele. Respostas em
+  JSON no envelope data; erros com error, message e fields.
 
-  Options: `:page`, `:limit`, `:payment_id`, `:status`, `:customer_id`, `:external_customer_id`, `:created_after`, `:created_before`, `:sorting` and `:api_key`.
+  Options: `:page`, `:limit`, `:payment_id`, `:status`, `:customer_id`, `:external_customer_id`, `:created_after`, `:created_before`, `:sorting`, `:metadata` (a map of strings, sent as `metadata[key]=value`) and `:api_key`.
   """
   @spec list(Client.t(), keyword()) ::
           {:ok, Perata.Page.t(Perata.Refund.t())} | {:error, Perata.Error.t()}
@@ -1613,7 +1702,8 @@ defmodule Perata.Refunds do
         external_customer_id: opts[:external_customer_id],
         created_after: opts[:created_after],
         created_before: opts[:created_before],
-        sorting: opts[:sorting]
+        sorting: opts[:sorting],
+        metadata: opts[:metadata]
       ],
       api_key: opts[:api_key]
     ]
@@ -1633,6 +1723,37 @@ defmodule Perata.Refunds do
   end
 end
 
+defmodule Perata.ShowcaseService do
+  @moduledoc "The API's showcase."
+
+  alias Perata.Client
+
+  @doc """
+  Ler o showcase da chave.
+
+  Devolve o showcase em que a chave foi criada: o ID (o showcase_id dos objetos
+  e dos eventos), o nome, se é o principal da organização e se tem logo. Serve
+  para o seu sistema, ou um assistente, saber onde está. Um showcase se abre e
+  se muda no painel, nunca por esta API.
+
+  Autenticação: chave de API da organização em Authorization: Bearer (prk_test_…
+  ou prk_live_…). Organização, showcase e ambiente vêm da chave, nunca da
+  requisição: a chave criada num showcase só alcança o que é dele. Respostas em
+  JSON no envelope data; erros com error, message e fields.
+
+  Options: `:api_key`.
+  """
+  @spec get(Client.t(), keyword()) :: {:ok, Perata.Showcase.t()} | {:error, Perata.Error.t()}
+  def get(%Client{} = client, opts \\ []) do
+    path = "/api/v1/showcase"
+    request = [api_key: opts[:api_key]]
+
+    with {:ok, data} <- Client.request(client, "GET", path, request) do
+      {:ok, Perata.Showcase.from_map(data)}
+    end
+  end
+end
+
 defmodule Perata.Subscriptions do
   @moduledoc "The API's subscriptions."
 
@@ -1645,8 +1766,9 @@ defmodule Perata.Subscriptions do
   pago.
 
   Autenticação: chave de API da organização em Authorization: Bearer (prk_test_…
-  ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição.
-  Respostas em JSON no envelope data; erros com error, message e fields.
+  ou prk_live_…). Organização, showcase e ambiente vêm da chave, nunca da
+  requisição: a chave criada num showcase só alcança o que é dele. Respostas em
+  JSON no envelope data; erros com error, message e fields.
 
   Options: `:idempotency_key` and `:api_key`.
   """
@@ -1677,8 +1799,9 @@ defmodule Perata.Subscriptions do
   Devolve uma assinatura pelo ID.
 
   Autenticação: chave de API da organização em Authorization: Bearer (prk_test_…
-  ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição.
-  Respostas em JSON no envelope data; erros com error, message e fields.
+  ou prk_live_…). Organização, showcase e ambiente vêm da chave, nunca da
+  requisição: a chave criada num showcase só alcança o que é dele. Respostas em
+  JSON no envelope data; erros com error, message e fields.
 
   Options: `:api_key`.
   """
@@ -1700,8 +1823,9 @@ defmodule Perata.Subscriptions do
   external_customer_id), status, período ou metadados.
 
   Autenticação: chave de API da organização em Authorization: Bearer (prk_test_…
-  ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição.
-  Respostas em JSON no envelope data; erros com error, message e fields.
+  ou prk_live_…). Organização, showcase e ambiente vêm da chave, nunca da
+  requisição: a chave criada num showcase só alcança o que é dele. Respostas em
+  JSON no envelope data; erros com error, message e fields.
 
   Options: `:page`, `:limit`, `:status`, `:customer_id`, `:external_customer_id`, `:created_after`, `:created_before`, `:sorting`, `:metadata` (a map of strings, sent as `metadata[key]=value`) and `:api_key`.
   """
@@ -1747,8 +1871,9 @@ defmodule Perata.Subscriptions do
   409.
 
   Autenticação: chave de API da organização em Authorization: Bearer (prk_test_…
-  ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição.
-  Respostas em JSON no envelope data; erros com error, message e fields.
+  ou prk_live_…). Organização, showcase e ambiente vêm da chave, nunca da
+  requisição: a chave criada num showcase só alcança o que é dele. Respostas em
+  JSON no envelope data; erros com error, message e fields.
 
   Options: `:idempotency_key` and `:api_key`.
   """
@@ -1770,8 +1895,9 @@ defmodule Perata.Subscriptions do
   proration_behavior diz como ratear a diferença.
 
   Autenticação: chave de API da organização em Authorization: Bearer (prk_test_…
-  ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição.
-  Respostas em JSON no envelope data; erros com error, message e fields.
+  ou prk_live_…). Organização, showcase e ambiente vêm da chave, nunca da
+  requisição: a chave criada num showcase só alcança o que é dele. Respostas em
+  JSON no envelope data; erros com error, message e fields.
 
   Options: `:idempotency_key` and `:api_key`.
   """
@@ -1850,8 +1976,9 @@ defmodule Perata.Webhooks do
   resposta; guarde-o.
 
   Autenticação: chave de API da organização em Authorization: Bearer (prk_test_…
-  ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição.
-  Respostas em JSON no envelope data; erros com error, message e fields.
+  ou prk_live_…). Organização, showcase e ambiente vêm da chave, nunca da
+  requisição: a chave criada num showcase só alcança o que é dele. Respostas em
+  JSON no envelope data; erros com error, message e fields.
 
   Options: `:idempotency_key` and `:api_key`.
   """
@@ -1881,8 +2008,9 @@ defmodule Perata.Webhooks do
   Exclui um endpoint de webhook. As entregas que ainda esperavam por ele falham.
 
   Autenticação: chave de API da organização em Authorization: Bearer (prk_test_…
-  ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição.
-  Respostas em JSON no envelope data; erros com error, message e fields.
+  ou prk_live_…). Organização, showcase e ambiente vêm da chave, nunca da
+  requisição: a chave criada num showcase só alcança o que é dele. Respostas em
+  JSON no envelope data; erros com error, message e fields.
 
   Options: `:idempotency_key` and `:api_key`.
   """
@@ -1902,8 +2030,9 @@ defmodule Perata.Webhooks do
   Devolve um endpoint de webhook pelo ID.
 
   Autenticação: chave de API da organização em Authorization: Bearer (prk_test_…
-  ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição.
-  Respostas em JSON no envelope data; erros com error, message e fields.
+  ou prk_live_…). Organização, showcase e ambiente vêm da chave, nunca da
+  requisição: a chave criada num showcase só alcança o que é dele. Respostas em
+  JSON no envelope data; erros com error, message e fields.
 
   Options: `:api_key`.
   """
@@ -1925,8 +2054,9 @@ defmodule Perata.Webhooks do
   as de um endpoint; com status, só as de uma situação.
 
   Autenticação: chave de API da organização em Authorization: Bearer (prk_test_…
-  ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição.
-  Respostas em JSON no envelope data; erros com error, message e fields.
+  ou prk_live_…). Organização, showcase e ambiente vêm da chave, nunca da
+  requisição: a chave criada num showcase só alcança o que é dele. Respostas em
+  JSON no envelope data; erros com error, message e fields.
 
   Options: `:page`, `:limit`, `:endpoint_id`, `:status` and `:api_key`.
   """
@@ -1965,8 +2095,9 @@ defmodule Perata.Webhooks do
   Devolve uma página dos endpoints de webhook da organização.
 
   Autenticação: chave de API da organização em Authorization: Bearer (prk_test_…
-  ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição.
-  Respostas em JSON no envelope data; erros com error, message e fields.
+  ou prk_live_…). Organização, showcase e ambiente vêm da chave, nunca da
+  requisição: a chave criada num showcase só alcança o que é dele. Respostas em
+  JSON no envelope data; erros com error, message e fields.
 
   Options: `:page`, `:limit` and `:api_key`.
   """
@@ -1997,8 +2128,9 @@ defmodule Perata.Webhooks do
   e desliga o envio (enabled). O segredo não muda.
 
   Autenticação: chave de API da organização em Authorization: Bearer (prk_test_…
-  ou prk_live_…). Organização e ambiente vêm da chave, nunca da requisição.
-  Respostas em JSON no envelope data; erros com error, message e fields.
+  ou prk_live_…). Organização, showcase e ambiente vêm da chave, nunca da
+  requisição: a chave criada num showcase só alcança o que é dele. Respostas em
+  JSON no envelope data; erros com error, message e fields.
 
   Options: `:idempotency_key` and `:api_key`.
   """

@@ -87,6 +87,10 @@ public sealed record WebhookSubscription
     [JsonPropertyName("product_id")]
     public required string ProductId { get; init; }
 
+    /// <summary>O showcase da venda.</summary>
+    [JsonPropertyName("showcase_id")]
+    public required string ShowcaseId { get; init; }
+
     /// <summary>The API's <c>status</c>.</summary>
     [JsonPropertyName("status")]
     public required string Status { get; init; }

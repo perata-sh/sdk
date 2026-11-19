@@ -238,7 +238,7 @@ module Perata
 
   # The body of checkouts:create.
   class CheckoutsCreateParams < Params
-    MEMBERS = %i[allow_discount_codes amount_cents cancel_url client_reference_id customer_email customer_id customer_name expires_in external_customer_id items label metadata price_id product_id quantity require_billing_address return_url success_url].freeze
+    MEMBERS = %i[allow_discount_codes amount_cents cancel_url client_reference_id customer_email customer_id customer_name discount_id expires_in external_customer_id items label metadata price_id product_id quantity require_billing_address return_url subscription_start_at success_url].freeze
 
     # Deixa o comprador digitar um código de desconto; desligado quando fica de fora.
     # @return [Boolean, nil]
@@ -267,6 +267,10 @@ module Perata
     # @return [String, nil]
     attr_reader :customer_name
 
+    # O desconto do catálogo que o checkout aplica sozinho, sem o comprador digitar código: o valor dele (percentual ou fixo) é tirado do total e vale como o desconto foi criado, uma vez, por alguns meses ou para sempre. Um desconto limitado a produtos (product_ids na criação do desconto) só vale para esses produtos: num checkout de uma câmera, o desconto de uma câmera. Um id que não é de um desconto ativo do catálogo é recusado com 422.
+    # @return [String, nil]
+    attr_reader :discount_id
+
     # Segundos em que a sessão e o client_secret continuam valendo, de um minuto a três dias; 1800 (30 minutos) quando fica de fora. Uma sessão paga com Pix pode ser aberta até esse prazo e, aberta, o Pix gerado vale 24 horas.
     # @return [Integer, nil]
     attr_reader :expires_in
@@ -275,7 +279,7 @@ module Perata
     # @return [String, nil]
     attr_reader :external_customer_id
 
-    # As linhas do pedido, até 50, para o comprador ler o detalhe: aparecem no checkout (página, modal, componentes e transparente), no pedido, no recibo, no portal do cliente e nos eventos. A soma de quantity vezes unit_amount_cents precisa ser igual a amount_cents, ou a resposta é 422; enviadas sem amount_cents, a soma é o valor.
+    # As linhas do pedido, até 50, para o comprador ler o detalhe: aparecem no checkout (página, modal, componentes e transparente), no pedido, no recibo, no portal do cliente e nos eventos. Em um preço de valor livre, a soma de quantity vezes unit_amount_cents precisa ser igual a amount_cents, ou a resposta é 422; enviadas sem amount_cents, a soma é o valor. Em um preço com valor próprio, como o de uma assinatura, as linhas só mostram ao comprador do que o valor é feito e fixam nada: envie-as sem amount_cents, com a soma igual ao valor do preço vezes a quantidade (senão 422), e o preço continua sendo quem define o que se cobra.
     # @return [Array<CheckoutsCreateItem>, nil]
     attr_reader :items
 
@@ -304,10 +308,14 @@ module Perata
     # @return [String, nil]
     attr_reader :return_url
 
+    # O dia da primeira cobrança de uma assinatura, como o trial_end do Stripe: o cartão é guardado e conferido com o emissor, nada é cobrado hoje e a primeira cobrança acontece nesse dia, no cartão guardado; as seguintes seguem a periodicidade do preço a partir dele. Só vale em um preço recorrente com valor, e só no cartão de crédito: a página não oferece Pix nem boleto. Vale o dia no horário de São Paulo, da meia-noite dele, qualquer que seja o fuso enviado; a hora não conta. Tem de ser de amanhã a um ano, senão a resposta é 422. A resposta devolve o instante como a Peráta o guarda, em subscription_start_at. Quem abre o checkout depois da data recebe 410.
+    # @return [String, nil]
+    attr_reader :subscription_start_at
+
     # @return [String, nil]
     attr_reader :success_url
 
-    def initialize(allow_discount_codes: nil, amount_cents: nil, cancel_url: nil, client_reference_id: nil, customer_email: nil, customer_id: nil, customer_name: nil, expires_in: nil, external_customer_id: nil, items: nil, label: nil, metadata: nil, price_id:, product_id:, quantity: nil, require_billing_address: nil, return_url: nil, success_url: nil)
+    def initialize(allow_discount_codes: nil, amount_cents: nil, cancel_url: nil, client_reference_id: nil, customer_email: nil, customer_id: nil, customer_name: nil, discount_id: nil, expires_in: nil, external_customer_id: nil, items: nil, label: nil, metadata: nil, price_id:, product_id:, quantity: nil, require_billing_address: nil, return_url: nil, subscription_start_at: nil, success_url: nil)
       @allow_discount_codes = allow_discount_codes
       @amount_cents = amount_cents
       @cancel_url = cancel_url
@@ -315,6 +323,7 @@ module Perata
       @customer_email = customer_email
       @customer_id = customer_id
       @customer_name = customer_name
+      @discount_id = discount_id
       @expires_in = expires_in
       @external_customer_id = external_customer_id
       @items = items
@@ -325,6 +334,7 @@ module Perata
       @quantity = quantity
       @require_billing_address = require_billing_address
       @return_url = return_url
+      @subscription_start_at = subscription_start_at
       @success_url = success_url
       freeze
     end
@@ -339,6 +349,7 @@ module Perata
       wire["customer_email"] = @customer_email unless @customer_email.nil?
       wire["customer_id"] = @customer_id unless @customer_id.nil?
       wire["customer_name"] = @customer_name unless @customer_name.nil?
+      wire["discount_id"] = @discount_id unless @discount_id.nil?
       wire["expires_in"] = @expires_in unless @expires_in.nil?
       wire["external_customer_id"] = @external_customer_id unless @external_customer_id.nil?
       wire["items"] = Perata.wire(@items) unless @items.nil?
@@ -349,6 +360,7 @@ module Perata
       wire["quantity"] = @quantity unless @quantity.nil?
       wire["require_billing_address"] = @require_billing_address unless @require_billing_address.nil?
       wire["return_url"] = @return_url unless @return_url.nil?
+      wire["subscription_start_at"] = @subscription_start_at unless @subscription_start_at.nil?
       wire["success_url"] = @success_url unless @success_url.nil?
       wire
     end
@@ -1024,23 +1036,37 @@ module Perata
 
   # The body of refunds:create.
   class RefundsCreateParams < Params
-    MEMBERS = %i[amount_cents note payment_id reason].freeze
+    MEMBERS = %i[amount_cents metadata note order_id payment_id reason].freeze
 
-    # @return [Integer]
+    # Quanto devolver, em centavos, de 1 até o que ainda pode ser devolvido. Sem ele, devolve tudo o que ainda pode ser devolvido.
+    # @return [Integer, nil]
     attr_reader :amount_cents
 
+    # Pares seus guardados no reembolso; voltam como refund_metadata no reembolso e nos eventos refund.created e refund.updated, onde metadata é o do pedido. O filtro metadata[chave]=valor de GET /refunds procura estes pares. Até 50 pares de chave e valor: a chave tem de 1 a 40 caracteres, e o valor é um texto de 1 a 500 caracteres, um número ou um booleano. Texto sem caracteres de controle nem de direção invisível.
+    # @return [Hash{String => Object}, nil]
+    attr_reader :metadata
+
+    # Uma observação sua, de até 500 caracteres.
     # @return [String, nil]
     attr_reader :note
 
-    # @return [String]
+    # O pedido (o id que GET /orders/{id} recebe) cujo pagamento capturado é devolvido. Dispensa o payment_id.
+    # @return [String, nil]
+    attr_reader :order_id
+
+    # O pagamento de que o dinheiro volta. Envie este ou o order_id; os dois juntos só se forem do mesmo pagamento.
+    # @return [String, nil]
     attr_reader :payment_id
 
-    # @return [String ("requested_by_customer", "duplicate", "fraudulent", "product_unavailable", "service_disruption", "other")]
+    # Por que o dinheiro volta. Sem ele, requested_by_customer; com other a note é obrigatória.
+    # @return [String ("requested_by_customer", "duplicate", "fraudulent", "product_unavailable", "service_disruption", "other"), nil]
     attr_reader :reason
 
-    def initialize(amount_cents:, note: nil, payment_id:, reason:)
+    def initialize(amount_cents: nil, metadata: nil, note: nil, order_id: nil, payment_id: nil, reason: nil)
       @amount_cents = amount_cents
+      @metadata = metadata
       @note = note
+      @order_id = order_id
       @payment_id = payment_id
       @reason = reason
       freeze
@@ -1049,10 +1075,12 @@ module Perata
     # The body as the API reads it.
     def to_wire
       wire = {}
-      wire["amount_cents"] = @amount_cents
+      wire["amount_cents"] = @amount_cents unless @amount_cents.nil?
+      wire["metadata"] = Perata.wire(@metadata) unless @metadata.nil?
       wire["note"] = @note unless @note.nil?
-      wire["payment_id"] = @payment_id
-      wire["reason"] = @reason
+      wire["order_id"] = @order_id unless @order_id.nil?
+      wire["payment_id"] = @payment_id unless @payment_id.nil?
+      wire["reason"] = @reason unless @reason.nil?
       wire
     end
   end

@@ -19,18 +19,18 @@ final class {{.Webhook.Name}}WebhookEvent extends WebhookEvent
 
 {{- if eq .Webhook.Data.Kind "model"}}
 
-    public function __construct(string $id, string $type, string $timestamp, string $environment, public readonly Models\{{.Webhook.Data.Model}} $data)
+    public function __construct(string $id, string $type, string $timestamp, string $environment, string $showcaseId, public readonly Models\{{.Webhook.Data.Model}} $data)
     {
-        parent::__construct($id, $type, $timestamp, $environment);
+        parent::__construct($id, $type, $timestamp, $environment, $showcaseId);
     }
 {{- else}}
 
     /**
      * @param array<string, string> $data
      */
-    public function __construct(string $id, string $type, string $timestamp, string $environment, public readonly array $data)
+    public function __construct(string $id, string $type, string $timestamp, string $environment, string $showcaseId, public readonly array $data)
     {
-        parent::__construct($id, $type, $timestamp, $environment);
+        parent::__construct($id, $type, $timestamp, $environment, $showcaseId);
     }
 {{- end}}
 }

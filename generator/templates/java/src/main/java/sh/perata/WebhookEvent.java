@@ -11,12 +11,14 @@ public abstract class WebhookEvent {
     private final String type;
     private final String timestamp;
     private final String environment;
+    private final String showcaseId;
 
-    WebhookEvent(String id, String type, String timestamp, String environment) {
+    WebhookEvent(String id, String type, String timestamp, String environment, String showcaseId) {
         this.id = id;
         this.type = type;
         this.timestamp = timestamp;
         this.environment = environment;
+        this.showcaseId = showcaseId;
     }
 
     /** @return the message's id, the same as the webhook-id header and on every delivery of it */
@@ -39,11 +41,16 @@ public abstract class WebhookEvent {
         return environment;
     }
 
+    /** @return the showcase of the sale, the same showcase_id the API's objects carry; empty when an older server did not send it */
+    public String getShowcaseId() {
+        return showcaseId;
+    }
+
     /** @return what the event carries */
     public abstract Object getData();
 
     @Override
     public String toString() {
-        return getClass().getSimpleName() + "{id=" + id + ", type=" + type + ", timestamp=" + timestamp + ", environment=" + environment + ", data=" + getData() + "}";
+        return getClass().getSimpleName() + "{id=" + id + ", type=" + type + ", timestamp=" + timestamp + ", environment=" + environment + ", showcaseId=" + showcaseId + ", data=" + getData() + "}";
     }
 }

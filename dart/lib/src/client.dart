@@ -97,6 +97,9 @@ class Perata implements Requester {
   /// The API's refunds.
   late final refunds = RefundsService(this);
 
+  /// The API's showcase.
+  late final showcase = ShowcaseService(this);
+
   /// The API's subscriptions.
   late final subscriptions = SubscriptionsService(this);
 

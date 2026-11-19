@@ -55,6 +55,7 @@ class PerataTest {
         product.put("name", "Curso");
         product.put("description", "");
         product.put("status", "active");
+        product.put("showcase_id", "shw_1");
         product.put("created_at", "2026-10-17T00:00:00Z");
         return product;
     }
@@ -122,6 +123,9 @@ class PerataTest {
         session.put("items", java.util.List.of());
         session.put("metadata", java.util.Map.of());
         session.put("client_reference_id", "");
+        session.put("discount_id", "");
+        session.put("showcase_id", "shw_1");
+        session.put("subscription_start_at", null);
         return session;
     }
 
@@ -227,7 +231,7 @@ class PerataTest {
 
     @Test
     void aFreeFormValueDecodesNested() {
-        String state = "{\"id\":\"cus_1\",\"name\":\"Ana\",\"email\":\"ana@example.com\",\"external_id\":\"\",\"status\":\"active\",\"created_at\":\"2026-10-17T00:00:00Z\",\"active_subscriptions\":[],\"granted_benefits\":[{\"id\":\"gr_1\",\"granted_at\":\"2026-10-17T00:00:00Z\",\"benefit_id\":\"ben_1\",\"benefit_type\":\"feature_flag\",\"benefit_metadata\":{\"flags\":{\"beta\":true,\"limits\":{\"seats\":5,\"tiers\":[\"a\",2,null,1.5]}}},\"properties\":{\"links\":[{\"url\":\"https://example.com\",\"expires\":null}]}}]}";
+        String state = "{\"id\":\"cus_1\",\"showcase_id\":\"shw_1\",\"name\":\"Ana\",\"email\":\"ana@example.com\",\"external_id\":\"\",\"status\":\"active\",\"created_at\":\"2026-10-17T00:00:00Z\",\"active_subscriptions\":[],\"granted_benefits\":[{\"id\":\"gr_1\",\"granted_at\":\"2026-10-17T00:00:00Z\",\"benefit_id\":\"ben_1\",\"benefit_type\":\"feature_flag\",\"benefit_metadata\":{\"flags\":{\"beta\":true,\"limits\":{\"seats\":5,\"tiers\":[\"a\",2,null,1.5]}}},\"properties\":{\"links\":[{\"url\":\"https://example.com\",\"expires\":null}]}}]}";
         Recorder recorder = new Recorder(request -> json(200, Map.of(), data(Json.parse(state))));
         CustomerStateBenefitGrant grant = client(recorder).customers().getState("cus_1").getGrantedBenefits().get(0);
         Map<?, ?> flags = (Map<?, ?>) grant.getBenefitMetadata().get("flags");
@@ -386,9 +390,9 @@ class PerataTest {
     private static final String REFERENCE_SECRET = "whsec_MfKQ9r8GKYqrTwjUPD8ILPZIo2LaLaSw";
     private static final String OLD_SECRET = "whsec_cGVyYXRhLXNkay1vbGQta2V5LTAxMjM0NTY3ODlhYmM=";
     private static final String NEW_SECRET = "whsec_cGVyYXRhLXNkay1uZXcta2V5LTAxMjM0NTY3ODlhYmM=";
-    private static final String ORDER_PAID = "{\"id\":\"msg_2\",\"type\":\"order.paid\",\"timestamp\":\"2026-10-22T12:00:00Z\",\"data\":{\"id\":\"ord_1\",\"customer_id\":\"cus_1\",\"product_id\":\"prod_1\",\"price_id\":\"price_1\",\"amount_cents\":12000,\"currency\":\"BRL\",\"status\":\"succeeded\",\"paid_at\":\"2026-10-22T12:00:00Z\",\"order_status\":\"paid\",\"refunded_amount_cents\":0,\"refund_id\":null,\"refund_amount_cents\":null,\"installments\":3,\"installment_interest_cents\":360,\"items\":[],\"metadata\":{},\"client_reference_id\":\"\"}}";
+    private static final String ORDER_PAID = "{\"id\":\"msg_2\",\"type\":\"order.paid\",\"timestamp\":\"2026-10-22T12:00:00Z\",\"data\":{\"id\":\"ord_1\",\"customer_id\":\"cus_1\",\"product_id\":\"prod_1\",\"price_id\":\"price_1\",\"amount_cents\":12000,\"currency\":\"BRL\",\"status\":\"succeeded\",\"paid_at\":\"2026-10-22T12:00:00Z\",\"order_status\":\"paid\",\"refunded_amount_cents\":0,\"refund_id\":null,\"refund_amount_cents\":null,\"installments\":3,\"installment_interest_cents\":360,\"items\":[],\"metadata\":{},\"client_reference_id\":\"\",\"showcase_id\":\"shw_1\"}}";
     private static final String USAGE_RECORDED = "{\"id\":\"msg_3\",\"type\":\"usage_event.recorded\",\"timestamp\":\"2026-10-22T12:00:00Z\",\"data\":{\"event_id\":\"ue_1\",\"aggregate\":\"usage_event\",\"aggregate_id\":\"ue_1\",\"merchant_id\":\"mer_1\",\"environment\":\"test\"}}";
-    private static final String ORDER_PAID_LIVE = "{\"id\":\"msg_5\",\"type\":\"order.paid\",\"timestamp\":\"2026-10-22T12:00:00Z\",\"environment\":\"live\",\"data\":{\"id\":\"ord_1\",\"customer_id\":\"cus_1\",\"product_id\":\"prod_1\",\"price_id\":\"price_1\",\"amount_cents\":12000,\"currency\":\"BRL\",\"status\":\"succeeded\",\"paid_at\":\"2026-10-22T12:00:00Z\",\"order_status\":\"paid\",\"refunded_amount_cents\":0,\"refund_id\":null,\"refund_amount_cents\":null,\"installments\":3,\"installment_interest_cents\":360,\"items\":[],\"metadata\":{},\"client_reference_id\":\"\"}}";
+    private static final String ORDER_PAID_LIVE = "{\"id\":\"msg_5\",\"type\":\"order.paid\",\"timestamp\":\"2026-10-22T12:00:00Z\",\"environment\":\"live\",\"showcase_id\":\"shw_1\",\"data\":{\"id\":\"ord_1\",\"customer_id\":\"cus_1\",\"product_id\":\"prod_1\",\"price_id\":\"price_1\",\"amount_cents\":12000,\"currency\":\"BRL\",\"status\":\"succeeded\",\"paid_at\":\"2026-10-22T12:00:00Z\",\"order_status\":\"paid\",\"refunded_amount_cents\":0,\"refund_id\":null,\"refund_amount_cents\":null,\"installments\":3,\"installment_interest_cents\":360,\"items\":[],\"metadata\":{},\"client_reference_id\":\"\",\"showcase_id\":\"shw_1\"}}";
     private static final String PAYOUT_SENT_TEST = "{\"id\":\"msg_6\",\"type\":\"payout.sent\",\"timestamp\":\"2026-10-22T12:00:00Z\",\"environment\":\"test\",\"data\":{\"payout_id\":\"po_1\",\"amount_cents\":5000}}";
     private static final String PAYOUT_SENT = "{\"id\":\"msg_4\",\"type\":\"payout.sent\",\"timestamp\":\"2026-10-22T12:00:00Z\",\"data\":{\"payout_id\":\"po_1\",\"amount_cents\":5000}}";
     private static final long SIGNED_AT = 1792670400L;
@@ -428,26 +432,30 @@ class PerataTest {
     void aWebhookCarriesTheEnvironmentItHappenedIn() {
         Instant now = Instant.ofEpochSecond(SIGNED_AT + 120);
         String[][] older = {
-            {"msg_2", "v1,XI92+fzspBAwIZD8XhEF5PwZNFrKbyAaykAydn3pPzY= v1,G2ijkhNO0sP+dkoMlsU1sOLmtbpIw9SYOwC2XTqMKdw=", ORDER_PAID},
+            {"msg_2", "v1,fvRLETNjaSQOVbSs/eVRV/C17ysRHoubzX3idpGAifI= v1,ZsKtmVTp/mXCeW5qAiaLJY1TjyXwUyS7RxRVa3RIQQo=", ORDER_PAID},
             {"msg_3", "v1,Z3E2vTbczigiySfkzakxuZotPn9FlBY1KAET6hPEZoU=", USAGE_RECORDED},
             {"msg_4", "v1,Sa/yofA3h/58pFR+rIiWdIc8qXfcuqvyJSjxn4oJ1ZY=", PAYOUT_SENT},
         };
         for (String[] each : older) {
             WebhookEvent event = Webhook.verify(NEW_SECRET, webhookHeaders(each[0], SIGNED_AT, each[1]), each[2].getBytes(StandardCharsets.UTF_8), now);
             assertEquals("", event.getEnvironment(), each[0]);
+            assertEquals("", event.getShowcaseId(), each[0]);
         }
-        WebhookEvent order = Webhook.verify(NEW_SECRET, webhookHeaders("msg_5", SIGNED_AT, "v1,JECjRi5yt5jEJZSUqpIxpxCJ/OfRgUBipIRj1b2lsUk="), ORDER_PAID_LIVE.getBytes(StandardCharsets.UTF_8), now);
+        WebhookEvent order = Webhook.verify(NEW_SECRET, webhookHeaders("msg_5", SIGNED_AT, "v1,9CgfDokxQ7tBEd7vvv32TI4QUdqkaHrxgUo2UUNQpOY="), ORDER_PAID_LIVE.getBytes(StandardCharsets.UTF_8), now);
         assertInstanceOf(OrderWebhookEvent.class, order);
         assertEquals("live", order.getEnvironment());
+        assertEquals("shw_1", order.getShowcaseId());
+        assertEquals("shw_1", ((OrderWebhookEvent) order).getData().getShowcaseId());
         WebhookEvent unknown = Webhook.verify(NEW_SECRET, webhookHeaders("msg_6", SIGNED_AT, "v1,6He63m1rUlB789sgtRAHqex4wyKkzAwdHt6uRsp8YQM="), PAYOUT_SENT_TEST.getBytes(StandardCharsets.UTF_8), now);
         assertInstanceOf(UnknownWebhookEvent.class, unknown);
         assertEquals("test", unknown.getEnvironment());
+        assertEquals("", unknown.getShowcaseId());
     }
 
     @Test
     void aWebhookAnswersItsTypedEvent() {
         Instant now = Instant.ofEpochSecond(SIGNED_AT + 120);
-        Map<String, String> headers = webhookHeaders("msg_2", SIGNED_AT, "v1,XI92+fzspBAwIZD8XhEF5PwZNFrKbyAaykAydn3pPzY= v1,G2ijkhNO0sP+dkoMlsU1sOLmtbpIw9SYOwC2XTqMKdw=");
+        Map<String, String> headers = webhookHeaders("msg_2", SIGNED_AT, "v1,fvRLETNjaSQOVbSs/eVRV/C17ysRHoubzX3idpGAifI= v1,ZsKtmVTp/mXCeW5qAiaLJY1TjyXwUyS7RxRVa3RIQQo=");
         byte[] orderPaid = ORDER_PAID.getBytes(StandardCharsets.UTF_8);
         for (String secret : List.of(NEW_SECRET, OLD_SECRET)) {
             WebhookEvent event = Webhook.verify(secret, headers, orderPaid, now);
@@ -484,6 +492,7 @@ class PerataTest {
                 Map<String, Object> product = product("prod_1");
                 product.put("name", sent.get("name"));
                 product.put("description", idempotencyKey == null ? "" : idempotencyKey);
+                product.put("showcase_id", "shw_1");
                 product.put("created_at", exchange.getRequestMethod() + " " + exchange.getRequestURI());
                 answer = Json.write(data(product)).getBytes(StandardCharsets.UTF_8);
                 exchange.sendResponseHeaders(201, answer.length);

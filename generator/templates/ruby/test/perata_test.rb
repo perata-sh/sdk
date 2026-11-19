@@ -33,7 +33,7 @@ class PerataTest < Minitest::Test
   end
 
   def product(id)
-    { "id" => id, "name" => "Curso", "description" => "", "status" => "active", "created_at" => "2026-10-17T00:00:00Z" }
+    { "id" => id, "name" => "Curso", "description" => "", "status" => "active", "showcase_id" => "shw_1", "created_at" => "2026-10-17T00:00:00Z" }
   end
 
   def query(request)
@@ -66,7 +66,8 @@ class PerataTest < Minitest::Test
       "status" => "active", "label" => "", "quantity" => 1, "success_url" => "https://loja.example/obrigado", "cancel_url" => "",
       "expires_at" => nil, "created_at" => "2026-11-16T12:00:00Z", "session_id" => "cs_1", "client_secret" => client_secret,
       "client_secret_expires_at" => "2026-11-16T12:30:00Z", "status_key" => "sk_1",
-      "amount_cents" => nil, "items" => [], "metadata" => {}, "client_reference_id" => ""
+      "amount_cents" => nil, "items" => [], "metadata" => {}, "client_reference_id" => "",
+      "discount_id" => "", "showcase_id" => "shw_1", "subscription_start_at" => nil
     }
   end
 
@@ -140,7 +141,7 @@ class PerataTest < Minitest::Test
   end
 
   def test_a_free_form_value_decodes_nested
-    state = JSON.parse('{"id":"cus_1","name":"Ana","email":"ana@example.com","external_id":"","status":"active","created_at":"2026-10-17T00:00:00Z","active_subscriptions":[],"granted_benefits":[{"id":"gr_1","granted_at":"2026-10-17T00:00:00Z","benefit_id":"ben_1","benefit_type":"feature_flag","benefit_metadata":{"flags":{"beta":true,"limits":{"seats":5,"tiers":["a",2,null,1.5]}}},"properties":{"links":[{"url":"https://example.com","expires":null}]}}]}')
+    state = JSON.parse('{"id":"cus_1","showcase_id":"shw_1","name":"Ana","email":"ana@example.com","external_id":"","status":"active","created_at":"2026-10-17T00:00:00Z","active_subscriptions":[],"granted_benefits":[{"id":"gr_1","granted_at":"2026-10-17T00:00:00Z","benefit_id":"ben_1","benefit_type":"feature_flag","benefit_metadata":{"flags":{"beta":true,"limits":{"seats":5,"tiers":["a",2,null,1.5]}}},"properties":{"links":[{"url":"https://example.com","expires":null}]}}]}')
     perata, = client { [200, { "data" => state }, {}] }
     grant = perata.customers.get_state("cus_1").granted_benefits.first
     assert_equal({ "flags" => { "beta" => true, "limits" => { "seats" => 5, "tiers" => ["a", 2, nil, 1.5] } } }, grant.benefit_metadata)
@@ -253,10 +254,10 @@ class PerataTest < Minitest::Test
   REFERENCE_SECRET = "whsec_MfKQ9r8GKYqrTwjUPD8ILPZIo2LaLaSw"
   OLD_SECRET = "whsec_cGVyYXRhLXNkay1vbGQta2V5LTAxMjM0NTY3ODlhYmM="
   NEW_SECRET = "whsec_cGVyYXRhLXNkay1uZXcta2V5LTAxMjM0NTY3ODlhYmM="
-  ORDER_PAID = '{"id":"msg_2","type":"order.paid","timestamp":"2026-10-22T12:00:00Z","data":{"id":"ord_1","customer_id":"cus_1","product_id":"prod_1","price_id":"price_1","amount_cents":12000,"currency":"BRL","status":"succeeded","paid_at":"2026-10-22T12:00:00Z","order_status":"paid","refunded_amount_cents":0,"refund_id":null,"refund_amount_cents":null,"installments":3,"installment_interest_cents":360,"items":[],"metadata":{},"client_reference_id":""}}'
+  ORDER_PAID = '{"id":"msg_2","type":"order.paid","timestamp":"2026-10-22T12:00:00Z","data":{"id":"ord_1","customer_id":"cus_1","product_id":"prod_1","price_id":"price_1","amount_cents":12000,"currency":"BRL","status":"succeeded","paid_at":"2026-10-22T12:00:00Z","order_status":"paid","refunded_amount_cents":0,"refund_id":null,"refund_amount_cents":null,"installments":3,"installment_interest_cents":360,"items":[],"metadata":{},"client_reference_id":"","showcase_id":"shw_1"}}'
   USAGE_RECORDED = '{"id":"msg_3","type":"usage_event.recorded","timestamp":"2026-10-22T12:00:00Z","data":{"event_id":"ue_1","aggregate":"usage_event","aggregate_id":"ue_1","merchant_id":"mer_1","environment":"test"}}'
   PAYOUT_SENT = '{"id":"msg_4","type":"payout.sent","timestamp":"2026-10-22T12:00:00Z","data":{"payout_id":"po_1","amount_cents":5000}}'
-  ORDER_PAID_LIVE = '{"id":"msg_5","type":"order.paid","timestamp":"2026-10-22T12:00:00Z","environment":"live","data":{"id":"ord_1","customer_id":"cus_1","product_id":"prod_1","price_id":"price_1","amount_cents":12000,"currency":"BRL","status":"succeeded","paid_at":"2026-10-22T12:00:00Z","order_status":"paid","refunded_amount_cents":0,"refund_id":null,"refund_amount_cents":null,"installments":3,"installment_interest_cents":360,"items":[],"metadata":{},"client_reference_id":""}}'
+  ORDER_PAID_LIVE = '{"id":"msg_5","type":"order.paid","timestamp":"2026-10-22T12:00:00Z","environment":"live","showcase_id":"shw_1","data":{"id":"ord_1","customer_id":"cus_1","product_id":"prod_1","price_id":"price_1","amount_cents":12000,"currency":"BRL","status":"succeeded","paid_at":"2026-10-22T12:00:00Z","order_status":"paid","refunded_amount_cents":0,"refund_id":null,"refund_amount_cents":null,"installments":3,"installment_interest_cents":360,"items":[],"metadata":{},"client_reference_id":"","showcase_id":"shw_1"}}'
   PAYOUT_SENT_TEST = '{"id":"msg_6","type":"payout.sent","timestamp":"2026-10-22T12:00:00Z","environment":"test","data":{"payout_id":"po_1","amount_cents":5000}}'
   SIGNED_AT = 1_792_670_400
 
@@ -284,20 +285,24 @@ class PerataTest < Minitest::Test
 
   def test_a_webhook_carries_the_environment_it_happened_in
     now = Time.at(SIGNED_AT + 120)
-    [["msg_2", "v1,XI92+fzspBAwIZD8XhEF5PwZNFrKbyAaykAydn3pPzY= v1,G2ijkhNO0sP+dkoMlsU1sOLmtbpIw9SYOwC2XTqMKdw=", ORDER_PAID], ["msg_3", "v1,Z3E2vTbczigiySfkzakxuZotPn9FlBY1KAET6hPEZoU=", USAGE_RECORDED], ["msg_4", "v1,Sa/yofA3h/58pFR+rIiWdIc8qXfcuqvyJSjxn4oJ1ZY=", PAYOUT_SENT]].each do |id, signature, body|
+    [["msg_2", "v1,fvRLETNjaSQOVbSs/eVRV/C17ysRHoubzX3idpGAifI= v1,ZsKtmVTp/mXCeW5qAiaLJY1TjyXwUyS7RxRVa3RIQQo=", ORDER_PAID], ["msg_3", "v1,Z3E2vTbczigiySfkzakxuZotPn9FlBY1KAET6hPEZoU=", USAGE_RECORDED], ["msg_4", "v1,Sa/yofA3h/58pFR+rIiWdIc8qXfcuqvyJSjxn4oJ1ZY=", PAYOUT_SENT]].each do |id, signature, body|
       assert_equal "", Perata.verify_webhook(NEW_SECRET, webhook_headers(id, SIGNED_AT, signature), body, now: now).environment, id
+      assert_equal "", Perata.verify_webhook(NEW_SECRET, webhook_headers(id, SIGNED_AT, signature), body, now: now).showcase_id, id
     end
-    order = Perata.verify_webhook(NEW_SECRET, webhook_headers("msg_5", SIGNED_AT, "v1,JECjRi5yt5jEJZSUqpIxpxCJ/OfRgUBipIRj1b2lsUk="), ORDER_PAID_LIVE, now: now)
+    order = Perata.verify_webhook(NEW_SECRET, webhook_headers("msg_5", SIGNED_AT, "v1,9CgfDokxQ7tBEd7vvv32TI4QUdqkaHrxgUo2UUNQpOY="), ORDER_PAID_LIVE, now: now)
     assert_instance_of Perata::OrderWebhookEvent, order
     assert_equal "live", order.environment
+    assert_equal "shw_1", order.showcase_id
+    assert_equal "shw_1", order.data.showcase_id
     unknown = Perata.verify_webhook(NEW_SECRET, webhook_headers("msg_6", SIGNED_AT, "v1,6He63m1rUlB789sgtRAHqex4wyKkzAwdHt6uRsp8YQM="), PAYOUT_SENT_TEST, now: now)
     assert_instance_of Perata::UnknownWebhookEvent, unknown
     assert_equal "test", unknown.environment
+    assert_equal "", unknown.showcase_id
   end
 
   def test_a_webhook_answers_its_typed_event
     now = Time.at(SIGNED_AT + 120)
-    headers = webhook_headers("msg_2", SIGNED_AT, "v1,XI92+fzspBAwIZD8XhEF5PwZNFrKbyAaykAydn3pPzY= v1,G2ijkhNO0sP+dkoMlsU1sOLmtbpIw9SYOwC2XTqMKdw=")
+    headers = webhook_headers("msg_2", SIGNED_AT, "v1,fvRLETNjaSQOVbSs/eVRV/C17ysRHoubzX3idpGAifI= v1,ZsKtmVTp/mXCeW5qAiaLJY1TjyXwUyS7RxRVa3RIQQo=")
     [NEW_SECRET, OLD_SECRET].each do |secret|
       event = Perata.verify_webhook(secret, headers, ORDER_PAID, now: now)
       assert_instance_of Perata::OrderWebhookEvent, event
@@ -356,6 +361,6 @@ class PerataTest < Minitest::Test
     end
 
     [201, "", { "data" => { "id" => "prod_1", "name" => name, "description" => headers["idempotency-key"].to_s, "status" => "active",
-                            "created_at" => "#{request} #{headers["content-type"]}" } }]
+                            "showcase_id" => "shw_1", "created_at" => "#{request} #{headers["content-type"]}" } }]
   end
 end

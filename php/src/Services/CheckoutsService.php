@@ -25,14 +25,19 @@ final class CheckoutsService
      * comprador usa para pagar sem chave de API; o client_secret vem só nesta
      * resposta. Para cobrar um valor que o seu servidor define, envie
      * amount_cents e items (preço de valor livre). Envie client_reference_id e
-     * metadata para achar o pedido depois.
+     * metadata para achar o pedido depois. Em uma assinatura, envie as linhas
+     * do pedido em items (só para exibição, com a soma igual ao valor do preço)
+     * e o desconto em discount_id. Para uma assinatura que só começa a cobrar
+     * numa data, envie subscription_start_at com o preço recorrente: o cartão é
+     * guardado sem cobrança e a primeira cobrança acontece nesse dia.
      *
      * Autenticação: chave de API da organização em Authorization: Bearer
-     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-     * requisição. Respostas em JSON no envelope data; erros com error, message
-     * e fields.
+     * (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+     * chave, nunca da requisição: a chave criada num showcase só alcança o que
+     * é dele. Respostas em JSON no envelope data; erros com error, message e
+     * fields.
      *
-     * @param array{allow_discount_codes?: bool, amount_cents?: int, cancel_url?: string, client_reference_id?: string, customer_email?: string, customer_id?: string, customer_name?: string, expires_in?: int, external_customer_id?: string, items?: list<array{name: string, quantity?: int, unit_amount_cents: int}>, label?: string, metadata?: array<string, mixed>, price_id: string, product_id: string, quantity?: int, require_billing_address?: bool, return_url?: string, success_url?: string} $params
+     * @param array{allow_discount_codes?: bool, amount_cents?: int, cancel_url?: string, client_reference_id?: string, customer_email?: string, customer_id?: string, customer_name?: string, discount_id?: string, expires_in?: int, external_customer_id?: string, items?: list<array{name: string, quantity?: int, unit_amount_cents: int}>, label?: string, metadata?: array<string, mixed>, price_id: string, product_id: string, quantity?: int, require_billing_address?: bool, return_url?: string, subscription_start_at?: string, success_url?: string} $params
      */
     public function create(array $params, ?string $idempotencyKey = null, ?string $apiKey = null): Models\CheckoutCreated
     {
@@ -49,9 +54,10 @@ final class CheckoutsService
      * checkout já foi pago ou emitiu um boleto, a resposta é 409.
      *
      * Autenticação: chave de API da organização em Authorization: Bearer
-     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-     * requisição. Respostas em JSON no envelope data; erros com error, message
-     * e fields.
+     * (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+     * chave, nunca da requisição: a chave criada num showcase só alcança o que
+     * é dele. Respostas em JSON no envelope data; erros com error, message e
+     * fields.
      */
     public function expire(string $checkout, ?string $idempotencyKey = null, ?string $apiKey = null): Models\CheckoutExpired
     {
@@ -65,9 +71,10 @@ final class CheckoutsService
      * Devolve um checkout: o endereço, o estado e as páginas de retorno.
      *
      * Autenticação: chave de API da organização em Authorization: Bearer
-     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-     * requisição. Respostas em JSON no envelope data; erros com error, message
-     * e fields.
+     * (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+     * chave, nunca da requisição: a chave criada num showcase só alcança o que
+     * é dele. Respostas em JSON no envelope data; erros com error, message e
+     * fields.
      */
     public function get(string $checkout, ?string $apiKey = null): Models\Checkout
     {
@@ -82,9 +89,10 @@ final class CheckoutsService
      * período ou metadados.
      *
      * Autenticação: chave de API da organização em Authorization: Bearer
-     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-     * requisição. Respostas em JSON no envelope data; erros com error, message
-     * e fields.
+     * (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+     * chave, nunca da requisição: a chave criada num showcase só alcança o que
+     * é dele. Respostas em JSON no envelope data; erros com error, message e
+     * fields.
      *
      * @param array{page?: int, limit?: int, client_reference_id?: string, status?: string, created_after?: string, created_before?: string, sorting?: string, metadata?: array<string, string>} $params
      * @return Page<Models\Checkout>
@@ -112,9 +120,10 @@ final class CheckoutsService
      * Muda o rótulo e as páginas de retorno de um checkout ativo.
      *
      * Autenticação: chave de API da organização em Authorization: Bearer
-     * (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca da
-     * requisição. Respostas em JSON no envelope data; erros com error, message
-     * e fields.
+     * (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+     * chave, nunca da requisição: a chave criada num showcase só alcança o que
+     * é dele. Respostas em JSON no envelope data; erros com error, message e
+     * fields.
      *
      * @param array{cancel_url?: string, label?: string, success_url?: string} $params
      */

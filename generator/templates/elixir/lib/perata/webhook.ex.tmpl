@@ -9,14 +9,15 @@ defmodule Perata.{{.Name}}WebhookEvent do
   @types ~w({{range $i, $t := .Types}}{{if $i}} {{end}}{{$t}}{{end}})
 
   @enforce_keys [:id, :type, :timestamp, :data]
-  defstruct [:id, :type, :timestamp, :data, environment: ""]
+  defstruct [:id, :type, :timestamp, :data, environment: "", showcase_id: ""]
 
-  @typedoc "`environment` is \"test\" or \"live\"; empty when an older server did not send it."
+  @typedoc "`environment` is \"test\" or \"live\", and `showcase_id` is the showcase of the sale; each empty when an older server did not send it."
   @type t :: %__MODULE__{
           id: String.t(),
           type: String.t(),
           timestamp: String.t(),
           environment: String.t(),
+          showcase_id: String.t(),
           data: {{exType .Data}}
         }
 
@@ -30,14 +31,15 @@ defmodule Perata.UnknownWebhookEvent do
   @moduledoc "An event of a type this SDK does not know yet, its data as it was sent."
 
   @enforce_keys [:id, :type, :timestamp, :data]
-  defstruct [:id, :type, :timestamp, :data, environment: ""]
+  defstruct [:id, :type, :timestamp, :data, environment: "", showcase_id: ""]
 
-  @typedoc "`environment` is \"test\" or \"live\"; empty when an older server did not send it."
+  @typedoc "`environment` is \"test\" or \"live\", and `showcase_id` is the showcase of the sale; each empty when an older server did not send it."
   @type t :: %__MODULE__{
           id: String.t(),
           type: String.t(),
           timestamp: String.t(),
           environment: String.t(),
+          showcase_id: String.t(),
           data: map()
         }
 end
@@ -63,6 +65,7 @@ defmodule Perata.WebhookEvent do
     id = Map.fetch!(event, "id")
     timestamp = Map.fetch!(event, "timestamp")
     environment = if is_binary(event["environment"]), do: event["environment"], else: ""
+    showcase_id = if is_binary(event["showcase_id"]), do: event["showcase_id"], else: ""
 
     cond do
 {{- range .Webhooks}}
@@ -72,6 +75,7 @@ defmodule Perata.WebhookEvent do
           type: type,
           timestamp: timestamp,
           environment: environment,
+          showcase_id: showcase_id,
           data: {{exBuild .Data "data"}}
         }
 {{end}}
@@ -81,6 +85,7 @@ defmodule Perata.WebhookEvent do
           type: type,
           timestamp: timestamp,
           environment: environment,
+          showcase_id: showcase_id,
           data: data
         }
     end

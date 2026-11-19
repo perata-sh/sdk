@@ -24,9 +24,10 @@ public sealed class PaymentMethodsService
     /// <para>Para de cobrar um cartão guardado. É recusado (409) enquanto uma
     /// assinatura ativa o cobra.</para>
     /// <para>Autenticação: chave de API da organização em Authorization: Bearer
-    /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
-    /// da requisição. Respostas em JSON no envelope data; erros com error,
-    /// message e fields.</para>
+    /// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+    /// chave, nunca da requisição: a chave criada num showcase só alcança o que
+    /// é dele. Respostas em JSON no envelope data; erros com error, message e
+    /// fields.</para>
     /// </remarks>
     /// <param name="paymentMethod">The payment_method.</param>
     /// <param name="options">An idempotency key, or another organization's key for this call.</param>
@@ -43,9 +44,10 @@ public sealed class PaymentMethodsService
     /// <para>Devolve os cartões guardados de um cliente: bandeira, quatro
     /// últimos dígitos e validade. O número do cartão nunca aparece.</para>
     /// <para>Autenticação: chave de API da organização em Authorization: Bearer
-    /// (prk_test_… ou prk_live_…). Organização e ambiente vêm da chave, nunca
-    /// da requisição. Respostas em JSON no envelope data; erros com error,
-    /// message e fields.</para>
+    /// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+    /// chave, nunca da requisição: a chave criada num showcase só alcança o que
+    /// é dele. Respostas em JSON no envelope data; erros com error, message e
+    /// fields.</para>
     /// </remarks>
     /// <param name="customer">The customer.</param>
     /// <param name="parameters">The page, its size and the filters; the first page when null.</param>

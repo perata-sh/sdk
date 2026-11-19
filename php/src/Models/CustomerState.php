@@ -25,6 +25,8 @@ final class CustomerState
         public readonly array $grantedBenefits,
         public readonly string $id,
         public readonly string $name,
+        /** O showcase a que pertence: o da chave de API que fez a chamada. Uma chave só alcança o seu showcase. */
+        public readonly string $showcaseId,
         /** @var 'active'|'archived' */
         public readonly string $status,
     ) {
@@ -43,6 +45,7 @@ final class CustomerState
             grantedBenefits: array_values(array_map(static fn (array $item) => CustomerStateBenefitGrant::fromArray($item), $data['granted_benefits'])),
             id: $data['id'],
             name: $data['name'],
+            showcaseId: $data['showcase_id'],
             status: $data['status'],
         );
     }

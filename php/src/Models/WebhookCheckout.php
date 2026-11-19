@@ -40,6 +40,8 @@ final class WebhookCheckout
         public readonly ?string $periodStart,
         public readonly string $priceId,
         public readonly string $productId,
+        /** O showcase da venda. */
+        public readonly string $showcaseId,
         /** @var 'open'|'confirmed'|'succeeded'|'failed'|'expired' */
         public readonly string $status,
         /** A assinatura que este pagamento cobra; nulo quando a venda não é de uma assinatura. */
@@ -70,6 +72,7 @@ final class WebhookCheckout
             periodStart: $data['period_start'] ?? null,
             priceId: $data['price_id'],
             productId: $data['product_id'],
+            showcaseId: $data['showcase_id'],
             status: $data['status'],
             subscriptionId: $data['subscription_id'] ?? null,
             totalCents: $data['total_cents'],

@@ -40,6 +40,8 @@ class {{.Name}}WebhookEvent:
     """When it happened, in RFC 3339."""
     environment: str
     """The environment it happened in, ``"test"`` or ``"live"``; empty when an older server did not send it."""
+    showcase_id: str
+    """The showcase of the sale, the same ``showcase_id`` the API's objects carry; empty when an older server did not send it."""
     data: {{pyType .Data}}
 
 
@@ -51,6 +53,7 @@ class UnknownWebhookEvent:
     type: str
     timestamp: str
     environment: str
+    showcase_id: str
     data: dict[str, Any]
 
 
@@ -73,6 +76,8 @@ def _event(raw: bytes) -> WebhookEvent:
     data: dict[str, Any] = sent if isinstance(sent, dict) else {}
     sent_environment = event.get("environment")
     environment = sent_environment if isinstance(sent_environment, str) else ""
+    sent_showcase = event.get("showcase_id")
+    showcase_id = sent_showcase if isinstance(sent_showcase, str) else ""
 {{- range .Webhooks}}
     if kind in get_args({{.Name}}WebhookEventType):
         return {{.Name}}WebhookEvent(
@@ -80,10 +85,11 @@ def _event(raw: bytes) -> WebhookEvent:
             type=cast({{.Name}}WebhookEventType, kind),
             timestamp=event["timestamp"],
             environment=environment,
+            showcase_id=showcase_id,
             data={{pyBuild .Data "data"}},
         )
 {{- end}}
-    return UnknownWebhookEvent(id=event["id"], type=kind, timestamp=event["timestamp"], environment=environment, data=data)
+    return UnknownWebhookEvent(id=event["id"], type=kind, timestamp=event["timestamp"], environment=environment, showcase_id=showcase_id, data=data)
 
 
 def _header(headers: Mapping[str, str], name: str) -> str:

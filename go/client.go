@@ -54,6 +54,7 @@ type Client struct {
 	Prices           *PricesService
 	Products         *ProductsService
 	Refunds          *RefundsService
+	Showcase         *ShowcaseService
 	Subscriptions    *SubscriptionsService
 	Usage            *UsageService
 	Webhooks         *WebhooksService

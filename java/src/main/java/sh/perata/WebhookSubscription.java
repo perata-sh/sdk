@@ -40,13 +40,14 @@ public final class WebhookSubscription {
     private final WebhookSubscriptionPaymentFailure paymentFailure;
     private final String priceId;
     private final String productId;
+    private final String showcaseId;
     private final String status;
     private final String suspendedAt;
     private final String suspensionReason;
     private final String trialEnd;
     private final String trialStart;
 
-    WebhookSubscription(long amountCents, boolean cancelAtPeriodEnd, String currency, String currentPeriodEnd, String currentPeriodStart, String customerId, String id, String interval, Map<String, Object> metadata, WebhookSubscriptionPaymentFailure paymentFailure, String priceId, String productId, String status, String suspendedAt, String suspensionReason, String trialEnd, String trialStart) {
+    WebhookSubscription(long amountCents, boolean cancelAtPeriodEnd, String currency, String currentPeriodEnd, String currentPeriodStart, String customerId, String id, String interval, Map<String, Object> metadata, WebhookSubscriptionPaymentFailure paymentFailure, String priceId, String productId, String showcaseId, String status, String suspendedAt, String suspensionReason, String trialEnd, String trialStart) {
         this.amountCents = amountCents;
         this.cancelAtPeriodEnd = cancelAtPeriodEnd;
         this.currency = currency;
@@ -59,6 +60,7 @@ public final class WebhookSubscription {
         this.paymentFailure = paymentFailure;
         this.priceId = priceId;
         this.productId = productId;
+        this.showcaseId = showcaseId;
         this.status = status;
         this.suspendedAt = suspendedAt;
         this.suspensionReason = suspensionReason;
@@ -80,6 +82,7 @@ public final class WebhookSubscription {
                 Json.optional(data, "payment_failure", Json.model(WebhookSubscriptionPaymentFailure::fromJson)),
                 Json.required(data, "price_id", Json::asString),
                 Json.required(data, "product_id", Json::asString),
+                Json.required(data, "showcase_id", Json::asString),
                 Json.required(data, "status", Json::asString),
                 Json.optional(data, "suspended_at", Json::asString),
                 Json.optional(data, "suspension_reason", Json::asString),
@@ -147,6 +150,11 @@ public final class WebhookSubscription {
         return productId;
     }
 
+    /** @return O showcase da venda. */
+    public String getShowcaseId() {
+        return showcaseId;
+    }
+
     /** @return the API's {@code status} */
     public String getStatus() {
         return status;
@@ -174,6 +182,6 @@ public final class WebhookSubscription {
 
     @Override
     public String toString() {
-        return "WebhookSubscription{" + "amountCents=" + amountCents + ", cancelAtPeriodEnd=" + cancelAtPeriodEnd + ", currency=" + currency + ", currentPeriodEnd=" + currentPeriodEnd + ", currentPeriodStart=" + currentPeriodStart + ", customerId=" + customerId + ", id=" + id + ", interval=" + interval + ", metadata=" + metadata + ", paymentFailure=" + paymentFailure + ", priceId=" + priceId + ", productId=" + productId + ", status=" + status + ", suspendedAt=" + suspendedAt + ", suspensionReason=" + suspensionReason + ", trialEnd=" + trialEnd + ", trialStart=" + trialStart + "}";
+        return "WebhookSubscription{" + "amountCents=" + amountCents + ", cancelAtPeriodEnd=" + cancelAtPeriodEnd + ", currency=" + currency + ", currentPeriodEnd=" + currentPeriodEnd + ", currentPeriodStart=" + currentPeriodStart + ", customerId=" + customerId + ", id=" + id + ", interval=" + interval + ", metadata=" + metadata + ", paymentFailure=" + paymentFailure + ", priceId=" + priceId + ", productId=" + productId + ", showcaseId=" + showcaseId + ", status=" + status + ", suspendedAt=" + suspendedAt + ", suspensionReason=" + suspensionReason + ", trialEnd=" + trialEnd + ", trialStart=" + trialStart + "}";
     }
 }
