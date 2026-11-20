@@ -84,13 +84,15 @@ A chave precisa de `checkouts:write`, `products:read`, `subscriptions:read` e `s
 | `paused` | pausada |
 | `canceled` | encerrada |
 
-Campos úteis: `amount_cents`, `quantity`, `current_period_start`, `current_period_end`, `cancel_at_period_end`, `suspended_at`, `suspension_reason`, `trial_start`, `trial_end`, `metadata`, `client_reference_id`.
+Campos úteis: `amount_cents`, `quantity`, `current_period_start`, `current_period_end`, `cancel_at_period_end`, `pending_update`, `suspended_at`, `suspension_reason`, `trial_start`, `trial_end`, `metadata`, `client_reference_id`, `discount_id`, `discount_ends_at`.
+
+`discount_id` é o desconto em vigor na assinatura, aplicado aos próximos ciclos até acabar: nulo sem desconto e depois que ele acabou (num desconto de uma vez, depois do primeiro ciclo pago). `discount_ends_at` é quando ele deixa de valer, o fim do último ciclo que ele ainda abate (num desconto de uma vez, o fim do primeiro ciclo pago), e é nulo quando não há desconto e quando ele vale para sempre. O pedido de cada ciclo diz o que foi descontado nele (`discount_id`, `subtotal_cents`, `discount_cents`: veja `pos-venda.md`). Estes campos também chegam em `subscription.*`.
 
 (`quantity` e `client_reference_id` na `Subscription` e em `subscription.*`: SDK 0.5.7+.) `quantity` é quantas unidades ou assentos a assinatura cobre (1 num preço sem quantidade), e `amount_cents` é o **total do ciclo para essa quantidade**, em centavos, com o preço por unidade, por assento ou por faixas já aplicado: não é o preço de uma unidade. Troque a quantidade com `PATCH /api/v1/subscriptions/{id}` (`quantity`).
 
 ## Renovação
 
-Cada ciclo é cobrado no cartão guardado, no dia do vencimento. Cada ciclo gera `subscription.cycled` (com o período e o `metadata`) e, pela cobrança, `checkout_payment.captured` e `order.paid`; não conte com uma ordem entre eles. Do 2º ciclo em diante, os eventos de pagamento (`order.*`, `checkout.*`, `checkout_payment.*`, `refund.*`) trazem o `client_reference_id` e o `metadata` do checkout que vendeu a assinatura (o id do pedido e o da câmera) e `subscription_id`, `cycle_sequence` (1 é o primeiro ciclo, 2 a primeira renovação), `period_start` e `period_end`; esses quatro vêm nulos fora de assinatura. Libere ou estenda o acesso do cliente por ciclo a partir de `order.paid`, usando `period_end`, e deixe a leitura certa do que ele pode usar em `GET /customers/{id}/state`.
+Cada ciclo é cobrado no cartão guardado, no dia do vencimento. Numa assinatura paga com cartão de crédito o cartão é sempre guardado, sem caixa para o comprador marcar; nos campos seguros, mande `card_token`, não `payment_token`. Cada ciclo gera `subscription.cycled` (com o período e o `metadata`) e, pela cobrança, `checkout_payment.captured` e `order.paid`; não conte com uma ordem entre eles. Do 2º ciclo em diante, os eventos de pagamento (`order.*`, `checkout.*`, `checkout_payment.*`, `refund.*`) trazem o `client_reference_id` e o `metadata` do checkout que vendeu a assinatura (o id do pedido e o da câmera) e `subscription_id`, `cycle_sequence` (1 é o primeiro ciclo, 2 a primeira renovação), `period_start` e `period_end`; esses quatro vêm nulos fora de assinatura. Libere ou estenda o acesso do cliente por ciclo a partir de `order.paid`, usando `period_end`, e deixe a leitura certa do que ele pode usar em `GET /customers/{id}/state`.
 
 Atenção: em 18/11/2026 a renovação automática no cartão ainda estava **desligada em Produção**. Antes de prometer a renovação ao cliente final, confirme com a Peráta (ajuda@perata.sh) que ela está ligada.
 
@@ -143,6 +145,9 @@ case *perata.SubscriptionWebhookEvent:
 | Trocar o plano | `PATCH /api/v1/subscriptions/{id}` com `price_id` (obrigatório), `quantity`, `proration_behavior` | veja abaixo |
 
 `proration_behavior`: `prorate` (padrão: rateia o resto do período no próximo valor cobrado), `invoice` (cobra a diferença agora), `next_period` (troca no fim do período, **a troca de preço no ciclo seguinte**) e `reset` (cobra o período inteiro do novo plano agora e reinicia o ciclo).
+
+- `invoice` cria na hora um pedido só da diferença dos dias que faltam (o novo total menos o antigo, proporcional aos dias inteiros entre a próxima meia-noite, no fuso da assinatura, e o fim do período; o dia da troca não é cobrado), cobrado no cartão guardado ou, sem cartão, por um link enviado ao comprador. O período e o pedido já pagos não mudam: `current_period_start` e `current_period_end` seguem os mesmos, e o pedido da diferença traz o mesmo `subscription_id`, `metadata` e `client_reference_id`. Não sai `subscription.cycled`, porque não é uma renovação: saem `subscription.updated` e, quando o pedido é pago, `order.created`, `order.updated` e `order.paid`. Reduzir a quantidade não cobra nada agora; o crédito entra no próximo ciclo.
+- `prorate` troca o plano na hora e põe a diferença no próximo valor cobrado, sem mexer no período. `next_period` não troca nada agora: o que fica para o fim do período aparece em `pending_update` (`price_id`, `quantity`, `amount_cents`, `effective_at`), que é nulo quando não há nada agendado (agendar o mesmo `price_id` e a mesma `quantity` que a assinatura já tem apaga o agendamento, e uma troca ou um cancelamento imediato também); até `effective_at` a assinatura segue com a `quantity` e o `amount_cents` de hoje.
 
 ```go
 _, err := client.Subscriptions.Update(ctx, subscriptionID, perata.SubscriptionsUpdateParams{

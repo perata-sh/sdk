@@ -15,7 +15,7 @@ Arquivar tira o produto das vendas novas; o que já foi vendido continua apontan
 
 ## Preços
 
-`POST /api/v1/prices` (escopo `products:write`) cria um preço em reais; `GET /api/v1/prices?product_id=...` lista (`products:read`). Não há rota para ler um preço sozinho, alterar nem arquivar: um preço errado se corrige criando outro.
+`POST /api/v1/prices` (escopo `products:write`) cria um preço em reais; `GET /api/v1/prices?product_id=...` lista e `GET /api/v1/prices/{id}` lê um preço sozinho, arquivado ou não, com as faixas se ele for por faixas (`products:read`). Não há rota para alterar nem arquivar: um preço errado se corrige criando outro.
 
 Campos do corpo:
 
@@ -127,6 +127,8 @@ Regras: o tipo e a duração não mudam depois de criado; depois do primeiro uso
 - O comprador digita o `code` no checkout (o checkout precisa de `allow_discount_codes: true`).
 - O seu servidor aplica sozinho com `discount_id` ao criar o checkout (SDK 0.5.6+). Um desconto limitado a outros produtos é recusado com 422.
 - Fixo num link de checkout (`discount_id` do link).
+
+Para gravar o uso do cupom no seu sistema, leia o `order.paid` (ou `GET /orders/{id}`): `discount_id` diz qual desconto, `discount_code` o código que o comprador digitou (nulo quando veio por `discount_id`) e `discount_cents` quanto foi descontado.
 
 Um desconto vale sobre o preço inteiro. Desconto só numa parte do valor (só na câmera, e não na conexão, por exemplo) ainda não existe: para um pedido de valor livre, mande a linha negativa em `items` (veja `checkout.md`).
 
