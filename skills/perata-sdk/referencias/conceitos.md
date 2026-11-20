@@ -8,23 +8,23 @@
 | Webhook | um aviso que a Peráta manda ao seu servidor quando algo acontece (um pagamento, um estorno) |
 | Idempotência (`Idempotency-Key`) | uma etiqueta que faz repetir o mesmo pedido não gerar uma segunda cobrança |
 | 3DS | a confirmação extra que o banco pede no cartão de débito |
-| Split | a divisão do pagamento que a Cielo faz entre a Peráta e quem vende |
+| Split | a divisão do pagamento entre a Peráta e quem vende |
 | Chargeback | o cliente contesta um pagamento de cartão com o banco dele |
 | MED | a devolução que o banco de quem pagou pede num Pix contestado |
 | Escopo | uma permissão da chave de API (ler pedidos, criar checkouts...) |
 | Showcase | cada plataforma da empresa dentro da mesma organização |
 | `client_secret` | a credencial de uma sessão de pagamento, segura para o navegador; não é a chave de API |
-| Sandbox | o ambiente de testes da Cielo, por trás do ambiente Teste da Peráta |
+| Sandbox | o ambiente de testes do processamento de pagamentos, por trás do ambiente Teste da Peráta |
 
 ## Ambientes: Teste e Produção
 
-- **Teste**: o checkout, as assinaturas e a cobrança por uso funcionam sem cobrar ninguém. Sem vendedor de teste cadastrado, a venda vai para um recebedor simulado da Cielo (sandbox): o cartão de teste abaixo passa sem cadastrar conta bancária.
+- **Teste**: o checkout, as assinaturas e a cobrança por uso funcionam sem cobrar ninguém. Sem vendedor de teste cadastrado, a venda vai para um recebedor simulado (sandbox): o cartão de teste abaixo passa sem cadastrar conta bancária.
 - **Produção**: dinheiro real. Só abre depois que a equipe da Peráta verifica e aprova o vendedor (a "verificação" e a conta de recebimento).
 - O ambiente vem da chave, nunca de um campo da requisição. Não existe parâmetro `environment` para enviar.
 - Cada ambiente tem o seu catálogo, os seus clientes, os seus endpoints de webhook e as suas chaves. O `product_id` e o `price_id` do Teste não existem em Produção: guarde um par por ambiente.
 - Todo webhook diz em que ambiente aconteceu, no campo `environment` (`test` ou `live`).
 
-Cartões de teste (sandbox da Cielo, valem só no ambiente Teste; validade no futuro, CVV 123):
+Cartões de teste (sandbox, valem só no ambiente Teste; validade no futuro, CVV 123):
 
 | Cartão | Resultado |
 |---|---|
@@ -71,15 +71,17 @@ Cada chave carrega os escopos que o dono marcou. Uma rota responde só à chave 
 | `disputes:read` | disputas |
 | `refunds:read` / `refunds:write` | ler e criar reembolsos |
 | `showcase:read` | ler o showcase da chave |
+| `payouts:read` | ler o saldo a receber e os repasses |
 
 Combinações que costumam faltar:
 - Vender e administrar uma **assinatura** pela API: `checkouts:write` (criar o checkout), mais `products:read`, `subscriptions:read` e `subscriptions:write`, que são as três que a Peráta cita quando um 403 aparece numa assinatura.
 - Cobrar um pedido de valor livre: `checkouts:write` e `products:read`.
 - Receber e conferir vendas: `orders:read`, `payments:read`, `refunds:read`.
+- Conciliar o que a organização recebe: `payouts:read`, mais `payments:read` para ligar cada lançamento ao pagamento.
 
 ## Showcase
 
-Uma organização (a empresa, com seu CPF ou CNPJ e seu cadastro na Cielo) pode ter vários showcases: cada plataforma ou produto da empresa é um. A chave nasce num showcase e só alcança o que é dele. Todo objeto de venda e todo webhook traz `showcase_id`. `GET /api/v1/showcase` (escopo `showcase:read`) devolve o showcase da chave: `id`, `name`, `is_principal`, `has_logo`, `environment`, `created_at`. Um showcase novo se abre no painel, nunca pela API.
+Uma organização (a empresa, com seu CPF ou CNPJ e sua conta de recebimento) pode ter vários showcases: cada plataforma ou produto da empresa é um. A chave nasce num showcase e só alcança o que é dele. Todo objeto de venda e todo webhook traz `showcase_id`. `GET /api/v1/showcase` (escopo `showcase:read`) devolve o showcase da chave: `id`, `name`, `is_principal`, `has_logo`, `environment`, `created_at`. Um showcase novo se abre no painel, nunca pela API.
 
 ## Ids que se confundem
 

@@ -7,24 +7,24 @@ Os SDKs oficiais ficam em `https://github.com/perata-sh/sdk`. São gerados do me
 | Linguagem | Pacote (registro) | Instalar | Requisito |
 |---|---|---|---|
 | Go | `github.com/perata-sh/sdk/go` (Go modules) | `go get github.com/perata-sh/sdk/go@latest` | Go 1.23+ |
-| TypeScript / JavaScript | `@perata-sh/sdk` (npm) | **ainda sem a versão atual**, veja a seção 3 | Node 20.3+, Deno, Bun |
+| TypeScript / JavaScript | `@perata-sh/sdk` (npm) | `npm install @perata-sh/sdk` | Node 20.3+, Deno, Bun |
 | Python | `perata-sdk` (PyPI) | `pip install perata-sdk` | Python 3.11+ |
 | PHP | `perata-sh/sdk` (Packagist) | `composer require perata-sh/sdk` | PHP 8.1+, extensões `curl` e `json` |
 | Ruby | `perata-sdk` (RubyGems) | `gem install perata-sdk` | Ruby 3.1+ |
-| Java / Kotlin | `sh.perata:sdk` (Maven Central) | Maven: `<dependency><groupId>sh.perata</groupId><artifactId>sdk</artifactId><version>0.5.7</version></dependency>`; Gradle: `implementation("sh.perata:sdk:0.5.7")` | Java 11+ |
+| Java / Kotlin | `sh.perata:sdk` (Maven Central) | Maven: `<dependency><groupId>sh.perata</groupId><artifactId>sdk</artifactId><version>0.5.8</version></dependency>`; Gradle: `implementation("sh.perata:sdk:0.5.8")` | Java 11+ |
 | C# / .NET | `PerataSh.Sdk` (NuGet) | **ainda não publicado**, veja a seção 3 | .NET 8+ |
-| Elixir | `perata_sdk` (Hex) | em `mix.exs`: `{:perata_sdk, "~> 0.5.7"}` | Elixir 1.18+ |
+| Elixir | `perata_sdk` (Hex) | em `mix.exs`: `{:perata_sdk, "~> 0.5.8"}` | Elixir 1.18+ |
 | Dart / Flutter | `perata_sdk` (pub.dev) | `dart pub add perata_sdk` ou `flutter pub add perata_sdk` | Dart 3.8+ |
 | Rust | `perata-sdk` (crates.io) | `cargo add perata-sdk` (no código: `use perata::...`) | Rust 1.88+ |
-| Swift | repositório `https://github.com/perata-sh/sdk` (Swift Package Manager) | em `Package.swift`: `.package(url: "https://github.com/perata-sh/sdk", from: "0.5.7")` e, no alvo, `.product(name: "Perata", package: "sdk")` | Swift 6; macOS 12+, iOS 15+ |
+| Swift | repositório `https://github.com/perata-sh/sdk` (Swift Package Manager) | em `Package.swift`: `.package(url: "https://github.com/perata-sh/sdk", from: "0.5.8")` e, no alvo, `.product(name: "Perata", package: "sdk")` | Swift 6; macOS 12+, iOS 15+ |
 
-As versões dos exemplos (`0.5.7`) são a última publicada em 20/11/2026. Confira no registro antes de fixar uma versão e troque pela mais nova. Os SDKs de servidor nunca vão para o navegador nem para um app: a chave de API não pode sair do servidor (Dart e Swift também só no servidor).
+As versões dos exemplos (`0.5.8`) são a última publicada em 20/11/2026. Confira no registro antes de fixar uma versão e troque pela mais nova. Os SDKs de servidor nunca vão para o navegador nem para um app: a chave de API não pode sair do servidor (Dart e Swift também só no servidor).
 
 Para o navegador há o script `https://perata.sh/v1/perata.js` (sem chave) e dois pacotes escritos à mão, `@perata-sh/js` e `@perata-sh/react`, que **ainda não foram publicados** (os nomes são propostas). Enquanto isso, use a tag `<script>` do `perata.js`.
 
 ## 2. Versão do SDK: o que cada uma traz
 
-Última publicada em 20/11/2026: **0.5.7** (Go, PyPI, RubyGems, Hex, pub.dev, Packagist, crates.io, Maven Central). A 0.5.5 não foi publicada sozinha: o que ela trazia saiu junto na 0.5.6. Se a versão instalada não tem um recurso, atualize; se a atualização ainda não saiu, chame a rota pela API REST.
+Última publicada em 20/11/2026: **0.5.8** (Go, npm, PyPI, RubyGems, Hex, pub.dev, Packagist, crates.io, Maven Central). A 0.5.5 não foi publicada sozinha: o que ela trazia saiu junto na 0.5.6. Se a versão instalada não tem um recurso, atualize; se a atualização ainda não saiu, chame a rota pela API REST.
 
 | Recurso | A partir de |
 |---|---|
@@ -35,14 +35,16 @@ Para o navegador há o script `https://perata.sh/v1/perata.js` (sem chave) e doi
 | filtro `metadata` nas listas de checkouts, pedidos, pagamentos e assinaturas; filtro `email` em clientes | 0.5.5 |
 | `subscription_start_at` e `discount_id` no checkout; `order_id`, `metadata` e `amount_cents` opcional no reembolso; `refunds.get`; `refund_metadata`; filtro `subscription_id`; `subscription_id` e ciclo em Order e Payment; `showcase.get` e `showcase_id` nos objetos e no envelope do webhook; `failure_reason` e `failure_code` nos eventos `refund.*` | 0.5.6 |
 | `pricing_model`, `tiers`, `unit_amount_cents`, `unit_label(_plural)`, `minimum_units` e `maximum_units` no preço (criação e resposta), com `amount_cents` opcional na criação (preço graduated, por unidade, por assento, por volume); `interval` `day` e `week`; `quantity` e `client_reference_id` em `Subscription` e `subscription.*`; `charged_by` no recibo | 0.5.7 |
+| `renewal_mode` e `notify_customer_email` no corpo do checkout e em `CheckoutCreated`; `renewal_mode` (`manual`, `card`, `pix_automatic`), `label` e `notify_customer_email` na `Subscription` e em `subscription.*`; `label`, `renewal_mode` e `notify_customer_email` no `PATCH /subscriptions/{id}` (sem `price_id`); `subscriptions.get_open_charge` (`GET /subscriptions/{id}/open-charge`, 404 `no_open_charge`, modelo `RenewalCharge`); os eventos `subscription.renewal_due` e `subscription.renewal_reminder` (`WebhookRenewalCharge`) | ainda sem versão |
+| `first_period_extra_days` no checkout, na `Subscription` e em `subscription.*`; `extend_current_period_days` no `PATCH /subscriptions/{id}`; o desconto que o pedido e a assinatura aplicaram (`discount_id`, `discount_code`, `subtotal_cents`, `discount_cents`, `discount_ends_at`); `pending_update` na assinatura; `prices.get` | 0.5.8 |
 
-Ainda sem versão de SDK: `first_period_extra_days` no checkout, na `Subscription` e em `subscription.*`, e `extend_current_period_days` no `PATCH /subscriptions/{id}`. Chame a API REST (os nomes dos campos são os do contrato) até o SDK trazer os campos.
+Ainda sem versão de SDK: o saldo e os repasses (`GET /balance`, `GET /payouts`, `GET /payouts/{id}`, escopo `payouts:read`) e, no pagamento, `fee_cents`, `net_cents`, `expected_payout_on`, `payout_deposited_on`, `payout_id` e `split`. Chegam na 0.5.9: até lá chame a API REST (os nomes dos campos são os do contrato) e leia o JSON da resposta.
 
 Para uma versão mais velha, a API REST aceita tudo desde já (os nomes dos campos são os do contrato).
 
-## 3. Sem npm ou NuGet: o contorno
+## 3. Sem NuGet, ou sem uma rota nova: o contorno
 
-O npm tem só a versão antiga `0.2.0` do `@perata-sh/sdk`, sem checkout com valor, encerrar, filtros nem os eventos tipados. O NuGet não tem `PerataSh.Sdk`. Não use a versão antiga. O caminho oficial até a publicação é a **API REST**, que é pequena: JSON sobre HTTPS.
+O NuGet não tem `PerataSh.Sdk` ainda, e uma rota nova só chega ao SDK na versão seguinte (o saldo e os repasses, na 0.5.9). Nos dois casos o caminho é a **API REST**, que é pequena: JSON sobre HTTPS.
 
 ```ts
 // TypeScript, sem SDK: criar um checkout pela API REST

@@ -41,7 +41,7 @@ Os dados do Teste não existem em Produção. Faça tudo de novo, no ambiente Pr
 - [ ] o webhook chegou (se não: `GET /api/v1/webhooks/deliveries` mostra a tentativa e o `response_status`);
 - [ ] o pedido do seu sistema ficou pago e o que foi vendido foi entregue, uma vez;
 - [ ] o recibo do pedido existe (`GET /orders/{id}/receipt`);
-- [ ] se o dono quiser testar o caminho de volta, um reembolso desse mesmo pagamento (a Cielo pode levar horas para aceitar um estorno de Pix; é normal, e conclui sozinho).
+- [ ] se o dono quiser testar o caminho de volta, um reembolso desse mesmo pagamento (o estorno de um Pix pode levar horas para ser aceito; é normal, e conclui sozinho).
 
 ## D. Depois
 

@@ -1,6 +1,6 @@
 ---
 name: perata-sdk
-description: Ensina a integrar a Peráta (perata.sh), a plataforma brasileira de cobrança sobre a Cielo (cartão de crédito, débito com 3DS e Pix), usando os SDKs oficiais (Go, TypeScript, Python, PHP, Ruby, Java, C#, Elixir, Dart, Rust e Swift) ou a API REST. Use quando o pedido for cobrar um cliente, criar checkout ou link de pagamento, vender produto ou assinatura, cobrar por consumo, devolver dinheiro (reembolso), tratar chargeback ou MED, receber webhook da Peráta, usar chave prk_test_ ou prk_live_, ou levar uma integração da Peráta para Produção. Cobre catálogo, clientes, checkout (página, modal, componentes e transparente), pedidos, assinaturas, uso, webhooks e erros.
+description: Ensina a integrar a Peráta (perata.sh), a plataforma brasileira de cobrança (cartão de crédito, débito com 3DS e Pix), usando os SDKs oficiais (Go, TypeScript, Python, PHP, Ruby, Java, C#, Elixir, Dart, Rust e Swift) ou a API REST. Use quando o pedido for cobrar um cliente, criar checkout ou link de pagamento, vender produto ou assinatura, cobrar por consumo, devolver dinheiro (reembolso), tratar chargeback ou MED, receber webhook da Peráta, usar chave prk_test_ ou prk_live_, ou levar uma integração da Peráta para Produção. Cobre catálogo, clientes, checkout (página, modal, componentes e transparente), pedidos, assinaturas, uso, webhooks e erros.
 ---
 
 # Integrar a Peráta
@@ -17,7 +17,7 @@ Não use para outro meio de pagamento (Stripe, Mercado Pago, Pagar.me) nem para 
 
 ## O que é a Peráta
 
-- Cobra e recebe pela Cielo, em split, no Brasil: cartão de crédito (à vista ou parcelado), cartão de débito com autenticação 3DS e Pix. Existem ainda o boleto (se a conta o aceita) e a carteira do aparelho, Google Pay e Apple Pay (se ligada para o site).
+- Cobra e recebe em split, no Brasil: cartão de crédito (à vista ou parcelado), cartão de débito com autenticação 3DS e Pix. Existem ainda o boleto (se a conta o aceita) e a carteira do aparelho, Google Pay e Apple Pay (se ligada para o site).
 - Dois ambientes: **Teste** (nada é cobrado de ninguém) e **Produção** (dinheiro real, só depois que a equipe da Peráta verifica e aprova o vendedor). Os dados de um não aparecem no outro: produtos, preços, clientes, webhooks e chaves são de cada ambiente.
 - A **chave de API** (no painel se chama "token de acesso") define tudo: `prk_test_...` opera o Teste, `prk_live_...` opera a Produção. A organização, o ambiente e o showcase vêm da chave, nunca da requisição. Vai em `Authorization: Bearer`, só no servidor.
 - O **showcase** é uma plataforma da empresa (uma organização pode ter vários). A chave nasce dentro de um showcase e só alcança o que é dele; o webhook também é de um showcase só. Hoje a maioria das organizações tem um só.
@@ -39,7 +39,7 @@ Não use para outro meio de pagamento (Stripe, Mercado Pago, Pagar.me) nem para 
 
 ## Roteiro essencial
 
-1. **Instalar o SDK da linguagem** e criar o cliente com a chave de Teste. npm (TypeScript) e NuGet (C#) ainda não têm a versão atual publicada: veja `referencias/linguagens.md` para o contorno (API REST). Versão do SDK e recurso novo também estão lá.
+1. **Instalar o SDK da linguagem** e criar o cliente com a chave de Teste. O NuGet (C#) ainda não tem o pacote publicado: veja `referencias/linguagens.md` para o contorno (API REST). Versão do SDK e recurso novo também estão lá.
 2. **Montar o catálogo** (produto e preço) no Teste. Preço de valor livre (para cobrar um valor que o seu sistema calcula) só se cria no painel. Detalhes em `referencias/catalogo.md`.
 3. **Guardar o cliente** (opcional, mas recomendado): `external_id` com o id dele no seu sistema, CPF/CNPJ e endereço. Em `referencias/clientes.md`.
 4. **Criar o checkout** no servidor e mandar o comprador para o `url` (ou montar a tela com o Peráta.js). Em `referencias/checkout.md`.
@@ -77,7 +77,7 @@ Em TypeScript e Python é a mesma chamada: `perata.checkouts.create({ product_id
 | Quando você precisa de | Abra |
 |---|---|
 | Ambientes, chaves, escopos, showcase, ids, formatos | `referencias/conceitos.md` |
-| Instalar, nome do pacote por registro, tabela das 11 linguagens, versão do SDK, sem npm/NuGet | `referencias/linguagens.md` |
+| Instalar, nome do pacote por registro, tabela das 11 linguagens, versão do SDK, sem NuGet | `referencias/linguagens.md` |
 | Produtos, preços (fixo, valor livre, recorrente), descontos, benefícios | `referencias/catalogo.md` |
 | Clientes, CPF/CNPJ, `external_id`, portal do cliente | `referencias/clientes.md` |
 | Checkout em todos os modos, `amount_cents` e `items`, Pix, encerrar, sites permitidos | `referencias/checkout.md` |

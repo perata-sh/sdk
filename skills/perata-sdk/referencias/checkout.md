@@ -22,7 +22,9 @@ Uma venda tem duas metades. O **servidor** cria o checkout com a chave de API. O
 | `discount_id` | aplica um desconto do catálogo sozinho (SDK 0.5.6+) |
 | `subscription_start_at` | só em assinatura: dia da primeira cobrança (SDK 0.5.6+). Veja `assinaturas.md` |
 | `first_period_extra_days` | só em assinatura: de 1 a 365 dias somados ao primeiro período; cobra hoje o valor cheio. Não vale com `subscription_start_at`. Veja `assinaturas.md` (ainda não está nos SDKs: use a API REST) |
-| `label` | nome que você dá ao checkout nas suas telas; o comprador não vê |
+| `renewal_mode` | só em assinatura: `manual`, `automatic` ou `buyer_choice`; sem o campo nada muda. Veja `assinaturas.md` (ainda não está nos SDKs: use a API REST) |
+| `notify_customer_email` | `false` mantém a Peráta sem escrever ao comprador a cobrança de cada renovação; `true` se omitido |
+| `label` | nome que você dá ao checkout nas suas telas; o comprador não vê. Numa assinatura vira o `label` dela (até 200 caracteres), que aparece no portal do cliente e no painel |
 
 A resposta é 201 com `data`:
 
@@ -33,7 +35,7 @@ A resposta é 201 com `data`:
 | `url` | o endereço da página de pagamento daquela sessão. Mande o comprador para cá |
 | `client_secret`, `client_secret_expires_at` | a credencial do navegador, **só nesta resposta** |
 | `status_key` | acompanhar a sessão depois que o `client_secret` é gasto |
-| `amount_cents`, `items`, `metadata`, `client_reference_id`, `expires_at`, `subscription_start_at`, `discount_id`, `first_period_extra_days` | o que você mandou, devolvido |
+| `amount_cents`, `items`, `metadata`, `client_reference_id`, `expires_at`, `subscription_start_at`, `discount_id`, `first_period_extra_days`, `renewal_mode`, `notify_customer_email` | o que você mandou, devolvido |
 
 **Guarde `id`, `session_id` e `status_key` no seu pedido logo.** O `client_secret` só serve ao navegador e não precisa ser guardado.
 

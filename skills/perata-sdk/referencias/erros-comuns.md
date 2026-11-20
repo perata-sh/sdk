@@ -25,17 +25,17 @@ A primeira parte reúne casos que aconteceram de verdade numa integração (o al
 - **Correção:** o 403 diz qual escopo falta e onde marcar (Configurações › Tokens de acesso). Crie uma chave nova marcando as permissões e troque no servidor.
 - **Prevenção:** ao pedir a chave ao dono, entregue a lista de escopos de `conceitos.md`.
 
-### 4. O estorno de um Pix foi recusado pela Cielo (código 37)
+### 4. O estorno de um Pix foi recusado (código 37)
 
-- **Sintoma:** um reembolso de Pix não concluía; a Cielo o recusava com o código 37 (o split ainda não estava liberado).
+- **Sintoma:** um reembolso de Pix não concluía; ele era recusado com o código 37 (o split ainda não estava liberado).
 - **Causa:** o dinheiro do Pix ainda não tinha sido liberado para a devolução; é uma recusa temporária.
-- **Correção:** nenhuma. A Peráta reenviou o estorno de hora em hora e a Cielo o aceitou horas depois; saíram `order.refunded`, `checkout_payment.refunded` e `refund.succeeded`, e o servidor respondeu 200. **Todo estorno conclui sozinho**: erro temporário é reenviado por até 72 horas; só uma recusa definitiva, ou 72 horas sem aceite, vira `refund.failed` com `failure_reason` e `failure_code`.
+- **Correção:** nenhuma. A Peráta reenviou o estorno de hora em hora e ele foi aceito horas depois; saíram `order.refunded`, `checkout_payment.refunded` e `refund.succeeded`, e o servidor respondeu 200. **Todo estorno conclui sozinho**: erro temporário é reenviado por até 72 horas; só uma recusa definitiva, ou 72 horas sem aceite, vira `refund.failed` com `failure_reason` e `failure_code`.
 - **Do lado do seu sistema:** confira que os créditos foram tirados **uma vez** (chave `refund_id`) e não tente "forçar" o estorno de novo.
 
 ### 5. Um Pix pago que o sistema só viu horas depois
 
 - **Sintoma:** o cliente pagou o Pix e o aviso demorou.
-- **Causa:** a Cielo avisou o pagamento, mas o aviso ficou parado atrás de avisos antigos da fila do sandbox. Foi corrigido na Peráta.
+- **Causa:** o aviso do pagamento chegou, mas ficou parado atrás de avisos antigos da fila do sandbox. Foi corrigido na Peráta.
 - **Lição:** o webhook é o caminho principal, e a **conferência diária** (`GET /orders?created_after=...`) é a rede de segurança. Mantenha as duas.
 
 ### 6. O tipo do evento `order.*` mudou
@@ -52,7 +52,7 @@ A primeira parte reúne casos que aconteceram de verdade numa integração (o al
 
 ### 8. "Quem é Stelo S.A.?"
 
-No app do banco, quem recebe um Pix da Peráta aparece como **Stelo S.A.**, a empresa que processa o Pix da Peráta (exigência do Banco Central, recomendação da Cielo). A tela do QR code já avisa isso; repasse a explicação ao cliente que perguntar.
+No app do banco, quem recebe um Pix da Peráta aparece como **Stelo S.A.**, a empresa que processa o Pix da Peráta (exigência do Banco Central). A tela do QR code já avisa isso; repasse a explicação ao cliente que perguntar.
 
 ## Parte 2. Armadilhas que o contrato prevê
 

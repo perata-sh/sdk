@@ -18,6 +18,8 @@ O pedido também diz **qual desconto aplicou**, para o seu sistema gravar o uso 
 
 No **pagamento**: `id`, `checkout_id`, `method` (`card`, `pix`, `boleto`), `state` (`unknown`, `pending`, `authorized`, `captured`, `refused`, `canceled`, `refunded`, `partially_refunded`), `amount_cents`, `captured_cents`, `refunded_cents`, `installments`, `installment_amount_cents`.
 
+O pagamento também diz quanto ficou e quando cai: `fee_cents` (a tarifa que a Peráta cobrou da venda) e `net_cents` (`captured_cents` menos `fee_cents`, antes de reembolsos), os dois 0 até a captura; `expected_payout_on` (a data prevista do próximo repasse que paga este pagamento, `AAAA-MM-DD`; nula quando nenhum espera, e num pagamento parcelado é a da próxima parcela); `payout_deposited_on` (o dia em que o último repasse que pagou este pagamento foi depositado; nulo enquanto nenhum foi); `payout_id` (esse repasse, `po_AAAAMMDD`, o id de `GET /payouts/{id}`; nulo enquanto nenhum foi) e `split` (como a venda foi dividida: uma lista com `recipient_id`, `amount_cents`, `fee_cents` e `net_cents` de cada destinatário; uma venda sem divisão tem um só). Nenhum SDK publicado traz estes campos ainda: chegam na 0.5.9, e até lá se lê o JSON da resposta.
+
 ### Achar uma venda: os filtros das listas
 
 As listas de checkouts, pedidos, pagamentos, reembolsos e assinaturas aceitam, conforme a lista:
@@ -74,7 +76,7 @@ for order, err := range client.Orders.ListIter(ctx, &perata.OrdersListParams{Cre
 | `metadata` | seus pares, guardados no reembolso; voltam como `refund_metadata` |
 
 - A **`Idempotency-Key` é obrigatória**: sem ela repetir a chamada depois de um tempo esgotado devolveria duas vezes. Passe a **sua**, uma por reembolso desejado (`estorno-pedido-123-1`): o SDK manda uma chave aleatória se você não passar, o que cumpre a regra mas não protege de uma repetição. A mesma chave devolve o mesmo reembolso.
-- Resposta 201 com o reembolso: `id`, `payment_id`, `order_id`, `amount_cents`, `status` (`requested`, `pending`, `unknown`, `succeeded`, `failed`, `canceled`), `reason`, `client_reference_id`, `metadata` (**o do pedido**) e `refund_metadata` (**o do reembolso**). `requested` e `pending` esperam a Cielo; `succeeded` devolveu o dinheiro; `unknown` é passageiro: a resposta da Cielo não chegou ou ainda não prova a devolução. O valor continua reservado e a Peráta pergunta à Cielo sozinha (a primeira vez em uns 5 minutos) até o reembolso virar `succeeded` ou `failed`. Não peça de novo: espere o webhook `refund.succeeded` ou `refund.failed`, ou leia `GET /api/v1/refunds/{id}`.
+- Resposta 201 com o reembolso: `id`, `payment_id`, `order_id`, `amount_cents`, `status` (`requested`, `pending`, `unknown`, `succeeded`, `failed`, `canceled`), `reason`, `client_reference_id`, `metadata` (**o do pedido**) e `refund_metadata` (**o do reembolso**). `requested` e `pending` esperam a confirmação; `succeeded` devolveu o dinheiro; `unknown` é passageiro: a confirmação não chegou ou ainda não prova a devolução. O valor continua reservado e a Peráta consulta sozinha (a primeira vez em uns 5 minutos) até o reembolso virar `succeeded` ou `failed`. Não peça de novo: espere o webhook `refund.succeeded` ou `refund.failed`, ou leia `GET /api/v1/refunds/{id}`.
 - `GET /api/v1/refunds/{id}` lê um reembolso (SDK 0.5.6+); `GET /api/v1/refunds` lista, com `payment_id`, `status`, cliente, período e `metadata[chave]=valor` (os pares do reembolso). Escopo `refunds:read`.
 - Em SDK anterior à 0.5.6, `payment_id`, `amount_cents` e `reason` são obrigatórios e não existe `order_id` nem `metadata`: ache o `payment_id` com `GET /payments?client_reference_id=...`.
 
@@ -103,9 +105,9 @@ refund = perata.refunds.create(
 
 ### O que acontece depois do pedido de reembolso
 
-- O estorno **conclui sozinho**. Erro temporário da Cielo é reenviado de hora em hora por até 72 horas; um estorno aceito e ainda pendente é consultado em intervalos curtos; recusa definitiva, ou 72 horas sem aceite, vira `refund.failed` com `failure_reason` e `failure_code`. Ninguém precisa clicar em nada. Caso real: o estorno de um Pix foi recusado pela Cielo com o código 37 (o split ainda não estava liberado), a Peráta o reenviou sozinha de hora em hora e a Cielo o aceitou horas depois, sem ninguém clicar em nada.
+- O estorno **conclui sozinho**. Erro temporário é reenviado de hora em hora por até 72 horas; um estorno aceito e ainda pendente é consultado em intervalos curtos; recusa definitiva, ou 72 horas sem aceite, vira `refund.failed` com `failure_reason` e `failure_code`. Ninguém precisa clicar em nada. Caso real: o estorno de um Pix foi recusado com o código 37 (o split ainda não estava liberado), a Peráta o reenviou sozinha de hora em hora e ele foi aceito horas depois, sem ninguém clicar em nada.
 - Os avisos: `refund.requested`, depois `refund.succeeded` (ou `refund.failed`/`refund.canceled`), `checkout_payment.refunded` ou `checkout_payment.partially_refunded`, e `order.refunded`.
-- `order.refunded` sai **uma vez por estorno concluído**, parcial ou total, sempre com `refund_id`, `refund_amount_cents` (só deste estorno), `refunded_amount_cents` (o acumulado) e `order_status`. Use o **`refund_id` como chave** para devolver créditos ou dar baixa uma única vez; some o `refund_amount_cents` deste estorno, não o acumulado. Exceção: uma devolução feita direto no portal da Cielo, sem estorno da Peráta, vem com `refund_id` nulo.
+- `order.refunded` sai **uma vez por estorno concluído**, parcial ou total, sempre com `refund_id`, `refund_amount_cents` (só deste estorno), `refunded_amount_cents` (o acumulado) e `order_status`. Use o **`refund_id` como chave** para devolver créditos ou dar baixa uma única vez; some o `refund_amount_cents` deste estorno, não o acumulado. Exceção: uma devolução feita fora da plataforma, sem estorno da Peráta, vem com `refund_id` nulo.
 - Em `refund.created` e `refund.updated`, `metadata` é o do pedido e `refund_metadata` é o do reembolso.
 
 ## Disputas: chargeback e MED
@@ -115,6 +117,38 @@ Uma disputa é o comprador contestando um pagamento. Chargeback é a contestaç�
 - `GET /api/v1/disputes` (filtro `status`: `opened`, `needs_evidence`, `submitted`, `under_review`, `won`, `lost`, `closed`) e `GET /api/v1/disputes/{id}`, escopo `disputes:read`. A API só **lê** disputas; a defesa, com a prova até o prazo `due_by`, é tratada no painel da Peráta (tela Disputas).
 - Campos que ligam a disputa ao seu pedido: `order_id` e `checkout_id` (o mesmo valor), `client_reference_id`, `metadata`, `external_customer_id`, `subscription_id`, mais `payment_method` (`card` ou `pix`), `amount_cents`, `reason`, `provider_reason`, `source`, `opened_at`, `due_by`, `decided_at`.
 - `dispute.opened` sai primeiro, uma vez por disputa: **pare de entregar o serviço a esse cliente** e envie a defesa até `due_by`.
-- `dispute.won`: a decisão foi a seu favor e o valor contestado fica com você. Só chega quando a equipe da Peráta registra o resultado, porque a Cielo não avisa o resultado da defesa.
+- `dispute.won`: a decisão foi a seu favor e o valor contestado fica com você. Só chega quando a equipe da Peráta registra o resultado, porque o resultado da defesa não chega por aviso.
 - `dispute.lost`: perdida, e o valor contestado mais a taxa são descontados. Sai sozinho quando o prazo da defesa acaba sem defesa.
 - Numa disputa de uma venda de assinatura, a assinatura é suspensa na hora (`suspension_reason: dispute`) e sai `subscription.suspended` logo depois de `dispute.opened`. Mesmo ganhando, ela **não volta sozinha**: reative com `POST /subscriptions/{id}/resume` se quiser, ou cancele.
+
+## Saldo e repasses: quanto e quando a organização recebe
+
+Um **repasse** é o que a organização recebe num dia na conta de recebimento: a soma das vendas pagas naquela data, menos as tarifas, os reembolsos e as contestações que o dia compensa. O id é `po_` e a data (`po_20261120`); só há um por dia, em cada ambiente.
+
+| Ação | Rota | Escopo |
+|---|---|---|
+| Saldo a receber | `GET /api/v1/balance` | `payouts:read` |
+| Listar repasses | `GET /api/v1/payouts` | `payouts:read` |
+| Ler um repasse, com os lançamentos | `GET /api/v1/payouts/{id}` | `payouts:read` |
+
+Estas rotas não estão em nenhum SDK publicado: chegam na 0.5.9, e até lá se chama a API REST com a mesma chave e se lê o JSON da resposta. A chave que já existe não ganha o escopo `payouts:read` sozinha; crie outra marcando-o.
+
+**Saldo** (`GET /balance`, filtros `date_from` e `date_to`, `AAAA-MM-DD`):
+
+| Campo | O que é |
+|---|---|
+| `total_to_receive_cents` | tudo o que ainda vai ser recebido das vendas capturadas, já sem tarifas e reembolsos; é sempre `released_cents + held_cents + scheduled_cents + later_cents` |
+| `released_cents` | liberado: a data do repasse chegou e o depósito está em processamento |
+| `held_cents` | retido enquanto a conta da organização está em análise; volta a ser liberado quando a análise termina |
+| `scheduled_cents` | previsto, com data nos próximos 31 dias |
+| `later_cents` | sem data ainda, como as parcelas além dos próximos 31 dias |
+| `deposited_cents` | depositado no período de `period_from` a `period_to` (sem `date_from`, os 30 dias até `date_to`; sem `date_to`, hoje); não entra no total |
+| `period_from`, `period_to`, `currency` | o período de `deposited_cents` e `BRL` |
+
+**Repasse** (`GET /payouts`, filtros `status`, `date_from`, `date_to` e `sorting`, `date` ou `-date`, o padrão): `id`, `status`, `expected_on` (a data do repasse), `deposited_on` (nulo enquanto não foi depositado), `amount_cents` (as vendas do dia antes das tarifas, já com os reembolsos e contestações que o dia compensa), `fee_cents`, `net_cents` (`amount_cents` menos `fee_cents`, o que é depositado; pode ser negativo quando os reembolsos superam as vendas, e então o saldo é compensado nos próximos repasses), `currency` e `item_count`. O `status` é `scheduled` (previsto), `released` (liberado, em processamento), `held` (retido para análise) ou `deposited` (depositado). `deposited` quer dizer que a data do repasse passou e a Peráta o registrou: para ter certeza do crédito, confira o extrato do banco.
+
+`GET /payouts/{id}` traz os mesmos campos mais `items`, os lançamentos do dia: `kind` (`sale`, `refund`, `chargeback`, `fee`, `adjustment` ou `anticipation`), `payment_id` (o id de `GET /payments/{id}`; nulo numa tarifa ou ajuste que não é de um pagamento), `installment` (a parcela que o lançamento paga; 0 numa venda à vista), `status`, `amount_cents` (negativo em reembolso e contestação), `fee_cents` e `net_cents`. Um repasse com lançamentos em estados diferentes está no menos avançado deles.
+
+Os valores são centavos inteiros. Uma data fora do formato, ou um `date_to` antes de `date_from`, volta 422 com a frase em `fields`; um id que não é de nenhum dia com repasse volta 404.
+
+**Avisos** (webhooks `payout.scheduled`, `payout.released`, `payout.held` e `payout.deposited`): saem a cada vez que o repasse de um dia muda de estado, com o `data` só de identificadores; o `aggregate_id` é o id do repasse, e o valor se lê em `GET /payouts/{id}`. A primeira leitura de uma organização não avisa o passado. Para conciliar o seu financeiro, use o aviso para saber que mudou e a leitura do repasse para saber quanto.

@@ -111,7 +111,7 @@ let event = perata::verify_webhook(&std::env::var("PERATA_WEBHOOK_SECRET")?, &he
 let event = try verifyWebhook(secret: ProcessInfo.processInfo.environment["PERATA_WEBHOOK_SECRET"]!, headers: headers, body: body)
 ```
 
-Sem SDK (TypeScript sem o pacote do npm, C#), a verificação à mão está em `linguagens.md`.
+Sem SDK (C#), a verificação à mão está em `linguagens.md`.
 
 Ler o corpo cru em frameworks: em Express use `express.raw({ type: "application/json" })` nesta rota (não `express.json()`); em Flask, `request.get_data()`; em Rails, `request.raw_post`; em Laravel, `$request->getContent()`; em Go, `io.ReadAll(r.Body)`. Se o framework já tiver lido e reescrito o JSON, a assinatura não bate.
 
@@ -234,8 +234,10 @@ O contrato lista todos os `type`s abaixo. Assine só os que usa. O `data` de cad
 | Pagamento | `checkout_payment.authorized`, `.captured`, `.refused`, `.canceled`, `.refunded`, `.partially_refunded` | `WebhookSale` (`checkout_id`, `amount_cents`, `method`, `client_reference_id`, `metadata`, `refunded_amount_cents`, e `refund_id`/`refund_amount_cents` nos de reembolso) | detalhe do pagamento (meio, recusa); a baixa vem de `order.paid` |
 | Reembolso | `refund.requested`, `refund.succeeded`, `refund.failed`, `refund.canceled` | `WebhookSale` (`checkout_id`, `payment_id`, `refund_id`, `amount_cents`, e em `refund.failed` `failure_reason` e `failure_code`) | `refund.failed`: avise quem pediu; o dinheiro não voltou |
 | Reembolso (objeto) | `refund.created`, `refund.updated` | `WebhookRefund` (`id`, `payment_id`, `order_id`, `amount_cents`, `status`; `metadata` é o do **pedido**, `refund_metadata` o do **reembolso**) | acompanhamento |
-| Assinatura | `subscription.created`, `.active`, `.updated`, `.cycled`, `.past_due`, `.suspended`, `.paused`, `.resumed`, `.canceled`, `.uncanceled`, `.revoked` | `WebhookSubscription` (com `quantity`, `amount_cents` do ciclo, `client_reference_id`, `metadata` e `first_period_extra_days`; e `payment_failure` em `past_due` e `suspended`) | `assinaturas.md` |
+| Assinatura | `subscription.created`, `.active`, `.updated`, `.cycled`, `.past_due`, `.suspended`, `.paused`, `.resumed`, `.canceled`, `.uncanceled`, `.revoked`, `.renewal_due`, `.renewal_reminder` | `WebhookSubscription` (com `renewal_mode`, `label`, `notify_customer_email`, `quantity`, `amount_cents` do ciclo, `client_reference_id`, `metadata` e `first_period_extra_days`; e `payment_failure` em `past_due` e `suspended`) | `assinaturas.md` |
+| Cobrança de renovação | `subscription.renewal_due`, `subscription.renewal_reminder` | `WebhookRenewalCharge` (`id`, `subscription_id`, `cycle_sequence`, `amount_cents`, `due_at`, `expires_at`, `period_start`, `period_end`, `payment_url`, `client_reference_id`, `metadata`, `label`, `renewal_mode`, `reminder`, `days_until_due`) | `renewal_due`: a cobrança abriu; entregue o `payment_url` ao comprador (o Pix é gerado nessa página). `renewal_reminder`: 3 dias antes de `due_at` (`before_due`) e no vencimento (`on_due`), só enquanto não paga. Veja `assinaturas.md` |
 | Disputa | `dispute.opened`, `dispute.won`, `dispute.lost` | `WebhookDispute` (com `kind`, `payment_method`, `checkout_id`, `client_reference_id`, `metadata`, `external_customer_id`, `subscription_id`) | `opened`: suspenda o serviço e defenda |
+| Repasse | `payout.scheduled`, `payout.released`, `payout.held`, `payout.deposited` | só identificadores | `aggregate_id` é o id do repasse: leia `GET /payouts/{id}` (`pos-venda.md`) |
 | Cliente | `customer.created`, `.updated`, `.deleted`, `.archived` | o `Customer` (`archived`: só identificadores) | espelho opcional |
 | Catálogo | `product.created`, `.updated`, `.archived`, `price.created`, `.archived` | `Product` (os de preço e `archived`: só identificadores) | espelho opcional |
 | Desconto | `discount.created`, `.updated`, `.deleted`, `.redeemed`, `.exhausted`, `.expired`, `.reactivated`, `discount_redemption.released` | `WebhookDiscount` ou identificadores | opcional |

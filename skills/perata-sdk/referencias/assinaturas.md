@@ -17,6 +17,8 @@ Campos extras do checkout de assinatura:
 | `discount_id` | aplica um desconto do catálogo (uma vez, por alguns meses ou para sempre, como foi criado). Desconto limitado a outro produto é recusado (422). Desconto só numa parte do valor ainda não existe |
 | `subscription_start_at` | RFC 3339; a primeira cobrança acontece nesse dia |
 | `first_period_extra_days` | de 1 a 365; o comprador paga hoje o valor cheio e esses dias se somam ao primeiro período |
+| `renewal_mode` | `manual`, `automatic` ou `buyer_choice`: como a assinatura renova (seção "Como a assinatura renova") |
+| `notify_customer_email` | `false` deixa o aviso da cobrança de cada renovação com o seu sistema |
 
 `subscription_start_at`: vale o **dia no horário de São Paulo** (a hora não conta), de amanhã a um ano (senão 422). O cartão é guardado e conferido com o emissor (Zero Auth) **sem cobrar nada hoje**; a assinatura fica `trialing` e a primeira cobrança acontece no dia, no cartão guardado; as seguintes seguem a periodicidade do preço a partir dele. Só vale em preço recorrente com valor e só no cartão de crédito (a página não oferece Pix nem boleto). A página mostra "Primeira cobrança em DD/MM/AAAA". Quem abre o checkout depois da data recebe 410. (SDK 0.5.6+.)
 
@@ -94,15 +96,62 @@ A chave precisa de `checkouts:write`, `products:read`, `subscriptions:read` e `s
 | `paused` | pausada |
 | `canceled` | encerrada |
 
-Campos úteis: `amount_cents`, `quantity`, `current_period_start`, `current_period_end`, `cancel_at_period_end`, `pending_update`, `suspended_at`, `suspension_reason`, `trial_start`, `trial_end`, `metadata`, `client_reference_id`, `discount_id`, `discount_ends_at`, `first_period_extra_days`.
+Campos úteis: `renewal_mode`, `label`, `notify_customer_email`, `amount_cents`, `quantity`, `current_period_start`, `current_period_end`, `cancel_at_period_end`, `pending_update`, `suspended_at`, `suspension_reason`, `trial_start`, `trial_end`, `metadata`, `client_reference_id`, `discount_id`, `discount_ends_at`, `first_period_extra_days`.
 
 `discount_id` é o desconto em vigor na assinatura, aplicado aos próximos ciclos até acabar: nulo sem desconto e depois que ele acabou (num desconto de uma vez, depois do primeiro ciclo pago). `discount_ends_at` é quando ele deixa de valer, o fim do último ciclo que ele ainda abate (num desconto de uma vez, o fim do primeiro ciclo pago), e é nulo quando não há desconto e quando ele vale para sempre. O pedido de cada ciclo diz o que foi descontado nele (`discount_id`, `subtotal_cents`, `discount_cents`: veja `pos-venda.md`). Estes campos também chegam em `subscription.*`.
 
 (`quantity` e `client_reference_id` na `Subscription` e em `subscription.*`: SDK 0.5.7+.) `quantity` é quantas unidades ou assentos a assinatura cobre (1 num preço sem quantidade), e `amount_cents` é o **total do ciclo para essa quantidade**, em centavos, com o preço por unidade, por assento ou por faixas já aplicado: não é o preço de uma unidade. Troque a quantidade com `PATCH /api/v1/subscriptions/{id}` (`quantity`).
 
+## Como a assinatura renova (`renewal_mode`)
+
+Mande `renewal_mode` em todo checkout de assinatura. A `Subscription` e todo `subscription.*` trazem o modo a que ele se resolveu, em `renewal_mode`: `manual`, `card` ou `pix_automatic`. `card` e `pix_automatic` são os **automáticos**.
+
+| Você manda | O que acontece |
+|---|---|
+| `"manual"` | O comprador paga agora com qualquer meio (Pix, boleto, débito ou cartão). A cada ciclo a Peráta abre uma cobrança para ele pagar e avisa o seu sistema com `subscription.renewal_due`. O cartão não é guardado nem cobrado, mesmo que o primeiro pagamento tenha sido nele. A assinatura nasce com `renewal_mode: "manual"`. |
+| `"automatic"` | Só meios que cobram sozinhos: cartão de crédito (guardado) ou Pix Automático, este só onde a organização o tem ligado (hoje desligado: só o cartão). A página mostra só esses meios. Pagar por Pix, boleto ou débito é 422 em `payment_method`. A assinatura nasce `card` ou `pix_automatic`. |
+| `"buyer_choice"` | A página mostra a caixa "Ativar cobrança automática", desmarcada. Desmarcada é `manual`; marcada é `automatic` (a página esconde os meios que não cobram sozinhos). |
+| nada | Como sempre foi: sem caixa; o cartão de crédito que o pagamento guardou renova sozinho (`card`) e qualquer outro meio vira uma cobrança a cada ciclo (`manual`). |
+
+Funciona junto com `first_period_extra_days` e com `discount_id`, inclusive no Pix Automático: a primeira cobrança do banco cai no fim do período estendido. Só vale em preço recorrente com valor (senão 422 em `renewal_mode`); `manual` não vale com teste grátis nem com `subscription_start_at`, que guardam o cartão para cobrar no fim (422). Repetir a criação com a mesma `Idempotency-Key` e outro `renewal_mode` dá 409.
+
+Para mudar depois: `PATCH /api/v1/subscriptions/{id}` com `{"renewal_mode":"manual"}` (a Peráta solta o cartão e passa a abrir cobrança a cada ciclo) ou `{"renewal_mode":"card"}` (exige um cartão já guardado na assinatura; senão 422). `pix_automatic` só o comprador ativa, no banco. O comprador também troca no portal do cliente: "Pagar todo mês" para sair do cartão, ou escolher um cartão para voltar a ele.
+
+## A cobrança de renovação: `subscription.renewal_due`, `open-charge` e os lembretes
+
+Numa assinatura `manual` (ou num pagamento que não guardou cartão), o ciclo novo abre com uma cobrança para o comprador pagar, no dia em que ele começa. Nesse dia sai o evento `subscription.renewal_due`; se o cartão de uma assinatura `card` for recusado, sobra o link e o evento sai também. Uma renovação que o cartão paga sem recusa não gera o evento.
+
+`data` do evento (e a resposta de `GET /api/v1/subscriptions/{id}/open-charge`, que tem os mesmos campos):
+
+| Campo | O que é |
+|---|---|
+| `id` | o id da cobrança, que é o do ciclo. O pedido só existe depois do pagamento: o `order.paid` traz o mesmo `subscription_id` e `cycle_sequence` |
+| `subscription_id`, `cycle_sequence` | a assinatura e o ciclo (2 é a primeira renovação) |
+| `amount_cents`, `currency` | o que o comprador paga: o ciclo com desconto e rateio |
+| `due_at` | até quando pagar sem atraso: o fim do período que a cobrança paga |
+| `expires_at` | quando o `payment_url` deixa de abrir (sempre depois da tolerância de 72 h) |
+| `period_start`, `period_end` | o período que a cobrança paga |
+| `payment_url` | a página da Peráta onde o comprador paga, por cartão, Pix ou boleto. **Entregue este endereço ao comprador** |
+| `client_reference_id`, `metadata`, `label`, `renewal_mode`, `notify_customer_email` | os da assinatura |
+| `reminder`, `days_until_due` | nulos aqui; veja o lembrete |
+
+**O Pix não vem no evento.** A Peráta gera o Pix na página do `payment_url`, quando o comprador o escolhe: o código vale 24 horas e a cobrança vale dias, e um Pix aberto impediria o comprador de pagar de outro jeito até vencer. O seu sistema entrega o `payment_url`; o QR e o copia e cola aparecem lá.
+
+`GET /api/v1/subscriptions/{id}/open-charge` (escopo `subscriptions:read`) devolve a cobrança aberta; sem cobrança (ciclo pago, cartão ou Pix Automático, ou o próximo ciclo ainda fechado) responde 404 `no_open_charge` com a mensagem dizendo isso.
+
+`subscription.renewal_reminder` lembra de uma cobrança ainda não paga: 3 dias antes de `due_at` (`reminder: "before_due"`, `days_until_due: 3`) e no vencimento (`"on_due"`, `0`), uma vez cada. A cobrança aberta há menos de 3 dias do vencimento só tem o lembrete do vencimento.
+
+Quem não paga: no vencimento a assinatura vira `past_due`, o mesmo `payment_url` continua valendo por mais 72 horas de tolerância e, depois, a assinatura é suspensa, como sempre foi.
+
+**Quem avisa o comprador.** Por padrão a Peráta também escreve a ele (e-mail "Pagamento da sua assinatura", com o `label` e o botão para pagar). Mande `notify_customer_email: false` no checkout, ou no `PATCH` da assinatura, para a Peráta ficar quieta e o seu sistema avisar pelo `payment_url`; a cobrança é aberta e anunciada do mesmo jeito. A organização também liga e desliga esse e-mail para todos em Configurações › Preferências › "Cobrança da renovação".
+
+## Rótulo da assinatura (`label`)
+
+O `label` do checkout (até 200 caracteres, sem caracteres de controle) vira o `label` da assinatura, e `PATCH /api/v1/subscriptions/{id}` com `{"label":"..."}` o troca (vazio tira). Ele aparece na `Subscription`, em todo `subscription.*` e em `subscription.renewal_due`, como título da assinatura no portal do cliente (com o produto e o valor embaixo), no painel e no e-mail da cobrança. Sem `label`, a assinatura aparece pelo nome do produto. Vai sozinho no `PATCH`, com `renewal_mode` e `notify_customer_email`, nunca junto de `price_id`, `quantity`, `proration_behavior` ou `extend_current_period_days`.
+
 ## Renovação
 
-Cada ciclo é cobrado no cartão guardado, no dia do vencimento. Numa assinatura paga com cartão de crédito o cartão é sempre guardado, sem caixa para o comprador marcar; nos campos seguros, mande `card_token`, não `payment_token`. Cada ciclo gera `subscription.cycled` (com o período e o `metadata`) e, pela cobrança, `checkout_payment.captured` e `order.paid`; não conte com uma ordem entre eles. Do 2º ciclo em diante, os eventos de pagamento (`order.*`, `checkout.*`, `checkout_payment.*`, `refund.*`) trazem o `client_reference_id` e o `metadata` do checkout que vendeu a assinatura (o id do pedido e o da câmera) e `subscription_id`, `cycle_sequence` (1 é o primeiro ciclo, 2 a primeira renovação), `period_start` e `period_end`; esses quatro vêm nulos fora de assinatura. Libere ou estenda o acesso do cliente por ciclo a partir de `order.paid`, usando `period_end`, e deixe a leitura certa do que ele pode usar em `GET /customers/{id}/state`.
+Cada ciclo é cobrado no cartão guardado, no dia do vencimento, quando o `renewal_mode` é `card`; no `manual`, ele vira uma cobrança para o comprador pagar (seção anterior). Num pagamento com cartão de crédito sem `renewal_mode`, o cartão é guardado, sem caixa para o comprador marcar; nos campos seguros, mande `card_token`, não `payment_token`. Cada ciclo gera `subscription.cycled` (com o período e o `metadata`) e, pela cobrança, `checkout_payment.captured` e `order.paid`; não conte com uma ordem entre eles. Do 2º ciclo em diante, os eventos de pagamento (`order.*`, `checkout.*`, `checkout_payment.*`, `refund.*`) trazem o `client_reference_id` e o `metadata` do checkout que vendeu a assinatura (o id do pedido e o da câmera) e `subscription_id`, `cycle_sequence` (1 é o primeiro ciclo, 2 a primeira renovação), `period_start` e `period_end`; esses quatro vêm nulos fora de assinatura. Libere ou estenda o acesso do cliente por ciclo a partir de `order.paid`, usando `period_end`, e deixe a leitura certa do que ele pode usar em `GET /customers/{id}/state`.
 
 Atenção: em 18/11/2026 a renovação automática no cartão ainda estava **desligada em Produção**. Antes de prometer a renovação ao cliente final, confirme com a Peráta (ajuda@perata.sh) que ela está ligada.
 
