@@ -59,6 +59,18 @@ public sealed record WebhookOrder
     [JsonPropertyName("cycle_sequence")]
     public long? CycleSequence { get; init; }
 
+    /// <summary>Quanto o desconto tirou do pedido, em centavos; 0 sem desconto.</summary>
+    [JsonPropertyName("discount_cents")]
+    public required long DiscountCents { get; init; }
+
+    /// <summary>O código que o comprador digitou no checkout deste pedido; nulo quando o desconto veio por discount_id, quando veio da assinatura numa renovação ou quando não houve desconto. Null when the API sends none.</summary>
+    [JsonPropertyName("discount_code")]
+    public string? DiscountCode { get; init; }
+
+    /// <summary>O desconto do catálogo que este pedido aplicou; nulo quando não houve desconto. Na renovação de uma assinatura é o desconto que a assinatura aplicou naquele ciclo. Null when the API sends none.</summary>
+    [JsonPropertyName("discount_id")]
+    public string? DiscountId { get; init; }
+
     /// <summary>The API's <c>id</c>.</summary>
     [JsonPropertyName("id")]
     public required string Id { get; init; }
@@ -126,4 +138,8 @@ public sealed record WebhookOrder
     /// <summary>A assinatura que este pagamento cobra; nulo quando a venda não é de uma assinatura. Null when the API sends none.</summary>
     [JsonPropertyName("subscription_id")]
     public string? SubscriptionId { get; init; }
+
+    /// <summary>O valor do pedido antes do desconto, em centavos: subtotal_cents menos discount_cents é o amount_cents.</summary>
+    [JsonPropertyName("subtotal_cents")]
+    public required long SubtotalCents { get; init; }
 }

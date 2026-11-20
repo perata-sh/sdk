@@ -208,6 +208,40 @@ class PerataTest < Minitest::Test
     assert_equal [3, 55_000, "pedido-9"], [got.quantity, got.amount_cents, got.client_reference_id]
   end
 
+  # A checkout adds the buyer's remaining days to the first period, an extension
+  # goes out alone (no price_id), and the sale reads back what it took: the
+  # discount on the order and on the subscription, and the change scheduled for
+  # the next period.
+  def test_a_first_period_extension_and_the_discounts_the_sale_reads_back
+    answers = {
+      "POST /api/v1/checkouts" => [201, '{"data":{"id":"pcl_1","showcase_id":"x","url":"x","product_id":"prod_1","price_id":"price_1","status":"active","label":"x","quantity":0,"amount_cents":null,"items":[],"metadata":{},"client_reference_id":"x","success_url":"x","cancel_url":"x","expires_at":null,"subscription_start_at":null,"discount_id":"disc_1","first_period_extra_days":30,"created_at":"2026-11-20T12:00:00Z","session_id":"cs_1","client_secret":"cs_secret_1","client_secret_expires_at":"2026-11-20T12:00:00Z","status_key":"x"}}'],
+      "PATCH /api/v1/subscriptions/sub_1" => [200, '{"data":{"id":"sub_1","showcase_id":"x","customer_id":"x","product_id":"x","price_id":"x","status":"active","amount_cents":0,"quantity":0,"currency":"BRL","interval":"x","current_period_start":"2026-11-20T12:00:00Z","current_period_end":"2026-11-20T12:00:00Z","cancel_at_period_end":false,"pending_update":{"price_id":"price_2","quantity":5,"amount_cents":90000,"effective_at":"2026-12-20T03:00:00Z"},"suspended_at":null,"suspension_reason":null,"trial_start":null,"trial_end":null,"metadata":{},"client_reference_id":"x","discount_id":"disc_1","discount_ends_at":"2027-03-01T03:00:00Z","first_period_extra_days":30}}'],
+      "GET /api/v1/subscriptions/sub_2" => [200, '{"data":{"id":"sub_2","showcase_id":"x","customer_id":"x","product_id":"x","price_id":"x","status":"active","amount_cents":0,"quantity":0,"currency":"BRL","interval":"x","current_period_start":"2026-11-20T12:00:00Z","current_period_end":"2026-11-20T12:00:00Z","cancel_at_period_end":false,"pending_update":null,"suspended_at":null,"suspension_reason":null,"trial_start":null,"trial_end":null,"metadata":{},"client_reference_id":"x","discount_id":null,"discount_ends_at":null,"first_period_extra_days":null}}'],
+      "GET /api/v1/orders/ord_1" => [200, '{"data":{"id":"ord_1","showcase_id":"x","customer_id":"x","product_id":"x","price_id":"x","amount_cents":9000,"currency":"BRL","status":"open","paid_at":null,"order_status":null,"refunded_amount_cents":0,"installments":0,"installment_interest_cents":0,"items":[],"metadata":{},"client_reference_id":"x","subscription_id":null,"cycle_sequence":null,"period_start":null,"period_end":null,"discount_id":"disc_1","discount_code":"BEMVINDO","subtotal_cents":10000,"discount_cents":1000}}'],
+      "GET /api/v1/prices/price_1" => [200, '{"data":{"id":"price_1","product_id":"prod_1","currency":"BRL","amount_cents":9000,"type":"one_time","interval":"none","interval_count":0,"pricing_model":"fixed","unit_amount_cents":null,"tiers":[],"unit_label":"x","unit_label_plural":"x","minimum_units":null,"maximum_units":null,"status":"archived"}}']
+    }
+    perata, recorder = client do |request|
+      status, body = answers.fetch("#{request[:method]} #{request[:url].path}")
+      [status, JSON.parse(body), {}]
+    end
+    checkout = perata.checkouts.create({ product_id: "prod_1", price_id: "price_1", first_period_extra_days: 30 })
+    assert_equal 30, JSON.parse(recorder.seen[0][:body])["first_period_extra_days"]
+    assert_equal [30, "disc_1"], [checkout.first_period_extra_days, checkout.discount_id]
+    subscription = perata.subscriptions.update("sub_1", { extend_current_period_days: 15 })
+    sent = JSON.parse(recorder.seen[1][:body])
+    assert_equal ["PATCH", 15], [recorder.seen[1][:method], sent["extend_current_period_days"]]
+    refute sent.key?("price_id")
+    assert_equal [30, "disc_1", "2027-03-01T03:00:00Z"], [subscription.first_period_extra_days, subscription.discount_id, subscription.discount_ends_at]
+    pending = subscription.pending_update
+    assert_equal ["price_2", 5, 90_000, "2026-12-20T03:00:00Z"], [pending.price_id, pending.quantity, pending.amount_cents, pending.effective_at]
+    none = perata.subscriptions.get("sub_2")
+    assert_equal [nil, nil, nil], [none.pending_update, none.first_period_extra_days, none.discount_id]
+    order = perata.orders.get("ord_1")
+    assert_equal [10_000, 1000, "disc_1", "BEMVINDO"], [order.subtotal_cents, order.discount_cents, order.discount_id, order.discount_code]
+    price = perata.prices.get("price_1")
+    assert_equal ["/api/v1/prices/price_1", "archived"], [recorder.seen[4][:url].path, price.status]
+  end
+
   def test_usage_ingestion_carries_the_source_credential_and_its_events
     recorder = Recorder.new { [200, { "data" => { "created" => 1, "replayed" => 0 } }, {}] }
     usage = Perata::Client.new("pus_live_source", base_url: "https://perata.test/", transport: recorder)
@@ -275,10 +309,10 @@ class PerataTest < Minitest::Test
   REFERENCE_SECRET = "whsec_MfKQ9r8GKYqrTwjUPD8ILPZIo2LaLaSw"
   OLD_SECRET = "whsec_cGVyYXRhLXNkay1vbGQta2V5LTAxMjM0NTY3ODlhYmM="
   NEW_SECRET = "whsec_cGVyYXRhLXNkay1uZXcta2V5LTAxMjM0NTY3ODlhYmM="
-  ORDER_PAID = '{"id":"msg_2","type":"order.paid","timestamp":"2026-10-22T12:00:00Z","data":{"id":"ord_1","customer_id":"cus_1","product_id":"prod_1","price_id":"price_1","amount_cents":12000,"currency":"BRL","status":"succeeded","paid_at":"2026-10-22T12:00:00Z","order_status":"paid","refunded_amount_cents":0,"refund_id":null,"refund_amount_cents":null,"installments":3,"installment_interest_cents":360,"items":[],"metadata":{},"client_reference_id":"","showcase_id":"shw_1"}}'
+  ORDER_PAID = '{"id":"msg_2","type":"order.paid","timestamp":"2026-10-22T12:00:00Z","data":{"id":"ord_1","customer_id":"cus_1","product_id":"prod_1","price_id":"price_1","amount_cents":12000,"currency":"BRL","status":"succeeded","paid_at":"2026-10-22T12:00:00Z","order_status":"paid","refunded_amount_cents":0,"refund_id":null,"refund_amount_cents":null,"installments":3,"installment_interest_cents":360,"items":[],"metadata":{},"client_reference_id":"","showcase_id":"shw_1","subtotal_cents":12000,"discount_cents":0,"discount_id":null,"discount_code":null}}'
   USAGE_RECORDED = '{"id":"msg_3","type":"usage_event.recorded","timestamp":"2026-10-22T12:00:00Z","data":{"event_id":"ue_1","aggregate":"usage_event","aggregate_id":"ue_1","merchant_id":"mer_1","environment":"test"}}'
   PAYOUT_SENT = '{"id":"msg_4","type":"payout.sent","timestamp":"2026-10-22T12:00:00Z","data":{"payout_id":"po_1","amount_cents":5000}}'
-  ORDER_PAID_LIVE = '{"id":"msg_5","type":"order.paid","timestamp":"2026-10-22T12:00:00Z","environment":"live","showcase_id":"shw_1","data":{"id":"ord_1","customer_id":"cus_1","product_id":"prod_1","price_id":"price_1","amount_cents":12000,"currency":"BRL","status":"succeeded","paid_at":"2026-10-22T12:00:00Z","order_status":"paid","refunded_amount_cents":0,"refund_id":null,"refund_amount_cents":null,"installments":3,"installment_interest_cents":360,"items":[],"metadata":{},"client_reference_id":"","showcase_id":"shw_1"}}'
+  ORDER_PAID_LIVE = '{"id":"msg_5","type":"order.paid","timestamp":"2026-10-22T12:00:00Z","environment":"live","showcase_id":"shw_1","data":{"id":"ord_1","customer_id":"cus_1","product_id":"prod_1","price_id":"price_1","amount_cents":12000,"currency":"BRL","status":"succeeded","paid_at":"2026-10-22T12:00:00Z","order_status":"paid","refunded_amount_cents":0,"refund_id":null,"refund_amount_cents":null,"installments":3,"installment_interest_cents":360,"items":[],"metadata":{},"client_reference_id":"","showcase_id":"shw_1","subtotal_cents":12000,"discount_cents":0,"discount_id":null,"discount_code":null}}'
   PAYOUT_SENT_TEST = '{"id":"msg_6","type":"payout.sent","timestamp":"2026-10-22T12:00:00Z","environment":"test","data":{"payout_id":"po_1","amount_cents":5000}}'
   SIGNED_AT = 1_792_670_400
 
@@ -306,11 +340,11 @@ class PerataTest < Minitest::Test
 
   def test_a_webhook_carries_the_environment_it_happened_in
     now = Time.at(SIGNED_AT + 120)
-    [["msg_2", "v1,fvRLETNjaSQOVbSs/eVRV/C17ysRHoubzX3idpGAifI= v1,ZsKtmVTp/mXCeW5qAiaLJY1TjyXwUyS7RxRVa3RIQQo=", ORDER_PAID], ["msg_3", "v1,Z3E2vTbczigiySfkzakxuZotPn9FlBY1KAET6hPEZoU=", USAGE_RECORDED], ["msg_4", "v1,Sa/yofA3h/58pFR+rIiWdIc8qXfcuqvyJSjxn4oJ1ZY=", PAYOUT_SENT]].each do |id, signature, body|
+    [["msg_2", "v1,wR5lfpym2P4TnG65MaTym1j5wWmRCtcygqTrQNICOEQ= v1,BLGtoe01YFYZHfU7Hcj8qvYNfluZvoTrRaAjcfB8JSs=", ORDER_PAID], ["msg_3", "v1,Z3E2vTbczigiySfkzakxuZotPn9FlBY1KAET6hPEZoU=", USAGE_RECORDED], ["msg_4", "v1,Sa/yofA3h/58pFR+rIiWdIc8qXfcuqvyJSjxn4oJ1ZY=", PAYOUT_SENT]].each do |id, signature, body|
       assert_equal "", Perata.verify_webhook(NEW_SECRET, webhook_headers(id, SIGNED_AT, signature), body, now: now).environment, id
       assert_equal "", Perata.verify_webhook(NEW_SECRET, webhook_headers(id, SIGNED_AT, signature), body, now: now).showcase_id, id
     end
-    order = Perata.verify_webhook(NEW_SECRET, webhook_headers("msg_5", SIGNED_AT, "v1,9CgfDokxQ7tBEd7vvv32TI4QUdqkaHrxgUo2UUNQpOY="), ORDER_PAID_LIVE, now: now)
+    order = Perata.verify_webhook(NEW_SECRET, webhook_headers("msg_5", SIGNED_AT, "v1,vJOO2qPe9Vzlr42VPwCuIO+a6Sg8ZVfl9z4WuLJItwg="), ORDER_PAID_LIVE, now: now)
     assert_instance_of Perata::OrderWebhookEvent, order
     assert_equal "live", order.environment
     assert_equal "shw_1", order.showcase_id
@@ -323,7 +357,7 @@ class PerataTest < Minitest::Test
 
   def test_a_webhook_answers_its_typed_event
     now = Time.at(SIGNED_AT + 120)
-    headers = webhook_headers("msg_2", SIGNED_AT, "v1,fvRLETNjaSQOVbSs/eVRV/C17ysRHoubzX3idpGAifI= v1,ZsKtmVTp/mXCeW5qAiaLJY1TjyXwUyS7RxRVa3RIQQo=")
+    headers = webhook_headers("msg_2", SIGNED_AT, "v1,wR5lfpym2P4TnG65MaTym1j5wWmRCtcygqTrQNICOEQ= v1,BLGtoe01YFYZHfU7Hcj8qvYNfluZvoTrRaAjcfB8JSs=")
     [NEW_SECRET, OLD_SECRET].each do |secret|
       event = Perata.verify_webhook(secret, headers, ORDER_PAID, now: now)
       assert_instance_of Perata::OrderWebhookEvent, event

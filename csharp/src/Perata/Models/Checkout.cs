@@ -39,6 +39,10 @@ public sealed record Checkout
     [JsonPropertyName("expires_at")]
     public string? ExpiresAt { get; init; }
 
+    /// <summary>Quantos dias o seu servidor somou ao primeiro período da assinatura (first_period_extra_days na criação); nulo quando o primeiro período é o comum. O comprador paga hoje o valor cheio, e a próxima cobrança só acontece no fim do período mais longo. Null when the API sends none.</summary>
+    [JsonPropertyName("first_period_extra_days")]
+    public long? FirstPeriodExtraDays { get; init; }
+
     /// <summary>The API's <c>id</c>.</summary>
     [JsonPropertyName("id")]
     public required string Id { get; init; }

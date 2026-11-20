@@ -28,7 +28,10 @@ public final class CheckoutsService {
      * do pedido em items (só para exibição, com a soma igual ao valor do preço)
      * e o desconto em discount_id. Para uma assinatura que só começa a cobrar
      * numa data, envie subscription_start_at com o preço recorrente: o cartão é
-     * guardado sem cobrança e a primeira cobrança acontece nesse dia.
+     * guardado sem cobrança e a primeira cobrança acontece nesse dia. Para o
+     * comprador que ainda tem dias pagos num plano anterior, envie
+     * first_period_extra_days (1 a 365): ele paga hoje o valor cheio e a
+     * próxima cobrança só acontece no fim do primeiro período mais esses dias.
      *
      * Autenticação: chave de API da organização em Authorization: Bearer
      * (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
@@ -58,7 +61,10 @@ public final class CheckoutsService {
      * do pedido em items (só para exibição, com a soma igual ao valor do preço)
      * e o desconto em discount_id. Para uma assinatura que só começa a cobrar
      * numa data, envie subscription_start_at com o preço recorrente: o cartão é
-     * guardado sem cobrança e a primeira cobrança acontece nesse dia.
+     * guardado sem cobrança e a primeira cobrança acontece nesse dia. Para o
+     * comprador que ainda tem dias pagos num plano anterior, envie
+     * first_period_extra_days (1 a 365): ele paga hoje o valor cheio e a
+     * próxima cobrança só acontece no fim do primeiro período mais esses dias.
      *
      * Autenticação: chave de API da organização em Authorization: Bearer
      * (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
@@ -87,6 +93,7 @@ public final class CheckoutsService {
         private final String discountId;
         private final Long expiresIn;
         private final String externalCustomerId;
+        private final Long firstPeriodExtraDays;
         private final List<CheckoutsCreateItem> items;
         private final String label;
         private final Map<String, Object> metadata;
@@ -109,6 +116,7 @@ public final class CheckoutsService {
             this.discountId = builder.discountId;
             this.expiresIn = builder.expiresIn;
             this.externalCustomerId = builder.externalCustomerId;
+            this.firstPeriodExtraDays = builder.firstPeriodExtraDays;
             this.items = builder.items;
             this.label = builder.label;
             this.metadata = builder.metadata;
@@ -174,6 +182,11 @@ public final class CheckoutsService {
         /** @return O mesmo cliente, pelo ID que você deu a ele. (null when left out) */
         public String getExternalCustomerId() {
             return externalCustomerId;
+        }
+
+        /** @return Quantos dias somar ao primeiro período da assinatura, de 1 a 365: para o comprador que ainda tinha dias pagos num plano anterior (por exemplo, pago até 11/12 e assinando em 20/11: 21 dias). O comprador paga hoje o valor cheio do preço (com as faixas, a quantidade e o desconto), em Pix, cartão de crédito ou débito, como em qualquer checkout, e o primeiro período vai do dia do pagamento até esse dia mais um intervalo do preço mais estes dias, no horário de São Paulo; a renovação e os ciclos seguintes contam a partir desse fim. A próxima cobrança, no cartão guardado ou pelo link ou Pix de renovação, só acontece nele. A página mostra "Pague hoje R$ X. Próxima cobrança em DD/MM/AAAA (inclui N dias do seu plano anterior)". Só vale em um preço recorrente com valor, vendido sozinho e sem teste grátis, e não junto com subscription_start_at (cobra hoje, não numa data); fora disso a resposta é 422. A assinatura e o evento da venda trazem o mesmo número em first_period_extra_days, e o pedido do primeiro ciclo traz o período estendido em period_start e period_end. Repetir a criação com a mesma Idempotency-Key e outro número dá 409. (null when left out) */
+        public Long getFirstPeriodExtraDays() {
+            return firstPeriodExtraDays;
         }
 
         /** @return As linhas do pedido, até 50, para o comprador ler o detalhe: aparecem no checkout (página, modal, componentes e transparente), no pedido, no recibo, no portal do cliente e nos eventos. Em um preço de valor livre, a soma de quantity vezes unit_amount_cents precisa ser igual a amount_cents, ou a resposta é 422; enviadas sem amount_cents, a soma é o valor. Em um preço com valor próprio, como o de uma assinatura, as linhas só mostram ao comprador do que o valor é feito e fixam nada: envie-as sem amount_cents, com a soma igual ao valor do preço vezes a quantidade (senão 422), e o preço continua sendo quem define o que se cobra. (null when left out) */
@@ -258,6 +271,9 @@ public final class CheckoutsService {
             if (externalCustomerId != null) {
                 body.put("external_customer_id", externalCustomerId);
             }
+            if (firstPeriodExtraDays != null) {
+                body.put("first_period_extra_days", firstPeriodExtraDays);
+            }
             if (items != null) {
                 body.put("items", Json.toJsonList(items, CheckoutsCreateItem::toJson));
             }
@@ -299,6 +315,7 @@ public final class CheckoutsService {
             private String discountId;
             private Long expiresIn;
             private String externalCustomerId;
+            private Long firstPeriodExtraDays;
             private List<CheckoutsCreateItem> items;
             private String label;
             private Map<String, Object> metadata;
@@ -400,6 +417,15 @@ public final class CheckoutsService {
              */
             public Builder externalCustomerId(String externalCustomerId) {
                 this.externalCustomerId = externalCustomerId;
+                return this;
+            }
+
+            /**
+             * @param firstPeriodExtraDays Quantos dias somar ao primeiro período da assinatura, de 1 a 365: para o comprador que ainda tinha dias pagos num plano anterior (por exemplo, pago até 11/12 e assinando em 20/11: 21 dias). O comprador paga hoje o valor cheio do preço (com as faixas, a quantidade e o desconto), em Pix, cartão de crédito ou débito, como em qualquer checkout, e o primeiro período vai do dia do pagamento até esse dia mais um intervalo do preço mais estes dias, no horário de São Paulo; a renovação e os ciclos seguintes contam a partir desse fim. A próxima cobrança, no cartão guardado ou pelo link ou Pix de renovação, só acontece nele. A página mostra "Pague hoje R$ X. Próxima cobrança em DD/MM/AAAA (inclui N dias do seu plano anterior)". Só vale em um preço recorrente com valor, vendido sozinho e sem teste grátis, e não junto com subscription_start_at (cobra hoje, não numa data); fora disso a resposta é 422. A assinatura e o evento da venda trazem o mesmo número em first_period_extra_days, e o pedido do primeiro ciclo traz o período estendido em period_start e period_end. Repetir a criação com a mesma Idempotency-Key e outro número dá 409.
+             * @return this builder
+             */
+            public Builder firstPeriodExtraDays(Long firstPeriodExtraDays) {
+                this.firstPeriodExtraDays = firstPeriodExtraDays;
                 return this;
             }
 
@@ -610,9 +636,9 @@ public final class CheckoutsService {
      * Encerrar um checkout.
      *
      * Encerra um checkout que não deve mais ser pago: a página, o client_secret
-     * e o QR do Pix deixam de valer (o Pix já gerado é cancelado na Cielo) e o
-     * evento checkout.expired é enviado. Repetir a chamada é seguro. Se o
-     * checkout já foi pago ou emitiu um boleto, a resposta é 409.
+     * e o QR do Pix deixam de valer (o Pix já gerado é cancelado) e o evento
+     * checkout.expired é enviado. Repetir a chamada é seguro. Se o checkout já
+     * foi pago ou emitiu um boleto, a resposta é 409.
      *
      * Autenticação: chave de API da organização em Authorization: Bearer
      * (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
@@ -634,9 +660,9 @@ public final class CheckoutsService {
      * Encerrar um checkout.
      *
      * Encerra um checkout que não deve mais ser pago: a página, o client_secret
-     * e o QR do Pix deixam de valer (o Pix já gerado é cancelado na Cielo) e o
-     * evento checkout.expired é enviado. Repetir a chamada é seguro. Se o
-     * checkout já foi pago ou emitiu um boleto, a resposta é 409.
+     * e o QR do Pix deixam de valer (o Pix já gerado é cancelado) e o evento
+     * checkout.expired é enviado. Repetir a chamada é seguro. Se o checkout já
+     * foi pago ou emitiu um boleto, a resposta é 409.
      *
      * Autenticação: chave de API da organização em Authorization: Bearer
      * (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da

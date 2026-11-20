@@ -238,7 +238,7 @@ module Perata
 
   # The body of checkouts:create.
   class CheckoutsCreateParams < Params
-    MEMBERS = %i[allow_discount_codes amount_cents cancel_url client_reference_id customer_email customer_id customer_name discount_id expires_in external_customer_id items label metadata price_id product_id quantity require_billing_address return_url subscription_start_at success_url].freeze
+    MEMBERS = %i[allow_discount_codes amount_cents cancel_url client_reference_id customer_email customer_id customer_name discount_id expires_in external_customer_id first_period_extra_days items label metadata price_id product_id quantity require_billing_address return_url subscription_start_at success_url].freeze
 
     # Deixa o comprador digitar um código de desconto; desligado quando fica de fora.
     # @return [Boolean, nil]
@@ -279,6 +279,10 @@ module Perata
     # @return [String, nil]
     attr_reader :external_customer_id
 
+    # Quantos dias somar ao primeiro período da assinatura, de 1 a 365: para o comprador que ainda tinha dias pagos num plano anterior (por exemplo, pago até 11/12 e assinando em 20/11: 21 dias). O comprador paga hoje o valor cheio do preço (com as faixas, a quantidade e o desconto), em Pix, cartão de crédito ou débito, como em qualquer checkout, e o primeiro período vai do dia do pagamento até esse dia mais um intervalo do preço mais estes dias, no horário de São Paulo; a renovação e os ciclos seguintes contam a partir desse fim. A próxima cobrança, no cartão guardado ou pelo link ou Pix de renovação, só acontece nele. A página mostra "Pague hoje R$ X. Próxima cobrança em DD/MM/AAAA (inclui N dias do seu plano anterior)". Só vale em um preço recorrente com valor, vendido sozinho e sem teste grátis, e não junto com subscription_start_at (cobra hoje, não numa data); fora disso a resposta é 422. A assinatura e o evento da venda trazem o mesmo número em first_period_extra_days, e o pedido do primeiro ciclo traz o período estendido em period_start e period_end. Repetir a criação com a mesma Idempotency-Key e outro número dá 409.
+    # @return [Integer, nil]
+    attr_reader :first_period_extra_days
+
     # As linhas do pedido, até 50, para o comprador ler o detalhe: aparecem no checkout (página, modal, componentes e transparente), no pedido, no recibo, no portal do cliente e nos eventos. Em um preço de valor livre, a soma de quantity vezes unit_amount_cents precisa ser igual a amount_cents, ou a resposta é 422; enviadas sem amount_cents, a soma é o valor. Em um preço com valor próprio, como o de uma assinatura, as linhas só mostram ao comprador do que o valor é feito e fixam nada: envie-as sem amount_cents, com a soma igual ao valor do preço vezes a quantidade (senão 422), e o preço continua sendo quem define o que se cobra.
     # @return [Array<CheckoutsCreateItem>, nil]
     attr_reader :items
@@ -315,7 +319,7 @@ module Perata
     # @return [String, nil]
     attr_reader :success_url
 
-    def initialize(allow_discount_codes: nil, amount_cents: nil, cancel_url: nil, client_reference_id: nil, customer_email: nil, customer_id: nil, customer_name: nil, discount_id: nil, expires_in: nil, external_customer_id: nil, items: nil, label: nil, metadata: nil, price_id:, product_id:, quantity: nil, require_billing_address: nil, return_url: nil, subscription_start_at: nil, success_url: nil)
+    def initialize(allow_discount_codes: nil, amount_cents: nil, cancel_url: nil, client_reference_id: nil, customer_email: nil, customer_id: nil, customer_name: nil, discount_id: nil, expires_in: nil, external_customer_id: nil, first_period_extra_days: nil, items: nil, label: nil, metadata: nil, price_id:, product_id:, quantity: nil, require_billing_address: nil, return_url: nil, subscription_start_at: nil, success_url: nil)
       @allow_discount_codes = allow_discount_codes
       @amount_cents = amount_cents
       @cancel_url = cancel_url
@@ -326,6 +330,7 @@ module Perata
       @discount_id = discount_id
       @expires_in = expires_in
       @external_customer_id = external_customer_id
+      @first_period_extra_days = first_period_extra_days
       @items = items
       @label = label
       @metadata = metadata
@@ -352,6 +357,7 @@ module Perata
       wire["discount_id"] = @discount_id unless @discount_id.nil?
       wire["expires_in"] = @expires_in unless @expires_in.nil?
       wire["external_customer_id"] = @external_customer_id unless @external_customer_id.nil?
+      wire["first_period_extra_days"] = @first_period_extra_days unless @first_period_extra_days.nil?
       wire["items"] = Perata.wire(@items) unless @items.nil?
       wire["label"] = @label unless @label.nil?
       wire["metadata"] = Perata.wire(@metadata) unless @metadata.nil?
@@ -1157,10 +1163,14 @@ module Perata
 
   # The body of subscriptions:update.
   class SubscriptionsUpdateParams < Params
-    MEMBERS = %i[price_id proration_behavior quantity].freeze
+    MEMBERS = %i[extend_current_period_days price_id proration_behavior quantity].freeze
 
-    # O preço recorrente para onde a assinatura vai.
-    # @return [String]
+    # Estende o período atual em tantos dias, de 1 a 365, sem cobrar nada e sem criar pedido: a renovação (e a próxima cobrança) passa a ser no novo fim, current_period_end, e os períodos seguintes contam a partir dele. É o crédito manual de dias do lojista. Só uma assinatura active aceita (uma em teste grátis, atrasada, pausada, suspensa ou cancelada recusa); uma que termina no fim do período termina no novo fim. Vai sozinho, sem price_id, quantity nem proration_behavior, senão a resposta é 422. A mudança chega no webhook subscription.updated e fica registrada no log de atividades. Não é repetível por si: envie uma Idempotency-Key para que uma nova tentativa não some os dias duas vezes.
+    # @return [Integer, nil]
+    attr_reader :extend_current_period_days
+
+    # O preço recorrente para onde a assinatura vai. Obrigatório para trocar de plano; não se envia com extend_current_period_days.
+    # @return [String, nil]
     attr_reader :price_id
 
     # prorate (padrão): rateia o resto do período no próximo valor cobrado; invoice: cobra a diferença agora; next_period: troca no fim do período; reset: cobra o período inteiro do novo plano agora e reinicia o ciclo.
@@ -1171,7 +1181,8 @@ module Perata
     # @return [Integer, nil]
     attr_reader :quantity
 
-    def initialize(price_id:, proration_behavior: nil, quantity: nil)
+    def initialize(extend_current_period_days: nil, price_id: nil, proration_behavior: nil, quantity: nil)
+      @extend_current_period_days = extend_current_period_days
       @price_id = price_id
       @proration_behavior = proration_behavior
       @quantity = quantity
@@ -1181,7 +1192,8 @@ module Perata
     # The body as the API reads it.
     def to_wire
       wire = {}
-      wire["price_id"] = @price_id
+      wire["extend_current_period_days"] = @extend_current_period_days unless @extend_current_period_days.nil?
+      wire["price_id"] = @price_id unless @price_id.nil?
       wire["proration_behavior"] = @proration_behavior unless @proration_behavior.nil?
       wire["quantity"] = @quantity unless @quantity.nil?
       wire

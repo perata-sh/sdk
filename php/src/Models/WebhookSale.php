@@ -24,7 +24,7 @@ final class WebhookSale
         public readonly ?int $cycleSequence,
         public readonly string $environment,
         public readonly string $eventId,
-        /** O código que a Cielo deu para a recusa, nos eventos refund.* de um reembolso que falhou; serve ao suporte. */
+        /** O código dado para a recusa, nos eventos refund.* de um reembolso que falhou; serve ao suporte. */
         public readonly ?string $failureCode,
         /** Por que o dinheiro não voltou, em português, nos eventos refund.* de um reembolso que falhou (refund.failed). */
         public readonly ?string $failureReason,

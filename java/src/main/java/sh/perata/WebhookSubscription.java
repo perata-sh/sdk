@@ -35,10 +35,14 @@ public final class WebhookSubscription {
     private final String currentPeriodEnd;
     private final String currentPeriodStart;
     private final String customerId;
+    private final String discountEndsAt;
+    private final String discountId;
+    private final Long firstPeriodExtraDays;
     private final String id;
     private final String interval;
     private final Map<String, Object> metadata;
     private final WebhookSubscriptionPaymentFailure paymentFailure;
+    private final WebhookSubscriptionPendingUpdate pendingUpdate;
     private final String priceId;
     private final String productId;
     private final long quantity;
@@ -49,7 +53,7 @@ public final class WebhookSubscription {
     private final String trialEnd;
     private final String trialStart;
 
-    WebhookSubscription(long amountCents, boolean cancelAtPeriodEnd, String clientReferenceId, String currency, String currentPeriodEnd, String currentPeriodStart, String customerId, String id, String interval, Map<String, Object> metadata, WebhookSubscriptionPaymentFailure paymentFailure, String priceId, String productId, long quantity, String showcaseId, String status, String suspendedAt, String suspensionReason, String trialEnd, String trialStart) {
+    WebhookSubscription(long amountCents, boolean cancelAtPeriodEnd, String clientReferenceId, String currency, String currentPeriodEnd, String currentPeriodStart, String customerId, String discountEndsAt, String discountId, Long firstPeriodExtraDays, String id, String interval, Map<String, Object> metadata, WebhookSubscriptionPaymentFailure paymentFailure, WebhookSubscriptionPendingUpdate pendingUpdate, String priceId, String productId, long quantity, String showcaseId, String status, String suspendedAt, String suspensionReason, String trialEnd, String trialStart) {
         this.amountCents = amountCents;
         this.cancelAtPeriodEnd = cancelAtPeriodEnd;
         this.clientReferenceId = clientReferenceId;
@@ -57,10 +61,14 @@ public final class WebhookSubscription {
         this.currentPeriodEnd = currentPeriodEnd;
         this.currentPeriodStart = currentPeriodStart;
         this.customerId = customerId;
+        this.discountEndsAt = discountEndsAt;
+        this.discountId = discountId;
+        this.firstPeriodExtraDays = firstPeriodExtraDays;
         this.id = id;
         this.interval = interval;
         this.metadata = metadata;
         this.paymentFailure = paymentFailure;
+        this.pendingUpdate = pendingUpdate;
         this.priceId = priceId;
         this.productId = productId;
         this.quantity = quantity;
@@ -81,10 +89,14 @@ public final class WebhookSubscription {
                 Json.required(data, "current_period_end", Json::asString),
                 Json.required(data, "current_period_start", Json::asString),
                 Json.required(data, "customer_id", Json::asString),
+                Json.optional(data, "discount_ends_at", Json::asString),
+                Json.optional(data, "discount_id", Json::asString),
+                Json.optional(data, "first_period_extra_days", Json::asLong),
                 Json.required(data, "id", Json::asString),
                 Json.required(data, "interval", Json::asString),
                 Json.required(data, "metadata", Json.map(Json::any)),
                 Json.optional(data, "payment_failure", Json.model(WebhookSubscriptionPaymentFailure::fromJson)),
+                Json.optional(data, "pending_update", Json.model(WebhookSubscriptionPendingUpdate::fromJson)),
                 Json.required(data, "price_id", Json::asString),
                 Json.required(data, "product_id", Json::asString),
                 Json.required(data, "quantity", Json::asLong),
@@ -131,6 +143,21 @@ public final class WebhookSubscription {
         return customerId;
     }
 
+    /** @return Quando o desconto deixa de valer: o fim do último ciclo que ele ainda abate (num desconto de uma vez, o fim do primeiro ciclo pago). Nulo quando não há desconto e quando ele vale para sempre. (null when the API sends none) */
+    public String getDiscountEndsAt() {
+        return discountEndsAt;
+    }
+
+    /** @return O desconto em vigor na assinatura, que se aplica aos próximos ciclos até acabar; nulo sem desconto e depois que ele acabou. (null when the API sends none) */
+    public String getDiscountId() {
+        return discountId;
+    }
+
+    /** @return Quantos dias o checkout que vendeu a assinatura somou ao primeiro período, para você conferir; nulo quando o primeiro período foi o comum. O primeiro período vai do dia do pagamento até esse dia mais um intervalo do preço mais estes dias, e current_period_end já vem com eles. (null when the API sends none) */
+    public Long getFirstPeriodExtraDays() {
+        return firstPeriodExtraDays;
+    }
+
     /** @return the API's {@code id} */
     public String getId() {
         return id;
@@ -149,6 +176,11 @@ public final class WebhookSubscription {
     /** @return A cobrança recusada que causou o evento; só nos eventos de cobrança recusada. (null when the API sends none) */
     public WebhookSubscriptionPaymentFailure getPaymentFailure() {
         return paymentFailure;
+    }
+
+    /** @return A mudança de plano ou de quantidade agendada para o próximo período (PATCH com proration_behavior next_period); nulo quando não há nenhuma. Até effective_at a assinatura segue com o price_id, a quantity e o amount_cents de cima. (null when the API sends none) */
+    public WebhookSubscriptionPendingUpdate getPendingUpdate() {
+        return pendingUpdate;
     }
 
     /** @return the API's {@code price_id} */
@@ -198,6 +230,6 @@ public final class WebhookSubscription {
 
     @Override
     public String toString() {
-        return "WebhookSubscription{" + "amountCents=" + amountCents + ", cancelAtPeriodEnd=" + cancelAtPeriodEnd + ", clientReferenceId=" + clientReferenceId + ", currency=" + currency + ", currentPeriodEnd=" + currentPeriodEnd + ", currentPeriodStart=" + currentPeriodStart + ", customerId=" + customerId + ", id=" + id + ", interval=" + interval + ", metadata=" + metadata + ", paymentFailure=" + paymentFailure + ", priceId=" + priceId + ", productId=" + productId + ", quantity=" + quantity + ", showcaseId=" + showcaseId + ", status=" + status + ", suspendedAt=" + suspendedAt + ", suspensionReason=" + suspensionReason + ", trialEnd=" + trialEnd + ", trialStart=" + trialStart + "}";
+        return "WebhookSubscription{" + "amountCents=" + amountCents + ", cancelAtPeriodEnd=" + cancelAtPeriodEnd + ", clientReferenceId=" + clientReferenceId + ", currency=" + currency + ", currentPeriodEnd=" + currentPeriodEnd + ", currentPeriodStart=" + currentPeriodStart + ", customerId=" + customerId + ", discountEndsAt=" + discountEndsAt + ", discountId=" + discountId + ", firstPeriodExtraDays=" + firstPeriodExtraDays + ", id=" + id + ", interval=" + interval + ", metadata=" + metadata + ", paymentFailure=" + paymentFailure + ", pendingUpdate=" + pendingUpdate + ", priceId=" + priceId + ", productId=" + productId + ", quantity=" + quantity + ", showcaseId=" + showcaseId + ", status=" + status + ", suspendedAt=" + suspendedAt + ", suspensionReason=" + suspensionReason + ", trialEnd=" + trialEnd + ", trialStart=" + trialStart + "}";
     }
 }

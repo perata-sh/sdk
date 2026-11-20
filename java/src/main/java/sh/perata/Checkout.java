@@ -18,6 +18,7 @@ public final class Checkout {
     private final String createdAt;
     private final String discountId;
     private final String expiresAt;
+    private final Long firstPeriodExtraDays;
     private final String id;
     private final List<CheckoutLine> items;
     private final String label;
@@ -31,13 +32,14 @@ public final class Checkout {
     private final String successUrl;
     private final String url;
 
-    Checkout(Long amountCents, String cancelUrl, String clientReferenceId, String createdAt, String discountId, String expiresAt, String id, List<CheckoutLine> items, String label, Map<String, Object> metadata, String priceId, String productId, long quantity, String showcaseId, String status, String subscriptionStartAt, String successUrl, String url) {
+    Checkout(Long amountCents, String cancelUrl, String clientReferenceId, String createdAt, String discountId, String expiresAt, Long firstPeriodExtraDays, String id, List<CheckoutLine> items, String label, Map<String, Object> metadata, String priceId, String productId, long quantity, String showcaseId, String status, String subscriptionStartAt, String successUrl, String url) {
         this.amountCents = amountCents;
         this.cancelUrl = cancelUrl;
         this.clientReferenceId = clientReferenceId;
         this.createdAt = createdAt;
         this.discountId = discountId;
         this.expiresAt = expiresAt;
+        this.firstPeriodExtraDays = firstPeriodExtraDays;
         this.id = id;
         this.items = items;
         this.label = label;
@@ -60,6 +62,7 @@ public final class Checkout {
                 Json.required(data, "created_at", Json::asString),
                 Json.required(data, "discount_id", Json::asString),
                 Json.optional(data, "expires_at", Json::asString),
+                Json.optional(data, "first_period_extra_days", Json::asLong),
                 Json.required(data, "id", Json::asString),
                 Json.required(data, "items", Json.list(Json.model(CheckoutLine::fromJson))),
                 Json.required(data, "label", Json::asString),
@@ -102,6 +105,11 @@ public final class Checkout {
     /** @return Quando o checkout deixa de abrir sessões; nulo sem prazo. (null when the API sends none) */
     public String getExpiresAt() {
         return expiresAt;
+    }
+
+    /** @return Quantos dias o seu servidor somou ao primeiro período da assinatura (first_period_extra_days na criação); nulo quando o primeiro período é o comum. O comprador paga hoje o valor cheio, e a próxima cobrança só acontece no fim do período mais longo. (null when the API sends none) */
+    public Long getFirstPeriodExtraDays() {
+        return firstPeriodExtraDays;
     }
 
     /** @return the API's {@code id} */
@@ -166,6 +174,6 @@ public final class Checkout {
 
     @Override
     public String toString() {
-        return "Checkout{" + "amountCents=" + amountCents + ", cancelUrl=" + cancelUrl + ", clientReferenceId=" + clientReferenceId + ", createdAt=" + createdAt + ", discountId=" + discountId + ", expiresAt=" + expiresAt + ", id=" + id + ", items=" + items + ", label=" + label + ", metadata=" + metadata + ", priceId=" + priceId + ", productId=" + productId + ", quantity=" + quantity + ", showcaseId=" + showcaseId + ", status=" + status + ", subscriptionStartAt=" + subscriptionStartAt + ", successUrl=" + successUrl + ", url=" + url + "}";
+        return "Checkout{" + "amountCents=" + amountCents + ", cancelUrl=" + cancelUrl + ", clientReferenceId=" + clientReferenceId + ", createdAt=" + createdAt + ", discountId=" + discountId + ", expiresAt=" + expiresAt + ", firstPeriodExtraDays=" + firstPeriodExtraDays + ", id=" + id + ", items=" + items + ", label=" + label + ", metadata=" + metadata + ", priceId=" + priceId + ", productId=" + productId + ", quantity=" + quantity + ", showcaseId=" + showcaseId + ", status=" + status + ", subscriptionStartAt=" + subscriptionStartAt + ", successUrl=" + successUrl + ", url=" + url + "}";
     }
 }

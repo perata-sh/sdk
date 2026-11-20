@@ -608,6 +608,15 @@ func (l *loader) modelOf(name string, s *schema, input bool) (*Model, error) {
 // UsageIngestEventCost. The property is read as a reference to that model.
 func (l *loader) nest(parent, wire string, property *schema, input bool) (*schema, error) {
 	base := strings.TrimSuffix(parent, "Params")
+	// An inline object that may be null (OpenAPI 3.1 writes it as an anyOf of
+	// the object and null) is a model of its own too, and stays nullable.
+	if other := property.nullableAlternative(); other != nil && property.Ref == "" && other.Ref == "" && other.Type == "object" && len(other.Properties) > 0 {
+		ref, err := l.nested(base+Pascal(wire), other, input, "The "+wire+" of "+parent+".")
+		if err != nil {
+			return nil, err
+		}
+		return &schema{Description: property.Description, AnyOf: []*schema{ref, {Type: "null"}}}, nil
+	}
 	switch {
 	case property.Ref == "" && property.Type == "object" && len(property.Properties) > 0:
 		return l.nested(base+Pascal(wire), property, input, "The "+wire+" of "+parent+".")

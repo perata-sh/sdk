@@ -43,7 +43,9 @@ public sealed class SubscriptionsService
 
     /// <summary>Ler uma assinatura.</summary>
     /// <remarks>
-    /// <para>Devolve uma assinatura pelo ID.</para>
+    /// <para>Devolve uma assinatura pelo ID, com o desconto em vigor
+    /// (discount_id) e quando ele acaba (discount_ends_at; nulo para um
+    /// desconto que vale para sempre).</para>
     /// <para>Autenticação: chave de API da organização em Authorization: Bearer
     /// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
     /// chave, nunca da requisição: a chave criada num showcase só alcança o que
@@ -111,10 +113,13 @@ public sealed class SubscriptionsService
         return client.RequestAsync(HttpMethod.Post, "/api/v1/subscriptions/" + PerataClient.Segment(subscription) + "/resume", null, null, PerataJson.Default.SubscriptionEnvelope, options?.IdempotencyKey, options, cancellationToken);
     }
 
-    /// <summary>Trocar o plano de uma assinatura.</summary>
+    /// <summary>Trocar o plano ou estender o período.</summary>
     /// <remarks>
-    /// <para>Troca o plano de uma assinatura: outro preço e, se quiser, outra
-    /// quantidade. O proration_behavior diz como ratear a diferença.</para>
+    /// <para>Troca o plano de uma assinatura (outro preço e, se quiser, outra
+    /// quantidade; o proration_behavior diz como ratear a diferença) ou, com
+    /// extend_current_period_days sozinho, estende o período atual em até 365
+    /// dias sem cobrar, para o crédito manual de dias: a próxima cobrança passa
+    /// a ser no novo current_period_end.</para>
     /// <para>Autenticação: chave de API da organização em Authorization: Bearer
     /// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
     /// chave, nunca da requisição: a chave criada num showcase só alcança o que
@@ -210,9 +215,13 @@ public sealed record SubscriptionsUpdateParams
     /// <summary>A value of <see cref="ProrationBehavior"/>.</summary>
     public const string ProrationBehaviorReset = "reset";
 
-    /// <summary>O preço recorrente para onde a assinatura vai.</summary>
+    /// <summary>Estende o período atual em tantos dias, de 1 a 365, sem cobrar nada e sem criar pedido: a renovação (e a próxima cobrança) passa a ser no novo fim, current_period_end, e os períodos seguintes contam a partir dele. É o crédito manual de dias do lojista. Só uma assinatura active aceita (uma em teste grátis, atrasada, pausada, suspensa ou cancelada recusa); uma que termina no fim do período termina no novo fim. Vai sozinho, sem price_id, quantity nem proration_behavior, senão a resposta é 422. A mudança chega no webhook subscription.updated e fica registrada no log de atividades. Não é repetível por si: envie uma Idempotency-Key para que uma nova tentativa não some os dias duas vezes. Left out of the request when null.</summary>
+    [JsonPropertyName("extend_current_period_days")]
+    public long? ExtendCurrentPeriodDays { get; init; }
+
+    /// <summary>O preço recorrente para onde a assinatura vai. Obrigatório para trocar de plano; não se envia com extend_current_period_days. Left out of the request when null.</summary>
     [JsonPropertyName("price_id")]
-    public required string PriceId { get; init; }
+    public string? PriceId { get; init; }
 
     /// <summary>prorate (padrão): rateia o resto do período no próximo valor cobrado; invoice: cobra a diferença agora; next_period: troca no fim do período; reset: cobra o período inteiro do novo plano agora e reinicia o ciclo. Left out of the request when null.</summary>
     [JsonPropertyName("proration_behavior")]

@@ -36,6 +36,8 @@ Para o navegador há o script `https://perata.sh/v1/perata.js` (sem chave) e doi
 | `subscription_start_at` e `discount_id` no checkout; `order_id`, `metadata` e `amount_cents` opcional no reembolso; `refunds.get`; `refund_metadata`; filtro `subscription_id`; `subscription_id` e ciclo em Order e Payment; `showcase.get` e `showcase_id` nos objetos e no envelope do webhook; `failure_reason` e `failure_code` nos eventos `refund.*` | 0.5.6 |
 | `pricing_model`, `tiers`, `unit_amount_cents`, `unit_label(_plural)`, `minimum_units` e `maximum_units` no preço (criação e resposta), com `amount_cents` opcional na criação (preço graduated, por unidade, por assento, por volume); `interval` `day` e `week`; `quantity` e `client_reference_id` em `Subscription` e `subscription.*`; `charged_by` no recibo | 0.5.7 |
 
+Ainda sem versão de SDK: `first_period_extra_days` no checkout, na `Subscription` e em `subscription.*`, e `extend_current_period_days` no `PATCH /subscriptions/{id}`. Chame a API REST (os nomes dos campos são os do contrato) até o SDK trazer os campos.
+
 Para uma versão mais velha, a API REST aceita tudo desde já (os nomes dos campos são os do contrato).
 
 ## 3. Sem npm ou NuGet: o contorno

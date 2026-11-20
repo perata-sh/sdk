@@ -36,6 +36,10 @@ final class CheckoutClient
         public readonly string $expiresAt,
         /** O dia da primeira cobrança de uma assinatura que não cobra hoje, a meia-noite desse dia em São Paulo: o fim do teste grátis ou a data que o servidor do lojista pediu (subscription_start_at). Nulo quando o pagamento é cobrado na hora. */
         public readonly ?string $firstChargeAt,
+        /** Quando o primeiro período termina, e portanto o dia da próxima cobrança, se o comprador pagar hoje: a meia-noite desse dia em São Paulo. Nulo sem dias extras. Quem paga em outro dia tem o fim deslocado junto. */
+        public readonly ?string $firstPeriodEndAt,
+        /** Quantos dias foram somados ao primeiro período da assinatura (first_period_extra_days na criação do checkout); nulo quando o primeiro período é o comum. */
+        public readonly ?int $firstPeriodExtraDays,
         /** O ID da sessão de checkout. */
         public readonly string $id,
         /**
@@ -94,6 +98,8 @@ final class CheckoutClient
             environment: $data['environment'],
             expiresAt: $data['expires_at'],
             firstChargeAt: $data['first_charge_at'] ?? null,
+            firstPeriodEndAt: $data['first_period_end_at'] ?? null,
+            firstPeriodExtraDays: $data['first_period_extra_days'] ?? null,
             id: $data['id'],
             installments: array_values(array_map(static fn (array $item) => CheckoutInstallment::fromArray($item), $data['installments'])),
             items: array_values(array_map(static fn (array $item) => CheckoutClientItem::fromArray($item), $data['items'])),

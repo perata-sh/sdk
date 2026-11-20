@@ -43,7 +43,7 @@ A chave da API é da organização e dá acesso a ela inteira: use o SDK no serv
 | `perata.orders` | `get`, `getInvoice`, `getReceipt`, `list`, `listIter` |
 | `perata.paymentMethods` | `detach`, `list`, `listIter` |
 | `perata.payments` | `get`, `list`, `listIter` |
-| `perata.prices` | `create`, `list`, `listIter` |
+| `perata.prices` | `create`, `get`, `list`, `listIter` |
 | `perata.products` | `archive`, `create`, `get`, `list`, `listIter`, `update` |
 | `perata.refunds` | `create`, `get`, `list`, `listIter` |
 | `perata.showcase` | `get` |
@@ -177,6 +177,30 @@ final subscription = await perata.subscriptions.get(subscriptionId);
 // subscription.quantity (3), subscription.amountCents (55000: o total do ciclo), subscription.clientReferenceId
 ```
 
+## Dias extras no primeiro período, descontos e leitura de um preço
+
+`first_period_extra_days` (1 a 365) em `checkouts.create` soma ao primeiro período de uma assinatura os dias que o comprador ainda tem pagos num plano anterior: ele paga hoje o valor cheio, e a próxima cobrança só acontece no fim do período mais longo. O número volta em `Checkout`, `CheckoutCreated`, `Subscription` e `WebhookSubscription` (os eventos `subscription.*`), e o estado do comprador (`CheckoutClient`) traz também `first_period_end_at`, a meia-noite, em São Paulo, do dia da próxima cobrança. `subscriptions.update` aceita `extend_current_period_days` (1 a 365) sozinho, para dar dias de crédito sem cobrar nada; por isso o `price_id` deixou de ser obrigatório. **Mudança de tipo nas linguagens tipadas: `price_id` é opcional em `SubscriptionsUpdateParams`** (não se envia junto com `extend_current_period_days`). A chamada não é repetível por si: envie uma `Idempotency-Key`, para que uma nova tentativa não some os dias duas vezes.
+
+O pedido (`Order` e os eventos `order.*`) traz o desconto que aplicou: `discount_id`, `discount_code` (o código que o comprador digitou, nulo quando o desconto veio por `discount_id` ou da assinatura), `subtotal_cents` (antes do desconto) e `discount_cents`. A assinatura traz o desconto em vigor (`discount_id`) e quando ele acaba (`discount_ends_at`, nulo se vale para sempre), e `pending_update` (`price_id`, `quantity`, `amount_cents` do ciclo e `effective_at`) quando há uma troca de plano ou de quantidade agendada para o próximo período, nulo sem ela. `prices.get` lê um preço pelo id, também um preço arquivado. `CheckoutClientItem` ganha `bands`, as faixas de um preço graduado em que a quantidade passou da primeira.
+
+```dart
+final checkout = await perata.checkouts.create(
+  CheckoutsCreateParams(productId: productId, priceId: priceId, firstPeriodExtraDays: 30),
+);
+
+final subscription = await perata.subscriptions.update(
+  subscriptionId,
+  SubscriptionsUpdateParams(extendCurrentPeriodDays: 15),
+  idempotencyKey: 'credito-dias-1',
+);
+// subscription.discountId, subscription.discountEndsAt, subscription.pendingUpdate (null sem troca agendada)
+
+final order = await perata.orders.get(orderId);
+// order.subtotalCents, order.discountCents, order.discountId, order.discountCode
+
+final price = await perata.prices.get(priceId);
+```
+
 ## Consumo (ingestão de eventos)
 
 A ingestão de consumo usa outra credencial: a de uma fonte de ingestão (**Configurações › Fontes de ingestão**), `pus_test_…` em teste e `pus_live_…` em produção. Monte um cliente com ela; a chave de API da organização (`prk_…`) é recusada aqui com 401, e uma credencial de um ambiente nunca escreve no outro.
@@ -239,4 +263,4 @@ O evento é tipado: um tipo para cada dado que o webhook carrega (`OrderWebhookE
 
 Todo evento traz o ambiente em que aconteceu, em `event.environment`: `"test"` ou `"live"` (vazio se um servidor antigo não mandou). Recuse o evento do ambiente errado: um endpoint de produção deve responder 400 a um evento `"test"`, para que um teste não dê baixa em um pedido real. O showcase da venda vem em `event.showcaseId` (vazio se um servidor antigo não mandou): um endpoint é de um showcase só, e o mesmo `showcase_id` está nos objetos do evento.
 
-Versão do SDK: 0.5.7 · contrato da API: 0.1.0
+Versão do SDK: 0.5.8 · contrato da API: 0.1.0

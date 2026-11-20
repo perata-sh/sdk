@@ -4,7 +4,7 @@ SDK oficial da API da Peráta para Elixir 1.18+, sem dependências: só `:httpc`
 
 ```elixir
 # mix.exs
-{:perata_sdk, "~> 0.5.7"}
+{:perata_sdk, "~> 0.5.8"}
 ```
 
 ```elixir
@@ -33,7 +33,7 @@ client
 | `Perata.Orders` | `get`, `get_invoice`, `get_receipt`, `list`, `list_stream` |
 | `Perata.PaymentMethods` | `detach`, `list`, `list_stream` |
 | `Perata.Payments` | `get`, `list`, `list_stream` |
-| `Perata.Prices` | `create`, `list`, `list_stream` |
+| `Perata.Prices` | `create`, `get`, `list`, `list_stream` |
 | `Perata.Products` | `archive`, `create`, `get`, `list`, `list_stream`, `update` |
 | `Perata.Refunds` | `create`, `get`, `list`, `list_stream` |
 | `Perata.ShowcaseService` | `get` |
@@ -154,6 +154,24 @@ O checkout recebe a `quantity` e cobra pelo modelo do preço. A assinatura que n
 # subscription.quantity (3), subscription.amount_cents (55000: o total do ciclo), subscription.client_reference_id
 ```
 
+## Dias extras no primeiro período, descontos e leitura de um preço
+
+`first_period_extra_days` (1 a 365) em `checkouts.create` soma ao primeiro período de uma assinatura os dias que o comprador ainda tem pagos num plano anterior: ele paga hoje o valor cheio, e a próxima cobrança só acontece no fim do período mais longo. O número volta em `Checkout`, `CheckoutCreated`, `Subscription` e `WebhookSubscription` (os eventos `subscription.*`), e o estado do comprador (`CheckoutClient`) traz também `first_period_end_at`, a meia-noite, em São Paulo, do dia da próxima cobrança. `subscriptions.update` aceita `extend_current_period_days` (1 a 365) sozinho, para dar dias de crédito sem cobrar nada; por isso o `price_id` deixou de ser obrigatório. **Mudança de tipo nas linguagens tipadas: `price_id` é opcional em `SubscriptionsUpdateParams`** (não se envia junto com `extend_current_period_days`). A chamada não é repetível por si: envie uma `Idempotency-Key`, para que uma nova tentativa não some os dias duas vezes.
+
+O pedido (`Order` e os eventos `order.*`) traz o desconto que aplicou: `discount_id`, `discount_code` (o código que o comprador digitou, nulo quando o desconto veio por `discount_id` ou da assinatura), `subtotal_cents` (antes do desconto) e `discount_cents`. A assinatura traz o desconto em vigor (`discount_id`) e quando ele acaba (`discount_ends_at`, nulo se vale para sempre), e `pending_update` (`price_id`, `quantity`, `amount_cents` do ciclo e `effective_at`) quando há uma troca de plano ou de quantidade agendada para o próximo período, nulo sem ela. `prices.get` lê um preço pelo id, também um preço arquivado. `CheckoutClientItem` ganha `bands`, as faixas de um preço graduado em que a quantidade passou da primeira.
+
+```elixir
+{:ok, checkout} = Perata.Checkouts.create(client, %{product_id: product_id, price_id: price_id, first_period_extra_days: 30})
+
+{:ok, subscription} = Perata.Subscriptions.update(client, subscription_id, %{extend_current_period_days: 15}, idempotency_key: "credito-dias-1")
+# subscription.discount_id, subscription.discount_ends_at, subscription.pending_update (nil sem troca agendada)
+
+{:ok, order} = Perata.Orders.get(client, order_id)
+# order.subtotal_cents, order.discount_cents, order.discount_id, order.discount_code
+
+{:ok, price} = Perata.Prices.get(client, price_id)
+```
+
 ## Consumo (ingestão de eventos)
 
 A ingestão de consumo usa outra credencial: a de uma fonte de ingestão (**Configurações › Fontes de ingestão**), `pus_test_…` em teste e `pus_live_…` em produção. Monte um cliente com ela; a chave de API da organização (`prk_…`) é recusada aqui com 401, e uma credencial de um ambiente nunca escreve no outro.
@@ -206,4 +224,4 @@ O evento é tipado: um tipo para cada dado que o webhook carrega (`OrderWebhookE
 
 Todo evento traz o ambiente em que aconteceu, em `event.environment`: `"test"` ou `"live"` (vazio se um servidor antigo não mandou). Recuse o evento do ambiente errado: um endpoint de produção deve responder 400 a um evento `"test"`, para que um teste não dê baixa em um pedido real. O showcase da venda vem em `event.showcase_id` (vazio se um servidor antigo não mandou): um endpoint é de um showcase só, e o mesmo `showcase_id` está nos objetos do evento.
 
-Versão do SDK: 0.5.7 · contrato da API: 0.1.0
+Versão do SDK: 0.5.8 · contrato da API: 0.1.0

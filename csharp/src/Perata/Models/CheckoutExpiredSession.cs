@@ -28,7 +28,7 @@ public sealed record CheckoutExpiredSession
     [JsonPropertyName("already_closed")]
     public required bool AlreadyClosed { get; init; }
 
-    /// <summary>true quando a Cielo cancelou o Pix ou a reserva nesta chamada.</summary>
+    /// <summary>true quando o Pix ou a reserva foi cancelado nesta chamada.</summary>
     [JsonPropertyName("canceled")]
     public required bool Canceled { get; init; }
 
@@ -44,7 +44,7 @@ public sealed record CheckoutExpiredSession
     [JsonPropertyName("payment_id")]
     public required string PaymentId { get; init; }
 
-    /// <summary>Como o pagamento ficou: canceled quando a Cielo retirou o QR do Pix ou liberou a reserva do cartão; vazio sem pagamento.</summary>
+    /// <summary>Como o pagamento ficou: canceled quando a Peráta retirou o QR do Pix ou liberou a reserva do cartão; vazio sem pagamento.</summary>
     [JsonPropertyName("payment_state")]
     public required string PaymentState { get; init; }
 

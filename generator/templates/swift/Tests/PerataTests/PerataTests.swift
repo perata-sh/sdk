@@ -279,6 +279,54 @@ final class PerataTests: XCTestCase {
         XCTAssertEqual(got.clientReferenceID, "pedido-9")
     }
 
+    // A checkout adds the buyer's remaining days to the first period, an
+    // extension goes out alone (no price_id), and the sale reads back what it
+    // took: the discount on the order and on the subscription, and the change
+    // scheduled for the next period.
+    func testAFirstPeriodExtensionAndTheDiscountsTheSaleReadsBack() async throws {
+        let answers: [String: (Int, String)] = [
+            "POST /api/v1/checkouts": (201, #"{"data":{"id":"pcl_1","showcase_id":"x","url":"x","product_id":"prod_1","price_id":"price_1","status":"active","label":"x","quantity":0,"amount_cents":null,"items":[],"metadata":{},"client_reference_id":"x","success_url":"x","cancel_url":"x","expires_at":null,"subscription_start_at":null,"discount_id":"disc_1","first_period_extra_days":30,"created_at":"2026-11-20T12:00:00Z","session_id":"cs_1","client_secret":"cs_secret_1","client_secret_expires_at":"2026-11-20T12:00:00Z","status_key":"x"}}"#),
+            "PATCH /api/v1/subscriptions/sub_1": (200, #"{"data":{"id":"sub_1","showcase_id":"x","customer_id":"x","product_id":"x","price_id":"x","status":"active","amount_cents":0,"quantity":0,"currency":"BRL","interval":"x","current_period_start":"2026-11-20T12:00:00Z","current_period_end":"2026-11-20T12:00:00Z","cancel_at_period_end":false,"pending_update":{"price_id":"price_2","quantity":5,"amount_cents":90000,"effective_at":"2026-12-20T03:00:00Z"},"suspended_at":null,"suspension_reason":null,"trial_start":null,"trial_end":null,"metadata":{},"client_reference_id":"x","discount_id":"disc_1","discount_ends_at":"2027-03-01T03:00:00Z","first_period_extra_days":30}}"#),
+            "GET /api/v1/subscriptions/sub_2": (200, #"{"data":{"id":"sub_2","showcase_id":"x","customer_id":"x","product_id":"x","price_id":"x","status":"active","amount_cents":0,"quantity":0,"currency":"BRL","interval":"x","current_period_start":"2026-11-20T12:00:00Z","current_period_end":"2026-11-20T12:00:00Z","cancel_at_period_end":false,"pending_update":null,"suspended_at":null,"suspension_reason":null,"trial_start":null,"trial_end":null,"metadata":{},"client_reference_id":"x","discount_id":null,"discount_ends_at":null,"first_period_extra_days":null}}"#),
+            "GET /api/v1/orders/ord_1": (200, #"{"data":{"id":"ord_1","showcase_id":"x","customer_id":"x","product_id":"x","price_id":"x","amount_cents":9000,"currency":"BRL","status":"open","paid_at":null,"order_status":null,"refunded_amount_cents":0,"installments":0,"installment_interest_cents":0,"items":[],"metadata":{},"client_reference_id":"x","subscription_id":null,"cycle_sequence":null,"period_start":null,"period_end":null,"discount_id":"disc_1","discount_code":"BEMVINDO","subtotal_cents":10000,"discount_cents":1000}}"#),
+            "GET /api/v1/prices/price_1": (200, #"{"data":{"id":"price_1","product_id":"prod_1","currency":"BRL","amount_cents":9000,"type":"one_time","interval":"none","interval_count":0,"pricing_model":"fixed","unit_amount_cents":null,"tiers":[],"unit_label":"x","unit_label_plural":"x","minimum_units":null,"maximum_units":null,"status":"archived"}}"#),
+        ]
+        let (perata, recorder) = client { request in
+            let (status, body) = answers["\(request.httpMethod ?? "") \(request.url?.path ?? "")"]!
+            return (status, [:], try? JSONSerialization.jsonObject(with: Data(body.utf8)))
+        }
+        let checkout = try await perata.checkouts.create(CheckoutsCreateParams(priceID: "price_1", productID: "prod_1", firstPeriodExtraDays: 30))
+        let created = try XCTUnwrap(JSONSerialization.jsonObject(with: XCTUnwrap(recorder.seen[0].httpBody)) as? [String: Any])
+        XCTAssertEqual(created["first_period_extra_days"] as? Int, 30)
+        XCTAssertEqual(checkout.firstPeriodExtraDays, 30)
+        XCTAssertEqual(checkout.discountID, "disc_1")
+        let subscription = try await perata.subscriptions.update("sub_1", SubscriptionsUpdateParams(extendCurrentPeriodDays: 15))
+        let sent = try XCTUnwrap(JSONSerialization.jsonObject(with: XCTUnwrap(recorder.seen[1].httpBody)) as? [String: Any])
+        XCTAssertEqual(recorder.seen[1].httpMethod, "PATCH")
+        XCTAssertEqual(sent["extend_current_period_days"] as? Int, 15)
+        XCTAssertNil(sent["price_id"])
+        XCTAssertEqual(subscription.firstPeriodExtraDays, 30)
+        XCTAssertEqual(subscription.discountID, "disc_1")
+        XCTAssertEqual(subscription.discountEndsAt, "2027-03-01T03:00:00Z")
+        let pending = try XCTUnwrap(subscription.pendingUpdate)
+        XCTAssertEqual(pending.priceID, "price_2")
+        XCTAssertEqual(pending.quantity, 5)
+        XCTAssertEqual(pending.amountCents, 90000)
+        XCTAssertEqual(pending.effectiveAt, "2026-12-20T03:00:00Z")
+        let none = try await perata.subscriptions.get("sub_2")
+        XCTAssertNil(none.pendingUpdate)
+        XCTAssertNil(none.firstPeriodExtraDays)
+        XCTAssertNil(none.discountID)
+        let order = try await perata.orders.get("ord_1")
+        XCTAssertEqual(order.subtotalCents, 10000)
+        XCTAssertEqual(order.discountCents, 1000)
+        XCTAssertEqual(order.discountID, "disc_1")
+        XCTAssertEqual(order.discountCode, "BEMVINDO")
+        let price = try await perata.prices.get("price_1")
+        XCTAssertEqual(recorder.seen[4].url?.path, "/api/v1/prices/price_1")
+        XCTAssertEqual(price.status, .archived)
+    }
+
     func testUsageIngestionCarriesTheSourceCredentialAndItsEvents() async throws {
         let recorder = Recorder()
         let transport: PerataTransport = { request in
@@ -382,9 +430,9 @@ final class PerataTests: XCTestCase {
         static let referenceSecret = "whsec_MfKQ9r8GKYqrTwjUPD8ILPZIo2LaLaSw"
         static let oldSecret = "whsec_cGVyYXRhLXNkay1vbGQta2V5LTAxMjM0NTY3ODlhYmM="
         static let newSecret = "whsec_cGVyYXRhLXNkay1uZXcta2V5LTAxMjM0NTY3ODlhYmM="
-        static let orderPaid = Data(#"{"id":"msg_2","type":"order.paid","timestamp":"2026-10-22T12:00:00Z","data":{"id":"ord_1","customer_id":"cus_1","product_id":"prod_1","price_id":"price_1","amount_cents":12000,"currency":"BRL","status":"succeeded","paid_at":"2026-10-22T12:00:00Z","order_status":"paid","refunded_amount_cents":0,"refund_id":null,"refund_amount_cents":null,"installments":3,"installment_interest_cents":360,"items":[],"metadata":{},"client_reference_id":"","showcase_id":"shw_1"}}"#.utf8)
+        static let orderPaid = Data(#"{"id":"msg_2","type":"order.paid","timestamp":"2026-10-22T12:00:00Z","data":{"id":"ord_1","customer_id":"cus_1","product_id":"prod_1","price_id":"price_1","amount_cents":12000,"currency":"BRL","status":"succeeded","paid_at":"2026-10-22T12:00:00Z","order_status":"paid","refunded_amount_cents":0,"refund_id":null,"refund_amount_cents":null,"installments":3,"installment_interest_cents":360,"items":[],"metadata":{},"client_reference_id":"","showcase_id":"shw_1","subtotal_cents":12000,"discount_cents":0,"discount_id":null,"discount_code":null}}"#.utf8)
         static let usageRecorded = Data(#"{"id":"msg_3","type":"usage_event.recorded","timestamp":"2026-10-22T12:00:00Z","data":{"event_id":"ue_1","aggregate":"usage_event","aggregate_id":"ue_1","merchant_id":"mer_1","environment":"test"}}"#.utf8)
-        static let orderPaidLive = Data(#"{"id":"msg_5","type":"order.paid","timestamp":"2026-10-22T12:00:00Z","environment":"live","showcase_id":"shw_1","data":{"id":"ord_1","customer_id":"cus_1","product_id":"prod_1","price_id":"price_1","amount_cents":12000,"currency":"BRL","status":"succeeded","paid_at":"2026-10-22T12:00:00Z","order_status":"paid","refunded_amount_cents":0,"refund_id":null,"refund_amount_cents":null,"installments":3,"installment_interest_cents":360,"items":[],"metadata":{},"client_reference_id":"","showcase_id":"shw_1"}}"#.utf8)
+        static let orderPaidLive = Data(#"{"id":"msg_5","type":"order.paid","timestamp":"2026-10-22T12:00:00Z","environment":"live","showcase_id":"shw_1","data":{"id":"ord_1","customer_id":"cus_1","product_id":"prod_1","price_id":"price_1","amount_cents":12000,"currency":"BRL","status":"succeeded","paid_at":"2026-10-22T12:00:00Z","order_status":"paid","refunded_amount_cents":0,"refund_id":null,"refund_amount_cents":null,"installments":3,"installment_interest_cents":360,"items":[],"metadata":{},"client_reference_id":"","showcase_id":"shw_1","subtotal_cents":12000,"discount_cents":0,"discount_id":null,"discount_code":null}}"#.utf8)
         static let payoutSentTest = Data(#"{"id":"msg_6","type":"payout.sent","timestamp":"2026-10-22T12:00:00Z","environment":"test","data":{"payout_id":"po_1","amount_cents":5000}}"#.utf8)
         static let payoutSent = Data(#"{"id":"msg_4","type":"payout.sent","timestamp":"2026-10-22T12:00:00Z","data":{"payout_id":"po_1","amount_cents":5000}}"#.utf8)
         static let signedAt = 1_792_670_400
@@ -422,7 +470,7 @@ final class PerataTests: XCTestCase {
         func testAWebhookCarriesTheEnvironmentItHappenedIn() throws {
             let now = Date(timeIntervalSince1970: TimeInterval(Self.signedAt + 120))
             let older: [(String, String, Data)] = [
-                ("msg_2", "v1,fvRLETNjaSQOVbSs/eVRV/C17ysRHoubzX3idpGAifI= v1,ZsKtmVTp/mXCeW5qAiaLJY1TjyXwUyS7RxRVa3RIQQo=", Self.orderPaid),
+                ("msg_2", "v1,wR5lfpym2P4TnG65MaTym1j5wWmRCtcygqTrQNICOEQ= v1,BLGtoe01YFYZHfU7Hcj8qvYNfluZvoTrRaAjcfB8JSs=", Self.orderPaid),
                 ("msg_3", "v1,Z3E2vTbczigiySfkzakxuZotPn9FlBY1KAET6hPEZoU=", Self.usageRecorded),
                 ("msg_4", "v1,Sa/yofA3h/58pFR+rIiWdIc8qXfcuqvyJSjxn4oJ1ZY=", Self.payoutSent),
             ]
@@ -431,7 +479,7 @@ final class PerataTests: XCTestCase {
                 XCTAssertEqual(event.environment, "", id)
                 XCTAssertEqual(event.showcaseId, "", id)
             }
-            let order = try verifyWebhook(secret: Self.newSecret, headers: webhookHeaders("msg_5", Self.signedAt, "v1,9CgfDokxQ7tBEd7vvv32TI4QUdqkaHrxgUo2UUNQpOY="), body: Self.orderPaidLive, now: now)
+            let order = try verifyWebhook(secret: Self.newSecret, headers: webhookHeaders("msg_5", Self.signedAt, "v1,vJOO2qPe9Vzlr42VPwCuIO+a6Sg8ZVfl9z4WuLJItwg="), body: Self.orderPaidLive, now: now)
             guard case .order = order else {
                 return XCTFail("not an order event")
             }
@@ -447,7 +495,7 @@ final class PerataTests: XCTestCase {
 
         func testAWebhookAnswersItsTypedEvent() throws {
             let now = Date(timeIntervalSince1970: TimeInterval(Self.signedAt + 120))
-            let headers = webhookHeaders("msg_2", Self.signedAt, "v1,fvRLETNjaSQOVbSs/eVRV/C17ysRHoubzX3idpGAifI= v1,ZsKtmVTp/mXCeW5qAiaLJY1TjyXwUyS7RxRVa3RIQQo=")
+            let headers = webhookHeaders("msg_2", Self.signedAt, "v1,wR5lfpym2P4TnG65MaTym1j5wWmRCtcygqTrQNICOEQ= v1,BLGtoe01YFYZHfU7Hcj8qvYNfluZvoTrRaAjcfB8JSs=")
             for secret in [Self.newSecret, Self.oldSecret] {
                 guard case let .order(order) = try verifyWebhook(secret: secret, headers: headers, body: Self.orderPaid, now: now) else {
                     return XCTFail("not an order event")

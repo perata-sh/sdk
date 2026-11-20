@@ -59,6 +59,18 @@ public sealed record Order
     [JsonPropertyName("cycle_sequence")]
     public long? CycleSequence { get; init; }
 
+    /// <summary>Quanto o desconto tirou do pedido, em centavos; 0 sem desconto.</summary>
+    [JsonPropertyName("discount_cents")]
+    public required long DiscountCents { get; init; }
+
+    /// <summary>O código que o comprador digitou no checkout deste pedido; nulo quando o desconto veio por discount_id (o seu servidor o enviou ao criar o checkout), quando veio da assinatura numa renovação ou quando não houve desconto. Null when the API sends none.</summary>
+    [JsonPropertyName("discount_code")]
+    public string? DiscountCode { get; init; }
+
+    /// <summary>O desconto do catálogo que este pedido aplicou; nulo quando não houve desconto. Na renovação de uma assinatura é o desconto que a assinatura aplicou naquele ciclo (uma vez, por alguns meses ou para sempre). Null when the API sends none.</summary>
+    [JsonPropertyName("discount_id")]
+    public string? DiscountId { get; init; }
+
     /// <summary>The API's <c>id</c>.</summary>
     [JsonPropertyName("id")]
     public required string Id { get; init; }
@@ -118,4 +130,8 @@ public sealed record Order
     /// <summary>A assinatura de que este pedido é a cobrança (a primeira ou uma renovação); nulo quando o pedido não é de uma assinatura. Null when the API sends none.</summary>
     [JsonPropertyName("subscription_id")]
     public string? SubscriptionId { get; init; }
+
+    /// <summary>O valor do pedido antes do desconto, em centavos: subtotal_cents menos discount_cents é o amount_cents. Sem desconto é igual a amount_cents.</summary>
+    [JsonPropertyName("subtotal_cents")]
+    public required long SubtotalCents { get; init; }
 }

@@ -55,7 +55,7 @@ public final class CheckoutExpiredSession {
         return alreadyClosed;
     }
 
-    /** @return true quando a Cielo cancelou o Pix ou a reserva nesta chamada. */
+    /** @return true quando o Pix ou a reserva foi cancelado nesta chamada. */
     public boolean getCanceled() {
         return canceled;
     }
@@ -75,7 +75,7 @@ public final class CheckoutExpiredSession {
         return paymentId;
     }
 
-    /** @return Como o pagamento ficou: canceled quando a Cielo retirou o QR do Pix ou liberou a reserva do cartão; vazio sem pagamento. */
+    /** @return Como o pagamento ficou: canceled quando a Peráta retirou o QR do Pix ou liberou a reserva do cartão; vazio sem pagamento. */
     public String getPaymentState() {
         return paymentState;
     }

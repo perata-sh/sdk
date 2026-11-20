@@ -192,6 +192,8 @@ class Checkout:
     """O desconto que o checkout aplica sozinho, como o seu servidor o enviou na criação; vazio sem ele. O comprador o vê no resumo e ele conta desde a primeira cobrança."""
     expires_at: str | None
     """Quando o checkout deixa de abrir sessões; nulo sem prazo."""
+    first_period_extra_days: int | None
+    """Quantos dias o seu servidor somou ao primeiro período da assinatura (first_period_extra_days na criação); nulo quando o primeiro período é o comum. O comprador paga hoje o valor cheio, e a próxima cobrança só acontece no fim do período mais longo."""
     id: str
     items: list[CheckoutLine]
     """As linhas do valor fixado, na ordem em que foram enviadas; vazio sem elas."""
@@ -222,6 +224,7 @@ class Checkout:
             created_at=data["created_at"],
             discount_id=data["discount_id"],
             expires_at=data.get("expires_at"),
+            first_period_extra_days=data.get("first_period_extra_days"),
             id=data["id"],
             items=[CheckoutLine.from_dict(item) for item in data["items"]],
             label=data["label"],
@@ -262,6 +265,10 @@ class CheckoutClient:
     """Quando a sessão e o client_secret deixam de valer."""
     first_charge_at: str | None
     """O dia da primeira cobrança de uma assinatura que não cobra hoje, a meia-noite desse dia em São Paulo: o fim do teste grátis ou a data que o servidor do lojista pediu (subscription_start_at). Nulo quando o pagamento é cobrado na hora."""
+    first_period_end_at: str | None
+    """Quando o primeiro período termina, e portanto o dia da próxima cobrança, se o comprador pagar hoje: a meia-noite desse dia em São Paulo. Nulo sem dias extras. Quem paga em outro dia tem o fim deslocado junto."""
+    first_period_extra_days: int | None
+    """Quantos dias foram somados ao primeiro período da assinatura (first_period_extra_days na criação do checkout); nulo quando o primeiro período é o comum."""
     id: str
     """O ID da sessão de checkout."""
     installments: list[CheckoutInstallment]
@@ -302,6 +309,8 @@ class CheckoutClient:
             environment=data["environment"],
             expires_at=data["expires_at"],
             first_charge_at=data.get("first_charge_at"),
+            first_period_end_at=data.get("first_period_end_at"),
+            first_period_extra_days=data.get("first_period_extra_days"),
             id=data["id"],
             installments=[CheckoutInstallment.from_dict(item) for item in data["installments"]],
             items=[CheckoutClientItem.from_dict(item) for item in data["items"]],
@@ -386,7 +395,9 @@ class CheckoutClientItem:
     """CheckoutClientItem is a resource of Peráta's API."""
 
     amount_cents: int
-    """Quanto custa a linha antes de qualquer desconto: a unidade vezes a quantidade."""
+    """Quanto custa a linha antes de qualquer desconto: a quantidade vezes o preço da unidade; num preço por faixas, a soma das faixas."""
+    bands: list[CheckoutClientItemBand]
+    """As faixas de um preço graduado em que a quantidade passou da primeira, na ordem; vazio num preço de uma faixa só. A soma de amount_cents das faixas é o amount_cents da linha."""
     description: str
     """A descrição do produto como o lojista a escreveu, em Markdown; vazia sem ela."""
     interval: str
@@ -397,12 +408,13 @@ class CheckoutClientItem:
     product_id: str
     quantity: int
     unit_cents: int
-    """Quanto custa uma unidade, antes de qualquer desconto."""
+    """Quanto custa uma unidade, antes de qualquer desconto; num preço por faixas, o da primeira unidade (veja bands)."""
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> CheckoutClientItem:
         return cls(
             amount_cents=data["amount_cents"],
+            bands=[CheckoutClientItemBand.from_dict(item) for item in data["bands"]],
             description=data["description"],
             interval=data["interval"],
             interval_count=data["interval_count"],
@@ -482,6 +494,8 @@ class CheckoutCreated:
     """O desconto que o checkout aplica sozinho, como o seu servidor o enviou na criação; vazio sem ele. O comprador o vê no resumo e ele conta desde a primeira cobrança."""
     expires_at: str | None
     """Quando o link deixa de abrir sessões; nulo sem prazo."""
+    first_period_extra_days: int | None
+    """Quantos dias o seu servidor somou ao primeiro período da assinatura (first_period_extra_days na criação); nulo quando o primeiro período é o comum. O comprador paga hoje o valor cheio, e a próxima cobrança só acontece no fim do período mais longo."""
     id: str
     """O ID do link do checkout, o que GET e PATCH /checkouts/{id} recebem."""
     items: list[CheckoutLine]
@@ -519,6 +533,7 @@ class CheckoutCreated:
             created_at=data["created_at"],
             discount_id=data["discount_id"],
             expires_at=data.get("expires_at"),
+            first_period_extra_days=data.get("first_period_extra_days"),
             id=data["id"],
             items=[CheckoutLine.from_dict(item) for item in data["items"]],
             label=data["label"],
@@ -563,7 +578,7 @@ class CheckoutExpiredSession:
     already_closed: bool
     """true quando a sessão já estava encerrada antes: a chamada foi repetida."""
     canceled: bool
-    """true quando a Cielo cancelou o Pix ou a reserva nesta chamada."""
+    """true quando o Pix ou a reserva foi cancelado nesta chamada."""
     expired_at: str | None
     """Quando a sessão foi encerrada; nulo se ela já tinha falhado."""
     method: Literal["card", "pix", "boleto"] | None
@@ -571,7 +586,7 @@ class CheckoutExpiredSession:
     payment_id: str
     """O pagamento que a sessão tinha, vazio se o comprador não escolheu um meio."""
     payment_state: str
-    """Como o pagamento ficou: canceled quando a Cielo retirou o QR do Pix ou liberou a reserva do cartão; vazio sem pagamento."""
+    """Como o pagamento ficou: canceled quando a Peráta retirou o QR do Pix ou liberou a reserva do cartão; vazio sem pagamento."""
     session_id: str
     """O id da sessão, o mesmo checkout_id dos webhooks."""
     status: Literal["expired", "failed"]
@@ -1023,13 +1038,13 @@ class Dispute:
     order_id: str | None
     """O pedido que a venda contestada pagou; nulo quando não é de um checkout."""
     payment_id: str
-    """O PaymentId da venda contestada na Cielo."""
+    """O PaymentId da venda contestada."""
     payment_method: str
     """Como a venda contestada foi paga: card ou pix."""
     provider_dispute_id: str
-    """O número do caso na Cielo."""
+    """O número do caso."""
     provider_reason: str
-    """O motivo nas palavras da Cielo."""
+    """O motivo informado pelo emissor ou pela bandeira."""
     reason: str
     """Motivo, do conjunto fechado; unknown quando a adquirente não informou."""
     source: Literal["operator", "cielo_chargeback"]
@@ -1185,6 +1200,12 @@ class Order:
     customer_id: str
     cycle_sequence: int | None
     """Qual ciclo da assinatura o pedido pagou: 1 é o primeiro; nulo fora de uma assinatura."""
+    discount_cents: int
+    """Quanto o desconto tirou do pedido, em centavos; 0 sem desconto."""
+    discount_code: str | None
+    """O código que o comprador digitou no checkout deste pedido; nulo quando o desconto veio por discount_id (o seu servidor o enviou ao criar o checkout), quando veio da assinatura numa renovação ou quando não houve desconto."""
+    discount_id: str | None
+    """O desconto do catálogo que este pedido aplicou; nulo quando não houve desconto. Na renovação de uma assinatura é o desconto que a assinatura aplicou naquele ciclo (uma vez, por alguns meses ou para sempre)."""
     id: str
     installment_interest_cents: int
     """Juros do parcelamento pagos pelo comprador, cobrados além de amount_cents."""
@@ -1210,6 +1231,8 @@ class Order:
     status: Literal["open", "confirmed", "succeeded", "failed", "expired"]
     subscription_id: str | None
     """A assinatura de que este pedido é a cobrança (a primeira ou uma renovação); nulo quando o pedido não é de uma assinatura."""
+    subtotal_cents: int
+    """O valor do pedido antes do desconto, em centavos: subtotal_cents menos discount_cents é o amount_cents. Sem desconto é igual a amount_cents."""
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> Order:
@@ -1219,6 +1242,9 @@ class Order:
             currency=data["currency"],
             customer_id=data["customer_id"],
             cycle_sequence=data.get("cycle_sequence"),
+            discount_cents=data["discount_cents"],
+            discount_code=data.get("discount_code"),
+            discount_id=data.get("discount_id"),
             id=data["id"],
             installment_interest_cents=data["installment_interest_cents"],
             installments=data["installments"],
@@ -1234,6 +1260,7 @@ class Order:
             showcase_id=data["showcase_id"],
             status=data["status"],
             subscription_id=data.get("subscription_id"),
+            subtotal_cents=data["subtotal_cents"],
         )
 
 
@@ -1552,7 +1579,7 @@ class Refund:
     showcase_id: str
     """O showcase a que pertence: o da chave de API que fez a chamada. Uma chave só alcança o seu showcase."""
     status: Literal["requested", "pending", "unknown", "succeeded", "failed", "canceled"]
-    """requested e pending esperam a Cielo; unknown é uma resposta que não chegou, e o valor continua reservado até a Cielo responder; succeeded devolveu o dinheiro; failed e canceled não devolveram."""
+    """requested e pending esperam a confirmação; unknown é passageiro: a confirmação não chegou ou ainda não prova a devolução, o valor continua reservado e a Peráta consulta sozinha (a primeira vez em uns 5 minutos) até virar succeeded ou failed, então não peça de novo e espere o evento refund.succeeded ou refund.failed (ou leia GET /refunds/{id}); succeeded devolveu o dinheiro; failed e canceled não devolveram."""
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> Refund:
@@ -1612,10 +1639,18 @@ class Subscription:
     current_period_end: str
     current_period_start: str
     customer_id: str
+    discount_ends_at: str | None
+    """Quando o desconto deixa de valer: o fim do último ciclo que ele ainda abate (num desconto de uma vez, o fim do primeiro ciclo pago; por alguns meses, o fim do último ciclo desses meses). Nulo quando não há desconto e quando ele vale para sempre."""
+    discount_id: str | None
+    """O desconto em vigor na assinatura, que se aplica aos próximos ciclos até acabar; nulo sem desconto e depois que ele acabou."""
+    first_period_extra_days: int | None
+    """Quantos dias o checkout que vendeu a assinatura somou ao primeiro período, para você conferir; nulo quando o primeiro período foi o comum. O primeiro período vai do dia do pagamento até esse dia mais um intervalo do preço mais estes dias, e current_period_end já vem com eles."""
     id: str
     interval: str
     metadata: dict[str, Any]
     """Metadados do lojista: pares chave e valor (texto, número ou booleano); objeto vazio quando não há."""
+    pending_update: SubscriptionPendingUpdate | None
+    """A mudança de plano ou de quantidade agendada para o próximo período (PATCH com proration_behavior next_period); nulo quando não há nenhuma. Até effective_at a assinatura segue com o price_id, a quantity e o amount_cents de cima."""
     price_id: str
     product_id: str
     quantity: int
@@ -1640,9 +1675,13 @@ class Subscription:
             current_period_end=data["current_period_end"],
             current_period_start=data["current_period_start"],
             customer_id=data["customer_id"],
+            discount_ends_at=data.get("discount_ends_at"),
+            discount_id=data.get("discount_id"),
+            first_period_extra_days=data.get("first_period_extra_days"),
             id=data["id"],
             interval=data["interval"],
             metadata=data["metadata"],
+            pending_update=None if data.get("pending_update") is None else SubscriptionPendingUpdate.from_dict(data["pending_update"]),
             price_id=data["price_id"],
             product_id=data["product_id"],
             quantity=data["quantity"],
@@ -1872,13 +1911,13 @@ class WebhookDispute:
     """Os pares que o seu servidor enviou ao criar o checkout; na renovação de uma assinatura, os da assinatura."""
     opened_at: str
     payment_id: str
-    """O PaymentId da venda contestada na Cielo."""
+    """O PaymentId da venda contestada."""
     payment_method: str | None
     """Como a venda contestada foi paga: card ou pix."""
     provider_dispute_id: str
-    """O número do caso na Cielo."""
+    """O número do caso."""
     provider_reason: str
-    """O motivo nas palavras da Cielo."""
+    """O motivo informado pelo emissor ou pela bandeira."""
     reason: str
     """Motivo, do conjunto fechado; unknown quando a adquirente não informou."""
     source: Literal["operator", "cielo_chargeback"]
@@ -1985,6 +2024,12 @@ class WebhookOrder:
     customer_id: str
     cycle_sequence: int | None
     """O ciclo da assinatura que o pagamento cobra: 1 é o primeiro, 2 é a primeira renovação."""
+    discount_cents: int
+    """Quanto o desconto tirou do pedido, em centavos; 0 sem desconto."""
+    discount_code: str | None
+    """O código que o comprador digitou no checkout deste pedido; nulo quando o desconto veio por discount_id, quando veio da assinatura numa renovação ou quando não houve desconto."""
+    discount_id: str | None
+    """O desconto do catálogo que este pedido aplicou; nulo quando não houve desconto. Na renovação de uma assinatura é o desconto que a assinatura aplicou naquele ciclo."""
     id: str
     installment_interest_cents: int
     """Juros do parcelamento pagos pelo comprador, cobrados além de amount_cents."""
@@ -2014,6 +2059,8 @@ class WebhookOrder:
     status: Literal["open", "confirmed", "succeeded", "failed", "expired"]
     subscription_id: str | None
     """A assinatura que este pagamento cobra; nulo quando a venda não é de uma assinatura."""
+    subtotal_cents: int
+    """O valor do pedido antes do desconto, em centavos: subtotal_cents menos discount_cents é o amount_cents."""
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> WebhookOrder:
@@ -2023,6 +2070,9 @@ class WebhookOrder:
             currency=data["currency"],
             customer_id=data["customer_id"],
             cycle_sequence=data.get("cycle_sequence"),
+            discount_cents=data["discount_cents"],
+            discount_code=data.get("discount_code"),
+            discount_id=data.get("discount_id"),
             id=data["id"],
             installment_interest_cents=data["installment_interest_cents"],
             installments=data["installments"],
@@ -2040,6 +2090,7 @@ class WebhookOrder:
             showcase_id=data["showcase_id"],
             status=data["status"],
             subscription_id=data.get("subscription_id"),
+            subtotal_cents=data["subtotal_cents"],
         )
 
 
@@ -2101,7 +2152,7 @@ class WebhookSale:
     environment: str
     event_id: str
     failure_code: str | None
-    """O código que a Cielo deu para a recusa, nos eventos refund.* de um reembolso que falhou; serve ao suporte."""
+    """O código dado para a recusa, nos eventos refund.* de um reembolso que falhou; serve ao suporte."""
     failure_reason: str | None
     """Por que o dinheiro não voltou, em português, nos eventos refund.* de um reembolso que falhou (refund.failed)."""
     merchant_id: str
@@ -2164,12 +2215,20 @@ class WebhookSubscription:
     current_period_end: str
     current_period_start: str
     customer_id: str
+    discount_ends_at: str | None
+    """Quando o desconto deixa de valer: o fim do último ciclo que ele ainda abate (num desconto de uma vez, o fim do primeiro ciclo pago). Nulo quando não há desconto e quando ele vale para sempre."""
+    discount_id: str | None
+    """O desconto em vigor na assinatura, que se aplica aos próximos ciclos até acabar; nulo sem desconto e depois que ele acabou."""
+    first_period_extra_days: int | None
+    """Quantos dias o checkout que vendeu a assinatura somou ao primeiro período, para você conferir; nulo quando o primeiro período foi o comum. O primeiro período vai do dia do pagamento até esse dia mais um intervalo do preço mais estes dias, e current_period_end já vem com eles."""
     id: str
     interval: str
     metadata: dict[str, Any]
     """Metadados do lojista: pares chave e valor (texto, número ou booleano); objeto vazio quando não há."""
     payment_failure: WebhookSubscriptionPaymentFailure | None
     """A cobrança recusada que causou o evento; só nos eventos de cobrança recusada."""
+    pending_update: WebhookSubscriptionPendingUpdate | None
+    """A mudança de plano ou de quantidade agendada para o próximo período (PATCH com proration_behavior next_period); nulo quando não há nenhuma. Até effective_at a assinatura segue com o price_id, a quantity e o amount_cents de cima."""
     price_id: str
     product_id: str
     quantity: int
@@ -2194,10 +2253,14 @@ class WebhookSubscription:
             current_period_end=data["current_period_end"],
             current_period_start=data["current_period_start"],
             customer_id=data["customer_id"],
+            discount_ends_at=data.get("discount_ends_at"),
+            discount_id=data.get("discount_id"),
+            first_period_extra_days=data.get("first_period_extra_days"),
             id=data["id"],
             interval=data["interval"],
             metadata=data["metadata"],
             payment_failure=None if data.get("payment_failure") is None else WebhookSubscriptionPaymentFailure.from_dict(data["payment_failure"]),
+            pending_update=None if data.get("pending_update") is None else WebhookSubscriptionPendingUpdate.from_dict(data["pending_update"]),
             price_id=data["price_id"],
             product_id=data["product_id"],
             quantity=data["quantity"],
@@ -2207,6 +2270,52 @@ class WebhookSubscription:
             suspension_reason=data.get("suspension_reason"),
             trial_end=data.get("trial_end"),
             trial_start=data.get("trial_start"),
+        )
+
+
+@dataclass(frozen=True)
+class CheckoutClientItemBand:
+    """One item of bands in CheckoutClientItem."""
+
+    amount_cents: int
+    """O que a faixa soma: as unidades vezes o preço, mais o valor fixo."""
+    flat_cents: int
+    """O valor fixo cobrado por entrar na faixa; zero sem ele."""
+    quantity: int
+    """Quantas unidades a faixa cobrou."""
+    unit_cents: int
+    """Quanto custa cada unidade da faixa."""
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> CheckoutClientItemBand:
+        return cls(
+            amount_cents=data["amount_cents"],
+            flat_cents=data["flat_cents"],
+            quantity=data["quantity"],
+            unit_cents=data["unit_cents"],
+        )
+
+
+@dataclass(frozen=True)
+class SubscriptionPendingUpdate:
+    """The pending_update of Subscription."""
+
+    amount_cents: int
+    """O que o período seguinte cobra, em centavos, já para esta quantity: é o total do ciclo."""
+    effective_at: str
+    """Quando a mudança vale: o fim do período atual."""
+    price_id: str
+    """O preço para o qual a assinatura passa em effective_at."""
+    quantity: int
+    """A quantidade que a assinatura terá a partir de effective_at."""
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> SubscriptionPendingUpdate:
+        return cls(
+            amount_cents=data["amount_cents"],
+            effective_at=data["effective_at"],
+            price_id=data["price_id"],
+            quantity=data["quantity"],
         )
 
 
@@ -2246,6 +2355,29 @@ class WebhookSubscriptionPaymentFailure:
             period_start=data["period_start"],
             reason=data["reason"],
             retryable=data["retryable"],
+        )
+
+
+@dataclass(frozen=True)
+class WebhookSubscriptionPendingUpdate:
+    """The pending_update of WebhookSubscription."""
+
+    amount_cents: int
+    """O que o período seguinte cobra, em centavos, já para esta quantity: é o total do ciclo."""
+    effective_at: str
+    """Quando a mudança vale: o fim do período atual."""
+    price_id: str
+    """O preço para o qual a assinatura passa em effective_at."""
+    quantity: int
+    """A quantidade que a assinatura terá a partir de effective_at."""
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> WebhookSubscriptionPendingUpdate:
+        return cls(
+            amount_cents=data["amount_cents"],
+            effective_at=data["effective_at"],
+            price_id=data["price_id"],
+            quantity=data["quantity"],
         )
 
 
@@ -2351,6 +2483,8 @@ class CheckoutsCreateParams(TypedDict):
     """Segundos em que a sessão e o client_secret continuam valendo, de um minuto a três dias; 1800 (30 minutos) quando fica de fora. Uma sessão paga com Pix pode ser aberta até esse prazo e, aberta, o Pix gerado vale 24 horas."""
     external_customer_id: NotRequired[str]
     """O mesmo cliente, pelo ID que você deu a ele."""
+    first_period_extra_days: NotRequired[int]
+    """Quantos dias somar ao primeiro período da assinatura, de 1 a 365: para o comprador que ainda tinha dias pagos num plano anterior (por exemplo, pago até 11/12 e assinando em 20/11: 21 dias). O comprador paga hoje o valor cheio do preço (com as faixas, a quantidade e o desconto), em Pix, cartão de crédito ou débito, como em qualquer checkout, e o primeiro período vai do dia do pagamento até esse dia mais um intervalo do preço mais estes dias, no horário de São Paulo; a renovação e os ciclos seguintes contam a partir desse fim. A próxima cobrança, no cartão guardado ou pelo link ou Pix de renovação, só acontece nele. A página mostra \"Pague hoje R$ X. Próxima cobrança em DD/MM/AAAA (inclui N dias do seu plano anterior)\". Só vale em um preço recorrente com valor, vendido sozinho e sem teste grátis, e não junto com subscription_start_at (cobra hoje, não numa data); fora disso a resposta é 422. A assinatura e o evento da venda trazem o mesmo número em first_period_extra_days, e o pedido do primeiro ciclo traz o período estendido em period_start e period_end. Repetir a criação com a mesma Idempotency-Key e outro número dá 409."""
     items: NotRequired[list[CheckoutsCreateItem]]
     """As linhas do pedido, até 50, para o comprador ler o detalhe: aparecem no checkout (página, modal, componentes e transparente), no pedido, no recibo, no portal do cliente e nos eventos. Em um preço de valor livre, a soma de quantity vezes unit_amount_cents precisa ser igual a amount_cents, ou a resposta é 422; enviadas sem amount_cents, a soma é o valor. Em um preço com valor próprio, como o de uma assinatura, as linhas só mostram ao comprador do que o valor é feito e fixam nada: envie-as sem amount_cents, com a soma igual ao valor do preço vezes a quantidade (senão 422), e o preço continua sendo quem define o que se cobra."""
     label: NotRequired[str]
@@ -2617,8 +2751,10 @@ class RefundsCreateParams(TypedDict):
 class SubscriptionsUpdateParams(TypedDict):
     """The body of subscriptions:update."""
 
-    price_id: str
-    """O preço recorrente para onde a assinatura vai."""
+    extend_current_period_days: NotRequired[int]
+    """Estende o período atual em tantos dias, de 1 a 365, sem cobrar nada e sem criar pedido: a renovação (e a próxima cobrança) passa a ser no novo fim, current_period_end, e os períodos seguintes contam a partir dele. É o crédito manual de dias do lojista. Só uma assinatura active aceita (uma em teste grátis, atrasada, pausada, suspensa ou cancelada recusa); uma que termina no fim do período termina no novo fim. Vai sozinho, sem price_id, quantity nem proration_behavior, senão a resposta é 422. A mudança chega no webhook subscription.updated e fica registrada no log de atividades. Não é repetível por si: envie uma Idempotency-Key para que uma nova tentativa não some os dias duas vezes."""
+    price_id: NotRequired[str]
+    """O preço recorrente para onde a assinatura vai. Obrigatório para trocar de plano; não se envia com extend_current_period_days."""
     proration_behavior: NotRequired[Literal["prorate", "invoice", "next_period", "reset"]]
     """prorate (padrão): rateia o resto do período no próximo valor cobrado; invoice: cobra a diferença agora; next_period: troca no fim do período; reset: cobra o período inteiro do novo plano agora e reinicia o ciclo."""
     quantity: NotRequired[int]

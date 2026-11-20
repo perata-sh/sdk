@@ -47,7 +47,11 @@ func phpType(f *Field) string {
 
 // phpDoc is a type as phpdoc and PHPStan read it: lists, maps and the
 // allowed values of a string.
-func phpDoc(t *TypeRef) string {
+func phpDoc(t *TypeRef) string { return phpDocType(t, true) }
+
+// phpDocType is phpDoc, where shapes says an inline model is written as an
+// array shape (a request body) and not as the class it is (a response).
+func phpDocType(t *TypeRef, shapes bool) string {
 	switch t.Kind {
 	case "string":
 		if len(t.Enum) > 0 {
@@ -65,14 +69,14 @@ func phpDoc(t *TypeRef) string {
 	case "boolean":
 		return "bool"
 	case "model":
-		if t.Nested != nil {
+		if t.Nested != nil && shapes {
 			return phpShape(t.Nested)
 		}
 		return t.Model
 	case "array":
-		return "list<" + phpDoc(t.Items) + ">"
+		return "list<" + phpDocType(t.Items, shapes) + ">"
 	case "map":
-		return "array<string, " + phpDoc(t.Items) + ">"
+		return "array<string, " + phpDocType(t.Items, shapes) + ">"
 	}
 	return "mixed"
 }
@@ -135,7 +139,7 @@ func phpProp(f *Field) string {
 		lines = append(lines, text)
 	}
 	if f.Type.Kind == "array" || f.Type.Kind == "map" || len(f.Type.Enum) > 0 {
-		typ := phpDoc(f.Type)
+		typ := phpDocType(f.Type, false)
 		if f.Nullable || !f.Required {
 			typ += "|null"
 		}

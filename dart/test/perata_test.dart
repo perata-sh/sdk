@@ -53,7 +53,9 @@ const orderPaid =
     'us":"succeeded","paid_at":"2026-10-22T12:00:00Z","order_status":"p'
     'aid","refunded_amount_cents":0,"refund_id":null,"refund_amount_cen'
     'ts":null,"installments":3,"installment_interest_cents":360,"items"'
-    ':[],"metadata":{},"client_reference_id":"","showcase_id":"shw_1"}}';
+    ':[],"metadata":{},"client_reference_id":"","showcase_id":"shw_1",'
+    '"subtotal_cents":12000,"discount_cents":0,"discount_id":null,'
+    '"discount_code":null}}';
 const usageRecorded =
     '{"id":"msg_3","type":"usage_event.recorded",'
     '"timestamp":"2026-10-22T12:00:00Z","data":{"event_id":"ue_1",'
@@ -69,7 +71,9 @@ const orderPaidLive =
     'currency":"BRL","status":"succeeded","paid_at":"2026-10-22T12:00:0'
     '0Z","order_status":"paid","refunded_amount_cents":0,"refund_id":nu'
     'll,"refund_amount_cents":null,"installments":3,"installment_intere'
-    'st_cents":360,"items":[],"metadata":{},"client_reference_id":"","showcase_id":"shw_1"}}';
+    'st_cents":360,"items":[],"metadata":{},"client_reference_id":"","showcase_id":"shw_1",'
+    '"subtotal_cents":12000,"discount_cents":0,"discount_id":null,'
+    '"discount_code":null}}';
 const payoutSentTest =
     '{"id":"msg_6","type":"payout.sent","timestamp":"2026-10-22T12:00:0'
     '0Z","environment":"test","data":{"payout_id":"po_1","amount_cents"'
@@ -487,6 +491,91 @@ void main() {
     },
   );
 
+  // A checkout adds the buyer's remaining days to the first period, an
+  // extension goes out alone (no price_id), and the sale reads back what it
+  // took: the discount on the order and on the subscription, and the change
+  // scheduled for the next period.
+  test('a first period extension and the discounts the sale reads back', () async {
+    final answers = <String, (int, String)>{
+      'POST /api/v1/checkouts': (
+        201,
+        r'''{"data":{"id":"pcl_1","showcase_id":"x","url":"x","product_id":"prod_1","price_id":"price_1","status":"active","label":"x","quantity":0,"amount_cents":null,"items":[],"metadata":{},"client_reference_id":"x","success_url":"x","cancel_url":"x","expires_at":null,"subscription_start_at":null,"discount_id":"disc_1","first_period_extra_days":30,"created_at":"2026-11-20T12:00:00Z","session_id":"cs_1","client_secret":"cs_secret_1","client_secret_expires_at":"2026-11-20T12:00:00Z","status_key":"x"}}''',
+      ),
+      'PATCH /api/v1/subscriptions/sub_1': (
+        200,
+        r'''{"data":{"id":"sub_1","showcase_id":"x","customer_id":"x","product_id":"x","price_id":"x","status":"active","amount_cents":0,"quantity":0,"currency":"BRL","interval":"x","current_period_start":"2026-11-20T12:00:00Z","current_period_end":"2026-11-20T12:00:00Z","cancel_at_period_end":false,"pending_update":{"price_id":"price_2","quantity":5,"amount_cents":90000,"effective_at":"2026-12-20T03:00:00Z"},"suspended_at":null,"suspension_reason":null,"trial_start":null,"trial_end":null,"metadata":{},"client_reference_id":"x","discount_id":"disc_1","discount_ends_at":"2027-03-01T03:00:00Z","first_period_extra_days":30}}''',
+      ),
+      'GET /api/v1/subscriptions/sub_2': (
+        200,
+        r'''{"data":{"id":"sub_2","showcase_id":"x","customer_id":"x","product_id":"x","price_id":"x","status":"active","amount_cents":0,"quantity":0,"currency":"BRL","interval":"x","current_period_start":"2026-11-20T12:00:00Z","current_period_end":"2026-11-20T12:00:00Z","cancel_at_period_end":false,"pending_update":null,"suspended_at":null,"suspension_reason":null,"trial_start":null,"trial_end":null,"metadata":{},"client_reference_id":"x","discount_id":null,"discount_ends_at":null,"first_period_extra_days":null}}''',
+      ),
+      'GET /api/v1/orders/ord_1': (
+        200,
+        r'''{"data":{"id":"ord_1","showcase_id":"x","customer_id":"x","product_id":"x","price_id":"x","amount_cents":9000,"currency":"BRL","status":"open","paid_at":null,"order_status":null,"refunded_amount_cents":0,"installments":0,"installment_interest_cents":0,"items":[],"metadata":{},"client_reference_id":"x","subscription_id":null,"cycle_sequence":null,"period_start":null,"period_end":null,"discount_id":"disc_1","discount_code":"BEMVINDO","subtotal_cents":10000,"discount_cents":1000}}''',
+      ),
+      'GET /api/v1/prices/price_1': (
+        200,
+        r'''{"data":{"id":"price_1","product_id":"prod_1","currency":"BRL","amount_cents":9000,"type":"one_time","interval":"none","interval_count":0,"pricing_model":"fixed","unit_amount_cents":null,"tiers":[],"unit_label":"x","unit_label_plural":"x","minimum_units":null,"maximum_units":null,"status":"archived"}}''',
+      ),
+    };
+    final (perata, seen) = client((request) {
+      final (status, body) = answers['${request.method} ${request.url.path}']!;
+      return json(status, jsonDecode(body));
+    });
+    final checkout = await perata.checkouts.create(
+      const CheckoutsCreateParams(
+        productId: 'prod_1',
+        priceId: 'price_1',
+        firstPeriodExtraDays: 30,
+      ),
+    );
+    expect(
+      (jsonDecode(seen[0].body)
+          as Map<String, Object?>)['first_period_extra_days'],
+      30,
+    );
+    expect(checkout.firstPeriodExtraDays, 30);
+    expect(checkout.discountId, 'disc_1');
+    final subscription = await perata.subscriptions.update(
+      'sub_1',
+      const SubscriptionsUpdateParams(extendCurrentPeriodDays: 15),
+    );
+    final sent = jsonDecode(seen[1].body) as Map<String, Object?>;
+    expect(seen[1].method, 'PATCH');
+    expect(sent['extend_current_period_days'], 15);
+    expect(sent.containsKey('price_id'), isFalse);
+    expect(subscription.firstPeriodExtraDays, 30);
+    expect(subscription.discountId, 'disc_1');
+    expect(subscription.discountEndsAt, '2027-03-01T03:00:00Z');
+    final pending = subscription.pendingUpdate!;
+    expect(
+      (
+        pending.priceId,
+        pending.quantity,
+        pending.amountCents,
+        pending.effectiveAt,
+      ),
+      ('price_2', 5, 90000, '2026-12-20T03:00:00Z'),
+    );
+    final none = await perata.subscriptions.get('sub_2');
+    expect(none.pendingUpdate, isNull);
+    expect(none.firstPeriodExtraDays, isNull);
+    expect(none.discountId, isNull);
+    final order = await perata.orders.get('ord_1');
+    expect(
+      (
+        order.subtotalCents,
+        order.discountCents,
+        order.discountId,
+        order.discountCode,
+      ),
+      (10000, 1000, 'disc_1', 'BEMVINDO'),
+    );
+    final price = await perata.prices.get('price_1');
+    expect(seen[4].url.path, '/api/v1/prices/price_1');
+    expect(price.status, 'archived');
+  });
+
   test(
     'usage ingestion carries the source credential and its events',
     () async {
@@ -715,7 +804,7 @@ void main() {
     final older = [
       (
         'msg_2',
-        'v1,fvRLETNjaSQOVbSs/eVRV/C17ysRHoubzX3idpGAifI= v1,ZsKtmVTp/mXCeW5qAiaLJY1TjyXwUyS7RxRVa3RIQQo=',
+        'v1,wR5lfpym2P4TnG65MaTym1j5wWmRCtcygqTrQNICOEQ= v1,BLGtoe01YFYZHfU7Hcj8qvYNfluZvoTrRaAjcfB8JSs=',
         orderPaid,
       ),
       (
@@ -740,7 +829,7 @@ void main() {
       webhookHeaders(
         'msg_5',
         signedAt,
-        'v1,9CgfDokxQ7tBEd7vvv32TI4QUdqkaHrxgUo2UUNQpOY=',
+        'v1,vJOO2qPe9Vzlr42VPwCuIO+a6Sg8ZVfl9z4WuLJItwg=',
       ),
       orderPaidLive,
       now: now,
@@ -772,8 +861,8 @@ void main() {
     final headers = webhookHeaders(
       'msg_2',
       signedAt,
-      'v1,fvRLETNjaSQOVbSs/eVRV/C17ysRHoubzX3idpGAifI= '
-          'v1,ZsKtmVTp/mXCeW5qAiaLJY1TjyXwUyS7RxRVa3RIQQo=',
+      'v1,wR5lfpym2P4TnG65MaTym1j5wWmRCtcygqTrQNICOEQ= '
+          'v1,BLGtoe01YFYZHfU7Hcj8qvYNfluZvoTrRaAjcfB8JSs=',
     );
     for (final secret in [newSecret, oldSecret]) {
       final event = verifyWebhook(secret, headers, orderPaid, now: now);

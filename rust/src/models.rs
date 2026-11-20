@@ -120,6 +120,8 @@ pub struct Checkout {
     pub discount_id: String,
     /// Quando o checkout deixa de abrir sessões; nulo sem prazo.
     pub expires_at: Option<String>,
+    /// Quantos dias o seu servidor somou ao primeiro período da assinatura (first_period_extra_days na criação); nulo quando o primeiro período é o comum. O comprador paga hoje o valor cheio, e a próxima cobrança só acontece no fim do período mais longo.
+    pub first_period_extra_days: Option<i64>,
     pub id: String,
     /// As linhas do valor fixado, na ordem em que foram enviadas; vazio sem elas.
     pub items: Vec<CheckoutLine>,
@@ -167,6 +169,10 @@ pub struct CheckoutClient {
     pub expires_at: String,
     /// O dia da primeira cobrança de uma assinatura que não cobra hoje, a meia-noite desse dia em São Paulo: o fim do teste grátis ou a data que o servidor do lojista pediu (subscription_start_at). Nulo quando o pagamento é cobrado na hora.
     pub first_charge_at: Option<String>,
+    /// Quando o primeiro período termina, e portanto o dia da próxima cobrança, se o comprador pagar hoje: a meia-noite desse dia em São Paulo. Nulo sem dias extras. Quem paga em outro dia tem o fim deslocado junto.
+    pub first_period_end_at: Option<String>,
+    /// Quantos dias foram somados ao primeiro período da assinatura (first_period_extra_days na criação do checkout); nulo quando o primeiro período é o comum.
+    pub first_period_extra_days: Option<i64>,
     /// O ID da sessão de checkout.
     pub id: String,
     /// Os planos de uma venda no cartão de crédito, à vista primeiro; vazio quando a sessão não se paga em parcelas no cartão.
@@ -232,8 +238,10 @@ pub struct CheckoutClientDiscount {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[non_exhaustive]
 pub struct CheckoutClientItem {
-    /// Quanto custa a linha antes de qualquer desconto: a unidade vezes a quantidade.
+    /// Quanto custa a linha antes de qualquer desconto: a quantidade vezes o preço da unidade; num preço por faixas, a soma das faixas.
     pub amount_cents: i64,
+    /// As faixas de um preço graduado em que a quantidade passou da primeira, na ordem; vazio num preço de uma faixa só. A soma de amount_cents das faixas é o amount_cents da linha.
+    pub bands: Vec<CheckoutClientItemBand>,
     /// A descrição do produto como o lojista a escreveu, em Markdown; vazia sem ela.
     pub description: String,
     /// month ou year numa assinatura; vazio numa compra avulsa.
@@ -243,7 +251,7 @@ pub struct CheckoutClientItem {
     pub name: String,
     pub product_id: String,
     pub quantity: i64,
-    /// Quanto custa uma unidade, antes de qualquer desconto.
+    /// Quanto custa uma unidade, antes de qualquer desconto; num preço por faixas, o da primeira unidade (veja bands).
     pub unit_cents: i64,
 }
 
@@ -294,6 +302,8 @@ pub struct CheckoutCreated {
     pub discount_id: String,
     /// Quando o link deixa de abrir sessões; nulo sem prazo.
     pub expires_at: Option<String>,
+    /// Quantos dias o seu servidor somou ao primeiro período da assinatura (first_period_extra_days na criação); nulo quando o primeiro período é o comum. O comprador paga hoje o valor cheio, e a próxima cobrança só acontece no fim do período mais longo.
+    pub first_period_extra_days: Option<i64>,
     /// O ID do link do checkout, o que GET e PATCH /checkouts/{id} recebem.
     pub id: String,
     /// As linhas do valor fixado, na ordem em que foram enviadas; vazio sem elas.
@@ -339,7 +349,7 @@ pub struct CheckoutExpired {
 pub struct CheckoutExpiredSession {
     /// true quando a sessão já estava encerrada antes: a chamada foi repetida.
     pub already_closed: bool,
-    /// true quando a Cielo cancelou o Pix ou a reserva nesta chamada.
+    /// true quando o Pix ou a reserva foi cancelado nesta chamada.
     pub canceled: bool,
     /// Quando a sessão foi encerrada; nulo se ela já tinha falhado.
     pub expired_at: Option<String>,
@@ -347,7 +357,7 @@ pub struct CheckoutExpiredSession {
     pub method: Option<CheckoutExpiredSessionMethod>,
     /// O pagamento que a sessão tinha, vazio se o comprador não escolheu um meio.
     pub payment_id: String,
-    /// Como o pagamento ficou: canceled quando a Cielo retirou o QR do Pix ou liberou a reserva do cartão; vazio sem pagamento.
+    /// Como o pagamento ficou: canceled quando a Peráta retirou o QR do Pix ou liberou a reserva do cartão; vazio sem pagamento.
     pub payment_state: String,
     /// O id da sessão, o mesmo checkout_id dos webhooks.
     pub session_id: String,
@@ -623,13 +633,13 @@ pub struct Dispute {
     pub opened_at: String,
     /// O pedido que a venda contestada pagou; nulo quando não é de um checkout.
     pub order_id: Option<String>,
-    /// O PaymentId da venda contestada na Cielo.
+    /// O PaymentId da venda contestada.
     pub payment_id: String,
     /// Como a venda contestada foi paga: card ou pix.
     pub payment_method: String,
-    /// O número do caso na Cielo.
+    /// O número do caso.
     pub provider_dispute_id: String,
-    /// O motivo nas palavras da Cielo.
+    /// O motivo informado pelo emissor ou pela bandeira.
     pub provider_reason: String,
     /// Motivo, do conjunto fechado; unknown quando a adquirente não informou.
     pub reason: String,
@@ -712,6 +722,12 @@ pub struct Order {
     pub customer_id: String,
     /// Qual ciclo da assinatura o pedido pagou: 1 é o primeiro; nulo fora de uma assinatura.
     pub cycle_sequence: Option<i64>,
+    /// Quanto o desconto tirou do pedido, em centavos; 0 sem desconto.
+    pub discount_cents: i64,
+    /// O código que o comprador digitou no checkout deste pedido; nulo quando o desconto veio por discount_id (o seu servidor o enviou ao criar o checkout), quando veio da assinatura numa renovação ou quando não houve desconto.
+    pub discount_code: Option<String>,
+    /// O desconto do catálogo que este pedido aplicou; nulo quando não houve desconto. Na renovação de uma assinatura é o desconto que a assinatura aplicou naquele ciclo (uma vez, por alguns meses ou para sempre).
+    pub discount_id: Option<String>,
     pub id: String,
     /// Juros do parcelamento pagos pelo comprador, cobrados além de amount_cents.
     pub installment_interest_cents: i64,
@@ -737,6 +753,8 @@ pub struct Order {
     pub status: OrderStatus,
     /// A assinatura de que este pedido é a cobrança (a primeira ou uma renovação); nulo quando o pedido não é de uma assinatura.
     pub subscription_id: Option<String>,
+    /// O valor do pedido antes do desconto, em centavos: subtotal_cents menos discount_cents é o amount_cents. Sem desconto é igual a amount_cents.
+    pub subtotal_cents: i64,
 }
 
 /// OrderInvoice is a resource of Peráta's API.
@@ -933,7 +951,7 @@ pub struct Refund {
     pub refund_metadata: std::collections::HashMap<String, serde_json::Value>,
     /// O showcase a que pertence: o da chave de API que fez a chamada. Uma chave só alcança o seu showcase.
     pub showcase_id: String,
-    /// requested e pending esperam a Cielo; unknown é uma resposta que não chegou, e o valor continua reservado até a Cielo responder; succeeded devolveu o dinheiro; failed e canceled não devolveram.
+    /// requested e pending esperam a confirmação; unknown é passageiro: a confirmação não chegou ou ainda não prova a devolução, o valor continua reservado e a Peráta consulta sozinha (a primeira vez em uns 5 minutos) até virar succeeded ou failed, então não peça de novo e espere o evento refund.succeeded ou refund.failed (ou leia GET /refunds/{id}); succeeded devolveu o dinheiro; failed e canceled não devolveram.
     pub status: RefundStatus,
 }
 
@@ -967,10 +985,18 @@ pub struct Subscription {
     pub current_period_end: String,
     pub current_period_start: String,
     pub customer_id: String,
+    /// Quando o desconto deixa de valer: o fim do último ciclo que ele ainda abate (num desconto de uma vez, o fim do primeiro ciclo pago; por alguns meses, o fim do último ciclo desses meses). Nulo quando não há desconto e quando ele vale para sempre.
+    pub discount_ends_at: Option<String>,
+    /// O desconto em vigor na assinatura, que se aplica aos próximos ciclos até acabar; nulo sem desconto e depois que ele acabou.
+    pub discount_id: Option<String>,
+    /// Quantos dias o checkout que vendeu a assinatura somou ao primeiro período, para você conferir; nulo quando o primeiro período foi o comum. O primeiro período vai do dia do pagamento até esse dia mais um intervalo do preço mais estes dias, e current_period_end já vem com eles.
+    pub first_period_extra_days: Option<i64>,
     pub id: String,
     pub interval: String,
     /// Metadados do lojista: pares chave e valor (texto, número ou booleano); objeto vazio quando não há.
     pub metadata: std::collections::HashMap<String, serde_json::Value>,
+    /// A mudança de plano ou de quantidade agendada para o próximo período (PATCH com proration_behavior next_period); nulo quando não há nenhuma. Até effective_at a assinatura segue com o price_id, a quantity e o amount_cents de cima.
+    pub pending_update: Option<SubscriptionPendingUpdate>,
     pub price_id: String,
     pub product_id: String,
     /// Quantas unidades ou assentos a assinatura cobre, de 1 em diante; 1 num preço sem quantidade. amount_cents é o total do ciclo para esta quantity.
@@ -1134,14 +1160,14 @@ pub struct WebhookDispute {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub metadata: Option<std::collections::HashMap<String, serde_json::Value>>,
     pub opened_at: String,
-    /// O PaymentId da venda contestada na Cielo.
+    /// O PaymentId da venda contestada.
     pub payment_id: String,
     /// Como a venda contestada foi paga: card ou pix.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub payment_method: Option<String>,
-    /// O número do caso na Cielo.
+    /// O número do caso.
     pub provider_dispute_id: String,
-    /// O motivo nas palavras da Cielo.
+    /// O motivo informado pelo emissor ou pela bandeira.
     pub provider_reason: String,
     /// Motivo, do conjunto fechado; unknown quando a adquirente não informou.
     pub reason: String,
@@ -1198,6 +1224,12 @@ pub struct WebhookOrder {
     /// O ciclo da assinatura que o pagamento cobra: 1 é o primeiro, 2 é a primeira renovação.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub cycle_sequence: Option<i64>,
+    /// Quanto o desconto tirou do pedido, em centavos; 0 sem desconto.
+    pub discount_cents: i64,
+    /// O código que o comprador digitou no checkout deste pedido; nulo quando o desconto veio por discount_id, quando veio da assinatura numa renovação ou quando não houve desconto.
+    pub discount_code: Option<String>,
+    /// O desconto do catálogo que este pedido aplicou; nulo quando não houve desconto. Na renovação de uma assinatura é o desconto que a assinatura aplicou naquele ciclo.
+    pub discount_id: Option<String>,
     pub id: String,
     /// Juros do parcelamento pagos pelo comprador, cobrados além de amount_cents.
     pub installment_interest_cents: i64,
@@ -1230,6 +1262,8 @@ pub struct WebhookOrder {
     /// A assinatura que este pagamento cobra; nulo quando a venda não é de uma assinatura.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub subscription_id: Option<String>,
+    /// O valor do pedido antes do desconto, em centavos: subtotal_cents menos discount_cents é o amount_cents.
+    pub subtotal_cents: i64,
 }
 
 /// WebhookRefund is a resource of Peráta's API.
@@ -1281,7 +1315,7 @@ pub struct WebhookSale {
     pub cycle_sequence: Option<i64>,
     pub environment: String,
     pub event_id: String,
-    /// O código que a Cielo deu para a recusa, nos eventos refund.* de um reembolso que falhou; serve ao suporte.
+    /// O código dado para a recusa, nos eventos refund.* de um reembolso que falhou; serve ao suporte.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub failure_code: Option<String>,
     /// Por que o dinheiro não voltou, em português, nos eventos refund.* de um reembolso que falhou (refund.failed).
@@ -1330,6 +1364,12 @@ pub struct WebhookSubscription {
     pub current_period_end: String,
     pub current_period_start: String,
     pub customer_id: String,
+    /// Quando o desconto deixa de valer: o fim do último ciclo que ele ainda abate (num desconto de uma vez, o fim do primeiro ciclo pago). Nulo quando não há desconto e quando ele vale para sempre.
+    pub discount_ends_at: Option<String>,
+    /// O desconto em vigor na assinatura, que se aplica aos próximos ciclos até acabar; nulo sem desconto e depois que ele acabou.
+    pub discount_id: Option<String>,
+    /// Quantos dias o checkout que vendeu a assinatura somou ao primeiro período, para você conferir; nulo quando o primeiro período foi o comum. O primeiro período vai do dia do pagamento até esse dia mais um intervalo do preço mais estes dias, e current_period_end já vem com eles.
+    pub first_period_extra_days: Option<i64>,
     pub id: String,
     pub interval: String,
     /// Metadados do lojista: pares chave e valor (texto, número ou booleano); objeto vazio quando não há.
@@ -1337,6 +1377,8 @@ pub struct WebhookSubscription {
     /// A cobrança recusada que causou o evento; só nos eventos de cobrança recusada.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub payment_failure: Option<WebhookSubscriptionPaymentFailure>,
+    /// A mudança de plano ou de quantidade agendada para o próximo período (PATCH com proration_behavior next_period); nulo quando não há nenhuma. Até effective_at a assinatura segue com o price_id, a quantity e o amount_cents de cima.
+    pub pending_update: Option<WebhookSubscriptionPendingUpdate>,
     pub price_id: String,
     pub product_id: String,
     /// Quantas unidades ou assentos a assinatura cobre, de 1 em diante; 1 num preço sem quantidade. amount_cents é o total do ciclo para esta quantity.
@@ -1350,6 +1392,34 @@ pub struct WebhookSubscription {
     pub suspension_reason: Option<WebhookSubscriptionSuspensionReason>,
     pub trial_end: Option<String>,
     pub trial_start: Option<String>,
+}
+
+/// One item of bands in CheckoutClientItem.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct CheckoutClientItemBand {
+    /// O que a faixa soma: as unidades vezes o preço, mais o valor fixo.
+    pub amount_cents: i64,
+    /// O valor fixo cobrado por entrar na faixa; zero sem ele.
+    pub flat_cents: i64,
+    /// Quantas unidades a faixa cobrou.
+    pub quantity: i64,
+    /// Quanto custa cada unidade da faixa.
+    pub unit_cents: i64,
+}
+
+/// The pending_update of Subscription.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct SubscriptionPendingUpdate {
+    /// O que o período seguinte cobra, em centavos, já para esta quantity: é o total do ciclo.
+    pub amount_cents: i64,
+    /// Quando a mudança vale: o fim do período atual.
+    pub effective_at: String,
+    /// O preço para o qual a assinatura passa em effective_at.
+    pub price_id: String,
+    /// A quantidade que a assinatura terá a partir de effective_at.
+    pub quantity: i64,
 }
 
 /// A cobrança recusada que causou o evento; só nos eventos de cobrança recusada.
@@ -1374,6 +1444,20 @@ pub struct WebhookSubscriptionPaymentFailure {
     pub reason: String,
     /// Verdadeiro quando o emissor permite tentar o mesmo cartão de novo; falso é recusa definitiva.
     pub retryable: bool,
+}
+
+/// The pending_update of WebhookSubscription.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct WebhookSubscriptionPendingUpdate {
+    /// O que o período seguinte cobra, em centavos, já para esta quantity: é o total do ciclo.
+    pub amount_cents: i64,
+    /// Quando a mudança vale: o fim do período atual.
+    pub effective_at: String,
+    /// O preço para o qual a assinatura passa em effective_at.
+    pub price_id: String,
+    /// A quantidade que a assinatura terá a partir de effective_at.
+    pub quantity: i64,
 }
 
 /// What usage.ingest answers.
@@ -1776,6 +1860,9 @@ pub struct CheckoutsCreateParams {
     /// O mesmo cliente, pelo ID que você deu a ele.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub external_customer_id: Option<String>,
+    /// Quantos dias somar ao primeiro período da assinatura, de 1 a 365: para o comprador que ainda tinha dias pagos num plano anterior (por exemplo, pago até 11/12 e assinando em 20/11: 21 dias). O comprador paga hoje o valor cheio do preço (com as faixas, a quantidade e o desconto), em Pix, cartão de crédito ou débito, como em qualquer checkout, e o primeiro período vai do dia do pagamento até esse dia mais um intervalo do preço mais estes dias, no horário de São Paulo; a renovação e os ciclos seguintes contam a partir desse fim. A próxima cobrança, no cartão guardado ou pelo link ou Pix de renovação, só acontece nele. A página mostra "Pague hoje R$ X. Próxima cobrança em DD/MM/AAAA (inclui N dias do seu plano anterior)". Só vale em um preço recorrente com valor, vendido sozinho e sem teste grátis, e não junto com subscription_start_at (cobra hoje, não numa data); fora disso a resposta é 422. A assinatura e o evento da venda trazem o mesmo número em first_period_extra_days, e o pedido do primeiro ciclo traz o período estendido em period_start e period_end. Repetir a criação com a mesma Idempotency-Key e outro número dá 409.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub first_period_extra_days: Option<i64>,
     /// As linhas do pedido, até 50, para o comprador ler o detalhe: aparecem no checkout (página, modal, componentes e transparente), no pedido, no recibo, no portal do cliente e nos eventos. Em um preço de valor livre, a soma de quantity vezes unit_amount_cents precisa ser igual a amount_cents, ou a resposta é 422; enviadas sem amount_cents, a soma é o valor. Em um preço com valor próprio, como o de uma assinatura, as linhas só mostram ao comprador do que o valor é feito e fixam nada: envie-as sem amount_cents, com a soma igual ao valor do preço vezes a quantidade (senão 422), e o preço continua sendo quem define o que se cobra.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub items: Option<Vec<CheckoutsCreateItem>>,
@@ -1816,6 +1903,7 @@ impl CheckoutsCreateParams {
             discount_id: None,
             expires_in: None,
             external_customer_id: None,
+            first_period_extra_days: None,
             items: None,
             label: None,
             metadata: None,
@@ -1886,6 +1974,12 @@ impl CheckoutsCreateParams {
     /// O mesmo cliente, pelo ID que você deu a ele.
     pub fn external_customer_id(mut self, external_customer_id: impl Into<String>) -> Self {
         self.external_customer_id = Some(external_customer_id.into());
+        self
+    }
+
+    /// Quantos dias somar ao primeiro período da assinatura, de 1 a 365: para o comprador que ainda tinha dias pagos num plano anterior (por exemplo, pago até 11/12 e assinando em 20/11: 21 dias). O comprador paga hoje o valor cheio do preço (com as faixas, a quantidade e o desconto), em Pix, cartão de crédito ou débito, como em qualquer checkout, e o primeiro período vai do dia do pagamento até esse dia mais um intervalo do preço mais estes dias, no horário de São Paulo; a renovação e os ciclos seguintes contam a partir desse fim. A próxima cobrança, no cartão guardado ou pelo link ou Pix de renovação, só acontece nele. A página mostra "Pague hoje R$ X. Próxima cobrança em DD/MM/AAAA (inclui N dias do seu plano anterior)". Só vale em um preço recorrente com valor, vendido sozinho e sem teste grátis, e não junto com subscription_start_at (cobra hoje, não numa data); fora disso a resposta é 422. A assinatura e o evento da venda trazem o mesmo número em first_period_extra_days, e o pedido do primeiro ciclo traz o período estendido em period_start e period_end. Repetir a criação com a mesma Idempotency-Key e outro número dá 409.
+    pub fn first_period_extra_days(mut self, first_period_extra_days: i64) -> Self {
+        self.first_period_extra_days = Some(first_period_extra_days);
         self
     }
 
@@ -3065,11 +3159,15 @@ impl RefundsCreateParams {
 ///
 /// [`SubscriptionsUpdateParams::new`] takes the required fields; each optional one is set by
 /// the method of its name.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Default, Serialize, Deserialize)]
 #[non_exhaustive]
 pub struct SubscriptionsUpdateParams {
-    /// O preço recorrente para onde a assinatura vai.
-    pub price_id: String,
+    /// Estende o período atual em tantos dias, de 1 a 365, sem cobrar nada e sem criar pedido: a renovação (e a próxima cobrança) passa a ser no novo fim, current_period_end, e os períodos seguintes contam a partir dele. É o crédito manual de dias do lojista. Só uma assinatura active aceita (uma em teste grátis, atrasada, pausada, suspensa ou cancelada recusa); uma que termina no fim do período termina no novo fim. Vai sozinho, sem price_id, quantity nem proration_behavior, senão a resposta é 422. A mudança chega no webhook subscription.updated e fica registrada no log de atividades. Não é repetível por si: envie uma Idempotency-Key para que uma nova tentativa não some os dias duas vezes.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub extend_current_period_days: Option<i64>,
+    /// O preço recorrente para onde a assinatura vai. Obrigatório para trocar de plano; não se envia com extend_current_period_days.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub price_id: Option<String>,
     /// prorate (padrão): rateia o resto do período no próximo valor cobrado; invoice: cobra a diferença agora; next_period: troca no fim do período; reset: cobra o período inteiro do novo plano agora e reinicia o ciclo.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub proration_behavior: Option<SubscriptionsUpdateParamsProrationBehavior>,
@@ -3080,12 +3178,25 @@ pub struct SubscriptionsUpdateParams {
 
 impl SubscriptionsUpdateParams {
     /// A body with its required fields.
-    pub fn new(price_id: impl Into<String>) -> Self {
+    pub fn new() -> Self {
         Self {
-            price_id: price_id.into(),
+            extend_current_period_days: None,
+            price_id: None,
             proration_behavior: None,
             quantity: None,
         }
+    }
+
+    /// Estende o período atual em tantos dias, de 1 a 365, sem cobrar nada e sem criar pedido: a renovação (e a próxima cobrança) passa a ser no novo fim, current_period_end, e os períodos seguintes contam a partir dele. É o crédito manual de dias do lojista. Só uma assinatura active aceita (uma em teste grátis, atrasada, pausada, suspensa ou cancelada recusa); uma que termina no fim do período termina no novo fim. Vai sozinho, sem price_id, quantity nem proration_behavior, senão a resposta é 422. A mudança chega no webhook subscription.updated e fica registrada no log de atividades. Não é repetível por si: envie uma Idempotency-Key para que uma nova tentativa não some os dias duas vezes.
+    pub fn extend_current_period_days(mut self, extend_current_period_days: i64) -> Self {
+        self.extend_current_period_days = Some(extend_current_period_days);
+        self
+    }
+
+    /// O preço recorrente para onde a assinatura vai. Obrigatório para trocar de plano; não se envia com extend_current_period_days.
+    pub fn price_id(mut self, price_id: impl Into<String>) -> Self {
+        self.price_id = Some(price_id.into());
+        self
     }
 
     /// prorate (padrão): rateia o resto do período no próximo valor cobrado; invoice: cobra a diferença agora; next_period: troca no fim do período; reset: cobra o período inteiro do novo plano agora e reinicia o ciclo.
@@ -6642,7 +6753,7 @@ impl<'de> Deserialize<'de> for ProductStatus {
     }
 }
 
-/// The values of `Refund.status`. requested e pending esperam a Cielo; unknown é uma resposta que não chegou, e o valor continua reservado até a Cielo responder; succeeded devolveu o dinheiro; failed e canceled não devolveram.
+/// The values of `Refund.status`. requested e pending esperam a confirmação; unknown é passageiro: a confirmação não chegou ou ainda não prova a devolução, o valor continua reservado e a Peráta consulta sozinha (a primeira vez em uns 5 minutos) até virar succeeded ou failed, então não peça de novo e espere o evento refund.succeeded ou refund.failed (ou leia GET /refunds/{id}); succeeded devolveu o dinheiro; failed e canceled não devolveram.
 ///
 /// A value this SDK does not know yet is kept, as it came, in
 /// [`RefundStatus::Unrecognized`].

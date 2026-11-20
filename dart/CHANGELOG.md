@@ -2,6 +2,15 @@
 
 Todos os SDKs da Peráta saem com a mesma versão; as mudanças de cada uma estão também nas [releases de perata-sh/sdk](https://github.com/perata-sh/sdk/releases).
 
+## 0.5.8 (20/11/2026)
+
+Gerado a partir do contrato da API 0.1.0 (perata.sh e1e917df).
+
+- Dias extras no primeiro período: `checkouts.create` aceita `firstPeriodExtraDays` (1 a 365), e `Checkout`, `CheckoutCreated`, `Subscription` e `WebhookSubscription` o devolvem; o estado do comprador (`CheckoutClient`) traz também `firstPeriodEndAt`.
+- `subscriptions.update` aceita `extendCurrentPeriodDays` (1 a 365), sozinho, para dar dias sem cobrar. `priceId` deixa de ser obrigatório em `SubscriptionsUpdateParams`.
+- `Order` e `WebhookOrder` trazem `discountId`, `discountCode`, `subtotalCents` e `discountCents`; `Subscription` e `WebhookSubscription` trazem `discountId`, `discountEndsAt` e `pendingUpdate` (`SubscriptionPendingUpdate`, nulo sem troca agendada).
+- `prices.get` lê um preço pelo id. `CheckoutClientItem` traz `bands` (`CheckoutClientItemBand`).
+
 ## 0.5.7 (20/11/2026)
 
 Gerado a partir do contrato da API 0.1.0 (perata.sh 9ae556b4).

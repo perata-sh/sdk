@@ -33,6 +33,9 @@ public final class Order {
     private final String currency;
     private final String customerId;
     private final Long cycleSequence;
+    private final long discountCents;
+    private final String discountCode;
+    private final String discountId;
     private final String id;
     private final long installmentInterestCents;
     private final long installments;
@@ -48,13 +51,17 @@ public final class Order {
     private final String showcaseId;
     private final String status;
     private final String subscriptionId;
+    private final long subtotalCents;
 
-    Order(long amountCents, String clientReferenceId, String currency, String customerId, Long cycleSequence, String id, long installmentInterestCents, long installments, List<CheckoutLine> items, Map<String, Object> metadata, String orderStatus, String paidAt, String periodEnd, String periodStart, String priceId, String productId, long refundedAmountCents, String showcaseId, String status, String subscriptionId) {
+    Order(long amountCents, String clientReferenceId, String currency, String customerId, Long cycleSequence, long discountCents, String discountCode, String discountId, String id, long installmentInterestCents, long installments, List<CheckoutLine> items, Map<String, Object> metadata, String orderStatus, String paidAt, String periodEnd, String periodStart, String priceId, String productId, long refundedAmountCents, String showcaseId, String status, String subscriptionId, long subtotalCents) {
         this.amountCents = amountCents;
         this.clientReferenceId = clientReferenceId;
         this.currency = currency;
         this.customerId = customerId;
         this.cycleSequence = cycleSequence;
+        this.discountCents = discountCents;
+        this.discountCode = discountCode;
+        this.discountId = discountId;
         this.id = id;
         this.installmentInterestCents = installmentInterestCents;
         this.installments = installments;
@@ -70,6 +77,7 @@ public final class Order {
         this.showcaseId = showcaseId;
         this.status = status;
         this.subscriptionId = subscriptionId;
+        this.subtotalCents = subtotalCents;
     }
 
     static Order fromJson(Map<String, Object> data) {
@@ -79,6 +87,9 @@ public final class Order {
                 Json.required(data, "currency", Json::asString),
                 Json.required(data, "customer_id", Json::asString),
                 Json.optional(data, "cycle_sequence", Json::asLong),
+                Json.required(data, "discount_cents", Json::asLong),
+                Json.optional(data, "discount_code", Json::asString),
+                Json.optional(data, "discount_id", Json::asString),
                 Json.required(data, "id", Json::asString),
                 Json.required(data, "installment_interest_cents", Json::asLong),
                 Json.required(data, "installments", Json::asLong),
@@ -93,7 +104,8 @@ public final class Order {
                 Json.required(data, "refunded_amount_cents", Json::asLong),
                 Json.required(data, "showcase_id", Json::asString),
                 Json.required(data, "status", Json::asString),
-                Json.optional(data, "subscription_id", Json::asString));
+                Json.optional(data, "subscription_id", Json::asString),
+                Json.required(data, "subtotal_cents", Json::asLong));
     }
 
     /** @return the API's {@code amount_cents} */
@@ -119,6 +131,21 @@ public final class Order {
     /** @return Qual ciclo da assinatura o pedido pagou: 1 é o primeiro; nulo fora de uma assinatura. (null when the API sends none) */
     public Long getCycleSequence() {
         return cycleSequence;
+    }
+
+    /** @return Quanto o desconto tirou do pedido, em centavos; 0 sem desconto. */
+    public long getDiscountCents() {
+        return discountCents;
+    }
+
+    /** @return O código que o comprador digitou no checkout deste pedido; nulo quando o desconto veio por discount_id (o seu servidor o enviou ao criar o checkout), quando veio da assinatura numa renovação ou quando não houve desconto. (null when the API sends none) */
+    public String getDiscountCode() {
+        return discountCode;
+    }
+
+    /** @return O desconto do catálogo que este pedido aplicou; nulo quando não houve desconto. Na renovação de uma assinatura é o desconto que a assinatura aplicou naquele ciclo (uma vez, por alguns meses ou para sempre). (null when the API sends none) */
+    public String getDiscountId() {
+        return discountId;
     }
 
     /** @return the API's {@code id} */
@@ -196,8 +223,13 @@ public final class Order {
         return subscriptionId;
     }
 
+    /** @return O valor do pedido antes do desconto, em centavos: subtotal_cents menos discount_cents é o amount_cents. Sem desconto é igual a amount_cents. */
+    public long getSubtotalCents() {
+        return subtotalCents;
+    }
+
     @Override
     public String toString() {
-        return "Order{" + "amountCents=" + amountCents + ", clientReferenceId=" + clientReferenceId + ", currency=" + currency + ", customerId=" + customerId + ", cycleSequence=" + cycleSequence + ", id=" + id + ", installmentInterestCents=" + installmentInterestCents + ", installments=" + installments + ", items=" + items + ", metadata=" + metadata + ", orderStatus=" + orderStatus + ", paidAt=" + paidAt + ", periodEnd=" + periodEnd + ", periodStart=" + periodStart + ", priceId=" + priceId + ", productId=" + productId + ", refundedAmountCents=" + refundedAmountCents + ", showcaseId=" + showcaseId + ", status=" + status + ", subscriptionId=" + subscriptionId + "}";
+        return "Order{" + "amountCents=" + amountCents + ", clientReferenceId=" + clientReferenceId + ", currency=" + currency + ", customerId=" + customerId + ", cycleSequence=" + cycleSequence + ", discountCents=" + discountCents + ", discountCode=" + discountCode + ", discountId=" + discountId + ", id=" + id + ", installmentInterestCents=" + installmentInterestCents + ", installments=" + installments + ", items=" + items + ", metadata=" + metadata + ", orderStatus=" + orderStatus + ", paidAt=" + paidAt + ", periodEnd=" + periodEnd + ", periodStart=" + periodStart + ", priceId=" + priceId + ", productId=" + productId + ", refundedAmountCents=" + refundedAmountCents + ", showcaseId=" + showcaseId + ", status=" + status + ", subscriptionId=" + subscriptionId + ", subtotalCents=" + subtotalCents + "}";
     }
 }

@@ -37,6 +37,8 @@ public final class CheckoutClient {
     private final String environment;
     private final String expiresAt;
     private final String firstChargeAt;
+    private final String firstPeriodEndAt;
+    private final Long firstPeriodExtraDays;
     private final String id;
     private final List<CheckoutInstallment> installments;
     private final List<CheckoutClientItem> items;
@@ -51,7 +53,7 @@ public final class CheckoutClient {
     private final String successUrl;
     private final long totalCents;
 
-    CheckoutClient(long amountCents, boolean amountLocked, String cancelUrl, List<String> cardKinds, String clientReferenceId, String currency, CheckoutClientCustomer customer, CheckoutClientDiscount discount, long discountCents, boolean editable, String environment, String expiresAt, String firstChargeAt, String id, List<CheckoutInstallment> installments, List<CheckoutClientItem> items, List<String> missing, CheckoutNextAction nextAction, CheckoutClientPayment payment, List<String> paymentMethods, boolean requiresBillingAddress, boolean requiresTaxId, String status, String statusKey, String successUrl, long totalCents) {
+    CheckoutClient(long amountCents, boolean amountLocked, String cancelUrl, List<String> cardKinds, String clientReferenceId, String currency, CheckoutClientCustomer customer, CheckoutClientDiscount discount, long discountCents, boolean editable, String environment, String expiresAt, String firstChargeAt, String firstPeriodEndAt, Long firstPeriodExtraDays, String id, List<CheckoutInstallment> installments, List<CheckoutClientItem> items, List<String> missing, CheckoutNextAction nextAction, CheckoutClientPayment payment, List<String> paymentMethods, boolean requiresBillingAddress, boolean requiresTaxId, String status, String statusKey, String successUrl, long totalCents) {
         this.amountCents = amountCents;
         this.amountLocked = amountLocked;
         this.cancelUrl = cancelUrl;
@@ -65,6 +67,8 @@ public final class CheckoutClient {
         this.environment = environment;
         this.expiresAt = expiresAt;
         this.firstChargeAt = firstChargeAt;
+        this.firstPeriodEndAt = firstPeriodEndAt;
+        this.firstPeriodExtraDays = firstPeriodExtraDays;
         this.id = id;
         this.installments = installments;
         this.items = items;
@@ -95,6 +99,8 @@ public final class CheckoutClient {
                 Json.required(data, "environment", Json::asString),
                 Json.required(data, "expires_at", Json::asString),
                 Json.optional(data, "first_charge_at", Json::asString),
+                Json.optional(data, "first_period_end_at", Json::asString),
+                Json.optional(data, "first_period_extra_days", Json::asLong),
                 Json.required(data, "id", Json::asString),
                 Json.required(data, "installments", Json.list(Json.model(CheckoutInstallment::fromJson))),
                 Json.required(data, "items", Json.list(Json.model(CheckoutClientItem::fromJson))),
@@ -175,6 +181,16 @@ public final class CheckoutClient {
         return firstChargeAt;
     }
 
+    /** @return Quando o primeiro período termina, e portanto o dia da próxima cobrança, se o comprador pagar hoje: a meia-noite desse dia em São Paulo. Nulo sem dias extras. Quem paga em outro dia tem o fim deslocado junto. (null when the API sends none) */
+    public String getFirstPeriodEndAt() {
+        return firstPeriodEndAt;
+    }
+
+    /** @return Quantos dias foram somados ao primeiro período da assinatura (first_period_extra_days na criação do checkout); nulo quando o primeiro período é o comum. (null when the API sends none) */
+    public Long getFirstPeriodExtraDays() {
+        return firstPeriodExtraDays;
+    }
+
     /** @return O ID da sessão de checkout. */
     public String getId() {
         return id;
@@ -242,6 +258,6 @@ public final class CheckoutClient {
 
     @Override
     public String toString() {
-        return "CheckoutClient{" + "amountCents=" + amountCents + ", amountLocked=" + amountLocked + ", cancelUrl=" + cancelUrl + ", cardKinds=" + cardKinds + ", clientReferenceId=" + clientReferenceId + ", currency=" + currency + ", customer=" + customer + ", discount=" + discount + ", discountCents=" + discountCents + ", editable=" + editable + ", environment=" + environment + ", expiresAt=" + expiresAt + ", firstChargeAt=" + firstChargeAt + ", id=" + id + ", installments=" + installments + ", items=" + items + ", missing=" + missing + ", nextAction=" + nextAction + ", payment=" + payment + ", paymentMethods=" + paymentMethods + ", requiresBillingAddress=" + requiresBillingAddress + ", requiresTaxId=" + requiresTaxId + ", status=" + status + ", statusKey=" + statusKey + ", successUrl=" + successUrl + ", totalCents=" + totalCents + "}";
+        return "CheckoutClient{" + "amountCents=" + amountCents + ", amountLocked=" + amountLocked + ", cancelUrl=" + cancelUrl + ", cardKinds=" + cardKinds + ", clientReferenceId=" + clientReferenceId + ", currency=" + currency + ", customer=" + customer + ", discount=" + discount + ", discountCents=" + discountCents + ", editable=" + editable + ", environment=" + environment + ", expiresAt=" + expiresAt + ", firstChargeAt=" + firstChargeAt + ", firstPeriodEndAt=" + firstPeriodEndAt + ", firstPeriodExtraDays=" + firstPeriodExtraDays + ", id=" + id + ", installments=" + installments + ", items=" + items + ", missing=" + missing + ", nextAction=" + nextAction + ", payment=" + payment + ", paymentMethods=" + paymentMethods + ", requiresBillingAddress=" + requiresBillingAddress + ", requiresTaxId=" + requiresTaxId + ", status=" + status + ", statusKey=" + statusKey + ", successUrl=" + successUrl + ", totalCents=" + totalCents + "}";
     }
 }

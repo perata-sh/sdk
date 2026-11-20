@@ -442,6 +442,50 @@ public final class PricesService {
 
 
     /**
+     * Ler um preço.
+     *
+     * Devolve um preço pelo ID, com as faixas se ele for por faixas. Também
+     * devolve um preço arquivado: uma assinatura ou um pedido vendido nele
+     * continua apontando para ele.
+     *
+     * Autenticação: chave de API da organização em Authorization: Bearer
+     * (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+     * chave, nunca da requisição: a chave criada num showcase só alcança o que
+     * é dele. Respostas em JSON no envelope data; erros com error, message e
+     * fields.
+     *
+     * @param price the price
+     * @param options another organization's key for this call, or null
+     * @return the price
+     * @throws PerataException when the API refuses the call
+     */
+    public Price get(String price, RequestOptions options) {
+        Object data = client.request("GET", "/api/v1/prices/" + Perata.segment(price), null, null, null, options);
+        return Price.fromJson(Json.asObject(data));
+    }
+
+    /**
+     * Ler um preço.
+     *
+     * Devolve um preço pelo ID, com as faixas se ele for por faixas. Também
+     * devolve um preço arquivado: uma assinatura ou um pedido vendido nele
+     * continua apontando para ele.
+     *
+     * Autenticação: chave de API da organização em Authorization: Bearer
+     * (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+     * chave, nunca da requisição: a chave criada num showcase só alcança o que
+     * é dele. Respostas em JSON no envelope data; erros com error, message e
+     * fields.
+     *
+     * @param price the price
+     * @return the price
+     * @throws PerataException when the API refuses the call
+     */
+    public Price get(String price) {
+        return get(price, null);
+    }
+
+    /**
      * Listar preços. One page; {@link #listIter} walks every page.
      *
      * Devolve uma página dos preços da organização. Com product_id, só os de um

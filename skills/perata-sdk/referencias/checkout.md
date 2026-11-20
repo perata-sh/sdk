@@ -21,6 +21,7 @@ Uma venda tem duas metades. O **servidor** cria o checkout com a chave de API. O
 | `require_billing_address` | pede o endereço completo de todo comprador, não só no boleto; desligado se omitido |
 | `discount_id` | aplica um desconto do catálogo sozinho (SDK 0.5.6+) |
 | `subscription_start_at` | só em assinatura: dia da primeira cobrança (SDK 0.5.6+). Veja `assinaturas.md` |
+| `first_period_extra_days` | só em assinatura: de 1 a 365 dias somados ao primeiro período; cobra hoje o valor cheio. Não vale com `subscription_start_at`. Veja `assinaturas.md` (ainda não está nos SDKs: use a API REST) |
 | `label` | nome que você dá ao checkout nas suas telas; o comprador não vê |
 
 A resposta é 201 com `data`:
@@ -32,7 +33,7 @@ A resposta é 201 com `data`:
 | `url` | o endereço da página de pagamento daquela sessão. Mande o comprador para cá |
 | `client_secret`, `client_secret_expires_at` | a credencial do navegador, **só nesta resposta** |
 | `status_key` | acompanhar a sessão depois que o `client_secret` é gasto |
-| `amount_cents`, `items`, `metadata`, `client_reference_id`, `expires_at`, `subscription_start_at`, `discount_id` | o que você mandou, devolvido |
+| `amount_cents`, `items`, `metadata`, `client_reference_id`, `expires_at`, `subscription_start_at`, `discount_id`, `first_period_extra_days` | o que você mandou, devolvido |
 
 **Guarde `id`, `session_id` e `status_key` no seu pedido logo.** O `client_secret` só serve ao navegador e não precisa ser guardado.
 
@@ -122,7 +123,7 @@ checkout = perata.checkouts.create({
 
 - `expires_in` é o tempo que o comprador tem para **abrir** a cobrança (60 s a 72 h). Para um pedido que o cliente pode pagar amanhã, use `259200`.
 - O Pix, depois de gerado, vale **24 horas**. Passado esse tempo, o comprador abre o mesmo link e gera outro Pix, enquanto a sessão ainda valer.
-- A janela do Pix tem "Alterar forma de pagamento". A troca cancela o Pix na Cielo e continua **na mesma sessão** (`checkout_id` e `session_id` não mudam, e não sai `checkout.expired`). Se o Pix for pago durante a troca, o cartão não é cobrado. Vale para a página e para os componentes.
+- A janela do Pix tem "Alterar forma de pagamento". A troca cancela o Pix e continua **na mesma sessão** (`checkout_id` e `session_id` não mudam, e não sai `checkout.expired`). Se o Pix for pago durante a troca, o cartão não é cobrado. Vale para a página e para os componentes.
 - O comprador paga no tempo dele: o pedido só está pago quando chega `order.paid`.
 
 ## 6. Os modos de pagamento no comprador
@@ -200,7 +201,7 @@ Os modos 2 a 5 rodam o `perata.js` no seu site, e a Peráta só aceita os sites 
 Quando o valor do pedido muda (multa do dia, item novo, desconto) ou o pedido é cancelado, o link e o Pix antigos ainda estão vivos. Para o cliente nunca pagar duas vezes:
 
 1. `POST /api/v1/checkouts/{id}/expire` (`checkouts:write`; SDK `checkouts.expire`). O `{id}` é o `id` que guardou (também aceita o `session_id`).
-2. A resposta 200 traz `id`, `status: "expired"` e `sessions[]` (`session_id`, `status`, `expired_at`, `payment_id`, `method`, `payment_state`, `canceled`, `already_closed`). A página, o `client_secret` e o QR do Pix deixam de valer, o Pix já gerado é cancelado na Cielo e chega o evento `checkout.expired`.
+2. A resposta 200 traz `id`, `status: "expired"` e `sessions[]` (`session_id`, `status`, `expired_at`, `payment_id`, `method`, `payment_state`, `canceled`, `already_closed`). A página, o `client_secret` e o QR do Pix deixam de valer, o Pix já gerado é cancelado e chega o evento `checkout.expired`.
 3. Repetir é seguro: volta `already_closed: true`.
 4. **409** se o checkout já foi pago ou emitiu boleto. Nesse caso o pedido está pago: **não abra outro** e confirme pelo webhook `order.paid`.
 5. Se foi 200, abra o novo checkout com o novo `amount_cents` e uma `Idempotency-Key` nova.
@@ -245,7 +246,7 @@ Cuidado: na repetição de uma criação com a mesma chave, o `client_secret` n�
 
 ## 9. Erros do checkout
 
-- 422 `invalid_request` com `fields`: valor fora do mínimo ou do máximo; preço que não é de valor livre; `quantity` diferente de 1; soma das linhas diferente de `amount_cents`; caractere de controle; `customer_id` junto com e-mail ou nome; `discount_id` inexistente ou de outro produto; `subscription_start_at` fora do intervalo (de amanhã até um ano). A `message` traz cada campo e o primeiro motivo, em português.
+- 422 `invalid_request` com `fields`: valor fora do mínimo ou do máximo; preço que não é de valor livre; `quantity` diferente de 1; soma das linhas diferente de `amount_cents`; caractere de controle; `customer_id` junto com e-mail ou nome; `discount_id` inexistente ou de outro produto; `subscription_start_at` fora do intervalo (de amanhã até um ano); `first_period_extra_days` fora de 1 a 365, em preço avulso ou grátis, com teste grátis no produto ou junto com `subscription_start_at`. A `message` traz cada campo e o primeiro motivo, em português.
 - 403 `forbidden`: a chave não tem `checkouts:write` (ou `products:read` num preço recorrente).
 - 409: mesma `Idempotency-Key` com outro corpo, ou `expire` num checkout já pago.
 - 410: checkout de `subscription_start_at` aberto depois da data.

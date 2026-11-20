@@ -168,7 +168,7 @@ public final class WebhookDispute {
         return openedAt;
     }
 
-    /** @return O PaymentId da venda contestada na Cielo. */
+    /** @return O PaymentId da venda contestada. */
     public String getPaymentId() {
         return paymentId;
     }
@@ -178,12 +178,12 @@ public final class WebhookDispute {
         return paymentMethod;
     }
 
-    /** @return O número do caso na Cielo. */
+    /** @return O número do caso. */
     public String getProviderDisputeId() {
         return providerDisputeId;
     }
 
-    /** @return O motivo nas palavras da Cielo. */
+    /** @return O motivo informado pelo emissor ou pela bandeira. */
     public String getProviderReason() {
         return providerReason;
     }

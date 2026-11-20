@@ -45,6 +45,27 @@ public sealed class PricesService
         return client.RequestAsync(HttpMethod.Post, "/api/v1/prices", null, JsonSerializer.SerializeToUtf8Bytes(parameters, PerataJson.Default.PricesCreateParams), PerataJson.Default.PriceEnvelope, options?.IdempotencyKey, options, cancellationToken);
     }
 
+    /// <summary>Ler um preço.</summary>
+    /// <remarks>
+    /// <para>Devolve um preço pelo ID, com as faixas se ele for por faixas.
+    /// Também devolve um preço arquivado: uma assinatura ou um pedido vendido
+    /// nele continua apontando para ele.</para>
+    /// <para>Autenticação: chave de API da organização em Authorization: Bearer
+    /// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+    /// chave, nunca da requisição: a chave criada num showcase só alcança o que
+    /// é dele. Respostas em JSON no envelope data; erros com error, message e
+    /// fields.</para>
+    /// </remarks>
+    /// <param name="price">The price.</param>
+    /// <param name="options">Another organization's key for this call.</param>
+    /// <param name="cancellationToken">Cancels the call.</param>
+    /// <returns>The price.</returns>
+    /// <exception cref="PerataException">The API refused the call.</exception>
+    public Task<Price> GetAsync(string price, RequestOptions? options = null, CancellationToken cancellationToken = default)
+    {
+        return client.RequestAsync(HttpMethod.Get, "/api/v1/prices/" + PerataClient.Segment(price), null, null, PerataJson.Default.PriceEnvelope, null, options, cancellationToken);
+    }
+
     /// <summary>Listar preços. One page; <see cref="ListIterAsync"/> walks every page.</summary>
     /// <remarks>
     /// <para>Devolve uma página dos preços da organização. Com product_id, só

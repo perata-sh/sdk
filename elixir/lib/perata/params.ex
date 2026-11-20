@@ -248,6 +248,7 @@ defmodule Perata.CheckoutsCreateParams do
     :discount_id,
     :expires_in,
     :external_customer_id,
+    :first_period_extra_days,
     :items,
     :label,
     :metadata,
@@ -271,6 +272,7 @@ defmodule Perata.CheckoutsCreateParams do
   * `discount_id` (optional): O desconto do catálogo que o checkout aplica sozinho, sem o comprador digitar código: o valor dele (percentual ou fixo) é tirado do total e vale como o desconto foi criado, uma vez, por alguns meses ou para sempre. Um desconto limitado a produtos (product_ids na criação do desconto) só vale para esses produtos: num checkout de uma câmera, o desconto de uma câmera. Um id que não é de um desconto ativo do catálogo é recusado com 422.
   * `expires_in` (optional): Segundos em que a sessão e o client_secret continuam valendo, de um minuto a três dias; 1800 (30 minutos) quando fica de fora. Uma sessão paga com Pix pode ser aberta até esse prazo e, aberta, o Pix gerado vale 24 horas.
   * `external_customer_id` (optional): O mesmo cliente, pelo ID que você deu a ele.
+  * `first_period_extra_days` (optional): Quantos dias somar ao primeiro período da assinatura, de 1 a 365: para o comprador que ainda tinha dias pagos num plano anterior (por exemplo, pago até 11/12 e assinando em 20/11: 21 dias). O comprador paga hoje o valor cheio do preço (com as faixas, a quantidade e o desconto), em Pix, cartão de crédito ou débito, como em qualquer checkout, e o primeiro período vai do dia do pagamento até esse dia mais um intervalo do preço mais estes dias, no horário de São Paulo; a renovação e os ciclos seguintes contam a partir desse fim. A próxima cobrança, no cartão guardado ou pelo link ou Pix de renovação, só acontece nele. A página mostra "Pague hoje R$ X. Próxima cobrança em DD/MM/AAAA (inclui N dias do seu plano anterior)". Só vale em um preço recorrente com valor, vendido sozinho e sem teste grátis, e não junto com subscription_start_at (cobra hoje, não numa data); fora disso a resposta é 422. A assinatura e o evento da venda trazem o mesmo número em first_period_extra_days, e o pedido do primeiro ciclo traz o período estendido em period_start e period_end. Repetir a criação com a mesma Idempotency-Key e outro número dá 409.
   * `items` (optional): As linhas do pedido, até 50, para o comprador ler o detalhe: aparecem no checkout (página, modal, componentes e transparente), no pedido, no recibo, no portal do cliente e nos eventos. Em um preço de valor livre, a soma de quantity vezes unit_amount_cents precisa ser igual a amount_cents, ou a resposta é 422; enviadas sem amount_cents, a soma é o valor. Em um preço com valor próprio, como o de uma assinatura, as linhas só mostram ao comprador do que o valor é feito e fixam nada: envie-as sem amount_cents, com a soma igual ao valor do preço vezes a quantidade (senão 422), e o preço continua sendo quem define o que se cobra.
   * `label` (optional)
   * `metadata` (optional): Pares guardados no link do checkout e devolvidos no checkout, no pedido, no pagamento e nos eventos da venda. Até 50 pares de chave e valor: a chave tem de 1 a 40 caracteres, e o valor é um texto de 1 a 500 caracteres, um número ou um booleano. Texto sem caracteres de controle nem de direção invisível.
@@ -291,6 +293,7 @@ defmodule Perata.CheckoutsCreateParams do
           discount_id: String.t() | nil,
           expires_in: integer() | nil,
           external_customer_id: String.t() | nil,
+          first_period_extra_days: integer() | nil,
           items: [Perata.CheckoutsCreateItem.t()] | nil,
           label: String.t() | nil,
           metadata: %{optional(String.t()) => term()} | nil,
@@ -324,6 +327,7 @@ defmodule Perata.CheckoutsCreateParams do
     |> Perata.Encode.put_optional("discount_id", params.discount_id)
     |> Perata.Encode.put_optional("expires_in", params.expires_in)
     |> Perata.Encode.put_optional("external_customer_id", params.external_customer_id)
+    |> Perata.Encode.put_optional("first_period_extra_days", params.first_period_extra_days)
     |> Perata.Encode.put_optional("items", Perata.Encode.value(params.items))
     |> Perata.Encode.put_optional("label", params.label)
     |> Perata.Encode.put_optional("metadata", Perata.Encode.value(params.metadata))
@@ -1148,16 +1152,17 @@ defmodule Perata.SubscriptionsUpdateParams do
   out is left out of the JSON.
   """
 
-  @enforce_keys [:price_id]
-  defstruct [:price_id, :proration_behavior, :quantity]
+  defstruct [:extend_current_period_days, :price_id, :proration_behavior, :quantity]
 
   @typedoc """
-  * `price_id`: O preço recorrente para onde a assinatura vai.
+  * `extend_current_period_days` (optional): Estende o período atual em tantos dias, de 1 a 365, sem cobrar nada e sem criar pedido: a renovação (e a próxima cobrança) passa a ser no novo fim, current_period_end, e os períodos seguintes contam a partir dele. É o crédito manual de dias do lojista. Só uma assinatura active aceita (uma em teste grátis, atrasada, pausada, suspensa ou cancelada recusa); uma que termina no fim do período termina no novo fim. Vai sozinho, sem price_id, quantity nem proration_behavior, senão a resposta é 422. A mudança chega no webhook subscription.updated e fica registrada no log de atividades. Não é repetível por si: envie uma Idempotency-Key para que uma nova tentativa não some os dias duas vezes.
+  * `price_id` (optional): O preço recorrente para onde a assinatura vai. Obrigatório para trocar de plano; não se envia com extend_current_period_days.
   * `proration_behavior` (optional; one of `"prorate"`, `"invoice"`, `"next_period"`, `"reset"`): prorate (padrão): rateia o resto do período no próximo valor cobrado; invoice: cobra a diferença agora; next_period: troca no fim do período; reset: cobra o período inteiro do novo plano agora e reinicia o ciclo.
   * `quantity` (optional): A nova quantidade; omitida, fica a atual.
   """
   @type t :: %__MODULE__{
-          price_id: String.t(),
+          extend_current_period_days: integer() | nil,
+          price_id: String.t() | nil,
           proration_behavior: String.t() | nil,
           quantity: integer() | nil
         }
@@ -1172,7 +1177,9 @@ defmodule Perata.SubscriptionsUpdateParams do
   def to_map(params) do
     params = new(params)
 
-    %{"price_id" => params.price_id}
+    %{}
+    |> Perata.Encode.put_optional("extend_current_period_days", params.extend_current_period_days)
+    |> Perata.Encode.put_optional("price_id", params.price_id)
     |> Perata.Encode.put_optional("proration_behavior", params.proration_behavior)
     |> Perata.Encode.put_optional("quantity", params.quantity)
   end

@@ -423,6 +423,68 @@ func TestAGraduatedPriceCarriesItsTiersAndASubscriptionItsQuantity(t *testing.T)
 	}
 }
 
+// A checkout adds the buyer's remaining days to the first period, an extension
+// goes out alone (no price_id), and the sale reads back what it took: the
+// discount on the order and on the subscription, and the change scheduled for the
+// next period.
+func TestAFirstPeriodExtensionAndTheDiscountsTheSaleReadsBack(t *testing.T) {
+	client := server(t, func(w http.ResponseWriter, r *http.Request) {
+		var body map[string]any
+		_ = json.NewDecoder(r.Body).Decode(&body)
+		switch r.Method + " " + r.URL.Path {
+		case "POST /api/v1/checkouts":
+			if body["first_period_extra_days"] != float64(30) {
+				t.Errorf("checkout body %v", body)
+			}
+			w.WriteHeader(http.StatusCreated)
+			fmt.Fprint(w, `{"data":{"id":"pcl_1","url":"https://perata.sh/pagamento/pcl_1","product_id":"prod_1","price_id":"price_1","status":"active","quantity":1,"first_period_extra_days":30,"discount_id":"disc_1","session_id":"cs_1","client_secret":"cs_secret_1"}}`)
+		case "PATCH /api/v1/subscriptions/sub_1":
+			if body["extend_current_period_days"] != float64(15) {
+				t.Errorf("update body %v", body)
+			}
+			if _, sent := body["price_id"]; sent {
+				t.Error("an extension was sent with a price_id")
+			}
+			fmt.Fprint(w, `{"data":{"id":"sub_1","status":"active","first_period_extra_days":30,"discount_id":"disc_1","discount_ends_at":"2027-03-01T03:00:00Z","pending_update":{"price_id":"price_2","quantity":5,"amount_cents":90000,"effective_at":"2026-12-20T03:00:00Z"}}}`)
+		case "GET /api/v1/subscriptions/sub_2":
+			fmt.Fprint(w, `{"data":{"id":"sub_2","status":"active","first_period_extra_days":null,"discount_id":null,"discount_ends_at":null,"pending_update":null}}`)
+		case "GET /api/v1/orders/ord_1":
+			fmt.Fprint(w, `{"data":{"id":"ord_1","amount_cents":9000,"subtotal_cents":10000,"discount_cents":1000,"discount_id":"disc_1","discount_code":"BEMVINDO"}}`)
+		case "GET /api/v1/prices/price_1":
+			fmt.Fprint(w, `{"data":{"id":"price_1","product_id":"prod_1","type":"recurring","interval":"month","interval_count":1,"currency":"BRL","status":"archived","amount_cents":9000}}`)
+		default:
+			t.Errorf("request %s %s", r.Method, r.URL.Path)
+		}
+	})
+	ctx := context.Background()
+	extra := int64(30)
+	checkout, err := client.Checkouts.Create(ctx, CheckoutsCreateParams{ProductID: "prod_1", PriceID: "price_1", FirstPeriodExtraDays: &extra})
+	if err != nil || checkout.FirstPeriodExtraDays == nil || *checkout.FirstPeriodExtraDays != 30 || checkout.DiscountID != "disc_1" {
+		t.Fatalf("checkout %+v, %v", checkout, err)
+	}
+	days := int64(15)
+	subscription, err := client.Subscriptions.Update(ctx, "sub_1", SubscriptionsUpdateParams{ExtendCurrentPeriodDays: &days})
+	if err != nil || subscription.FirstPeriodExtraDays == nil || *subscription.FirstPeriodExtraDays != 30 || subscription.DiscountID == nil ||
+		subscription.DiscountEndsAt == nil || *subscription.DiscountEndsAt != "2027-03-01T03:00:00Z" {
+		t.Fatalf("subscription %+v, %v", subscription, err)
+	}
+	if pending := subscription.PendingUpdate; pending == nil || pending.PriceID != "price_2" || pending.Quantity != 5 || pending.AmountCents != 90000 || pending.EffectiveAt != "2026-12-20T03:00:00Z" {
+		t.Fatalf("pending update %+v", subscription.PendingUpdate)
+	}
+	none, err := client.Subscriptions.Get(ctx, "sub_2")
+	if err != nil || none.PendingUpdate != nil || none.FirstPeriodExtraDays != nil || none.DiscountID != nil {
+		t.Fatalf("subscription without any %+v, %v", none, err)
+	}
+	order, err := client.Orders.Get(ctx, "ord_1")
+	if err != nil || order.SubtotalCents != 10000 || order.DiscountCents != 1000 || order.DiscountID == nil || *order.DiscountID != "disc_1" || order.DiscountCode == nil || *order.DiscountCode != "BEMVINDO" {
+		t.Fatalf("order %+v, %v", order, err)
+	}
+	price, err := client.Prices.Get(ctx, "price_1")
+	if err != nil || price.ID != "price_1" || price.Status != PriceStatusArchived {
+		t.Fatalf("price %+v, %v", price, err)
+	}
+}
+
 func TestARefusalIsATypedError(t *testing.T) {
 	client := server(t, func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path == "/api/v1/customers" {
@@ -465,10 +527,10 @@ const (
 	referenceSignature = "v1,g0hM9SsE+OTPJTGt/tmIKtSyZlE3uFJELVlNIOLJ1OE="
 	oldSecret          = "whsec_cGVyYXRhLXNkay1vbGQta2V5LTAxMjM0NTY3ODlhYmM="
 	newSecret          = "whsec_cGVyYXRhLXNkay1uZXcta2V5LTAxMjM0NTY3ODlhYmM="
-	orderPaid          = `{"id":"msg_2","type":"order.paid","timestamp":"2026-10-22T12:00:00Z","data":{"id":"ord_1","customer_id":"cus_1","product_id":"prod_1","price_id":"price_1","amount_cents":12000,"currency":"BRL","status":"succeeded","paid_at":"2026-10-22T12:00:00Z","order_status":"paid","refunded_amount_cents":0,"refund_id":null,"refund_amount_cents":null,"installments":3,"installment_interest_cents":360,"items":[],"metadata":{},"client_reference_id":"","showcase_id":"shw_1"}}`
+	orderPaid          = `{"id":"msg_2","type":"order.paid","timestamp":"2026-10-22T12:00:00Z","data":{"id":"ord_1","customer_id":"cus_1","product_id":"prod_1","price_id":"price_1","amount_cents":12000,"currency":"BRL","status":"succeeded","paid_at":"2026-10-22T12:00:00Z","order_status":"paid","refunded_amount_cents":0,"refund_id":null,"refund_amount_cents":null,"installments":3,"installment_interest_cents":360,"items":[],"metadata":{},"client_reference_id":"","showcase_id":"shw_1","subtotal_cents":12000,"discount_cents":0,"discount_id":null,"discount_code":null}}`
 	usageRecorded      = `{"id":"msg_3","type":"usage_event.recorded","timestamp":"2026-10-22T12:00:00Z","data":{"event_id":"ue_1","aggregate":"usage_event","aggregate_id":"ue_1","merchant_id":"mer_1","environment":"test"}}`
 	payoutSent         = `{"id":"msg_4","type":"payout.sent","timestamp":"2026-10-22T12:00:00Z","data":{"payout_id":"po_1","amount_cents":5000}}`
-	orderPaidLive      = `{"id":"msg_5","type":"order.paid","timestamp":"2026-10-22T12:00:00Z","environment":"live","showcase_id":"shw_1","data":{"id":"ord_1","customer_id":"cus_1","product_id":"prod_1","price_id":"price_1","amount_cents":12000,"currency":"BRL","status":"succeeded","paid_at":"2026-10-22T12:00:00Z","order_status":"paid","refunded_amount_cents":0,"refund_id":null,"refund_amount_cents":null,"installments":3,"installment_interest_cents":360,"items":[],"metadata":{},"client_reference_id":"","showcase_id":"shw_1"}}`
+	orderPaidLive      = `{"id":"msg_5","type":"order.paid","timestamp":"2026-10-22T12:00:00Z","environment":"live","showcase_id":"shw_1","data":{"id":"ord_1","customer_id":"cus_1","product_id":"prod_1","price_id":"price_1","amount_cents":12000,"currency":"BRL","status":"succeeded","paid_at":"2026-10-22T12:00:00Z","order_status":"paid","refunded_amount_cents":0,"refund_id":null,"refund_amount_cents":null,"installments":3,"installment_interest_cents":360,"items":[],"metadata":{},"client_reference_id":"","showcase_id":"shw_1","subtotal_cents":12000,"discount_cents":0,"discount_id":null,"discount_code":null}}`
 	payoutSentTest     = `{"id":"msg_6","type":"payout.sent","timestamp":"2026-10-22T12:00:00Z","environment":"test","data":{"payout_id":"po_1","amount_cents":5000}}`
 	signedAt           = 1792670400
 )
@@ -513,7 +575,7 @@ func TestATimestampThatIsNotPlainDigitsIsRefused(t *testing.T) {
 
 func TestAWebhookAnswersItsTypedEvent(t *testing.T) {
 	now := time.Unix(signedAt+120, 0)
-	header := webhookHeader("msg_2", signedAt, "v1,fvRLETNjaSQOVbSs/eVRV/C17ysRHoubzX3idpGAifI= v1,ZsKtmVTp/mXCeW5qAiaLJY1TjyXwUyS7RxRVa3RIQQo=")
+	header := webhookHeader("msg_2", signedAt, "v1,wR5lfpym2P4TnG65MaTym1j5wWmRCtcygqTrQNICOEQ= v1,BLGtoe01YFYZHfU7Hcj8qvYNfluZvoTrRaAjcfB8JSs=")
 	for _, secret := range []string{newSecret, oldSecret} {
 		event, err := verifyWebhookAt(secret, header, []byte(orderPaid), now)
 		order, ok := event.(*OrderWebhookEvent)
@@ -541,7 +603,7 @@ func TestAWebhookCarriesTheEnvironmentItHappenedIn(t *testing.T) {
 	older := map[string]struct {
 		signature, body string
 	}{
-		"msg_2": {"v1,fvRLETNjaSQOVbSs/eVRV/C17ysRHoubzX3idpGAifI= v1,ZsKtmVTp/mXCeW5qAiaLJY1TjyXwUyS7RxRVa3RIQQo=", orderPaid},
+		"msg_2": {"v1,wR5lfpym2P4TnG65MaTym1j5wWmRCtcygqTrQNICOEQ= v1,BLGtoe01YFYZHfU7Hcj8qvYNfluZvoTrRaAjcfB8JSs=", orderPaid},
 		"msg_3": {"v1,Z3E2vTbczigiySfkzakxuZotPn9FlBY1KAET6hPEZoU=", usageRecorded},
 		"msg_4": {"v1,Sa/yofA3h/58pFR+rIiWdIc8qXfcuqvyJSjxn4oJ1ZY=", payoutSent},
 	}
@@ -551,7 +613,7 @@ func TestAWebhookCarriesTheEnvironmentItHappenedIn(t *testing.T) {
 			t.Fatalf("a body without an environment: %#v, %v", event, err)
 		}
 	}
-	event, err := verifyWebhookAt(newSecret, webhookHeader("msg_5", signedAt, "v1,9CgfDokxQ7tBEd7vvv32TI4QUdqkaHrxgUo2UUNQpOY="), []byte(orderPaidLive), now)
+	event, err := verifyWebhookAt(newSecret, webhookHeader("msg_5", signedAt, "v1,vJOO2qPe9Vzlr42VPwCuIO+a6Sg8ZVfl9z4WuLJItwg="), []byte(orderPaidLive), now)
 	order, ok := event.(*OrderWebhookEvent)
 	if err != nil || !ok || order.Environment != "live" || order.Message().Environment != "live" || order.ShowcaseID != "shw_1" || order.Message().ShowcaseID != "shw_1" || order.Data.ShowcaseID != "shw_1" || order.Data.ID != "ord_1" {
 		t.Fatalf("event %#v, %v", event, err)

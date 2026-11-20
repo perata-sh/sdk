@@ -29,7 +29,10 @@ final class CheckoutsService
      * do pedido em items (só para exibição, com a soma igual ao valor do preço)
      * e o desconto em discount_id. Para uma assinatura que só começa a cobrar
      * numa data, envie subscription_start_at com o preço recorrente: o cartão é
-     * guardado sem cobrança e a primeira cobrança acontece nesse dia.
+     * guardado sem cobrança e a primeira cobrança acontece nesse dia. Para o
+     * comprador que ainda tem dias pagos num plano anterior, envie
+     * first_period_extra_days (1 a 365): ele paga hoje o valor cheio e a
+     * próxima cobrança só acontece no fim do primeiro período mais esses dias.
      *
      * Autenticação: chave de API da organização em Authorization: Bearer
      * (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
@@ -37,7 +40,7 @@ final class CheckoutsService
      * é dele. Respostas em JSON no envelope data; erros com error, message e
      * fields.
      *
-     * @param array{allow_discount_codes?: bool, amount_cents?: int, cancel_url?: string, client_reference_id?: string, customer_email?: string, customer_id?: string, customer_name?: string, discount_id?: string, expires_in?: int, external_customer_id?: string, items?: list<array{name: string, quantity?: int, unit_amount_cents: int}>, label?: string, metadata?: array<string, mixed>, price_id: string, product_id: string, quantity?: int, require_billing_address?: bool, return_url?: string, subscription_start_at?: string, success_url?: string} $params
+     * @param array{allow_discount_codes?: bool, amount_cents?: int, cancel_url?: string, client_reference_id?: string, customer_email?: string, customer_id?: string, customer_name?: string, discount_id?: string, expires_in?: int, external_customer_id?: string, first_period_extra_days?: int, items?: list<array{name: string, quantity?: int, unit_amount_cents: int}>, label?: string, metadata?: array<string, mixed>, price_id: string, product_id: string, quantity?: int, require_billing_address?: bool, return_url?: string, subscription_start_at?: string, success_url?: string} $params
      */
     public function create(array $params, ?string $idempotencyKey = null, ?string $apiKey = null): Models\CheckoutCreated
     {
@@ -49,9 +52,9 @@ final class CheckoutsService
      * Encerrar um checkout.
      *
      * Encerra um checkout que não deve mais ser pago: a página, o client_secret
-     * e o QR do Pix deixam de valer (o Pix já gerado é cancelado na Cielo) e o
-     * evento checkout.expired é enviado. Repetir a chamada é seguro. Se o
-     * checkout já foi pago ou emitiu um boleto, a resposta é 409.
+     * e o QR do Pix deixam de valer (o Pix já gerado é cancelado) e o evento
+     * checkout.expired é enviado. Repetir a chamada é seguro. Se o checkout já
+     * foi pago ou emitiu um boleto, a resposta é 409.
      *
      * Autenticação: chave de API da organização em Authorization: Bearer
      * (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da

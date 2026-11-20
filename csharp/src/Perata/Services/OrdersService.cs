@@ -24,7 +24,11 @@ public sealed class OrdersService
     /// <para>Devolve um pedido: um checkout pago. Se ele pagou um ciclo de
     /// assinatura, traz subscription_id, cycle_sequence, period_start e
     /// period_end. Num pedido de renovação, client_reference_id e metadata são
-    /// os do checkout que vendeu a assinatura.</para>
+    /// os do checkout que vendeu a assinatura. Traz também o desconto aplicado:
+    /// discount_id (nulo sem desconto), discount_code (o código que o comprador
+    /// digitou; nulo quando veio por discount_id ou da assinatura),
+    /// subtotal_cents (antes do desconto) e discount_cents; numa renovação, é o
+    /// desconto que a assinatura aplicou naquele ciclo.</para>
     /// <para>Autenticação: chave de API da organização em Authorization: Bearer
     /// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
     /// chave, nunca da requisição: a chave criada num showcase só alcança o que

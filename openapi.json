@@ -1611,7 +1611,7 @@
           "checkouts"
         ],
         "summary": "Criar um checkout",
-        "description": "Cria um checkout. Devolve o endereço para onde mandar o comprador e a sessão de compra aberta para ele, com o client_secret que o navegador do comprador usa para pagar sem chave de API; o client_secret vem só nesta resposta. Para cobrar um valor que o seu servidor define, envie amount_cents e items (preço de valor livre). Envie client_reference_id e metadata para achar o pedido depois. Em uma assinatura, envie as linhas do pedido em items (só para exibição, com a soma igual ao valor do preço) e o desconto em discount_id. Para uma assinatura que só começa a cobrar numa data, envie subscription_start_at com o preço recorrente: o cartão é guardado sem cobrança e a primeira cobrança acontece nesse dia.\n\nAutenticação: chave de API da organização em Authorization: Bearer (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave, nunca da requisição: a chave criada num showcase só alcança o que é dele. Respostas em JSON no envelope data; erros com error, message e fields.",
+        "description": "Cria um checkout. Devolve o endereço para onde mandar o comprador e a sessão de compra aberta para ele, com o client_secret que o navegador do comprador usa para pagar sem chave de API; o client_secret vem só nesta resposta. Para cobrar um valor que o seu servidor define, envie amount_cents e items (preço de valor livre). Envie client_reference_id e metadata para achar o pedido depois. Em uma assinatura, envie as linhas do pedido em items (só para exibição, com a soma igual ao valor do preço) e o desconto em discount_id. Para uma assinatura que só começa a cobrar numa data, envie subscription_start_at com o preço recorrente: o cartão é guardado sem cobrança e a primeira cobrança acontece nesse dia. Para o comprador que ainda tem dias pagos num plano anterior, envie first_period_extra_days (1 a 365): ele paga hoje o valor cheio e a próxima cobrança só acontece no fim do primeiro período mais esses dias.\n\nAutenticação: chave de API da organização em Authorization: Bearer (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave, nunca da requisição: a chave criada num showcase só alcança o que é dele. Respostas em JSON no envelope data; erros com error, message e fields.",
         "operationId": "checkouts:create",
         "parameters": [
           {
@@ -1748,6 +1748,12 @@
                     "type": "string",
                     "description": "O desconto do catálogo que o checkout aplica sozinho, sem o comprador digitar código: o valor dele (percentual ou fixo) é tirado do total e vale como o desconto foi criado, uma vez, por alguns meses ou para sempre. Um desconto limitado a produtos (product_ids na criação do desconto) só vale para esses produtos: num checkout de uma câmera, o desconto de uma câmera. Um id que não é de um desconto ativo do catálogo é recusado com 422."
                   },
+                  "first_period_extra_days": {
+                    "type": "integer",
+                    "description": "Quantos dias somar ao primeiro período da assinatura, de 1 a 365: para o comprador que ainda tinha dias pagos num plano anterior (por exemplo, pago até 11/12 e assinando em 20/11: 21 dias). O comprador paga hoje o valor cheio do preço (com as faixas, a quantidade e o desconto), em Pix, cartão de crédito ou débito, como em qualquer checkout, e o primeiro período vai do dia do pagamento até esse dia mais um intervalo do preço mais estes dias, no horário de São Paulo; a renovação e os ciclos seguintes contam a partir desse fim. A próxima cobrança, no cartão guardado ou pelo link ou Pix de renovação, só acontece nele. A página mostra \"Pague hoje R$ X. Próxima cobrança em DD/MM/AAAA (inclui N dias do seu plano anterior)\". Só vale em um preço recorrente com valor, vendido sozinho e sem teste grátis, e não junto com subscription_start_at (cobra hoje, não numa data); fora disso a resposta é 422. A assinatura e o evento da venda trazem o mesmo número em first_period_extra_days, e o pedido do primeiro ciclo traz o período estendido em period_start e period_end. Repetir a criação com a mesma Idempotency-Key e outro número dá 409.",
+                    "minimum": 1,
+                    "maximum": 365
+                  },
                   "subscription_start_at": {
                     "type": "string",
                     "description": "O dia da primeira cobrança de uma assinatura, como o trial_end do Stripe: o cartão é guardado e conferido com o emissor, nada é cobrado hoje e a primeira cobrança acontece nesse dia, no cartão guardado; as seguintes seguem a periodicidade do preço a partir dele. Só vale em um preço recorrente com valor, e só no cartão de crédito: a página não oferece Pix nem boleto. Vale o dia no horário de São Paulo, da meia-noite dele, qualquer que seja o fuso enviado; a hora não conta. Tem de ser de amanhã a um ano, senão a resposta é 422. A resposta devolve o instante como a Peráta o guarda, em subscription_start_at. Quem abre o checkout depois da data recebe 410.",
@@ -1761,6 +1767,17 @@
                 "additionalProperties": false
               },
               "examples": {
+                "assinatura_com_dias_extras_no_primeiro_periodo": {
+                  "summary": "Cobrar hoje o valor cheio e somar 21 dias ao primeiro período (o comprador tinha dias pagos num plano anterior)",
+                  "value": {
+                    "product_id": "0193c5e2-4a7d-7b1e-9c3f-2d8a6e5f1b40",
+                    "price_id": "0193c5e3-0b8c-7a49-a5d2-6e4f8b1c2d73",
+                    "first_period_extra_days": 21,
+                    "customer_email": "ana@exemplo.com.br",
+                    "client_reference_id": "camera-portaria",
+                    "success_url": "https://exemplo.com/obrigado"
+                  }
+                },
                 "assinatura_com_linhas_e_desconto": {
                   "summary": "Assinatura de R$ 297,00 com as linhas do pedido (só para o comprador ler) e um desconto",
                   "value": {
@@ -1894,6 +1911,7 @@
                     "expires_at": "2026-11-21T14:32:07Z",
                     "subscription_start_at": null,
                     "discount_id": "",
+                    "first_period_extra_days": null,
                     "created_at": "2026-11-18T14:32:07Z",
                     "session_id": "0193c6b1-3e5a-7f90-b2c4-1d8e6a7f3b95",
                     "client_secret": "pcs_test_Zk3VdQ8mTn5yRw1A",
@@ -2496,7 +2514,7 @@
                   },
                   "card_token": {
                     "type": "string",
-                    "description": "O CardToken de um cartão que será guardado, para um teste grátis ou compras futuras, devolvido pelos campos seguros."
+                    "description": "O CardToken de um cartão que será guardado, para um teste grátis ou compras futuras, devolvido pelos campos seguros. Numa assinatura o cartão é sempre guardado para as renovações: envie card_token, não payment_token."
                   },
                   "card_ticket": {
                     "type": "string",
@@ -2519,7 +2537,7 @@
                   },
                   "save_card": {
                     "type": "boolean",
-                    "description": "Guardar o cartão com o lojista para as próximas compras do comprador."
+                    "description": "Guardar o cartão com o lojista para as próximas compras do comprador. Numa assinatura o cartão é sempre guardado, e este campo não é preciso."
                   },
                   "save_link": {
                     "type": "boolean",
@@ -3099,7 +3117,7 @@
           "checkouts"
         ],
         "summary": "Encerrar um checkout",
-        "description": "Encerra um checkout que não deve mais ser pago: a página, o client_secret e o QR do Pix deixam de valer (o Pix já gerado é cancelado na Cielo) e o evento checkout.expired é enviado. Repetir a chamada é seguro. Se o checkout já foi pago ou emitiu um boleto, a resposta é 409.\n\nAutenticação: chave de API da organização em Authorization: Bearer (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave, nunca da requisição: a chave criada num showcase só alcança o que é dele. Respostas em JSON no envelope data; erros com error, message e fields.",
+        "description": "Encerra um checkout que não deve mais ser pago: a página, o client_secret e o QR do Pix deixam de valer (o Pix já gerado é cancelado) e o evento checkout.expired é enviado. Repetir a chamada é seguro. Se o checkout já foi pago ou emitiu um boleto, a resposta é 409.\n\nAutenticação: chave de API da organização em Authorization: Bearer (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave, nunca da requisição: a chave criada num showcase só alcança o que é dele. Respostas em JSON no envelope data; erros com error, message e fields.",
         "operationId": "checkouts:expire",
         "parameters": [
           {
@@ -5905,7 +5923,11 @@
                         "subscription_id": null,
                         "cycle_sequence": null,
                         "period_start": null,
-                        "period_end": null
+                        "period_end": null,
+                        "discount_id": null,
+                        "discount_code": null,
+                        "subtotal_cents": 50508,
+                        "discount_cents": 0
                       },
                       {
                         "id": "0193c6e4-8a10-7c2d-b6f3-4e9a1d7c5b28",
@@ -5929,7 +5951,11 @@
                         "subscription_id": "0193c6d0-6b34-7e58-a1f9-3c7d2b8e5a16",
                         "cycle_sequence": 2,
                         "period_start": "2026-12-18T00:00:00Z",
-                        "period_end": "2027-03-18T00:00:00Z"
+                        "period_end": "2027-03-18T00:00:00Z",
+                        "discount_id": "0193c5f0-2b17-7c64-9a3e-7d1f5b8c4e92",
+                        "discount_code": null,
+                        "subtotal_cents": 33000,
+                        "discount_cents": 3300
                       }
                     ],
                     "pagination": {
@@ -6012,7 +6038,7 @@
           "orders"
         ],
         "summary": "Ler um pedido",
-        "description": "Devolve um pedido: um checkout pago. Se ele pagou um ciclo de assinatura, traz subscription_id, cycle_sequence, period_start e period_end. Num pedido de renovação, client_reference_id e metadata são os do checkout que vendeu a assinatura.\n\nAutenticação: chave de API da organização em Authorization: Bearer (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave, nunca da requisição: a chave criada num showcase só alcança o que é dele. Respostas em JSON no envelope data; erros com error, message e fields.",
+        "description": "Devolve um pedido: um checkout pago. Se ele pagou um ciclo de assinatura, traz subscription_id, cycle_sequence, period_start e period_end. Num pedido de renovação, client_reference_id e metadata são os do checkout que vendeu a assinatura. Traz também o desconto aplicado: discount_id (nulo sem desconto), discount_code (o código que o comprador digitou; nulo quando veio por discount_id ou da assinatura), subtotal_cents (antes do desconto) e discount_cents; numa renovação, é o desconto que a assinatura aplicou naquele ciclo.\n\nAutenticação: chave de API da organização em Authorization: Bearer (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave, nunca da requisição: a chave criada num showcase só alcança o que é dele. Respostas em JSON no envelope data; erros com error, message e fields.",
         "operationId": "orders:get",
         "parameters": [
           {
@@ -7033,6 +7059,97 @@
         ]
       }
     },
+    "/api/v1/prices/{price}": {
+      "get": {
+        "tags": [
+          "prices"
+        ],
+        "summary": "Ler um preço",
+        "description": "Devolve um preço pelo ID, com as faixas se ele for por faixas. Também devolve um preço arquivado: uma assinatura ou um pedido vendido nele continua apontando para ele.\n\nAutenticação: chave de API da organização em Authorization: Bearer (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave, nunca da requisição: a chave criada num showcase só alcança o que é dele. Respostas em JSON no envelope data; erros com error, message e fields.",
+        "operationId": "prices:get",
+        "parameters": [
+          {
+            "name": "price",
+            "in": "path",
+            "description": "Identificador do recurso.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "O recurso no envelope data.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PriceEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Chave ausente, inválida ou revogada.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "A chave não tem o escopo que a operação exige (message diz qual, como orders:read, e a permissão que ele dá) ou quem a criou não tem mais acesso. Marque o escopo em Configurações › Tokens de acesso.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Recurso inexistente nesta organização e ambiente.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Campos inválidos; fields detalha cada um.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Orçamento de requisições excedido; respeite Retry-After."
+          },
+          "500": {
+            "description": "Indisponível. Nada fica guardado sob a Idempotency-Key: repita com a mesma chave. Se ainda houver uma requisição com a chave em andamento, a resposta é 409 idempotency_in_progress.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "apiKey": []
+          }
+        ]
+      }
+    },
     "/api/v1/products": {
       "get": {
         "tags": [
@@ -7991,7 +8108,7 @@
           "refunds"
         ],
         "summary": "Ler um reembolso",
-        "description": "Devolve um reembolso pelo ID, com o pedido de onde veio (order_id), o client_reference_id desse pedido e o status: requested e pending esperam a Cielo, succeeded devolveu o dinheiro.\n\nAutenticação: chave de API da organização em Authorization: Bearer (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave, nunca da requisição: a chave criada num showcase só alcança o que é dele. Respostas em JSON no envelope data; erros com error, message e fields.",
+        "description": "Devolve um reembolso pelo ID, com o pedido de onde veio (order_id), o client_reference_id desse pedido e o status: requested e pending esperam a confirmação, succeeded devolveu o dinheiro.\n\nAutenticação: chave de API da organização em Authorization: Bearer (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave, nunca da requisição: a chave criada num showcase só alcança o que é dele. Respostas em JSON no envelope data; erros com error, message e fields.",
         "operationId": "refunds:get",
         "parameters": [
           {
@@ -8347,7 +8464,7 @@
           "subscriptions"
         ],
         "summary": "Ler uma assinatura",
-        "description": "Devolve uma assinatura pelo ID.\n\nAutenticação: chave de API da organização em Authorization: Bearer (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave, nunca da requisição: a chave criada num showcase só alcança o que é dele. Respostas em JSON no envelope data; erros com error, message e fields.",
+        "description": "Devolve uma assinatura pelo ID, com o desconto em vigor (discount_id) e quando ele acaba (discount_ends_at; nulo para um desconto que vale para sempre).\n\nAutenticação: chave de API da organização em Authorization: Bearer (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave, nunca da requisição: a chave criada num showcase só alcança o que é dele. Respostas em JSON no envelope data; erros com error, message e fields.",
         "operationId": "subscriptions:get",
         "parameters": [
           {
@@ -8435,8 +8552,8 @@
         "tags": [
           "subscriptions"
         ],
-        "summary": "Trocar o plano de uma assinatura",
-        "description": "Troca o plano de uma assinatura: outro preço e, se quiser, outra quantidade. O proration_behavior diz como ratear a diferença.\n\nAutenticação: chave de API da organização em Authorization: Bearer (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave, nunca da requisição: a chave criada num showcase só alcança o que é dele. Respostas em JSON no envelope data; erros com error, message e fields.",
+        "summary": "Trocar o plano ou estender o período",
+        "description": "Troca o plano de uma assinatura (outro preço e, se quiser, outra quantidade; o proration_behavior diz como ratear a diferença) ou, com extend_current_period_days sozinho, estende o período atual em até 365 dias sem cobrar, para o crédito manual de dias: a próxima cobrança passa a ser no novo current_period_end.\n\nAutenticação: chave de API da organização em Authorization: Bearer (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave, nunca da requisição: a chave criada num showcase só alcança o que é dele. Respostas em JSON no envelope data; erros com error, message e fields.",
         "operationId": "subscriptions:update",
         "parameters": [
           {
@@ -8465,7 +8582,13 @@
                 "properties": {
                   "price_id": {
                     "type": "string",
-                    "description": "O preço recorrente para onde a assinatura vai."
+                    "description": "O preço recorrente para onde a assinatura vai. Obrigatório para trocar de plano; não se envia com extend_current_period_days."
+                  },
+                  "extend_current_period_days": {
+                    "type": "integer",
+                    "description": "Estende o período atual em tantos dias, de 1 a 365, sem cobrar nada e sem criar pedido: a renovação (e a próxima cobrança) passa a ser no novo fim, current_period_end, e os períodos seguintes contam a partir dele. É o crédito manual de dias do lojista. Só uma assinatura active aceita (uma em teste grátis, atrasada, pausada, suspensa ou cancelada recusa); uma que termina no fim do período termina no novo fim. Vai sozinho, sem price_id, quantity nem proration_behavior, senão a resposta é 422. A mudança chega no webhook subscription.updated e fica registrada no log de atividades. Não é repetível por si: envie uma Idempotency-Key para que uma nova tentativa não some os dias duas vezes.",
+                    "minimum": 1,
+                    "maximum": 365
                   },
                   "quantity": {
                     "type": "integer",
@@ -8482,10 +8605,23 @@
                     ]
                   }
                 },
-                "required": [
-                  "price_id"
-                ],
                 "additionalProperties": false
+              },
+              "examples": {
+                "estender_o_periodo": {
+                  "summary": "Somar 21 dias ao período atual, sem cobrar (crédito manual de dias)",
+                  "value": {
+                    "extend_current_period_days": 21
+                  }
+                },
+                "trocar_de_plano": {
+                  "summary": "Passar a assinatura para outro preço e outra quantidade",
+                  "value": {
+                    "price_id": "0193c5e3-0b8c-7a49-a5d2-6e4f8b1c2d73",
+                    "quantity": 3,
+                    "proration_behavior": "prorate"
+                  }
+                }
               }
             }
           }
@@ -8497,6 +8633,35 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/SubscriptionEnvelope"
+                },
+                "example": {
+                  "data": {
+                    "id": "0193c6d0-6b34-7e58-a1f9-3c7d2b8e5a16",
+                    "showcase_id": "0193c5d9-1c42-7a60-8d17-5e3b9f2a4c61",
+                    "customer_id": "0193c60a-91d4-7c3b-8e15-4f2a7d6b9c08",
+                    "product_id": "0193c5e2-4a7d-7b1e-9c3f-2d8a6e5f1b40",
+                    "price_id": "0193c5e3-0b8c-7a49-a5d2-6e4f8b1c2d73",
+                    "status": "active",
+                    "amount_cents": 29700,
+                    "quantity": 3,
+                    "currency": "BRL",
+                    "interval": "month",
+                    "current_period_start": "2026-11-20T03:00:00Z",
+                    "current_period_end": "2027-01-10T03:00:00Z",
+                    "cancel_at_period_end": false,
+                    "pending_update": null,
+                    "suspended_at": null,
+                    "suspension_reason": null,
+                    "trial_start": null,
+                    "trial_end": null,
+                    "metadata": {
+                      "camera": "portaria"
+                    },
+                    "client_reference_id": "camera-portaria",
+                    "discount_id": null,
+                    "discount_ends_at": null,
+                    "first_period_extra_days": 21
+                  }
                 }
               }
             }
@@ -8557,6 +8722,15 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": "invalid_request",
+                  "message": "extend_current_period_days: Envie extend_current_period_days como um número inteiro de dias, de 1 a 365.",
+                  "fields": {
+                    "extend_current_period_days": [
+                      "Envie extend_current_period_days como um número inteiro de dias, de 1 a 365."
+                    ]
+                  }
                 }
               }
             }
@@ -8769,6 +8943,7 @@
                     "current_period_start": "2026-11-18T15:10:00Z",
                     "current_period_end": "2027-02-18T15:10:00Z",
                     "cancel_at_period_end": false,
+                    "pending_update": null,
                     "suspended_at": null,
                     "suspension_reason": null,
                     "trial_start": null,
@@ -8776,7 +8951,10 @@
                     "metadata": {
                       "camera": "portaria"
                     },
-                    "client_reference_id": "camera-portaria"
+                    "client_reference_id": "camera-portaria",
+                    "discount_id": null,
+                    "discount_ends_at": null,
+                    "first_period_extra_days": null
                   }
                 }
               }
@@ -12299,7 +12477,7 @@
         "tags": [
           "webhooks"
         ],
-        "summary": "A disputa foi decidida a favor do lojista: o valor contestado fica com você. A assinatura suspensa por ela NÃO volta sozinha: reative com POST /api/v1/subscriptions/{id}/resume, se quiser continuar a cobrar, ou deixe como está ou cancele. A Cielo não avisa o resultado de uma defesa: quem o registra é a equipe da Peráta, depois de lê-lo na agenda da Cielo.",
+        "summary": "A disputa foi decidida a favor do lojista: o valor contestado fica com você. A assinatura suspensa por ela NÃO volta sozinha: reative com POST /api/v1/subscriptions/{id}/resume, se quiser continuar a cobrar, ou deixe como está ou cancele. O resultado de uma defesa não chega por aviso: quem o registra é a equipe da Peráta, depois de lê-lo no calendário de depósitos.",
         "description": "Enviado por POST ao endpoint assinante, no padrão Standard Webhooks: cabeçalhos webhook-id, webhook-timestamp e webhook-signature (HMAC-SHA256 de \"{id}.{timestamp}.{corpo}\" com o segredo whsec_). Responda 2xx; outra resposta é repetida em 30 s, 5 min, 30 min, 2 h, 5 h e 10 h.",
         "operationId": "webhooks:dispute.won",
         "requestBody": {
@@ -12747,7 +12925,7 @@
         "tags": [
           "webhooks"
         ],
-        "summary": "O pedido foi pago: o cartão foi capturado, o Pix recebido ou o boleto compensado. É o aviso para liberar o que foi vendido. data traz o pedido com client_reference_id e metadata e, se ele pagou um ciclo de assinatura, subscription_id, cycle_sequence, period_start e period_end; no pedido de uma renovação, client_reference_id e metadata são os do checkout que vendeu a assinatura. O mesmo pagamento também sai como checkout_payment.captured: libere uma vez só, pelo id do pedido.",
+        "summary": "O pedido foi pago: o cartão foi capturado, o Pix recebido ou o boleto compensado. É o aviso para liberar o que foi vendido. data traz o pedido com client_reference_id e metadata e, se ele pagou um ciclo de assinatura, subscription_id, cycle_sequence, period_start e period_end; no pedido de uma renovação, client_reference_id e metadata são os do checkout que vendeu a assinatura. Traz também o desconto que o pedido aplicou: discount_id (nulo sem desconto), discount_code (o código que o comprador digitou; nulo quando o desconto veio por discount_id ou da assinatura), subtotal_cents e discount_cents; é daqui que o seu sistema grava o uso do cupom. O mesmo pagamento também sai como checkout_payment.captured: libere uma vez só, pelo id do pedido.",
         "description": "Enviado por POST ao endpoint assinante, no padrão Standard Webhooks: cabeçalhos webhook-id, webhook-timestamp e webhook-signature (HMAC-SHA256 de \"{id}.{timestamp}.{corpo}\" com o segredo whsec_). Responda 2xx; outra resposta é repetida em 30 s, 5 min, 30 min, 2 h, 5 h e 10 h.",
         "operationId": "webhooks:order.paid",
         "requestBody": {
@@ -14155,7 +14333,7 @@
         "tags": [
           "webhooks"
         ],
-        "summary": "A assinatura renovou: um novo ciclo abriu. data traz a assinatura com o novo período (current_period_start e current_period_end), quantity e amount_cents do ciclo. A cobrança do ciclo chega como order.paid, com o client_reference_id e o metadata do checkout que vendeu a assinatura.",
+        "summary": "A assinatura renovou: um novo ciclo abriu. data traz a assinatura com o novo período (current_period_start e current_period_end), quantity e amount_cents do ciclo, e o desconto que ela ainda carrega (discount_id e discount_ends_at; nulos quando o desconto acabou). A cobrança do ciclo chega como order.paid, com o client_reference_id e o metadata do checkout que vendeu a assinatura.",
         "description": "Enviado por POST ao endpoint assinante, no padrão Standard Webhooks: cabeçalhos webhook-id, webhook-timestamp e webhook-signature (HMAC-SHA256 de \"{id}.{timestamp}.{corpo}\" com o segredo whsec_). Responda 2xx; outra resposta é repetida em 30 s, 5 min, 30 min, 2 h, 5 h e 10 h.",
         "operationId": "webhooks:subscription.cycled",
         "requestBody": {
@@ -15328,6 +15506,7 @@
           "expires_at",
           "subscription_start_at",
           "discount_id",
+          "first_period_extra_days",
           "created_at"
         ],
         "properties": {
@@ -15415,6 +15594,13 @@
             "type": "string",
             "description": "O desconto que o checkout aplica sozinho, como o seu servidor o enviou na criação; vazio sem ele. O comprador o vê no resumo e ele conta desde a primeira cobrança."
           },
+          "first_period_extra_days": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "description": "Quantos dias o seu servidor somou ao primeiro período da assinatura (first_period_extra_days na criação); nulo quando o primeiro período é o comum. O comprador paga hoje o valor cheio, e a próxima cobrança só acontece no fim do período mais longo."
+          },
           "created_at": {
             "type": "string",
             "format": "date-time"
@@ -15447,6 +15633,8 @@
           "cancel_url",
           "expires_at",
           "first_charge_at",
+          "first_period_extra_days",
+          "first_period_end_at",
           "status_key",
           "payment",
           "next_action"
@@ -15586,6 +15774,21 @@
             "format": "date-time",
             "description": "O dia da primeira cobrança de uma assinatura que não cobra hoje, a meia-noite desse dia em São Paulo: o fim do teste grátis ou a data que o servidor do lojista pediu (subscription_start_at). Nulo quando o pagamento é cobrado na hora."
           },
+          "first_period_extra_days": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "description": "Quantos dias foram somados ao primeiro período da assinatura (first_period_extra_days na criação do checkout); nulo quando o primeiro período é o comum."
+          },
+          "first_period_end_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time",
+            "description": "Quando o primeiro período termina, e portanto o dia da próxima cobrança, se o comprador pagar hoje: a meia-noite desse dia em São Paulo. Nulo sem dias extras. Quem paga em outro dia tem o fim deslocado junto."
+          },
           "status_key": {
             "type": "string",
             "description": "A chave que lê o estado desta sessão depois que o client_secret é consumido: GET /checkouts/client/status/{status_key}."
@@ -15704,6 +15907,7 @@
           "quantity",
           "unit_cents",
           "amount_cents",
+          "bands",
           "interval",
           "interval_count"
         ],
@@ -15723,11 +15927,42 @@
           },
           "unit_cents": {
             "type": "integer",
-            "description": "Quanto custa uma unidade, antes de qualquer desconto."
+            "description": "Quanto custa uma unidade, antes de qualquer desconto; num preço por faixas, o da primeira unidade (veja bands)."
           },
           "amount_cents": {
             "type": "integer",
-            "description": "Quanto custa a linha antes de qualquer desconto: a unidade vezes a quantidade."
+            "description": "Quanto custa a linha antes de qualquer desconto: a quantidade vezes o preço da unidade; num preço por faixas, a soma das faixas."
+          },
+          "bands": {
+            "type": "array",
+            "description": "As faixas de um preço graduado em que a quantidade passou da primeira, na ordem; vazio num preço de uma faixa só. A soma de amount_cents das faixas é o amount_cents da linha.",
+            "items": {
+              "type": "object",
+              "required": [
+                "quantity",
+                "unit_cents",
+                "flat_cents",
+                "amount_cents"
+              ],
+              "properties": {
+                "quantity": {
+                  "type": "integer",
+                  "description": "Quantas unidades a faixa cobrou."
+                },
+                "unit_cents": {
+                  "type": "integer",
+                  "description": "Quanto custa cada unidade da faixa."
+                },
+                "flat_cents": {
+                  "type": "integer",
+                  "description": "O valor fixo cobrado por entrar na faixa; zero sem ele."
+                },
+                "amount_cents": {
+                  "type": "integer",
+                  "description": "O que a faixa soma: as unidades vezes o preço, mais o valor fixo."
+                }
+              }
+            }
           },
           "interval": {
             "type": "string",
@@ -15858,6 +16093,7 @@
           "expires_at",
           "subscription_start_at",
           "discount_id",
+          "first_period_extra_days",
           "created_at",
           "session_id",
           "client_secret",
@@ -15949,6 +16185,13 @@
           "discount_id": {
             "type": "string",
             "description": "O desconto que o checkout aplica sozinho, como o seu servidor o enviou na criação; vazio sem ele. O comprador o vê no resumo e ele conta desde a primeira cobrança."
+          },
+          "first_period_extra_days": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "description": "Quantos dias o seu servidor somou ao primeiro período da assinatura (first_period_extra_days na criação); nulo quando o primeiro período é o comum. O comprador paga hoje o valor cheio, e a próxima cobrança só acontece no fim do período mais longo."
           },
           "created_at": {
             "type": "string",
@@ -16086,11 +16329,11 @@
           },
           "payment_state": {
             "type": "string",
-            "description": "Como o pagamento ficou: canceled quando a Cielo retirou o QR do Pix ou liberou a reserva do cartão; vazio sem pagamento."
+            "description": "Como o pagamento ficou: canceled quando a Peráta retirou o QR do Pix ou liberou a reserva do cartão; vazio sem pagamento."
           },
           "canceled": {
             "type": "boolean",
-            "description": "true quando a Cielo cancelou o Pix ou a reserva nesta chamada."
+            "description": "true quando o Pix ou a reserva foi cancelado nesta chamada."
           },
           "already_closed": {
             "type": "boolean",
@@ -17028,7 +17271,7 @@
           },
           "provider_reason": {
             "type": "string",
-            "description": "O motivo nas palavras da Cielo."
+            "description": "O motivo informado pelo emissor ou pela bandeira."
           },
           "source": {
             "type": "string",
@@ -17039,11 +17282,11 @@
           },
           "provider_dispute_id": {
             "type": "string",
-            "description": "O número do caso na Cielo."
+            "description": "O número do caso."
           },
           "payment_id": {
             "type": "string",
-            "description": "O PaymentId da venda contestada na Cielo."
+            "description": "O PaymentId da venda contestada."
           },
           "order_id": {
             "type": [
@@ -17459,7 +17702,11 @@
           "subscription_id",
           "cycle_sequence",
           "period_start",
-          "period_end"
+          "period_end",
+          "discount_id",
+          "discount_code",
+          "subtotal_cents",
+          "discount_cents"
         ],
         "properties": {
           "id": {
@@ -17575,6 +17822,28 @@
             ],
             "format": "date-time",
             "description": "O fim do período que o ciclo paga; nulo fora de uma assinatura."
+          },
+          "discount_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "O desconto do catálogo que este pedido aplicou; nulo quando não houve desconto. Na renovação de uma assinatura é o desconto que a assinatura aplicou naquele ciclo (uma vez, por alguns meses ou para sempre)."
+          },
+          "discount_code": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "O código que o comprador digitou no checkout deste pedido; nulo quando o desconto veio por discount_id (o seu servidor o enviou ao criar o checkout), quando veio da assinatura numa renovação ou quando não houve desconto."
+          },
+          "subtotal_cents": {
+            "type": "integer",
+            "description": "O valor do pedido antes do desconto, em centavos: subtotal_cents menos discount_cents é o amount_cents. Sem desconto é igual a amount_cents."
+          },
+          "discount_cents": {
+            "type": "integer",
+            "description": "Quanto o desconto tirou do pedido, em centavos; 0 sem desconto."
           }
         }
       },
@@ -18364,7 +18633,7 @@
           },
           "status": {
             "type": "string",
-            "description": "requested e pending esperam a Cielo; unknown é uma resposta que não chegou, e o valor continua reservado até a Cielo responder; succeeded devolveu o dinheiro; failed e canceled não devolveram.",
+            "description": "requested e pending esperam a confirmação; unknown é passageiro: a confirmação não chegou ou ainda não prova a devolução, o valor continua reservado e a Peráta consulta sozinha (a primeira vez em uns 5 minutos) até virar succeeded ou failed, então não peça de novo e espere o evento refund.succeeded ou refund.failed (ou leia GET /refunds/{id}); succeeded devolveu o dinheiro; failed e canceled não devolveram.",
             "enum": [
               "requested",
               "pending",
@@ -18506,12 +18775,16 @@
           "current_period_start",
           "current_period_end",
           "cancel_at_period_end",
+          "pending_update",
           "suspended_at",
           "suspension_reason",
           "trial_start",
           "trial_end",
           "metadata",
-          "client_reference_id"
+          "client_reference_id",
+          "discount_id",
+          "discount_ends_at",
+          "first_period_extra_days"
         ],
         "properties": {
           "id": {
@@ -18569,6 +18842,42 @@
           "cancel_at_period_end": {
             "type": "boolean"
           },
+          "pending_update": {
+            "anyOf": [
+              {
+                "type": "object",
+                "required": [
+                  "price_id",
+                  "quantity",
+                  "amount_cents",
+                  "effective_at"
+                ],
+                "properties": {
+                  "price_id": {
+                    "type": "string",
+                    "description": "O preço para o qual a assinatura passa em effective_at."
+                  },
+                  "quantity": {
+                    "type": "integer",
+                    "description": "A quantidade que a assinatura terá a partir de effective_at."
+                  },
+                  "amount_cents": {
+                    "type": "integer",
+                    "description": "O que o período seguinte cobra, em centavos, já para esta quantity: é o total do ciclo."
+                  },
+                  "effective_at": {
+                    "type": "string",
+                    "format": "date-time",
+                    "description": "Quando a mudança vale: o fim do período atual."
+                  }
+                }
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "A mudança de plano ou de quantidade agendada para o próximo período (PATCH com proration_behavior next_period); nulo quando não há nenhuma. Até effective_at a assinatura segue com o price_id, a quantity e o amount_cents de cima."
+          },
           "suspended_at": {
             "type": [
               "string",
@@ -18612,6 +18921,28 @@
           "client_reference_id": {
             "type": "string",
             "description": "O id do pedido no seu sistema, enviado ao criar o checkout que vendeu a assinatura; vazio sem ele. Cada pedido de renovação traz o mesmo client_reference_id, e o mesmo metadata, para você achar o cliente."
+          },
+          "discount_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "O desconto em vigor na assinatura, que se aplica aos próximos ciclos até acabar; nulo sem desconto e depois que ele acabou."
+          },
+          "discount_ends_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time",
+            "description": "Quando o desconto deixa de valer: o fim do último ciclo que ele ainda abate (num desconto de uma vez, o fim do primeiro ciclo pago; por alguns meses, o fim do último ciclo desses meses). Nulo quando não há desconto e quando ele vale para sempre."
+          },
+          "first_period_extra_days": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "description": "Quantos dias o checkout que vendeu a assinatura somou ao primeiro período, para você conferir; nulo quando o primeiro período foi o comum. O primeiro período vai do dia do pagamento até esse dia mais um intervalo do preço mais estes dias, e current_period_end já vem com eles."
           }
         }
       },
@@ -19113,7 +19444,7 @@
           },
           "provider_reason": {
             "type": "string",
-            "description": "O motivo nas palavras da Cielo."
+            "description": "O motivo informado pelo emissor ou pela bandeira."
           },
           "source": {
             "type": "string",
@@ -19124,11 +19455,11 @@
           },
           "provider_dispute_id": {
             "type": "string",
-            "description": "O número do caso na Cielo."
+            "description": "O número do caso."
           },
           "payment_id": {
             "type": "string",
-            "description": "O PaymentId da venda contestada na Cielo."
+            "description": "O PaymentId da venda contestada."
           },
           "invoice_id": {
             "type": [
@@ -19399,7 +19730,11 @@
           "installment_interest_cents",
           "items",
           "metadata",
-          "client_reference_id"
+          "client_reference_id",
+          "discount_id",
+          "discount_code",
+          "subtotal_cents",
+          "discount_cents"
         ],
         "properties": {
           "id": {
@@ -19529,6 +19864,28 @@
             ],
             "format": "date-time",
             "description": "O fim do período do ciclo que o pagamento cobra."
+          },
+          "discount_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "O desconto do catálogo que este pedido aplicou; nulo quando não houve desconto. Na renovação de uma assinatura é o desconto que a assinatura aplicou naquele ciclo."
+          },
+          "discount_code": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "O código que o comprador digitou no checkout deste pedido; nulo quando o desconto veio por discount_id, quando veio da assinatura numa renovação ou quando não houve desconto."
+          },
+          "subtotal_cents": {
+            "type": "integer",
+            "description": "O valor do pedido antes do desconto, em centavos: subtotal_cents menos discount_cents é o amount_cents."
+          },
+          "discount_cents": {
+            "type": "integer",
+            "description": "Quanto o desconto tirou do pedido, em centavos; 0 sem desconto."
           }
         }
       },
@@ -19672,7 +20029,7 @@
           },
           "failure_code": {
             "type": "string",
-            "description": "O código que a Cielo deu para a recusa, nos eventos refund.* de um reembolso que falhou; serve ao suporte."
+            "description": "O código dado para a recusa, nos eventos refund.* de um reembolso que falhou; serve ao suporte."
           },
           "subscription_id": {
             "type": [
@@ -19732,8 +20089,12 @@
           "trial_end",
           "suspended_at",
           "suspension_reason",
+          "pending_update",
           "metadata",
-          "client_reference_id"
+          "client_reference_id",
+          "discount_id",
+          "discount_ends_at",
+          "first_period_extra_days"
         ],
         "properties": {
           "id": {
@@ -19791,6 +20152,42 @@
           "cancel_at_period_end": {
             "type": "boolean"
           },
+          "pending_update": {
+            "anyOf": [
+              {
+                "type": "object",
+                "required": [
+                  "price_id",
+                  "quantity",
+                  "amount_cents",
+                  "effective_at"
+                ],
+                "properties": {
+                  "price_id": {
+                    "type": "string",
+                    "description": "O preço para o qual a assinatura passa em effective_at."
+                  },
+                  "quantity": {
+                    "type": "integer",
+                    "description": "A quantidade que a assinatura terá a partir de effective_at."
+                  },
+                  "amount_cents": {
+                    "type": "integer",
+                    "description": "O que o período seguinte cobra, em centavos, já para esta quantity: é o total do ciclo."
+                  },
+                  "effective_at": {
+                    "type": "string",
+                    "format": "date-time",
+                    "description": "Quando a mudança vale: o fim do período atual."
+                  }
+                }
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "A mudança de plano ou de quantidade agendada para o próximo período (PATCH com proration_behavior next_period); nulo quando não há nenhuma. Até effective_at a assinatura segue com o price_id, a quantity e o amount_cents de cima."
+          },
           "trial_start": {
             "type": [
               "string",
@@ -19834,6 +20231,30 @@
           "client_reference_id": {
             "type": "string",
             "description": "O id do pedido no seu sistema, enviado ao criar o checkout que vendeu a assinatura; vazio sem ele. Cada pedido de renovação traz o mesmo client_reference_id, e o mesmo metadata, para você achar o cliente."
+          },
+          "discount_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "O desconto em vigor na assinatura, que se aplica aos próximos ciclos até acabar; nulo sem desconto e depois que ele acabou."
+          },
+          "discount_ends_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time",
+            "description": "Quando o desconto deixa de valer: o fim do último ciclo que ele ainda abate (num desconto de uma vez, o fim do primeiro ciclo pago). Nulo quando não há desconto e quando ele vale para sempre."
+          },
+          "first_period_extra_days": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "description": "Quantos dias o checkout que vendeu a assinatura somou ao primeiro período, para você conferir; nulo quando o primeiro período foi o comum. O primeiro período vai do dia do pagamento até esse dia mais um intervalo do preço mais estes dias, e current_period_end já vem com eles.",
+            "minimum": 1,
+            "maximum": 365
           },
           "payment_failure": {
             "type": "object",

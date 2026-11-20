@@ -344,6 +344,54 @@ class PerataTest {
         assertEquals("pedido-9", got.getClientReferenceId());
     }
 
+    // A checkout adds the buyer's remaining days to the first period, an
+    // extension goes out alone (no price_id), and the sale reads back what it
+    // took: the discount on the order and on the subscription, and the change
+    // scheduled for the next period.
+    @Test
+    void aFirstPeriodExtensionAndTheDiscountsTheSaleReadsBack() {
+        Map<String, String> answers = new HashMap<>();
+        answers.put("POST /api/v1/checkouts", "{\"data\":{\"id\":\"pcl_1\",\"showcase_id\":\"x\",\"url\":\"x\",\"product_id\":\"prod_1\",\"price_id\":\"price_1\",\"status\":\"active\",\"label\":\"x\",\"quantity\":0,\"amount_cents\":null,\"items\":[],\"metadata\":{},\"client_reference_id\":\"x\",\"success_url\":\"x\",\"cancel_url\":\"x\",\"expires_at\":null,\"subscription_start_at\":null,\"discount_id\":\"disc_1\",\"first_period_extra_days\":30,\"created_at\":\"2026-11-20T12:00:00Z\",\"session_id\":\"cs_1\",\"client_secret\":\"cs_secret_1\",\"client_secret_expires_at\":\"2026-11-20T12:00:00Z\",\"status_key\":\"x\"}}");
+        answers.put("PATCH /api/v1/subscriptions/sub_1", "{\"data\":{\"id\":\"sub_1\",\"showcase_id\":\"x\",\"customer_id\":\"x\",\"product_id\":\"x\",\"price_id\":\"x\",\"status\":\"active\",\"amount_cents\":0,\"quantity\":0,\"currency\":\"BRL\",\"interval\":\"x\",\"current_period_start\":\"2026-11-20T12:00:00Z\",\"current_period_end\":\"2026-11-20T12:00:00Z\",\"cancel_at_period_end\":false,\"pending_update\":{\"price_id\":\"price_2\",\"quantity\":5,\"amount_cents\":90000,\"effective_at\":\"2026-12-20T03:00:00Z\"},\"suspended_at\":null,\"suspension_reason\":null,\"trial_start\":null,\"trial_end\":null,\"metadata\":{},\"client_reference_id\":\"x\",\"discount_id\":\"disc_1\",\"discount_ends_at\":\"2027-03-01T03:00:00Z\",\"first_period_extra_days\":30}}");
+        answers.put("GET /api/v1/subscriptions/sub_2", "{\"data\":{\"id\":\"sub_2\",\"showcase_id\":\"x\",\"customer_id\":\"x\",\"product_id\":\"x\",\"price_id\":\"x\",\"status\":\"active\",\"amount_cents\":0,\"quantity\":0,\"currency\":\"BRL\",\"interval\":\"x\",\"current_period_start\":\"2026-11-20T12:00:00Z\",\"current_period_end\":\"2026-11-20T12:00:00Z\",\"cancel_at_period_end\":false,\"pending_update\":null,\"suspended_at\":null,\"suspension_reason\":null,\"trial_start\":null,\"trial_end\":null,\"metadata\":{},\"client_reference_id\":\"x\",\"discount_id\":null,\"discount_ends_at\":null,\"first_period_extra_days\":null}}");
+        answers.put("GET /api/v1/orders/ord_1", "{\"data\":{\"id\":\"ord_1\",\"showcase_id\":\"x\",\"customer_id\":\"x\",\"product_id\":\"x\",\"price_id\":\"x\",\"amount_cents\":9000,\"currency\":\"BRL\",\"status\":\"open\",\"paid_at\":null,\"order_status\":null,\"refunded_amount_cents\":0,\"installments\":0,\"installment_interest_cents\":0,\"items\":[],\"metadata\":{},\"client_reference_id\":\"x\",\"subscription_id\":null,\"cycle_sequence\":null,\"period_start\":null,\"period_end\":null,\"discount_id\":\"disc_1\",\"discount_code\":\"BEMVINDO\",\"subtotal_cents\":10000,\"discount_cents\":1000}}");
+        answers.put("GET /api/v1/prices/price_1", "{\"data\":{\"id\":\"price_1\",\"product_id\":\"prod_1\",\"currency\":\"BRL\",\"amount_cents\":9000,\"type\":\"one_time\",\"interval\":\"none\",\"interval_count\":0,\"pricing_model\":\"fixed\",\"unit_amount_cents\":null,\"tiers\":[],\"unit_label\":\"x\",\"unit_label_plural\":\"x\",\"minimum_units\":null,\"maximum_units\":null,\"status\":\"archived\"}}");
+        Recorder recorder = new Recorder(request -> json("POST".equals(request.getMethod()) ? 201 : 200, Map.of(),
+                Json.parse(answers.get(request.getMethod() + " " + URI.create(request.getUrl()).getPath()))));
+        Perata perata = client(recorder);
+        CheckoutCreated checkout = perata.checkouts().create(CheckoutsService.CreateParams.builder()
+                .productId("prod_1").priceId("price_1").firstPeriodExtraDays(30L).build());
+        Map<String, Object> created = Json.asObject(Json.parse(new String(recorder.seen.get(0).getBody(), StandardCharsets.UTF_8)));
+        assertEquals(30L, created.get("first_period_extra_days"));
+        assertEquals(Long.valueOf(30), checkout.getFirstPeriodExtraDays());
+        assertEquals("disc_1", checkout.getDiscountId());
+        Subscription subscription = perata.subscriptions().update("sub_1", SubscriptionsService.UpdateParams.builder().extendCurrentPeriodDays(15L).build());
+        Map<String, Object> sent = Json.asObject(Json.parse(new String(recorder.seen.get(1).getBody(), StandardCharsets.UTF_8)));
+        assertEquals("PATCH", recorder.seen.get(1).getMethod());
+        assertEquals(15L, sent.get("extend_current_period_days"));
+        assertFalse(sent.containsKey("price_id"));
+        assertEquals(Long.valueOf(30), subscription.getFirstPeriodExtraDays());
+        assertEquals("disc_1", subscription.getDiscountId());
+        assertEquals("2027-03-01T03:00:00Z", subscription.getDiscountEndsAt());
+        SubscriptionPendingUpdate pending = subscription.getPendingUpdate();
+        assertEquals("price_2", pending.getPriceId());
+        assertEquals(5L, pending.getQuantity());
+        assertEquals(90000L, pending.getAmountCents());
+        assertEquals("2026-12-20T03:00:00Z", pending.getEffectiveAt());
+        Subscription none = perata.subscriptions().get("sub_2");
+        assertNull(none.getPendingUpdate());
+        assertNull(none.getFirstPeriodExtraDays());
+        assertNull(none.getDiscountId());
+        Order order = perata.orders().get("ord_1");
+        assertEquals(10000L, order.getSubtotalCents());
+        assertEquals(1000L, order.getDiscountCents());
+        assertEquals("disc_1", order.getDiscountId());
+        assertEquals("BEMVINDO", order.getDiscountCode());
+        Price price = perata.prices().get("price_1");
+        assertEquals("/api/v1/prices/price_1", URI.create(recorder.seen.get(4).getUrl()).getPath());
+        assertEquals("archived", price.getStatus());
+    }
+
     @Test
     @SuppressWarnings("unchecked")
     void usageIngestionCarriesTheSourceCredentialAndItsEvents() {
@@ -427,9 +475,9 @@ class PerataTest {
     private static final String REFERENCE_SECRET = "whsec_MfKQ9r8GKYqrTwjUPD8ILPZIo2LaLaSw";
     private static final String OLD_SECRET = "whsec_cGVyYXRhLXNkay1vbGQta2V5LTAxMjM0NTY3ODlhYmM=";
     private static final String NEW_SECRET = "whsec_cGVyYXRhLXNkay1uZXcta2V5LTAxMjM0NTY3ODlhYmM=";
-    private static final String ORDER_PAID = "{\"id\":\"msg_2\",\"type\":\"order.paid\",\"timestamp\":\"2026-10-22T12:00:00Z\",\"data\":{\"id\":\"ord_1\",\"customer_id\":\"cus_1\",\"product_id\":\"prod_1\",\"price_id\":\"price_1\",\"amount_cents\":12000,\"currency\":\"BRL\",\"status\":\"succeeded\",\"paid_at\":\"2026-10-22T12:00:00Z\",\"order_status\":\"paid\",\"refunded_amount_cents\":0,\"refund_id\":null,\"refund_amount_cents\":null,\"installments\":3,\"installment_interest_cents\":360,\"items\":[],\"metadata\":{},\"client_reference_id\":\"\",\"showcase_id\":\"shw_1\"}}";
+    private static final String ORDER_PAID = "{\"id\":\"msg_2\",\"type\":\"order.paid\",\"timestamp\":\"2026-10-22T12:00:00Z\",\"data\":{\"id\":\"ord_1\",\"customer_id\":\"cus_1\",\"product_id\":\"prod_1\",\"price_id\":\"price_1\",\"amount_cents\":12000,\"currency\":\"BRL\",\"status\":\"succeeded\",\"paid_at\":\"2026-10-22T12:00:00Z\",\"order_status\":\"paid\",\"refunded_amount_cents\":0,\"refund_id\":null,\"refund_amount_cents\":null,\"installments\":3,\"installment_interest_cents\":360,\"items\":[],\"metadata\":{},\"client_reference_id\":\"\",\"showcase_id\":\"shw_1\",\"subtotal_cents\":12000,\"discount_cents\":0,\"discount_id\":null,\"discount_code\":null}}";
     private static final String USAGE_RECORDED = "{\"id\":\"msg_3\",\"type\":\"usage_event.recorded\",\"timestamp\":\"2026-10-22T12:00:00Z\",\"data\":{\"event_id\":\"ue_1\",\"aggregate\":\"usage_event\",\"aggregate_id\":\"ue_1\",\"merchant_id\":\"mer_1\",\"environment\":\"test\"}}";
-    private static final String ORDER_PAID_LIVE = "{\"id\":\"msg_5\",\"type\":\"order.paid\",\"timestamp\":\"2026-10-22T12:00:00Z\",\"environment\":\"live\",\"showcase_id\":\"shw_1\",\"data\":{\"id\":\"ord_1\",\"customer_id\":\"cus_1\",\"product_id\":\"prod_1\",\"price_id\":\"price_1\",\"amount_cents\":12000,\"currency\":\"BRL\",\"status\":\"succeeded\",\"paid_at\":\"2026-10-22T12:00:00Z\",\"order_status\":\"paid\",\"refunded_amount_cents\":0,\"refund_id\":null,\"refund_amount_cents\":null,\"installments\":3,\"installment_interest_cents\":360,\"items\":[],\"metadata\":{},\"client_reference_id\":\"\",\"showcase_id\":\"shw_1\"}}";
+    private static final String ORDER_PAID_LIVE = "{\"id\":\"msg_5\",\"type\":\"order.paid\",\"timestamp\":\"2026-10-22T12:00:00Z\",\"environment\":\"live\",\"showcase_id\":\"shw_1\",\"data\":{\"id\":\"ord_1\",\"customer_id\":\"cus_1\",\"product_id\":\"prod_1\",\"price_id\":\"price_1\",\"amount_cents\":12000,\"currency\":\"BRL\",\"status\":\"succeeded\",\"paid_at\":\"2026-10-22T12:00:00Z\",\"order_status\":\"paid\",\"refunded_amount_cents\":0,\"refund_id\":null,\"refund_amount_cents\":null,\"installments\":3,\"installment_interest_cents\":360,\"items\":[],\"metadata\":{},\"client_reference_id\":\"\",\"showcase_id\":\"shw_1\",\"subtotal_cents\":12000,\"discount_cents\":0,\"discount_id\":null,\"discount_code\":null}}";
     private static final String PAYOUT_SENT_TEST = "{\"id\":\"msg_6\",\"type\":\"payout.sent\",\"timestamp\":\"2026-10-22T12:00:00Z\",\"environment\":\"test\",\"data\":{\"payout_id\":\"po_1\",\"amount_cents\":5000}}";
     private static final String PAYOUT_SENT = "{\"id\":\"msg_4\",\"type\":\"payout.sent\",\"timestamp\":\"2026-10-22T12:00:00Z\",\"data\":{\"payout_id\":\"po_1\",\"amount_cents\":5000}}";
     private static final long SIGNED_AT = 1792670400L;
@@ -469,7 +517,7 @@ class PerataTest {
     void aWebhookCarriesTheEnvironmentItHappenedIn() {
         Instant now = Instant.ofEpochSecond(SIGNED_AT + 120);
         String[][] older = {
-            {"msg_2", "v1,fvRLETNjaSQOVbSs/eVRV/C17ysRHoubzX3idpGAifI= v1,ZsKtmVTp/mXCeW5qAiaLJY1TjyXwUyS7RxRVa3RIQQo=", ORDER_PAID},
+            {"msg_2", "v1,wR5lfpym2P4TnG65MaTym1j5wWmRCtcygqTrQNICOEQ= v1,BLGtoe01YFYZHfU7Hcj8qvYNfluZvoTrRaAjcfB8JSs=", ORDER_PAID},
             {"msg_3", "v1,Z3E2vTbczigiySfkzakxuZotPn9FlBY1KAET6hPEZoU=", USAGE_RECORDED},
             {"msg_4", "v1,Sa/yofA3h/58pFR+rIiWdIc8qXfcuqvyJSjxn4oJ1ZY=", PAYOUT_SENT},
         };
@@ -478,7 +526,7 @@ class PerataTest {
             assertEquals("", event.getEnvironment(), each[0]);
             assertEquals("", event.getShowcaseId(), each[0]);
         }
-        WebhookEvent order = Webhook.verify(NEW_SECRET, webhookHeaders("msg_5", SIGNED_AT, "v1,9CgfDokxQ7tBEd7vvv32TI4QUdqkaHrxgUo2UUNQpOY="), ORDER_PAID_LIVE.getBytes(StandardCharsets.UTF_8), now);
+        WebhookEvent order = Webhook.verify(NEW_SECRET, webhookHeaders("msg_5", SIGNED_AT, "v1,vJOO2qPe9Vzlr42VPwCuIO+a6Sg8ZVfl9z4WuLJItwg="), ORDER_PAID_LIVE.getBytes(StandardCharsets.UTF_8), now);
         assertInstanceOf(OrderWebhookEvent.class, order);
         assertEquals("live", order.getEnvironment());
         assertEquals("shw_1", order.getShowcaseId());
@@ -492,7 +540,7 @@ class PerataTest {
     @Test
     void aWebhookAnswersItsTypedEvent() {
         Instant now = Instant.ofEpochSecond(SIGNED_AT + 120);
-        Map<String, String> headers = webhookHeaders("msg_2", SIGNED_AT, "v1,fvRLETNjaSQOVbSs/eVRV/C17ysRHoubzX3idpGAifI= v1,ZsKtmVTp/mXCeW5qAiaLJY1TjyXwUyS7RxRVa3RIQQo=");
+        Map<String, String> headers = webhookHeaders("msg_2", SIGNED_AT, "v1,wR5lfpym2P4TnG65MaTym1j5wWmRCtcygqTrQNICOEQ= v1,BLGtoe01YFYZHfU7Hcj8qvYNfluZvoTrRaAjcfB8JSs=");
         byte[] orderPaid = ORDER_PAID.getBytes(StandardCharsets.UTF_8);
         for (String secret : List.of(NEW_SECRET, OLD_SECRET)) {
             WebhookEvent event = Webhook.verify(secret, headers, orderPaid, now);

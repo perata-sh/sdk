@@ -9,9 +9,13 @@ namespace Perata;
 /// <summary>CheckoutClientItem is a resource of Peráta's API.</summary>
 public sealed record CheckoutClientItem
 {
-    /// <summary>Quanto custa a linha antes de qualquer desconto: a unidade vezes a quantidade.</summary>
+    /// <summary>Quanto custa a linha antes de qualquer desconto: a quantidade vezes o preço da unidade; num preço por faixas, a soma das faixas.</summary>
     [JsonPropertyName("amount_cents")]
     public required long AmountCents { get; init; }
+
+    /// <summary>As faixas de um preço graduado em que a quantidade passou da primeira, na ordem; vazio num preço de uma faixa só. A soma de amount_cents das faixas é o amount_cents da linha.</summary>
+    [JsonPropertyName("bands")]
+    public required IReadOnlyList<CheckoutClientItemBand> Bands { get; init; }
 
     /// <summary>A descrição do produto como o lojista a escreveu, em Markdown; vazia sem ela.</summary>
     [JsonPropertyName("description")]
@@ -37,7 +41,7 @@ public sealed record CheckoutClientItem
     [JsonPropertyName("quantity")]
     public required long Quantity { get; init; }
 
-    /// <summary>Quanto custa uma unidade, antes de qualquer desconto.</summary>
+    /// <summary>Quanto custa uma unidade, antes de qualquer desconto; num preço por faixas, o da primeira unidade (veja bands).</summary>
     [JsonPropertyName("unit_cents")]
     public required long UnitCents { get; init; }
 }

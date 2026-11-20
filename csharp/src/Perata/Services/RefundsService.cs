@@ -50,7 +50,7 @@ public sealed class RefundsService
     /// <remarks>
     /// <para>Devolve um reembolso pelo ID, com o pedido de onde veio
     /// (order_id), o client_reference_id desse pedido e o status: requested e
-    /// pending esperam a Cielo, succeeded devolveu o dinheiro.</para>
+    /// pending esperam a confirmação, succeeded devolveu o dinheiro.</para>
     /// <para>Autenticação: chave de API da organização em Authorization: Bearer
     /// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
     /// chave, nunca da requisição: a chave criada num showcase só alcança o que

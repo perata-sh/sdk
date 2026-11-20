@@ -12,7 +12,7 @@ final class CheckoutExpiredSession
     public function __construct(
         /** true quando a sessão já estava encerrada antes: a chamada foi repetida. */
         public readonly bool $alreadyClosed,
-        /** true quando a Cielo cancelou o Pix ou a reserva nesta chamada. */
+        /** true quando o Pix ou a reserva foi cancelado nesta chamada. */
         public readonly bool $canceled,
         /** Quando a sessão foi encerrada; nulo se ela já tinha falhado. */
         public readonly ?string $expiredAt,
@@ -23,7 +23,7 @@ final class CheckoutExpiredSession
         public readonly ?string $method,
         /** O pagamento que a sessão tinha, vazio se o comprador não escolheu um meio. */
         public readonly string $paymentId,
-        /** Como o pagamento ficou: canceled quando a Cielo retirou o QR do Pix ou liberou a reserva do cartão; vazio sem pagamento. */
+        /** Como o pagamento ficou: canceled quando a Peráta retirou o QR do Pix ou liberou a reserva do cartão; vazio sem pagamento. */
         public readonly string $paymentState,
         /** O id da sessão, o mesmo checkout_id dos webhooks. */
         public readonly string $sessionId,

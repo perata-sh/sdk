@@ -85,6 +85,16 @@ func TestTheContractReadsIntoTheIR(t *testing.T) {
 	if !installments["installments"] || !installments["installment_amount_cents"] || !installments["installment_interest_cents"] {
 		t.Fatalf("Payment's installment fields = %v", installments)
 	}
+	// An inline object that may be null is a nullable model of its own.
+	var pending *Field
+	for _, field := range models["Subscription"].Fields {
+		if field.Wire == "pending_update" {
+			pending = field
+		}
+	}
+	if pending == nil || !pending.Nullable || pending.Type.Kind != "model" || pending.Type.Model != "SubscriptionPendingUpdate" || models["SubscriptionPendingUpdate"] == nil {
+		t.Fatalf("Subscription.pending_update = %+v", pending)
+	}
 	if Pascal("payment_methods") != "PaymentMethods" || Camel("payment_methods") != "paymentMethods" || Pascal("customer_id") != "CustomerID" {
 		t.Fatal("naming")
 	}

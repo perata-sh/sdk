@@ -18,6 +18,12 @@ final class Order
         public readonly string $customerId,
         /** Qual ciclo da assinatura o pedido pagou: 1 é o primeiro; nulo fora de uma assinatura. */
         public readonly ?int $cycleSequence,
+        /** Quanto o desconto tirou do pedido, em centavos; 0 sem desconto. */
+        public readonly int $discountCents,
+        /** O código que o comprador digitou no checkout deste pedido; nulo quando o desconto veio por discount_id (o seu servidor o enviou ao criar o checkout), quando veio da assinatura numa renovação ou quando não houve desconto. */
+        public readonly ?string $discountCode,
+        /** O desconto do catálogo que este pedido aplicou; nulo quando não houve desconto. Na renovação de uma assinatura é o desconto que a assinatura aplicou naquele ciclo (uma vez, por alguns meses ou para sempre). */
+        public readonly ?string $discountId,
         public readonly string $id,
         /** Juros do parcelamento pagos pelo comprador, cobrados além de amount_cents. */
         public readonly int $installmentInterestCents,
@@ -53,6 +59,8 @@ final class Order
         public readonly string $status,
         /** A assinatura de que este pedido é a cobrança (a primeira ou uma renovação); nulo quando o pedido não é de uma assinatura. */
         public readonly ?string $subscriptionId,
+        /** O valor do pedido antes do desconto, em centavos: subtotal_cents menos discount_cents é o amount_cents. Sem desconto é igual a amount_cents. */
+        public readonly int $subtotalCents,
     ) {
     }
 
@@ -67,6 +75,9 @@ final class Order
             currency: $data['currency'],
             customerId: $data['customer_id'],
             cycleSequence: $data['cycle_sequence'] ?? null,
+            discountCents: $data['discount_cents'],
+            discountCode: $data['discount_code'] ?? null,
+            discountId: $data['discount_id'] ?? null,
             id: $data['id'],
             installmentInterestCents: $data['installment_interest_cents'],
             installments: $data['installments'],
@@ -82,6 +93,7 @@ final class Order
             showcaseId: $data['showcase_id'],
             status: $data['status'],
             subscriptionId: $data['subscription_id'] ?? null,
+            subtotalCents: $data['subtotal_cents'],
         );
     }
 }

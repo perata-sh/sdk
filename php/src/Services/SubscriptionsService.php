@@ -40,7 +40,9 @@ final class SubscriptionsService
     /**
      * Ler uma assinatura.
      *
-     * Devolve uma assinatura pelo ID.
+     * Devolve uma assinatura pelo ID, com o desconto em vigor (discount_id) e
+     * quando ele acaba (discount_ends_at; nulo para um desconto que vale para
+     * sempre).
      *
      * Autenticação: chave de API da organização em Authorization: Bearer
      * (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
@@ -106,10 +108,13 @@ final class SubscriptionsService
     }
 
     /**
-     * Trocar o plano de uma assinatura.
+     * Trocar o plano ou estender o período.
      *
-     * Troca o plano de uma assinatura: outro preço e, se quiser, outra
-     * quantidade. O proration_behavior diz como ratear a diferença.
+     * Troca o plano de uma assinatura (outro preço e, se quiser, outra
+     * quantidade; o proration_behavior diz como ratear a diferença) ou, com
+     * extend_current_period_days sozinho, estende o período atual em até 365
+     * dias sem cobrar, para o crédito manual de dias: a próxima cobrança passa
+     * a ser no novo current_period_end.
      *
      * Autenticação: chave de API da organização em Authorization: Bearer
      * (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
@@ -117,7 +122,7 @@ final class SubscriptionsService
      * é dele. Respostas em JSON no envelope data; erros com error, message e
      * fields.
      *
-     * @param array{price_id: string, proration_behavior?: 'prorate'|'invoice'|'next_period'|'reset', quantity?: int} $params
+     * @param array{extend_current_period_days?: int, price_id?: string, proration_behavior?: 'prorate'|'invoice'|'next_period'|'reset', quantity?: int} $params
      */
     public function update(string $subscription, array $params, ?string $idempotencyKey = null, ?string $apiKey = null): Models\Subscription
     {

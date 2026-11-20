@@ -9,6 +9,7 @@ import java.util.Map;
 public final class CheckoutClientItem {
 
     private final long amountCents;
+    private final List<CheckoutClientItemBand> bands;
     private final String description;
     private final String interval;
     private final long intervalCount;
@@ -17,8 +18,9 @@ public final class CheckoutClientItem {
     private final long quantity;
     private final long unitCents;
 
-    CheckoutClientItem(long amountCents, String description, String interval, long intervalCount, String name, String productId, long quantity, long unitCents) {
+    CheckoutClientItem(long amountCents, List<CheckoutClientItemBand> bands, String description, String interval, long intervalCount, String name, String productId, long quantity, long unitCents) {
         this.amountCents = amountCents;
+        this.bands = bands;
         this.description = description;
         this.interval = interval;
         this.intervalCount = intervalCount;
@@ -31,6 +33,7 @@ public final class CheckoutClientItem {
     static CheckoutClientItem fromJson(Map<String, Object> data) {
         return new CheckoutClientItem(
                 Json.required(data, "amount_cents", Json::asLong),
+                Json.required(data, "bands", Json.list(Json.model(CheckoutClientItemBand::fromJson))),
                 Json.required(data, "description", Json::asString),
                 Json.required(data, "interval", Json::asString),
                 Json.required(data, "interval_count", Json::asLong),
@@ -40,9 +43,14 @@ public final class CheckoutClientItem {
                 Json.required(data, "unit_cents", Json::asLong));
     }
 
-    /** @return Quanto custa a linha antes de qualquer desconto: a unidade vezes a quantidade. */
+    /** @return Quanto custa a linha antes de qualquer desconto: a quantidade vezes o preço da unidade; num preço por faixas, a soma das faixas. */
     public long getAmountCents() {
         return amountCents;
+    }
+
+    /** @return As faixas de um preço graduado em que a quantidade passou da primeira, na ordem; vazio num preço de uma faixa só. A soma de amount_cents das faixas é o amount_cents da linha. */
+    public List<CheckoutClientItemBand> getBands() {
+        return bands;
     }
 
     /** @return A descrição do produto como o lojista a escreveu, em Markdown; vazia sem ela. */
@@ -75,13 +83,13 @@ public final class CheckoutClientItem {
         return quantity;
     }
 
-    /** @return Quanto custa uma unidade, antes de qualquer desconto. */
+    /** @return Quanto custa uma unidade, antes de qualquer desconto; num preço por faixas, o da primeira unidade (veja bands). */
     public long getUnitCents() {
         return unitCents;
     }
 
     @Override
     public String toString() {
-        return "CheckoutClientItem{" + "amountCents=" + amountCents + ", description=" + description + ", interval=" + interval + ", intervalCount=" + intervalCount + ", name=" + name + ", productId=" + productId + ", quantity=" + quantity + ", unitCents=" + unitCents + "}";
+        return "CheckoutClientItem{" + "amountCents=" + amountCents + ", bands=" + bands + ", description=" + description + ", interval=" + interval + ", intervalCount=" + intervalCount + ", name=" + name + ", productId=" + productId + ", quantity=" + quantity + ", unitCents=" + unitCents + "}";
     }
 }

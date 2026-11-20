@@ -101,7 +101,7 @@ public sealed record Dispute
     [JsonPropertyName("order_id")]
     public string? OrderId { get; init; }
 
-    /// <summary>O PaymentId da venda contestada na Cielo.</summary>
+    /// <summary>O PaymentId da venda contestada.</summary>
     [JsonPropertyName("payment_id")]
     public required string PaymentId { get; init; }
 
@@ -109,11 +109,11 @@ public sealed record Dispute
     [JsonPropertyName("payment_method")]
     public required string PaymentMethod { get; init; }
 
-    /// <summary>O número do caso na Cielo.</summary>
+    /// <summary>O número do caso.</summary>
     [JsonPropertyName("provider_dispute_id")]
     public required string ProviderDisputeId { get; init; }
 
-    /// <summary>O motivo nas palavras da Cielo.</summary>
+    /// <summary>O motivo informado pelo emissor ou pela bandeira.</summary>
     [JsonPropertyName("provider_reason")]
     public required string ProviderReason { get; init; }
 

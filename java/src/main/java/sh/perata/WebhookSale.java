@@ -132,7 +132,7 @@ public final class WebhookSale {
         return eventId;
     }
 
-    /** @return O código que a Cielo deu para a recusa, nos eventos refund.* de um reembolso que falhou; serve ao suporte. (null when the API sends none) */
+    /** @return O código dado para a recusa, nos eventos refund.* de um reembolso que falhou; serve ao suporte. (null when the API sends none) */
     public String getFailureCode() {
         return failureCode;
     }

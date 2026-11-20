@@ -334,7 +334,7 @@ module Perata
 
   # Checkout is a resource of Peráta's API.
   class Checkout < Model
-    MEMBERS = %i[amount_cents cancel_url client_reference_id created_at discount_id expires_at id items label metadata price_id product_id quantity showcase_id status subscription_start_at success_url url].freeze
+    MEMBERS = %i[amount_cents cancel_url client_reference_id created_at discount_id expires_at first_period_extra_days id items label metadata price_id product_id quantity showcase_id status subscription_start_at success_url url].freeze
 
     # O valor, em centavos, que o seu servidor fixou na criação; nulo quando é o comprador quem digita o valor.
     # @return [Integer, nil]
@@ -358,6 +358,10 @@ module Perata
     # Quando o checkout deixa de abrir sessões; nulo sem prazo.
     # @return [String, nil]
     attr_reader :expires_at
+
+    # Quantos dias o seu servidor somou ao primeiro período da assinatura (first_period_extra_days na criação); nulo quando o primeiro período é o comum. O comprador paga hoje o valor cheio, e a próxima cobrança só acontece no fim do período mais longo.
+    # @return [Integer, nil]
+    attr_reader :first_period_extra_days
 
     # @return [String]
     attr_reader :id
@@ -403,13 +407,14 @@ module Perata
     # @return [String]
     attr_reader :url
 
-    def initialize(amount_cents:, cancel_url:, client_reference_id:, created_at:, discount_id:, expires_at:, id:, items:, label:, metadata:, price_id:, product_id:, quantity:, showcase_id:, status:, subscription_start_at:, success_url:, url:)
+    def initialize(amount_cents:, cancel_url:, client_reference_id:, created_at:, discount_id:, expires_at:, first_period_extra_days:, id:, items:, label:, metadata:, price_id:, product_id:, quantity:, showcase_id:, status:, subscription_start_at:, success_url:, url:)
       @amount_cents = amount_cents
       @cancel_url = cancel_url
       @client_reference_id = client_reference_id
       @created_at = created_at
       @discount_id = discount_id
       @expires_at = expires_at
+      @first_period_extra_days = first_period_extra_days
       @id = id
       @items = items
       @label = label
@@ -434,6 +439,7 @@ module Perata
         created_at: data.fetch("created_at"),
         discount_id: data.fetch("discount_id"),
         expires_at: data["expires_at"],
+        first_period_extra_days: data["first_period_extra_days"],
         id: data.fetch("id"),
         items: data.fetch("items").map { |item| CheckoutLine.from_hash(item) },
         label: data.fetch("label"),
@@ -452,7 +458,7 @@ module Perata
 
   # CheckoutClient is a resource of Peráta's API.
   class CheckoutClient < Model
-    MEMBERS = %i[amount_cents amount_locked cancel_url card_kinds client_reference_id currency customer discount discount_cents editable environment expires_at first_charge_at id installments items missing next_action payment payment_methods requires_billing_address requires_tax_id status status_key success_url total_cents].freeze
+    MEMBERS = %i[amount_cents amount_locked cancel_url card_kinds client_reference_id currency customer discount discount_cents editable environment expires_at first_charge_at first_period_end_at first_period_extra_days id installments items missing next_action payment payment_methods requires_billing_address requires_tax_id status status_key success_url total_cents].freeze
 
     # Antes do desconto.
     # @return [Integer]
@@ -500,6 +506,14 @@ module Perata
     # O dia da primeira cobrança de uma assinatura que não cobra hoje, a meia-noite desse dia em São Paulo: o fim do teste grátis ou a data que o servidor do lojista pediu (subscription_start_at). Nulo quando o pagamento é cobrado na hora.
     # @return [String, nil]
     attr_reader :first_charge_at
+
+    # Quando o primeiro período termina, e portanto o dia da próxima cobrança, se o comprador pagar hoje: a meia-noite desse dia em São Paulo. Nulo sem dias extras. Quem paga em outro dia tem o fim deslocado junto.
+    # @return [String, nil]
+    attr_reader :first_period_end_at
+
+    # Quantos dias foram somados ao primeiro período da assinatura (first_period_extra_days na criação do checkout); nulo quando o primeiro período é o comum.
+    # @return [Integer, nil]
+    attr_reader :first_period_extra_days
 
     # O ID da sessão de checkout.
     # @return [String]
@@ -550,7 +564,7 @@ module Perata
     # @return [Integer]
     attr_reader :total_cents
 
-    def initialize(amount_cents:, amount_locked:, cancel_url:, card_kinds:, client_reference_id:, currency:, customer:, discount:, discount_cents:, editable:, environment:, expires_at:, first_charge_at:, id:, installments:, items:, missing:, next_action:, payment:, payment_methods:, requires_billing_address:, requires_tax_id:, status:, status_key:, success_url:, total_cents:)
+    def initialize(amount_cents:, amount_locked:, cancel_url:, card_kinds:, client_reference_id:, currency:, customer:, discount:, discount_cents:, editable:, environment:, expires_at:, first_charge_at:, first_period_end_at:, first_period_extra_days:, id:, installments:, items:, missing:, next_action:, payment:, payment_methods:, requires_billing_address:, requires_tax_id:, status:, status_key:, success_url:, total_cents:)
       @amount_cents = amount_cents
       @amount_locked = amount_locked
       @cancel_url = cancel_url
@@ -564,6 +578,8 @@ module Perata
       @environment = environment
       @expires_at = expires_at
       @first_charge_at = first_charge_at
+      @first_period_end_at = first_period_end_at
+      @first_period_extra_days = first_period_extra_days
       @id = id
       @installments = installments
       @items = items
@@ -596,6 +612,8 @@ module Perata
         environment: data.fetch("environment"),
         expires_at: data.fetch("expires_at"),
         first_charge_at: data["first_charge_at"],
+        first_period_end_at: data["first_period_end_at"],
+        first_period_extra_days: data["first_period_extra_days"],
         id: data.fetch("id"),
         installments: data.fetch("installments").map { |item| CheckoutInstallment.from_hash(item) },
         items: data.fetch("items").map { |item| CheckoutClientItem.from_hash(item) },
@@ -726,11 +744,15 @@ module Perata
 
   # CheckoutClientItem is a resource of Peráta's API.
   class CheckoutClientItem < Model
-    MEMBERS = %i[amount_cents description interval interval_count name product_id quantity unit_cents].freeze
+    MEMBERS = %i[amount_cents bands description interval interval_count name product_id quantity unit_cents].freeze
 
-    # Quanto custa a linha antes de qualquer desconto: a unidade vezes a quantidade.
+    # Quanto custa a linha antes de qualquer desconto: a quantidade vezes o preço da unidade; num preço por faixas, a soma das faixas.
     # @return [Integer]
     attr_reader :amount_cents
+
+    # As faixas de um preço graduado em que a quantidade passou da primeira, na ordem; vazio num preço de uma faixa só. A soma de amount_cents das faixas é o amount_cents da linha.
+    # @return [Array<CheckoutClientItemBand>]
+    attr_reader :bands
 
     # A descrição do produto como o lojista a escreveu, em Markdown; vazia sem ela.
     # @return [String]
@@ -753,12 +775,13 @@ module Perata
     # @return [Integer]
     attr_reader :quantity
 
-    # Quanto custa uma unidade, antes de qualquer desconto.
+    # Quanto custa uma unidade, antes de qualquer desconto; num preço por faixas, o da primeira unidade (veja bands).
     # @return [Integer]
     attr_reader :unit_cents
 
-    def initialize(amount_cents:, description:, interval:, interval_count:, name:, product_id:, quantity:, unit_cents:)
+    def initialize(amount_cents:, bands:, description:, interval:, interval_count:, name:, product_id:, quantity:, unit_cents:)
       @amount_cents = amount_cents
+      @bands = bands
       @description = description
       @interval = interval
       @interval_count = interval_count
@@ -773,6 +796,7 @@ module Perata
     def self.from_hash(data)
       new(
         amount_cents: data.fetch("amount_cents"),
+        bands: data.fetch("bands").map { |item| CheckoutClientItemBand.from_hash(item) },
         description: data.fetch("description"),
         interval: data.fetch("interval"),
         interval_count: data.fetch("interval_count"),
@@ -880,7 +904,7 @@ module Perata
 
   # CheckoutCreated is a resource of Peráta's API.
   class CheckoutCreated < Model
-    MEMBERS = %i[amount_cents cancel_url client_reference_id client_secret client_secret_expires_at created_at discount_id expires_at id items label metadata price_id product_id quantity session_id showcase_id status status_key subscription_start_at success_url url].freeze
+    MEMBERS = %i[amount_cents cancel_url client_reference_id client_secret client_secret_expires_at created_at discount_id expires_at first_period_extra_days id items label metadata price_id product_id quantity session_id showcase_id status status_key subscription_start_at success_url url].freeze
 
     # O valor, em centavos, que o seu servidor fixou; o comprador o vê e não pode mudá-lo. Nulo quando é o comprador quem digita o valor.
     # @return [Integer, nil]
@@ -912,6 +936,10 @@ module Perata
     # Quando o link deixa de abrir sessões; nulo sem prazo.
     # @return [String, nil]
     attr_reader :expires_at
+
+    # Quantos dias o seu servidor somou ao primeiro período da assinatura (first_period_extra_days na criação); nulo quando o primeiro período é o comum. O comprador paga hoje o valor cheio, e a próxima cobrança só acontece no fim do período mais longo.
+    # @return [Integer, nil]
+    attr_reader :first_period_extra_days
 
     # O ID do link do checkout, o que GET e PATCH /checkouts/{id} recebem.
     # @return [String]
@@ -966,7 +994,7 @@ module Perata
     # @return [String]
     attr_reader :url
 
-    def initialize(amount_cents:, cancel_url:, client_reference_id:, client_secret:, client_secret_expires_at:, created_at:, discount_id:, expires_at:, id:, items:, label:, metadata:, price_id:, product_id:, quantity:, session_id:, showcase_id:, status:, status_key:, subscription_start_at:, success_url:, url:)
+    def initialize(amount_cents:, cancel_url:, client_reference_id:, client_secret:, client_secret_expires_at:, created_at:, discount_id:, expires_at:, first_period_extra_days:, id:, items:, label:, metadata:, price_id:, product_id:, quantity:, session_id:, showcase_id:, status:, status_key:, subscription_start_at:, success_url:, url:)
       @amount_cents = amount_cents
       @cancel_url = cancel_url
       @client_reference_id = client_reference_id
@@ -975,6 +1003,7 @@ module Perata
       @created_at = created_at
       @discount_id = discount_id
       @expires_at = expires_at
+      @first_period_extra_days = first_period_extra_days
       @id = id
       @items = items
       @label = label
@@ -1003,6 +1032,7 @@ module Perata
         created_at: data.fetch("created_at"),
         discount_id: data.fetch("discount_id"),
         expires_at: data["expires_at"],
+        first_period_extra_days: data["first_period_extra_days"],
         id: data.fetch("id"),
         items: data.fetch("items").map { |item| CheckoutLine.from_hash(item) },
         label: data.fetch("label"),
@@ -1062,7 +1092,7 @@ module Perata
     # @return [Boolean]
     attr_reader :already_closed
 
-    # true quando a Cielo cancelou o Pix ou a reserva nesta chamada.
+    # true quando o Pix ou a reserva foi cancelado nesta chamada.
     # @return [Boolean]
     attr_reader :canceled
 
@@ -1078,7 +1108,7 @@ module Perata
     # @return [String]
     attr_reader :payment_id
 
-    # Como o pagamento ficou: canceled quando a Cielo retirou o QR do Pix ou liberou a reserva do cartão; vazio sem pagamento.
+    # Como o pagamento ficou: canceled quando a Peráta retirou o QR do Pix ou liberou a reserva do cartão; vazio sem pagamento.
     # @return [String]
     attr_reader :payment_state
 
@@ -1932,7 +1962,7 @@ module Perata
     # @return [String, nil]
     attr_reader :order_id
 
-    # O PaymentId da venda contestada na Cielo.
+    # O PaymentId da venda contestada.
     # @return [String]
     attr_reader :payment_id
 
@@ -1940,11 +1970,11 @@ module Perata
     # @return [String]
     attr_reader :payment_method
 
-    # O número do caso na Cielo.
+    # O número do caso.
     # @return [String]
     attr_reader :provider_dispute_id
 
-    # O motivo nas palavras da Cielo.
+    # O motivo informado pelo emissor ou pela bandeira.
     # @return [String]
     attr_reader :provider_reason
 
@@ -2228,7 +2258,7 @@ module Perata
 
   # Order is a resource of Peráta's API.
   class Order < Model
-    MEMBERS = %i[amount_cents client_reference_id currency customer_id cycle_sequence id installment_interest_cents installments items metadata order_status paid_at period_end period_start price_id product_id refunded_amount_cents showcase_id status subscription_id].freeze
+    MEMBERS = %i[amount_cents client_reference_id currency customer_id cycle_sequence discount_cents discount_code discount_id id installment_interest_cents installments items metadata order_status paid_at period_end period_start price_id product_id refunded_amount_cents showcase_id status subscription_id subtotal_cents].freeze
 
     # @return [Integer]
     attr_reader :amount_cents
@@ -2246,6 +2276,18 @@ module Perata
     # Qual ciclo da assinatura o pedido pagou: 1 é o primeiro; nulo fora de uma assinatura.
     # @return [Integer, nil]
     attr_reader :cycle_sequence
+
+    # Quanto o desconto tirou do pedido, em centavos; 0 sem desconto.
+    # @return [Integer]
+    attr_reader :discount_cents
+
+    # O código que o comprador digitou no checkout deste pedido; nulo quando o desconto veio por discount_id (o seu servidor o enviou ao criar o checkout), quando veio da assinatura numa renovação ou quando não houve desconto.
+    # @return [String, nil]
+    attr_reader :discount_code
+
+    # O desconto do catálogo que este pedido aplicou; nulo quando não houve desconto. Na renovação de uma assinatura é o desconto que a assinatura aplicou naquele ciclo (uma vez, por alguns meses ou para sempre).
+    # @return [String, nil]
+    attr_reader :discount_id
 
     # @return [String]
     attr_reader :id
@@ -2302,12 +2344,19 @@ module Perata
     # @return [String, nil]
     attr_reader :subscription_id
 
-    def initialize(amount_cents:, client_reference_id:, currency:, customer_id:, cycle_sequence:, id:, installment_interest_cents:, installments:, items:, metadata:, order_status:, paid_at:, period_end:, period_start:, price_id:, product_id:, refunded_amount_cents:, showcase_id:, status:, subscription_id:)
+    # O valor do pedido antes do desconto, em centavos: subtotal_cents menos discount_cents é o amount_cents. Sem desconto é igual a amount_cents.
+    # @return [Integer]
+    attr_reader :subtotal_cents
+
+    def initialize(amount_cents:, client_reference_id:, currency:, customer_id:, cycle_sequence:, discount_cents:, discount_code:, discount_id:, id:, installment_interest_cents:, installments:, items:, metadata:, order_status:, paid_at:, period_end:, period_start:, price_id:, product_id:, refunded_amount_cents:, showcase_id:, status:, subscription_id:, subtotal_cents:)
       @amount_cents = amount_cents
       @client_reference_id = client_reference_id
       @currency = currency
       @customer_id = customer_id
       @cycle_sequence = cycle_sequence
+      @discount_cents = discount_cents
+      @discount_code = discount_code
+      @discount_id = discount_id
       @id = id
       @installment_interest_cents = installment_interest_cents
       @installments = installments
@@ -2323,6 +2372,7 @@ module Perata
       @showcase_id = showcase_id
       @status = status
       @subscription_id = subscription_id
+      @subtotal_cents = subtotal_cents
       freeze
     end
 
@@ -2334,6 +2384,9 @@ module Perata
         currency: data.fetch("currency"),
         customer_id: data.fetch("customer_id"),
         cycle_sequence: data["cycle_sequence"],
+        discount_cents: data.fetch("discount_cents"),
+        discount_code: data["discount_code"],
+        discount_id: data["discount_id"],
         id: data.fetch("id"),
         installment_interest_cents: data.fetch("installment_interest_cents"),
         installments: data.fetch("installments"),
@@ -2348,7 +2401,8 @@ module Perata
         refunded_amount_cents: data.fetch("refunded_amount_cents"),
         showcase_id: data.fetch("showcase_id"),
         status: data.fetch("status"),
-        subscription_id: data["subscription_id"]
+        subscription_id: data["subscription_id"],
+        subtotal_cents: data.fetch("subtotal_cents")
       )
     end
   end
@@ -2966,7 +3020,7 @@ module Perata
     # @return [String]
     attr_reader :showcase_id
 
-    # requested e pending esperam a Cielo; unknown é uma resposta que não chegou, e o valor continua reservado até a Cielo responder; succeeded devolveu o dinheiro; failed e canceled não devolveram.
+    # requested e pending esperam a confirmação; unknown é passageiro: a confirmação não chegou ou ainda não prova a devolução, o valor continua reservado e a Peráta consulta sozinha (a primeira vez em uns 5 minutos) até virar succeeded ou failed, então não peça de novo e espere o evento refund.succeeded ou refund.failed (ou leia GET /refunds/{id}); succeeded devolveu o dinheiro; failed e canceled não devolveram.
     # @return [String ("requested", "pending", "unknown", "succeeded", "failed", "canceled")]
     attr_reader :status
 
@@ -3055,7 +3109,7 @@ module Perata
 
   # Subscription is a resource of Peráta's API.
   class Subscription < Model
-    MEMBERS = %i[amount_cents cancel_at_period_end client_reference_id currency current_period_end current_period_start customer_id id interval metadata price_id product_id quantity showcase_id status suspended_at suspension_reason trial_end trial_start].freeze
+    MEMBERS = %i[amount_cents cancel_at_period_end client_reference_id currency current_period_end current_period_start customer_id discount_ends_at discount_id first_period_extra_days id interval metadata pending_update price_id product_id quantity showcase_id status suspended_at suspension_reason trial_end trial_start].freeze
 
     # O que a assinatura cobra a cada ciclo, em centavos, já para a quantity que ela tem: é o total do ciclo, não o preço de uma unidade. O preço por unidade, por assento ou por faixas já está aplicado à quantity.
     # @return [Integer]
@@ -3080,6 +3134,18 @@ module Perata
     # @return [String]
     attr_reader :customer_id
 
+    # Quando o desconto deixa de valer: o fim do último ciclo que ele ainda abate (num desconto de uma vez, o fim do primeiro ciclo pago; por alguns meses, o fim do último ciclo desses meses). Nulo quando não há desconto e quando ele vale para sempre.
+    # @return [String, nil]
+    attr_reader :discount_ends_at
+
+    # O desconto em vigor na assinatura, que se aplica aos próximos ciclos até acabar; nulo sem desconto e depois que ele acabou.
+    # @return [String, nil]
+    attr_reader :discount_id
+
+    # Quantos dias o checkout que vendeu a assinatura somou ao primeiro período, para você conferir; nulo quando o primeiro período foi o comum. O primeiro período vai do dia do pagamento até esse dia mais um intervalo do preço mais estes dias, e current_period_end já vem com eles.
+    # @return [Integer, nil]
+    attr_reader :first_period_extra_days
+
     # @return [String]
     attr_reader :id
 
@@ -3089,6 +3155,10 @@ module Perata
     # Metadados do lojista: pares chave e valor (texto, número ou booleano); objeto vazio quando não há.
     # @return [Hash{String => Object}]
     attr_reader :metadata
+
+    # A mudança de plano ou de quantidade agendada para o próximo período (PATCH com proration_behavior next_period); nulo quando não há nenhuma. Até effective_at a assinatura segue com o price_id, a quantity e o amount_cents de cima.
+    # @return [SubscriptionPendingUpdate, nil]
+    attr_reader :pending_update
 
     # @return [String]
     attr_reader :price_id
@@ -3121,7 +3191,7 @@ module Perata
     # @return [String, nil]
     attr_reader :trial_start
 
-    def initialize(amount_cents:, cancel_at_period_end:, client_reference_id:, currency:, current_period_end:, current_period_start:, customer_id:, id:, interval:, metadata:, price_id:, product_id:, quantity:, showcase_id:, status:, suspended_at:, suspension_reason:, trial_end:, trial_start:)
+    def initialize(amount_cents:, cancel_at_period_end:, client_reference_id:, currency:, current_period_end:, current_period_start:, customer_id:, discount_ends_at:, discount_id:, first_period_extra_days:, id:, interval:, metadata:, pending_update:, price_id:, product_id:, quantity:, showcase_id:, status:, suspended_at:, suspension_reason:, trial_end:, trial_start:)
       @amount_cents = amount_cents
       @cancel_at_period_end = cancel_at_period_end
       @client_reference_id = client_reference_id
@@ -3129,9 +3199,13 @@ module Perata
       @current_period_end = current_period_end
       @current_period_start = current_period_start
       @customer_id = customer_id
+      @discount_ends_at = discount_ends_at
+      @discount_id = discount_id
+      @first_period_extra_days = first_period_extra_days
       @id = id
       @interval = interval
       @metadata = metadata
+      @pending_update = pending_update
       @price_id = price_id
       @product_id = product_id
       @quantity = quantity
@@ -3154,9 +3228,13 @@ module Perata
         current_period_end: data.fetch("current_period_end"),
         current_period_start: data.fetch("current_period_start"),
         customer_id: data.fetch("customer_id"),
+        discount_ends_at: data["discount_ends_at"],
+        discount_id: data["discount_id"],
+        first_period_extra_days: data["first_period_extra_days"],
         id: data.fetch("id"),
         interval: data.fetch("interval"),
         metadata: data.fetch("metadata"),
+        pending_update: data["pending_update"]&.then { |value| SubscriptionPendingUpdate.from_hash(value) },
         price_id: data.fetch("price_id"),
         product_id: data.fetch("product_id"),
         quantity: data.fetch("quantity"),
@@ -3612,7 +3690,7 @@ module Perata
     # @return [String]
     attr_reader :opened_at
 
-    # O PaymentId da venda contestada na Cielo.
+    # O PaymentId da venda contestada.
     # @return [String]
     attr_reader :payment_id
 
@@ -3620,11 +3698,11 @@ module Perata
     # @return [String, nil]
     attr_reader :payment_method
 
-    # O número do caso na Cielo.
+    # O número do caso.
     # @return [String]
     attr_reader :provider_dispute_id
 
-    # O motivo nas palavras da Cielo.
+    # O motivo informado pelo emissor ou pela bandeira.
     # @return [String]
     attr_reader :provider_reason
 
@@ -3817,7 +3895,7 @@ module Perata
 
   # O pedido como a API o devolve (Order) e, nos eventos que um reembolso causou (order.refunded e o order.updated que o acompanha), o reembolso que o causou. status continua sendo o do checkout (succeeded) depois de um reembolso: order_status e refunded_amount_cents dizem onde o dinheiro está.
   class WebhookOrder < Model
-    MEMBERS = %i[amount_cents client_reference_id currency customer_id cycle_sequence id installment_interest_cents installments items metadata order_status paid_at period_end period_start price_id product_id refund_amount_cents refund_id refunded_amount_cents showcase_id status subscription_id].freeze
+    MEMBERS = %i[amount_cents client_reference_id currency customer_id cycle_sequence discount_cents discount_code discount_id id installment_interest_cents installments items metadata order_status paid_at period_end period_start price_id product_id refund_amount_cents refund_id refunded_amount_cents showcase_id status subscription_id subtotal_cents].freeze
 
     # @return [Integer]
     attr_reader :amount_cents
@@ -3835,6 +3913,18 @@ module Perata
     # O ciclo da assinatura que o pagamento cobra: 1 é o primeiro, 2 é a primeira renovação.
     # @return [Integer, nil]
     attr_reader :cycle_sequence
+
+    # Quanto o desconto tirou do pedido, em centavos; 0 sem desconto.
+    # @return [Integer]
+    attr_reader :discount_cents
+
+    # O código que o comprador digitou no checkout deste pedido; nulo quando o desconto veio por discount_id, quando veio da assinatura numa renovação ou quando não houve desconto.
+    # @return [String, nil]
+    attr_reader :discount_code
+
+    # O desconto do catálogo que este pedido aplicou; nulo quando não houve desconto. Na renovação de uma assinatura é o desconto que a assinatura aplicou naquele ciclo.
+    # @return [String, nil]
+    attr_reader :discount_id
 
     # @return [String]
     attr_reader :id
@@ -3899,12 +3989,19 @@ module Perata
     # @return [String, nil]
     attr_reader :subscription_id
 
-    def initialize(amount_cents:, client_reference_id:, currency:, customer_id:, cycle_sequence: nil, id:, installment_interest_cents:, installments:, items:, metadata:, order_status:, paid_at:, period_end: nil, period_start: nil, price_id:, product_id:, refund_amount_cents:, refund_id:, refunded_amount_cents:, showcase_id:, status:, subscription_id: nil)
+    # O valor do pedido antes do desconto, em centavos: subtotal_cents menos discount_cents é o amount_cents.
+    # @return [Integer]
+    attr_reader :subtotal_cents
+
+    def initialize(amount_cents:, client_reference_id:, currency:, customer_id:, cycle_sequence: nil, discount_cents:, discount_code:, discount_id:, id:, installment_interest_cents:, installments:, items:, metadata:, order_status:, paid_at:, period_end: nil, period_start: nil, price_id:, product_id:, refund_amount_cents:, refund_id:, refunded_amount_cents:, showcase_id:, status:, subscription_id: nil, subtotal_cents:)
       @amount_cents = amount_cents
       @client_reference_id = client_reference_id
       @currency = currency
       @customer_id = customer_id
       @cycle_sequence = cycle_sequence
+      @discount_cents = discount_cents
+      @discount_code = discount_code
+      @discount_id = discount_id
       @id = id
       @installment_interest_cents = installment_interest_cents
       @installments = installments
@@ -3922,6 +4019,7 @@ module Perata
       @showcase_id = showcase_id
       @status = status
       @subscription_id = subscription_id
+      @subtotal_cents = subtotal_cents
       freeze
     end
 
@@ -3933,6 +4031,9 @@ module Perata
         currency: data.fetch("currency"),
         customer_id: data.fetch("customer_id"),
         cycle_sequence: data["cycle_sequence"],
+        discount_cents: data.fetch("discount_cents"),
+        discount_code: data["discount_code"],
+        discount_id: data["discount_id"],
         id: data.fetch("id"),
         installment_interest_cents: data.fetch("installment_interest_cents"),
         installments: data.fetch("installments"),
@@ -3949,7 +4050,8 @@ module Perata
         refunded_amount_cents: data.fetch("refunded_amount_cents"),
         showcase_id: data.fetch("showcase_id"),
         status: data.fetch("status"),
-        subscription_id: data["subscription_id"]
+        subscription_id: data["subscription_id"],
+        subtotal_cents: data.fetch("subtotal_cents")
       )
     end
   end
@@ -4066,7 +4168,7 @@ module Perata
     # @return [String]
     attr_reader :event_id
 
-    # O código que a Cielo deu para a recusa, nos eventos refund.* de um reembolso que falhou; serve ao suporte.
+    # O código dado para a recusa, nos eventos refund.* de um reembolso que falhou; serve ao suporte.
     # @return [String, nil]
     attr_reader :failure_code
 
@@ -4168,7 +4270,7 @@ module Perata
 
   # A assinatura como a API a devolve (Subscription) e, nos eventos que uma cobrança recusada causou (subscription.past_due, subscription.suspended e o subscription.updated que os acompanha), a cobrança recusada em payment_failure.
   class WebhookSubscription < Model
-    MEMBERS = %i[amount_cents cancel_at_period_end client_reference_id currency current_period_end current_period_start customer_id id interval metadata payment_failure price_id product_id quantity showcase_id status suspended_at suspension_reason trial_end trial_start].freeze
+    MEMBERS = %i[amount_cents cancel_at_period_end client_reference_id currency current_period_end current_period_start customer_id discount_ends_at discount_id first_period_extra_days id interval metadata payment_failure pending_update price_id product_id quantity showcase_id status suspended_at suspension_reason trial_end trial_start].freeze
 
     # O que a assinatura cobra a cada ciclo, em centavos, já para a quantity que ela tem: é o total do ciclo, não o preço de uma unidade. O preço por unidade, por assento ou por faixas já está aplicado à quantity.
     # @return [Integer]
@@ -4193,6 +4295,18 @@ module Perata
     # @return [String]
     attr_reader :customer_id
 
+    # Quando o desconto deixa de valer: o fim do último ciclo que ele ainda abate (num desconto de uma vez, o fim do primeiro ciclo pago). Nulo quando não há desconto e quando ele vale para sempre.
+    # @return [String, nil]
+    attr_reader :discount_ends_at
+
+    # O desconto em vigor na assinatura, que se aplica aos próximos ciclos até acabar; nulo sem desconto e depois que ele acabou.
+    # @return [String, nil]
+    attr_reader :discount_id
+
+    # Quantos dias o checkout que vendeu a assinatura somou ao primeiro período, para você conferir; nulo quando o primeiro período foi o comum. O primeiro período vai do dia do pagamento até esse dia mais um intervalo do preço mais estes dias, e current_period_end já vem com eles.
+    # @return [Integer, nil]
+    attr_reader :first_period_extra_days
+
     # @return [String]
     attr_reader :id
 
@@ -4206,6 +4320,10 @@ module Perata
     # A cobrança recusada que causou o evento; só nos eventos de cobrança recusada.
     # @return [WebhookSubscriptionPaymentFailure, nil]
     attr_reader :payment_failure
+
+    # A mudança de plano ou de quantidade agendada para o próximo período (PATCH com proration_behavior next_period); nulo quando não há nenhuma. Até effective_at a assinatura segue com o price_id, a quantity e o amount_cents de cima.
+    # @return [WebhookSubscriptionPendingUpdate, nil]
+    attr_reader :pending_update
 
     # @return [String]
     attr_reader :price_id
@@ -4238,7 +4356,7 @@ module Perata
     # @return [String, nil]
     attr_reader :trial_start
 
-    def initialize(amount_cents:, cancel_at_period_end:, client_reference_id:, currency:, current_period_end:, current_period_start:, customer_id:, id:, interval:, metadata:, payment_failure: nil, price_id:, product_id:, quantity:, showcase_id:, status:, suspended_at:, suspension_reason:, trial_end:, trial_start:)
+    def initialize(amount_cents:, cancel_at_period_end:, client_reference_id:, currency:, current_period_end:, current_period_start:, customer_id:, discount_ends_at:, discount_id:, first_period_extra_days:, id:, interval:, metadata:, payment_failure: nil, pending_update:, price_id:, product_id:, quantity:, showcase_id:, status:, suspended_at:, suspension_reason:, trial_end:, trial_start:)
       @amount_cents = amount_cents
       @cancel_at_period_end = cancel_at_period_end
       @client_reference_id = client_reference_id
@@ -4246,10 +4364,14 @@ module Perata
       @current_period_end = current_period_end
       @current_period_start = current_period_start
       @customer_id = customer_id
+      @discount_ends_at = discount_ends_at
+      @discount_id = discount_id
+      @first_period_extra_days = first_period_extra_days
       @id = id
       @interval = interval
       @metadata = metadata
       @payment_failure = payment_failure
+      @pending_update = pending_update
       @price_id = price_id
       @product_id = product_id
       @quantity = quantity
@@ -4272,10 +4394,14 @@ module Perata
         current_period_end: data.fetch("current_period_end"),
         current_period_start: data.fetch("current_period_start"),
         customer_id: data.fetch("customer_id"),
+        discount_ends_at: data["discount_ends_at"],
+        discount_id: data["discount_id"],
+        first_period_extra_days: data["first_period_extra_days"],
         id: data.fetch("id"),
         interval: data.fetch("interval"),
         metadata: data.fetch("metadata"),
         payment_failure: data["payment_failure"]&.then { |value| WebhookSubscriptionPaymentFailure.from_hash(value) },
+        pending_update: data["pending_update"]&.then { |value| WebhookSubscriptionPendingUpdate.from_hash(value) },
         price_id: data.fetch("price_id"),
         product_id: data.fetch("product_id"),
         quantity: data.fetch("quantity"),
@@ -4285,6 +4411,84 @@ module Perata
         suspension_reason: data["suspension_reason"],
         trial_end: data["trial_end"],
         trial_start: data["trial_start"]
+      )
+    end
+  end
+
+  # One item of bands in CheckoutClientItem.
+  class CheckoutClientItemBand < Model
+    MEMBERS = %i[amount_cents flat_cents quantity unit_cents].freeze
+
+    # O que a faixa soma: as unidades vezes o preço, mais o valor fixo.
+    # @return [Integer]
+    attr_reader :amount_cents
+
+    # O valor fixo cobrado por entrar na faixa; zero sem ele.
+    # @return [Integer]
+    attr_reader :flat_cents
+
+    # Quantas unidades a faixa cobrou.
+    # @return [Integer]
+    attr_reader :quantity
+
+    # Quanto custa cada unidade da faixa.
+    # @return [Integer]
+    attr_reader :unit_cents
+
+    def initialize(amount_cents:, flat_cents:, quantity:, unit_cents:)
+      @amount_cents = amount_cents
+      @flat_cents = flat_cents
+      @quantity = quantity
+      @unit_cents = unit_cents
+      freeze
+    end
+
+    # Builds a CheckoutClientItemBand from the API's JSON.
+    def self.from_hash(data)
+      new(
+        amount_cents: data.fetch("amount_cents"),
+        flat_cents: data.fetch("flat_cents"),
+        quantity: data.fetch("quantity"),
+        unit_cents: data.fetch("unit_cents")
+      )
+    end
+  end
+
+  # The pending_update of Subscription.
+  class SubscriptionPendingUpdate < Model
+    MEMBERS = %i[amount_cents effective_at price_id quantity].freeze
+
+    # O que o período seguinte cobra, em centavos, já para esta quantity: é o total do ciclo.
+    # @return [Integer]
+    attr_reader :amount_cents
+
+    # Quando a mudança vale: o fim do período atual.
+    # @return [String]
+    attr_reader :effective_at
+
+    # O preço para o qual a assinatura passa em effective_at.
+    # @return [String]
+    attr_reader :price_id
+
+    # A quantidade que a assinatura terá a partir de effective_at.
+    # @return [Integer]
+    attr_reader :quantity
+
+    def initialize(amount_cents:, effective_at:, price_id:, quantity:)
+      @amount_cents = amount_cents
+      @effective_at = effective_at
+      @price_id = price_id
+      @quantity = quantity
+      freeze
+    end
+
+    # Builds a SubscriptionPendingUpdate from the API's JSON.
+    def self.from_hash(data)
+      new(
+        amount_cents: data.fetch("amount_cents"),
+        effective_at: data.fetch("effective_at"),
+        price_id: data.fetch("price_id"),
+        quantity: data.fetch("quantity")
       )
     end
   end
@@ -4358,6 +4562,45 @@ module Perata
         period_start: data.fetch("period_start"),
         reason: data.fetch("reason"),
         retryable: data.fetch("retryable")
+      )
+    end
+  end
+
+  # The pending_update of WebhookSubscription.
+  class WebhookSubscriptionPendingUpdate < Model
+    MEMBERS = %i[amount_cents effective_at price_id quantity].freeze
+
+    # O que o período seguinte cobra, em centavos, já para esta quantity: é o total do ciclo.
+    # @return [Integer]
+    attr_reader :amount_cents
+
+    # Quando a mudança vale: o fim do período atual.
+    # @return [String]
+    attr_reader :effective_at
+
+    # O preço para o qual a assinatura passa em effective_at.
+    # @return [String]
+    attr_reader :price_id
+
+    # A quantidade que a assinatura terá a partir de effective_at.
+    # @return [Integer]
+    attr_reader :quantity
+
+    def initialize(amount_cents:, effective_at:, price_id:, quantity:)
+      @amount_cents = amount_cents
+      @effective_at = effective_at
+      @price_id = price_id
+      @quantity = quantity
+      freeze
+    end
+
+    # Builds a WebhookSubscriptionPendingUpdate from the API's JSON.
+    def self.from_hash(data)
+      new(
+        amount_cents: data.fetch("amount_cents"),
+        effective_at: data.fetch("effective_at"),
+        price_id: data.fetch("price_id"),
+        quantity: data.fetch("quantity")
       )
     end
   end

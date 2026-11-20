@@ -18,6 +18,12 @@ final class WebhookOrder
         public readonly string $customerId,
         /** O ciclo da assinatura que o pagamento cobra: 1 é o primeiro, 2 é a primeira renovação. */
         public readonly ?int $cycleSequence,
+        /** Quanto o desconto tirou do pedido, em centavos; 0 sem desconto. */
+        public readonly int $discountCents,
+        /** O código que o comprador digitou no checkout deste pedido; nulo quando o desconto veio por discount_id, quando veio da assinatura numa renovação ou quando não houve desconto. */
+        public readonly ?string $discountCode,
+        /** O desconto do catálogo que este pedido aplicou; nulo quando não houve desconto. Na renovação de uma assinatura é o desconto que a assinatura aplicou naquele ciclo. */
+        public readonly ?string $discountId,
         public readonly string $id,
         /** Juros do parcelamento pagos pelo comprador, cobrados além de amount_cents. */
         public readonly int $installmentInterestCents,
@@ -57,6 +63,8 @@ final class WebhookOrder
         public readonly string $status,
         /** A assinatura que este pagamento cobra; nulo quando a venda não é de uma assinatura. */
         public readonly ?string $subscriptionId,
+        /** O valor do pedido antes do desconto, em centavos: subtotal_cents menos discount_cents é o amount_cents. */
+        public readonly int $subtotalCents,
     ) {
     }
 
@@ -71,6 +79,9 @@ final class WebhookOrder
             currency: $data['currency'],
             customerId: $data['customer_id'],
             cycleSequence: $data['cycle_sequence'] ?? null,
+            discountCents: $data['discount_cents'],
+            discountCode: $data['discount_code'] ?? null,
+            discountId: $data['discount_id'] ?? null,
             id: $data['id'],
             installmentInterestCents: $data['installment_interest_cents'],
             installments: $data['installments'],
@@ -88,6 +99,7 @@ final class WebhookOrder
             showcaseId: $data['showcase_id'],
             status: $data['status'],
             subscriptionId: $data['subscription_id'] ?? null,
+            subtotalCents: $data['subtotal_cents'],
         );
     }
 }

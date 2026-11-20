@@ -35,7 +35,7 @@ final class Refund
         /** O showcase a que pertence: o da chave de API que fez a chamada. Uma chave só alcança o seu showcase. */
         public readonly string $showcaseId,
         /**
-         * requested e pending esperam a Cielo; unknown é uma resposta que não chegou, e o valor continua reservado até a Cielo responder; succeeded devolveu o dinheiro; failed e canceled não devolveram.
+         * requested e pending esperam a confirmação; unknown é passageiro: a confirmação não chegou ou ainda não prova a devolução, o valor continua reservado e a Peráta consulta sozinha (a primeira vez em uns 5 minutos) até virar succeeded ou failed, então não peça de novo e espere o evento refund.succeeded ou refund.failed (ou leia GET /refunds/{id}); succeeded devolveu o dinheiro; failed e canceled não devolveram.
          * @var 'requested'|'pending'|'unknown'|'succeeded'|'failed'|'canceled'
          */
         public readonly string $status,

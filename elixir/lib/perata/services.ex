@@ -359,7 +359,10 @@ defmodule Perata.Checkouts do
   exibição, com a soma igual ao valor do preço) e o desconto em discount_id.
   Para uma assinatura que só começa a cobrar numa data, envie
   subscription_start_at com o preço recorrente: o cartão é guardado sem cobrança
-  e a primeira cobrança acontece nesse dia.
+  e a primeira cobrança acontece nesse dia. Para o comprador que ainda tem dias
+  pagos num plano anterior, envie first_period_extra_days (1 a 365): ele paga
+  hoje o valor cheio e a próxima cobrança só acontece no fim do primeiro período
+  mais esses dias.
 
   Autenticação: chave de API da organização em Authorization: Bearer (prk_test_…
   ou prk_live_…). Organização, showcase e ambiente vêm da chave, nunca da
@@ -388,7 +391,7 @@ defmodule Perata.Checkouts do
   Encerrar um checkout.
 
   Encerra um checkout que não deve mais ser pago: a página, o client_secret e o
-  QR do Pix deixam de valer (o Pix já gerado é cancelado na Cielo) e o evento
+  QR do Pix deixam de valer (o Pix já gerado é cancelado) e o evento
   checkout.expired é enviado. Repetir a chamada é seguro. Se o checkout já foi
   pago ou emitiu um boleto, a resposta é 409.
 
@@ -1132,7 +1135,11 @@ defmodule Perata.Orders do
   Devolve um pedido: um checkout pago. Se ele pagou um ciclo de assinatura, traz
   subscription_id, cycle_sequence, period_start e period_end. Num pedido de
   renovação, client_reference_id e metadata são os do checkout que vendeu a
-  assinatura.
+  assinatura. Traz também o desconto aplicado: discount_id (nulo sem desconto),
+  discount_code (o código que o comprador digitou; nulo quando veio por
+  discount_id ou da assinatura), subtotal_cents (antes do desconto) e
+  discount_cents; numa renovação, é o desconto que a assinatura aplicou naquele
+  ciclo.
 
   Autenticação: chave de API da organização em Authorization: Bearer (prk_test_…
   ou prk_live_…). Organização, showcase e ambiente vêm da chave, nunca da
@@ -1431,6 +1438,31 @@ defmodule Perata.Prices do
   end
 
   @doc """
+  Ler um preço.
+
+  Devolve um preço pelo ID, com as faixas se ele for por faixas. Também devolve
+  um preço arquivado: uma assinatura ou um pedido vendido nele continua
+  apontando para ele.
+
+  Autenticação: chave de API da organização em Authorization: Bearer (prk_test_…
+  ou prk_live_…). Organização, showcase e ambiente vêm da chave, nunca da
+  requisição: a chave criada num showcase só alcança o que é dele. Respostas em
+  JSON no envelope data; erros com error, message e fields.
+
+  Options: `:api_key`.
+  """
+  @spec get(Client.t(), String.t(), keyword()) ::
+          {:ok, Perata.Price.t()} | {:error, Perata.Error.t()}
+  def get(%Client{} = client, price, opts \\ []) do
+    path = "/api/v1/prices/#{Client.segment(price)}"
+    request = [api_key: opts[:api_key]]
+
+    with {:ok, data} <- Client.request(client, "GET", path, request) do
+      {:ok, Perata.Price.from_map(data)}
+    end
+  end
+
+  @doc """
   Listar preços. One page; `list_stream/2` walks every page.
 
   Devolve uma página dos preços da organização. Com product_id, só os de um
@@ -1660,7 +1692,7 @@ defmodule Perata.Refunds do
 
   Devolve um reembolso pelo ID, com o pedido de onde veio (order_id), o
   client_reference_id desse pedido e o status: requested e pending esperam a
-  Cielo, succeeded devolveu o dinheiro.
+  confirmação, succeeded devolveu o dinheiro.
 
   Autenticação: chave de API da organização em Authorization: Bearer (prk_test_…
   ou prk_live_…). Organização, showcase e ambiente vêm da chave, nunca da
@@ -1802,7 +1834,8 @@ defmodule Perata.Subscriptions do
   @doc """
   Ler uma assinatura.
 
-  Devolve uma assinatura pelo ID.
+  Devolve uma assinatura pelo ID, com o desconto em vigor (discount_id) e quando
+  ele acaba (discount_ends_at; nulo para um desconto que vale para sempre).
 
   Autenticação: chave de API da organização em Authorization: Bearer (prk_test_…
   ou prk_live_…). Organização, showcase e ambiente vêm da chave, nunca da
@@ -1895,10 +1928,13 @@ defmodule Perata.Subscriptions do
   end
 
   @doc """
-  Trocar o plano de uma assinatura.
+  Trocar o plano ou estender o período.
 
-  Troca o plano de uma assinatura: outro preço e, se quiser, outra quantidade. O
-  proration_behavior diz como ratear a diferença.
+  Troca o plano de uma assinatura (outro preço e, se quiser, outra quantidade; o
+  proration_behavior diz como ratear a diferença) ou, com
+  extend_current_period_days sozinho, estende o período atual em até 365 dias
+  sem cobrar, para o crédito manual de dias: a próxima cobrança passa a ser no
+  novo current_period_end.
 
   Autenticação: chave de API da organização em Authorization: Bearer (prk_test_…
   ou prk_live_…). Organização, showcase e ambiente vêm da chave, nunca da

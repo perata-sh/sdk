@@ -96,6 +96,8 @@ export interface Checkout {
   discount_id: string;
   /** Quando o checkout deixa de abrir sessões; nulo sem prazo. */
   expires_at: string | null;
+  /** Quantos dias o seu servidor somou ao primeiro período da assinatura (first_period_extra_days na criação); nulo quando o primeiro período é o comum. O comprador paga hoje o valor cheio, e a próxima cobrança só acontece no fim do período mais longo. */
+  first_period_extra_days: number | null;
   id: string;
   /** As linhas do valor fixado, na ordem em que foram enviadas; vazio sem elas. */
   items: CheckoutLine[];
@@ -141,6 +143,10 @@ export interface CheckoutClient {
   expires_at: string;
   /** O dia da primeira cobrança de uma assinatura que não cobra hoje, a meia-noite desse dia em São Paulo: o fim do teste grátis ou a data que o servidor do lojista pediu (subscription_start_at). Nulo quando o pagamento é cobrado na hora. */
   first_charge_at: string | null;
+  /** Quando o primeiro período termina, e portanto o dia da próxima cobrança, se o comprador pagar hoje: a meia-noite desse dia em São Paulo. Nulo sem dias extras. Quem paga em outro dia tem o fim deslocado junto. */
+  first_period_end_at: string | null;
+  /** Quantos dias foram somados ao primeiro período da assinatura (first_period_extra_days na criação do checkout); nulo quando o primeiro período é o comum. */
+  first_period_extra_days: number | null;
   /** O ID da sessão de checkout. */
   id: string;
   /** Os planos de uma venda no cartão de crédito, à vista primeiro; vazio quando a sessão não se paga em parcelas no cartão. */
@@ -198,8 +204,10 @@ export interface CheckoutClientDiscount {
 
 /** CheckoutClientItem is a resource of Peráta's API. */
 export interface CheckoutClientItem {
-  /** Quanto custa a linha antes de qualquer desconto: a unidade vezes a quantidade. */
+  /** Quanto custa a linha antes de qualquer desconto: a quantidade vezes o preço da unidade; num preço por faixas, a soma das faixas. */
   amount_cents: number;
+  /** As faixas de um preço graduado em que a quantidade passou da primeira, na ordem; vazio num preço de uma faixa só. A soma de amount_cents das faixas é o amount_cents da linha. */
+  bands: CheckoutClientItemBand[];
   /** A descrição do produto como o lojista a escreveu, em Markdown; vazia sem ela. */
   description: string;
   /** month ou year numa assinatura; vazio numa compra avulsa. */
@@ -209,7 +217,7 @@ export interface CheckoutClientItem {
   name: string;
   product_id: string;
   quantity: number;
-  /** Quanto custa uma unidade, antes de qualquer desconto. */
+  /** Quanto custa uma unidade, antes de qualquer desconto; num preço por faixas, o da primeira unidade (veja bands). */
   unit_cents: number;
 }
 
@@ -254,6 +262,8 @@ export interface CheckoutCreated {
   discount_id: string;
   /** Quando o link deixa de abrir sessões; nulo sem prazo. */
   expires_at: string | null;
+  /** Quantos dias o seu servidor somou ao primeiro período da assinatura (first_period_extra_days na criação); nulo quando o primeiro período é o comum. O comprador paga hoje o valor cheio, e a próxima cobrança só acontece no fim do período mais longo. */
+  first_period_extra_days: number | null;
   /** O ID do link do checkout, o que GET e PATCH /checkouts/{id} recebem. */
   id: string;
   /** As linhas do valor fixado, na ordem em que foram enviadas; vazio sem elas. */
@@ -295,7 +305,7 @@ export interface CheckoutExpired {
 export interface CheckoutExpiredSession {
   /** true quando a sessão já estava encerrada antes: a chamada foi repetida. */
   already_closed: boolean;
-  /** true quando a Cielo cancelou o Pix ou a reserva nesta chamada. */
+  /** true quando o Pix ou a reserva foi cancelado nesta chamada. */
   canceled: boolean;
   /** Quando a sessão foi encerrada; nulo se ela já tinha falhado. */
   expired_at: string | null;
@@ -303,7 +313,7 @@ export interface CheckoutExpiredSession {
   method: "card" | "pix" | "boleto" | null;
   /** O pagamento que a sessão tinha, vazio se o comprador não escolheu um meio. */
   payment_id: string;
-  /** Como o pagamento ficou: canceled quando a Cielo retirou o QR do Pix ou liberou a reserva do cartão; vazio sem pagamento. */
+  /** Como o pagamento ficou: canceled quando a Peráta retirou o QR do Pix ou liberou a reserva do cartão; vazio sem pagamento. */
   payment_state: string;
   /** O id da sessão, o mesmo checkout_id dos webhooks. */
   session_id: string;
@@ -542,13 +552,13 @@ export interface Dispute {
   opened_at: string;
   /** O pedido que a venda contestada pagou; nulo quando não é de um checkout. */
   order_id: string | null;
-  /** O PaymentId da venda contestada na Cielo. */
+  /** O PaymentId da venda contestada. */
   payment_id: string;
   /** Como a venda contestada foi paga: card ou pix. */
   payment_method: string;
-  /** O número do caso na Cielo. */
+  /** O número do caso. */
   provider_dispute_id: string;
-  /** O motivo nas palavras da Cielo. */
+  /** O motivo informado pelo emissor ou pela bandeira. */
   provider_reason: string;
   /** Motivo, do conjunto fechado; unknown quando a adquirente não informou. */
   reason: string;
@@ -620,6 +630,12 @@ export interface Order {
   customer_id: string;
   /** Qual ciclo da assinatura o pedido pagou: 1 é o primeiro; nulo fora de uma assinatura. */
   cycle_sequence: number | null;
+  /** Quanto o desconto tirou do pedido, em centavos; 0 sem desconto. */
+  discount_cents: number;
+  /** O código que o comprador digitou no checkout deste pedido; nulo quando o desconto veio por discount_id (o seu servidor o enviou ao criar o checkout), quando veio da assinatura numa renovação ou quando não houve desconto. */
+  discount_code: string | null;
+  /** O desconto do catálogo que este pedido aplicou; nulo quando não houve desconto. Na renovação de uma assinatura é o desconto que a assinatura aplicou naquele ciclo (uma vez, por alguns meses ou para sempre). */
+  discount_id: string | null;
   id: string;
   /** Juros do parcelamento pagos pelo comprador, cobrados além de amount_cents. */
   installment_interest_cents: number;
@@ -645,6 +661,8 @@ export interface Order {
   status: "open" | "confirmed" | "succeeded" | "failed" | "expired";
   /** A assinatura de que este pedido é a cobrança (a primeira ou uma renovação); nulo quando o pedido não é de uma assinatura. */
   subscription_id: string | null;
+  /** O valor do pedido antes do desconto, em centavos: subtotal_cents menos discount_cents é o amount_cents. Sem desconto é igual a amount_cents. */
+  subtotal_cents: number;
 }
 
 /** OrderInvoice is a resource of Peráta's API. */
@@ -815,7 +833,7 @@ export interface Refund {
   refund_metadata: Record<string, unknown>;
   /** O showcase a que pertence: o da chave de API que fez a chamada. Uma chave só alcança o seu showcase. */
   showcase_id: string;
-  /** requested e pending esperam a Cielo; unknown é uma resposta que não chegou, e o valor continua reservado até a Cielo responder; succeeded devolveu o dinheiro; failed e canceled não devolveram. */
+  /** requested e pending esperam a confirmação; unknown é passageiro: a confirmação não chegou ou ainda não prova a devolução, o valor continua reservado e a Peráta consulta sozinha (a primeira vez em uns 5 minutos) até virar succeeded ou failed, então não peça de novo e espere o evento refund.succeeded ou refund.failed (ou leia GET /refunds/{id}); succeeded devolveu o dinheiro; failed e canceled não devolveram. */
   status: "requested" | "pending" | "unknown" | "succeeded" | "failed" | "canceled";
 }
 
@@ -845,10 +863,18 @@ export interface Subscription {
   current_period_end: string;
   current_period_start: string;
   customer_id: string;
+  /** Quando o desconto deixa de valer: o fim do último ciclo que ele ainda abate (num desconto de uma vez, o fim do primeiro ciclo pago; por alguns meses, o fim do último ciclo desses meses). Nulo quando não há desconto e quando ele vale para sempre. */
+  discount_ends_at: string | null;
+  /** O desconto em vigor na assinatura, que se aplica aos próximos ciclos até acabar; nulo sem desconto e depois que ele acabou. */
+  discount_id: string | null;
+  /** Quantos dias o checkout que vendeu a assinatura somou ao primeiro período, para você conferir; nulo quando o primeiro período foi o comum. O primeiro período vai do dia do pagamento até esse dia mais um intervalo do preço mais estes dias, e current_period_end já vem com eles. */
+  first_period_extra_days: number | null;
   id: string;
   interval: string;
   /** Metadados do lojista: pares chave e valor (texto, número ou booleano); objeto vazio quando não há. */
   metadata: Record<string, unknown>;
+  /** A mudança de plano ou de quantidade agendada para o próximo período (PATCH com proration_behavior next_period); nulo quando não há nenhuma. Até effective_at a assinatura segue com o price_id, a quantity e o amount_cents de cima. */
+  pending_update: SubscriptionPendingUpdate | null;
   price_id: string;
   product_id: string;
   /** Quantas unidades ou assentos a assinatura cobre, de 1 em diante; 1 num preço sem quantidade. amount_cents é o total do ciclo para esta quantity. */
@@ -983,13 +1009,13 @@ export interface WebhookDispute {
   /** Os pares que o seu servidor enviou ao criar o checkout; na renovação de uma assinatura, os da assinatura. */
   metadata?: Record<string, unknown>;
   opened_at: string;
-  /** O PaymentId da venda contestada na Cielo. */
+  /** O PaymentId da venda contestada. */
   payment_id: string;
   /** Como a venda contestada foi paga: card ou pix. */
   payment_method?: string;
-  /** O número do caso na Cielo. */
+  /** O número do caso. */
   provider_dispute_id: string;
-  /** O motivo nas palavras da Cielo. */
+  /** O motivo informado pelo emissor ou pela bandeira. */
   provider_reason: string;
   /** Motivo, do conjunto fechado; unknown quando a adquirente não informou. */
   reason: string;
@@ -1038,6 +1064,12 @@ export interface WebhookOrder {
   customer_id: string;
   /** O ciclo da assinatura que o pagamento cobra: 1 é o primeiro, 2 é a primeira renovação. */
   cycle_sequence?: number | null;
+  /** Quanto o desconto tirou do pedido, em centavos; 0 sem desconto. */
+  discount_cents: number;
+  /** O código que o comprador digitou no checkout deste pedido; nulo quando o desconto veio por discount_id, quando veio da assinatura numa renovação ou quando não houve desconto. */
+  discount_code: string | null;
+  /** O desconto do catálogo que este pedido aplicou; nulo quando não houve desconto. Na renovação de uma assinatura é o desconto que a assinatura aplicou naquele ciclo. */
+  discount_id: string | null;
   id: string;
   /** Juros do parcelamento pagos pelo comprador, cobrados além de amount_cents. */
   installment_interest_cents: number;
@@ -1067,6 +1099,8 @@ export interface WebhookOrder {
   status: "open" | "confirmed" | "succeeded" | "failed" | "expired";
   /** A assinatura que este pagamento cobra; nulo quando a venda não é de uma assinatura. */
   subscription_id?: string | null;
+  /** O valor do pedido antes do desconto, em centavos: subtotal_cents menos discount_cents é o amount_cents. */
+  subtotal_cents: number;
 }
 
 /** WebhookRefund is a resource of Peráta's API. */
@@ -1106,7 +1140,7 @@ export interface WebhookSale {
   cycle_sequence?: number | null;
   environment: string;
   event_id: string;
-  /** O código que a Cielo deu para a recusa, nos eventos refund.* de um reembolso que falhou; serve ao suporte. */
+  /** O código dado para a recusa, nos eventos refund.* de um reembolso que falhou; serve ao suporte. */
   failure_code?: string;
   /** Por que o dinheiro não voltou, em português, nos eventos refund.* de um reembolso que falhou (refund.failed). */
   failure_reason?: string;
@@ -1142,12 +1176,20 @@ export interface WebhookSubscription {
   current_period_end: string;
   current_period_start: string;
   customer_id: string;
+  /** Quando o desconto deixa de valer: o fim do último ciclo que ele ainda abate (num desconto de uma vez, o fim do primeiro ciclo pago). Nulo quando não há desconto e quando ele vale para sempre. */
+  discount_ends_at: string | null;
+  /** O desconto em vigor na assinatura, que se aplica aos próximos ciclos até acabar; nulo sem desconto e depois que ele acabou. */
+  discount_id: string | null;
+  /** Quantos dias o checkout que vendeu a assinatura somou ao primeiro período, para você conferir; nulo quando o primeiro período foi o comum. O primeiro período vai do dia do pagamento até esse dia mais um intervalo do preço mais estes dias, e current_period_end já vem com eles. */
+  first_period_extra_days: number | null;
   id: string;
   interval: string;
   /** Metadados do lojista: pares chave e valor (texto, número ou booleano); objeto vazio quando não há. */
   metadata: Record<string, unknown>;
   /** A cobrança recusada que causou o evento; só nos eventos de cobrança recusada. */
   payment_failure?: WebhookSubscriptionPaymentFailure;
+  /** A mudança de plano ou de quantidade agendada para o próximo período (PATCH com proration_behavior next_period); nulo quando não há nenhuma. Até effective_at a assinatura segue com o price_id, a quantity e o amount_cents de cima. */
+  pending_update: WebhookSubscriptionPendingUpdate | null;
   price_id: string;
   product_id: string;
   /** Quantas unidades ou assentos a assinatura cobre, de 1 em diante; 1 num preço sem quantidade. amount_cents é o total do ciclo para esta quantity. */
@@ -1161,6 +1203,30 @@ export interface WebhookSubscription {
   suspension_reason: "retries_exhausted" | "declined_not_retryable" | "dispute" | null;
   trial_end: string | null;
   trial_start: string | null;
+}
+
+/** One item of bands in CheckoutClientItem. */
+export interface CheckoutClientItemBand {
+  /** O que a faixa soma: as unidades vezes o preço, mais o valor fixo. */
+  amount_cents: number;
+  /** O valor fixo cobrado por entrar na faixa; zero sem ele. */
+  flat_cents: number;
+  /** Quantas unidades a faixa cobrou. */
+  quantity: number;
+  /** Quanto custa cada unidade da faixa. */
+  unit_cents: number;
+}
+
+/** The pending_update of Subscription. */
+export interface SubscriptionPendingUpdate {
+  /** O que o período seguinte cobra, em centavos, já para esta quantity: é o total do ciclo. */
+  amount_cents: number;
+  /** Quando a mudança vale: o fim do período atual. */
+  effective_at: string;
+  /** O preço para o qual a assinatura passa em effective_at. */
+  price_id: string;
+  /** A quantidade que a assinatura terá a partir de effective_at. */
+  quantity: number;
 }
 
 /** A cobrança recusada que causou o evento; só nos eventos de cobrança recusada. */
@@ -1183,6 +1249,18 @@ export interface WebhookSubscriptionPaymentFailure {
   reason: string;
   /** Verdadeiro quando o emissor permite tentar o mesmo cartão de novo; falso é recusa definitiva. */
   retryable: boolean;
+}
+
+/** The pending_update of WebhookSubscription. */
+export interface WebhookSubscriptionPendingUpdate {
+  /** O que o período seguinte cobra, em centavos, já para esta quantity: é o total do ciclo. */
+  amount_cents: number;
+  /** Quando a mudança vale: o fim do período atual. */
+  effective_at: string;
+  /** O preço para o qual a assinatura passa em effective_at. */
+  price_id: string;
+  /** A quantidade que a assinatura terá a partir de effective_at. */
+  quantity: number;
 }
 
 /** The body of benefits:create. */
@@ -1267,6 +1345,8 @@ export interface CheckoutsCreateParams {
   expires_in?: number;
   /** O mesmo cliente, pelo ID que você deu a ele. */
   external_customer_id?: string;
+  /** Quantos dias somar ao primeiro período da assinatura, de 1 a 365: para o comprador que ainda tinha dias pagos num plano anterior (por exemplo, pago até 11/12 e assinando em 20/11: 21 dias). O comprador paga hoje o valor cheio do preço (com as faixas, a quantidade e o desconto), em Pix, cartão de crédito ou débito, como em qualquer checkout, e o primeiro período vai do dia do pagamento até esse dia mais um intervalo do preço mais estes dias, no horário de São Paulo; a renovação e os ciclos seguintes contam a partir desse fim. A próxima cobrança, no cartão guardado ou pelo link ou Pix de renovação, só acontece nele. A página mostra "Pague hoje R$ X. Próxima cobrança em DD/MM/AAAA (inclui N dias do seu plano anterior)". Só vale em um preço recorrente com valor, vendido sozinho e sem teste grátis, e não junto com subscription_start_at (cobra hoje, não numa data); fora disso a resposta é 422. A assinatura e o evento da venda trazem o mesmo número em first_period_extra_days, e o pedido do primeiro ciclo traz o período estendido em period_start e period_end. Repetir a criação com a mesma Idempotency-Key e outro número dá 409. */
+  first_period_extra_days?: number;
   /** As linhas do pedido, até 50, para o comprador ler o detalhe: aparecem no checkout (página, modal, componentes e transparente), no pedido, no recibo, no portal do cliente e nos eventos. Em um preço de valor livre, a soma de quantity vezes unit_amount_cents precisa ser igual a amount_cents, ou a resposta é 422; enviadas sem amount_cents, a soma é o valor. Em um preço com valor próprio, como o de uma assinatura, as linhas só mostram ao comprador do que o valor é feito e fixam nada: envie-as sem amount_cents, com a soma igual ao valor do preço vezes a quantidade (senão 422), e o preço continua sendo quem define o que se cobra. */
   items?: CheckoutsCreateItem[];
   label?: string;
@@ -1516,8 +1596,10 @@ export interface RefundsCreateParams {
 
 /** The body of subscriptions:update. */
 export interface SubscriptionsUpdateParams {
-  /** O preço recorrente para onde a assinatura vai. */
-  price_id: string;
+  /** Estende o período atual em tantos dias, de 1 a 365, sem cobrar nada e sem criar pedido: a renovação (e a próxima cobrança) passa a ser no novo fim, current_period_end, e os períodos seguintes contam a partir dele. É o crédito manual de dias do lojista. Só uma assinatura active aceita (uma em teste grátis, atrasada, pausada, suspensa ou cancelada recusa); uma que termina no fim do período termina no novo fim. Vai sozinho, sem price_id, quantity nem proration_behavior, senão a resposta é 422. A mudança chega no webhook subscription.updated e fica registrada no log de atividades. Não é repetível por si: envie uma Idempotency-Key para que uma nova tentativa não some os dias duas vezes. */
+  extend_current_period_days?: number;
+  /** O preço recorrente para onde a assinatura vai. Obrigatório para trocar de plano; não se envia com extend_current_period_days. */
+  price_id?: string;
   /** prorate (padrão): rateia o resto do período no próximo valor cobrado; invoice: cobra a diferença agora; next_period: troca no fim do período; reset: cobra o período inteiro do novo plano agora e reinicia o ciclo. */
   proration_behavior?: "prorate" | "invoice" | "next_period" | "reset";
   /** A nova quantidade; omitida, fica a atual. */

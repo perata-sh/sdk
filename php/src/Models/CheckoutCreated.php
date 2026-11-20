@@ -25,6 +25,8 @@ final class CheckoutCreated
         public readonly string $discountId,
         /** Quando o link deixa de abrir sessões; nulo sem prazo. */
         public readonly ?string $expiresAt,
+        /** Quantos dias o seu servidor somou ao primeiro período da assinatura (first_period_extra_days na criação); nulo quando o primeiro período é o comum. O comprador paga hoje o valor cheio, e a próxima cobrança só acontece no fim do período mais longo. */
+        public readonly ?int $firstPeriodExtraDays,
         /** O ID do link do checkout, o que GET e PATCH /checkouts/{id} recebem. */
         public readonly string $id,
         /**
@@ -76,6 +78,7 @@ final class CheckoutCreated
             createdAt: $data['created_at'],
             discountId: $data['discount_id'],
             expiresAt: $data['expires_at'] ?? null,
+            firstPeriodExtraDays: $data['first_period_extra_days'] ?? null,
             id: $data['id'],
             items: array_values(array_map(static fn (array $item) => CheckoutLine::fromArray($item), $data['items'])),
             label: $data['label'],

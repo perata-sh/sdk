@@ -98,7 +98,9 @@ type Checkout struct {
 	DiscountID string `json:"discount_id"`
 	// Quando o checkout deixa de abrir sessões; nulo sem prazo.
 	ExpiresAt *string `json:"expires_at"`
-	ID        string  `json:"id"`
+	// Quantos dias o seu servidor somou ao primeiro período da assinatura (first_period_extra_days na criação); nulo quando o primeiro período é o comum. O comprador paga hoje o valor cheio, e a próxima cobrança só acontece no fim do período mais longo.
+	FirstPeriodExtraDays *int64 `json:"first_period_extra_days"`
+	ID                   string `json:"id"`
 	// As linhas do valor fixado, na ordem em que foram enviadas; vazio sem elas.
 	Items []CheckoutLine `json:"items"`
 	// Como o lojista chama o checkout nas próprias telas; o comprador não vê.
@@ -143,6 +145,10 @@ type CheckoutClient struct {
 	ExpiresAt string `json:"expires_at"`
 	// O dia da primeira cobrança de uma assinatura que não cobra hoje, a meia-noite desse dia em São Paulo: o fim do teste grátis ou a data que o servidor do lojista pediu (subscription_start_at). Nulo quando o pagamento é cobrado na hora.
 	FirstChargeAt *string `json:"first_charge_at"`
+	// Quando o primeiro período termina, e portanto o dia da próxima cobrança, se o comprador pagar hoje: a meia-noite desse dia em São Paulo. Nulo sem dias extras. Quem paga em outro dia tem o fim deslocado junto.
+	FirstPeriodEndAt *string `json:"first_period_end_at"`
+	// Quantos dias foram somados ao primeiro período da assinatura (first_period_extra_days na criação do checkout); nulo quando o primeiro período é o comum.
+	FirstPeriodExtraDays *int64 `json:"first_period_extra_days"`
 	// O ID da sessão de checkout.
 	ID string `json:"id"`
 	// Os planos de uma venda no cartão de crédito, à vista primeiro; vazio quando a sessão não se paga em parcelas no cartão.
@@ -200,8 +206,10 @@ type CheckoutClientDiscount struct {
 
 // CheckoutClientItem is a resource of Peráta's API.
 type CheckoutClientItem struct {
-	// Quanto custa a linha antes de qualquer desconto: a unidade vezes a quantidade.
+	// Quanto custa a linha antes de qualquer desconto: a quantidade vezes o preço da unidade; num preço por faixas, a soma das faixas.
 	AmountCents int64 `json:"amount_cents"`
+	// As faixas de um preço graduado em que a quantidade passou da primeira, na ordem; vazio num preço de uma faixa só. A soma de amount_cents das faixas é o amount_cents da linha.
+	Bands []CheckoutClientItemBand `json:"bands"`
 	// A descrição do produto como o lojista a escreveu, em Markdown; vazia sem ela.
 	Description string `json:"description"`
 	// month ou year numa assinatura; vazio numa compra avulsa.
@@ -211,7 +219,7 @@ type CheckoutClientItem struct {
 	Name          string `json:"name"`
 	ProductID     string `json:"product_id"`
 	Quantity      int64  `json:"quantity"`
-	// Quanto custa uma unidade, antes de qualquer desconto.
+	// Quanto custa uma unidade, antes de qualquer desconto; num preço por faixas, o da primeira unidade (veja bands).
 	UnitCents int64 `json:"unit_cents"`
 }
 
@@ -256,6 +264,8 @@ type CheckoutCreated struct {
 	DiscountID string `json:"discount_id"`
 	// Quando o link deixa de abrir sessões; nulo sem prazo.
 	ExpiresAt *string `json:"expires_at"`
+	// Quantos dias o seu servidor somou ao primeiro período da assinatura (first_period_extra_days na criação); nulo quando o primeiro período é o comum. O comprador paga hoje o valor cheio, e a próxima cobrança só acontece no fim do período mais longo.
+	FirstPeriodExtraDays *int64 `json:"first_period_extra_days"`
 	// O ID do link do checkout, o que GET e PATCH /checkouts/{id} recebem.
 	ID string `json:"id"`
 	// As linhas do valor fixado, na ordem em que foram enviadas; vazio sem elas.
@@ -297,7 +307,7 @@ type CheckoutExpired struct {
 type CheckoutExpiredSession struct {
 	// true quando a sessão já estava encerrada antes: a chamada foi repetida.
 	AlreadyClosed bool `json:"already_closed"`
-	// true quando a Cielo cancelou o Pix ou a reserva nesta chamada.
+	// true quando o Pix ou a reserva foi cancelado nesta chamada.
 	Canceled bool `json:"canceled"`
 	// Quando a sessão foi encerrada; nulo se ela já tinha falhado.
 	ExpiredAt *string `json:"expired_at"`
@@ -305,7 +315,7 @@ type CheckoutExpiredSession struct {
 	Method *string `json:"method"`
 	// O pagamento que a sessão tinha, vazio se o comprador não escolheu um meio.
 	PaymentID string `json:"payment_id"`
-	// Como o pagamento ficou: canceled quando a Cielo retirou o QR do Pix ou liberou a reserva do cartão; vazio sem pagamento.
+	// Como o pagamento ficou: canceled quando a Peráta retirou o QR do Pix ou liberou a reserva do cartão; vazio sem pagamento.
 	PaymentState string `json:"payment_state"`
 	// O id da sessão, o mesmo checkout_id dos webhooks.
 	SessionID string `json:"session_id"`
@@ -544,13 +554,13 @@ type Dispute struct {
 	OpenedAt string         `json:"opened_at"`
 	// O pedido que a venda contestada pagou; nulo quando não é de um checkout.
 	OrderID *string `json:"order_id"`
-	// O PaymentId da venda contestada na Cielo.
+	// O PaymentId da venda contestada.
 	PaymentID string `json:"payment_id"`
 	// Como a venda contestada foi paga: card ou pix.
 	PaymentMethod string `json:"payment_method"`
-	// O número do caso na Cielo.
+	// O número do caso.
 	ProviderDisputeID string `json:"provider_dispute_id"`
-	// O motivo nas palavras da Cielo.
+	// O motivo informado pelo emissor ou pela bandeira.
 	ProviderReason string `json:"provider_reason"`
 	// Motivo, do conjunto fechado; unknown quando a adquirente não informou.
 	Reason string `json:"reason"`
@@ -622,7 +632,13 @@ type Order struct {
 	CustomerID        string `json:"customer_id"`
 	// Qual ciclo da assinatura o pedido pagou: 1 é o primeiro; nulo fora de uma assinatura.
 	CycleSequence *int64 `json:"cycle_sequence"`
-	ID            string `json:"id"`
+	// Quanto o desconto tirou do pedido, em centavos; 0 sem desconto.
+	DiscountCents int64 `json:"discount_cents"`
+	// O código que o comprador digitou no checkout deste pedido; nulo quando o desconto veio por discount_id (o seu servidor o enviou ao criar o checkout), quando veio da assinatura numa renovação ou quando não houve desconto.
+	DiscountCode *string `json:"discount_code"`
+	// O desconto do catálogo que este pedido aplicou; nulo quando não houve desconto. Na renovação de uma assinatura é o desconto que a assinatura aplicou naquele ciclo (uma vez, por alguns meses ou para sempre).
+	DiscountID *string `json:"discount_id"`
+	ID         string  `json:"id"`
 	// Juros do parcelamento pagos pelo comprador, cobrados além de amount_cents.
 	InstallmentInterestCents int64 `json:"installment_interest_cents"`
 	// Em quantas parcelas o cartão de crédito foi cobrado; 1 à vista.
@@ -647,6 +663,8 @@ type Order struct {
 	Status     string `json:"status"`
 	// A assinatura de que este pedido é a cobrança (a primeira ou uma renovação); nulo quando o pedido não é de uma assinatura.
 	SubscriptionID *string `json:"subscription_id"`
+	// O valor do pedido antes do desconto, em centavos: subtotal_cents menos discount_cents é o amount_cents. Sem desconto é igual a amount_cents.
+	SubtotalCents int64 `json:"subtotal_cents"`
 }
 
 // OrderInvoice is a resource of Peráta's API.
@@ -817,7 +835,7 @@ type Refund struct {
 	RefundMetadata map[string]any `json:"refund_metadata"`
 	// O showcase a que pertence: o da chave de API que fez a chamada. Uma chave só alcança o seu showcase.
 	ShowcaseID string `json:"showcase_id"`
-	// requested e pending esperam a Cielo; unknown é uma resposta que não chegou, e o valor continua reservado até a Cielo responder; succeeded devolveu o dinheiro; failed e canceled não devolveram.
+	// requested e pending esperam a confirmação; unknown é passageiro: a confirmação não chegou ou ainda não prova a devolução, o valor continua reservado e a Peráta consulta sozinha (a primeira vez em uns 5 minutos) até virar succeeded ou failed, então não peça de novo e espere o evento refund.succeeded ou refund.failed (ou leia GET /refunds/{id}); succeeded devolveu o dinheiro; failed e canceled não devolveram.
 	Status string `json:"status"`
 }
 
@@ -847,12 +865,20 @@ type Subscription struct {
 	CurrentPeriodEnd   string `json:"current_period_end"`
 	CurrentPeriodStart string `json:"current_period_start"`
 	CustomerID         string `json:"customer_id"`
-	ID                 string `json:"id"`
-	Interval           string `json:"interval"`
+	// Quando o desconto deixa de valer: o fim do último ciclo que ele ainda abate (num desconto de uma vez, o fim do primeiro ciclo pago; por alguns meses, o fim do último ciclo desses meses). Nulo quando não há desconto e quando ele vale para sempre.
+	DiscountEndsAt *string `json:"discount_ends_at"`
+	// O desconto em vigor na assinatura, que se aplica aos próximos ciclos até acabar; nulo sem desconto e depois que ele acabou.
+	DiscountID *string `json:"discount_id"`
+	// Quantos dias o checkout que vendeu a assinatura somou ao primeiro período, para você conferir; nulo quando o primeiro período foi o comum. O primeiro período vai do dia do pagamento até esse dia mais um intervalo do preço mais estes dias, e current_period_end já vem com eles.
+	FirstPeriodExtraDays *int64 `json:"first_period_extra_days"`
+	ID                   string `json:"id"`
+	Interval             string `json:"interval"`
 	// Metadados do lojista: pares chave e valor (texto, número ou booleano); objeto vazio quando não há.
-	Metadata  map[string]any `json:"metadata"`
-	PriceID   string         `json:"price_id"`
-	ProductID string         `json:"product_id"`
+	Metadata map[string]any `json:"metadata"`
+	// A mudança de plano ou de quantidade agendada para o próximo período (PATCH com proration_behavior next_period); nulo quando não há nenhuma. Até effective_at a assinatura segue com o price_id, a quantity e o amount_cents de cima.
+	PendingUpdate *SubscriptionPendingUpdate `json:"pending_update"`
+	PriceID       string                     `json:"price_id"`
+	ProductID     string                     `json:"product_id"`
 	// Quantas unidades ou assentos a assinatura cobre, de 1 em diante; 1 num preço sem quantidade. amount_cents é o total do ciclo para esta quantity.
 	Quantity int64 `json:"quantity"`
 	// O showcase a que pertence: o da chave de API que fez a chamada. Uma chave só alcança o seu showcase.
@@ -985,13 +1011,13 @@ type WebhookDispute struct {
 	// Os pares que o seu servidor enviou ao criar o checkout; na renovação de uma assinatura, os da assinatura.
 	Metadata map[string]any `json:"metadata,omitempty"`
 	OpenedAt string         `json:"opened_at"`
-	// O PaymentId da venda contestada na Cielo.
+	// O PaymentId da venda contestada.
 	PaymentID string `json:"payment_id"`
 	// Como a venda contestada foi paga: card ou pix.
 	PaymentMethod string `json:"payment_method,omitempty"`
-	// O número do caso na Cielo.
+	// O número do caso.
 	ProviderDisputeID string `json:"provider_dispute_id"`
-	// O motivo nas palavras da Cielo.
+	// O motivo informado pelo emissor ou pela bandeira.
 	ProviderReason string `json:"provider_reason"`
 	// Motivo, do conjunto fechado; unknown quando a adquirente não informou.
 	Reason string `json:"reason"`
@@ -1040,7 +1066,13 @@ type WebhookOrder struct {
 	CustomerID        string `json:"customer_id"`
 	// O ciclo da assinatura que o pagamento cobra: 1 é o primeiro, 2 é a primeira renovação.
 	CycleSequence *int64 `json:"cycle_sequence,omitempty"`
-	ID            string `json:"id"`
+	// Quanto o desconto tirou do pedido, em centavos; 0 sem desconto.
+	DiscountCents int64 `json:"discount_cents"`
+	// O código que o comprador digitou no checkout deste pedido; nulo quando o desconto veio por discount_id, quando veio da assinatura numa renovação ou quando não houve desconto.
+	DiscountCode *string `json:"discount_code"`
+	// O desconto do catálogo que este pedido aplicou; nulo quando não houve desconto. Na renovação de uma assinatura é o desconto que a assinatura aplicou naquele ciclo.
+	DiscountID *string `json:"discount_id"`
+	ID         string  `json:"id"`
 	// Juros do parcelamento pagos pelo comprador, cobrados além de amount_cents.
 	InstallmentInterestCents int64 `json:"installment_interest_cents"`
 	// Em quantas parcelas o cartão de crédito foi cobrado; 1 à vista.
@@ -1069,6 +1101,8 @@ type WebhookOrder struct {
 	Status     string `json:"status"`
 	// A assinatura que este pagamento cobra; nulo quando a venda não é de uma assinatura.
 	SubscriptionID *string `json:"subscription_id,omitempty"`
+	// O valor do pedido antes do desconto, em centavos: subtotal_cents menos discount_cents é o amount_cents.
+	SubtotalCents int64 `json:"subtotal_cents"`
 }
 
 // WebhookRefund is a resource of Peráta's API.
@@ -1108,7 +1142,7 @@ type WebhookSale struct {
 	CycleSequence *int64 `json:"cycle_sequence,omitempty"`
 	Environment   string `json:"environment"`
 	EventID       string `json:"event_id"`
-	// O código que a Cielo deu para a recusa, nos eventos refund.* de um reembolso que falhou; serve ao suporte.
+	// O código dado para a recusa, nos eventos refund.* de um reembolso que falhou; serve ao suporte.
 	FailureCode string `json:"failure_code,omitempty"`
 	// Por que o dinheiro não voltou, em português, nos eventos refund.* de um reembolso que falhou (refund.failed).
 	FailureReason string `json:"failure_reason,omitempty"`
@@ -1144,14 +1178,22 @@ type WebhookSubscription struct {
 	CurrentPeriodEnd   string `json:"current_period_end"`
 	CurrentPeriodStart string `json:"current_period_start"`
 	CustomerID         string `json:"customer_id"`
-	ID                 string `json:"id"`
-	Interval           string `json:"interval"`
+	// Quando o desconto deixa de valer: o fim do último ciclo que ele ainda abate (num desconto de uma vez, o fim do primeiro ciclo pago). Nulo quando não há desconto e quando ele vale para sempre.
+	DiscountEndsAt *string `json:"discount_ends_at"`
+	// O desconto em vigor na assinatura, que se aplica aos próximos ciclos até acabar; nulo sem desconto e depois que ele acabou.
+	DiscountID *string `json:"discount_id"`
+	// Quantos dias o checkout que vendeu a assinatura somou ao primeiro período, para você conferir; nulo quando o primeiro período foi o comum. O primeiro período vai do dia do pagamento até esse dia mais um intervalo do preço mais estes dias, e current_period_end já vem com eles.
+	FirstPeriodExtraDays *int64 `json:"first_period_extra_days"`
+	ID                   string `json:"id"`
+	Interval             string `json:"interval"`
 	// Metadados do lojista: pares chave e valor (texto, número ou booleano); objeto vazio quando não há.
 	Metadata map[string]any `json:"metadata"`
 	// A cobrança recusada que causou o evento; só nos eventos de cobrança recusada.
 	PaymentFailure WebhookSubscriptionPaymentFailure `json:"payment_failure,omitempty"`
-	PriceID        string                            `json:"price_id"`
-	ProductID      string                            `json:"product_id"`
+	// A mudança de plano ou de quantidade agendada para o próximo período (PATCH com proration_behavior next_period); nulo quando não há nenhuma. Até effective_at a assinatura segue com o price_id, a quantity e o amount_cents de cima.
+	PendingUpdate *WebhookSubscriptionPendingUpdate `json:"pending_update"`
+	PriceID       string                            `json:"price_id"`
+	ProductID     string                            `json:"product_id"`
 	// Quantas unidades ou assentos a assinatura cobre, de 1 em diante; 1 num preço sem quantidade. amount_cents é o total do ciclo para esta quantity.
 	Quantity int64 `json:"quantity"`
 	// O showcase da venda.
@@ -1163,6 +1205,30 @@ type WebhookSubscription struct {
 	SuspensionReason *string `json:"suspension_reason"`
 	TrialEnd         *string `json:"trial_end"`
 	TrialStart       *string `json:"trial_start"`
+}
+
+// One item of bands in CheckoutClientItem.
+type CheckoutClientItemBand struct {
+	// O que a faixa soma: as unidades vezes o preço, mais o valor fixo.
+	AmountCents int64 `json:"amount_cents"`
+	// O valor fixo cobrado por entrar na faixa; zero sem ele.
+	FlatCents int64 `json:"flat_cents"`
+	// Quantas unidades a faixa cobrou.
+	Quantity int64 `json:"quantity"`
+	// Quanto custa cada unidade da faixa.
+	UnitCents int64 `json:"unit_cents"`
+}
+
+// The pending_update of Subscription.
+type SubscriptionPendingUpdate struct {
+	// O que o período seguinte cobra, em centavos, já para esta quantity: é o total do ciclo.
+	AmountCents int64 `json:"amount_cents"`
+	// Quando a mudança vale: o fim do período atual.
+	EffectiveAt string `json:"effective_at"`
+	// O preço para o qual a assinatura passa em effective_at.
+	PriceID string `json:"price_id"`
+	// A quantidade que a assinatura terá a partir de effective_at.
+	Quantity int64 `json:"quantity"`
 }
 
 // A cobrança recusada que causou o evento; só nos eventos de cobrança recusada.
@@ -1185,6 +1251,18 @@ type WebhookSubscriptionPaymentFailure struct {
 	Reason string `json:"reason"`
 	// Verdadeiro quando o emissor permite tentar o mesmo cartão de novo; falso é recusa definitiva.
 	Retryable bool `json:"retryable"`
+}
+
+// The pending_update of WebhookSubscription.
+type WebhookSubscriptionPendingUpdate struct {
+	// O que o período seguinte cobra, em centavos, já para esta quantity: é o total do ciclo.
+	AmountCents int64 `json:"amount_cents"`
+	// Quando a mudança vale: o fim do período atual.
+	EffectiveAt string `json:"effective_at"`
+	// O preço para o qual a assinatura passa em effective_at.
+	PriceID string `json:"price_id"`
+	// A quantidade que a assinatura terá a partir de effective_at.
+	Quantity int64 `json:"quantity"`
 }
 
 // The body of benefits:create.
@@ -1269,6 +1347,8 @@ type CheckoutsCreateParams struct {
 	ExpiresIn *int64 `json:"expires_in,omitempty"`
 	// O mesmo cliente, pelo ID que você deu a ele.
 	ExternalCustomerID *string `json:"external_customer_id,omitempty"`
+	// Quantos dias somar ao primeiro período da assinatura, de 1 a 365: para o comprador que ainda tinha dias pagos num plano anterior (por exemplo, pago até 11/12 e assinando em 20/11: 21 dias). O comprador paga hoje o valor cheio do preço (com as faixas, a quantidade e o desconto), em Pix, cartão de crédito ou débito, como em qualquer checkout, e o primeiro período vai do dia do pagamento até esse dia mais um intervalo do preço mais estes dias, no horário de São Paulo; a renovação e os ciclos seguintes contam a partir desse fim. A próxima cobrança, no cartão guardado ou pelo link ou Pix de renovação, só acontece nele. A página mostra "Pague hoje R$ X. Próxima cobrança em DD/MM/AAAA (inclui N dias do seu plano anterior)". Só vale em um preço recorrente com valor, vendido sozinho e sem teste grátis, e não junto com subscription_start_at (cobra hoje, não numa data); fora disso a resposta é 422. A assinatura e o evento da venda trazem o mesmo número em first_period_extra_days, e o pedido do primeiro ciclo traz o período estendido em period_start e period_end. Repetir a criação com a mesma Idempotency-Key e outro número dá 409.
+	FirstPeriodExtraDays *int64 `json:"first_period_extra_days,omitempty"`
 	// As linhas do pedido, até 50, para o comprador ler o detalhe: aparecem no checkout (página, modal, componentes e transparente), no pedido, no recibo, no portal do cliente e nos eventos. Em um preço de valor livre, a soma de quantity vezes unit_amount_cents precisa ser igual a amount_cents, ou a resposta é 422; enviadas sem amount_cents, a soma é o valor. Em um preço com valor próprio, como o de uma assinatura, as linhas só mostram ao comprador do que o valor é feito e fixam nada: envie-as sem amount_cents, com a soma igual ao valor do preço vezes a quantidade (senão 422), e o preço continua sendo quem define o que se cobra.
 	Items []CheckoutsCreateItem `json:"items,omitempty"`
 	Label *string               `json:"label,omitempty"`
@@ -1518,8 +1598,10 @@ type RefundsCreateParams struct {
 
 // The body of subscriptions:update.
 type SubscriptionsUpdateParams struct {
-	// O preço recorrente para onde a assinatura vai.
-	PriceID string `json:"price_id"`
+	// Estende o período atual em tantos dias, de 1 a 365, sem cobrar nada e sem criar pedido: a renovação (e a próxima cobrança) passa a ser no novo fim, current_period_end, e os períodos seguintes contam a partir dele. É o crédito manual de dias do lojista. Só uma assinatura active aceita (uma em teste grátis, atrasada, pausada, suspensa ou cancelada recusa); uma que termina no fim do período termina no novo fim. Vai sozinho, sem price_id, quantity nem proration_behavior, senão a resposta é 422. A mudança chega no webhook subscription.updated e fica registrada no log de atividades. Não é repetível por si: envie uma Idempotency-Key para que uma nova tentativa não some os dias duas vezes.
+	ExtendCurrentPeriodDays *int64 `json:"extend_current_period_days,omitempty"`
+	// O preço recorrente para onde a assinatura vai. Obrigatório para trocar de plano; não se envia com extend_current_period_days.
+	PriceID *string `json:"price_id,omitempty"`
 	// prorate (padrão): rateia o resto do período no próximo valor cobrado; invoice: cobra a diferença agora; next_period: troca no fim do período; reset: cobra o período inteiro do novo plano agora e reinicia o ciclo.
 	ProrationBehavior *string `json:"proration_behavior,omitempty"`
 	// A nova quantidade; omitida, fica a atual.

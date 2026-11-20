@@ -9,6 +9,23 @@ Todos os SDKs da Peráta saem com a mesma versão (`VERSION`). O histórico de c
 - `js/`: `perata.components.wallet` (o botão do Google Pay e do Apple Pay no layout do lojista), os tipos `WalletComponent`, `WalletComponentOptions`, `WalletComponentEvents` e `WalletKind`, `ChangeEvent.available`, `update({ customer })` e os códigos de erro `wallet_element_required`, `customer_incomplete` e `wallet_unavailable`. `components.payment` passa a trazer a carteira do aparelho e os cartões salvos. Seguem o `perata.js` do perata.sh e valem depois do deploy dele.
 - `react/`: `WalletComponent`.
 
+## 0.5.8 (20/11/2026)
+
+Gerado a partir do contrato da API 0.1.0 (perata.sh e1e917df), o que está no ar.
+
+### Os 11 SDKs de servidor
+
+- **Dias extras no primeiro período.** `checkouts.create` aceita `first_period_extra_days` (1 a 365): os dias que o comprador ainda tem pagos num plano anterior entram no primeiro período da assinatura, e a próxima cobrança só acontece no fim dele. `Checkout`, `CheckoutCreated`, `Subscription` e `WebhookSubscription` (os eventos `subscription.*`) devolvem `first_period_extra_days`, e o estado do comprador (`CheckoutClient`) traz também `first_period_end_at`, o dia da próxima cobrança.
+- **Crédito manual de dias.** `subscriptions.update` aceita `extend_current_period_days` (1 a 365), sozinho: estende o período atual sem cobrar. **Mudança de tipo nas linguagens tipadas: `price_id` deixa de ser obrigatório em `SubscriptionsUpdateParams`** (Go: `*string`; a API recusa com 422 uma chamada sem `price_id` e sem `extend_current_period_days`, e uma com os dois).
+- **Descontos.** `Order` e `WebhookOrder` (os eventos `order.*`) trazem `discount_id`, `discount_code`, `subtotal_cents` e `discount_cents`. `Subscription` e `WebhookSubscription` trazem `discount_id` (o desconto em vigor) e `discount_ends_at` (quando acaba; nulo se vale para sempre).
+- **Troca agendada.** `Subscription` e `WebhookSubscription` trazem `pending_update` (`price_id`, `quantity`, `amount_cents` do ciclo e `effective_at`), nulo sem troca agendada para o próximo período. Novos modelos `SubscriptionPendingUpdate` e `WebhookSubscriptionPendingUpdate`. O gerador passou a ler um objeto escrito no contrato que também pode ser nulo.
+- **`prices.get`** (`GET /api/v1/prices/{price}`) lê um preço pelo id, também um arquivado.
+- **`CheckoutClientItem.bands`:** as faixas de um preço graduado em que a quantidade passou da primeira (novo modelo `CheckoutClientItemBand`).
+- **Texto.** As descrições do contrato deixaram de citar o processador de pagamento.
+- **PHP.** O comentário de tipo de uma lista de objetos escritos no contrato passa a dizer a classe, e não um `array{…}`.
+- **Testes.** Cada SDK testa o checkout com dias extras, a extensão sem `price_id`, o desconto no pedido e na assinatura, `pending_update` (com e sem) e `prices.get`. As amostras de webhook dos testes ganharam os campos de desconto do pedido, com as assinaturas recalculadas.
+- **READMEs.** Seção nova sobre dias extras, desconto e `prices.get`.
+
 ## 0.5.7 (20/11/2026)
 
 Gerado a partir do contrato da API 0.1.0 (perata.sh 9ae556b4).

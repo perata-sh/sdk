@@ -4,6 +4,15 @@ Todos os SDKs da Peráta saem com a mesma versão; as mudanças de cada uma est�
 
 ## {{.Version}} (20/11/2026)
 
+Gerado a partir do contrato da API {{.APIVersion}} (perata.sh e1e917df).
+
+- Dias extras no primeiro período: `checkouts.create` aceita `firstPeriodExtraDays` (1 a 365), e `Checkout`, `CheckoutCreated`, `Subscription` e `WebhookSubscription` o devolvem; o estado do comprador (`CheckoutClient`) traz também `firstPeriodEndAt`.
+- `subscriptions.update` aceita `extendCurrentPeriodDays` (1 a 365), sozinho, para dar dias sem cobrar. `priceId` deixa de ser obrigatório em `SubscriptionsUpdateParams`.
+- `Order` e `WebhookOrder` trazem `discountId`, `discountCode`, `subtotalCents` e `discountCents`; `Subscription` e `WebhookSubscription` trazem `discountId`, `discountEndsAt` e `pendingUpdate` (`SubscriptionPendingUpdate`, nulo sem troca agendada).
+- `prices.get` lê um preço pelo id. `CheckoutClientItem` traz `bands` (`CheckoutClientItemBand`).
+
+## 0.5.7 (20/11/2026)
+
 Gerado a partir do contrato da API {{.APIVersion}} (perata.sh 9ae556b4).
 
 - Preço por quantidade: `prices.create` aceita `pricingModel` (`fixed`, o padrão, `per_unit`, `seat`, `volume` e `graduated`), `tiers` (`PricesCreateTier`: `unitAmountCents` e `upTo`; a última faixa não leva `upTo`), `unitAmountCents`, `unitLabel`, `unitLabelPlural`, `minimumUnits` e `maximumUnits`. `amountCents` deixa de ser obrigatório em `PricesCreateParams` (fora do preço fixo a API o recusa com 422). O `Price` devolvido traz `pricingModel`, `tiers` (`PriceTier`), `unitAmountCents`, `unitLabel`, `unitLabelPlural`, `minimumUnits` e `maximumUnits`; `interval` aceita também `day` e `week`.

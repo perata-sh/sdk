@@ -137,7 +137,9 @@ public final class SubscriptionsService {
     /**
      * Ler uma assinatura.
      *
-     * Devolve uma assinatura pelo ID.
+     * Devolve uma assinatura pelo ID, com o desconto em vigor (discount_id) e
+     * quando ele acaba (discount_ends_at; nulo para um desconto que vale para
+     * sempre).
      *
      * Autenticação: chave de API da organização em Authorization: Bearer
      * (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
@@ -158,7 +160,9 @@ public final class SubscriptionsService {
     /**
      * Ler uma assinatura.
      *
-     * Devolve uma assinatura pelo ID.
+     * Devolve uma assinatura pelo ID, com o desconto em vigor (discount_id) e
+     * quando ele acaba (discount_ends_at; nulo para um desconto que vale para
+     * sempre).
      *
      * Autenticação: chave de API da organização em Authorization: Bearer
      * (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
@@ -517,10 +521,13 @@ public final class SubscriptionsService {
     }
 
     /**
-     * Trocar o plano de uma assinatura.
+     * Trocar o plano ou estender o período.
      *
-     * Troca o plano de uma assinatura: outro preço e, se quiser, outra
-     * quantidade. O proration_behavior diz como ratear a diferença.
+     * Troca o plano de uma assinatura (outro preço e, se quiser, outra
+     * quantidade; o proration_behavior diz como ratear a diferença) ou, com
+     * extend_current_period_days sozinho, estende o período atual em até 365
+     * dias sem cobrar, para o crédito manual de dias: a próxima cobrança passa
+     * a ser no novo current_period_end.
      *
      * Autenticação: chave de API da organização em Authorization: Bearer
      * (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
@@ -540,10 +547,13 @@ public final class SubscriptionsService {
     }
 
     /**
-     * Trocar o plano de uma assinatura.
+     * Trocar o plano ou estender o período.
      *
-     * Troca o plano de uma assinatura: outro preço e, se quiser, outra
-     * quantidade. O proration_behavior diz como ratear a diferença.
+     * Troca o plano de uma assinatura (outro preço e, se quiser, outra
+     * quantidade; o proration_behavior diz como ratear a diferença) ou, com
+     * extend_current_period_days sozinho, estende o período atual em até 365
+     * dias sem cobrar, para o crédito manual de dias: a próxima cobrança passa
+     * a ser no novo current_period_end.
      *
      * Autenticação: chave de API da organização em Authorization: Bearer
      * (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
@@ -571,11 +581,13 @@ public final class SubscriptionsService {
         /** A value of {@link #getProrationBehavior()}. */
         public static final String PRORATION_BEHAVIOR_RESET = "reset";
 
+        private final Long extendCurrentPeriodDays;
         private final String priceId;
         private final String prorationBehavior;
         private final Long quantity;
 
         private UpdateParams(Builder builder) {
+            this.extendCurrentPeriodDays = builder.extendCurrentPeriodDays;
             this.priceId = builder.priceId;
             this.prorationBehavior = builder.prorationBehavior;
             this.quantity = builder.quantity;
@@ -586,7 +598,12 @@ public final class SubscriptionsService {
             return new Builder();
         }
 
-        /** @return O preço recorrente para onde a assinatura vai. */
+        /** @return Estende o período atual em tantos dias, de 1 a 365, sem cobrar nada e sem criar pedido: a renovação (e a próxima cobrança) passa a ser no novo fim, current_period_end, e os períodos seguintes contam a partir dele. É o crédito manual de dias do lojista. Só uma assinatura active aceita (uma em teste grátis, atrasada, pausada, suspensa ou cancelada recusa); uma que termina no fim do período termina no novo fim. Vai sozinho, sem price_id, quantity nem proration_behavior, senão a resposta é 422. A mudança chega no webhook subscription.updated e fica registrada no log de atividades. Não é repetível por si: envie uma Idempotency-Key para que uma nova tentativa não some os dias duas vezes. (null when left out) */
+        public Long getExtendCurrentPeriodDays() {
+            return extendCurrentPeriodDays;
+        }
+
+        /** @return O preço recorrente para onde a assinatura vai. Obrigatório para trocar de plano; não se envia com extend_current_period_days. (null when left out) */
         public String getPriceId() {
             return priceId;
         }
@@ -603,7 +620,12 @@ public final class SubscriptionsService {
 
         Map<String, Object> toJson() {
             Map<String, Object> body = new LinkedHashMap<>();
-            body.put("price_id", priceId);
+            if (extendCurrentPeriodDays != null) {
+                body.put("extend_current_period_days", extendCurrentPeriodDays);
+            }
+            if (priceId != null) {
+                body.put("price_id", priceId);
+            }
             if (prorationBehavior != null) {
                 body.put("proration_behavior", prorationBehavior);
             }
@@ -615,6 +637,7 @@ public final class SubscriptionsService {
 
         /** Builds {@link UpdateParams}; the fields left unset are left out of the request. */
         public static final class Builder {
+            private Long extendCurrentPeriodDays;
             private String priceId;
             private String prorationBehavior;
             private Long quantity;
@@ -623,7 +646,16 @@ public final class SubscriptionsService {
             }
 
             /**
-             * @param priceId O preço recorrente para onde a assinatura vai. (required)
+             * @param extendCurrentPeriodDays Estende o período atual em tantos dias, de 1 a 365, sem cobrar nada e sem criar pedido: a renovação (e a próxima cobrança) passa a ser no novo fim, current_period_end, e os períodos seguintes contam a partir dele. É o crédito manual de dias do lojista. Só uma assinatura active aceita (uma em teste grátis, atrasada, pausada, suspensa ou cancelada recusa); uma que termina no fim do período termina no novo fim. Vai sozinho, sem price_id, quantity nem proration_behavior, senão a resposta é 422. A mudança chega no webhook subscription.updated e fica registrada no log de atividades. Não é repetível por si: envie uma Idempotency-Key para que uma nova tentativa não some os dias duas vezes.
+             * @return this builder
+             */
+            public Builder extendCurrentPeriodDays(Long extendCurrentPeriodDays) {
+                this.extendCurrentPeriodDays = extendCurrentPeriodDays;
+                return this;
+            }
+
+            /**
+             * @param priceId O preço recorrente para onde a assinatura vai. Obrigatório para trocar de plano; não se envia com extend_current_period_days.
              * @return this builder
              */
             public Builder priceId(String priceId) {
@@ -654,9 +686,6 @@ public final class SubscriptionsService {
              * @throws IllegalStateException when a required field is unset
              */
             public UpdateParams build() {
-                if (priceId == null) {
-                    throw new IllegalStateException("perata: UpdateParams needs priceId");
-                }
                 return new UpdateParams(this);
             }
         }

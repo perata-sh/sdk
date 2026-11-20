@@ -169,7 +169,7 @@ case "order.refunded":
 	if err := json.Unmarshal(raw, &e); err != nil {
 		return err
 	}
-	if e.Data.RefundID != nil && e.Data.RefundAmountCents != nil { // nulo só se foi feito direto no portal da Cielo
+	if e.Data.RefundID != nil && e.Data.RefundAmountCents != nil { // nulo só se foi feito fora da plataforma
 		return estornar(e.Data.ClientReferenceID, *e.Data.RefundID, *e.Data.RefundAmountCents) // chave: refund_id
 	}
 case "checkout.expired":
@@ -234,7 +234,7 @@ O contrato lista todos os `type`s abaixo. Assine só os que usa. O `data` de cad
 | Pagamento | `checkout_payment.authorized`, `.captured`, `.refused`, `.canceled`, `.refunded`, `.partially_refunded` | `WebhookSale` (`checkout_id`, `amount_cents`, `method`, `client_reference_id`, `metadata`, `refunded_amount_cents`, e `refund_id`/`refund_amount_cents` nos de reembolso) | detalhe do pagamento (meio, recusa); a baixa vem de `order.paid` |
 | Reembolso | `refund.requested`, `refund.succeeded`, `refund.failed`, `refund.canceled` | `WebhookSale` (`checkout_id`, `payment_id`, `refund_id`, `amount_cents`, e em `refund.failed` `failure_reason` e `failure_code`) | `refund.failed`: avise quem pediu; o dinheiro não voltou |
 | Reembolso (objeto) | `refund.created`, `refund.updated` | `WebhookRefund` (`id`, `payment_id`, `order_id`, `amount_cents`, `status`; `metadata` é o do **pedido**, `refund_metadata` o do **reembolso**) | acompanhamento |
-| Assinatura | `subscription.created`, `.active`, `.updated`, `.cycled`, `.past_due`, `.suspended`, `.paused`, `.resumed`, `.canceled`, `.uncanceled`, `.revoked` | `WebhookSubscription` (com `quantity`, `amount_cents` do ciclo, `client_reference_id` e `metadata`; e `payment_failure` em `past_due` e `suspended`) | `assinaturas.md` |
+| Assinatura | `subscription.created`, `.active`, `.updated`, `.cycled`, `.past_due`, `.suspended`, `.paused`, `.resumed`, `.canceled`, `.uncanceled`, `.revoked` | `WebhookSubscription` (com `quantity`, `amount_cents` do ciclo, `client_reference_id`, `metadata` e `first_period_extra_days`; e `payment_failure` em `past_due` e `suspended`) | `assinaturas.md` |
 | Disputa | `dispute.opened`, `dispute.won`, `dispute.lost` | `WebhookDispute` (com `kind`, `payment_method`, `checkout_id`, `client_reference_id`, `metadata`, `external_customer_id`, `subscription_id`) | `opened`: suspenda o serviço e defenda |
 | Cliente | `customer.created`, `.updated`, `.deleted`, `.archived` | o `Customer` (`archived`: só identificadores) | espelho opcional |
 | Catálogo | `product.created`, `.updated`, `.archived`, `price.created`, `.archived` | `Product` (os de preço e `archived`: só identificadores) | espelho opcional |

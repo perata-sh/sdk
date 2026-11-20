@@ -85,6 +85,14 @@ public sealed record CheckoutClient
     [JsonPropertyName("first_charge_at")]
     public string? FirstChargeAt { get; init; }
 
+    /// <summary>Quando o primeiro período termina, e portanto o dia da próxima cobrança, se o comprador pagar hoje: a meia-noite desse dia em São Paulo. Nulo sem dias extras. Quem paga em outro dia tem o fim deslocado junto. Null when the API sends none.</summary>
+    [JsonPropertyName("first_period_end_at")]
+    public string? FirstPeriodEndAt { get; init; }
+
+    /// <summary>Quantos dias foram somados ao primeiro período da assinatura (first_period_extra_days na criação do checkout); nulo quando o primeiro período é o comum. Null when the API sends none.</summary>
+    [JsonPropertyName("first_period_extra_days")]
+    public long? FirstPeriodExtraDays { get; init; }
+
     /// <summary>O ID da sessão de checkout.</summary>
     [JsonPropertyName("id")]
     public required string Id { get; init; }

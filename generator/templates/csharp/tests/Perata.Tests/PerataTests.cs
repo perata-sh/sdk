@@ -198,6 +198,53 @@ public class PerataTests
         Assert.Equal("pedido-9", got.ClientReferenceId);
     }
 
+    // A checkout adds the buyer's remaining days to the first period, an
+    // extension goes out alone (no price_id), and the sale reads back what it
+    // took: the discount on the order and on the subscription, and the change
+    // scheduled for the next period.
+    [Fact]
+    public async Task AFirstPeriodExtensionAndTheDiscountsTheSaleReadsBack()
+    {
+        var answers = new Dictionary<string, (HttpStatusCode, string)>
+        {
+            ["POST /api/v1/checkouts"] = (HttpStatusCode.Created, """{"data":{"id":"pcl_1","showcase_id":"x","url":"x","product_id":"prod_1","price_id":"price_1","status":"active","label":"x","quantity":0,"amount_cents":null,"items":[],"metadata":{},"client_reference_id":"x","success_url":"x","cancel_url":"x","expires_at":null,"subscription_start_at":null,"discount_id":"disc_1","first_period_extra_days":30,"created_at":"2026-11-20T12:00:00Z","session_id":"cs_1","client_secret":"cs_secret_1","client_secret_expires_at":"2026-11-20T12:00:00Z","status_key":"x"}}"""),
+            ["PATCH /api/v1/subscriptions/sub_1"] = (HttpStatusCode.OK, """{"data":{"id":"sub_1","showcase_id":"x","customer_id":"x","product_id":"x","price_id":"x","status":"active","amount_cents":0,"quantity":0,"currency":"BRL","interval":"x","current_period_start":"2026-11-20T12:00:00Z","current_period_end":"2026-11-20T12:00:00Z","cancel_at_period_end":false,"pending_update":{"price_id":"price_2","quantity":5,"amount_cents":90000,"effective_at":"2026-12-20T03:00:00Z"},"suspended_at":null,"suspension_reason":null,"trial_start":null,"trial_end":null,"metadata":{},"client_reference_id":"x","discount_id":"disc_1","discount_ends_at":"2027-03-01T03:00:00Z","first_period_extra_days":30}}"""),
+            ["GET /api/v1/subscriptions/sub_2"] = (HttpStatusCode.OK, """{"data":{"id":"sub_2","showcase_id":"x","customer_id":"x","product_id":"x","price_id":"x","status":"active","amount_cents":0,"quantity":0,"currency":"BRL","interval":"x","current_period_start":"2026-11-20T12:00:00Z","current_period_end":"2026-11-20T12:00:00Z","cancel_at_period_end":false,"pending_update":null,"suspended_at":null,"suspension_reason":null,"trial_start":null,"trial_end":null,"metadata":{},"client_reference_id":"x","discount_id":null,"discount_ends_at":null,"first_period_extra_days":null}}"""),
+            ["GET /api/v1/orders/ord_1"] = (HttpStatusCode.OK, """{"data":{"id":"ord_1","showcase_id":"x","customer_id":"x","product_id":"x","price_id":"x","amount_cents":9000,"currency":"BRL","status":"open","paid_at":null,"order_status":null,"refunded_amount_cents":0,"installments":0,"installment_interest_cents":0,"items":[],"metadata":{},"client_reference_id":"x","subscription_id":null,"cycle_sequence":null,"period_start":null,"period_end":null,"discount_id":"disc_1","discount_code":"BEMVINDO","subtotal_cents":10000,"discount_cents":1000}}"""),
+            ["GET /api/v1/prices/price_1"] = (HttpStatusCode.OK, """{"data":{"id":"price_1","product_id":"prod_1","currency":"BRL","amount_cents":9000,"type":"one_time","interval":"none","interval_count":0,"pricing_model":"fixed","unit_amount_cents":null,"tiers":[],"unit_label":"x","unit_label_plural":"x","minimum_units":null,"maximum_units":null,"status":"archived"}}"""),
+        };
+        var recorder = new Recorder(seen =>
+        {
+            var (status, json) = answers[seen.Method + " " + seen.Url.AbsolutePath];
+            return new Answer(status, json);
+        });
+        var perata = Client(recorder);
+        var checkout = await perata.Checkouts.CreateAsync(new CheckoutsCreateParams { ProductId = "prod_1", PriceId = "price_1", FirstPeriodExtraDays = 30 });
+        using var created = JsonDocument.Parse(recorder.Requests[0].Body!);
+        Assert.Equal(30, created.RootElement.GetProperty("first_period_extra_days").GetInt64());
+        Assert.Equal(30, checkout.FirstPeriodExtraDays);
+        Assert.Equal("disc_1", checkout.DiscountId);
+        var subscription = await perata.Subscriptions.UpdateAsync("sub_1", new SubscriptionsUpdateParams { ExtendCurrentPeriodDays = 15 });
+        using var sent = JsonDocument.Parse(recorder.Requests[1].Body!);
+        Assert.Equal(HttpMethod.Patch, recorder.Requests[1].Method);
+        Assert.Equal(15, sent.RootElement.GetProperty("extend_current_period_days").GetInt64());
+        Assert.False(sent.RootElement.TryGetProperty("price_id", out _), "an extension was sent with a price_id");
+        Assert.Equal(30, subscription.FirstPeriodExtraDays);
+        Assert.Equal("disc_1", subscription.DiscountId);
+        Assert.Equal("2027-03-01T03:00:00Z", subscription.DiscountEndsAt);
+        var pending = subscription.PendingUpdate!;
+        Assert.Equal(("price_2", 5L, 90000L, "2026-12-20T03:00:00Z"), (pending.PriceId, pending.Quantity, pending.AmountCents, pending.EffectiveAt));
+        var none = await perata.Subscriptions.GetAsync("sub_2");
+        Assert.Null(none.PendingUpdate);
+        Assert.Null(none.FirstPeriodExtraDays);
+        Assert.Null(none.DiscountId);
+        var order = await perata.Orders.GetAsync("ord_1");
+        Assert.Equal((10000L, 1000L, "disc_1", "BEMVINDO"), (order.SubtotalCents, order.DiscountCents, order.DiscountId, order.DiscountCode));
+        var price = await perata.Prices.GetAsync("price_1");
+        Assert.Equal("/api/v1/prices/price_1", recorder.Requests[4].Url.AbsolutePath);
+        Assert.Equal("archived", price.Status);
+    }
+
     [Fact]
     public async Task ADiscountGoesThroughCreateGetListAndDelete()
     {
@@ -396,9 +443,9 @@ public class PerataTests
     private const string ReferenceSecret = "whsec_MfKQ9r8GKYqrTwjUPD8ILPZIo2LaLaSw";
     private const string OldSecret = "whsec_cGVyYXRhLXNkay1vbGQta2V5LTAxMjM0NTY3ODlhYmM=";
     private const string NewSecret = "whsec_cGVyYXRhLXNkay1uZXcta2V5LTAxMjM0NTY3ODlhYmM=";
-    private const string OrderPaid = """{"id":"msg_2","type":"order.paid","timestamp":"2026-10-22T12:00:00Z","data":{"id":"ord_1","customer_id":"cus_1","product_id":"prod_1","price_id":"price_1","amount_cents":12000,"currency":"BRL","status":"succeeded","paid_at":"2026-10-22T12:00:00Z","order_status":"paid","refunded_amount_cents":0,"refund_id":null,"refund_amount_cents":null,"installments":3,"installment_interest_cents":360,"items":[],"metadata":{},"client_reference_id":"","showcase_id":"shw_1"}}""";
+    private const string OrderPaid = """{"id":"msg_2","type":"order.paid","timestamp":"2026-10-22T12:00:00Z","data":{"id":"ord_1","customer_id":"cus_1","product_id":"prod_1","price_id":"price_1","amount_cents":12000,"currency":"BRL","status":"succeeded","paid_at":"2026-10-22T12:00:00Z","order_status":"paid","refunded_amount_cents":0,"refund_id":null,"refund_amount_cents":null,"installments":3,"installment_interest_cents":360,"items":[],"metadata":{},"client_reference_id":"","showcase_id":"shw_1","subtotal_cents":12000,"discount_cents":0,"discount_id":null,"discount_code":null}}""";
     private const string UsageRecorded = """{"id":"msg_3","type":"usage_event.recorded","timestamp":"2026-10-22T12:00:00Z","data":{"event_id":"ue_1","aggregate":"usage_event","aggregate_id":"ue_1","merchant_id":"mer_1","environment":"test"}}""";
-    private const string OrderPaidLive = """{"id":"msg_5","type":"order.paid","timestamp":"2026-10-22T12:00:00Z","environment":"live","showcase_id":"shw_1","data":{"id":"ord_1","customer_id":"cus_1","product_id":"prod_1","price_id":"price_1","amount_cents":12000,"currency":"BRL","status":"succeeded","paid_at":"2026-10-22T12:00:00Z","order_status":"paid","refunded_amount_cents":0,"refund_id":null,"refund_amount_cents":null,"installments":3,"installment_interest_cents":360,"items":[],"metadata":{},"client_reference_id":"","showcase_id":"shw_1"}}""";
+    private const string OrderPaidLive = """{"id":"msg_5","type":"order.paid","timestamp":"2026-10-22T12:00:00Z","environment":"live","showcase_id":"shw_1","data":{"id":"ord_1","customer_id":"cus_1","product_id":"prod_1","price_id":"price_1","amount_cents":12000,"currency":"BRL","status":"succeeded","paid_at":"2026-10-22T12:00:00Z","order_status":"paid","refunded_amount_cents":0,"refund_id":null,"refund_amount_cents":null,"installments":3,"installment_interest_cents":360,"items":[],"metadata":{},"client_reference_id":"","showcase_id":"shw_1","subtotal_cents":12000,"discount_cents":0,"discount_id":null,"discount_code":null}}""";
     private const string PayoutSentTest = """{"id":"msg_6","type":"payout.sent","timestamp":"2026-10-22T12:00:00Z","environment":"test","data":{"payout_id":"po_1","amount_cents":5000}}""";
     private const string PayoutSent = """{"id":"msg_4","type":"payout.sent","timestamp":"2026-10-22T12:00:00Z","data":{"payout_id":"po_1","amount_cents":5000}}""";
     private const long SignedAt = 1792670400;
@@ -438,12 +485,12 @@ public class PerataTests
     public void AWebhookCarriesTheEnvironmentItHappenedIn()
     {
         var now = DateTimeOffset.FromUnixTimeSeconds(SignedAt + 120);
-        foreach (var (id, signature, body) in new[] { ("msg_2", "v1,fvRLETNjaSQOVbSs/eVRV/C17ysRHoubzX3idpGAifI= v1,ZsKtmVTp/mXCeW5qAiaLJY1TjyXwUyS7RxRVa3RIQQo=", OrderPaid), ("msg_3", "v1,Z3E2vTbczigiySfkzakxuZotPn9FlBY1KAET6hPEZoU=", UsageRecorded), ("msg_4", "v1,Sa/yofA3h/58pFR+rIiWdIc8qXfcuqvyJSjxn4oJ1ZY=", PayoutSent) })
+        foreach (var (id, signature, body) in new[] { ("msg_2", "v1,wR5lfpym2P4TnG65MaTym1j5wWmRCtcygqTrQNICOEQ= v1,BLGtoe01YFYZHfU7Hcj8qvYNfluZvoTrRaAjcfB8JSs=", OrderPaid), ("msg_3", "v1,Z3E2vTbczigiySfkzakxuZotPn9FlBY1KAET6hPEZoU=", UsageRecorded), ("msg_4", "v1,Sa/yofA3h/58pFR+rIiWdIc8qXfcuqvyJSjxn4oJ1ZY=", PayoutSent) })
         {
             Assert.Equal("", Webhook.Verify(NewSecret, WebhookHeaders(id, SignedAt, signature), body, now).Environment);
             Assert.Equal("", Webhook.Verify(NewSecret, WebhookHeaders(id, SignedAt, signature), body, now).ShowcaseId);
         }
-        var order = Assert.IsType<OrderWebhookEvent>(Webhook.Verify(NewSecret, WebhookHeaders("msg_5", SignedAt, "v1,9CgfDokxQ7tBEd7vvv32TI4QUdqkaHrxgUo2UUNQpOY="), OrderPaidLive, now));
+        var order = Assert.IsType<OrderWebhookEvent>(Webhook.Verify(NewSecret, WebhookHeaders("msg_5", SignedAt, "v1,vJOO2qPe9Vzlr42VPwCuIO+a6Sg8ZVfl9z4WuLJItwg="), OrderPaidLive, now));
         Assert.Equal("live", order.Environment);
         Assert.Equal("shw_1", order.ShowcaseId);
         Assert.Equal("shw_1", order.Data.ShowcaseId);
@@ -456,7 +503,7 @@ public class PerataTests
     public void AWebhookAnswersItsTypedEvent()
     {
         var now = DateTimeOffset.FromUnixTimeSeconds(SignedAt + 120);
-        var headers = WebhookHeaders("msg_2", SignedAt, "v1,fvRLETNjaSQOVbSs/eVRV/C17ysRHoubzX3idpGAifI= v1,ZsKtmVTp/mXCeW5qAiaLJY1TjyXwUyS7RxRVa3RIQQo=");
+        var headers = WebhookHeaders("msg_2", SignedAt, "v1,wR5lfpym2P4TnG65MaTym1j5wWmRCtcygqTrQNICOEQ= v1,BLGtoe01YFYZHfU7Hcj8qvYNfluZvoTrRaAjcfB8JSs=");
         foreach (var secret in new[] { NewSecret, OldSecret })
         {
             var order = Assert.IsType<OrderWebhookEvent>(Webhook.Verify(secret, headers, OrderPaid, now));

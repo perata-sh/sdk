@@ -16,8 +16,18 @@ Campos extras do checkout de assinatura:
 | `items` | mostram do que o valor é feito. A soma tem de igualar o valor do preço vezes a quantidade (senão 422) e nada mais; o preço continua mandando |
 | `discount_id` | aplica um desconto do catálogo (uma vez, por alguns meses ou para sempre, como foi criado). Desconto limitado a outro produto é recusado (422). Desconto só numa parte do valor ainda não existe |
 | `subscription_start_at` | RFC 3339; a primeira cobrança acontece nesse dia |
+| `first_period_extra_days` | de 1 a 365; o comprador paga hoje o valor cheio e esses dias se somam ao primeiro período |
 
 `subscription_start_at`: vale o **dia no horário de São Paulo** (a hora não conta), de amanhã a um ano (senão 422). O cartão é guardado e conferido com o emissor (Zero Auth) **sem cobrar nada hoje**; a assinatura fica `trialing` e a primeira cobrança acontece no dia, no cartão guardado; as seguintes seguem a periodicidade do preço a partir dele. Só vale em preço recorrente com valor e só no cartão de crédito (a página não oferece Pix nem boleto). A página mostra "Primeira cobrança em DD/MM/AAAA". Quem abre o checkout depois da data recebe 410. (SDK 0.5.6+.)
+
+`first_period_extra_days` serve ao cliente que **já tem dias pagos em outro plano** (por exemplo, pago até 11/12, hoje 20/11, 21 dias) e quer assinar já: ele paga hoje o valor cheio do preço, com as faixas, a quantidade e o desconto, em Pix, cartão de crédito ou débito, e o primeiro período vai do dia do pagamento até esse dia mais um intervalo do preço **mais os dias extras** (hoje 20/11, preço mensal, 21 dias: até 10/01), no horário de São Paulo. A renovação e os ciclos seguintes contam a partir desse fim. A próxima cobrança, no cartão guardado ou pelo link ou Pix de renovação, só acontece nele. A página diz: "Pague hoje R$ X. Próxima cobrança em DD/MM/AAAA (inclui N dias do seu plano anterior)". Só vale em preço recorrente com valor, vendido sozinho e sem teste grátis; não vale junto com `subscription_start_at` (esse não cobra hoje) nem em preço avulso (422 no campo `first_period_extra_days`). A assinatura, o `order.paid` do 1º ciclo e `subscription.created` e `subscription.active` já trazem o período estendido em `current_period_end` (o pedido, em `period_start` e `period_end`), e `first_period_extra_days` na assinatura, em `subscription.*` e no checkout guarda o número para conferência (nulo quando o primeiro período é o comum). Ainda não está nos SDKs publicados: use a API REST até o SDK trazer o campo.
+
+```sh
+curl https://perata.sh/api/v1/checkouts \
+  -H "Authorization: Bearer $PERATA_API_KEY" -H "Idempotency-Key: camera-cam-77-assinatura-2" \
+  -H "Content-Type: application/json" \
+  -d '{"product_id":"...","price_id":"...","first_period_extra_days":21,"customer_email":"ana@exemplo.com.br","client_reference_id":"camera-cam-77"}'
+```
 
 Go:
 
@@ -84,7 +94,7 @@ A chave precisa de `checkouts:write`, `products:read`, `subscriptions:read` e `s
 | `paused` | pausada |
 | `canceled` | encerrada |
 
-Campos úteis: `amount_cents`, `quantity`, `current_period_start`, `current_period_end`, `cancel_at_period_end`, `pending_update`, `suspended_at`, `suspension_reason`, `trial_start`, `trial_end`, `metadata`, `client_reference_id`, `discount_id`, `discount_ends_at`.
+Campos úteis: `amount_cents`, `quantity`, `current_period_start`, `current_period_end`, `cancel_at_period_end`, `pending_update`, `suspended_at`, `suspension_reason`, `trial_start`, `trial_end`, `metadata`, `client_reference_id`, `discount_id`, `discount_ends_at`, `first_period_extra_days`.
 
 `discount_id` é o desconto em vigor na assinatura, aplicado aos próximos ciclos até acabar: nulo sem desconto e depois que ele acabou (num desconto de uma vez, depois do primeiro ciclo pago). `discount_ends_at` é quando ele deixa de valer, o fim do último ciclo que ele ainda abate (num desconto de uma vez, o fim do primeiro ciclo pago), e é nulo quando não há desconto e quando ele vale para sempre. O pedido de cada ciclo diz o que foi descontado nele (`discount_id`, `subtotal_cents`, `discount_cents`: veja `pos-venda.md`). Estes campos também chegam em `subscription.*`.
 
@@ -142,7 +152,8 @@ case *perata.SubscriptionWebhookEvent:
 |---|---|---|
 | Reativar | `POST /api/v1/subscriptions/{id}/resume` | reativa uma `suspended` (a cobrança do ciclo em aberto recomeça) ou retoma uma `paused`; qualquer outra recebe 409 |
 | Cancelar | `POST /api/v1/subscriptions/{id}/cancel` com `at_period_end` e `reason` | por padrão o cancelamento vale no **fim do período já pago**; para cancelar já, envie `at_period_end: false` (confirme no Teste) |
-| Trocar o plano | `PATCH /api/v1/subscriptions/{id}` com `price_id` (obrigatório), `quantity`, `proration_behavior` | veja abaixo |
+| Trocar o plano | `PATCH /api/v1/subscriptions/{id}` com `price_id` (obrigatório para trocar), `quantity`, `proration_behavior` | veja abaixo |
+| Estender o período | `PATCH /api/v1/subscriptions/{id}` com `extend_current_period_days` (1 a 365), sozinho | soma dias ao período atual **sem cobrar**: crédito manual de dias. Veja abaixo |
 
 `proration_behavior`: `prorate` (padrão: rateia o resto do período no próximo valor cobrado), `invoice` (cobra a diferença agora), `next_period` (troca no fim do período, **a troca de preço no ciclo seguinte**) e `reset` (cobra o período inteiro do novo plano agora e reinicia o ciclo).
 
@@ -168,6 +179,16 @@ await perata.subscriptions.resume(subscriptionId);
 perata.subscriptions.update(subscription_id, {"price_id": new_price_id, "proration_behavior": "next_period"})
 perata.subscriptions.cancel(subscription_id, {"reason": "camera excluída"})
 perata.subscriptions.resume(subscription_id)
+```
+
+### Dar dias sem cobrar
+
+`PATCH /api/v1/subscriptions/{id}` com `{"extend_current_period_days": 21}` (de 1 a 365, sem `price_id`, `quantity` nem `proration_behavior`: junto deles é 422) estende o período atual: `current_period_end` passa a ser 21 dias depois, a renovação e a próxima cobrança passam para lá e os períodos seguintes contam a partir dele. Não cobra nada, não cria pedido e não é uma renovação (não sai `subscription.cycled`); sai `subscription.updated` com o novo período, e a ação fica no log de atividades da conta (não é um webhook), com os dias e os dois fins. Só uma assinatura `active` aceita; em teste grátis, atrasada, pausada, suspensa ou cancelada é recusada. Envie uma `Idempotency-Key`: sem ela, uma nova tentativa soma os dias duas vezes. A chave precisa de `subscriptions:write`. Ainda não está nos SDKs publicados: use a API REST.
+
+```sh
+curl -X PATCH https://perata.sh/api/v1/subscriptions/$SUBSCRIPTION_ID \
+  -H "Authorization: Bearer $PERATA_API_KEY" -H "Idempotency-Key: camera-cam-77-credito-nov" \
+  -H "Content-Type: application/json" -d '{"extend_current_period_days": 21}'
 ```
 
 Excluir o cliente (`DELETE /customers/{id}`) encerra as assinaturas dele na hora.

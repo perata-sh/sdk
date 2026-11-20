@@ -67,6 +67,18 @@ public sealed record WebhookSubscription
     [JsonPropertyName("customer_id")]
     public required string CustomerId { get; init; }
 
+    /// <summary>Quando o desconto deixa de valer: o fim do último ciclo que ele ainda abate (num desconto de uma vez, o fim do primeiro ciclo pago). Nulo quando não há desconto e quando ele vale para sempre. Null when the API sends none.</summary>
+    [JsonPropertyName("discount_ends_at")]
+    public string? DiscountEndsAt { get; init; }
+
+    /// <summary>O desconto em vigor na assinatura, que se aplica aos próximos ciclos até acabar; nulo sem desconto e depois que ele acabou. Null when the API sends none.</summary>
+    [JsonPropertyName("discount_id")]
+    public string? DiscountId { get; init; }
+
+    /// <summary>Quantos dias o checkout que vendeu a assinatura somou ao primeiro período, para você conferir; nulo quando o primeiro período foi o comum. O primeiro período vai do dia do pagamento até esse dia mais um intervalo do preço mais estes dias, e current_period_end já vem com eles. Null when the API sends none.</summary>
+    [JsonPropertyName("first_period_extra_days")]
+    public long? FirstPeriodExtraDays { get; init; }
+
     /// <summary>The API's <c>id</c>.</summary>
     [JsonPropertyName("id")]
     public required string Id { get; init; }
@@ -82,6 +94,10 @@ public sealed record WebhookSubscription
     /// <summary>A cobrança recusada que causou o evento; só nos eventos de cobrança recusada. Null when the API sends none.</summary>
     [JsonPropertyName("payment_failure")]
     public WebhookSubscriptionPaymentFailure? PaymentFailure { get; init; }
+
+    /// <summary>A mudança de plano ou de quantidade agendada para o próximo período (PATCH com proration_behavior next_period); nulo quando não há nenhuma. Até effective_at a assinatura segue com o price_id, a quantity e o amount_cents de cima. Null when the API sends none.</summary>
+    [JsonPropertyName("pending_update")]
+    public WebhookSubscriptionPendingUpdate? PendingUpdate { get; init; }
 
     /// <summary>The API's <c>price_id</c>.</summary>
     [JsonPropertyName("price_id")]

@@ -37,13 +37,13 @@ final class WebhookDispute
          */
         public readonly ?array $metadata,
         public readonly string $openedAt,
-        /** O PaymentId da venda contestada na Cielo. */
+        /** O PaymentId da venda contestada. */
         public readonly string $paymentId,
         /** Como a venda contestada foi paga: card ou pix. */
         public readonly ?string $paymentMethod,
-        /** O número do caso na Cielo. */
+        /** O número do caso. */
         public readonly string $providerDisputeId,
-        /** O motivo nas palavras da Cielo. */
+        /** O motivo informado pelo emissor ou pela bandeira. */
         public readonly string $providerReason,
         /** Motivo, do conjunto fechado; unknown quando a adquirente não informou. */
         public readonly string $reason,

@@ -10,8 +10,13 @@ namespace Perata\Models;
 final class CheckoutClientItem
 {
     public function __construct(
-        /** Quanto custa a linha antes de qualquer desconto: a unidade vezes a quantidade. */
+        /** Quanto custa a linha antes de qualquer desconto: a quantidade vezes o preço da unidade; num preço por faixas, a soma das faixas. */
         public readonly int $amountCents,
+        /**
+         * As faixas de um preço graduado em que a quantidade passou da primeira, na ordem; vazio num preço de uma faixa só. A soma de amount_cents das faixas é o amount_cents da linha.
+         * @var list<CheckoutClientItemBand>
+         */
+        public readonly array $bands,
         /** A descrição do produto como o lojista a escreveu, em Markdown; vazia sem ela. */
         public readonly string $description,
         /** month ou year numa assinatura; vazio numa compra avulsa. */
@@ -21,7 +26,7 @@ final class CheckoutClientItem
         public readonly string $name,
         public readonly string $productId,
         public readonly int $quantity,
-        /** Quanto custa uma unidade, antes de qualquer desconto. */
+        /** Quanto custa uma unidade, antes de qualquer desconto; num preço por faixas, o da primeira unidade (veja bands). */
         public readonly int $unitCents,
     ) {
     }
@@ -33,6 +38,7 @@ final class CheckoutClientItem
     {
         return new self(
             amountCents: $data['amount_cents'],
+            bands: array_values(array_map(static fn (array $item) => CheckoutClientItemBand::fromArray($item), $data['bands'])),
             description: $data['description'],
             interval: $data['interval'],
             intervalCount: $data['interval_count'],

@@ -362,6 +362,7 @@ final class Checkout {
     required this.createdAt,
     required this.discountId,
     this.expiresAt,
+    this.firstPeriodExtraDays,
     required this.id,
     required this.items,
     required this.label,
@@ -385,6 +386,7 @@ final class Checkout {
       createdAt: json['created_at'] as String,
       discountId: json['discount_id'] as String,
       expiresAt: json['expires_at'] as String?,
+      firstPeriodExtraDays: json['first_period_extra_days'] as int?,
       id: json['id'] as String,
       items: readList(
         json['items'],
@@ -423,6 +425,12 @@ final class Checkout {
 
   /// Quando o checkout deixa de abrir sessões; nulo sem prazo.
   final String? expiresAt;
+
+  /// Quantos dias o seu servidor somou ao primeiro período da assinatura
+  /// (first_period_extra_days na criação); nulo quando o primeiro período é o
+  /// comum. O comprador paga hoje o valor cheio, e a próxima cobrança só
+  /// acontece no fim do período mais longo.
+  final int? firstPeriodExtraDays;
 
   final String id;
 
@@ -471,6 +479,7 @@ final class Checkout {
     'created_at': createdAt,
     'discount_id': discountId,
     'expires_at': expiresAt,
+    'first_period_extra_days': firstPeriodExtraDays,
     'id': id,
     'items': items.map((item) => item.toJson()).toList(),
     'label': label,
@@ -502,6 +511,8 @@ final class CheckoutClient {
     required this.environment,
     required this.expiresAt,
     this.firstChargeAt,
+    this.firstPeriodEndAt,
+    this.firstPeriodExtraDays,
     required this.id,
     required this.installments,
     required this.items,
@@ -539,6 +550,8 @@ final class CheckoutClient {
       environment: json['environment'] as String,
       expiresAt: json['expires_at'] as String,
       firstChargeAt: json['first_charge_at'] as String?,
+      firstPeriodEndAt: json['first_period_end_at'] as String?,
+      firstPeriodExtraDays: json['first_period_extra_days'] as int?,
       id: json['id'] as String,
       installments: readList(
         json['installments'],
@@ -606,6 +619,16 @@ final class CheckoutClient {
   /// é cobrado na hora.
   final String? firstChargeAt;
 
+  /// Quando o primeiro período termina, e portanto o dia da próxima cobrança,
+  /// se o comprador pagar hoje: a meia-noite desse dia em São Paulo. Nulo sem
+  /// dias extras. Quem paga em outro dia tem o fim deslocado junto.
+  final String? firstPeriodEndAt;
+
+  /// Quantos dias foram somados ao primeiro período da assinatura
+  /// (first_period_extra_days na criação do checkout); nulo quando o primeiro
+  /// período é o comum.
+  final int? firstPeriodExtraDays;
+
   /// O ID da sessão de checkout.
   final String id;
 
@@ -667,6 +690,8 @@ final class CheckoutClient {
     'environment': environment,
     'expires_at': expiresAt,
     'first_charge_at': firstChargeAt,
+    'first_period_end_at': firstPeriodEndAt,
+    'first_period_extra_days': firstPeriodExtraDays,
     'id': id,
     'installments': installments.map((item) => item.toJson()).toList(),
     'items': items.map((item) => item.toJson()).toList(),
@@ -806,6 +831,7 @@ final class CheckoutClientDiscount {
 final class CheckoutClientItem {
   const CheckoutClientItem({
     required this.amountCents,
+    required this.bands,
     required this.description,
     required this.interval,
     required this.intervalCount,
@@ -819,6 +845,10 @@ final class CheckoutClientItem {
   factory CheckoutClientItem.fromJson(Map<String, Object?> json) {
     return CheckoutClientItem(
       amountCents: json['amount_cents'] as int,
+      bands: readList(
+        json['bands'],
+        (value) => CheckoutClientItemBand.fromJson(readObject(value)),
+      ),
       description: json['description'] as String,
       interval: json['interval'] as String,
       intervalCount: json['interval_count'] as int,
@@ -829,9 +859,14 @@ final class CheckoutClientItem {
     );
   }
 
-  /// Quanto custa a linha antes de qualquer desconto: a unidade vezes a
-  /// quantidade.
+  /// Quanto custa a linha antes de qualquer desconto: a quantidade vezes o
+  /// preço da unidade; num preço por faixas, a soma das faixas.
   final int amountCents;
+
+  /// As faixas de um preço graduado em que a quantidade passou da primeira, na
+  /// ordem; vazio num preço de uma faixa só. A soma de amount_cents das faixas
+  /// é o amount_cents da linha.
+  final List<CheckoutClientItemBand> bands;
 
   /// A descrição do produto como o lojista a escreveu, em Markdown; vazia sem
   /// ela.
@@ -849,12 +884,14 @@ final class CheckoutClientItem {
 
   final int quantity;
 
-  /// Quanto custa uma unidade, antes de qualquer desconto.
+  /// Quanto custa uma unidade, antes de qualquer desconto; num preço por
+  /// faixas, o da primeira unidade (veja bands).
   final int unitCents;
 
   /// The JSON the API answers.
   Map<String, Object?> toJson() => {
     'amount_cents': amountCents,
+    'bands': bands.map((item) => item.toJson()).toList(),
     'description': description,
     'interval': interval,
     'interval_count': intervalCount,
@@ -982,6 +1019,7 @@ final class CheckoutCreated {
     required this.createdAt,
     required this.discountId,
     this.expiresAt,
+    this.firstPeriodExtraDays,
     required this.id,
     required this.items,
     required this.label,
@@ -1009,6 +1047,7 @@ final class CheckoutCreated {
       createdAt: json['created_at'] as String,
       discountId: json['discount_id'] as String,
       expiresAt: json['expires_at'] as String?,
+      firstPeriodExtraDays: json['first_period_extra_days'] as int?,
       id: json['id'] as String,
       items: readList(
         json['items'],
@@ -1058,6 +1097,12 @@ final class CheckoutCreated {
 
   /// Quando o link deixa de abrir sessões; nulo sem prazo.
   final String? expiresAt;
+
+  /// Quantos dias o seu servidor somou ao primeiro período da assinatura
+  /// (first_period_extra_days na criação); nulo quando o primeiro período é o
+  /// comum. O comprador paga hoje o valor cheio, e a próxima cobrança só
+  /// acontece no fim do período mais longo.
+  final int? firstPeriodExtraDays;
 
   /// O ID do link do checkout, o que GET e PATCH /checkouts/{id} recebem.
   final String id;
@@ -1123,6 +1168,7 @@ final class CheckoutCreated {
     'created_at': createdAt,
     'discount_id': discountId,
     'expires_at': expiresAt,
+    'first_period_extra_days': firstPeriodExtraDays,
     'id': id,
     'items': items.map((item) => item.toJson()).toList(),
     'label': label,
@@ -1209,7 +1255,7 @@ final class CheckoutExpiredSession {
   /// true quando a sessão já estava encerrada antes: a chamada foi repetida.
   final bool alreadyClosed;
 
-  /// true quando a Cielo cancelou o Pix ou a reserva nesta chamada.
+  /// true quando o Pix ou a reserva foi cancelado nesta chamada.
   final bool canceled;
 
   /// Quando a sessão foi encerrada; nulo se ela já tinha falhado.
@@ -1223,7 +1269,7 @@ final class CheckoutExpiredSession {
   /// O pagamento que a sessão tinha, vazio se o comprador não escolheu um meio.
   final String paymentId;
 
-  /// Como o pagamento ficou: canceled quando a Cielo retirou o QR do Pix ou
+  /// Como o pagamento ficou: canceled quando a Peráta retirou o QR do Pix ou
   /// liberou a reserva do cartão; vazio sem pagamento.
   final String paymentState;
 
@@ -2174,16 +2220,16 @@ final class Dispute {
   /// O pedido que a venda contestada pagou; nulo quando não é de um checkout.
   final String? orderId;
 
-  /// O PaymentId da venda contestada na Cielo.
+  /// O PaymentId da venda contestada.
   final String paymentId;
 
   /// Como a venda contestada foi paga: card ou pix.
   final String paymentMethod;
 
-  /// O número do caso na Cielo.
+  /// O número do caso.
   final String providerDisputeId;
 
-  /// O motivo nas palavras da Cielo.
+  /// O motivo informado pelo emissor ou pela bandeira.
   final String providerReason;
 
   /// Motivo, do conjunto fechado; unknown quando a adquirente não informou.
@@ -2452,6 +2498,9 @@ final class Order {
     required this.currency,
     required this.customerId,
     this.cycleSequence,
+    required this.discountCents,
+    this.discountCode,
+    this.discountId,
     required this.id,
     required this.installmentInterestCents,
     required this.installments,
@@ -2467,6 +2516,7 @@ final class Order {
     required this.showcaseId,
     required this.status,
     this.subscriptionId,
+    required this.subtotalCents,
   });
 
   /// A Order out of the API's JSON.
@@ -2477,6 +2527,9 @@ final class Order {
       currency: json['currency'] as String,
       customerId: json['customer_id'] as String,
       cycleSequence: json['cycle_sequence'] as int?,
+      discountCents: json['discount_cents'] as int,
+      discountCode: json['discount_code'] as String?,
+      discountId: json['discount_id'] as String?,
       id: json['id'] as String,
       installmentInterestCents: json['installment_interest_cents'] as int,
       installments: json['installments'] as int,
@@ -2495,6 +2548,7 @@ final class Order {
       showcaseId: json['showcase_id'] as String,
       status: json['status'] as String,
       subscriptionId: json['subscription_id'] as String?,
+      subtotalCents: json['subtotal_cents'] as int,
     );
   }
 
@@ -2512,6 +2566,20 @@ final class Order {
   /// Qual ciclo da assinatura o pedido pagou: 1 é o primeiro; nulo fora de uma
   /// assinatura.
   final int? cycleSequence;
+
+  /// Quanto o desconto tirou do pedido, em centavos; 0 sem desconto.
+  final int discountCents;
+
+  /// O código que o comprador digitou no checkout deste pedido; nulo quando o
+  /// desconto veio por discount_id (o seu servidor o enviou ao criar o
+  /// checkout), quando veio da assinatura numa renovação ou quando não houve
+  /// desconto.
+  final String? discountCode;
+
+  /// O desconto do catálogo que este pedido aplicou; nulo quando não houve
+  /// desconto. Na renovação de uma assinatura é o desconto que a assinatura
+  /// aplicou naquele ciclo (uma vez, por alguns meses ou para sempre).
+  final String? discountId;
 
   final String id;
 
@@ -2564,6 +2632,10 @@ final class Order {
   /// renovação); nulo quando o pedido não é de uma assinatura.
   final String? subscriptionId;
 
+  /// O valor do pedido antes do desconto, em centavos: subtotal_cents menos
+  /// discount_cents é o amount_cents. Sem desconto é igual a amount_cents.
+  final int subtotalCents;
+
   /// The JSON the API answers.
   Map<String, Object?> toJson() => {
     'amount_cents': amountCents,
@@ -2571,6 +2643,9 @@ final class Order {
     'currency': currency,
     'customer_id': customerId,
     'cycle_sequence': cycleSequence,
+    'discount_cents': discountCents,
+    'discount_code': discountCode,
+    'discount_id': discountId,
     'id': id,
     'installment_interest_cents': installmentInterestCents,
     'installments': installments,
@@ -2586,6 +2661,7 @@ final class Order {
     'showcase_id': showcaseId,
     'status': status,
     'subscription_id': subscriptionId,
+    'subtotal_cents': subtotalCents,
   };
 }
 
@@ -3279,8 +3355,11 @@ final class Refund {
   /// só alcança o seu showcase.
   final String showcaseId;
 
-  /// requested e pending esperam a Cielo; unknown é uma resposta que não
-  /// chegou, e o valor continua reservado até a Cielo responder; succeeded
+  /// requested e pending esperam a confirmação; unknown é passageiro: a
+  /// confirmação não chegou ou ainda não prova a devolução, o valor continua
+  /// reservado e a Peráta consulta sozinha (a primeira vez em uns 5 minutos)
+  /// até virar succeeded ou failed, então não peça de novo e espere o evento
+  /// refund.succeeded ou refund.failed (ou leia GET /refunds/{id}); succeeded
   /// devolveu o dinheiro; failed e canceled não devolveram.
   ///
   /// One of `requested`, `pending`, `unknown`, `succeeded`, `failed`,
@@ -3369,9 +3448,13 @@ final class Subscription {
     required this.currentPeriodEnd,
     required this.currentPeriodStart,
     required this.customerId,
+    this.discountEndsAt,
+    this.discountId,
+    this.firstPeriodExtraDays,
     required this.id,
     required this.interval,
     required this.metadata,
+    this.pendingUpdate,
     required this.priceId,
     required this.productId,
     required this.quantity,
@@ -3393,9 +3476,16 @@ final class Subscription {
       currentPeriodEnd: json['current_period_end'] as String,
       currentPeriodStart: json['current_period_start'] as String,
       customerId: json['customer_id'] as String,
+      discountEndsAt: json['discount_ends_at'] as String?,
+      discountId: json['discount_id'] as String?,
+      firstPeriodExtraDays: json['first_period_extra_days'] as int?,
       id: json['id'] as String,
       interval: json['interval'] as String,
       metadata: readMap(json['metadata'], (value) => value),
+      pendingUpdate: readOptional(
+        json['pending_update'],
+        (value) => SubscriptionPendingUpdate.fromJson(readObject(value)),
+      ),
       priceId: json['price_id'] as String,
       productId: json['product_id'] as String,
       quantity: json['quantity'] as int,
@@ -3429,6 +3519,22 @@ final class Subscription {
 
   final String customerId;
 
+  /// Quando o desconto deixa de valer: o fim do último ciclo que ele ainda
+  /// abate (num desconto de uma vez, o fim do primeiro ciclo pago; por alguns
+  /// meses, o fim do último ciclo desses meses). Nulo quando não há desconto e
+  /// quando ele vale para sempre.
+  final String? discountEndsAt;
+
+  /// O desconto em vigor na assinatura, que se aplica aos próximos ciclos até
+  /// acabar; nulo sem desconto e depois que ele acabou.
+  final String? discountId;
+
+  /// Quantos dias o checkout que vendeu a assinatura somou ao primeiro período,
+  /// para você conferir; nulo quando o primeiro período foi o comum. O primeiro
+  /// período vai do dia do pagamento até esse dia mais um intervalo do preço
+  /// mais estes dias, e current_period_end já vem com eles.
+  final int? firstPeriodExtraDays;
+
   final String id;
 
   final String interval;
@@ -3436,6 +3542,12 @@ final class Subscription {
   /// Metadados do lojista: pares chave e valor (texto, número ou booleano);
   /// objeto vazio quando não há.
   final Map<String, Object?> metadata;
+
+  /// A mudança de plano ou de quantidade agendada para o próximo período (PATCH
+  /// com proration_behavior next_period); nulo quando não há nenhuma. Até
+  /// effective_at a assinatura segue com o price_id, a quantity e o
+  /// amount_cents de cima.
+  final SubscriptionPendingUpdate? pendingUpdate;
 
   final String priceId;
 
@@ -3477,9 +3589,13 @@ final class Subscription {
     'current_period_end': currentPeriodEnd,
     'current_period_start': currentPeriodStart,
     'customer_id': customerId,
+    'discount_ends_at': discountEndsAt,
+    'discount_id': discountId,
+    'first_period_extra_days': firstPeriodExtraDays,
     'id': id,
     'interval': interval,
     'metadata': metadata,
+    'pending_update': pendingUpdate?.toJson(),
     'price_id': priceId,
     'product_id': productId,
     'quantity': quantity,
@@ -4013,16 +4129,16 @@ final class WebhookDispute {
 
   final String openedAt;
 
-  /// O PaymentId da venda contestada na Cielo.
+  /// O PaymentId da venda contestada.
   final String paymentId;
 
   /// Como a venda contestada foi paga: card ou pix.
   final String? paymentMethod;
 
-  /// O número do caso na Cielo.
+  /// O número do caso.
   final String providerDisputeId;
 
-  /// O motivo nas palavras da Cielo.
+  /// O motivo informado pelo emissor ou pela bandeira.
   final String providerReason;
 
   /// Motivo, do conjunto fechado; unknown quando a adquirente não informou.
@@ -4204,6 +4320,9 @@ final class WebhookOrder {
     required this.currency,
     required this.customerId,
     this.cycleSequence,
+    required this.discountCents,
+    this.discountCode,
+    this.discountId,
     required this.id,
     required this.installmentInterestCents,
     required this.installments,
@@ -4221,6 +4340,7 @@ final class WebhookOrder {
     required this.showcaseId,
     required this.status,
     this.subscriptionId,
+    required this.subtotalCents,
   });
 
   /// A WebhookOrder out of the API's JSON.
@@ -4231,6 +4351,9 @@ final class WebhookOrder {
       currency: json['currency'] as String,
       customerId: json['customer_id'] as String,
       cycleSequence: json['cycle_sequence'] as int?,
+      discountCents: json['discount_cents'] as int,
+      discountCode: json['discount_code'] as String?,
+      discountId: json['discount_id'] as String?,
       id: json['id'] as String,
       installmentInterestCents: json['installment_interest_cents'] as int,
       installments: json['installments'] as int,
@@ -4251,6 +4374,7 @@ final class WebhookOrder {
       showcaseId: json['showcase_id'] as String,
       status: json['status'] as String,
       subscriptionId: json['subscription_id'] as String?,
+      subtotalCents: json['subtotal_cents'] as int,
     );
   }
 
@@ -4268,6 +4392,19 @@ final class WebhookOrder {
   /// O ciclo da assinatura que o pagamento cobra: 1 é o primeiro, 2 é a
   /// primeira renovação.
   final int? cycleSequence;
+
+  /// Quanto o desconto tirou do pedido, em centavos; 0 sem desconto.
+  final int discountCents;
+
+  /// O código que o comprador digitou no checkout deste pedido; nulo quando o
+  /// desconto veio por discount_id, quando veio da assinatura numa renovação ou
+  /// quando não houve desconto.
+  final String? discountCode;
+
+  /// O desconto do catálogo que este pedido aplicou; nulo quando não houve
+  /// desconto. Na renovação de uma assinatura é o desconto que a assinatura
+  /// aplicou naquele ciclo.
+  final String? discountId;
 
   final String id;
 
@@ -4326,6 +4463,10 @@ final class WebhookOrder {
   /// assinatura.
   final String? subscriptionId;
 
+  /// O valor do pedido antes do desconto, em centavos: subtotal_cents menos
+  /// discount_cents é o amount_cents.
+  final int subtotalCents;
+
   /// The JSON the API answers.
   Map<String, Object?> toJson() => {
     'amount_cents': amountCents,
@@ -4333,6 +4474,9 @@ final class WebhookOrder {
     'currency': currency,
     'customer_id': customerId,
     'cycle_sequence': ?cycleSequence,
+    'discount_cents': discountCents,
+    'discount_code': discountCode,
+    'discount_id': discountId,
     'id': id,
     'installment_interest_cents': installmentInterestCents,
     'installments': installments,
@@ -4350,6 +4494,7 @@ final class WebhookOrder {
     'showcase_id': showcaseId,
     'status': status,
     'subscription_id': ?subscriptionId,
+    'subtotal_cents': subtotalCents,
   };
 }
 
@@ -4521,8 +4666,8 @@ final class WebhookSale {
 
   final String eventId;
 
-  /// O código que a Cielo deu para a recusa, nos eventos refund.* de um
-  /// reembolso que falhou; serve ao suporte.
+  /// O código dado para a recusa, nos eventos refund.* de um reembolso que
+  /// falhou; serve ao suporte.
   final String? failureCode;
 
   /// Por que o dinheiro não voltou, em português, nos eventos refund.* de um
@@ -4604,10 +4749,14 @@ final class WebhookSubscription {
     required this.currentPeriodEnd,
     required this.currentPeriodStart,
     required this.customerId,
+    this.discountEndsAt,
+    this.discountId,
+    this.firstPeriodExtraDays,
     required this.id,
     required this.interval,
     required this.metadata,
     this.paymentFailure,
+    this.pendingUpdate,
     required this.priceId,
     required this.productId,
     required this.quantity,
@@ -4629,6 +4778,9 @@ final class WebhookSubscription {
       currentPeriodEnd: json['current_period_end'] as String,
       currentPeriodStart: json['current_period_start'] as String,
       customerId: json['customer_id'] as String,
+      discountEndsAt: json['discount_ends_at'] as String?,
+      discountId: json['discount_id'] as String?,
+      firstPeriodExtraDays: json['first_period_extra_days'] as int?,
       id: json['id'] as String,
       interval: json['interval'] as String,
       metadata: readMap(json['metadata'], (value) => value),
@@ -4637,6 +4789,10 @@ final class WebhookSubscription {
         (value) => WebhookSubscriptionPaymentFailure.fromJson(
           readObject(value),
         ),
+      ),
+      pendingUpdate: readOptional(
+        json['pending_update'],
+        (value) => WebhookSubscriptionPendingUpdate.fromJson(readObject(value)),
       ),
       priceId: json['price_id'] as String,
       productId: json['product_id'] as String,
@@ -4671,6 +4827,21 @@ final class WebhookSubscription {
 
   final String customerId;
 
+  /// Quando o desconto deixa de valer: o fim do último ciclo que ele ainda
+  /// abate (num desconto de uma vez, o fim do primeiro ciclo pago). Nulo quando
+  /// não há desconto e quando ele vale para sempre.
+  final String? discountEndsAt;
+
+  /// O desconto em vigor na assinatura, que se aplica aos próximos ciclos até
+  /// acabar; nulo sem desconto e depois que ele acabou.
+  final String? discountId;
+
+  /// Quantos dias o checkout que vendeu a assinatura somou ao primeiro período,
+  /// para você conferir; nulo quando o primeiro período foi o comum. O primeiro
+  /// período vai do dia do pagamento até esse dia mais um intervalo do preço
+  /// mais estes dias, e current_period_end já vem com eles.
+  final int? firstPeriodExtraDays;
+
   final String id;
 
   final String interval;
@@ -4682,6 +4853,12 @@ final class WebhookSubscription {
   /// A cobrança recusada que causou o evento; só nos eventos de cobrança
   /// recusada.
   final WebhookSubscriptionPaymentFailure? paymentFailure;
+
+  /// A mudança de plano ou de quantidade agendada para o próximo período (PATCH
+  /// com proration_behavior next_period); nulo quando não há nenhuma. Até
+  /// effective_at a assinatura segue com o price_id, a quantity e o
+  /// amount_cents de cima.
+  final WebhookSubscriptionPendingUpdate? pendingUpdate;
 
   final String priceId;
 
@@ -4719,10 +4896,14 @@ final class WebhookSubscription {
     'current_period_end': currentPeriodEnd,
     'current_period_start': currentPeriodStart,
     'customer_id': customerId,
+    'discount_ends_at': discountEndsAt,
+    'discount_id': discountId,
+    'first_period_extra_days': firstPeriodExtraDays,
     'id': id,
     'interval': interval,
     'metadata': metadata,
     'payment_failure': ?paymentFailure?.toJson(),
+    'pending_update': pendingUpdate?.toJson(),
     'price_id': priceId,
     'product_id': productId,
     'quantity': quantity,
@@ -4732,6 +4913,87 @@ final class WebhookSubscription {
     'suspension_reason': suspensionReason,
     'trial_end': trialEnd,
     'trial_start': trialStart,
+  };
+}
+
+/// One item of bands in CheckoutClientItem.
+final class CheckoutClientItemBand {
+  const CheckoutClientItemBand({
+    required this.amountCents,
+    required this.flatCents,
+    required this.quantity,
+    required this.unitCents,
+  });
+
+  /// A CheckoutClientItemBand out of the API's JSON.
+  factory CheckoutClientItemBand.fromJson(Map<String, Object?> json) {
+    return CheckoutClientItemBand(
+      amountCents: json['amount_cents'] as int,
+      flatCents: json['flat_cents'] as int,
+      quantity: json['quantity'] as int,
+      unitCents: json['unit_cents'] as int,
+    );
+  }
+
+  /// O que a faixa soma: as unidades vezes o preço, mais o valor fixo.
+  final int amountCents;
+
+  /// O valor fixo cobrado por entrar na faixa; zero sem ele.
+  final int flatCents;
+
+  /// Quantas unidades a faixa cobrou.
+  final int quantity;
+
+  /// Quanto custa cada unidade da faixa.
+  final int unitCents;
+
+  /// The JSON the API answers.
+  Map<String, Object?> toJson() => {
+    'amount_cents': amountCents,
+    'flat_cents': flatCents,
+    'quantity': quantity,
+    'unit_cents': unitCents,
+  };
+}
+
+/// The pending_update of Subscription.
+final class SubscriptionPendingUpdate {
+  const SubscriptionPendingUpdate({
+    required this.amountCents,
+    required this.effectiveAt,
+    required this.priceId,
+    required this.quantity,
+  });
+
+  /// A SubscriptionPendingUpdate out of the API's JSON.
+  factory SubscriptionPendingUpdate.fromJson(Map<String, Object?> json) {
+    return SubscriptionPendingUpdate(
+      amountCents: json['amount_cents'] as int,
+      effectiveAt: json['effective_at'] as String,
+      priceId: json['price_id'] as String,
+      quantity: json['quantity'] as int,
+    );
+  }
+
+  /// O que o período seguinte cobra, em centavos, já para esta quantity: é o
+  /// total do ciclo.
+  final int amountCents;
+
+  /// Quando a mudança vale: o fim do período atual.
+  final String effectiveAt;
+
+  /// O preço para o qual a assinatura passa em effective_at.
+  final String priceId;
+
+  /// A quantidade que a assinatura terá a partir de effective_at.
+  final int quantity;
+
+  /// The JSON the API answers.
+  Map<String, Object?> toJson() => {
+    'amount_cents': amountCents,
+    'effective_at': effectiveAt,
+    'price_id': priceId,
+    'quantity': quantity,
   };
 }
 
@@ -4813,6 +5075,47 @@ final class WebhookSubscriptionPaymentFailure {
     'period_start': periodStart,
     'reason': reason,
     'retryable': retryable,
+  };
+}
+
+/// The pending_update of WebhookSubscription.
+final class WebhookSubscriptionPendingUpdate {
+  const WebhookSubscriptionPendingUpdate({
+    required this.amountCents,
+    required this.effectiveAt,
+    required this.priceId,
+    required this.quantity,
+  });
+
+  /// A WebhookSubscriptionPendingUpdate out of the API's JSON.
+  factory WebhookSubscriptionPendingUpdate.fromJson(Map<String, Object?> json) {
+    return WebhookSubscriptionPendingUpdate(
+      amountCents: json['amount_cents'] as int,
+      effectiveAt: json['effective_at'] as String,
+      priceId: json['price_id'] as String,
+      quantity: json['quantity'] as int,
+    );
+  }
+
+  /// O que o período seguinte cobra, em centavos, já para esta quantity: é o
+  /// total do ciclo.
+  final int amountCents;
+
+  /// Quando a mudança vale: o fim do período atual.
+  final String effectiveAt;
+
+  /// O preço para o qual a assinatura passa em effective_at.
+  final String priceId;
+
+  /// A quantidade que a assinatura terá a partir de effective_at.
+  final int quantity;
+
+  /// The JSON the API answers.
+  Map<String, Object?> toJson() => {
+    'amount_cents': amountCents,
+    'effective_at': effectiveAt,
+    'price_id': priceId,
+    'quantity': quantity,
   };
 }
 
@@ -5030,6 +5333,7 @@ final class CheckoutsCreateParams {
     this.discountId,
     this.expiresIn,
     this.externalCustomerId,
+    this.firstPeriodExtraDays,
     this.items,
     this.label,
     this.metadata,
@@ -5091,6 +5395,24 @@ final class CheckoutsCreateParams {
 
   /// O mesmo cliente, pelo ID que você deu a ele.
   final String? externalCustomerId;
+
+  /// Quantos dias somar ao primeiro período da assinatura, de 1 a 365: para o
+  /// comprador que ainda tinha dias pagos num plano anterior (por exemplo, pago
+  /// até 11/12 e assinando em 20/11: 21 dias). O comprador paga hoje o valor
+  /// cheio do preço (com as faixas, a quantidade e o desconto), em Pix, cartão
+  /// de crédito ou débito, como em qualquer checkout, e o primeiro período vai
+  /// do dia do pagamento até esse dia mais um intervalo do preço mais estes
+  /// dias, no horário de São Paulo; a renovação e os ciclos seguintes contam a
+  /// partir desse fim. A próxima cobrança, no cartão guardado ou pelo link ou
+  /// Pix de renovação, só acontece nele. A página mostra "Pague hoje R$ X.
+  /// Próxima cobrança em DD/MM/AAAA (inclui N dias do seu plano anterior)". Só
+  /// vale em um preço recorrente com valor, vendido sozinho e sem teste grátis,
+  /// e não junto com subscription_start_at (cobra hoje, não numa data); fora
+  /// disso a resposta é 422. A assinatura e o evento da venda trazem o mesmo
+  /// número em first_period_extra_days, e o pedido do primeiro ciclo traz o
+  /// período estendido em period_start e period_end. Repetir a criação com a
+  /// mesma Idempotency-Key e outro número dá 409.
+  final int? firstPeriodExtraDays;
 
   /// As linhas do pedido, até 50, para o comprador ler o detalhe: aparecem no
   /// checkout (página, modal, componentes e transparente), no pedido, no
@@ -5154,6 +5476,7 @@ final class CheckoutsCreateParams {
     'discount_id': ?discountId,
     'expires_in': ?expiresIn,
     'external_customer_id': ?externalCustomerId,
+    'first_period_extra_days': ?firstPeriodExtraDays,
     'items': ?items?.map((item) => item.toJson()).toList(),
     'label': ?label,
     'metadata': ?metadata,
@@ -5847,13 +6170,27 @@ final class RefundsCreateParams {
 /// The body of subscriptions:update.
 final class SubscriptionsUpdateParams {
   const SubscriptionsUpdateParams({
-    required this.priceId,
+    this.extendCurrentPeriodDays,
+    this.priceId,
     this.prorationBehavior,
     this.quantity,
   });
 
-  /// O preço recorrente para onde a assinatura vai.
-  final String priceId;
+  /// Estende o período atual em tantos dias, de 1 a 365, sem cobrar nada e sem
+  /// criar pedido: a renovação (e a próxima cobrança) passa a ser no novo fim,
+  /// current_period_end, e os períodos seguintes contam a partir dele. É o
+  /// crédito manual de dias do lojista. Só uma assinatura active aceita (uma em
+  /// teste grátis, atrasada, pausada, suspensa ou cancelada recusa); uma que
+  /// termina no fim do período termina no novo fim. Vai sozinho, sem price_id,
+  /// quantity nem proration_behavior, senão a resposta é 422. A mudança chega
+  /// no webhook subscription.updated e fica registrada no log de atividades.
+  /// Não é repetível por si: envie uma Idempotency-Key para que uma nova
+  /// tentativa não some os dias duas vezes.
+  final int? extendCurrentPeriodDays;
+
+  /// O preço recorrente para onde a assinatura vai. Obrigatório para trocar de
+  /// plano; não se envia com extend_current_period_days.
+  final String? priceId;
 
   /// prorate (padrão): rateia o resto do período no próximo valor cobrado;
   /// invoice: cobra a diferença agora; next_period: troca no fim do período;
@@ -5867,7 +6204,8 @@ final class SubscriptionsUpdateParams {
 
   /// The JSON the API takes; a field left null is left out.
   Map<String, Object?> toJson() => {
-    'price_id': priceId,
+    'extend_current_period_days': ?extendCurrentPeriodDays,
+    'price_id': ?priceId,
     'proration_behavior': ?prorationBehavior,
     'quantity': ?quantity,
   };

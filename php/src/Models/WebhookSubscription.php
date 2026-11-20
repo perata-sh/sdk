@@ -20,6 +20,12 @@ final class WebhookSubscription
         public readonly string $currentPeriodEnd,
         public readonly string $currentPeriodStart,
         public readonly string $customerId,
+        /** Quando o desconto deixa de valer: o fim do último ciclo que ele ainda abate (num desconto de uma vez, o fim do primeiro ciclo pago). Nulo quando não há desconto e quando ele vale para sempre. */
+        public readonly ?string $discountEndsAt,
+        /** O desconto em vigor na assinatura, que se aplica aos próximos ciclos até acabar; nulo sem desconto e depois que ele acabou. */
+        public readonly ?string $discountId,
+        /** Quantos dias o checkout que vendeu a assinatura somou ao primeiro período, para você conferir; nulo quando o primeiro período foi o comum. O primeiro período vai do dia do pagamento até esse dia mais um intervalo do preço mais estes dias, e current_period_end já vem com eles. */
+        public readonly ?int $firstPeriodExtraDays,
         public readonly string $id,
         public readonly string $interval,
         /**
@@ -29,6 +35,8 @@ final class WebhookSubscription
         public readonly array $metadata,
         /** A cobrança recusada que causou o evento; só nos eventos de cobrança recusada. */
         public readonly ?WebhookSubscriptionPaymentFailure $paymentFailure,
+        /** A mudança de plano ou de quantidade agendada para o próximo período (PATCH com proration_behavior next_period); nulo quando não há nenhuma. Até effective_at a assinatura segue com o price_id, a quantity e o amount_cents de cima. */
+        public readonly ?WebhookSubscriptionPendingUpdate $pendingUpdate,
         public readonly string $priceId,
         public readonly string $productId,
         /** Quantas unidades ou assentos a assinatura cobre, de 1 em diante; 1 num preço sem quantidade. amount_cents é o total do ciclo para esta quantity. */
@@ -62,10 +70,14 @@ final class WebhookSubscription
             currentPeriodEnd: $data['current_period_end'],
             currentPeriodStart: $data['current_period_start'],
             customerId: $data['customer_id'],
+            discountEndsAt: $data['discount_ends_at'] ?? null,
+            discountId: $data['discount_id'] ?? null,
+            firstPeriodExtraDays: $data['first_period_extra_days'] ?? null,
             id: $data['id'],
             interval: $data['interval'],
             metadata: $data['metadata'],
             paymentFailure: isset($data['payment_failure']) ? WebhookSubscriptionPaymentFailure::fromArray($data['payment_failure']) : null,
+            pendingUpdate: isset($data['pending_update']) ? WebhookSubscriptionPendingUpdate::fromArray($data['pending_update']) : null,
             priceId: $data['price_id'],
             productId: $data['product_id'],
             quantity: $data['quantity'],

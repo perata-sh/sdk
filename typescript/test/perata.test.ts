@@ -298,6 +298,54 @@ test("a graduated price carries its tiers and a subscription its quantity", asyn
   assert.equal(subscription.client_reference_id, "pedido-9");
 });
 
+// A checkout adds the buyer's remaining days to the first period, an extension
+// goes out alone (no price_id), and the sale reads back what it took: the
+// discount on the order and on the subscription, the change scheduled for the
+// next period.
+test("a first period extension and the discounts the sale reads back", async () => {
+  const pending = { price_id: "price_2", quantity: 5, amount_cents: 90000, effective_at: "2026-12-20T03:00:00Z" };
+  const { perata, seen } = client(({ method, url }) => {
+    const route = `${method} ${url.pathname}`;
+    switch (route) {
+      case "POST /api/v1/checkouts":
+        return json(201, { data: { id: "pcl_1", url: "https://perata.sh/pagamento/pcl_1", product_id: "prod_1", price_id: "price_1", first_period_extra_days: 30, discount_id: "disc_1", session_id: "cs_1", client_secret: "cs_secret_1" } });
+      case "PATCH /api/v1/subscriptions/sub_1":
+        return json(200, { data: { id: "sub_1", status: "active", first_period_extra_days: 30, discount_id: "disc_1", discount_ends_at: "2027-03-01T03:00:00Z", pending_update: pending } });
+      case "GET /api/v1/subscriptions/sub_2":
+        return json(200, { data: { id: "sub_2", status: "active", first_period_extra_days: null, discount_id: null, discount_ends_at: null, pending_update: null } });
+      case "GET /api/v1/orders/ord_1":
+        return json(200, { data: { id: "ord_1", amount_cents: 9000, subtotal_cents: 10000, discount_cents: 1000, discount_id: "disc_1", discount_code: "BEMVINDO" } });
+      default:
+        return json(200, { data: { id: "price_1", product_id: "prod_1", type: "recurring", interval: "month", interval_count: 1, currency: "BRL", status: "archived", amount_cents: 9000 } });
+    }
+  });
+  const checkout = await perata.checkouts.create({ product_id: "prod_1", price_id: "price_1", first_period_extra_days: 30 });
+  assert.equal(JSON.parse(seen[0]?.body ?? "")["first_period_extra_days"], 30);
+  assert.equal(checkout.first_period_extra_days, 30);
+  assert.equal(checkout.discount_id, "disc_1");
+  const subscription = await perata.subscriptions.update("sub_1", { extend_current_period_days: 15 });
+  const sent = JSON.parse(seen[1]?.body ?? "") as Record<string, unknown>;
+  assert.equal(seen[1]?.method, "PATCH");
+  assert.equal(sent["extend_current_period_days"], 15);
+  assert.equal("price_id" in sent, false);
+  assert.equal(subscription.first_period_extra_days, 30);
+  assert.equal(subscription.discount_id, "disc_1");
+  assert.equal(subscription.discount_ends_at, "2027-03-01T03:00:00Z");
+  assert.deepEqual(subscription.pending_update, pending);
+  const none = await perata.subscriptions.get("sub_2");
+  assert.equal(none.pending_update, null);
+  assert.equal(none.first_period_extra_days, null);
+  assert.equal(none.discount_id, null);
+  const order = await perata.orders.get("ord_1");
+  assert.equal(order.subtotal_cents, 10000);
+  assert.equal(order.discount_cents, 1000);
+  assert.equal(order.discount_id, "disc_1");
+  assert.equal(order.discount_code, "BEMVINDO");
+  const price = await perata.prices.get("price_1");
+  assert.equal(seen[4]?.url.pathname, "/api/v1/prices/price_1");
+  assert.equal(price.status, "archived");
+});
+
 test("a refusal is a typed error", async () => {
   const { perata } = client(({ url }) =>
     url.pathname === "/api/v1/customers"
@@ -325,12 +373,12 @@ const referenceSecret = "whsec_MfKQ9r8GKYqrTwjUPD8ILPZIo2LaLaSw";
 const oldSecret = "whsec_cGVyYXRhLXNkay1vbGQta2V5LTAxMjM0NTY3ODlhYmM=";
 const newSecret = "whsec_cGVyYXRhLXNkay1uZXcta2V5LTAxMjM0NTY3ODlhYmM=";
 const orderPaid =
-  '{"id":"msg_2","type":"order.paid","timestamp":"2026-10-22T12:00:00Z","data":{"id":"ord_1","customer_id":"cus_1","product_id":"prod_1","price_id":"price_1","amount_cents":12000,"currency":"BRL","status":"succeeded","paid_at":"2026-10-22T12:00:00Z","order_status":"paid","refunded_amount_cents":0,"refund_id":null,"refund_amount_cents":null,"installments":3,"installment_interest_cents":360,"items":[],"metadata":{},"client_reference_id":"","showcase_id":"shw_1"}}';
+  '{"id":"msg_2","type":"order.paid","timestamp":"2026-10-22T12:00:00Z","data":{"id":"ord_1","customer_id":"cus_1","product_id":"prod_1","price_id":"price_1","amount_cents":12000,"currency":"BRL","status":"succeeded","paid_at":"2026-10-22T12:00:00Z","order_status":"paid","refunded_amount_cents":0,"refund_id":null,"refund_amount_cents":null,"installments":3,"installment_interest_cents":360,"items":[],"metadata":{},"client_reference_id":"","showcase_id":"shw_1","subtotal_cents":12000,"discount_cents":0,"discount_id":null,"discount_code":null}}';
 const usageRecorded =
   '{"id":"msg_3","type":"usage_event.recorded","timestamp":"2026-10-22T12:00:00Z","data":{"event_id":"ue_1","aggregate":"usage_event","aggregate_id":"ue_1","merchant_id":"mer_1","environment":"test"}}';
 const payoutSent = '{"id":"msg_4","type":"payout.sent","timestamp":"2026-10-22T12:00:00Z","data":{"payout_id":"po_1","amount_cents":5000}}';
 const orderPaidLive =
-  '{"id":"msg_5","type":"order.paid","timestamp":"2026-10-22T12:00:00Z","environment":"live","showcase_id":"shw_1","data":{"id":"ord_1","customer_id":"cus_1","product_id":"prod_1","price_id":"price_1","amount_cents":12000,"currency":"BRL","status":"succeeded","paid_at":"2026-10-22T12:00:00Z","order_status":"paid","refunded_amount_cents":0,"refund_id":null,"refund_amount_cents":null,"installments":3,"installment_interest_cents":360,"items":[],"metadata":{},"client_reference_id":"","showcase_id":"shw_1"}}';
+  '{"id":"msg_5","type":"order.paid","timestamp":"2026-10-22T12:00:00Z","environment":"live","showcase_id":"shw_1","data":{"id":"ord_1","customer_id":"cus_1","product_id":"prod_1","price_id":"price_1","amount_cents":12000,"currency":"BRL","status":"succeeded","paid_at":"2026-10-22T12:00:00Z","order_status":"paid","refunded_amount_cents":0,"refund_id":null,"refund_amount_cents":null,"installments":3,"installment_interest_cents":360,"items":[],"metadata":{},"client_reference_id":"","showcase_id":"shw_1","subtotal_cents":12000,"discount_cents":0,"discount_id":null,"discount_code":null}}';
 const payoutSentTest = '{"id":"msg_6","type":"payout.sent","timestamp":"2026-10-22T12:00:00Z","environment":"test","data":{"payout_id":"po_1","amount_cents":5000}}';
 const signedAt = 1792670400;
 const webhookHeaders = (id: string, at: number, signature: string) => ({ "Webhook-Id": id, "webhook-timestamp": String(at), "webhook-signature": signature });
@@ -355,7 +403,7 @@ test("a timestamp that is not plain digits is refused", async () => {
 test("a webhook carries the environment it happened in", async () => {
   const now = (signedAt + 120) * 1000;
   const older: [string, string, string][] = [
-    ["msg_2", "v1,fvRLETNjaSQOVbSs/eVRV/C17ysRHoubzX3idpGAifI= v1,ZsKtmVTp/mXCeW5qAiaLJY1TjyXwUyS7RxRVa3RIQQo=", orderPaid],
+    ["msg_2", "v1,wR5lfpym2P4TnG65MaTym1j5wWmRCtcygqTrQNICOEQ= v1,BLGtoe01YFYZHfU7Hcj8qvYNfluZvoTrRaAjcfB8JSs=", orderPaid],
     ["msg_3", "v1,Z3E2vTbczigiySfkzakxuZotPn9FlBY1KAET6hPEZoU=", usageRecorded],
     ["msg_4", "v1,Sa/yofA3h/58pFR+rIiWdIc8qXfcuqvyJSjxn4oJ1ZY=", payoutSent],
   ];
@@ -364,7 +412,7 @@ test("a webhook carries the environment it happened in", async () => {
     assert.equal(event.environment, "", id);
     assert.equal(event.showcase_id, "", id);
   }
-  const order = await verifyWebhook(newSecret, webhookHeaders("msg_5", signedAt, "v1,9CgfDokxQ7tBEd7vvv32TI4QUdqkaHrxgUo2UUNQpOY="), orderPaidLive, now);
+  const order = await verifyWebhook(newSecret, webhookHeaders("msg_5", signedAt, "v1,vJOO2qPe9Vzlr42VPwCuIO+a6Sg8ZVfl9z4WuLJItwg="), orderPaidLive, now);
   assert.equal(order.environment, "live");
   assert.equal(order.showcase_id, "shw_1");
   assert.equal(order.data.showcase_id, "shw_1");
@@ -375,7 +423,7 @@ test("a webhook carries the environment it happened in", async () => {
 
 test("a webhook answers its typed event", async () => {
   const now = (signedAt + 120) * 1000;
-  const headers = webhookHeaders("msg_2", signedAt, "v1,fvRLETNjaSQOVbSs/eVRV/C17ysRHoubzX3idpGAifI= v1,ZsKtmVTp/mXCeW5qAiaLJY1TjyXwUyS7RxRVa3RIQQo=");
+  const headers = webhookHeaders("msg_2", signedAt, "v1,wR5lfpym2P4TnG65MaTym1j5wWmRCtcygqTrQNICOEQ= v1,BLGtoe01YFYZHfU7Hcj8qvYNfluZvoTrRaAjcfB8JSs=");
   for (const secret of [newSecret, oldSecret]) {
     const event = await verifyWebhook(secret, headers, orderPaid, now);
     assert.equal(event.type, "order.paid");
