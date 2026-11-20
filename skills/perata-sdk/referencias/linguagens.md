@@ -11,20 +11,20 @@ Os SDKs oficiais ficam em `https://github.com/perata-sh/sdk`. São gerados do me
 | Python | `perata-sdk` (PyPI) | `pip install perata-sdk` | Python 3.11+ |
 | PHP | `perata-sh/sdk` (Packagist) | `composer require perata-sh/sdk` | PHP 8.1+, extensões `curl` e `json` |
 | Ruby | `perata-sdk` (RubyGems) | `gem install perata-sdk` | Ruby 3.1+ |
-| Java / Kotlin | `sh.perata:sdk` (Maven Central) | Maven: `<dependency><groupId>sh.perata</groupId><artifactId>sdk</artifactId><version>0.5.6</version></dependency>`; Gradle: `implementation("sh.perata:sdk:0.5.6")` | Java 11+ |
+| Java / Kotlin | `sh.perata:sdk` (Maven Central) | Maven: `<dependency><groupId>sh.perata</groupId><artifactId>sdk</artifactId><version>0.5.7</version></dependency>`; Gradle: `implementation("sh.perata:sdk:0.5.7")` | Java 11+ |
 | C# / .NET | `PerataSh.Sdk` (NuGet) | **ainda não publicado**, veja a seção 3 | .NET 8+ |
-| Elixir | `perata_sdk` (Hex) | em `mix.exs`: `{:perata_sdk, "~> 0.5.6"}` | Elixir 1.18+ |
+| Elixir | `perata_sdk` (Hex) | em `mix.exs`: `{:perata_sdk, "~> 0.5.7"}` | Elixir 1.18+ |
 | Dart / Flutter | `perata_sdk` (pub.dev) | `dart pub add perata_sdk` ou `flutter pub add perata_sdk` | Dart 3.8+ |
 | Rust | `perata-sdk` (crates.io) | `cargo add perata-sdk` (no código: `use perata::...`) | Rust 1.88+ |
-| Swift | repositório `https://github.com/perata-sh/sdk` (Swift Package Manager) | em `Package.swift`: `.package(url: "https://github.com/perata-sh/sdk", from: "0.5.6")` e, no alvo, `.product(name: "Perata", package: "sdk")` | Swift 6; macOS 12+, iOS 15+ |
+| Swift | repositório `https://github.com/perata-sh/sdk` (Swift Package Manager) | em `Package.swift`: `.package(url: "https://github.com/perata-sh/sdk", from: "0.5.7")` e, no alvo, `.product(name: "Perata", package: "sdk")` | Swift 6; macOS 12+, iOS 15+ |
 
-As versões dos exemplos (`0.5.6`) são a última publicada em 19/11/2026. Confira no registro antes de fixar uma versão e troque pela mais nova. Os SDKs de servidor nunca vão para o navegador nem para um app: a chave de API não pode sair do servidor (Dart e Swift também só no servidor).
+As versões dos exemplos (`0.5.7`) são a última publicada em 20/11/2026. Confira no registro antes de fixar uma versão e troque pela mais nova. Os SDKs de servidor nunca vão para o navegador nem para um app: a chave de API não pode sair do servidor (Dart e Swift também só no servidor).
 
 Para o navegador há o script `https://perata.sh/v1/perata.js` (sem chave) e dois pacotes escritos à mão, `@perata-sh/js` e `@perata-sh/react`, que **ainda não foram publicados** (os nomes são propostas). Enquanto isso, use a tag `<script>` do `perata.js`.
 
 ## 2. Versão do SDK: o que cada uma traz
 
-Última publicada em 19/11/2026: **0.5.6** (Go, PyPI, RubyGems, Hex, pub.dev, Packagist, crates.io, Maven Central). A 0.5.5 não foi publicada sozinha: o que ela trazia saiu junto na 0.5.6. A **0.5.7** já está no ramo `develop` de `perata-sh/sdk` e ainda não foi publicada nos registros: até sair, o que ela traz (última linha da tabela) vale pela API REST. Se a versão instalada não tem um recurso, atualize; se a atualização ainda não saiu, chame a rota pela API REST.
+Última publicada em 20/11/2026: **0.5.7** (Go, PyPI, RubyGems, Hex, pub.dev, Packagist, crates.io, Maven Central). A 0.5.5 não foi publicada sozinha: o que ela trazia saiu junto na 0.5.6. Se a versão instalada não tem um recurso, atualize; se a atualização ainda não saiu, chame a rota pela API REST.
 
 | Recurso | A partir de |
 |---|---|
@@ -34,7 +34,7 @@ Para o navegador há o script `https://perata.sh/v1/perata.js` (sem chave) e doi
 | `interval_count` nos preços; assinatura `suspended`, `subscriptions.resume`, `payment_failure`; `kind` e demais campos de disputa; ciclo (`subscription_id`, `cycle_sequence`, `period_start`, `period_end`) nos eventos de venda | 0.5.4 |
 | filtro `metadata` nas listas de checkouts, pedidos, pagamentos e assinaturas; filtro `email` em clientes | 0.5.5 |
 | `subscription_start_at` e `discount_id` no checkout; `order_id`, `metadata` e `amount_cents` opcional no reembolso; `refunds.get`; `refund_metadata`; filtro `subscription_id`; `subscription_id` e ciclo em Order e Payment; `showcase.get` e `showcase_id` nos objetos e no envelope do webhook; `failure_reason` e `failure_code` nos eventos `refund.*` | 0.5.6 |
-| `pricing_model`, `tiers`, `unit_amount_cents`, `unit_label(_plural)`, `minimum_units` e `maximum_units` no preço (criação e resposta), com `amount_cents` opcional na criação (preço graduated, por unidade, por assento, por volume); `interval` `day` e `week`; `quantity` e `client_reference_id` em `Subscription` e `subscription.*`; `charged_by` no recibo | 0.5.7 (na `develop`, ainda não publicada) |
+| `pricing_model`, `tiers`, `unit_amount_cents`, `unit_label(_plural)`, `minimum_units` e `maximum_units` no preço (criação e resposta), com `amount_cents` opcional na criação (preço graduated, por unidade, por assento, por volume); `interval` `day` e `week`; `quantity` e `client_reference_id` em `Subscription` e `subscription.*`; `charged_by` no recibo | 0.5.7 |
 
 Para uma versão mais velha, a API REST aceita tudo desde já (os nomes dos campos são os do contrato).
 
