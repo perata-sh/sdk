@@ -1005,7 +1005,7 @@ class Dispute:
     checkout_id: str | None
     """O checkout (o pedido) da venda contestada; nulo quando não é de um checkout. É o mesmo valor de order_id."""
     client_reference_id: str
-    """O id do pedido no seu sistema, enviado ao criar o checkout; vazio sem ele."""
+    """O id do pedido no seu sistema, enviado ao criar o checkout; vazio sem ele. Na renovação de uma assinatura é o do checkout que a vendeu."""
     currency: Literal["BRL"]
     customer_id: str | None
     decided_at: str | None
@@ -1180,7 +1180,7 @@ class Order:
 
     amount_cents: int
     client_reference_id: str
-    """O id do pedido no seu sistema, enviado ao criar o checkout; vazio sem ele."""
+    """O id do pedido no seu sistema, enviado ao criar o checkout; vazio sem ele. Na renovação de uma assinatura é o do checkout que a vendeu."""
     currency: Literal["BRL"]
     customer_id: str
     cycle_sequence: int | None
@@ -1193,7 +1193,7 @@ class Order:
     items: list[CheckoutLine]
     """As linhas do pedido, quando o seu servidor as enviou ao criar o checkout; vazio sem elas."""
     metadata: dict[str, Any]
-    """Os pares que o seu servidor enviou ao criar o checkout."""
+    """Os pares que o seu servidor enviou ao criar o checkout. Na renovação de uma assinatura são os da assinatura, que começou com os do checkout que a vendeu."""
     order_status: Literal["pending", "paid", "partially_refunded", "refunded"] | None
     """Onde o pedido está; status é o do checkout e continua succeeded depois de um reembolso, e este vira partially_refunded ou refunded. Nulo antes de haver pagamento."""
     paid_at: str | None
@@ -1283,6 +1283,8 @@ class OrderReceipt:
     """OrderReceipt is a resource of Peráta's API."""
 
     amount_cents: int
+    charged_by: str
+    """Quem fez a cobrança, na frase que o checkout e o e-mail usam: Cobrança feita por <empresa> (razão social e CNPJ, quando a organização vende com CNPJ); vazio quando a empresa não pôde ser lida."""
     currency: Literal["BRL"]
     customer_email: str
     customer_name: str
@@ -1306,6 +1308,7 @@ class OrderReceipt:
     def from_dict(cls, data: dict[str, Any]) -> OrderReceipt:
         return cls(
             amount_cents=data["amount_cents"],
+            charged_by=data["charged_by"],
             currency=data["currency"],
             customer_email=data["customer_email"],
             customer_name=data["customer_name"],
@@ -1346,7 +1349,7 @@ class Payment:
     captured_cents: int
     checkout_id: str
     client_reference_id: str
-    """O id do pedido no seu sistema, enviado ao criar o checkout; vazio sem ele."""
+    """O id do pedido no seu sistema, enviado ao criar o checkout; vazio sem ele. Na renovação de uma assinatura é o do checkout que a vendeu."""
     created_at: str
     currency: Literal["BRL"]
     customer_id: str
@@ -1360,7 +1363,7 @@ class Payment:
     installments: int
     """Em quantas parcelas o cartão de crédito foi cobrado; 1 à vista."""
     metadata: dict[str, Any]
-    """Os pares que o seu servidor enviou ao criar o checkout."""
+    """Os pares que o seu servidor enviou ao criar o checkout. Na renovação de uma assinatura são os da assinatura, que começou com os do checkout que a vendeu."""
     method: Literal["card", "pix", "boleto"]
     period_end: str | None
     """O fim do período que o ciclo paga; nulo fora de uma assinatura."""
@@ -1440,15 +1443,29 @@ class Price:
     """Price is a resource of Peráta's API."""
 
     amount_cents: int
-    """Valor em centavos."""
+    """Valor em centavos do preço fixo (pricing_model fixed). Vale 0 nos modelos por unidade, assento e faixas, cujo valor está em unit_amount_cents e tiers."""
     currency: Literal["BRL"]
     id: str
-    interval: Literal["none", "month", "year"]
+    interval: Literal["none", "day", "week", "month", "year"]
     interval_count: int
     """De quantos em quantos intervalos o preço renova: 3 com month é trimestral, 6 semestral. 1 no preço one_time."""
+    maximum_units: int | None
+    """O mais que uma compra leva de unidades."""
+    minimum_units: int | None
+    """O menos que uma compra leva de unidades."""
+    pricing_model: Literal["fixed", "free", "custom", "per_unit", "volume", "graduated", "seat"]
+    """Como o valor é calculado. fixed cobra amount_cents uma vez; per_unit e seat cobram unit_amount_cents por unidade ou assento; volume cobra a quantidade inteira pelo valor da faixa em que ela cai; graduated cobra cada faixa pelo seu valor (a 1ª unidade a um valor e as seguintes a outro). free e custom (valor livre) são criados no painel."""
     product_id: str
     status: Literal["active", "archived"]
+    tiers: list[PriceTier]
+    """As faixas de um preço volume ou graduated, em ordem; vazio nos demais modelos."""
     type: Literal["one_time", "recurring"]
+    unit_amount_cents: int | None
+    """Valor de uma unidade (per_unit) ou de um assento (seat), em centavos; nulo nos demais modelos."""
+    unit_label: str | None
+    """Como o preço chama a unidade, no singular (por exemplo, câmera); vazio sem rótulo."""
+    unit_label_plural: str | None
+    """A unidade no plural (por exemplo, câmeras)."""
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> Price:
@@ -1458,9 +1475,33 @@ class Price:
             id=data["id"],
             interval=data["interval"],
             interval_count=data["interval_count"],
+            maximum_units=data.get("maximum_units"),
+            minimum_units=data.get("minimum_units"),
+            pricing_model=data["pricing_model"],
             product_id=data["product_id"],
             status=data["status"],
+            tiers=[PriceTier.from_dict(item) for item in data["tiers"]],
             type=data["type"],
+            unit_amount_cents=data.get("unit_amount_cents"),
+            unit_label=data.get("unit_label"),
+            unit_label_plural=data.get("unit_label_plural"),
+        )
+
+
+@dataclass(frozen=True)
+class PriceTier:
+    """PriceTier is a resource of Peráta's API."""
+
+    unit_amount_cents: int
+    """Valor de uma unidade nesta faixa, em centavos."""
+    up_to: int | None
+    """Até quantas unidades a faixa vai, inclusive; nulo na última faixa, que não tem limite."""
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> PriceTier:
+        return cls(
+            unit_amount_cents=data["unit_amount_cents"],
+            up_to=data.get("up_to"),
         )
 
 
@@ -1563,7 +1604,10 @@ class Subscription:
     """Subscription is a resource of Peráta's API."""
 
     amount_cents: int
+    """O que a assinatura cobra a cada ciclo, em centavos, já para a quantity que ela tem: é o total do ciclo, não o preço de uma unidade. O preço por unidade, por assento ou por faixas já está aplicado à quantity."""
     cancel_at_period_end: bool
+    client_reference_id: str
+    """O id do pedido no seu sistema, enviado ao criar o checkout que vendeu a assinatura; vazio sem ele. Cada pedido de renovação traz o mesmo client_reference_id, e o mesmo metadata, para você achar o cliente."""
     currency: Literal["BRL"]
     current_period_end: str
     current_period_start: str
@@ -1574,6 +1618,8 @@ class Subscription:
     """Metadados do lojista: pares chave e valor (texto, número ou booleano); objeto vazio quando não há."""
     price_id: str
     product_id: str
+    quantity: int
+    """Quantas unidades ou assentos a assinatura cobre, de 1 em diante; 1 num preço sem quantidade. amount_cents é o total do ciclo para esta quantity."""
     showcase_id: str
     """O showcase a que pertence: o da chave de API que fez a chamada. Uma chave só alcança o seu showcase."""
     status: Literal["trialing", "active", "past_due", "suspended", "paused", "canceled"]
@@ -1589,6 +1635,7 @@ class Subscription:
         return cls(
             amount_cents=data["amount_cents"],
             cancel_at_period_end=data["cancel_at_period_end"],
+            client_reference_id=data["client_reference_id"],
             currency=data["currency"],
             current_period_end=data["current_period_end"],
             current_period_start=data["current_period_start"],
@@ -1598,6 +1645,7 @@ class Subscription:
             metadata=data["metadata"],
             price_id=data["price_id"],
             product_id=data["product_id"],
+            quantity=data["quantity"],
             showcase_id=data["showcase_id"],
             status=data["status"],
             suspended_at=data.get("suspended_at"),
@@ -1616,7 +1664,7 @@ class UsageError:
     fields: dict[str, list[str]] | None
     """Em invalid_request, o que há de errado em cada campo do evento."""
     message: str | None
-    """O que explica a recusa, em inglês."""
+    """O que explica a recusa, em português."""
     record: int | None
     """Posição, a partir de 1, do evento do lote que causou a recusa (invalid_request e conflict); o lote inteiro foi revertido."""
 
@@ -1664,7 +1712,7 @@ class WebhookCheckout:
     amount_cents: int
     checkout_link_id: str | None
     client_reference_id: str | None
-    """O id do pedido no sistema do lojista; vazio sem ele."""
+    """O id do pedido no sistema do lojista; vazio sem ele. Na renovação de uma assinatura é o do checkout que a vendeu."""
     created_at: str
     currency: Literal["BRL"]
     customer_id: str | None
@@ -1808,7 +1856,7 @@ class WebhookDispute:
     checkout_id: str | None
     """O checkout (o pedido) da venda contestada; nulo quando não é de um checkout."""
     client_reference_id: str | None
-    """O id do pedido no seu sistema, enviado ao criar o checkout; vazio sem ele."""
+    """O id do pedido no seu sistema, enviado ao criar o checkout; vazio sem ele. Na renovação de uma assinatura é o do checkout que a vendeu."""
     currency: Literal["BRL"]
     customer_id: str | None
     decided_at: str | None
@@ -1932,7 +1980,7 @@ class WebhookOrder:
 
     amount_cents: int
     client_reference_id: str
-    """O id do pedido no seu sistema, enviado ao criar o checkout; vazio sem ele."""
+    """O id do pedido no seu sistema, enviado ao criar o checkout; vazio sem ele. Na renovação de uma assinatura é o do checkout que a vendeu."""
     currency: Literal["BRL"]
     customer_id: str
     cycle_sequence: int | None
@@ -2003,7 +2051,7 @@ class WebhookRefund:
     checkout_id: str | None
     """O checkout (o pedido) que o reembolso devolve, quando se sabe."""
     client_reference_id: str
-    """O id do pedido no sistema do lojista; vazio sem ele."""
+    """O id do pedido no sistema do lojista; vazio sem ele. Na renovação de uma assinatura é o do checkout que a vendeu."""
     id: str
     metadata: dict[str, Any]
     """Os pares que o servidor do lojista enviou ao criar o checkout; vazio sem eles."""
@@ -2046,7 +2094,7 @@ class WebhookSale:
     checkout_id: str | None
     """O checkout (o pedido) do pagamento ou do reembolso."""
     client_reference_id: str | None
-    """O id do pedido no sistema do lojista; vazio sem ele."""
+    """O id do pedido no sistema do lojista; vazio sem ele. Na renovação de uma assinatura é o do checkout que a vendeu."""
     currency: Literal["BRL"] | None
     cycle_sequence: int | None
     """O ciclo da assinatura que o pagamento cobra: 1 é o primeiro, 2 é a primeira renovação."""
@@ -2108,7 +2156,10 @@ class WebhookSubscription:
     """A assinatura como a API a devolve (Subscription) e, nos eventos que uma cobrança recusada causou (subscription.past_due, subscription.suspended e o subscription.updated que os acompanha), a cobrança recusada em payment_failure."""
 
     amount_cents: int
+    """O que a assinatura cobra a cada ciclo, em centavos, já para a quantity que ela tem: é o total do ciclo, não o preço de uma unidade. O preço por unidade, por assento ou por faixas já está aplicado à quantity."""
     cancel_at_period_end: bool
+    client_reference_id: str
+    """O id do pedido no seu sistema, enviado ao criar o checkout que vendeu a assinatura; vazio sem ele. Cada pedido de renovação traz o mesmo client_reference_id, e o mesmo metadata, para você achar o cliente."""
     currency: Literal["BRL"]
     current_period_end: str
     current_period_start: str
@@ -2121,6 +2172,8 @@ class WebhookSubscription:
     """A cobrança recusada que causou o evento; só nos eventos de cobrança recusada."""
     price_id: str
     product_id: str
+    quantity: int
+    """Quantas unidades ou assentos a assinatura cobre, de 1 em diante; 1 num preço sem quantidade. amount_cents é o total do ciclo para esta quantity."""
     showcase_id: str
     """O showcase da venda."""
     status: Literal["trialing", "active", "past_due", "suspended", "paused", "canceled"]
@@ -2136,6 +2189,7 @@ class WebhookSubscription:
         return cls(
             amount_cents=data["amount_cents"],
             cancel_at_period_end=data["cancel_at_period_end"],
+            client_reference_id=data["client_reference_id"],
             currency=data["currency"],
             current_period_end=data["current_period_end"],
             current_period_start=data["current_period_start"],
@@ -2146,6 +2200,7 @@ class WebhookSubscription:
             payment_failure=None if data.get("payment_failure") is None else WebhookSubscriptionPaymentFailure.from_dict(data["payment_failure"]),
             price_id=data["price_id"],
             product_id=data["product_id"],
+            quantity=data["quantity"],
             showcase_id=data["showcase_id"],
             status=data["status"],
             suspended_at=data.get("suspended_at"),
@@ -2283,7 +2338,7 @@ class CheckoutsCreateParams(TypedDict):
     """O valor do pedido todo, em centavos, que o seu servidor fixa. Só vale em um preço de valor livre (custom); em outro preço é recusado com 422. Respeita o mínimo e o máximo do preço, também com 422. O comprador vê o valor e não pode mudá-lo, na página, no modal, nos componentes e no checkout transparente; vale para cartão de crédito, débito e Pix, e é o valor que volta em pedidos, pagamentos, recibo e eventos. Repetir a criação com a mesma Idempotency-Key e outro valor dá 409."""
     cancel_url: NotRequired[str]
     client_reference_id: NotRequired[str]
-    """O id do pedido no seu sistema, de até 255 caracteres. Volta no checkout, no pedido, no pagamento e nos eventos checkout.*, order.*, checkout_payment.* e refund.*, para você achar de qual pedido veio cada pagamento."""
+    """O id do pedido no seu sistema, de até 255 caracteres. Volta no checkout, no pedido, no pagamento e nos eventos checkout.*, order.*, checkout_payment.* e refund.*, para você achar de qual pedido veio cada pagamento. Num checkout de assinatura fica também na assinatura, e cada pedido de renovação volta com ele."""
     customer_email: NotRequired[str]
     """O e-mail do comprador, quando você o conhece; senão o navegador do comprador o pede."""
     customer_id: NotRequired[str]
@@ -2495,13 +2550,37 @@ class CustomersUpdateExternalBillingAddress(TypedDict):
 class PricesCreateParams(TypedDict):
     """The body of prices:create."""
 
-    amount_cents: int
-    interval: NotRequired[Literal["month", "year"]]
-    """Obrigatório no preço recorrente; o preço one_time não tem intervalo."""
+    amount_cents: NotRequired[int]
+    """O valor, em centavos, de um preço fixo (pricing_model fixed, o padrão), obrigatório nele; 0 é um preço gratuito. Nos demais modelos é recusado com 422: o valor está em unit_amount_cents ou em tiers."""
+    interval: NotRequired[Literal["day", "week", "month", "year"]]
+    """Obrigatório no preço recorrente; o preço one_time não tem intervalo. day é o preço diário e week o semanal."""
     interval_count: NotRequired[int]
-    """De quantos em quantos intervalos o preço renova; 1 se omitido. Com month vai de 1 a 12 (3 é trimestral, 6 semestral); com year só 1. O preço one_time não tem."""
+    """De quantos em quantos intervalos o preço renova; 1 se omitido. Com day ou week vai de 1 a 999; com month de 1 a 12 (3 é trimestral, 6 semestral); com year só 1. O preço one_time não tem."""
+    maximum_units: NotRequired[int]
+    """O mais que uma compra leva de unidades, não menor que minimum_units."""
+    minimum_units: NotRequired[int]
+    """O menos que uma compra leva de unidades."""
+    pricing_model: NotRequired[Literal["fixed", "per_unit", "volume", "graduated", "seat"]]
+    """Como o valor é calculado; fixed quando fica de fora. per_unit cobra unit_amount_cents por unidade; seat, por assento; volume cobra a quantidade inteira pelo valor da faixa em que ela cai; graduated cobra cada faixa pelo seu valor: com a 1ª unidade a R$ 250,00 e as seguintes a R$ 150,00, três unidades custam 250 + 150 + 150 = R$ 550,00. volume e graduated pedem tiers. São os mesmos modelos que o painel cria."""
     product_id: str
+    tiers: NotRequired[list[PricesCreateTier]]
+    """As faixas de um preço volume ou graduated, em ordem, de 1 a 50. Por exemplo, [{\"up_to\": 1, \"unit_amount_cents\": 25000}, {\"up_to\": null, \"unit_amount_cents\": 15000}]: a 1ª unidade a R$ 250,00 e as seguintes a R$ 150,00. Uma escada que não fecha (up_to repetido, fora de ordem, última faixa com limite) é recusada com 422."""
     type: Literal["one_time", "recurring"]
+    unit_amount_cents: NotRequired[int]
+    """O valor de uma unidade (per_unit) ou de um assento (seat), em centavos; obrigatório nesses dois modelos e recusado nos outros."""
+    unit_label: NotRequired[str]
+    """Como o preço chama a unidade, no singular, de até 40 caracteres (por exemplo, câmera); só em per_unit, volume e graduated."""
+    unit_label_plural: NotRequired[str]
+    """A unidade no plural, de até 40 caracteres (câmeras)."""
+
+
+class PricesCreateTier(TypedDict):
+    """One item of tiers in PricesCreateParams."""
+
+    unit_amount_cents: int
+    """O valor de uma unidade nesta faixa, em centavos."""
+    up_to: NotRequired[int | None]
+    """Até quantas unidades a faixa vai, inclusive. Crescente de uma faixa para a seguinte; null na última, que não tem limite, e só nela."""
 
 
 class ProductsCreateParams(TypedDict):

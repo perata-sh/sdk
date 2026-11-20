@@ -11,7 +11,7 @@ final class Order
 {
     public function __construct(
         public readonly int $amountCents,
-        /** O id do pedido no seu sistema, enviado ao criar o checkout; vazio sem ele. */
+        /** O id do pedido no seu sistema, enviado ao criar o checkout; vazio sem ele. Na renovação de uma assinatura é o do checkout que a vendeu. */
         public readonly string $clientReferenceId,
         /** @var 'BRL' */
         public readonly string $currency,
@@ -29,7 +29,7 @@ final class Order
          */
         public readonly array $items,
         /**
-         * Os pares que o seu servidor enviou ao criar o checkout.
+         * Os pares que o seu servidor enviou ao criar o checkout. Na renovação de uma assinatura são os da assinatura, que começou com os do checkout que a vendeu.
          * @var array<string, mixed>
          */
         public readonly array $metadata,

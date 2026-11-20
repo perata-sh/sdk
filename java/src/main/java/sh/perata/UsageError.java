@@ -38,7 +38,7 @@ public final class UsageError {
         return fields;
     }
 
-    /** @return O que explica a recusa, em inglês. (null when the API sends none) */
+    /** @return O que explica a recusa, em português. (null when the API sends none) */
     public String getMessage() {
         return message;
     }

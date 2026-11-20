@@ -6,7 +6,7 @@ Uma assinatura é uma cobrança que se repete (mensal, trimestral, semestral, an
 
 1. Crie o produto e um preço `recurring` (`catalogo.md`): `interval: "month"` com `interval_count` 1, 3 ou 6, ou `interval: "year"`.
 2. Crie o checkout com esse `price_id`, **sem** `amount_cents` (o preço define o valor). O cliente paga o primeiro ciclo e a assinatura nasce.
-3. Guarde o que identifica a assinatura. A assinatura **não guarda `client_reference_id`**: use `metadata` (o id da câmera, do plano, do usuário). O `metadata` do checkout passa a ser o da assinatura e volta nos eventos de cada ciclo.
+3. Guarde o que identifica a assinatura. O `client_reference_id` e o `metadata` do checkout (o id da câmera, do plano, do usuário) passam a ser os da assinatura e voltam no pedido de cada renovação e nos eventos de cada ciclo.
 4. Achar depois: `GET /api/v1/subscriptions?metadata[camera_id]=cam-77` (SDK 0.5.5+), ou por `external_customer_id`, `customer_id`, `status`.
 
 Campos extras do checkout de assinatura:
@@ -84,11 +84,13 @@ A chave precisa de `checkouts:write`, `products:read`, `subscriptions:read` e `s
 | `paused` | pausada |
 | `canceled` | encerrada |
 
-Campos úteis: `current_period_start`, `current_period_end`, `cancel_at_period_end`, `suspended_at`, `suspension_reason`, `trial_start`, `trial_end`, `metadata`.
+Campos úteis: `amount_cents`, `quantity`, `current_period_start`, `current_period_end`, `cancel_at_period_end`, `suspended_at`, `suspension_reason`, `trial_start`, `trial_end`, `metadata`, `client_reference_id`.
+
+(`quantity` e `client_reference_id` na `Subscription` e em `subscription.*`: SDK 0.5.7+.) `quantity` é quantas unidades ou assentos a assinatura cobre (1 num preço sem quantidade), e `amount_cents` é o **total do ciclo para essa quantidade**, em centavos, com o preço por unidade, por assento ou por faixas já aplicado: não é o preço de uma unidade. Troque a quantidade com `PATCH /api/v1/subscriptions/{id}` (`quantity`).
 
 ## Renovação
 
-Cada ciclo é cobrado no cartão guardado, no dia do vencimento. Cada ciclo gera `subscription.cycled` (com o período e o `metadata`) e, pela cobrança, `checkout_payment.captured` e `order.paid`; não conte com uma ordem entre eles. Do 2º ciclo em diante, os eventos de pagamento (`order.*`, `checkout.*`, `checkout_payment.*`, `refund.*`) trazem o `metadata` da assinatura (o id da câmera) e `subscription_id`, `cycle_sequence` (1 é o primeiro ciclo, 2 a primeira renovação), `period_start` e `period_end`; esses quatro vêm nulos fora de assinatura. Libere ou estenda o acesso do cliente por ciclo a partir de `order.paid`, usando `period_end`, e deixe a leitura certa do que ele pode usar em `GET /customers/{id}/state`.
+Cada ciclo é cobrado no cartão guardado, no dia do vencimento. Cada ciclo gera `subscription.cycled` (com o período e o `metadata`) e, pela cobrança, `checkout_payment.captured` e `order.paid`; não conte com uma ordem entre eles. Do 2º ciclo em diante, os eventos de pagamento (`order.*`, `checkout.*`, `checkout_payment.*`, `refund.*`) trazem o `client_reference_id` e o `metadata` do checkout que vendeu a assinatura (o id do pedido e o da câmera) e `subscription_id`, `cycle_sequence` (1 é o primeiro ciclo, 2 a primeira renovação), `period_start` e `period_end`; esses quatro vêm nulos fora de assinatura. Libere ou estenda o acesso do cliente por ciclo a partir de `order.paid`, usando `period_end`, e deixe a leitura certa do que ele pode usar em `GET /customers/{id}/state`.
 
 Atenção: em 18/11/2026 a renovação automática no cartão ainda estava **desligada em Produção**. Antes de prometer a renovação ao cliente final, confirme com a Peráta (ajuda@perata.sh) que ela está ligada.
 

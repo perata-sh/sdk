@@ -11,6 +11,7 @@ public final class OrderReceipt {
     public static final String CURRENCY_BRL = "BRL";
 
     private final long amountCents;
+    private final String chargedBy;
     private final String currency;
     private final String customerEmail;
     private final String customerName;
@@ -26,8 +27,9 @@ public final class OrderReceipt {
     private final long refundedCents;
     private final long totalCents;
 
-    OrderReceipt(long amountCents, String currency, String customerEmail, String customerName, long discountCents, long installmentInterestCents, long installments, List<CheckoutLine> items, String number, String orderId, String paidAt, String paymentMethod, String productName, long refundedCents, long totalCents) {
+    OrderReceipt(long amountCents, String chargedBy, String currency, String customerEmail, String customerName, long discountCents, long installmentInterestCents, long installments, List<CheckoutLine> items, String number, String orderId, String paidAt, String paymentMethod, String productName, long refundedCents, long totalCents) {
         this.amountCents = amountCents;
+        this.chargedBy = chargedBy;
         this.currency = currency;
         this.customerEmail = customerEmail;
         this.customerName = customerName;
@@ -47,6 +49,7 @@ public final class OrderReceipt {
     static OrderReceipt fromJson(Map<String, Object> data) {
         return new OrderReceipt(
                 Json.required(data, "amount_cents", Json::asLong),
+                Json.required(data, "charged_by", Json::asString),
                 Json.required(data, "currency", Json::asString),
                 Json.required(data, "customer_email", Json::asString),
                 Json.required(data, "customer_name", Json::asString),
@@ -66,6 +69,11 @@ public final class OrderReceipt {
     /** @return the API's {@code amount_cents} */
     public long getAmountCents() {
         return amountCents;
+    }
+
+    /** @return Quem fez a cobrança, na frase que o checkout e o e-mail usam: Cobrança feita por &lt;empresa&gt; (razão social e CNPJ, quando a organização vende com CNPJ); vazio quando a empresa não pôde ser lida. */
+    public String getChargedBy() {
+        return chargedBy;
     }
 
     /** @return the API's {@code currency} */
@@ -140,6 +148,6 @@ public final class OrderReceipt {
 
     @Override
     public String toString() {
-        return "OrderReceipt{" + "amountCents=" + amountCents + ", currency=" + currency + ", customerEmail=" + customerEmail + ", customerName=" + customerName + ", discountCents=" + discountCents + ", installmentInterestCents=" + installmentInterestCents + ", installments=" + installments + ", items=" + items + ", number=" + number + ", orderId=" + orderId + ", paidAt=" + paidAt + ", paymentMethod=" + paymentMethod + ", productName=" + productName + ", refundedCents=" + refundedCents + ", totalCents=" + totalCents + "}";
+        return "OrderReceipt{" + "amountCents=" + amountCents + ", chargedBy=" + chargedBy + ", currency=" + currency + ", customerEmail=" + customerEmail + ", customerName=" + customerName + ", discountCents=" + discountCents + ", installmentInterestCents=" + installmentInterestCents + ", installments=" + installments + ", items=" + items + ", number=" + number + ", orderId=" + orderId + ", paidAt=" + paidAt + ", paymentMethod=" + paymentMethod + ", productName=" + productName + ", refundedCents=" + refundedCents + ", totalCents=" + totalCents + "}";
     }
 }

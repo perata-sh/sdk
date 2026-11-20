@@ -14,7 +14,7 @@ final class WebhookDispute
         public readonly int $amountCents,
         /** O checkout (o pedido) da venda contestada; nulo quando não é de um checkout. */
         public readonly ?string $checkoutId,
-        /** O id do pedido no seu sistema, enviado ao criar o checkout; vazio sem ele. */
+        /** O id do pedido no seu sistema, enviado ao criar o checkout; vazio sem ele. Na renovação de uma assinatura é o do checkout que a vendeu. */
         public readonly ?string $clientReferenceId,
         /** @var 'BRL' */
         public readonly string $currency,

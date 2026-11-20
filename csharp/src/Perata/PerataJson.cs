@@ -70,6 +70,7 @@ namespace Perata;
 [JsonSerializable(typeof(CustomersUpdateExternalParams))]
 [JsonSerializable(typeof(CustomersUpdateExternalBillingAddress))]
 [JsonSerializable(typeof(PricesCreateParams))]
+[JsonSerializable(typeof(PricesCreateTier))]
 [JsonSerializable(typeof(ProductsCreateParams))]
 [JsonSerializable(typeof(ProductsUpdateParams))]
 [JsonSerializable(typeof(RefundsCreateParams))]

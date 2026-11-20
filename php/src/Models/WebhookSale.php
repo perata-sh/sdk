@@ -16,7 +16,7 @@ final class WebhookSale
         public readonly ?int $amountCents,
         /** O checkout (o pedido) do pagamento ou do reembolso. */
         public readonly ?string $checkoutId,
-        /** O id do pedido no sistema do lojista; vazio sem ele. */
+        /** O id do pedido no sistema do lojista; vazio sem ele. Na renovação de uma assinatura é o do checkout que a vendeu. */
         public readonly ?string $clientReferenceId,
         /** @var 'BRL'|null */
         public readonly ?string $currency,

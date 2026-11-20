@@ -76,12 +76,12 @@ final class PerataTests: XCTestCase {
     func testACheckoutSessionHandsBackTheClientSecretForTheBrowser() async throws {
         @Sendable func session(_ clientSecret: String) -> [String: Any] {
             [
-                "id": "pcl_1", "url": "https://perata.sh/pagamento/pcl_1", "product_id": "prod_1", "price_id": "price_1",
-                "status": "active", "label": "", "quantity": 1, "success_url": "https://loja.example/obrigado", "cancel_url": "",
-                "expires_at": NSNull(), "created_at": "2026-11-16T12:00:00Z", "session_id": "cs_1", "client_secret": clientSecret,
-                "client_secret_expires_at": "2026-11-16T12:30:00Z", "status_key": "sk_1",
-                "amount_cents": NSNull(), "items": [], "metadata": [String: Any](), "client_reference_id": "",
-                "discount_id": "", "showcase_id": "shw_1", "subscription_start_at": NSNull(),
+                    "id": "pcl_1", "url": "https://perata.sh/pagamento/pcl_1", "product_id": "prod_1", "price_id": "price_1",
+                    "status": "active", "label": "", "quantity": 1, "success_url": "https://loja.example/obrigado", "cancel_url": "",
+                    "expires_at": NSNull(), "created_at": "2026-11-16T12:00:00Z", "session_id": "cs_1", "client_secret": clientSecret,
+                    "client_secret_expires_at": "2026-11-16T12:30:00Z", "status_key": "sk_1",
+                    "amount_cents": NSNull(), "items": [], "metadata": [String: Any](), "client_reference_id": "",
+                    "discount_id": "", "showcase_id": "shw_1", "subscription_start_at": NSNull(),
             ]
         }
         let (perata, recorder) = client { _ in (201, [:], ["data": session("cs_secret_1")]) }
@@ -230,6 +230,53 @@ final class PerataTests: XCTestCase {
         let (perata, recorder) = client { _ in (200, [:], ["data": ["items": [], "pagination": ["total_count": 0, "max_page": 1]]]) }
         _ = try await perata.customers.list(email: "ana@example.com")
         XCTAssertEqual(recorder.seen[0].url?.absoluteString, "https://perata.test/api/v1/customers?email=ana%40example.com")
+    }
+
+    // A graduated price goes out with its tiers and without the fixed amount, and
+    // a subscription reads back the quantity it bills and the order reference it
+    // came from; amountCents is the cycle's total for that quantity.
+    func testAGraduatedPriceCarriesItsTiersAndASubscriptionItsQuantity() async throws {
+        @Sendable func price() -> [String: Any] {
+            let tiers: [[String: Any]] = [["up_to": 1, "unit_amount_cents": 25000], ["up_to": NSNull(), "unit_amount_cents": 15000]]
+            return [
+                "id": "price_1", "product_id": "prod_1", "type": "recurring", "interval": "month", "interval_count": 1,
+                "currency": "BRL", "status": "active", "amount_cents": 0, "pricing_model": "graduated",
+                "unit_amount_cents": NSNull(), "unit_label": "câmera", "unit_label_plural": "câmeras", "tiers": tiers,
+            ]
+        }
+        @Sendable func subscription() -> [String: Any] {
+            [
+                "id": "sub_1", "amount_cents": 55000, "cancel_at_period_end": false, "client_reference_id": "pedido-9",
+                "currency": "BRL", "current_period_end": "2026-12-20T00:00:00Z", "current_period_start": "2026-11-20T00:00:00Z",
+                "customer_id": "cus_1", "interval": "month", "metadata": ["camera": "c1"], "price_id": "price_1",
+                "product_id": "prod_1", "quantity": 3, "showcase_id": "shw_1", "status": "active",
+                "suspended_at": NSNull(), "suspension_reason": NSNull(), "trial_end": NSNull(), "trial_start": NSNull(),
+            ]
+        }
+        let (perata, recorder) = client { request in
+            request.httpMethod == "POST" ? (201, [:], ["data": price()]) : (200, [:], ["data": subscription()])
+        }
+        let created = try await perata.prices.create(
+            PricesCreateParams(
+                productID: "prod_1", type: .recurring, interval: .month, pricingModel: .graduated,
+                tiers: [PricesCreateTier(unitAmountCents: 25000, upTo: 1), PricesCreateTier(unitAmountCents: 15000)],
+                unitLabel: "câmera", unitLabelPlural: "câmeras"))
+        XCTAssertEqual(recorder.seen[0].url?.path, "/api/v1/prices")
+        let sent = try XCTUnwrap(JSONSerialization.jsonObject(with: XCTUnwrap(recorder.seen[0].httpBody)) as? [String: Any])
+        XCTAssertEqual(sent["pricing_model"] as? String, "graduated")
+        let sentTiers = try XCTUnwrap(sent["tiers"] as? [[String: Int]])
+        XCTAssertEqual(sentTiers, [["up_to": 1, "unit_amount_cents": 25000], ["unit_amount_cents": 15000]])
+        XCTAssertNil(sent["amount_cents"])
+        XCTAssertEqual(created.pricingModel, .graduated)
+        XCTAssertEqual(created.amountCents, 0)
+        XCTAssertNil(created.unitAmountCents)
+        XCTAssertEqual(created.tiers.map(\.upTo), [1, nil])
+        XCTAssertEqual(created.tiers.map(\.unitAmountCents), [25000, 15000])
+        let got = try await perata.subscriptions.get("sub_1")
+        XCTAssertEqual(recorder.seen[1].url?.path, "/api/v1/subscriptions/sub_1")
+        XCTAssertEqual(got.quantity, 3)
+        XCTAssertEqual(got.amountCents, 55000)
+        XCTAssertEqual(got.clientReferenceID, "pedido-9")
     }
 
     func testUsageIngestionCarriesTheSourceCredentialAndItsEvents() async throws {

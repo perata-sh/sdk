@@ -369,6 +369,60 @@ func TestCustomersAreListedByEmail(t *testing.T) {
 	}
 }
 
+// A graduated price goes out with its tiers and without the fixed amount, and a
+// subscription reads back the quantity it bills and the order reference it came
+// from; amount_cents is the cycle's total for that quantity.
+func TestAGraduatedPriceCarriesItsTiersAndASubscriptionItsQuantity(t *testing.T) {
+	client := server(t, func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodPost && r.URL.Path == "/api/v1/prices" {
+			var body map[string]any
+			_ = json.NewDecoder(r.Body).Decode(&body)
+			tiers, _ := body["tiers"].([]any)
+			if body["pricing_model"] != "graduated" || body["interval"] != "month" || len(tiers) != 2 {
+				t.Errorf("body %v", body)
+			}
+			first, _ := tiers[0].(map[string]any)
+			last, _ := tiers[1].(map[string]any)
+			if first["up_to"] != float64(1) || first["unit_amount_cents"] != float64(25000) || last["up_to"] != nil || last["unit_amount_cents"] != float64(15000) {
+				t.Errorf("tiers %v", tiers)
+			}
+			if _, sent := body["amount_cents"]; sent {
+				t.Error("a graduated price was sent with a fixed amount")
+			}
+			w.WriteHeader(http.StatusCreated)
+			fmt.Fprint(w, `{"data":{"id":"price_1","product_id":"prod_1","type":"recurring","interval":"month","interval_count":1,"currency":"BRL","status":"active","amount_cents":0,"pricing_model":"graduated","unit_amount_cents":null,"unit_label":"câmera","unit_label_plural":"câmeras","tiers":[{"up_to":1,"unit_amount_cents":25000},{"up_to":null,"unit_amount_cents":15000}]}}`)
+			return
+		}
+		if r.URL.Path != "/api/v1/subscriptions/sub_1" {
+			t.Errorf("request %s %s", r.Method, r.URL.Path)
+		}
+		fmt.Fprint(w, `{"data":{"id":"sub_1","amount_cents":55000,"quantity":3,"client_reference_id":"pedido-9","metadata":{"camera":"c1"},"status":"active"}}`)
+	})
+	model := PricePricingModelGraduated
+	interval := PriceIntervalMonth
+	label, plural := "câmera", "câmeras"
+	one := int64(1)
+	price, err := client.Prices.Create(context.Background(), PricesCreateParams{
+		ProductID:       "prod_1",
+		Type:            PriceTypeRecurring,
+		Interval:        &interval,
+		PricingModel:    &model,
+		Tiers:           []PricesCreateTier{{UpTo: &one, UnitAmountCents: 25000}, {UnitAmountCents: 15000}},
+		UnitLabel:       &label,
+		UnitLabelPlural: &plural,
+	})
+	if err != nil || price.PricingModel != PricePricingModelGraduated || price.AmountCents != 0 || price.UnitAmountCents != nil || len(price.Tiers) != 2 {
+		t.Fatalf("price %+v, %v", price, err)
+	}
+	if price.Tiers[0].UpTo == nil || *price.Tiers[0].UpTo != 1 || price.Tiers[1].UpTo != nil || price.Tiers[1].UnitAmountCents != 15000 || price.UnitLabelPlural != "câmeras" {
+		t.Fatalf("tiers %+v", price.Tiers)
+	}
+	subscription, err := client.Subscriptions.Get(context.Background(), "sub_1")
+	if err != nil || subscription.Quantity != 3 || subscription.AmountCents != 55000 || subscription.ClientReferenceID != "pedido-9" {
+		t.Fatalf("subscription %+v, %v", subscription, err)
+	}
+}
+
 func TestARefusalIsATypedError(t *testing.T) {
 	client := server(t, func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path == "/api/v1/customers" {

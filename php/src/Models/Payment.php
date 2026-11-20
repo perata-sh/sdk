@@ -13,7 +13,7 @@ final class Payment
         public readonly int $amountCents,
         public readonly int $capturedCents,
         public readonly string $checkoutId,
-        /** O id do pedido no seu sistema, enviado ao criar o checkout; vazio sem ele. */
+        /** O id do pedido no seu sistema, enviado ao criar o checkout; vazio sem ele. Na renovação de uma assinatura é o do checkout que a vendeu. */
         public readonly string $clientReferenceId,
         public readonly string $createdAt,
         /** @var 'BRL' */
@@ -29,7 +29,7 @@ final class Payment
         /** Em quantas parcelas o cartão de crédito foi cobrado; 1 à vista. */
         public readonly int $installments,
         /**
-         * Os pares que o seu servidor enviou ao criar o checkout.
+         * Os pares que o seu servidor enviou ao criar o checkout. Na renovação de uma assinatura são os da assinatura, que começou com os do checkout que a vendeu.
          * @var array<string, mixed>
          */
         public readonly array $metadata,

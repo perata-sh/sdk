@@ -251,7 +251,7 @@ module Perata
     # @return [String, nil]
     attr_reader :cancel_url
 
-    # O id do pedido no seu sistema, de até 255 caracteres. Volta no checkout, no pedido, no pagamento e nos eventos checkout.*, order.*, checkout_payment.* e refund.*, para você achar de qual pedido veio cada pagamento.
+    # O id do pedido no seu sistema, de até 255 caracteres. Volta no checkout, no pedido, no pagamento e nos eventos checkout.*, order.*, checkout_payment.* e refund.*, para você achar de qual pedido veio cada pagamento. Num checkout de assinatura fica também na assinatura, e cada pedido de renovação volta com ele.
     # @return [String, nil]
     attr_reader :client_reference_id
 
@@ -944,42 +944,112 @@ module Perata
 
   # The body of prices:create.
   class PricesCreateParams < Params
-    MEMBERS = %i[amount_cents interval interval_count product_id type].freeze
+    MEMBERS = %i[amount_cents interval interval_count maximum_units minimum_units pricing_model product_id tiers type unit_amount_cents unit_label unit_label_plural].freeze
 
-    # @return [Integer]
+    # O valor, em centavos, de um preço fixo (pricing_model fixed, o padrão), obrigatório nele; 0 é um preço gratuito. Nos demais modelos é recusado com 422: o valor está em unit_amount_cents ou em tiers.
+    # @return [Integer, nil]
     attr_reader :amount_cents
 
-    # Obrigatório no preço recorrente; o preço one_time não tem intervalo.
-    # @return [String ("month", "year"), nil]
+    # Obrigatório no preço recorrente; o preço one_time não tem intervalo. day é o preço diário e week o semanal.
+    # @return [String ("day", "week", "month", "year"), nil]
     attr_reader :interval
 
-    # De quantos em quantos intervalos o preço renova; 1 se omitido. Com month vai de 1 a 12 (3 é trimestral, 6 semestral); com year só 1. O preço one_time não tem.
+    # De quantos em quantos intervalos o preço renova; 1 se omitido. Com day ou week vai de 1 a 999; com month de 1 a 12 (3 é trimestral, 6 semestral); com year só 1. O preço one_time não tem.
     # @return [Integer, nil]
     attr_reader :interval_count
+
+    # O mais que uma compra leva de unidades, não menor que minimum_units.
+    # @return [Integer, nil]
+    attr_reader :maximum_units
+
+    # O menos que uma compra leva de unidades.
+    # @return [Integer, nil]
+    attr_reader :minimum_units
+
+    # Como o valor é calculado; fixed quando fica de fora. per_unit cobra unit_amount_cents por unidade; seat, por assento; volume cobra a quantidade inteira pelo valor da faixa em que ela cai; graduated cobra cada faixa pelo seu valor: com a 1ª unidade a R$ 250,00 e as seguintes a R$ 150,00, três unidades custam 250 + 150 + 150 = R$ 550,00. volume e graduated pedem tiers. São os mesmos modelos que o painel cria.
+    # @return [String ("fixed", "per_unit", "volume", "graduated", "seat"), nil]
+    attr_reader :pricing_model
 
     # @return [String]
     attr_reader :product_id
 
+    # As faixas de um preço volume ou graduated, em ordem, de 1 a 50. Por exemplo, [{"up_to": 1, "unit_amount_cents": 25000}, {"up_to": null, "unit_amount_cents": 15000}]: a 1ª unidade a R$ 250,00 e as seguintes a R$ 150,00. Uma escada que não fecha (up_to repetido, fora de ordem, última faixa com limite) é recusada com 422.
+    # @return [Array<PricesCreateTier>, nil]
+    attr_reader :tiers
+
     # @return [String ("one_time", "recurring")]
     attr_reader :type
 
-    def initialize(amount_cents:, interval: nil, interval_count: nil, product_id:, type:)
+    # O valor de uma unidade (per_unit) ou de um assento (seat), em centavos; obrigatório nesses dois modelos e recusado nos outros.
+    # @return [Integer, nil]
+    attr_reader :unit_amount_cents
+
+    # Como o preço chama a unidade, no singular, de até 40 caracteres (por exemplo, câmera); só em per_unit, volume e graduated.
+    # @return [String, nil]
+    attr_reader :unit_label
+
+    # A unidade no plural, de até 40 caracteres (câmeras).
+    # @return [String, nil]
+    attr_reader :unit_label_plural
+
+    def initialize(amount_cents: nil, interval: nil, interval_count: nil, maximum_units: nil, minimum_units: nil, pricing_model: nil, product_id:, tiers: nil, type:, unit_amount_cents: nil, unit_label: nil, unit_label_plural: nil)
       @amount_cents = amount_cents
       @interval = interval
       @interval_count = interval_count
+      @maximum_units = maximum_units
+      @minimum_units = minimum_units
+      @pricing_model = pricing_model
       @product_id = product_id
+      @tiers = tiers
       @type = type
+      @unit_amount_cents = unit_amount_cents
+      @unit_label = unit_label
+      @unit_label_plural = unit_label_plural
       freeze
     end
 
     # The body as the API reads it.
     def to_wire
       wire = {}
-      wire["amount_cents"] = @amount_cents
+      wire["amount_cents"] = @amount_cents unless @amount_cents.nil?
       wire["interval"] = @interval unless @interval.nil?
       wire["interval_count"] = @interval_count unless @interval_count.nil?
+      wire["maximum_units"] = @maximum_units unless @maximum_units.nil?
+      wire["minimum_units"] = @minimum_units unless @minimum_units.nil?
+      wire["pricing_model"] = @pricing_model unless @pricing_model.nil?
       wire["product_id"] = @product_id
+      wire["tiers"] = Perata.wire(@tiers) unless @tiers.nil?
       wire["type"] = @type
+      wire["unit_amount_cents"] = @unit_amount_cents unless @unit_amount_cents.nil?
+      wire["unit_label"] = @unit_label unless @unit_label.nil?
+      wire["unit_label_plural"] = @unit_label_plural unless @unit_label_plural.nil?
+      wire
+    end
+  end
+
+  # One item of tiers in PricesCreateParams.
+  class PricesCreateTier < Params
+    MEMBERS = %i[unit_amount_cents up_to].freeze
+
+    # O valor de uma unidade nesta faixa, em centavos.
+    # @return [Integer]
+    attr_reader :unit_amount_cents
+
+    # Até quantas unidades a faixa vai, inclusive. Crescente de uma faixa para a seguinte; null na última, que não tem limite, e só nela.
+    # @return [Integer, nil]
+    attr_reader :up_to
+
+    def initialize(unit_amount_cents:, up_to: nil)
+      @unit_amount_cents = unit_amount_cents
+      @up_to = up_to
+      freeze
+    end
+
+    # The body as the API reads it.
+    def to_wire
+      wire = {}
+      wire["unit_amount_cents"] = @unit_amount_cents
+      wire["up_to"] = @up_to unless @up_to.nil?
       wire
     end
   end

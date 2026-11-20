@@ -605,7 +605,7 @@ pub struct Dispute {
     pub amount_cents: i64,
     /// O checkout (o pedido) da venda contestada; nulo quando não é de um checkout. É o mesmo valor de order_id.
     pub checkout_id: Option<String>,
-    /// O id do pedido no seu sistema, enviado ao criar o checkout; vazio sem ele.
+    /// O id do pedido no seu sistema, enviado ao criar o checkout; vazio sem ele. Na renovação de uma assinatura é o do checkout que a vendeu.
     pub client_reference_id: String,
     pub currency: DisputeCurrency,
     pub customer_id: Option<String>,
@@ -706,7 +706,7 @@ pub struct MeterUnit {
 #[non_exhaustive]
 pub struct Order {
     pub amount_cents: i64,
-    /// O id do pedido no seu sistema, enviado ao criar o checkout; vazio sem ele.
+    /// O id do pedido no seu sistema, enviado ao criar o checkout; vazio sem ele. Na renovação de uma assinatura é o do checkout que a vendeu.
     pub client_reference_id: String,
     pub currency: OrderCurrency,
     pub customer_id: String,
@@ -719,7 +719,7 @@ pub struct Order {
     pub installments: i64,
     /// As linhas do pedido, quando o seu servidor as enviou ao criar o checkout; vazio sem elas.
     pub items: Vec<CheckoutLine>,
-    /// Os pares que o seu servidor enviou ao criar o checkout.
+    /// Os pares que o seu servidor enviou ao criar o checkout. Na renovação de uma assinatura são os da assinatura, que começou com os do checkout que a vendeu.
     pub metadata: std::collections::HashMap<String, serde_json::Value>,
     /// Onde o pedido está; status é o do checkout e continua succeeded depois de um reembolso, e este vira partially_refunded ou refunded. Nulo antes de haver pagamento.
     pub order_status: Option<OrderOrderStatus>,
@@ -767,6 +767,8 @@ pub struct OrderInvoice {
 #[non_exhaustive]
 pub struct OrderReceipt {
     pub amount_cents: i64,
+    /// Quem fez a cobrança, na frase que o checkout e o e-mail usam: Cobrança feita por <empresa> (razão social e CNPJ, quando a organização vende com CNPJ); vazio quando a empresa não pôde ser lida.
+    pub charged_by: String,
     pub currency: OrderReceiptCurrency,
     pub customer_email: String,
     pub customer_name: String,
@@ -802,7 +804,7 @@ pub struct Payment {
     pub amount_cents: i64,
     pub captured_cents: i64,
     pub checkout_id: String,
-    /// O id do pedido no seu sistema, enviado ao criar o checkout; vazio sem ele.
+    /// O id do pedido no seu sistema, enviado ao criar o checkout; vazio sem ele. Na renovação de uma assinatura é o do checkout que a vendeu.
     pub client_reference_id: String,
     pub created_at: String,
     pub currency: PaymentCurrency,
@@ -816,7 +818,7 @@ pub struct Payment {
     pub installment_interest_cents: i64,
     /// Em quantas parcelas o cartão de crédito foi cobrado; 1 à vista.
     pub installments: i64,
-    /// Os pares que o seu servidor enviou ao criar o checkout.
+    /// Os pares que o seu servidor enviou ao criar o checkout. Na renovação de uma assinatura são os da assinatura, que começou com os do checkout que a vendeu.
     pub metadata: std::collections::HashMap<String, serde_json::Value>,
     pub method: PaymentMethodKind,
     /// O fim do período que o ciclo paga; nulo fora de uma assinatura.
@@ -855,17 +857,45 @@ pub struct PaymentMethodDetached {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[non_exhaustive]
 pub struct Price {
-    /// Valor em centavos.
+    /// Valor em centavos do preço fixo (pricing_model fixed). Vale 0 nos modelos por unidade, assento e faixas, cujo valor está em unit_amount_cents e tiers.
     pub amount_cents: i64,
     pub currency: PriceCurrency,
     pub id: String,
     pub interval: PriceInterval,
     /// De quantos em quantos intervalos o preço renova: 3 com month é trimestral, 6 semestral. 1 no preço one_time.
     pub interval_count: i64,
+    /// O mais que uma compra leva de unidades.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub maximum_units: Option<i64>,
+    /// O menos que uma compra leva de unidades.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub minimum_units: Option<i64>,
+    /// Como o valor é calculado. fixed cobra amount_cents uma vez; per_unit e seat cobram unit_amount_cents por unidade ou assento; volume cobra a quantidade inteira pelo valor da faixa em que ela cai; graduated cobra cada faixa pelo seu valor (a 1ª unidade a um valor e as seguintes a outro). free e custom (valor livre) são criados no painel.
+    pub pricing_model: PricePricingModel,
     pub product_id: String,
     pub status: PriceStatus,
+    /// As faixas de um preço volume ou graduated, em ordem; vazio nos demais modelos.
+    pub tiers: Vec<PriceTier>,
     #[serde(rename = "type")]
     pub type_: PriceType,
+    /// Valor de uma unidade (per_unit) ou de um assento (seat), em centavos; nulo nos demais modelos.
+    pub unit_amount_cents: Option<i64>,
+    /// Como o preço chama a unidade, no singular (por exemplo, câmera); vazio sem rótulo.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub unit_label: Option<String>,
+    /// A unidade no plural (por exemplo, câmeras).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub unit_label_plural: Option<String>,
+}
+
+/// PriceTier is a resource of Peráta's API.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct PriceTier {
+    /// Valor de uma unidade nesta faixa, em centavos.
+    pub unit_amount_cents: i64,
+    /// Até quantas unidades a faixa vai, inclusive; nulo na última faixa, que não tem limite.
+    pub up_to: Option<i64>,
 }
 
 /// Product is a resource of Peráta's API.
@@ -928,8 +958,11 @@ pub struct Showcase {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[non_exhaustive]
 pub struct Subscription {
+    /// O que a assinatura cobra a cada ciclo, em centavos, já para a quantity que ela tem: é o total do ciclo, não o preço de uma unidade. O preço por unidade, por assento ou por faixas já está aplicado à quantity.
     pub amount_cents: i64,
     pub cancel_at_period_end: bool,
+    /// O id do pedido no seu sistema, enviado ao criar o checkout que vendeu a assinatura; vazio sem ele. Cada pedido de renovação traz o mesmo client_reference_id, e o mesmo metadata, para você achar o cliente.
+    pub client_reference_id: String,
     pub currency: SubscriptionCurrency,
     pub current_period_end: String,
     pub current_period_start: String,
@@ -940,6 +973,8 @@ pub struct Subscription {
     pub metadata: std::collections::HashMap<String, serde_json::Value>,
     pub price_id: String,
     pub product_id: String,
+    /// Quantas unidades ou assentos a assinatura cobre, de 1 em diante; 1 num preço sem quantidade. amount_cents é o total do ciclo para esta quantity.
+    pub quantity: i64,
     /// O showcase a que pertence: o da chave de API que fez a chamada. Uma chave só alcança o seu showcase.
     pub showcase_id: String,
     pub status: SubscriptionStatus,
@@ -960,7 +995,7 @@ pub struct UsageError {
     /// Em invalid_request, o que há de errado em cada campo do evento.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub fields: Option<std::collections::HashMap<String, Vec<String>>>,
-    /// O que explica a recusa, em inglês.
+    /// O que explica a recusa, em português.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub message: Option<String>,
     /// Posição, a partir de 1, do evento do lote que causou a recusa (invalid_request e conflict); o lote inteiro foi revertido.
@@ -989,7 +1024,7 @@ pub struct WebhookBenefit {
 pub struct WebhookCheckout {
     pub amount_cents: i64,
     pub checkout_link_id: Option<String>,
-    /// O id do pedido no sistema do lojista; vazio sem ele.
+    /// O id do pedido no sistema do lojista; vazio sem ele. Na renovação de uma assinatura é o do checkout que a vendeu.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub client_reference_id: Option<String>,
     pub created_at: String,
@@ -1079,7 +1114,7 @@ pub struct WebhookDispute {
     /// O checkout (o pedido) da venda contestada; nulo quando não é de um checkout.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub checkout_id: Option<String>,
-    /// O id do pedido no seu sistema, enviado ao criar o checkout; vazio sem ele.
+    /// O id do pedido no seu sistema, enviado ao criar o checkout; vazio sem ele. Na renovação de uma assinatura é o do checkout que a vendeu.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub client_reference_id: Option<String>,
     pub currency: WebhookDisputeCurrency,
@@ -1156,7 +1191,7 @@ pub struct WebhookEndpointCreated {
 #[non_exhaustive]
 pub struct WebhookOrder {
     pub amount_cents: i64,
-    /// O id do pedido no seu sistema, enviado ao criar o checkout; vazio sem ele.
+    /// O id do pedido no seu sistema, enviado ao criar o checkout; vazio sem ele. Na renovação de uma assinatura é o do checkout que a vendeu.
     pub client_reference_id: String,
     pub currency: WebhookOrderCurrency,
     pub customer_id: String,
@@ -1205,7 +1240,7 @@ pub struct WebhookRefund {
     /// O checkout (o pedido) que o reembolso devolve, quando se sabe.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub checkout_id: Option<String>,
-    /// O id do pedido no sistema do lojista; vazio sem ele.
+    /// O id do pedido no sistema do lojista; vazio sem ele. Na renovação de uma assinatura é o do checkout que a vendeu.
     pub client_reference_id: String,
     pub id: String,
     /// Os pares que o servidor do lojista enviou ao criar o checkout; vazio sem eles.
@@ -1236,7 +1271,7 @@ pub struct WebhookSale {
     /// O checkout (o pedido) do pagamento ou do reembolso.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub checkout_id: Option<String>,
-    /// O id do pedido no sistema do lojista; vazio sem ele.
+    /// O id do pedido no sistema do lojista; vazio sem ele. Na renovação de uma assinatura é o do checkout que a vendeu.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub client_reference_id: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -1286,8 +1321,11 @@ pub struct WebhookSale {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[non_exhaustive]
 pub struct WebhookSubscription {
+    /// O que a assinatura cobra a cada ciclo, em centavos, já para a quantity que ela tem: é o total do ciclo, não o preço de uma unidade. O preço por unidade, por assento ou por faixas já está aplicado à quantity.
     pub amount_cents: i64,
     pub cancel_at_period_end: bool,
+    /// O id do pedido no seu sistema, enviado ao criar o checkout que vendeu a assinatura; vazio sem ele. Cada pedido de renovação traz o mesmo client_reference_id, e o mesmo metadata, para você achar o cliente.
+    pub client_reference_id: String,
     pub currency: WebhookSubscriptionCurrency,
     pub current_period_end: String,
     pub current_period_start: String,
@@ -1301,6 +1339,8 @@ pub struct WebhookSubscription {
     pub payment_failure: Option<WebhookSubscriptionPaymentFailure>,
     pub price_id: String,
     pub product_id: String,
+    /// Quantas unidades ou assentos a assinatura cobre, de 1 em diante; 1 num preço sem quantidade. amount_cents é o total do ciclo para esta quantity.
+    pub quantity: i64,
     /// O showcase da venda.
     pub showcase_id: String,
     pub status: WebhookSubscriptionStatus,
@@ -1715,7 +1755,7 @@ pub struct CheckoutsCreateParams {
     pub amount_cents: Option<i64>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub cancel_url: Option<String>,
-    /// O id do pedido no seu sistema, de até 255 caracteres. Volta no checkout, no pedido, no pagamento e nos eventos checkout.*, order.*, checkout_payment.* e refund.*, para você achar de qual pedido veio cada pagamento.
+    /// O id do pedido no seu sistema, de até 255 caracteres. Volta no checkout, no pedido, no pagamento e nos eventos checkout.*, order.*, checkout_payment.* e refund.*, para você achar de qual pedido veio cada pagamento. Num checkout de assinatura fica também na assinatura, e cada pedido de renovação volta com ele.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub client_reference_id: Option<String>,
     /// O e-mail do comprador, quando você o conhece; senão o navegador do comprador o pede.
@@ -1807,7 +1847,7 @@ impl CheckoutsCreateParams {
         self
     }
 
-    /// O id do pedido no seu sistema, de até 255 caracteres. Volta no checkout, no pedido, no pagamento e nos eventos checkout.*, order.*, checkout_payment.* e refund.*, para você achar de qual pedido veio cada pagamento.
+    /// O id do pedido no seu sistema, de até 255 caracteres. Volta no checkout, no pedido, no pagamento e nos eventos checkout.*, order.*, checkout_payment.* e refund.*, para você achar de qual pedido veio cada pagamento. Num checkout de assinatura fica também na assinatura, e cada pedido de renovação volta com ele.
     pub fn client_reference_id(mut self, client_reference_id: impl Into<String>) -> Self {
         self.client_reference_id = Some(client_reference_id.into());
         self
@@ -2736,39 +2776,147 @@ impl CustomersUpdateExternalBillingAddress {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[non_exhaustive]
 pub struct PricesCreateParams {
-    pub amount_cents: i64,
-    /// Obrigatório no preço recorrente; o preço one_time não tem intervalo.
+    /// O valor, em centavos, de um preço fixo (pricing_model fixed, o padrão), obrigatório nele; 0 é um preço gratuito. Nos demais modelos é recusado com 422: o valor está em unit_amount_cents ou em tiers.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub amount_cents: Option<i64>,
+    /// Obrigatório no preço recorrente; o preço one_time não tem intervalo. day é o preço diário e week o semanal.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub interval: Option<PricesCreateParamsInterval>,
-    /// De quantos em quantos intervalos o preço renova; 1 se omitido. Com month vai de 1 a 12 (3 é trimestral, 6 semestral); com year só 1. O preço one_time não tem.
+    /// De quantos em quantos intervalos o preço renova; 1 se omitido. Com day ou week vai de 1 a 999; com month de 1 a 12 (3 é trimestral, 6 semestral); com year só 1. O preço one_time não tem.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub interval_count: Option<i64>,
+    /// O mais que uma compra leva de unidades, não menor que minimum_units.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub maximum_units: Option<i64>,
+    /// O menos que uma compra leva de unidades.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub minimum_units: Option<i64>,
+    /// Como o valor é calculado; fixed quando fica de fora. per_unit cobra unit_amount_cents por unidade; seat, por assento; volume cobra a quantidade inteira pelo valor da faixa em que ela cai; graduated cobra cada faixa pelo seu valor: com a 1ª unidade a R$ 250,00 e as seguintes a R$ 150,00, três unidades custam 250 + 150 + 150 = R$ 550,00. volume e graduated pedem tiers. São os mesmos modelos que o painel cria.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub pricing_model: Option<PricesCreateParamsPricingModel>,
     pub product_id: String,
+    /// As faixas de um preço volume ou graduated, em ordem, de 1 a 50. Por exemplo, [{"up_to": 1, "unit_amount_cents": 25000}, {"up_to": null, "unit_amount_cents": 15000}]: a 1ª unidade a R$ 250,00 e as seguintes a R$ 150,00. Uma escada que não fecha (up_to repetido, fora de ordem, última faixa com limite) é recusada com 422.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub tiers: Option<Vec<PricesCreateTier>>,
     #[serde(rename = "type")]
     pub type_: PricesCreateParamsType,
+    /// O valor de uma unidade (per_unit) ou de um assento (seat), em centavos; obrigatório nesses dois modelos e recusado nos outros.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub unit_amount_cents: Option<i64>,
+    /// Como o preço chama a unidade, no singular, de até 40 caracteres (por exemplo, câmera); só em per_unit, volume e graduated.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub unit_label: Option<String>,
+    /// A unidade no plural, de até 40 caracteres (câmeras).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub unit_label_plural: Option<String>,
 }
 
 impl PricesCreateParams {
     /// A body with its required fields.
-    pub fn new(amount_cents: i64, product_id: impl Into<String>, type_: impl Into<PricesCreateParamsType>) -> Self {
+    pub fn new(product_id: impl Into<String>, type_: impl Into<PricesCreateParamsType>) -> Self {
         Self {
-            amount_cents,
+            amount_cents: None,
             interval: None,
             interval_count: None,
+            maximum_units: None,
+            minimum_units: None,
+            pricing_model: None,
             product_id: product_id.into(),
+            tiers: None,
             type_: type_.into(),
+            unit_amount_cents: None,
+            unit_label: None,
+            unit_label_plural: None,
         }
     }
 
-    /// Obrigatório no preço recorrente; o preço one_time não tem intervalo.
+    /// O valor, em centavos, de um preço fixo (pricing_model fixed, o padrão), obrigatório nele; 0 é um preço gratuito. Nos demais modelos é recusado com 422: o valor está em unit_amount_cents ou em tiers.
+    pub fn amount_cents(mut self, amount_cents: i64) -> Self {
+        self.amount_cents = Some(amount_cents);
+        self
+    }
+
+    /// Obrigatório no preço recorrente; o preço one_time não tem intervalo. day é o preço diário e week o semanal.
     pub fn interval(mut self, interval: impl Into<PricesCreateParamsInterval>) -> Self {
         self.interval = Some(interval.into());
         self
     }
 
-    /// De quantos em quantos intervalos o preço renova; 1 se omitido. Com month vai de 1 a 12 (3 é trimestral, 6 semestral); com year só 1. O preço one_time não tem.
+    /// De quantos em quantos intervalos o preço renova; 1 se omitido. Com day ou week vai de 1 a 999; com month de 1 a 12 (3 é trimestral, 6 semestral); com year só 1. O preço one_time não tem.
     pub fn interval_count(mut self, interval_count: i64) -> Self {
         self.interval_count = Some(interval_count);
+        self
+    }
+
+    /// O mais que uma compra leva de unidades, não menor que minimum_units.
+    pub fn maximum_units(mut self, maximum_units: i64) -> Self {
+        self.maximum_units = Some(maximum_units);
+        self
+    }
+
+    /// O menos que uma compra leva de unidades.
+    pub fn minimum_units(mut self, minimum_units: i64) -> Self {
+        self.minimum_units = Some(minimum_units);
+        self
+    }
+
+    /// Como o valor é calculado; fixed quando fica de fora. per_unit cobra unit_amount_cents por unidade; seat, por assento; volume cobra a quantidade inteira pelo valor da faixa em que ela cai; graduated cobra cada faixa pelo seu valor: com a 1ª unidade a R$ 250,00 e as seguintes a R$ 150,00, três unidades custam 250 + 150 + 150 = R$ 550,00. volume e graduated pedem tiers. São os mesmos modelos que o painel cria.
+    pub fn pricing_model(mut self, pricing_model: impl Into<PricesCreateParamsPricingModel>) -> Self {
+        self.pricing_model = Some(pricing_model.into());
+        self
+    }
+
+    /// As faixas de um preço volume ou graduated, em ordem, de 1 a 50. Por exemplo, [{"up_to": 1, "unit_amount_cents": 25000}, {"up_to": null, "unit_amount_cents": 15000}]: a 1ª unidade a R$ 250,00 e as seguintes a R$ 150,00. Uma escada que não fecha (up_to repetido, fora de ordem, última faixa com limite) é recusada com 422.
+    pub fn tiers(mut self, tiers: Vec<PricesCreateTier>) -> Self {
+        self.tiers = Some(tiers);
+        self
+    }
+
+    /// O valor de uma unidade (per_unit) ou de um assento (seat), em centavos; obrigatório nesses dois modelos e recusado nos outros.
+    pub fn unit_amount_cents(mut self, unit_amount_cents: i64) -> Self {
+        self.unit_amount_cents = Some(unit_amount_cents);
+        self
+    }
+
+    /// Como o preço chama a unidade, no singular, de até 40 caracteres (por exemplo, câmera); só em per_unit, volume e graduated.
+    pub fn unit_label(mut self, unit_label: impl Into<String>) -> Self {
+        self.unit_label = Some(unit_label.into());
+        self
+    }
+
+    /// A unidade no plural, de até 40 caracteres (câmeras).
+    pub fn unit_label_plural(mut self, unit_label_plural: impl Into<String>) -> Self {
+        self.unit_label_plural = Some(unit_label_plural.into());
+        self
+    }
+}
+
+/// One item of tiers in PricesCreateParams.
+///
+/// [`PricesCreateTier::new`] takes the required fields; each optional one is set by
+/// the method of its name.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct PricesCreateTier {
+    /// O valor de uma unidade nesta faixa, em centavos.
+    pub unit_amount_cents: i64,
+    /// Até quantas unidades a faixa vai, inclusive. Crescente de uma faixa para a seguinte; null na última, que não tem limite, e só nela.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub up_to: Option<i64>,
+}
+
+impl PricesCreateTier {
+    /// A body with its required fields.
+    pub fn new(unit_amount_cents: i64) -> Self {
+        Self {
+            unit_amount_cents,
+            up_to: None,
+        }
+    }
+
+    /// Até quantas unidades a faixa vai, inclusive. Crescente de uma faixa para a seguinte; null na última, que não tem limite, e só nela.
+    pub fn up_to(mut self, up_to: i64) -> Self {
+        self.up_to = Some(up_to);
         self
     }
 }
@@ -6171,6 +6319,10 @@ impl<'de> Deserialize<'de> for PriceCurrency {
 pub enum PriceInterval {
     /// `none`
     None,
+    /// `day`
+    Day,
+    /// `week`
+    Week,
     /// `month`
     Month,
     /// `year`
@@ -6184,6 +6336,8 @@ impl PriceInterval {
     pub fn as_str(&self) -> &str {
         match self {
             PriceInterval::None => "none",
+            PriceInterval::Day => "day",
+            PriceInterval::Week => "week",
             PriceInterval::Month => "month",
             PriceInterval::Year => "year",
             PriceInterval::Unrecognized(value) => value,
@@ -6195,6 +6349,8 @@ impl From<&str> for PriceInterval {
     fn from(value: &str) -> Self {
         match value {
             "none" => PriceInterval::None,
+            "day" => PriceInterval::Day,
+            "week" => PriceInterval::Week,
             "month" => PriceInterval::Month,
             "year" => PriceInterval::Year,
             other => PriceInterval::Unrecognized(other.to_owned()),
@@ -6221,6 +6377,86 @@ impl Serialize for PriceInterval {
 }
 
 impl<'de> Deserialize<'de> for PriceInterval {
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        String::deserialize(deserializer).map(Self::from)
+    }
+}
+
+/// The values of `Price.pricing_model`. Como o valor é calculado. fixed cobra amount_cents uma vez; per_unit e seat cobram unit_amount_cents por unidade ou assento; volume cobra a quantidade inteira pelo valor da faixa em que ela cai; graduated cobra cada faixa pelo seu valor (a 1ª unidade a um valor e as seguintes a outro). free e custom (valor livre) são criados no painel.
+///
+/// A value this SDK does not know yet is kept, as it came, in
+/// [`PricePricingModel::Unrecognized`].
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[non_exhaustive]
+pub enum PricePricingModel {
+    /// `fixed`
+    Fixed,
+    /// `free`
+    Free,
+    /// `custom`
+    Custom,
+    /// `per_unit`
+    PerUnit,
+    /// `volume`
+    Volume,
+    /// `graduated`
+    Graduated,
+    /// `seat`
+    Seat,
+    /// A value this SDK does not know yet.
+    Unrecognized(String),
+}
+
+impl PricePricingModel {
+    /// The value as the API writes it.
+    pub fn as_str(&self) -> &str {
+        match self {
+            PricePricingModel::Fixed => "fixed",
+            PricePricingModel::Free => "free",
+            PricePricingModel::Custom => "custom",
+            PricePricingModel::PerUnit => "per_unit",
+            PricePricingModel::Volume => "volume",
+            PricePricingModel::Graduated => "graduated",
+            PricePricingModel::Seat => "seat",
+            PricePricingModel::Unrecognized(value) => value,
+        }
+    }
+}
+
+impl From<&str> for PricePricingModel {
+    fn from(value: &str) -> Self {
+        match value {
+            "fixed" => PricePricingModel::Fixed,
+            "free" => PricePricingModel::Free,
+            "custom" => PricePricingModel::Custom,
+            "per_unit" => PricePricingModel::PerUnit,
+            "volume" => PricePricingModel::Volume,
+            "graduated" => PricePricingModel::Graduated,
+            "seat" => PricePricingModel::Seat,
+            other => PricePricingModel::Unrecognized(other.to_owned()),
+        }
+    }
+}
+
+impl From<String> for PricePricingModel {
+    fn from(value: String) -> Self {
+        Self::from(value.as_str())
+    }
+}
+
+impl fmt::Display for PricePricingModel {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
+impl Serialize for PricePricingModel {
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        serializer.serialize_str(self.as_str())
+    }
+}
+
+impl<'de> Deserialize<'de> for PricePricingModel {
     fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
         String::deserialize(deserializer).map(Self::from)
     }
@@ -8954,13 +9190,17 @@ impl<'de> Deserialize<'de> for CustomersUpdateExternalParamsTaxIdKind {
     }
 }
 
-/// The values of `PricesCreateParams.interval`. Obrigatório no preço recorrente; o preço one_time não tem intervalo.
+/// The values of `PricesCreateParams.interval`. Obrigatório no preço recorrente; o preço one_time não tem intervalo. day é o preço diário e week o semanal.
 ///
 /// A value this SDK does not know yet is kept, as it came, in
 /// [`PricesCreateParamsInterval::Unrecognized`].
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[non_exhaustive]
 pub enum PricesCreateParamsInterval {
+    /// `day`
+    Day,
+    /// `week`
+    Week,
     /// `month`
     Month,
     /// `year`
@@ -8973,6 +9213,8 @@ impl PricesCreateParamsInterval {
     /// The value as the API writes it.
     pub fn as_str(&self) -> &str {
         match self {
+            PricesCreateParamsInterval::Day => "day",
+            PricesCreateParamsInterval::Week => "week",
             PricesCreateParamsInterval::Month => "month",
             PricesCreateParamsInterval::Year => "year",
             PricesCreateParamsInterval::Unrecognized(value) => value,
@@ -8983,6 +9225,8 @@ impl PricesCreateParamsInterval {
 impl From<&str> for PricesCreateParamsInterval {
     fn from(value: &str) -> Self {
         match value {
+            "day" => PricesCreateParamsInterval::Day,
+            "week" => PricesCreateParamsInterval::Week,
             "month" => PricesCreateParamsInterval::Month,
             "year" => PricesCreateParamsInterval::Year,
             other => PricesCreateParamsInterval::Unrecognized(other.to_owned()),
@@ -9009,6 +9253,78 @@ impl Serialize for PricesCreateParamsInterval {
 }
 
 impl<'de> Deserialize<'de> for PricesCreateParamsInterval {
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        String::deserialize(deserializer).map(Self::from)
+    }
+}
+
+/// The values of `PricesCreateParams.pricing_model`. Como o valor é calculado; fixed quando fica de fora. per_unit cobra unit_amount_cents por unidade; seat, por assento; volume cobra a quantidade inteira pelo valor da faixa em que ela cai; graduated cobra cada faixa pelo seu valor: com a 1ª unidade a R$ 250,00 e as seguintes a R$ 150,00, três unidades custam 250 + 150 + 150 = R$ 550,00. volume e graduated pedem tiers. São os mesmos modelos que o painel cria.
+///
+/// A value this SDK does not know yet is kept, as it came, in
+/// [`PricesCreateParamsPricingModel::Unrecognized`].
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[non_exhaustive]
+pub enum PricesCreateParamsPricingModel {
+    /// `fixed`
+    Fixed,
+    /// `per_unit`
+    PerUnit,
+    /// `volume`
+    Volume,
+    /// `graduated`
+    Graduated,
+    /// `seat`
+    Seat,
+    /// A value this SDK does not know yet.
+    Unrecognized(String),
+}
+
+impl PricesCreateParamsPricingModel {
+    /// The value as the API writes it.
+    pub fn as_str(&self) -> &str {
+        match self {
+            PricesCreateParamsPricingModel::Fixed => "fixed",
+            PricesCreateParamsPricingModel::PerUnit => "per_unit",
+            PricesCreateParamsPricingModel::Volume => "volume",
+            PricesCreateParamsPricingModel::Graduated => "graduated",
+            PricesCreateParamsPricingModel::Seat => "seat",
+            PricesCreateParamsPricingModel::Unrecognized(value) => value,
+        }
+    }
+}
+
+impl From<&str> for PricesCreateParamsPricingModel {
+    fn from(value: &str) -> Self {
+        match value {
+            "fixed" => PricesCreateParamsPricingModel::Fixed,
+            "per_unit" => PricesCreateParamsPricingModel::PerUnit,
+            "volume" => PricesCreateParamsPricingModel::Volume,
+            "graduated" => PricesCreateParamsPricingModel::Graduated,
+            "seat" => PricesCreateParamsPricingModel::Seat,
+            other => PricesCreateParamsPricingModel::Unrecognized(other.to_owned()),
+        }
+    }
+}
+
+impl From<String> for PricesCreateParamsPricingModel {
+    fn from(value: String) -> Self {
+        Self::from(value.as_str())
+    }
+}
+
+impl fmt::Display for PricesCreateParamsPricingModel {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
+impl Serialize for PricesCreateParamsPricingModel {
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        serializer.serialize_str(self.as_str())
+    }
+}
+
+impl<'de> Deserialize<'de> for PricesCreateParamsPricingModel {
     fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
         String::deserialize(deserializer).map(Self::from)
     }

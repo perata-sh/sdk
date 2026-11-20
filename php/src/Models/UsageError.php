@@ -17,7 +17,7 @@ final class UsageError
          * @var array<string, list<string>>|null
          */
         public readonly ?array $fields,
-        /** O que explica a recusa, em inglês. */
+        /** O que explica a recusa, em português. */
         public readonly ?string $message,
         /** Posição, a partir de 1, do evento do lote que causou a recusa (invalid_request e conflict); o lote inteiro foi revertido. */
         public readonly ?int $record,

@@ -17,7 +17,7 @@ public sealed record UsageError
     [JsonPropertyName("fields")]
     public IReadOnlyDictionary<string, IReadOnlyList<string>>? Fields { get; init; }
 
-    /// <summary>O que explica a recusa, em inglês. Null when the API sends none.</summary>
+    /// <summary>O que explica a recusa, em português. Null when the API sends none.</summary>
     [JsonPropertyName("message")]
     public string? Message { get; init; }
 

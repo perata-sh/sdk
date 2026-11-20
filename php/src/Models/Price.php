@@ -10,20 +10,40 @@ namespace Perata\Models;
 final class Price
 {
     public function __construct(
-        /** Valor em centavos. */
+        /** Valor em centavos do preço fixo (pricing_model fixed). Vale 0 nos modelos por unidade, assento e faixas, cujo valor está em unit_amount_cents e tiers. */
         public readonly int $amountCents,
         /** @var 'BRL' */
         public readonly string $currency,
         public readonly string $id,
-        /** @var 'none'|'month'|'year' */
+        /** @var 'none'|'day'|'week'|'month'|'year' */
         public readonly string $interval,
         /** De quantos em quantos intervalos o preço renova: 3 com month é trimestral, 6 semestral. 1 no preço one_time. */
         public readonly int $intervalCount,
+        /** O mais que uma compra leva de unidades. */
+        public readonly ?int $maximumUnits,
+        /** O menos que uma compra leva de unidades. */
+        public readonly ?int $minimumUnits,
+        /**
+         * Como o valor é calculado. fixed cobra amount_cents uma vez; per_unit e seat cobram unit_amount_cents por unidade ou assento; volume cobra a quantidade inteira pelo valor da faixa em que ela cai; graduated cobra cada faixa pelo seu valor (a 1ª unidade a um valor e as seguintes a outro). free e custom (valor livre) são criados no painel.
+         * @var 'fixed'|'free'|'custom'|'per_unit'|'volume'|'graduated'|'seat'
+         */
+        public readonly string $pricingModel,
         public readonly string $productId,
         /** @var 'active'|'archived' */
         public readonly string $status,
+        /**
+         * As faixas de um preço volume ou graduated, em ordem; vazio nos demais modelos.
+         * @var list<PriceTier>
+         */
+        public readonly array $tiers,
         /** @var 'one_time'|'recurring' */
         public readonly string $type,
+        /** Valor de uma unidade (per_unit) ou de um assento (seat), em centavos; nulo nos demais modelos. */
+        public readonly ?int $unitAmountCents,
+        /** Como o preço chama a unidade, no singular (por exemplo, câmera); vazio sem rótulo. */
+        public readonly ?string $unitLabel,
+        /** A unidade no plural (por exemplo, câmeras). */
+        public readonly ?string $unitLabelPlural,
     ) {
     }
 
@@ -38,9 +58,16 @@ final class Price
             id: $data['id'],
             interval: $data['interval'],
             intervalCount: $data['interval_count'],
+            maximumUnits: $data['maximum_units'] ?? null,
+            minimumUnits: $data['minimum_units'] ?? null,
+            pricingModel: $data['pricing_model'],
             productId: $data['product_id'],
             status: $data['status'],
+            tiers: array_values(array_map(static fn (array $item) => PriceTier::fromArray($item), $data['tiers'])),
             type: $data['type'],
+            unitAmountCents: $data['unit_amount_cents'] ?? null,
+            unitLabel: $data['unit_label'] ?? null,
+            unitLabelPlural: $data['unit_label_plural'] ?? null,
         );
     }
 }

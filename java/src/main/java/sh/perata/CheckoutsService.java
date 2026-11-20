@@ -141,7 +141,7 @@ public final class CheckoutsService {
             return cancelUrl;
         }
 
-        /** @return O id do pedido no seu sistema, de até 255 caracteres. Volta no checkout, no pedido, no pagamento e nos eventos checkout.*, order.*, checkout_payment.* e refund.*, para você achar de qual pedido veio cada pagamento. (null when left out) */
+        /** @return O id do pedido no seu sistema, de até 255 caracteres. Volta no checkout, no pedido, no pagamento e nos eventos checkout.*, order.*, checkout_payment.* e refund.*, para você achar de qual pedido veio cada pagamento. Num checkout de assinatura fica também na assinatura, e cada pedido de renovação volta com ele. (null when left out) */
         public String getClientReferenceId() {
             return clientReferenceId;
         }
@@ -341,7 +341,7 @@ public final class CheckoutsService {
             }
 
             /**
-             * @param clientReferenceId O id do pedido no seu sistema, de até 255 caracteres. Volta no checkout, no pedido, no pagamento e nos eventos checkout.*, order.*, checkout_payment.* e refund.*, para você achar de qual pedido veio cada pagamento.
+             * @param clientReferenceId O id do pedido no seu sistema, de até 255 caracteres. Volta no checkout, no pedido, no pagamento e nos eventos checkout.*, order.*, checkout_payment.* e refund.*, para você achar de qual pedido veio cada pagamento. Num checkout de assinatura fica também na assinatura, e cada pedido de renovação volta com ele.
              * @return this builder
              */
             public Builder clientReferenceId(String clientReferenceId) {

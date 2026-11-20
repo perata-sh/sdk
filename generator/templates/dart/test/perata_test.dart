@@ -399,6 +399,94 @@ void main() {
     expect(seen.single.url.query, 'email=ana%40example.com');
   });
 
+  // A graduated price goes out with its tiers and without the fixed amount, and
+  // a subscription reads back the quantity it bills and the order reference it
+  // came from; amountCents is the cycle's total for that quantity.
+  test(
+    'a graduated price carries its tiers and a subscription its quantity',
+    () async {
+      final tiers = [
+        {'up_to': 1, 'unit_amount_cents': 25000},
+        {'up_to': null, 'unit_amount_cents': 15000},
+      ];
+      final price = {
+        'id': 'price_1',
+        'product_id': 'prod_1',
+        'type': 'recurring',
+        'interval': 'month',
+        'interval_count': 1,
+        'currency': 'BRL',
+        'status': 'active',
+        'amount_cents': 0,
+        'pricing_model': 'graduated',
+        'unit_amount_cents': null,
+        'unit_label': 'câmera',
+        'unit_label_plural': 'câmeras',
+        'tiers': tiers,
+      };
+      final subscription = {
+        'id': 'sub_1',
+        'amount_cents': 55000,
+        'cancel_at_period_end': false,
+        'client_reference_id': 'pedido-9',
+        'currency': 'BRL',
+        'current_period_end': '2026-12-20T00:00:00Z',
+        'current_period_start': '2026-11-20T00:00:00Z',
+        'customer_id': 'cus_1',
+        'interval': 'month',
+        'metadata': {'camera': 'c1'},
+        'price_id': 'price_1',
+        'product_id': 'prod_1',
+        'quantity': 3,
+        'showcase_id': 'shw_1',
+        'status': 'active',
+        'suspended_at': null,
+        'suspension_reason': null,
+        'trial_end': null,
+        'trial_start': null,
+      };
+      final (perata, seen) = client(
+        (request) => request.method == 'POST'
+            ? json(201, {'data': price})
+            : json(200, {'data': subscription}),
+      );
+      final created = await perata.prices.create(
+        const PricesCreateParams(
+          productId: 'prod_1',
+          type: 'recurring',
+          interval: 'month',
+          pricingModel: 'graduated',
+          tiers: [
+            PricesCreateTier(upTo: 1, unitAmountCents: 25000),
+            PricesCreateTier(unitAmountCents: 15000),
+          ],
+          unitLabel: 'câmera',
+          unitLabelPlural: 'câmeras',
+        ),
+      );
+      expect(seen[0].url.path, '/api/v1/prices');
+      final sent = jsonDecode(seen[0].body) as Map<String, Object?>;
+      expect(sent['pricing_model'], 'graduated');
+      expect(sent['tiers'], [
+        {'up_to': 1, 'unit_amount_cents': 25000},
+        {'unit_amount_cents': 15000},
+      ]);
+      expect(sent.containsKey('amount_cents'), isFalse);
+      expect(created.pricingModel, 'graduated');
+      expect(created.amountCents, 0);
+      expect(created.unitAmountCents, isNull);
+      expect(created.tiers.map((tier) => (tier.upTo, tier.unitAmountCents)), [
+        (1, 25000),
+        (null, 15000),
+      ]);
+      final got = await perata.subscriptions.get('sub_1');
+      expect(seen[1].url.path, '/api/v1/subscriptions/sub_1');
+      expect(got.quantity, 3);
+      expect(got.amountCents, 55000);
+      expect(got.clientReferenceId, 'pedido-9');
+    },
+  );
+
   test(
     'usage ingestion carries the source credential and its events',
     () async {

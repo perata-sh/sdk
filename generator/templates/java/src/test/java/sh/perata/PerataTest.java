@@ -307,6 +307,43 @@ class PerataTest {
         assertEquals("email=ana%40example.com", url.getRawQuery());
     }
 
+    // A graduated price goes out with its tiers and without the fixed amount, and
+    // a subscription reads back the quantity it bills and the order reference it
+    // came from; amount_cents is the cycle's total for that quantity.
+    @Test
+    void aGraduatedPriceCarriesItsTiersAndASubscriptionItsQuantity() {
+        String price = "{\"id\":\"price_1\",\"product_id\":\"prod_1\",\"type\":\"recurring\",\"interval\":\"month\",\"interval_count\":1,\"currency\":\"BRL\",\"status\":\"active\",\"amount_cents\":0,\"pricing_model\":\"graduated\",\"unit_amount_cents\":null,\"unit_label\":\"câmera\",\"unit_label_plural\":\"câmeras\",\"tiers\":[{\"up_to\":1,\"unit_amount_cents\":25000},{\"up_to\":null,\"unit_amount_cents\":15000}]}";
+        String subscription = "{\"id\":\"sub_1\",\"amount_cents\":55000,\"cancel_at_period_end\":false,\"client_reference_id\":\"pedido-9\",\"currency\":\"BRL\",\"current_period_end\":\"2026-12-20T00:00:00Z\",\"current_period_start\":\"2026-11-20T00:00:00Z\",\"customer_id\":\"cus_1\",\"interval\":\"month\",\"metadata\":{\"camera\":\"c1\"},\"price_id\":\"price_1\",\"product_id\":\"prod_1\",\"quantity\":3,\"showcase_id\":\"shw_1\",\"status\":\"active\",\"suspended_at\":null,\"suspension_reason\":null,\"trial_end\":null,\"trial_start\":null}";
+        Recorder recorder = new Recorder(request -> "POST".equals(request.getMethod())
+                ? json(201, Map.of(), data(Json.parse(price)))
+                : json(200, Map.of(), data(Json.parse(subscription))));
+        Perata perata = client(recorder);
+        Price created = perata.prices().create(PricesService.CreateParams.builder()
+                .productId("prod_1").type("recurring").interval("month").pricingModel("graduated")
+                .tiers(List.of(
+                        PricesService.PricesCreateTier.builder().upTo(1L).unitAmountCents(25000L).build(),
+                        PricesService.PricesCreateTier.builder().unitAmountCents(15000L).build()))
+                .unitLabel("câmera").unitLabelPlural("câmeras")
+                .build());
+        assertEquals("/api/v1/prices", URI.create(recorder.seen.get(0).getUrl()).getPath());
+        Map<String, Object> sent = Json.asObject(Json.parse(new String(recorder.seen.get(0).getBody(), StandardCharsets.UTF_8)));
+        assertEquals("graduated", sent.get("pricing_model"));
+        assertEquals(List.of(Map.of("up_to", 1L, "unit_amount_cents", 25000L), Map.of("unit_amount_cents", 15000L)), sent.get("tiers"));
+        assertFalse(sent.containsKey("amount_cents"));
+        assertEquals("graduated", created.getPricingModel());
+        assertEquals(0L, created.getAmountCents());
+        assertNull(created.getUnitAmountCents());
+        assertEquals(2, created.getTiers().size());
+        assertEquals(Long.valueOf(1), created.getTiers().get(0).getUpTo());
+        assertNull(created.getTiers().get(1).getUpTo());
+        assertEquals(15000L, created.getTiers().get(1).getUnitAmountCents());
+        Subscription got = perata.subscriptions().get("sub_1");
+        assertEquals("/api/v1/subscriptions/sub_1", URI.create(recorder.seen.get(1).getUrl()).getPath());
+        assertEquals(3L, got.getQuantity());
+        assertEquals(55000L, got.getAmountCents());
+        assertEquals("pedido-9", got.getClientReferenceId());
+    }
+
     @Test
     @SuppressWarnings("unchecked")
     void usageIngestionCarriesTheSourceCredentialAndItsEvents() {

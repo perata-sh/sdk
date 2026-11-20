@@ -234,7 +234,7 @@ O contrato lista todos os `type`s abaixo. Assine só os que usa. O `data` de cad
 | Pagamento | `checkout_payment.authorized`, `.captured`, `.refused`, `.canceled`, `.refunded`, `.partially_refunded` | `WebhookSale` (`checkout_id`, `amount_cents`, `method`, `client_reference_id`, `metadata`, `refunded_amount_cents`, e `refund_id`/`refund_amount_cents` nos de reembolso) | detalhe do pagamento (meio, recusa); a baixa vem de `order.paid` |
 | Reembolso | `refund.requested`, `refund.succeeded`, `refund.failed`, `refund.canceled` | `WebhookSale` (`checkout_id`, `payment_id`, `refund_id`, `amount_cents`, e em `refund.failed` `failure_reason` e `failure_code`) | `refund.failed`: avise quem pediu; o dinheiro não voltou |
 | Reembolso (objeto) | `refund.created`, `refund.updated` | `WebhookRefund` (`id`, `payment_id`, `order_id`, `amount_cents`, `status`; `metadata` é o do **pedido**, `refund_metadata` o do **reembolso**) | acompanhamento |
-| Assinatura | `subscription.created`, `.active`, `.updated`, `.cycled`, `.past_due`, `.suspended`, `.paused`, `.resumed`, `.canceled`, `.uncanceled`, `.revoked` | `WebhookSubscription` (e `payment_failure` em `past_due` e `suspended`) | `assinaturas.md` |
+| Assinatura | `subscription.created`, `.active`, `.updated`, `.cycled`, `.past_due`, `.suspended`, `.paused`, `.resumed`, `.canceled`, `.uncanceled`, `.revoked` | `WebhookSubscription` (com `quantity`, `amount_cents` do ciclo, `client_reference_id` e `metadata`; e `payment_failure` em `past_due` e `suspended`) | `assinaturas.md` |
 | Disputa | `dispute.opened`, `dispute.won`, `dispute.lost` | `WebhookDispute` (com `kind`, `payment_method`, `checkout_id`, `client_reference_id`, `metadata`, `external_customer_id`, `subscription_id`) | `opened`: suspenda o serviço e defenda |
 | Cliente | `customer.created`, `.updated`, `.deleted`, `.archived` | o `Customer` (`archived`: só identificadores) | espelho opcional |
 | Catálogo | `product.created`, `.updated`, `.archived`, `price.created`, `.archived` | `Product` (os de preço e `archived`: só identificadores) | espelho opcional |
@@ -244,6 +244,8 @@ O contrato lista todos os `type`s abaixo. Assine só os que usa. O `data` de cad
 | Fatura | `invoice.drafted`, `.issued`, `.settled`, `.uncollectible`, `.voided` | só identificadores | opcional |
 | Consumo | `usage_event.recorded`, `usage_period.opened`, `.closed`, `usage_period_adjustment.created` | só identificadores | opcional |
 | Assentos | `seat_allocation.opened`, `.resized`, `seat_assignment.invited`, `.claimed`, `.revoked` | só identificadores | opcional |
+
+Use os nomes exatamente como estão na tabela. Pagamento confirmado é `checkout_payment.captured` (o `succeeded` é só o `status` do pedido e o nome `checkout_session.succeeded`); não existe `checkout_payment.succeeded` nem `payment.succeeded`. Para liberar o que foi vendido, escute `order.paid`. A lista completa de nomes é a do contrato (`GET /documentacao/openapi.json`, seção `webhooks`); um nome fora dela não é entregue e o endpoint recusa assiná-lo.
 
 "Só identificadores" quer dizer `data` com `event_id`, `aggregate`, `aggregate_id`, `merchant_id` (o showcase) e `environment`; use o `aggregate_id` para ler o objeto pela API.
 

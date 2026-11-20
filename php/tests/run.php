@@ -190,6 +190,25 @@ $tests['customers are listed by e-mail'] = static function (): void {
     check($seen[0]['url'] === 'https://perata.test/api/v1/customers?email=ana%40example.com', 'query ' . $seen[0]['url']);
 };
 
+// A graduated price goes out with its tiers and without the fixed amount, and a
+// subscription reads back the quantity it bills and the order reference it came
+// from; amount_cents is the cycle's total for that quantity.
+$tests['a graduated price carries its tiers and a subscription its quantity'] = static function (): void {
+    $tiers = [['up_to' => 1, 'unit_amount_cents' => 25000], ['up_to' => null, 'unit_amount_cents' => 15000]];
+    $price = ['id' => 'price_1', 'product_id' => 'prod_1', 'type' => 'recurring', 'interval' => 'month', 'interval_count' => 1, 'currency' => 'BRL', 'status' => 'active', 'amount_cents' => 0, 'pricing_model' => 'graduated', 'unit_amount_cents' => null, 'unit_label' => 'câmera', 'unit_label_plural' => 'câmeras', 'tiers' => $tiers];
+    $subscription = ['id' => 'sub_1', 'amount_cents' => 55000, 'cancel_at_period_end' => false, 'client_reference_id' => 'pedido-9', 'currency' => 'BRL', 'current_period_end' => '2026-12-20T00:00:00Z', 'current_period_start' => '2026-11-20T00:00:00Z', 'customer_id' => 'cus_1', 'interval' => 'month', 'metadata' => ['camera' => 'c1'], 'price_id' => 'price_1', 'product_id' => 'prod_1', 'quantity' => 3, 'showcase_id' => 'shw_1', 'status' => 'active', 'suspended_at' => null, 'suspension_reason' => null, 'trial_end' => null, 'trial_start' => null];
+    [$perata, $seen] = client(static fn (array $request): array => $request['method'] === 'POST' ? [201, [], ['data' => $price]] : [200, [], ['data' => $subscription]]);
+    $created = $perata->prices->create(['product_id' => 'prod_1', 'type' => 'recurring', 'interval' => 'month', 'pricing_model' => 'graduated', 'tiers' => $tiers, 'unit_label' => 'câmera', 'unit_label_plural' => 'câmeras']);
+    check($seen[0]['url'] === 'https://perata.test/api/v1/prices', 'path ' . $seen[0]['url']);
+    $sent = json_decode((string) $seen[0]['body'], true);
+    check($sent['pricing_model'] === 'graduated' && $sent['tiers'] === $tiers && !array_key_exists('amount_cents', $sent), 'body ' . $seen[0]['body']);
+    check($created->pricingModel === 'graduated' && $created->amountCents === 0 && $created->unitAmountCents === null, 'price');
+    check(count($created->tiers) === 2 && $created->tiers[0]->upTo === 1 && $created->tiers[1]->upTo === null && $created->tiers[1]->unitAmountCents === 15000, 'tiers');
+    $got = $perata->subscriptions->get('sub_1');
+    check($seen[1]['url'] === 'https://perata.test/api/v1/subscriptions/sub_1', 'path ' . $seen[1]['url']);
+    check($got->quantity === 3 && $got->amountCents === 55000 && $got->clientReferenceId === 'pedido-9', 'subscription');
+};
+
 $tests['usage ingestion carries the source credential and its events'] = static function (): void {
     $seen = new \ArrayObject();
     $transport = static function (string $method, string $url, array $headers, ?string $body, float $timeout) use ($seen): array {

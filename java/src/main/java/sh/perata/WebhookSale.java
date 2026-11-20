@@ -107,7 +107,7 @@ public final class WebhookSale {
         return checkoutId;
     }
 
-    /** @return O id do pedido no sistema do lojista; vazio sem ele. (null when the API sends none) */
+    /** @return O id do pedido no sistema do lojista; vazio sem ele. Na renovação de uma assinatura é o do checkout que a vendeu. (null when the API sends none) */
     public String getClientReferenceId() {
         return clientReferenceId;
     }

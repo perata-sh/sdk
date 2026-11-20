@@ -189,6 +189,25 @@ class PerataTest(unittest.TestCase):
         self.assertEqual(recorder.seen[0]["url"].path, "/api/v1/customers")
         self.assertEqual(recorder.seen[0]["url"].query, "email=ana%40example.com")
 
+    # A graduated price goes out with its tiers and without the fixed amount, and
+    # a subscription reads back the quantity it bills and the order reference it
+    # came from; amount_cents is the cycle's total for that quantity.
+    def test_a_graduated_price_carries_its_tiers_and_a_subscription_its_quantity(self):
+        tiers = [{"up_to": 1, "unit_amount_cents": 25000}, {"up_to": None, "unit_amount_cents": 15000}]
+        price = {"id": "price_1", "product_id": "prod_1", "type": "recurring", "interval": "month", "interval_count": 1, "currency": "BRL", "status": "active", "amount_cents": 0, "pricing_model": "graduated", "unit_amount_cents": None, "unit_label": "câmera", "unit_label_plural": "câmeras", "tiers": tiers}
+        subscription = {"id": "sub_1", "amount_cents": 55000, "cancel_at_period_end": False, "client_reference_id": "pedido-9", "currency": "BRL", "current_period_end": "2026-12-20T00:00:00Z", "current_period_start": "2026-11-20T00:00:00Z", "customer_id": "cus_1", "interval": "month", "metadata": {"camera": "c1"}, "price_id": "price_1", "product_id": "prod_1", "quantity": 3, "showcase_id": "shw_1", "status": "active", "suspended_at": None, "suspension_reason": None, "trial_end": None, "trial_start": None}
+        perata, recorder = client(lambda request: (201, {"data": price}, {}) if request["method"] == "POST" else (200, {"data": subscription}, {}))
+        created = perata.prices.create({"product_id": "prod_1", "type": "recurring", "interval": "month", "pricing_model": "graduated", "tiers": tiers, "unit_label": "câmera", "unit_label_plural": "câmeras"})
+        self.assertEqual(recorder.seen[0]["url"].path, "/api/v1/prices")
+        sent = json.loads(recorder.seen[0]["body"])
+        self.assertEqual((sent["pricing_model"], sent["tiers"]), ("graduated", tiers))
+        self.assertNotIn("amount_cents", sent)
+        self.assertEqual((created.pricing_model, created.amount_cents, created.unit_amount_cents), ("graduated", 0, None))
+        self.assertEqual([(tier.up_to, tier.unit_amount_cents) for tier in created.tiers], [(1, 25000), (None, 15000)])
+        got = perata.subscriptions.get("sub_1")
+        self.assertEqual(recorder.seen[1]["url"].path, "/api/v1/subscriptions/sub_1")
+        self.assertEqual((got.quantity, got.amount_cents, got.client_reference_id), (3, 55000, "pedido-9"))
+
     def test_usage_ingestion_carries_the_source_credential_and_its_events(self):
         recorder = Recorder(lambda request: (200, {"data": {"created": 1, "replayed": 0}}, {}))
         usage = Perata("pus_live_source", base_url="https://perata.test/", transport=recorder)

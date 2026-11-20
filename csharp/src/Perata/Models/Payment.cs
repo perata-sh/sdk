@@ -57,7 +57,7 @@ public sealed record Payment
     [JsonPropertyName("checkout_id")]
     public required string CheckoutId { get; init; }
 
-    /// <summary>O id do pedido no seu sistema, enviado ao criar o checkout; vazio sem ele.</summary>
+    /// <summary>O id do pedido no seu sistema, enviado ao criar o checkout; vazio sem ele. Na renovação de uma assinatura é o do checkout que a vendeu.</summary>
     [JsonPropertyName("client_reference_id")]
     public required string ClientReferenceId { get; init; }
 
@@ -93,7 +93,7 @@ public sealed record Payment
     [JsonPropertyName("installments")]
     public required long Installments { get; init; }
 
-    /// <summary>Os pares que o seu servidor enviou ao criar o checkout.</summary>
+    /// <summary>Os pares que o seu servidor enviou ao criar o checkout. Na renovação de uma assinatura são os da assinatura, que começou com os do checkout que a vendeu.</summary>
     [JsonPropertyName("metadata")]
     public required IReadOnlyDictionary<string, JsonElement> Metadata { get; init; }
 

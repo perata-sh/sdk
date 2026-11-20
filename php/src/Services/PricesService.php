@@ -21,8 +21,12 @@ final class PricesService
      * Criar um preço.
      *
      * Cria um preço em reais para um produto, avulso (one_time) ou recorrente
-     * (recurring). No recorrente, interval e interval_count dizem de quanto em
-     * quanto tempo ele renova: month com 3 é trimestral.
+     * (recurring). No recorrente, interval (day, week, month ou year) e
+     * interval_count dizem de quanto em quanto tempo ele renova: month com 3 é
+     * trimestral, day com 1 é diário. Com pricing_model o preço pode ser por
+     * quantidade, como no painel: per_unit, seat, volume ou graduated com tiers
+     * (por exemplo, a 1ª unidade a R$ 250,00 e as seguintes a R$ 150,00); sem
+     * ele, é um preço fixo de amount_cents.
      *
      * Autenticação: chave de API da organização em Authorization: Bearer
      * (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
@@ -30,7 +34,7 @@ final class PricesService
      * é dele. Respostas em JSON no envelope data; erros com error, message e
      * fields.
      *
-     * @param array{amount_cents: int, interval?: 'month'|'year', interval_count?: int, product_id: string, type: 'one_time'|'recurring'} $params
+     * @param array{amount_cents?: int, interval?: 'day'|'week'|'month'|'year', interval_count?: int, maximum_units?: int, minimum_units?: int, pricing_model?: 'fixed'|'per_unit'|'volume'|'graduated'|'seat', product_id: string, tiers?: list<array{unit_amount_cents: int, up_to?: int|null}>, type: 'one_time'|'recurring', unit_amount_cents?: int, unit_label?: string, unit_label_plural?: string} $params
      */
     public function create(array $params, ?string $idempotencyKey = null, ?string $apiKey = null): Models\Price
     {

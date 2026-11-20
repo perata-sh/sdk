@@ -16,6 +16,10 @@ public sealed record OrderReceipt
     [JsonPropertyName("amount_cents")]
     public required long AmountCents { get; init; }
 
+    /// <summary>Quem fez a cobrança, na frase que o checkout e o e-mail usam: Cobrança feita por &lt;empresa&gt; (razão social e CNPJ, quando a organização vende com CNPJ); vazio quando a empresa não pôde ser lida.</summary>
+    [JsonPropertyName("charged_by")]
+    public required string ChargedBy { get; init; }
+
     /// <summary>The API's <c>currency</c>.</summary>
     [JsonPropertyName("currency")]
     public required string Currency { get; init; }

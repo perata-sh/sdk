@@ -113,7 +113,7 @@ public final class WebhookDispute {
         return checkoutId;
     }
 
-    /** @return O id do pedido no seu sistema, enviado ao criar o checkout; vazio sem ele. (null when the API sends none) */
+    /** @return O id do pedido no seu sistema, enviado ao criar o checkout; vazio sem ele. Na renovação de uma assinatura é o do checkout que a vendeu. (null when the API sends none) */
     public String getClientReferenceId() {
         return clientReferenceId;
     }

@@ -6,12 +6,12 @@ SDK oficial da API da Peráta para Java 11+, sem dependências: só `java.net.ht
 <dependency>
     <groupId>sh.perata</groupId>
     <artifactId>sdk</artifactId>
-    <version>0.5.6</version>
+    <version>0.5.7</version>
 </dependency>
 ```
 
 ```kotlin
-implementation("sh.perata:sdk:0.5.6") // Gradle
+implementation("sh.perata:sdk:0.5.7") // Gradle
 ```
 
 ```java
@@ -146,6 +146,31 @@ Showcase showcase = perata.showcase().get();
 // showcase.getId(), getName(), getIsPrincipal(), getHasLogo(), getEnvironment()
 ```
 
+## Preço por quantidade e assinatura com quantidade
+
+`pricing_model` em `prices.create` diz como o valor é calculado: `fixed` (o padrão, com `amount_cents`), `per_unit` e `seat` (`unit_amount_cents` por unidade ou por assento), `volume` (a quantidade inteira pelo valor da faixa em que ela cai) e `graduated` (cada faixa pelo seu valor). `volume` e `graduated` pedem `tiers`, de 1 a 50, em ordem: `up_to` é até quantas unidades a faixa vai, inclusive, e a última faixa não leva `up_to` (sem limite). Com a 1ª unidade a R$ 250,00 e as seguintes a R$ 150,00, três unidades custam 250 + 150 + 150 = R$ 550,00. `unit_label` e `unit_label_plural` dão nome à unidade (câmera, câmeras), `minimum_units` e `maximum_units` limitam a compra, e `interval` aceita também `day` e `week`. Fora do preço fixo não se envia `amount_cents`: a API recusa com 422. **Mudança de tipo nas linguagens tipadas: `amount_cents` deixa de ser obrigatório em `PricesCreateParams`.** O preço devolvido traz `pricing_model`, `tiers`, `unit_amount_cents` e `amount_cents` 0 nos modelos por quantidade.
+
+O checkout recebe a `quantity` e cobra pelo modelo do preço. A assinatura que nasce dele traz `quantity` e `client_reference_id` (a `Subscription` e o `subscription.*` do webhook), e o `amount_cents` dela é o **total do ciclo para essa quantity**, não o preço de uma unidade. Cada pedido de renovação volta com o mesmo `client_reference_id` e o mesmo `metadata`. O recibo do pedido traz `charged_by`, a frase "Cobrança feita por <empresa>". Um 401 e as rotas `/checkouts/client/...` respondem no mesmo formato `{error, message, fields}` dos demais erros.
+
+```java
+Price price = perata.prices().create(
+        PricesService.CreateParams.builder()
+                .productId(productId)
+                .type("recurring")
+                .interval("month")
+                .pricingModel("graduated")
+                .tiers(List.of(
+                        PricesService.PricesCreateTier.builder().upTo(1L).unitAmountCents(25000L).build(), // a 1ª unidade a R$ 250,00
+                        PricesService.PricesCreateTier.builder().unitAmountCents(15000L).build())) // as seguintes a R$ 150,00
+                .build());
+
+CheckoutCreated checkout = perata.checkouts().create(
+        CheckoutsService.CreateParams.builder().productId(productId).priceId(price.getId()).quantity(3L).build());
+
+Subscription subscription = perata.subscriptions().get(subscriptionId);
+// subscription.getQuantity() (3), subscription.getAmountCents() (55000: o total do ciclo), subscription.getClientReferenceId()
+```
+
 ## Consumo (ingestão de eventos)
 
 A ingestão de consumo usa outra credencial: a de uma fonte de ingestão (**Configurações › Fontes de ingestão**), `pus_test_…` em teste e `pus_live_…` em produção. Monte um cliente com ela; a chave de API da organização (`prk_…`) é recusada aqui com 401, e uma credencial de um ambiente nunca escreve no outro.
@@ -198,4 +223,4 @@ O evento é tipado: um tipo para cada dado que o webhook carrega (`OrderWebhookE
 
 Todo evento traz o ambiente em que aconteceu, em `getEnvironment()`: `"test"` ou `"live"` (vazio se um servidor antigo não mandou). Recuse o evento do ambiente errado: um endpoint de produção deve responder 400 a um evento `"test"`, para que um teste não dê baixa em um pedido real. O showcase da venda vem em `getShowcaseId()` (vazio se um servidor antigo não mandou): um endpoint é de um showcase só, e o mesmo `showcase_id` está nos objetos do evento.
 
-Versão do SDK: 0.5.6 · contrato da API: 0.1.0
+Versão do SDK: 0.5.7 · contrato da API: 0.1.0

@@ -271,6 +271,33 @@ test("customers are listed by e-mail", async () => {
   assert.equal(seen[0]?.url.search, "?email=ana%40example.com");
 });
 
+// A graduated price goes out with its tiers and without the fixed amount, and a
+// subscription reads back the quantity it bills and the order reference it came
+// from; amount_cents is the cycle's total for that quantity.
+test("a graduated price carries its tiers and a subscription its quantity", async () => {
+  const tiers = [{ up_to: 1, unit_amount_cents: 25000 }, { up_to: null, unit_amount_cents: 15000 }];
+  const { perata, seen } = client(({ method }) =>
+    method === "POST"
+      ? json(201, { data: { id: "price_1", product_id: "prod_1", type: "recurring", interval: "month", interval_count: 1, currency: "BRL", status: "active", amount_cents: 0, pricing_model: "graduated", unit_amount_cents: null, unit_label: "câmera", unit_label_plural: "câmeras", tiers } })
+      : json(200, { data: { id: "sub_1", amount_cents: 55000, quantity: 3, client_reference_id: "pedido-9", metadata: { camera: "c1" }, status: "active" } }),
+  );
+  const price = await perata.prices.create({ product_id: "prod_1", type: "recurring", interval: "month", pricing_model: "graduated", tiers, unit_label: "câmera", unit_label_plural: "câmeras" });
+  assert.equal(seen[0]?.url.pathname, "/api/v1/prices");
+  const sent = JSON.parse(seen[0]?.body ?? "") as Record<string, unknown>;
+  assert.equal(sent["pricing_model"], "graduated");
+  assert.deepEqual(sent["tiers"], tiers);
+  assert.equal("amount_cents" in sent, false);
+  assert.equal(price.pricing_model, "graduated");
+  assert.equal(price.amount_cents, 0);
+  assert.equal(price.unit_amount_cents, null);
+  assert.deepEqual(price.tiers, tiers);
+  const subscription = await perata.subscriptions.get("sub_1");
+  assert.equal(seen[1]?.url.pathname, "/api/v1/subscriptions/sub_1");
+  assert.equal(subscription.quantity, 3);
+  assert.equal(subscription.amount_cents, 55000);
+  assert.equal(subscription.client_reference_id, "pedido-9");
+});
+
 test("a refusal is a typed error", async () => {
   const { perata } = client(({ url }) =>
     url.pathname === "/api/v1/customers"

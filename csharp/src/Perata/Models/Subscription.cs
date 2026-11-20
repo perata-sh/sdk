@@ -39,13 +39,17 @@ public sealed record Subscription
     /// <summary>A value of <see cref="SuspensionReason"/>.</summary>
     public const string SuspensionReasonDispute = "dispute";
 
-    /// <summary>The API's <c>amount_cents</c>.</summary>
+    /// <summary>O que a assinatura cobra a cada ciclo, em centavos, já para a quantity que ela tem: é o total do ciclo, não o preço de uma unidade. O preço por unidade, por assento ou por faixas já está aplicado à quantity.</summary>
     [JsonPropertyName("amount_cents")]
     public required long AmountCents { get; init; }
 
     /// <summary>The API's <c>cancel_at_period_end</c>.</summary>
     [JsonPropertyName("cancel_at_period_end")]
     public required bool CancelAtPeriodEnd { get; init; }
+
+    /// <summary>O id do pedido no seu sistema, enviado ao criar o checkout que vendeu a assinatura; vazio sem ele. Cada pedido de renovação traz o mesmo client_reference_id, e o mesmo metadata, para você achar o cliente.</summary>
+    [JsonPropertyName("client_reference_id")]
+    public required string ClientReferenceId { get; init; }
 
     /// <summary>The API's <c>currency</c>.</summary>
     [JsonPropertyName("currency")]
@@ -82,6 +86,10 @@ public sealed record Subscription
     /// <summary>The API's <c>product_id</c>.</summary>
     [JsonPropertyName("product_id")]
     public required string ProductId { get; init; }
+
+    /// <summary>Quantas unidades ou assentos a assinatura cobre, de 1 em diante; 1 num preço sem quantidade. amount_cents é o total do ciclo para esta quantity.</summary>
+    [JsonPropertyName("quantity")]
+    public required long Quantity { get; init; }
 
     /// <summary>O showcase a que pertence: o da chave de API que fez a chamada. Uma chave só alcança o seu showcase.</summary>
     [JsonPropertyName("showcase_id")]

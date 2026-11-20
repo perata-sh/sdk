@@ -20,8 +20,12 @@ public final class PricesService {
      * Criar um preço.
      *
      * Cria um preço em reais para um produto, avulso (one_time) ou recorrente
-     * (recurring). No recorrente, interval e interval_count dizem de quanto em
-     * quanto tempo ele renova: month com 3 é trimestral.
+     * (recurring). No recorrente, interval (day, week, month ou year) e
+     * interval_count dizem de quanto em quanto tempo ele renova: month com 3 é
+     * trimestral, day com 1 é diário. Com pricing_model o preço pode ser por
+     * quantidade, como no painel: per_unit, seat, volume ou graduated com tiers
+     * (por exemplo, a 1ª unidade a R$ 250,00 e as seguintes a R$ 150,00); sem
+     * ele, é um preço fixo de amount_cents.
      *
      * Autenticação: chave de API da organização em Authorization: Bearer
      * (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
@@ -43,8 +47,12 @@ public final class PricesService {
      * Criar um preço.
      *
      * Cria um preço em reais para um produto, avulso (one_time) ou recorrente
-     * (recurring). No recorrente, interval e interval_count dizem de quanto em
-     * quanto tempo ele renova: month com 3 é trimestral.
+     * (recurring). No recorrente, interval (day, week, month ou year) e
+     * interval_count dizem de quanto em quanto tempo ele renova: month com 3 é
+     * trimestral, day com 1 é diário. Com pricing_model o preço pode ser por
+     * quantidade, como no painel: per_unit, seat, volume ou graduated com tiers
+     * (por exemplo, a 1ª unidade a R$ 250,00 e as seguintes a R$ 150,00); sem
+     * ele, é um preço fixo de amount_cents.
      *
      * Autenticação: chave de API da organização em Authorization: Bearer
      * (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
@@ -63,26 +71,54 @@ public final class PricesService {
     /** The body of prices:create. */
     public static final class CreateParams {
         /** A value of {@link #getInterval()}. */
+        public static final String INTERVAL_DAY = "day";
+        /** A value of {@link #getInterval()}. */
+        public static final String INTERVAL_WEEK = "week";
+        /** A value of {@link #getInterval()}. */
         public static final String INTERVAL_MONTH = "month";
         /** A value of {@link #getInterval()}. */
         public static final String INTERVAL_YEAR = "year";
+        /** A value of {@link #getPricingModel()}. */
+        public static final String PRICING_MODEL_FIXED = "fixed";
+        /** A value of {@link #getPricingModel()}. */
+        public static final String PRICING_MODEL_PER_UNIT = "per_unit";
+        /** A value of {@link #getPricingModel()}. */
+        public static final String PRICING_MODEL_VOLUME = "volume";
+        /** A value of {@link #getPricingModel()}. */
+        public static final String PRICING_MODEL_GRADUATED = "graduated";
+        /** A value of {@link #getPricingModel()}. */
+        public static final String PRICING_MODEL_SEAT = "seat";
         /** A value of {@link #getType()}. */
         public static final String TYPE_ONE_TIME = "one_time";
         /** A value of {@link #getType()}. */
         public static final String TYPE_RECURRING = "recurring";
 
-        private final long amountCents;
+        private final Long amountCents;
         private final String interval;
         private final Long intervalCount;
+        private final Long maximumUnits;
+        private final Long minimumUnits;
+        private final String pricingModel;
         private final String productId;
+        private final List<PricesCreateTier> tiers;
         private final String type;
+        private final Long unitAmountCents;
+        private final String unitLabel;
+        private final String unitLabelPlural;
 
         private CreateParams(Builder builder) {
             this.amountCents = builder.amountCents;
             this.interval = builder.interval;
             this.intervalCount = builder.intervalCount;
+            this.maximumUnits = builder.maximumUnits;
+            this.minimumUnits = builder.minimumUnits;
+            this.pricingModel = builder.pricingModel;
             this.productId = builder.productId;
+            this.tiers = builder.tiers;
             this.type = builder.type;
+            this.unitAmountCents = builder.unitAmountCents;
+            this.unitLabel = builder.unitLabel;
+            this.unitLabelPlural = builder.unitLabelPlural;
         }
 
         /** @return a builder of the request */
@@ -90,19 +126,34 @@ public final class PricesService {
             return new Builder();
         }
 
-        /** @return the {@code amount_cents} sent */
-        public long getAmountCents() {
+        /** @return O valor, em centavos, de um preço fixo (pricing_model fixed, o padrão), obrigatório nele; 0 é um preço gratuito. Nos demais modelos é recusado com 422: o valor está em unit_amount_cents ou em tiers. (null when left out) */
+        public Long getAmountCents() {
             return amountCents;
         }
 
-        /** @return Obrigatório no preço recorrente; o preço one_time não tem intervalo. (null when left out) */
+        /** @return Obrigatório no preço recorrente; o preço one_time não tem intervalo. day é o preço diário e week o semanal. (null when left out) */
         public String getInterval() {
             return interval;
         }
 
-        /** @return De quantos em quantos intervalos o preço renova; 1 se omitido. Com month vai de 1 a 12 (3 é trimestral, 6 semestral); com year só 1. O preço one_time não tem. (null when left out) */
+        /** @return De quantos em quantos intervalos o preço renova; 1 se omitido. Com day ou week vai de 1 a 999; com month de 1 a 12 (3 é trimestral, 6 semestral); com year só 1. O preço one_time não tem. (null when left out) */
         public Long getIntervalCount() {
             return intervalCount;
+        }
+
+        /** @return O mais que uma compra leva de unidades, não menor que minimum_units. (null when left out) */
+        public Long getMaximumUnits() {
+            return maximumUnits;
+        }
+
+        /** @return O menos que uma compra leva de unidades. (null when left out) */
+        public Long getMinimumUnits() {
+            return minimumUnits;
+        }
+
+        /** @return Como o valor é calculado; fixed quando fica de fora. per_unit cobra unit_amount_cents por unidade; seat, por assento; volume cobra a quantidade inteira pelo valor da faixa em que ela cai; graduated cobra cada faixa pelo seu valor: com a 1ª unidade a R$ 250,00 e as seguintes a R$ 150,00, três unidades custam 250 + 150 + 150 = R$ 550,00. volume e graduated pedem tiers. São os mesmos modelos que o painel cria. (null when left out) */
+        public String getPricingModel() {
+            return pricingModel;
         }
 
         /** @return the {@code product_id} sent */
@@ -110,22 +161,65 @@ public final class PricesService {
             return productId;
         }
 
+        /** @return As faixas de um preço volume ou graduated, em ordem, de 1 a 50. Por exemplo, [{"up_to": 1, "unit_amount_cents": 25000}, {"up_to": null, "unit_amount_cents": 15000}]: a 1ª unidade a R$ 250,00 e as seguintes a R$ 150,00. Uma escada que não fecha (up_to repetido, fora de ordem, última faixa com limite) é recusada com 422. (null when left out) */
+        public List<PricesCreateTier> getTiers() {
+            return tiers;
+        }
+
         /** @return the {@code type} sent */
         public String getType() {
             return type;
         }
 
+        /** @return O valor de uma unidade (per_unit) ou de um assento (seat), em centavos; obrigatório nesses dois modelos e recusado nos outros. (null when left out) */
+        public Long getUnitAmountCents() {
+            return unitAmountCents;
+        }
+
+        /** @return Como o preço chama a unidade, no singular, de até 40 caracteres (por exemplo, câmera); só em per_unit, volume e graduated. (null when left out) */
+        public String getUnitLabel() {
+            return unitLabel;
+        }
+
+        /** @return A unidade no plural, de até 40 caracteres (câmeras). (null when left out) */
+        public String getUnitLabelPlural() {
+            return unitLabelPlural;
+        }
+
         Map<String, Object> toJson() {
             Map<String, Object> body = new LinkedHashMap<>();
-            body.put("amount_cents", amountCents);
+            if (amountCents != null) {
+                body.put("amount_cents", amountCents);
+            }
             if (interval != null) {
                 body.put("interval", interval);
             }
             if (intervalCount != null) {
                 body.put("interval_count", intervalCount);
             }
+            if (maximumUnits != null) {
+                body.put("maximum_units", maximumUnits);
+            }
+            if (minimumUnits != null) {
+                body.put("minimum_units", minimumUnits);
+            }
+            if (pricingModel != null) {
+                body.put("pricing_model", pricingModel);
+            }
             body.put("product_id", productId);
+            if (tiers != null) {
+                body.put("tiers", Json.toJsonList(tiers, PricesCreateTier::toJson));
+            }
             body.put("type", type);
+            if (unitAmountCents != null) {
+                body.put("unit_amount_cents", unitAmountCents);
+            }
+            if (unitLabel != null) {
+                body.put("unit_label", unitLabel);
+            }
+            if (unitLabelPlural != null) {
+                body.put("unit_label_plural", unitLabelPlural);
+            }
             return body;
         }
 
@@ -134,23 +228,30 @@ public final class PricesService {
             private Long amountCents;
             private String interval;
             private Long intervalCount;
+            private Long maximumUnits;
+            private Long minimumUnits;
+            private String pricingModel;
             private String productId;
+            private List<PricesCreateTier> tiers;
             private String type;
+            private Long unitAmountCents;
+            private String unitLabel;
+            private String unitLabelPlural;
 
             private Builder() {
             }
 
             /**
-             * @param amountCents the {@code amount_cents} to send (required)
+             * @param amountCents O valor, em centavos, de um preço fixo (pricing_model fixed, o padrão), obrigatório nele; 0 é um preço gratuito. Nos demais modelos é recusado com 422: o valor está em unit_amount_cents ou em tiers.
              * @return this builder
              */
-            public Builder amountCents(long amountCents) {
+            public Builder amountCents(Long amountCents) {
                 this.amountCents = amountCents;
                 return this;
             }
 
             /**
-             * @param interval Obrigatório no preço recorrente; o preço one_time não tem intervalo.
+             * @param interval Obrigatório no preço recorrente; o preço one_time não tem intervalo. day é o preço diário e week o semanal.
              * @return this builder
              */
             public Builder interval(String interval) {
@@ -159,11 +260,38 @@ public final class PricesService {
             }
 
             /**
-             * @param intervalCount De quantos em quantos intervalos o preço renova; 1 se omitido. Com month vai de 1 a 12 (3 é trimestral, 6 semestral); com year só 1. O preço one_time não tem.
+             * @param intervalCount De quantos em quantos intervalos o preço renova; 1 se omitido. Com day ou week vai de 1 a 999; com month de 1 a 12 (3 é trimestral, 6 semestral); com year só 1. O preço one_time não tem.
              * @return this builder
              */
             public Builder intervalCount(Long intervalCount) {
                 this.intervalCount = intervalCount;
+                return this;
+            }
+
+            /**
+             * @param maximumUnits O mais que uma compra leva de unidades, não menor que minimum_units.
+             * @return this builder
+             */
+            public Builder maximumUnits(Long maximumUnits) {
+                this.maximumUnits = maximumUnits;
+                return this;
+            }
+
+            /**
+             * @param minimumUnits O menos que uma compra leva de unidades.
+             * @return this builder
+             */
+            public Builder minimumUnits(Long minimumUnits) {
+                this.minimumUnits = minimumUnits;
+                return this;
+            }
+
+            /**
+             * @param pricingModel Como o valor é calculado; fixed quando fica de fora. per_unit cobra unit_amount_cents por unidade; seat, por assento; volume cobra a quantidade inteira pelo valor da faixa em que ela cai; graduated cobra cada faixa pelo seu valor: com a 1ª unidade a R$ 250,00 e as seguintes a R$ 150,00, três unidades custam 250 + 150 + 150 = R$ 550,00. volume e graduated pedem tiers. São os mesmos modelos que o painel cria.
+             * @return this builder
+             */
+            public Builder pricingModel(String pricingModel) {
+                this.pricingModel = pricingModel;
                 return this;
             }
 
@@ -177,6 +305,15 @@ public final class PricesService {
             }
 
             /**
+             * @param tiers As faixas de um preço volume ou graduated, em ordem, de 1 a 50. Por exemplo, [{"up_to": 1, "unit_amount_cents": 25000}, {"up_to": null, "unit_amount_cents": 15000}]: a 1ª unidade a R$ 250,00 e as seguintes a R$ 150,00. Uma escada que não fecha (up_to repetido, fora de ordem, última faixa com limite) é recusada com 422.
+             * @return this builder
+             */
+            public Builder tiers(List<PricesCreateTier> tiers) {
+                this.tiers = tiers;
+                return this;
+            }
+
+            /**
              * @param type the {@code type} to send (required)
              * @return this builder
              */
@@ -186,13 +323,37 @@ public final class PricesService {
             }
 
             /**
+             * @param unitAmountCents O valor de uma unidade (per_unit) ou de um assento (seat), em centavos; obrigatório nesses dois modelos e recusado nos outros.
+             * @return this builder
+             */
+            public Builder unitAmountCents(Long unitAmountCents) {
+                this.unitAmountCents = unitAmountCents;
+                return this;
+            }
+
+            /**
+             * @param unitLabel Como o preço chama a unidade, no singular, de até 40 caracteres (por exemplo, câmera); só em per_unit, volume e graduated.
+             * @return this builder
+             */
+            public Builder unitLabel(String unitLabel) {
+                this.unitLabel = unitLabel;
+                return this;
+            }
+
+            /**
+             * @param unitLabelPlural A unidade no plural, de até 40 caracteres (câmeras).
+             * @return this builder
+             */
+            public Builder unitLabelPlural(String unitLabelPlural) {
+                this.unitLabelPlural = unitLabelPlural;
+                return this;
+            }
+
+            /**
              * @return the request
              * @throws IllegalStateException when a required field is unset
              */
             public CreateParams build() {
-                if (amountCents == null) {
-                    throw new IllegalStateException("perata: CreateParams needs amountCents");
-                }
                 if (productId == null) {
                     throw new IllegalStateException("perata: CreateParams needs productId");
                 }
@@ -200,6 +361,81 @@ public final class PricesService {
                     throw new IllegalStateException("perata: CreateParams needs type");
                 }
                 return new CreateParams(this);
+            }
+        }
+    }
+
+
+    /** One item of tiers in PricesCreateParams. */
+    public static final class PricesCreateTier {
+
+        private final long unitAmountCents;
+        private final Long upTo;
+
+        private PricesCreateTier(Builder builder) {
+            this.unitAmountCents = builder.unitAmountCents;
+            this.upTo = builder.upTo;
+        }
+
+        /** @return a builder of the request */
+        public static Builder builder() {
+            return new Builder();
+        }
+
+        /** @return O valor de uma unidade nesta faixa, em centavos. */
+        public long getUnitAmountCents() {
+            return unitAmountCents;
+        }
+
+        /** @return Até quantas unidades a faixa vai, inclusive. Crescente de uma faixa para a seguinte; null na última, que não tem limite, e só nela. (null when left out) */
+        public Long getUpTo() {
+            return upTo;
+        }
+
+        Map<String, Object> toJson() {
+            Map<String, Object> body = new LinkedHashMap<>();
+            body.put("unit_amount_cents", unitAmountCents);
+            if (upTo != null) {
+                body.put("up_to", upTo);
+            }
+            return body;
+        }
+
+        /** Builds {@link PricesCreateTier}; the fields left unset are left out of the request. */
+        public static final class Builder {
+            private Long unitAmountCents;
+            private Long upTo;
+
+            private Builder() {
+            }
+
+            /**
+             * @param unitAmountCents O valor de uma unidade nesta faixa, em centavos. (required)
+             * @return this builder
+             */
+            public Builder unitAmountCents(long unitAmountCents) {
+                this.unitAmountCents = unitAmountCents;
+                return this;
+            }
+
+            /**
+             * @param upTo Até quantas unidades a faixa vai, inclusive. Crescente de uma faixa para a seguinte; null na última, que não tem limite, e só nela.
+             * @return this builder
+             */
+            public Builder upTo(Long upTo) {
+                this.upTo = upTo;
+                return this;
+            }
+
+            /**
+             * @return the request
+             * @throws IllegalStateException when a required field is unset
+             */
+            public PricesCreateTier build() {
+                if (unitAmountCents == null) {
+                    throw new IllegalStateException("perata: PricesCreateTier needs unitAmountCents");
+                }
+                return new PricesCreateTier(this);
             }
         }
     }

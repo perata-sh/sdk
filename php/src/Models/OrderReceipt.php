@@ -11,6 +11,8 @@ final class OrderReceipt
 {
     public function __construct(
         public readonly int $amountCents,
+        /** Quem fez a cobrança, na frase que o checkout e o e-mail usam: Cobrança feita por <empresa> (razão social e CNPJ, quando a organização vende com CNPJ); vazio quando a empresa não pôde ser lida. */
+        public readonly string $chargedBy,
         /** @var 'BRL' */
         public readonly string $currency,
         public readonly string $customerEmail,
@@ -43,6 +45,7 @@ final class OrderReceipt
     {
         return new self(
             amountCents: $data['amount_cents'],
+            chargedBy: $data['charged_by'],
             currency: $data['currency'],
             customerEmail: $data['customer_email'],
             customerName: $data['customer_name'],

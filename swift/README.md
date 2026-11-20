@@ -4,7 +4,7 @@ SDK oficial da API da Peráta para Swift 6 (macOS 12+, iOS 15+, tvOS 15+, watchO
 
 ```swift
 // Package.swift
-.package(url: "https://github.com/perata-sh/sdk", from: "0.5.6"),
+.package(url: "https://github.com/perata-sh/sdk", from: "0.5.7"),
 // e, no target:
 .product(name: "Perata", package: "sdk"),
 ```
@@ -126,6 +126,29 @@ let showcase = try await perata.showcase.get()
 // showcase.id, showcase.name, showcase.isPrincipal, showcase.hasLogo, showcase.environment
 ```
 
+## Preço por quantidade e assinatura com quantidade
+
+`pricing_model` em `prices.create` diz como o valor é calculado: `fixed` (o padrão, com `amount_cents`), `per_unit` e `seat` (`unit_amount_cents` por unidade ou por assento), `volume` (a quantidade inteira pelo valor da faixa em que ela cai) e `graduated` (cada faixa pelo seu valor). `volume` e `graduated` pedem `tiers`, de 1 a 50, em ordem: `up_to` é até quantas unidades a faixa vai, inclusive, e a última faixa não leva `up_to` (sem limite). Com a 1ª unidade a R$ 250,00 e as seguintes a R$ 150,00, três unidades custam 250 + 150 + 150 = R$ 550,00. `unit_label` e `unit_label_plural` dão nome à unidade (câmera, câmeras), `minimum_units` e `maximum_units` limitam a compra, e `interval` aceita também `day` e `week`. Fora do preço fixo não se envia `amount_cents`: a API recusa com 422. **Mudança de tipo nas linguagens tipadas: `amount_cents` deixa de ser obrigatório em `PricesCreateParams`.** O preço devolvido traz `pricing_model`, `tiers`, `unit_amount_cents` e `amount_cents` 0 nos modelos por quantidade.
+
+O checkout recebe a `quantity` e cobra pelo modelo do preço. A assinatura que nasce dele traz `quantity` e `client_reference_id` (a `Subscription` e o `subscription.*` do webhook), e o `amount_cents` dela é o **total do ciclo para essa quantity**, não o preço de uma unidade. Cada pedido de renovação volta com o mesmo `client_reference_id` e o mesmo `metadata`. O recibo do pedido traz `charged_by`, a frase "Cobrança feita por <empresa>". Um 401 e as rotas `/checkouts/client/...` respondem no mesmo formato `{error, message, fields}` dos demais erros.
+
+```swift
+let price = try await perata.prices.create(
+    PricesCreateParams(
+        productID: productID, type: .recurring, interval: .month, pricingModel: .graduated,
+        tiers: [
+            PricesCreateTier(unitAmountCents: 25000, upTo: 1),  // a 1ª unidade a R$ 250,00
+            PricesCreateTier(unitAmountCents: 15000),  // as seguintes a R$ 150,00
+        ]))
+
+let checkout = try await perata.checkouts.create(
+    CheckoutsCreateParams(priceID: price.id, productID: productID, quantity: 3)
+)
+
+let subscription = try await perata.subscriptions.get(subscriptionID)
+// subscription.quantity (3), subscription.amountCents (55000: o total do ciclo), subscription.clientReferenceID
+```
+
 ## Consumo (ingestão de eventos)
 
 A ingestão de consumo usa outra credencial: a de uma fonte de ingestão (**Configurações › Fontes de ingestão**), `pus_test_…` em teste e `pus_live_…` em produção. Monte um cliente com ela; a chave de API da organização (`prk_…`) é recusada aqui com 401, e uma credencial de um ambiente nunca escreve no outro.
@@ -178,4 +201,4 @@ O evento é tipado: um caso para cada dado que o webhook carrega (`.order` traz 
 
 Todo evento traz o ambiente em que aconteceu, em `event.environment`: `"test"` ou `"live"` (vazio se um servidor antigo não mandou). Recuse o evento do ambiente errado: um endpoint de produção deve responder 400 a um evento `"test"`, para que um teste não dê baixa em um pedido real. O showcase da venda vem em `event.showcaseId` (vazio se um servidor antigo não mandou): um endpoint é de um showcase só, e o mesmo `showcase_id` está nos objetos do evento.
 
-Versão do SDK: 0.5.6 · contrato da API: 0.1.0
+Versão do SDK: 0.5.7 · contrato da API: 0.1.0

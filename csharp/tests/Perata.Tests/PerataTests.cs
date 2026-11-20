@@ -156,6 +156,48 @@ public class PerataTests
         Assert.Contains("must be https", refused.Message);
     }
 
+    // A graduated price goes out with its tiers and without the fixed amount, and
+    // a subscription reads back the quantity it bills and the order reference it
+    // came from; AmountCents is the cycle's total for that quantity.
+    [Fact]
+    public async Task AGraduatedPriceCarriesItsTiersAndASubscriptionItsQuantity()
+    {
+        const string price = """{"id":"price_1","product_id":"prod_1","type":"recurring","interval":"month","interval_count":1,"currency":"BRL","status":"active","amount_cents":0,"pricing_model":"graduated","unit_amount_cents":null,"unit_label":"câmera","unit_label_plural":"câmeras","tiers":[{"up_to":1,"unit_amount_cents":25000},{"up_to":null,"unit_amount_cents":15000}]}""";
+        const string subscription = """{"id":"sub_1","amount_cents":55000,"cancel_at_period_end":false,"client_reference_id":"pedido-9","currency":"BRL","current_period_end":"2026-12-20T00:00:00Z","current_period_start":"2026-11-20T00:00:00Z","customer_id":"cus_1","interval":"month","metadata":{"camera":"c1"},"price_id":"price_1","product_id":"prod_1","quantity":3,"showcase_id":"shw_1","status":"active","suspended_at":null,"suspension_reason":null,"trial_end":null,"trial_start":null}""";
+        var recorder = new Recorder(seen => seen.Method == HttpMethod.Post
+            ? new Answer(HttpStatusCode.Created, $$"""{"data":{{price}}}""")
+            : new Answer(HttpStatusCode.OK, $$"""{"data":{{subscription}}}"""));
+        var perata = Client(recorder);
+        var created = await perata.Prices.CreateAsync(new PricesCreateParams
+        {
+            ProductId = "prod_1",
+            Type = PricesCreateParams.TypeRecurring,
+            Interval = PricesCreateParams.IntervalMonth,
+            PricingModel = PricesCreateParams.PricingModelGraduated,
+            Tiers = [new PricesCreateTier { UpTo = 1, UnitAmountCents = 25000 }, new PricesCreateTier { UnitAmountCents = 15000 }],
+            UnitLabel = "câmera",
+            UnitLabelPlural = "câmeras",
+        });
+        Assert.Equal("/api/v1/prices", recorder.Requests[0].Url.AbsolutePath);
+        using var body = JsonDocument.Parse(recorder.Requests[0].Body!);
+        Assert.Equal("graduated", body.RootElement.GetProperty("pricing_model").GetString());
+        var tiers = body.RootElement.GetProperty("tiers");
+        Assert.Equal(2, tiers.GetArrayLength());
+        Assert.Equal(1, tiers[0].GetProperty("up_to").GetInt64());
+        Assert.Equal(25000, tiers[0].GetProperty("unit_amount_cents").GetInt64());
+        Assert.False(tiers[1].TryGetProperty("up_to", out var last) && last.ValueKind != JsonValueKind.Null, "the last tier has no limit");
+        Assert.False(body.RootElement.TryGetProperty("amount_cents", out _), "a graduated price was sent with a fixed amount");
+        Assert.Equal(Price.PricingModelGraduated, created.PricingModel);
+        Assert.Equal(0, created.AmountCents);
+        Assert.Null(created.UnitAmountCents);
+        Assert.Equal([(1L, 25000L), (null, 15000L)], created.Tiers.Select(tier => (tier.UpTo, tier.UnitAmountCents)).ToArray());
+        var got = await perata.Subscriptions.GetAsync("sub_1");
+        Assert.Equal("/api/v1/subscriptions/sub_1", recorder.Requests[1].Url.AbsolutePath);
+        Assert.Equal(3, got.Quantity);
+        Assert.Equal(55000, got.AmountCents);
+        Assert.Equal("pedido-9", got.ClientReferenceId);
+    }
+
     [Fact]
     public async Task ADiscountGoesThroughCreateGetListAndDelete()
     {

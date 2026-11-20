@@ -9,6 +9,19 @@ Todos os SDKs da Peráta saem com a mesma versão (`VERSION`). O histórico de c
 - `js/`: `perata.components.wallet` (o botão do Google Pay e do Apple Pay no layout do lojista), os tipos `WalletComponent`, `WalletComponentOptions`, `WalletComponentEvents` e `WalletKind`, `ChangeEvent.available`, `update({ customer })` e os códigos de erro `wallet_element_required`, `customer_incomplete` e `wallet_unavailable`. `components.payment` passa a trazer a carteira do aparelho e os cartões salvos. Seguem o `perata.js` do perata.sh e valem depois do deploy dele.
 - `react/`: `WalletComponent`.
 
+## 0.5.7 (20/11/2026)
+
+Gerado a partir do contrato da API 0.1.0 (perata.sh 9ae556b4).
+
+### Os 11 SDKs de servidor
+
+- **Preço por quantidade.** `prices.create` aceita `pricing_model` (`fixed`, o padrão, `per_unit`, `seat`, `volume` e `graduated`), `tiers` (a lista de faixas, cada uma com `unit_amount_cents` e `up_to`; a última faixa não leva `up_to`), `unit_amount_cents`, `unit_label`, `unit_label_plural`, `minimum_units` e `maximum_units`, os mesmos modelos que o painel cria. Com a 1ª unidade a R$ 250,00 e as seguintes a R$ 150,00 (`graduated`), três unidades custam R$ 550,00. **Mudança de tipo nas linguagens tipadas: `amount_cents` deixa de ser obrigatório em `PricesCreateParams`** (Go: `*int64`; fora do preço fixo a API o recusa com 422). Novo modelo `PriceTier` (e `PricesCreateTier` no pedido). O `Price` devolvido traz `pricing_model`, `tiers`, `unit_amount_cents`, `unit_label`, `unit_label_plural`, `minimum_units` e `maximum_units`, e `amount_cents` 0 nos modelos por quantidade. `interval` aceita também `day` e `week`, e `interval_count` vai até 999 nesses dois.
+- **Assinatura com quantidade.** `Subscription` e `WebhookSubscription` (os eventos `subscription.*`) trazem `quantity` (1 num preço sem quantidade) e `client_reference_id`. O `amount_cents` da assinatura é o total do ciclo para essa `quantity`, não o preço de uma unidade. A renovação herda o `client_reference_id` e o `metadata`: cada pedido de renovação (`Order`, `Payment` e os eventos `order.*`, `checkout.*`, `checkout_payment.*` e `refund.*`) volta com os do checkout que vendeu a assinatura.
+- **Recibo.** `OrderReceipt` traz `charged_by`: "Cobrança feita por <empresa>" (razão social e CNPJ), vazio quando a empresa não pôde ser lida.
+- **Erros.** Um 401 traz `message`, e as rotas `/checkouts/client/...` respondem no formato `{error, message, fields}` dos demais erros; o erro de cada SDK já lia esses campos, e agora a API os manda. Em `UsageError`, o `message` é em português. As descrições dos eventos de webhook vieram do contrato.
+- **READMEs.** Seção nova com o preço graduated (1ª unidade a R$ 250,00 e as seguintes a R$ 150,00), o checkout com `quantity` e a leitura de uma assinatura com `quantity`.
+- **Skill `skills/perata-sdk`.** Versão, o que cada versão traz, preço por quantidade e assinatura com quantidade.
+
 ## 0.5.6 (19/11/2026)
 
 Gerado a partir do contrato da API 0.1.0 (perata.sh 6950e1fe). É a primeira versão publicada depois da 0.5.4: a 0.5.5 nunca saiu, e tudo o que ela trazia está aqui, na segunda parte.

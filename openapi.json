@@ -1675,7 +1675,7 @@
                   },
                   "client_reference_id": {
                     "type": "string",
-                    "description": "O id do pedido no seu sistema, de até 255 caracteres. Volta no checkout, no pedido, no pagamento e nos eventos checkout.*, order.*, checkout_payment.* e refund.*, para você achar de qual pedido veio cada pagamento."
+                    "description": "O id do pedido no seu sistema, de até 255 caracteres. Volta no checkout, no pedido, no pagamento e nos eventos checkout.*, order.*, checkout_payment.* e refund.*, para você achar de qual pedido veio cada pagamento. Num checkout de assinatura fica também na assinatura, e cada pedido de renovação volta com ele."
                   },
                   "success_url": {
                     "type": "string"
@@ -2000,7 +2000,7 @@
           "checkouts"
         ],
         "summary": "Ler o estado de uma sessão de checkout pela status_key",
-        "description": "Onde a sessão está, lida pela chave que a criação e a confirmação devolveram, depois que o client_secret foi consumido: um Pix ou um boleto esperando pagamento, um pagamento descoberto por consulta. Não traz nenhum dado do comprador. Sem chave de API: o client_secret da sessão, no endereço, é a credencial; o POST /checkouts o devolve uma só vez ao servidor do lojista. Um navegador numa página das origens que a organização cadastra em Checkout incorporado pode chamá-la (CORS, sem credenciais nem cookies). Os erros são documentos de problema (application/problem+json), como o checkout hospedado os responde. O script que monta os campos de pagamento, perata.js, vem de /v1/perata.js, que recebe as correções em minutos; para fixar uma versão, carregue-o do endereço que leva o hash do conteúdo (/v1/perata.\u003chash\u003e.js) com o atributo integrity (Subresource Integrity, sha384) e crossorigin=\"anonymous\". O endereço e o valor de cada versão ficam em Configurações › Como integrar, no painel.",
+        "description": "Onde a sessão está, lida pela chave que a criação e a confirmação devolveram, depois que o client_secret foi consumido: um Pix ou um boleto esperando pagamento, um pagamento descoberto por consulta. Não traz nenhum dado do comprador. Sem chave de API: o client_secret da sessão, no endereço, é a credencial; o POST /checkouts o devolve uma só vez ao servidor do lojista. Um navegador numa página das origens que a organização cadastra em Checkout incorporado pode chamá-la (CORS, sem credenciais nem cookies). Os erros são o documento de erro da API, o mesmo das demais operações de /api/v1: error (o código), message (a frase) e, quando há campo recusado, fields. O script que monta os campos de pagamento, perata.js, vem de /v1/perata.js, que recebe as correções em minutos; para fixar uma versão, carregue-o do endereço que leva o hash do conteúdo (/v1/perata.\u003chash\u003e.js) com o atributo integrity (Subresource Integrity, sha384) e crossorigin=\"anonymous\". O endereço e o valor de cada versão ficam em Configurações › Como integrar, no painel.",
         "operationId": "checkouts:client_status",
         "parameters": [
           {
@@ -2025,13 +2025,34 @@
             }
           },
           "404": {
-            "description": "Nenhuma sessão aberta tem este client_secret, ou ele já foi consumido por uma confirmação."
+            "description": "Nenhuma sessão aberta tem este client_secret, ou ele já foi consumido por uma confirmação (not_found).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
           },
           "410": {
-            "description": "O tempo da sessão acabou."
+            "description": "O tempo da sessão acabou (gone).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
           },
           "429": {
-            "description": "Tentativas demais deste endereço ou desta sessão; respeite Retry-After."
+            "description": "Tentativas demais deste endereço ou desta sessão (rate_limited); respeite Retry-After.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
           }
         }
       }
@@ -2042,7 +2063,7 @@
           "checkouts"
         ],
         "summary": "Ler uma sessão de checkout pelo client_secret",
-        "description": "A sessão como o comprador a vê: os valores, o que ela vende, as formas de pagamento e as parcelas que oferece, se pede documento ou endereço e o que o comprador já informou. Sem chave de API: o client_secret da sessão, no endereço, é a credencial; o POST /checkouts o devolve uma só vez ao servidor do lojista. Um navegador numa página das origens que a organização cadastra em Checkout incorporado pode chamá-la (CORS, sem credenciais nem cookies). Os erros são documentos de problema (application/problem+json), como o checkout hospedado os responde. O script que monta os campos de pagamento, perata.js, vem de /v1/perata.js, que recebe as correções em minutos; para fixar uma versão, carregue-o do endereço que leva o hash do conteúdo (/v1/perata.\u003chash\u003e.js) com o atributo integrity (Subresource Integrity, sha384) e crossorigin=\"anonymous\". O endereço e o valor de cada versão ficam em Configurações › Como integrar, no painel.",
+        "description": "A sessão como o comprador a vê: os valores, o que ela vende, as formas de pagamento e as parcelas que oferece, se pede documento ou endereço e o que o comprador já informou. Sem chave de API: o client_secret da sessão, no endereço, é a credencial; o POST /checkouts o devolve uma só vez ao servidor do lojista. Um navegador numa página das origens que a organização cadastra em Checkout incorporado pode chamá-la (CORS, sem credenciais nem cookies). Os erros são o documento de erro da API, o mesmo das demais operações de /api/v1: error (o código), message (a frase) e, quando há campo recusado, fields. O script que monta os campos de pagamento, perata.js, vem de /v1/perata.js, que recebe as correções em minutos; para fixar uma versão, carregue-o do endereço que leva o hash do conteúdo (/v1/perata.\u003chash\u003e.js) com o atributo integrity (Subresource Integrity, sha384) e crossorigin=\"anonymous\". O endereço e o valor de cada versão ficam em Configurações › Como integrar, no painel.",
         "operationId": "checkouts:client_get",
         "parameters": [
           {
@@ -2067,13 +2088,34 @@
             }
           },
           "404": {
-            "description": "Nenhuma sessão aberta tem este client_secret, ou ele já foi consumido por uma confirmação."
+            "description": "Nenhuma sessão aberta tem este client_secret, ou ele já foi consumido por uma confirmação (not_found).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
           },
           "410": {
-            "description": "O tempo da sessão acabou."
+            "description": "O tempo da sessão acabou (gone).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
           },
           "429": {
-            "description": "Tentativas demais deste endereço ou desta sessão; respeite Retry-After."
+            "description": "Tentativas demais deste endereço ou desta sessão (rate_limited); respeite Retry-After.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
           }
         }
       },
@@ -2082,7 +2124,7 @@
           "checkouts"
         ],
         "summary": "Atualizar uma sessão de checkout pelo client_secret",
-        "description": "Informa à sessão quem é o comprador e qual código de desconto vale; o campo que fica de fora não muda e uma string vazia o limpa. Responde a sessão como ficou, com os novos valores. Cada código digitado é uma tentativa: a sessão aceita 10 por hora (429 depois), e um código que não vale, seja qual for o motivo, recebe a mesma resposta. Depois que o token de autenticação 3DS é gerado, o total da sessão não muda mais: trocar ou tirar o desconto, ou um e-mail que o tiraria, responde 409. Sem chave de API: o client_secret da sessão, no endereço, é a credencial; o POST /checkouts o devolve uma só vez ao servidor do lojista. Um navegador numa página das origens que a organização cadastra em Checkout incorporado pode chamá-la (CORS, sem credenciais nem cookies). Os erros são documentos de problema (application/problem+json), como o checkout hospedado os responde. O script que monta os campos de pagamento, perata.js, vem de /v1/perata.js, que recebe as correções em minutos; para fixar uma versão, carregue-o do endereço que leva o hash do conteúdo (/v1/perata.\u003chash\u003e.js) com o atributo integrity (Subresource Integrity, sha384) e crossorigin=\"anonymous\". O endereço e o valor de cada versão ficam em Configurações › Como integrar, no painel.",
+        "description": "Informa à sessão quem é o comprador e qual código de desconto vale; o campo que fica de fora não muda e uma string vazia o limpa. Responde a sessão como ficou, com os novos valores. Cada código digitado é uma tentativa: a sessão aceita 10 por hora (429 depois), e um código que não vale, seja qual for o motivo, recebe a mesma resposta. Depois que o token de autenticação 3DS é gerado, o total da sessão não muda mais: trocar ou tirar o desconto, ou um e-mail que o tiraria, responde 409. Sem chave de API: o client_secret da sessão, no endereço, é a credencial; o POST /checkouts o devolve uma só vez ao servidor do lojista. Um navegador numa página das origens que a organização cadastra em Checkout incorporado pode chamá-la (CORS, sem credenciais nem cookies). Os erros são o documento de erro da API, o mesmo das demais operações de /api/v1: error (o código), message (a frase) e, quando há campo recusado, fields. O script que monta os campos de pagamento, perata.js, vem de /v1/perata.js, que recebe as correções em minutos; para fixar uma versão, carregue-o do endereço que leva o hash do conteúdo (/v1/perata.\u003chash\u003e.js) com o atributo integrity (Subresource Integrity, sha384) e crossorigin=\"anonymous\". O endereço e o valor de cada versão ficam em Configurações › Como integrar, no painel.",
         "operationId": "checkouts:client_update",
         "parameters": [
           {
@@ -2170,16 +2212,44 @@
             }
           },
           "404": {
-            "description": "Nenhuma sessão aberta tem este client_secret, ou ele já foi consumido por uma confirmação."
+            "description": "Nenhuma sessão aberta tem este client_secret, ou ele já foi consumido por uma confirmação (not_found).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
           },
           "410": {
-            "description": "O tempo da sessão acabou."
+            "description": "O tempo da sessão acabou (gone).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
           },
           "422": {
-            "description": "Campos recusados; o membro errors do documento de problema nomeia cada um."
+            "description": "Campos recusados (invalid_request); fields nomeia cada um.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
           },
           "429": {
-            "description": "Tentativas demais deste endereço ou desta sessão; respeite Retry-After."
+            "description": "Tentativas demais deste endereço ou desta sessão (rate_limited); respeite Retry-After.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
           }
         }
       }
@@ -2190,7 +2260,7 @@
           "checkouts"
         ],
         "summary": "Gerar o token de autenticação 3DS de uma sessão de checkout",
-        "description": "Gera o token com que o script de 3DS autentica um cartão de débito. É entregue só a pedidos do navegador vindos de uma página da própria origem da Peráta, com o desafio Turnstile resolvido (turnstile_token), sob a mesma regra de card-tokenization. A resposta traz total_cents: o valor, em centavos, que o script autentica, que é o total da sessão no servidor e fica gravado nela. O navegador copia esse número no script e não usa nenhum outro; a confirmação do débito só aceita a autenticação de uma sessão com token gerado, pelo valor que será cobrado, e uma autenticação paga uma venda só. Sem chave de API: o client_secret da sessão, no endereço, é a credencial; o POST /checkouts o devolve uma só vez ao servidor do lojista. Um navegador numa página das origens que a organização cadastra em Checkout incorporado pode chamá-la (CORS, sem credenciais nem cookies). Os erros são documentos de problema (application/problem+json), como o checkout hospedado os responde. O script que monta os campos de pagamento, perata.js, vem de /v1/perata.js, que recebe as correções em minutos; para fixar uma versão, carregue-o do endereço que leva o hash do conteúdo (/v1/perata.\u003chash\u003e.js) com o atributo integrity (Subresource Integrity, sha384) e crossorigin=\"anonymous\". O endereço e o valor de cada versão ficam em Configurações › Como integrar, no painel.",
+        "description": "Gera o token com que o script de 3DS autentica um cartão de débito. É entregue só a pedidos do navegador vindos de uma página da própria origem da Peráta, com o desafio Turnstile resolvido (turnstile_token), sob a mesma regra de card-tokenization. A resposta traz total_cents: o valor, em centavos, que o script autentica, que é o total da sessão no servidor e fica gravado nela. O navegador copia esse número no script e não usa nenhum outro; a confirmação do débito só aceita a autenticação de uma sessão com token gerado, pelo valor que será cobrado, e uma autenticação paga uma venda só. Sem chave de API: o client_secret da sessão, no endereço, é a credencial; o POST /checkouts o devolve uma só vez ao servidor do lojista. Um navegador numa página das origens que a organização cadastra em Checkout incorporado pode chamá-la (CORS, sem credenciais nem cookies). Os erros são o documento de erro da API, o mesmo das demais operações de /api/v1: error (o código), message (a frase) e, quando há campo recusado, fields. O script que monta os campos de pagamento, perata.js, vem de /v1/perata.js, que recebe as correções em minutos; para fixar uma versão, carregue-o do endereço que leva o hash do conteúdo (/v1/perata.\u003chash\u003e.js) com o atributo integrity (Subresource Integrity, sha384) e crossorigin=\"anonymous\". O endereço e o valor de cada versão ficam em Configurações › Como integrar, no painel.",
         "operationId": "checkouts:client_card_authentication",
         "parameters": [
           {
@@ -2232,19 +2302,54 @@
             }
           },
           "403": {
-            "description": "O pedido não vem de uma página da própria origem da Peráta (o quadro dos campos seguros): a página de um lojista, cadastrada ou não, é recusada."
+            "description": "O pedido não vem de uma página da própria origem da Peráta (o quadro dos campos seguros): a página de um lojista, cadastrada ou não, é recusada (forbidden).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
           },
           "404": {
-            "description": "Nenhuma sessão aberta tem este client_secret, ou ele já foi consumido por uma confirmação."
+            "description": "Nenhuma sessão aberta tem este client_secret, ou ele já foi consumido por uma confirmação (not_found).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
           },
           "410": {
-            "description": "O tempo da sessão acabou."
+            "description": "O tempo da sessão acabou (gone).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
           },
           "422": {
-            "description": "Campos recusados; o membro errors do documento de problema nomeia cada um."
+            "description": "Campos recusados (invalid_request); fields nomeia cada um.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
           },
           "429": {
-            "description": "Tentativas demais deste endereço ou desta sessão; respeite Retry-After."
+            "description": "Tentativas demais deste endereço ou desta sessão (rate_limited); respeite Retry-After.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
           }
         }
       }
@@ -2255,7 +2360,7 @@
           "checkouts"
         ],
         "summary": "Gerar o token do cartão de uma sessão de checkout",
-        "description": "Gera o token do Silent Order Post com que os campos seguros enviam o cartão à Cielo. O número do cartão nunca passa por esta API. É entregue só a pedidos que o navegador envia de uma página da própria origem da Peráta, o quadro dos campos seguros, que antes resolve um desafio Cloudflare Turnstile e o envia em turnstile_token; a página de um lojista, ou um pedido sem o desafio, recebe 403. Sem chave de API: o client_secret da sessão, no endereço, é a credencial; o POST /checkouts o devolve uma só vez ao servidor do lojista. Um navegador numa página das origens que a organização cadastra em Checkout incorporado pode chamá-la (CORS, sem credenciais nem cookies). Os erros são documentos de problema (application/problem+json), como o checkout hospedado os responde. O script que monta os campos de pagamento, perata.js, vem de /v1/perata.js, que recebe as correções em minutos; para fixar uma versão, carregue-o do endereço que leva o hash do conteúdo (/v1/perata.\u003chash\u003e.js) com o atributo integrity (Subresource Integrity, sha384) e crossorigin=\"anonymous\". O endereço e o valor de cada versão ficam em Configurações › Como integrar, no painel.",
+        "description": "Gera o token do Silent Order Post com que os campos seguros enviam o cartão à Cielo. O número do cartão nunca passa por esta API. É entregue só a pedidos que o navegador envia de uma página da própria origem da Peráta, o quadro dos campos seguros, que antes resolve um desafio Cloudflare Turnstile e o envia em turnstile_token; a página de um lojista, ou um pedido sem o desafio, recebe 403. Sem chave de API: o client_secret da sessão, no endereço, é a credencial; o POST /checkouts o devolve uma só vez ao servidor do lojista. Um navegador numa página das origens que a organização cadastra em Checkout incorporado pode chamá-la (CORS, sem credenciais nem cookies). Os erros são o documento de erro da API, o mesmo das demais operações de /api/v1: error (o código), message (a frase) e, quando há campo recusado, fields. O script que monta os campos de pagamento, perata.js, vem de /v1/perata.js, que recebe as correções em minutos; para fixar uma versão, carregue-o do endereço que leva o hash do conteúdo (/v1/perata.\u003chash\u003e.js) com o atributo integrity (Subresource Integrity, sha384) e crossorigin=\"anonymous\". O endereço e o valor de cada versão ficam em Configurações › Como integrar, no painel.",
         "operationId": "checkouts:client_card_tokenization",
         "parameters": [
           {
@@ -2297,19 +2402,54 @@
             }
           },
           "403": {
-            "description": "O pedido não vem de uma página da própria origem da Peráta (o quadro dos campos seguros): a página de um lojista, cadastrada ou não, é recusada."
+            "description": "O pedido não vem de uma página da própria origem da Peráta (o quadro dos campos seguros): a página de um lojista, cadastrada ou não, é recusada (forbidden).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
           },
           "404": {
-            "description": "Nenhuma sessão aberta tem este client_secret, ou ele já foi consumido por uma confirmação."
+            "description": "Nenhuma sessão aberta tem este client_secret, ou ele já foi consumido por uma confirmação (not_found).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
           },
           "410": {
-            "description": "O tempo da sessão acabou."
+            "description": "O tempo da sessão acabou (gone).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
           },
           "422": {
-            "description": "Campos recusados; o membro errors do documento de problema nomeia cada um."
+            "description": "Campos recusados (invalid_request); fields nomeia cada um.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
           },
           "429": {
-            "description": "Tentativas demais deste endereço ou desta sessão; respeite Retry-After."
+            "description": "Tentativas demais deste endereço ou desta sessão (rate_limited); respeite Retry-After.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
           }
         }
       }
@@ -2320,7 +2460,7 @@
           "checkouts"
         ],
         "summary": "Confirmar uma sessão de checkout",
-        "description": "Paga a sessão: com o token que os campos seguros devolveram para o cartão, com um cartão salvo, ou por Pix ou boleto, cujo QR code, código copia e cola, linha digitável e PDF voltam em payment. A confirmação consome o client_secret: leia o resultado com a status_key. Sem chave de API: o client_secret da sessão, no endereço, é a credencial; o POST /checkouts o devolve uma só vez ao servidor do lojista. Um navegador numa página das origens que a organização cadastra em Checkout incorporado pode chamá-la (CORS, sem credenciais nem cookies). Os erros são documentos de problema (application/problem+json), como o checkout hospedado os responde. O script que monta os campos de pagamento, perata.js, vem de /v1/perata.js, que recebe as correções em minutos; para fixar uma versão, carregue-o do endereço que leva o hash do conteúdo (/v1/perata.\u003chash\u003e.js) com o atributo integrity (Subresource Integrity, sha384) e crossorigin=\"anonymous\". O endereço e o valor de cada versão ficam em Configurações › Como integrar, no painel.",
+        "description": "Paga a sessão: com o token que os campos seguros devolveram para o cartão, com um cartão salvo, ou por Pix ou boleto, cujo QR code, código copia e cola, linha digitável e PDF voltam em payment. A confirmação consome o client_secret: leia o resultado com a status_key. Sem chave de API: o client_secret da sessão, no endereço, é a credencial; o POST /checkouts o devolve uma só vez ao servidor do lojista. Um navegador numa página das origens que a organização cadastra em Checkout incorporado pode chamá-la (CORS, sem credenciais nem cookies). Os erros são o documento de erro da API, o mesmo das demais operações de /api/v1: error (o código), message (a frase) e, quando há campo recusado, fields. O script que monta os campos de pagamento, perata.js, vem de /v1/perata.js, que recebe as correções em minutos; para fixar uma versão, carregue-o do endereço que leva o hash do conteúdo (/v1/perata.\u003chash\u003e.js) com o atributo integrity (Subresource Integrity, sha384) e crossorigin=\"anonymous\". O endereço e o valor de cada versão ficam em Configurações › Como integrar, no painel.",
         "operationId": "checkouts:client_confirm",
         "parameters": [
           {
@@ -2474,16 +2614,44 @@
             }
           },
           "404": {
-            "description": "Nenhuma sessão aberta tem este client_secret, ou ele já foi consumido por uma confirmação."
+            "description": "Nenhuma sessão aberta tem este client_secret, ou ele já foi consumido por uma confirmação (not_found).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
           },
           "410": {
-            "description": "O tempo da sessão acabou."
+            "description": "O tempo da sessão acabou (gone).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
           },
           "422": {
-            "description": "Campos recusados; o membro errors do documento de problema nomeia cada um."
+            "description": "Campos recusados (invalid_request); fields nomeia cada um.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
           },
           "429": {
-            "description": "Tentativas demais deste endereço ou desta sessão; respeite Retry-After."
+            "description": "Tentativas demais deste endereço ou desta sessão (rate_limited); respeite Retry-After.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
           }
         }
       }
@@ -2494,7 +2662,7 @@
           "checkouts"
         ],
         "summary": "Enviar o código dos dados guardados de um e-mail",
-        "description": "Envia ao comprador um código por e-mail quando o lojista guarda algo para ele: cartões, nome, documento e endereço. A resposta diz se há algo guardado (sent): só então um código foi enviado, e o comprador que ainda não tem nada guardado segue sem o campo do código. O pedido é limitado a 30 por hora por endereço e a 10 por e-mail. Sem chave de API: o client_secret da sessão, no endereço, é a credencial; o POST /checkouts o devolve uma só vez ao servidor do lojista. Um navegador numa página das origens que a organização cadastra em Checkout incorporado pode chamá-la (CORS, sem credenciais nem cookies). Os erros são documentos de problema (application/problem+json), como o checkout hospedado os responde. O script que monta os campos de pagamento, perata.js, vem de /v1/perata.js, que recebe as correções em minutos; para fixar uma versão, carregue-o do endereço que leva o hash do conteúdo (/v1/perata.\u003chash\u003e.js) com o atributo integrity (Subresource Integrity, sha384) e crossorigin=\"anonymous\". O endereço e o valor de cada versão ficam em Configurações › Como integrar, no painel.",
+        "description": "Envia ao comprador um código por e-mail quando o lojista guarda algo para ele: cartões, nome, documento e endereço. A resposta diz se há algo guardado (sent): só então um código foi enviado, e o comprador que ainda não tem nada guardado segue sem o campo do código. O pedido é limitado a 30 por hora por endereço e a 10 por e-mail. Sem chave de API: o client_secret da sessão, no endereço, é a credencial; o POST /checkouts o devolve uma só vez ao servidor do lojista. Um navegador numa página das origens que a organização cadastra em Checkout incorporado pode chamá-la (CORS, sem credenciais nem cookies). Os erros são o documento de erro da API, o mesmo das demais operações de /api/v1: error (o código), message (a frase) e, quando há campo recusado, fields. O script que monta os campos de pagamento, perata.js, vem de /v1/perata.js, que recebe as correções em minutos; para fixar uma versão, carregue-o do endereço que leva o hash do conteúdo (/v1/perata.\u003chash\u003e.js) com o atributo integrity (Subresource Integrity, sha384) e crossorigin=\"anonymous\". O endereço e o valor de cada versão ficam em Configurações › Como integrar, no painel.",
         "operationId": "checkouts:client_saved_data_code",
         "parameters": [
           {
@@ -2549,16 +2717,44 @@
             }
           },
           "404": {
-            "description": "Nenhuma sessão aberta tem este client_secret, ou ele já foi consumido por uma confirmação."
+            "description": "Nenhuma sessão aberta tem este client_secret, ou ele já foi consumido por uma confirmação (not_found).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
           },
           "410": {
-            "description": "O tempo da sessão acabou."
+            "description": "O tempo da sessão acabou (gone).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
           },
           "422": {
-            "description": "Campos recusados; o membro errors do documento de problema nomeia cada um."
+            "description": "Campos recusados (invalid_request); fields nomeia cada um.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
           },
           "429": {
-            "description": "Tentativas demais deste endereço ou desta sessão; respeite Retry-After."
+            "description": "Tentativas demais deste endereço ou desta sessão (rate_limited); respeite Retry-After.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
           }
         }
       }
@@ -2569,7 +2765,7 @@
           "checkouts"
         ],
         "summary": "Usar o código dos dados guardados de um e-mail",
-        "description": "Gasta o código e devolve a prova, os cartões guardados (bandeira, quatro últimos dígitos e validade) e o perfil para preencher. Sem chave de API: o client_secret da sessão, no endereço, é a credencial; o POST /checkouts o devolve uma só vez ao servidor do lojista. Um navegador numa página das origens que a organização cadastra em Checkout incorporado pode chamá-la (CORS, sem credenciais nem cookies). Os erros são documentos de problema (application/problem+json), como o checkout hospedado os responde. O script que monta os campos de pagamento, perata.js, vem de /v1/perata.js, que recebe as correções em minutos; para fixar uma versão, carregue-o do endereço que leva o hash do conteúdo (/v1/perata.\u003chash\u003e.js) com o atributo integrity (Subresource Integrity, sha384) e crossorigin=\"anonymous\". O endereço e o valor de cada versão ficam em Configurações › Como integrar, no painel.",
+        "description": "Gasta o código e devolve a prova, os cartões guardados (bandeira, quatro últimos dígitos e validade) e o perfil para preencher. Sem chave de API: o client_secret da sessão, no endereço, é a credencial; o POST /checkouts o devolve uma só vez ao servidor do lojista. Um navegador numa página das origens que a organização cadastra em Checkout incorporado pode chamá-la (CORS, sem credenciais nem cookies). Os erros são o documento de erro da API, o mesmo das demais operações de /api/v1: error (o código), message (a frase) e, quando há campo recusado, fields. O script que monta os campos de pagamento, perata.js, vem de /v1/perata.js, que recebe as correções em minutos; para fixar uma versão, carregue-o do endereço que leva o hash do conteúdo (/v1/perata.\u003chash\u003e.js) com o atributo integrity (Subresource Integrity, sha384) e crossorigin=\"anonymous\". O endereço e o valor de cada versão ficam em Configurações › Como integrar, no painel.",
         "operationId": "checkouts:client_saved_data_verify",
         "parameters": [
           {
@@ -2624,16 +2820,44 @@
             }
           },
           "404": {
-            "description": "Nenhuma sessão aberta tem este client_secret, ou ele já foi consumido por uma confirmação."
+            "description": "Nenhuma sessão aberta tem este client_secret, ou ele já foi consumido por uma confirmação (not_found).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
           },
           "410": {
-            "description": "O tempo da sessão acabou."
+            "description": "O tempo da sessão acabou (gone).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
           },
           "422": {
-            "description": "Campos recusados; o membro errors do documento de problema nomeia cada um."
+            "description": "Campos recusados (invalid_request); fields nomeia cada um.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
           },
           "429": {
-            "description": "Tentativas demais deste endereço ou desta sessão; respeite Retry-After."
+            "description": "Tentativas demais deste endereço ou desta sessão (rate_limited); respeite Retry-After.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
           }
         }
       }
@@ -5788,7 +6012,7 @@
           "orders"
         ],
         "summary": "Ler um pedido",
-        "description": "Devolve um pedido: um checkout pago. Se ele pagou um ciclo de assinatura, traz subscription_id, cycle_sequence, period_start e period_end.\n\nAutenticação: chave de API da organização em Authorization: Bearer (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave, nunca da requisição: a chave criada num showcase só alcança o que é dele. Respostas em JSON no envelope data; erros com error, message e fields.",
+        "description": "Devolve um pedido: um checkout pago. Se ele pagou um ciclo de assinatura, traz subscription_id, cycle_sequence, period_start e period_end. Num pedido de renovação, client_reference_id e metadata são os do checkout que vendeu a assinatura.\n\nAutenticação: chave de API da organização em Authorization: Bearer (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave, nunca da requisição: a chave criada num showcase só alcança o que é dele. Respostas em JSON no envelope data; erros com error, message e fields.",
         "operationId": "orders:get",
         "parameters": [
           {
@@ -6542,7 +6766,7 @@
           "prices"
         ],
         "summary": "Criar um preço",
-        "description": "Cria um preço em reais para um produto, avulso (one_time) ou recorrente (recurring). No recorrente, interval e interval_count dizem de quanto em quanto tempo ele renova: month com 3 é trimestral.\n\nAutenticação: chave de API da organização em Authorization: Bearer (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave, nunca da requisição: a chave criada num showcase só alcança o que é dele. Respostas em JSON no envelope data; erros com error, message e fields.",
+        "description": "Cria um preço em reais para um produto, avulso (one_time) ou recorrente (recurring). No recorrente, interval (day, week, month ou year) e interval_count dizem de quanto em quanto tempo ele renova: month com 3 é trimestral, day com 1 é diário. Com pricing_model o preço pode ser por quantidade, como no painel: per_unit, seat, volume ou graduated com tiers (por exemplo, a 1ª unidade a R$ 250,00 e as seguintes a R$ 150,00); sem ele, é um preço fixo de amount_cents.\n\nAutenticação: chave de API da organização em Authorization: Bearer (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave, nunca da requisição: a chave criada num showcase só alcança o que é dele. Respostas em JSON no envelope data; erros com error, message e fields.",
         "operationId": "prices:create",
         "parameters": [
           {
@@ -6564,7 +6788,8 @@
                     "type": "string"
                   },
                   "amount_cents": {
-                    "type": "integer"
+                    "type": "integer",
+                    "description": "O valor, em centavos, de um preço fixo (pricing_model fixed, o padrão), obrigatório nele; 0 é um preço gratuito. Nos demais modelos é recusado com 422: o valor está em unit_amount_cents ou em tiers."
                   },
                   "type": {
                     "type": "string",
@@ -6573,34 +6798,121 @@
                       "recurring"
                     ]
                   },
+                  "pricing_model": {
+                    "type": "string",
+                    "description": "Como o valor é calculado; fixed quando fica de fora. per_unit cobra unit_amount_cents por unidade; seat, por assento; volume cobra a quantidade inteira pelo valor da faixa em que ela cai; graduated cobra cada faixa pelo seu valor: com a 1ª unidade a R$ 250,00 e as seguintes a R$ 150,00, três unidades custam 250 + 150 + 150 = R$ 550,00. volume e graduated pedem tiers. São os mesmos modelos que o painel cria.",
+                    "enum": [
+                      "fixed",
+                      "per_unit",
+                      "volume",
+                      "graduated",
+                      "seat"
+                    ]
+                  },
+                  "unit_amount_cents": {
+                    "type": "integer",
+                    "description": "O valor de uma unidade (per_unit) ou de um assento (seat), em centavos; obrigatório nesses dois modelos e recusado nos outros.",
+                    "minimum": 0
+                  },
+                  "tiers": {
+                    "type": "array",
+                    "description": "As faixas de um preço volume ou graduated, em ordem, de 1 a 50. Por exemplo, [{\"up_to\": 1, \"unit_amount_cents\": 25000}, {\"up_to\": null, \"unit_amount_cents\": 15000}]: a 1ª unidade a R$ 250,00 e as seguintes a R$ 150,00. Uma escada que não fecha (up_to repetido, fora de ordem, última faixa com limite) é recusada com 422.",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "up_to": {
+                          "type": [
+                            "integer",
+                            "null"
+                          ],
+                          "description": "Até quantas unidades a faixa vai, inclusive. Crescente de uma faixa para a seguinte; null na última, que não tem limite, e só nela.",
+                          "minimum": 1
+                        },
+                        "unit_amount_cents": {
+                          "type": "integer",
+                          "description": "O valor de uma unidade nesta faixa, em centavos.",
+                          "minimum": 0
+                        }
+                      },
+                      "required": [
+                        "unit_amount_cents"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "unit_label": {
+                    "type": "string",
+                    "description": "Como o preço chama a unidade, no singular, de até 40 caracteres (por exemplo, câmera); só em per_unit, volume e graduated."
+                  },
+                  "unit_label_plural": {
+                    "type": "string",
+                    "description": "A unidade no plural, de até 40 caracteres (câmeras)."
+                  },
+                  "minimum_units": {
+                    "type": "integer",
+                    "description": "O menos que uma compra leva de unidades.",
+                    "minimum": 1
+                  },
+                  "maximum_units": {
+                    "type": "integer",
+                    "description": "O mais que uma compra leva de unidades, não menor que minimum_units.",
+                    "minimum": 1
+                  },
                   "interval": {
                     "type": "string",
-                    "description": "Obrigatório no preço recorrente; o preço one_time não tem intervalo.",
+                    "description": "Obrigatório no preço recorrente; o preço one_time não tem intervalo. day é o preço diário e week o semanal.",
                     "enum": [
+                      "day",
+                      "week",
                       "month",
                       "year"
                     ]
                   },
                   "interval_count": {
                     "type": "integer",
-                    "description": "De quantos em quantos intervalos o preço renova; 1 se omitido. Com month vai de 1 a 12 (3 é trimestral, 6 semestral); com year só 1. O preço one_time não tem.",
+                    "description": "De quantos em quantos intervalos o preço renova; 1 se omitido. Com day ou week vai de 1 a 999; com month de 1 a 12 (3 é trimestral, 6 semestral); com year só 1. O preço one_time não tem.",
                     "minimum": 1,
-                    "maximum": 12
+                    "maximum": 999
                   }
                 },
                 "required": [
                   "product_id",
-                  "amount_cents",
                   "type"
                 ],
                 "additionalProperties": false
               },
-              "example": {
-                "product_id": "0193c5e2-4a7d-7b1e-9c3f-2d8a6e5f1b40",
-                "amount_cents": 29700,
-                "type": "recurring",
-                "interval": "month",
-                "interval_count": 3
+              "examples": {
+                "assinatura_trimestral": {
+                  "summary": "Um preço que renova a cada 3 meses",
+                  "value": {
+                    "product_id": "0193c5e2-4a7d-7b1e-9c3f-2d8a6e5f1b40",
+                    "amount_cents": 29700,
+                    "type": "recurring",
+                    "interval": "month",
+                    "interval_count": 3
+                  }
+                },
+                "mensal_por_quantidade": {
+                  "summary": "Mensal por quantidade: a 1ª unidade a R$ 250,00 e as seguintes a R$ 150,00 (3 unidades: R$ 550,00)",
+                  "value": {
+                    "product_id": "0193c5e2-4a7d-7b1e-9c3f-2d8a6e5f1b40",
+                    "type": "recurring",
+                    "interval": "month",
+                    "pricing_model": "graduated",
+                    "tiers": [
+                      {
+                        "up_to": 1,
+                        "unit_amount_cents": 25000
+                      },
+                      {
+                        "up_to": null,
+                        "unit_amount_cents": 15000
+                      }
+                    ],
+                    "unit_label": "câmera",
+                    "unit_label_plural": "câmeras"
+                  }
+                }
               }
             }
           }
@@ -6622,6 +6934,9 @@
                     "type": "recurring",
                     "interval": "month",
                     "interval_count": 3,
+                    "pricing_model": "fixed",
+                    "unit_amount_cents": null,
+                    "tiers": [],
                     "status": "active"
                   }
                 }
@@ -8448,6 +8763,7 @@
                     "price_id": "0193c5e3-0b8c-7a49-a5d2-6e4f8b1c2d73",
                     "status": "active",
                     "amount_cents": 29700,
+                    "quantity": 3,
                     "currency": "BRL",
                     "interval": "month",
                     "current_period_start": "2026-11-18T15:10:00Z",
@@ -8459,7 +8775,8 @@
                     "trial_end": null,
                     "metadata": {
                       "camera": "portaria"
-                    }
+                    },
+                    "client_reference_id": "camera-portaria"
                   }
                 }
               }
@@ -10381,7 +10698,7 @@
         "tags": [
           "webhooks"
         ],
-        "summary": "Evento da venda; data traz os identificadores, o checkout, o valor e o metadata.",
+        "summary": "O cartão foi autorizado e o valor está reservado, sem ter sido capturado ainda. O dinheiro só é confirmado em checkout_payment.captured.",
         "description": "Enviado por POST ao endpoint assinante, no padrão Standard Webhooks: cabeçalhos webhook-id, webhook-timestamp e webhook-signature (HMAC-SHA256 de \"{id}.{timestamp}.{corpo}\" com o segredo whsec_). Responda 2xx; outra resposta é repetida em 30 s, 5 min, 30 min, 2 h, 5 h e 10 h.",
         "operationId": "webhooks:checkout_payment.authorized",
         "requestBody": {
@@ -10445,7 +10762,7 @@
         "tags": [
           "webhooks"
         ],
-        "summary": "Evento da venda; data traz os identificadores, o checkout, o valor e o metadata.",
+        "summary": "A autorização do pagamento foi cancelada antes da captura; nada foi cobrado.",
         "description": "Enviado por POST ao endpoint assinante, no padrão Standard Webhooks: cabeçalhos webhook-id, webhook-timestamp e webhook-signature (HMAC-SHA256 de \"{id}.{timestamp}.{corpo}\" com o segredo whsec_). Responda 2xx; outra resposta é repetida em 30 s, 5 min, 30 min, 2 h, 5 h e 10 h.",
         "operationId": "webhooks:checkout_payment.canceled",
         "requestBody": {
@@ -10509,7 +10826,7 @@
         "tags": [
           "webhooks"
         ],
-        "summary": "Evento da venda; data traz os identificadores, o checkout, o valor e o metadata.",
+        "summary": "O pagamento foi confirmado: o cartão foi capturado, o Pix recebido ou o boleto compensado. É o aviso do pagamento (meio, valor, parcelas); o do pedido é order.paid, que sai junto. data traz o checkout, o valor, o meio, o client_reference_id e o metadata.",
         "description": "Enviado por POST ao endpoint assinante, no padrão Standard Webhooks: cabeçalhos webhook-id, webhook-timestamp e webhook-signature (HMAC-SHA256 de \"{id}.{timestamp}.{corpo}\" com o segredo whsec_). Responda 2xx; outra resposta é repetida em 30 s, 5 min, 30 min, 2 h, 5 h e 10 h.",
         "operationId": "webhooks:checkout_payment.captured",
         "requestBody": {
@@ -10573,7 +10890,7 @@
         "tags": [
           "webhooks"
         ],
-        "summary": "Evento da venda; data traz os identificadores, o checkout, o valor e o metadata.",
+        "summary": "Parte do pagamento foi devolvida. data traz o reembolso que moveu o pagamento (refund_id, refund_amount_cents) e refunded_amount_cents, o acumulado.",
         "description": "Enviado por POST ao endpoint assinante, no padrão Standard Webhooks: cabeçalhos webhook-id, webhook-timestamp e webhook-signature (HMAC-SHA256 de \"{id}.{timestamp}.{corpo}\" com o segredo whsec_). Responda 2xx; outra resposta é repetida em 30 s, 5 min, 30 min, 2 h, 5 h e 10 h.",
         "operationId": "webhooks:checkout_payment.partially_refunded",
         "requestBody": {
@@ -10637,7 +10954,7 @@
         "tags": [
           "webhooks"
         ],
-        "summary": "Evento da venda; data traz os identificadores, o checkout, o valor e o metadata.",
+        "summary": "O pagamento foi devolvido por inteiro. data traz o reembolso que moveu o pagamento (refund_id, refund_amount_cents) e refunded_amount_cents, o acumulado.",
         "description": "Enviado por POST ao endpoint assinante, no padrão Standard Webhooks: cabeçalhos webhook-id, webhook-timestamp e webhook-signature (HMAC-SHA256 de \"{id}.{timestamp}.{corpo}\" com o segredo whsec_). Responda 2xx; outra resposta é repetida em 30 s, 5 min, 30 min, 2 h, 5 h e 10 h.",
         "operationId": "webhooks:checkout_payment.refunded",
         "requestBody": {
@@ -10701,7 +11018,7 @@
         "tags": [
           "webhooks"
         ],
-        "summary": "Evento da venda; data traz os identificadores, o checkout, o valor e o metadata.",
+        "summary": "O pagamento foi recusado pelo emissor ou pela adquirente; nada foi cobrado. O pedido continua sem pagamento.",
         "description": "Enviado por POST ao endpoint assinante, no padrão Standard Webhooks: cabeçalhos webhook-id, webhook-timestamp e webhook-signature (HMAC-SHA256 de \"{id}.{timestamp}.{corpo}\" com o segredo whsec_). Responda 2xx; outra resposta é repetida em 30 s, 5 min, 30 min, 2 h, 5 h e 10 h.",
         "operationId": "webhooks:checkout_payment.refused",
         "requestBody": {
@@ -11021,7 +11338,7 @@
         "tags": [
           "webhooks"
         ],
-        "summary": "Evento da Peráta; data traz os identificadores.",
+        "summary": "A sessão do checkout terminou paga. data traz só os identificadores; o objeto vem em order.paid, que sai junto. O nome do aviso de dinheiro confirmado é checkout_payment.captured.",
         "description": "Enviado por POST ao endpoint assinante, no padrão Standard Webhooks: cabeçalhos webhook-id, webhook-timestamp e webhook-signature (HMAC-SHA256 de \"{id}.{timestamp}.{corpo}\" com o segredo whsec_). Responda 2xx; outra resposta é repetida em 30 s, 5 min, 30 min, 2 h, 5 h e 10 h.",
         "operationId": "webhooks:checkout_session.succeeded",
         "requestBody": {
@@ -12430,7 +12747,7 @@
         "tags": [
           "webhooks"
         ],
-        "summary": "Evento da Peráta; data traz o objeto.",
+        "summary": "O pedido foi pago: o cartão foi capturado, o Pix recebido ou o boleto compensado. É o aviso para liberar o que foi vendido. data traz o pedido com client_reference_id e metadata e, se ele pagou um ciclo de assinatura, subscription_id, cycle_sequence, period_start e period_end; no pedido de uma renovação, client_reference_id e metadata são os do checkout que vendeu a assinatura. O mesmo pagamento também sai como checkout_payment.captured: libere uma vez só, pelo id do pedido.",
         "description": "Enviado por POST ao endpoint assinante, no padrão Standard Webhooks: cabeçalhos webhook-id, webhook-timestamp e webhook-signature (HMAC-SHA256 de \"{id}.{timestamp}.{corpo}\" com o segredo whsec_). Responda 2xx; outra resposta é repetida em 30 s, 5 min, 30 min, 2 h, 5 h e 10 h.",
         "operationId": "webhooks:order.paid",
         "requestBody": {
@@ -13838,7 +14155,7 @@
         "tags": [
           "webhooks"
         ],
-        "summary": "Evento da Peráta; data traz o objeto.",
+        "summary": "A assinatura renovou: um novo ciclo abriu. data traz a assinatura com o novo período (current_period_start e current_period_end), quantity e amount_cents do ciclo. A cobrança do ciclo chega como order.paid, com o client_reference_id e o metadata do checkout que vendeu a assinatura.",
         "description": "Enviado por POST ao endpoint assinante, no padrão Standard Webhooks: cabeçalhos webhook-id, webhook-timestamp e webhook-signature (HMAC-SHA256 de \"{id}.{timestamp}.{corpo}\" com o segredo whsec_). Responda 2xx; outra resposta é repetida em 30 s, 5 min, 30 min, 2 h, 5 h e 10 h.",
         "operationId": "webhooks:subscription.cycled",
         "requestBody": {
@@ -16787,7 +17104,7 @@
           },
           "client_reference_id": {
             "type": "string",
-            "description": "O id do pedido no seu sistema, enviado ao criar o checkout; vazio sem ele."
+            "description": "O id do pedido no seu sistema, enviado ao criar o checkout; vazio sem ele. Na renovação de uma assinatura é o do checkout que a vendeu."
           },
           "metadata": {
             "type": "object",
@@ -16858,7 +17175,7 @@
         "properties": {
           "error": {
             "type": "string",
-            "description": "Código do erro: invalid_credential, forbidden, not_found, invalid_request, conflict, idempotency_conflict, idempotency_in_progress, invalid_idempotency_key, method_not_allowed, unsupported_media_type, body_too_large, rate_limited, unavailable."
+            "description": "Código do erro: invalid_credential, forbidden, not_found, gone, invalid_request, conflict, idempotency_conflict, idempotency_in_progress, invalid_idempotency_key, method_not_allowed, unsupported_media_type, body_too_large, rate_limited, unavailable."
           },
           "message": {
             "type": "string"
@@ -17222,12 +17539,12 @@
           },
           "metadata": {
             "type": "object",
-            "description": "Os pares que o seu servidor enviou ao criar o checkout.",
+            "description": "Os pares que o seu servidor enviou ao criar o checkout. Na renovação de uma assinatura são os da assinatura, que começou com os do checkout que a vendeu.",
             "additionalProperties": {}
           },
           "client_reference_id": {
             "type": "string",
-            "description": "O id do pedido no seu sistema, enviado ao criar o checkout; vazio sem ele."
+            "description": "O id do pedido no seu sistema, enviado ao criar o checkout; vazio sem ele. Na renovação de uma assinatura é o do checkout que a vendeu."
           },
           "subscription_id": {
             "type": [
@@ -17399,6 +17716,7 @@
           "installments",
           "installment_interest_cents",
           "refunded_cents",
+          "charged_by",
           "items"
         ],
         "properties": {
@@ -17453,6 +17771,10 @@
           },
           "refunded_cents": {
             "type": "integer"
+          },
+          "charged_by": {
+            "type": "string",
+            "description": "Quem fez a cobrança, na frase que o checkout e o e-mail usam: Cobrança feita por \u003cempresa\u003e (razão social e CNPJ, quando a organização vende com CNPJ); vazio quando a empresa não pôde ser lida."
           },
           "items": {
             "type": "array",
@@ -17569,12 +17891,12 @@
           },
           "metadata": {
             "type": "object",
-            "description": "Os pares que o seu servidor enviou ao criar o checkout.",
+            "description": "Os pares que o seu servidor enviou ao criar o checkout. Na renovação de uma assinatura são os da assinatura, que começou com os do checkout que a vendeu.",
             "additionalProperties": {}
           },
           "client_reference_id": {
             "type": "string",
-            "description": "O id do pedido no seu sistema, enviado ao criar o checkout; vazio sem ele."
+            "description": "O id do pedido no seu sistema, enviado ao criar o checkout; vazio sem ele. Na renovação de uma assinatura é o do checkout que a vendeu."
           },
           "installments": {
             "type": "integer",
@@ -17767,6 +18089,9 @@
           "type",
           "interval",
           "interval_count",
+          "pricing_model",
+          "unit_amount_cents",
+          "tiers",
           "status"
         ],
         "properties": {
@@ -17784,7 +18109,7 @@
           },
           "amount_cents": {
             "type": "integer",
-            "description": "Valor em centavos."
+            "description": "Valor em centavos do preço fixo (pricing_model fixed). Vale 0 nos modelos por unidade, assento e faixas, cujo valor está em unit_amount_cents e tiers."
           },
           "type": {
             "type": "string",
@@ -17797,6 +18122,8 @@
             "type": "string",
             "enum": [
               "none",
+              "day",
+              "week",
               "month",
               "year"
             ]
@@ -17804,6 +18131,55 @@
           "interval_count": {
             "type": "integer",
             "description": "De quantos em quantos intervalos o preço renova: 3 com month é trimestral, 6 semestral. 1 no preço one_time."
+          },
+          "pricing_model": {
+            "type": "string",
+            "description": "Como o valor é calculado. fixed cobra amount_cents uma vez; per_unit e seat cobram unit_amount_cents por unidade ou assento; volume cobra a quantidade inteira pelo valor da faixa em que ela cai; graduated cobra cada faixa pelo seu valor (a 1ª unidade a um valor e as seguintes a outro). free e custom (valor livre) são criados no painel.",
+            "enum": [
+              "fixed",
+              "free",
+              "custom",
+              "per_unit",
+              "volume",
+              "graduated",
+              "seat"
+            ]
+          },
+          "unit_amount_cents": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "description": "Valor de uma unidade (per_unit) ou de um assento (seat), em centavos; nulo nos demais modelos."
+          },
+          "tiers": {
+            "type": "array",
+            "description": "As faixas de um preço volume ou graduated, em ordem; vazio nos demais modelos.",
+            "items": {
+              "$ref": "#/components/schemas/PriceTier"
+            }
+          },
+          "unit_label": {
+            "type": "string",
+            "description": "Como o preço chama a unidade, no singular (por exemplo, câmera); vazio sem rótulo."
+          },
+          "unit_label_plural": {
+            "type": "string",
+            "description": "A unidade no plural (por exemplo, câmeras)."
+          },
+          "minimum_units": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "description": "O menos que uma compra leva de unidades."
+          },
+          "maximum_units": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "description": "O mais que uma compra leva de unidades."
           },
           "status": {
             "type": "string",
@@ -17851,6 +18227,26 @@
         "properties": {
           "data": {
             "$ref": "#/components/schemas/PriceList"
+          }
+        }
+      },
+      "PriceTier": {
+        "type": "object",
+        "required": [
+          "up_to",
+          "unit_amount_cents"
+        ],
+        "properties": {
+          "up_to": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "description": "Até quantas unidades a faixa vai, inclusive; nulo na última faixa, que não tem limite."
+          },
+          "unit_amount_cents": {
+            "type": "integer",
+            "description": "Valor de uma unidade nesta faixa, em centavos."
           }
         }
       },
@@ -18104,6 +18500,7 @@
           "price_id",
           "status",
           "amount_cents",
+          "quantity",
           "currency",
           "interval",
           "current_period_start",
@@ -18113,7 +18510,8 @@
           "suspension_reason",
           "trial_start",
           "trial_end",
-          "metadata"
+          "metadata",
+          "client_reference_id"
         ],
         "properties": {
           "id": {
@@ -18144,7 +18542,12 @@
             ]
           },
           "amount_cents": {
-            "type": "integer"
+            "type": "integer",
+            "description": "O que a assinatura cobra a cada ciclo, em centavos, já para a quantity que ela tem: é o total do ciclo, não o preço de uma unidade. O preço por unidade, por assento ou por faixas já está aplicado à quantity."
+          },
+          "quantity": {
+            "type": "integer",
+            "description": "Quantas unidades ou assentos a assinatura cobre, de 1 em diante; 1 num preço sem quantidade. amount_cents é o total do ciclo para esta quantity."
           },
           "currency": {
             "type": "string",
@@ -18205,6 +18608,10 @@
             "type": "object",
             "description": "Metadados do lojista: pares chave e valor (texto, número ou booleano); objeto vazio quando não há.",
             "additionalProperties": {}
+          },
+          "client_reference_id": {
+            "type": "string",
+            "description": "O id do pedido no seu sistema, enviado ao criar o checkout que vendeu a assinatura; vazio sem ele. Cada pedido de renovação traz o mesmo client_reference_id, e o mesmo metadata, para você achar o cliente."
           }
         }
       },
@@ -18260,7 +18667,7 @@
           },
           "message": {
             "type": "string",
-            "description": "O que explica a recusa, em inglês."
+            "description": "O que explica a recusa, em português."
           },
           "fields": {
             "type": "object",
@@ -18413,7 +18820,7 @@
           },
           "client_reference_id": {
             "type": "string",
-            "description": "O id do pedido no sistema do lojista; vazio sem ele."
+            "description": "O id do pedido no sistema do lojista; vazio sem ele. Na renovação de uma assinatura é o do checkout que a vendeu."
           },
           "subscription_id": {
             "type": [
@@ -18775,7 +19182,7 @@
           },
           "client_reference_id": {
             "type": "string",
-            "description": "O id do pedido no seu sistema, enviado ao criar o checkout; vazio sem ele."
+            "description": "O id do pedido no seu sistema, enviado ao criar o checkout; vazio sem ele. Na renovação de uma assinatura é o do checkout que a vendeu."
           },
           "metadata": {
             "type": "object",
@@ -19091,7 +19498,7 @@
           },
           "client_reference_id": {
             "type": "string",
-            "description": "O id do pedido no seu sistema, enviado ao criar o checkout; vazio sem ele."
+            "description": "O id do pedido no seu sistema, enviado ao criar o checkout; vazio sem ele. Na renovação de uma assinatura é o do checkout que a vendeu."
           },
           "subscription_id": {
             "type": [
@@ -19172,7 +19579,7 @@
           },
           "client_reference_id": {
             "type": "string",
-            "description": "O id do pedido no sistema do lojista; vazio sem ele."
+            "description": "O id do pedido no sistema do lojista; vazio sem ele. Na renovação de uma assinatura é o do checkout que a vendeu."
           },
           "order_id": {
             "type": "string",
@@ -19232,7 +19639,7 @@
           },
           "client_reference_id": {
             "type": "string",
-            "description": "O id do pedido no sistema do lojista; vazio sem ele."
+            "description": "O id do pedido no sistema do lojista; vazio sem ele. Na renovação de uma assinatura é o do checkout que a vendeu."
           },
           "method": {
             "type": "string",
@@ -19315,6 +19722,7 @@
           "price_id",
           "status",
           "amount_cents",
+          "quantity",
           "currency",
           "interval",
           "current_period_start",
@@ -19324,7 +19732,8 @@
           "trial_end",
           "suspended_at",
           "suspension_reason",
-          "metadata"
+          "metadata",
+          "client_reference_id"
         ],
         "properties": {
           "id": {
@@ -19355,7 +19764,12 @@
             ]
           },
           "amount_cents": {
-            "type": "integer"
+            "type": "integer",
+            "description": "O que a assinatura cobra a cada ciclo, em centavos, já para a quantity que ela tem: é o total do ciclo, não o preço de uma unidade. O preço por unidade, por assento ou por faixas já está aplicado à quantity."
+          },
+          "quantity": {
+            "type": "integer",
+            "description": "Quantas unidades ou assentos a assinatura cobre, de 1 em diante; 1 num preço sem quantidade. amount_cents é o total do ciclo para esta quantity."
           },
           "currency": {
             "type": "string",
@@ -19416,6 +19830,10 @@
             "type": "object",
             "additionalProperties": {},
             "description": "Metadados do lojista: pares chave e valor (texto, número ou booleano); objeto vazio quando não há."
+          },
+          "client_reference_id": {
+            "type": "string",
+            "description": "O id do pedido no seu sistema, enviado ao criar o checkout que vendeu a assinatura; vazio sem ele. Cada pedido de renovação traz o mesmo client_reference_id, e o mesmo metadata, para você achar o cliente."
           },
           "payment_failure": {
             "type": "object",

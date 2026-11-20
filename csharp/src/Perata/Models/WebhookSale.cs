@@ -37,7 +37,7 @@ public sealed record WebhookSale
     [JsonPropertyName("checkout_id")]
     public string? CheckoutId { get; init; }
 
-    /// <summary>O id do pedido no sistema do lojista; vazio sem ele. Null when the API sends none.</summary>
+    /// <summary>O id do pedido no sistema do lojista; vazio sem ele. Na renovação de uma assinatura é o do checkout que a vendeu. Null when the API sends none.</summary>
     [JsonPropertyName("client_reference_id")]
     public string? ClientReferenceId { get; init; }
 

@@ -524,7 +524,7 @@ export interface Dispute {
   amount_cents: number;
   /** O checkout (o pedido) da venda contestada; nulo quando não é de um checkout. É o mesmo valor de order_id. */
   checkout_id: string | null;
-  /** O id do pedido no seu sistema, enviado ao criar o checkout; vazio sem ele. */
+  /** O id do pedido no seu sistema, enviado ao criar o checkout; vazio sem ele. Na renovação de uma assinatura é o do checkout que a vendeu. */
   client_reference_id: string;
   currency: "BRL";
   customer_id: string | null;
@@ -614,7 +614,7 @@ export interface MeterUnit {
 /** Order is a resource of Peráta's API. */
 export interface Order {
   amount_cents: number;
-  /** O id do pedido no seu sistema, enviado ao criar o checkout; vazio sem ele. */
+  /** O id do pedido no seu sistema, enviado ao criar o checkout; vazio sem ele. Na renovação de uma assinatura é o do checkout que a vendeu. */
   client_reference_id: string;
   currency: "BRL";
   customer_id: string;
@@ -627,7 +627,7 @@ export interface Order {
   installments: number;
   /** As linhas do pedido, quando o seu servidor as enviou ao criar o checkout; vazio sem elas. */
   items: CheckoutLine[];
-  /** Os pares que o seu servidor enviou ao criar o checkout. */
+  /** Os pares que o seu servidor enviou ao criar o checkout. Na renovação de uma assinatura são os da assinatura, que começou com os do checkout que a vendeu. */
   metadata: Record<string, unknown>;
   /** Onde o pedido está; status é o do checkout e continua succeeded depois de um reembolso, e este vira partially_refunded ou refunded. Nulo antes de haver pagamento. */
   order_status: "pending" | "paid" | "partially_refunded" | "refunded" | null;
@@ -671,6 +671,8 @@ export interface OrderInvoice {
 /** OrderReceipt is a resource of Peráta's API. */
 export interface OrderReceipt {
   amount_cents: number;
+  /** Quem fez a cobrança, na frase que o checkout e o e-mail usam: Cobrança feita por <empresa> (razão social e CNPJ, quando a organização vende com CNPJ); vazio quando a empresa não pôde ser lida. */
+  charged_by: string;
   currency: "BRL";
   customer_email: string;
   customer_name: string;
@@ -702,7 +704,7 @@ export interface Payment {
   amount_cents: number;
   captured_cents: number;
   checkout_id: string;
-  /** O id do pedido no seu sistema, enviado ao criar o checkout; vazio sem ele. */
+  /** O id do pedido no seu sistema, enviado ao criar o checkout; vazio sem ele. Na renovação de uma assinatura é o do checkout que a vendeu. */
   client_reference_id: string;
   created_at: string;
   currency: "BRL";
@@ -716,7 +718,7 @@ export interface Payment {
   installment_interest_cents: number;
   /** Em quantas parcelas o cartão de crédito foi cobrado; 1 à vista. */
   installments: number;
-  /** Os pares que o seu servidor enviou ao criar o checkout. */
+  /** Os pares que o seu servidor enviou ao criar o checkout. Na renovação de uma assinatura são os da assinatura, que começou com os do checkout que a vendeu. */
   metadata: Record<string, unknown>;
   method: "card" | "pix" | "boleto";
   /** O fim do período que o ciclo paga; nulo fora de uma assinatura. */
@@ -748,16 +750,38 @@ export interface PaymentMethodDetached {
 
 /** Price is a resource of Peráta's API. */
 export interface Price {
-  /** Valor em centavos. */
+  /** Valor em centavos do preço fixo (pricing_model fixed). Vale 0 nos modelos por unidade, assento e faixas, cujo valor está em unit_amount_cents e tiers. */
   amount_cents: number;
   currency: "BRL";
   id: string;
-  interval: "none" | "month" | "year";
+  interval: "none" | "day" | "week" | "month" | "year";
   /** De quantos em quantos intervalos o preço renova: 3 com month é trimestral, 6 semestral. 1 no preço one_time. */
   interval_count: number;
+  /** O mais que uma compra leva de unidades. */
+  maximum_units?: number | null;
+  /** O menos que uma compra leva de unidades. */
+  minimum_units?: number | null;
+  /** Como o valor é calculado. fixed cobra amount_cents uma vez; per_unit e seat cobram unit_amount_cents por unidade ou assento; volume cobra a quantidade inteira pelo valor da faixa em que ela cai; graduated cobra cada faixa pelo seu valor (a 1ª unidade a um valor e as seguintes a outro). free e custom (valor livre) são criados no painel. */
+  pricing_model: "fixed" | "free" | "custom" | "per_unit" | "volume" | "graduated" | "seat";
   product_id: string;
   status: "active" | "archived";
+  /** As faixas de um preço volume ou graduated, em ordem; vazio nos demais modelos. */
+  tiers: PriceTier[];
   type: "one_time" | "recurring";
+  /** Valor de uma unidade (per_unit) ou de um assento (seat), em centavos; nulo nos demais modelos. */
+  unit_amount_cents: number | null;
+  /** Como o preço chama a unidade, no singular (por exemplo, câmera); vazio sem rótulo. */
+  unit_label?: string;
+  /** A unidade no plural (por exemplo, câmeras). */
+  unit_label_plural?: string;
+}
+
+/** PriceTier is a resource of Peráta's API. */
+export interface PriceTier {
+  /** Valor de uma unidade nesta faixa, em centavos. */
+  unit_amount_cents: number;
+  /** Até quantas unidades a faixa vai, inclusive; nulo na última faixa, que não tem limite. */
+  up_to: number | null;
 }
 
 /** Product is a resource of Peráta's API. */
@@ -812,8 +836,11 @@ export interface Showcase {
 
 /** Subscription is a resource of Peráta's API. */
 export interface Subscription {
+  /** O que a assinatura cobra a cada ciclo, em centavos, já para a quantity que ela tem: é o total do ciclo, não o preço de uma unidade. O preço por unidade, por assento ou por faixas já está aplicado à quantity. */
   amount_cents: number;
   cancel_at_period_end: boolean;
+  /** O id do pedido no seu sistema, enviado ao criar o checkout que vendeu a assinatura; vazio sem ele. Cada pedido de renovação traz o mesmo client_reference_id, e o mesmo metadata, para você achar o cliente. */
+  client_reference_id: string;
   currency: "BRL";
   current_period_end: string;
   current_period_start: string;
@@ -824,6 +851,8 @@ export interface Subscription {
   metadata: Record<string, unknown>;
   price_id: string;
   product_id: string;
+  /** Quantas unidades ou assentos a assinatura cobre, de 1 em diante; 1 num preço sem quantidade. amount_cents é o total do ciclo para esta quantity. */
+  quantity: number;
   /** O showcase a que pertence: o da chave de API que fez a chamada. Uma chave só alcança o seu showcase. */
   showcase_id: string;
   status: "trialing" | "active" | "past_due" | "suspended" | "paused" | "canceled";
@@ -841,7 +870,7 @@ export interface UsageError {
   error: string;
   /** Em invalid_request, o que há de errado em cada campo do evento. */
   fields?: Record<string, string[]>;
-  /** O que explica a recusa, em inglês. */
+  /** O que explica a recusa, em português. */
   message?: string;
   /** Posição, a partir de 1, do evento do lote que causou a recusa (invalid_request e conflict); o lote inteiro foi revertido. */
   record?: number;
@@ -863,7 +892,7 @@ export interface WebhookBenefit {
 export interface WebhookCheckout {
   amount_cents: number;
   checkout_link_id: string | null;
-  /** O id do pedido no sistema do lojista; vazio sem ele. */
+  /** O id do pedido no sistema do lojista; vazio sem ele. Na renovação de uma assinatura é o do checkout que a vendeu. */
   client_reference_id?: string;
   created_at: string;
   currency: "BRL";
@@ -938,7 +967,7 @@ export interface WebhookDispute {
   amount_cents: number;
   /** O checkout (o pedido) da venda contestada; nulo quando não é de um checkout. */
   checkout_id?: string | null;
-  /** O id do pedido no seu sistema, enviado ao criar o checkout; vazio sem ele. */
+  /** O id do pedido no seu sistema, enviado ao criar o checkout; vazio sem ele. Na renovação de uma assinatura é o do checkout que a vendeu. */
   client_reference_id?: string;
   currency: "BRL";
   customer_id: string | null;
@@ -1003,7 +1032,7 @@ export interface WebhookEndpointCreated {
 /** O pedido como a API o devolve (Order) e, nos eventos que um reembolso causou (order.refunded e o order.updated que o acompanha), o reembolso que o causou. status continua sendo o do checkout (succeeded) depois de um reembolso: order_status e refunded_amount_cents dizem onde o dinheiro está. */
 export interface WebhookOrder {
   amount_cents: number;
-  /** O id do pedido no seu sistema, enviado ao criar o checkout; vazio sem ele. */
+  /** O id do pedido no seu sistema, enviado ao criar o checkout; vazio sem ele. Na renovação de uma assinatura é o do checkout que a vendeu. */
   client_reference_id: string;
   currency: "BRL";
   customer_id: string;
@@ -1045,7 +1074,7 @@ export interface WebhookRefund {
   amount_cents: number;
   /** O checkout (o pedido) que o reembolso devolve, quando se sabe. */
   checkout_id?: string;
-  /** O id do pedido no sistema do lojista; vazio sem ele. */
+  /** O id do pedido no sistema do lojista; vazio sem ele. Na renovação de uma assinatura é o do checkout que a vendeu. */
   client_reference_id: string;
   id: string;
   /** Os pares que o servidor do lojista enviou ao criar o checkout; vazio sem eles. */
@@ -1070,7 +1099,7 @@ export interface WebhookSale {
   amount_cents?: number;
   /** O checkout (o pedido) do pagamento ou do reembolso. */
   checkout_id?: string;
-  /** O id do pedido no sistema do lojista; vazio sem ele. */
+  /** O id do pedido no sistema do lojista; vazio sem ele. Na renovação de uma assinatura é o do checkout que a vendeu. */
   client_reference_id?: string;
   currency?: "BRL";
   /** O ciclo da assinatura que o pagamento cobra: 1 é o primeiro, 2 é a primeira renovação. */
@@ -1104,8 +1133,11 @@ export interface WebhookSale {
 
 /** A assinatura como a API a devolve (Subscription) e, nos eventos que uma cobrança recusada causou (subscription.past_due, subscription.suspended e o subscription.updated que os acompanha), a cobrança recusada em payment_failure. */
 export interface WebhookSubscription {
+  /** O que a assinatura cobra a cada ciclo, em centavos, já para a quantity que ela tem: é o total do ciclo, não o preço de uma unidade. O preço por unidade, por assento ou por faixas já está aplicado à quantity. */
   amount_cents: number;
   cancel_at_period_end: boolean;
+  /** O id do pedido no seu sistema, enviado ao criar o checkout que vendeu a assinatura; vazio sem ele. Cada pedido de renovação traz o mesmo client_reference_id, e o mesmo metadata, para você achar o cliente. */
+  client_reference_id: string;
   currency: "BRL";
   current_period_end: string;
   current_period_start: string;
@@ -1118,6 +1150,8 @@ export interface WebhookSubscription {
   payment_failure?: WebhookSubscriptionPaymentFailure;
   price_id: string;
   product_id: string;
+  /** Quantas unidades ou assentos a assinatura cobre, de 1 em diante; 1 num preço sem quantidade. amount_cents é o total do ciclo para esta quantity. */
+  quantity: number;
   /** O showcase da venda. */
   showcase_id: string;
   status: "trialing" | "active" | "past_due" | "suspended" | "paused" | "canceled";
@@ -1219,7 +1253,7 @@ export interface CheckoutsCreateParams {
   /** O valor do pedido todo, em centavos, que o seu servidor fixa. Só vale em um preço de valor livre (custom); em outro preço é recusado com 422. Respeita o mínimo e o máximo do preço, também com 422. O comprador vê o valor e não pode mudá-lo, na página, no modal, nos componentes e no checkout transparente; vale para cartão de crédito, débito e Pix, e é o valor que volta em pedidos, pagamentos, recibo e eventos. Repetir a criação com a mesma Idempotency-Key e outro valor dá 409. */
   amount_cents?: number;
   cancel_url?: string;
-  /** O id do pedido no seu sistema, de até 255 caracteres. Volta no checkout, no pedido, no pagamento e nos eventos checkout.*, order.*, checkout_payment.* e refund.*, para você achar de qual pedido veio cada pagamento. */
+  /** O id do pedido no seu sistema, de até 255 caracteres. Volta no checkout, no pedido, no pagamento e nos eventos checkout.*, order.*, checkout_payment.* e refund.*, para você achar de qual pedido veio cada pagamento. Num checkout de assinatura fica também na assinatura, e cada pedido de renovação volta com ele. */
   client_reference_id?: string;
   /** O e-mail do comprador, quando você o conhece; senão o navegador do comprador o pede. */
   customer_email?: string;
@@ -1420,13 +1454,36 @@ export interface CustomersUpdateExternalBillingAddress {
 
 /** The body of prices:create. */
 export interface PricesCreateParams {
-  amount_cents: number;
-  /** Obrigatório no preço recorrente; o preço one_time não tem intervalo. */
-  interval?: "month" | "year";
-  /** De quantos em quantos intervalos o preço renova; 1 se omitido. Com month vai de 1 a 12 (3 é trimestral, 6 semestral); com year só 1. O preço one_time não tem. */
+  /** O valor, em centavos, de um preço fixo (pricing_model fixed, o padrão), obrigatório nele; 0 é um preço gratuito. Nos demais modelos é recusado com 422: o valor está em unit_amount_cents ou em tiers. */
+  amount_cents?: number;
+  /** Obrigatório no preço recorrente; o preço one_time não tem intervalo. day é o preço diário e week o semanal. */
+  interval?: "day" | "week" | "month" | "year";
+  /** De quantos em quantos intervalos o preço renova; 1 se omitido. Com day ou week vai de 1 a 999; com month de 1 a 12 (3 é trimestral, 6 semestral); com year só 1. O preço one_time não tem. */
   interval_count?: number;
+  /** O mais que uma compra leva de unidades, não menor que minimum_units. */
+  maximum_units?: number;
+  /** O menos que uma compra leva de unidades. */
+  minimum_units?: number;
+  /** Como o valor é calculado; fixed quando fica de fora. per_unit cobra unit_amount_cents por unidade; seat, por assento; volume cobra a quantidade inteira pelo valor da faixa em que ela cai; graduated cobra cada faixa pelo seu valor: com a 1ª unidade a R$ 250,00 e as seguintes a R$ 150,00, três unidades custam 250 + 150 + 150 = R$ 550,00. volume e graduated pedem tiers. São os mesmos modelos que o painel cria. */
+  pricing_model?: "fixed" | "per_unit" | "volume" | "graduated" | "seat";
   product_id: string;
+  /** As faixas de um preço volume ou graduated, em ordem, de 1 a 50. Por exemplo, [{"up_to": 1, "unit_amount_cents": 25000}, {"up_to": null, "unit_amount_cents": 15000}]: a 1ª unidade a R$ 250,00 e as seguintes a R$ 150,00. Uma escada que não fecha (up_to repetido, fora de ordem, última faixa com limite) é recusada com 422. */
+  tiers?: PricesCreateTier[];
   type: "one_time" | "recurring";
+  /** O valor de uma unidade (per_unit) ou de um assento (seat), em centavos; obrigatório nesses dois modelos e recusado nos outros. */
+  unit_amount_cents?: number;
+  /** Como o preço chama a unidade, no singular, de até 40 caracteres (por exemplo, câmera); só em per_unit, volume e graduated. */
+  unit_label?: string;
+  /** A unidade no plural, de até 40 caracteres (câmeras). */
+  unit_label_plural?: string;
+}
+
+/** One item of tiers in PricesCreateParams. */
+export interface PricesCreateTier {
+  /** O valor de uma unidade nesta faixa, em centavos. */
+  unit_amount_cents: number;
+  /** Até quantas unidades a faixa vai, inclusive. Crescente de uma faixa para a seguinte; null na última, que não tem limite, e só nela. */
+  up_to?: number | null;
 }
 
 /** The body of products:create. */

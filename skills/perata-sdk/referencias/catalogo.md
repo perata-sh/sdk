@@ -22,14 +22,46 @@ Campos do corpo:
 | Campo | Regra |
 |---|---|
 | `product_id` | obrigatório |
-| `amount_cents` | obrigatório, em centavos |
+| `amount_cents` | o valor do preço fixo (`pricing_model` `fixed`, o padrão), em centavos; obrigatório nele, `0` é gratuito. Nos outros modelos é recusado com 422 |
 | `type` | obrigatório: `one_time` (cobra uma vez) ou `recurring` (assinatura) |
-| `interval` | `month` ou `year`; obrigatório no recorrente, proibido no avulso |
-| `interval_count` | de quantos em quantos intervalos renova; 1 se omitido. Com `month`, de 1 a 12 (`3` é trimestral, `6` semestral); com `year`, só 1. O avulso não tem |
+| `interval` | `day`, `week`, `month` ou `year`; obrigatório no recorrente, proibido no avulso |
+| `interval_count` | de quantos em quantos intervalos renova; 1 se omitido. Com `day` ou `week`, de 1 a 999; com `month`, de 1 a 12 (`3` é trimestral, `6` semestral); com `year`, só 1. O avulso não tem |
+| `pricing_model` | como o valor é calculado: `fixed` (padrão), `per_unit`, `seat`, `volume` ou `graduated`. São os mesmos modelos que o painel cria |
+| `unit_amount_cents` | o valor de uma unidade (`per_unit`) ou de um assento (`seat`), em centavos; obrigatório nesses dois e recusado nos outros |
+| `tiers` | as faixas de `volume` e `graduated`, de 1 a 50, em ordem: `[{"up_to": 1, "unit_amount_cents": 25000}, {"up_to": null, "unit_amount_cents": 15000}]`. `up_to` é o limite da faixa, inclusive, crescente; `null` só na última, que não tem limite |
+| `unit_label`, `unit_label_plural` | como o preço chama a unidade (`câmera`, `câmeras`), até 40 caracteres; só em `per_unit`, `volume` e `graduated` |
+| `minimum_units`, `maximum_units` | o menos e o mais que uma compra leva de unidades; só nos mesmos três modelos |
 
-Três tipos de preço aparecem nas integrações:
+### Preço por quantidade
 
-1. **Fixo** (`one_time`): o checkout cobra o valor do preço.
+O checkout cobra o preço vezes a quantidade (`quantity`), pelo modelo do preço:
+
+- `per_unit` e `seat`: `unit_amount_cents` por unidade ou assento.
+- `graduated`: cada faixa cobra as suas unidades ao seu valor. Com a 1ª unidade a R$ 250,00 e as seguintes a R$ 150,00, três unidades custam 250 + 150 + 150 = R$ 550,00.
+- `volume`: a quantidade inteira é cobrada pelo valor da faixa em que ela cai. Com até 10 a R$ 5,00 e acima disso a R$ 4,00, 11 unidades custam 11 x 4,00 = R$ 44,00.
+
+Um mensal por câmera, a 1ª a R$ 250,00 e as demais a R$ 150,00 (o mesmo corpo com `"interval": "day"` é o preço diário):
+
+```json
+{
+  "product_id": "<id do produto>",
+  "type": "recurring",
+  "interval": "month",
+  "pricing_model": "graduated",
+  "tiers": [
+    {"up_to": 1, "unit_amount_cents": 25000},
+    {"up_to": null, "unit_amount_cents": 15000}
+  ],
+  "unit_label": "câmera",
+  "unit_label_plural": "câmeras"
+}
+```
+
+No SDK, `PricesCreateParams` aceita esses campos a partir da 0.5.7 (antes, `amount_cents` era obrigatório e não havia `pricing_model` nem `tiers`: crie o preço pela API REST). O preço devolvido traz `pricing_model`, `unit_amount_cents`, `tiers` (vazio fora de `volume` e `graduated`) e `amount_cents` 0 nos modelos por quantidade. Uma escada que não fecha (`up_to` repetido ou fora de ordem, última faixa com limite, faixa sem valor) volta 422 com o campo `tiers`. Ao abrir o checkout, envie `quantity` (`POST /api/v1/checkouts`): a sessão devolve o total já calculado em `amount_cents`.
+
+Os tipos de preço que aparecem nas integrações:
+
+1. **Fixo**: o checkout cobra o valor do preço (`amount_cents`), uma vez no `one_time`.
 2. **Recorrente** (`recurring`): vira uma assinatura. Veja `assinaturas.md`. Todo preço lido pela API devolve `interval_count`.
 3. **Valor livre** (`custom`): o valor não é do preço, é de cada checkout. Serve quando o seu sistema calcula o total do pedido (multa, juros, desconto, lista de itens). O checkout envia `amount_cents` e `items`; sem `amount_cents` é o comprador quem digita o valor. O preço de valor livre tem um mínimo e um máximo que **se definem no painel**: a API de preços ainda não cria esse tipo (`type` só aceita `one_time` e `recurring`), então peça ao dono que o crie em Teste e em Produção e passe os dois ids. Um `amount_cents` fora do mínimo ou do máximo é recusado com 422.
 

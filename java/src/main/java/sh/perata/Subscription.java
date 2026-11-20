@@ -30,6 +30,7 @@ public final class Subscription {
 
     private final long amountCents;
     private final boolean cancelAtPeriodEnd;
+    private final String clientReferenceId;
     private final String currency;
     private final String currentPeriodEnd;
     private final String currentPeriodStart;
@@ -39,6 +40,7 @@ public final class Subscription {
     private final Map<String, Object> metadata;
     private final String priceId;
     private final String productId;
+    private final long quantity;
     private final String showcaseId;
     private final String status;
     private final String suspendedAt;
@@ -46,9 +48,10 @@ public final class Subscription {
     private final String trialEnd;
     private final String trialStart;
 
-    Subscription(long amountCents, boolean cancelAtPeriodEnd, String currency, String currentPeriodEnd, String currentPeriodStart, String customerId, String id, String interval, Map<String, Object> metadata, String priceId, String productId, String showcaseId, String status, String suspendedAt, String suspensionReason, String trialEnd, String trialStart) {
+    Subscription(long amountCents, boolean cancelAtPeriodEnd, String clientReferenceId, String currency, String currentPeriodEnd, String currentPeriodStart, String customerId, String id, String interval, Map<String, Object> metadata, String priceId, String productId, long quantity, String showcaseId, String status, String suspendedAt, String suspensionReason, String trialEnd, String trialStart) {
         this.amountCents = amountCents;
         this.cancelAtPeriodEnd = cancelAtPeriodEnd;
+        this.clientReferenceId = clientReferenceId;
         this.currency = currency;
         this.currentPeriodEnd = currentPeriodEnd;
         this.currentPeriodStart = currentPeriodStart;
@@ -58,6 +61,7 @@ public final class Subscription {
         this.metadata = metadata;
         this.priceId = priceId;
         this.productId = productId;
+        this.quantity = quantity;
         this.showcaseId = showcaseId;
         this.status = status;
         this.suspendedAt = suspendedAt;
@@ -70,6 +74,7 @@ public final class Subscription {
         return new Subscription(
                 Json.required(data, "amount_cents", Json::asLong),
                 Json.required(data, "cancel_at_period_end", Json::asBoolean),
+                Json.required(data, "client_reference_id", Json::asString),
                 Json.required(data, "currency", Json::asString),
                 Json.required(data, "current_period_end", Json::asString),
                 Json.required(data, "current_period_start", Json::asString),
@@ -79,6 +84,7 @@ public final class Subscription {
                 Json.required(data, "metadata", Json.map(Json::any)),
                 Json.required(data, "price_id", Json::asString),
                 Json.required(data, "product_id", Json::asString),
+                Json.required(data, "quantity", Json::asLong),
                 Json.required(data, "showcase_id", Json::asString),
                 Json.required(data, "status", Json::asString),
                 Json.optional(data, "suspended_at", Json::asString),
@@ -87,7 +93,7 @@ public final class Subscription {
                 Json.optional(data, "trial_start", Json::asString));
     }
 
-    /** @return the API's {@code amount_cents} */
+    /** @return O que a assinatura cobra a cada ciclo, em centavos, já para a quantity que ela tem: é o total do ciclo, não o preço de uma unidade. O preço por unidade, por assento ou por faixas já está aplicado à quantity. */
     public long getAmountCents() {
         return amountCents;
     }
@@ -95,6 +101,11 @@ public final class Subscription {
     /** @return the API's {@code cancel_at_period_end} */
     public boolean getCancelAtPeriodEnd() {
         return cancelAtPeriodEnd;
+    }
+
+    /** @return O id do pedido no seu sistema, enviado ao criar o checkout que vendeu a assinatura; vazio sem ele. Cada pedido de renovação traz o mesmo client_reference_id, e o mesmo metadata, para você achar o cliente. */
+    public String getClientReferenceId() {
+        return clientReferenceId;
     }
 
     /** @return the API's {@code currency} */
@@ -142,6 +153,11 @@ public final class Subscription {
         return productId;
     }
 
+    /** @return Quantas unidades ou assentos a assinatura cobre, de 1 em diante; 1 num preço sem quantidade. amount_cents é o total do ciclo para esta quantity. */
+    public long getQuantity() {
+        return quantity;
+    }
+
     /** @return O showcase a que pertence: o da chave de API que fez a chamada. Uma chave só alcança o seu showcase. */
     public String getShowcaseId() {
         return showcaseId;
@@ -174,6 +190,6 @@ public final class Subscription {
 
     @Override
     public String toString() {
-        return "Subscription{" + "amountCents=" + amountCents + ", cancelAtPeriodEnd=" + cancelAtPeriodEnd + ", currency=" + currency + ", currentPeriodEnd=" + currentPeriodEnd + ", currentPeriodStart=" + currentPeriodStart + ", customerId=" + customerId + ", id=" + id + ", interval=" + interval + ", metadata=" + metadata + ", priceId=" + priceId + ", productId=" + productId + ", showcaseId=" + showcaseId + ", status=" + status + ", suspendedAt=" + suspendedAt + ", suspensionReason=" + suspensionReason + ", trialEnd=" + trialEnd + ", trialStart=" + trialStart + "}";
+        return "Subscription{" + "amountCents=" + amountCents + ", cancelAtPeriodEnd=" + cancelAtPeriodEnd + ", clientReferenceId=" + clientReferenceId + ", currency=" + currency + ", currentPeriodEnd=" + currentPeriodEnd + ", currentPeriodStart=" + currentPeriodStart + ", customerId=" + customerId + ", id=" + id + ", interval=" + interval + ", metadata=" + metadata + ", priceId=" + priceId + ", productId=" + productId + ", quantity=" + quantity + ", showcaseId=" + showcaseId + ", status=" + status + ", suspendedAt=" + suspendedAt + ", suspensionReason=" + suspensionReason + ", trialEnd=" + trialEnd + ", trialStart=" + trialStart + "}";
     }
 }

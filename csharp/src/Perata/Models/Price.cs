@@ -16,10 +16,37 @@ public sealed record Price
     public const string IntervalNone = "none";
 
     /// <summary>A value of <see cref="Interval"/>.</summary>
+    public const string IntervalDay = "day";
+
+    /// <summary>A value of <see cref="Interval"/>.</summary>
+    public const string IntervalWeek = "week";
+
+    /// <summary>A value of <see cref="Interval"/>.</summary>
     public const string IntervalMonth = "month";
 
     /// <summary>A value of <see cref="Interval"/>.</summary>
     public const string IntervalYear = "year";
+
+    /// <summary>A value of <see cref="PricingModel"/>.</summary>
+    public const string PricingModelFixed = "fixed";
+
+    /// <summary>A value of <see cref="PricingModel"/>.</summary>
+    public const string PricingModelFree = "free";
+
+    /// <summary>A value of <see cref="PricingModel"/>.</summary>
+    public const string PricingModelCustom = "custom";
+
+    /// <summary>A value of <see cref="PricingModel"/>.</summary>
+    public const string PricingModelPerUnit = "per_unit";
+
+    /// <summary>A value of <see cref="PricingModel"/>.</summary>
+    public const string PricingModelVolume = "volume";
+
+    /// <summary>A value of <see cref="PricingModel"/>.</summary>
+    public const string PricingModelGraduated = "graduated";
+
+    /// <summary>A value of <see cref="PricingModel"/>.</summary>
+    public const string PricingModelSeat = "seat";
 
     /// <summary>A value of <see cref="Status"/>.</summary>
     public const string StatusActive = "active";
@@ -33,7 +60,7 @@ public sealed record Price
     /// <summary>A value of <see cref="Type"/>.</summary>
     public const string TypeRecurring = "recurring";
 
-    /// <summary>Valor em centavos.</summary>
+    /// <summary>Valor em centavos do preço fixo (pricing_model fixed). Vale 0 nos modelos por unidade, assento e faixas, cujo valor está em unit_amount_cents e tiers.</summary>
     [JsonPropertyName("amount_cents")]
     public required long AmountCents { get; init; }
 
@@ -53,6 +80,18 @@ public sealed record Price
     [JsonPropertyName("interval_count")]
     public required long IntervalCount { get; init; }
 
+    /// <summary>O mais que uma compra leva de unidades. Null when the API sends none.</summary>
+    [JsonPropertyName("maximum_units")]
+    public long? MaximumUnits { get; init; }
+
+    /// <summary>O menos que uma compra leva de unidades. Null when the API sends none.</summary>
+    [JsonPropertyName("minimum_units")]
+    public long? MinimumUnits { get; init; }
+
+    /// <summary>Como o valor é calculado. fixed cobra amount_cents uma vez; per_unit e seat cobram unit_amount_cents por unidade ou assento; volume cobra a quantidade inteira pelo valor da faixa em que ela cai; graduated cobra cada faixa pelo seu valor (a 1ª unidade a um valor e as seguintes a outro). free e custom (valor livre) são criados no painel.</summary>
+    [JsonPropertyName("pricing_model")]
+    public required string PricingModel { get; init; }
+
     /// <summary>The API's <c>product_id</c>.</summary>
     [JsonPropertyName("product_id")]
     public required string ProductId { get; init; }
@@ -61,7 +100,23 @@ public sealed record Price
     [JsonPropertyName("status")]
     public required string Status { get; init; }
 
+    /// <summary>As faixas de um preço volume ou graduated, em ordem; vazio nos demais modelos.</summary>
+    [JsonPropertyName("tiers")]
+    public required IReadOnlyList<PriceTier> Tiers { get; init; }
+
     /// <summary>The API's <c>type</c>.</summary>
     [JsonPropertyName("type")]
     public required string Type { get; init; }
+
+    /// <summary>Valor de uma unidade (per_unit) ou de um assento (seat), em centavos; nulo nos demais modelos. Null when the API sends none.</summary>
+    [JsonPropertyName("unit_amount_cents")]
+    public long? UnitAmountCents { get; init; }
+
+    /// <summary>Como o preço chama a unidade, no singular (por exemplo, câmera); vazio sem rótulo. Null when the API sends none.</summary>
+    [JsonPropertyName("unit_label")]
+    public string? UnitLabel { get; init; }
+
+    /// <summary>A unidade no plural (por exemplo, câmeras). Null when the API sends none.</summary>
+    [JsonPropertyName("unit_label_plural")]
+    public string? UnitLabelPlural { get; init; }
 }

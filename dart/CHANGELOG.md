@@ -2,6 +2,16 @@
 
 Todos os SDKs da Peráta saem com a mesma versão; as mudanças de cada uma estão também nas [releases de perata-sh/sdk](https://github.com/perata-sh/sdk/releases).
 
+## 0.5.7 (20/11/2026)
+
+Gerado a partir do contrato da API 0.1.0 (perata.sh 9ae556b4).
+
+- Preço por quantidade: `prices.create` aceita `pricingModel` (`fixed`, o padrão, `per_unit`, `seat`, `volume` e `graduated`), `tiers` (`PricesCreateTier`: `unitAmountCents` e `upTo`; a última faixa não leva `upTo`), `unitAmountCents`, `unitLabel`, `unitLabelPlural`, `minimumUnits` e `maximumUnits`. `amountCents` deixa de ser obrigatório em `PricesCreateParams` (fora do preço fixo a API o recusa com 422). O `Price` devolvido traz `pricingModel`, `tiers` (`PriceTier`), `unitAmountCents`, `unitLabel`, `unitLabelPlural`, `minimumUnits` e `maximumUnits`; `interval` aceita também `day` e `week`.
+- Assinatura com quantidade: `Subscription` e `WebhookSubscription` trazem `quantity` e `clientReferenceId`, e o `amountCents` da assinatura é o total do ciclo para essa quantidade. A renovação herda o `clientReferenceId` e o `metadata` do checkout que vendeu a assinatura.
+- `OrderReceipt` traz `chargedBy`.
+- Um 401 traz `message`, e as rotas `/checkouts/client/...` respondem no formato `{error, message, fields}`.
+- README: preço graduated, checkout com `quantity` e leitura de uma assinatura com `quantity`.
+
 ## 0.5.6 (19/11/2026)
 
 Gerado a partir do contrato da API 0.1.0 (perata.sh 6950e1fe). É a primeira versão publicada depois da 0.5.4: a 0.5.5 nunca saiu, e tudo o que ela trazia está aqui, junto com o que vem abaixo.

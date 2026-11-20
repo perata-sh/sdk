@@ -22,8 +22,12 @@ public sealed class PricesService
     /// <summary>Criar um preço.</summary>
     /// <remarks>
     /// <para>Cria um preço em reais para um produto, avulso (one_time) ou
-    /// recorrente (recurring). No recorrente, interval e interval_count dizem
-    /// de quanto em quanto tempo ele renova: month com 3 é trimestral.</para>
+    /// recorrente (recurring). No recorrente, interval (day, week, month ou
+    /// year) e interval_count dizem de quanto em quanto tempo ele renova: month
+    /// com 3 é trimestral, day com 1 é diário. Com pricing_model o preço pode
+    /// ser por quantidade, como no painel: per_unit, seat, volume ou graduated
+    /// com tiers (por exemplo, a 1ª unidade a R$ 250,00 e as seguintes a R$
+    /// 150,00); sem ele, é um preço fixo de amount_cents.</para>
     /// <para>Autenticação: chave de API da organização em Authorization: Bearer
     /// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
     /// chave, nunca da requisição: a chave criada num showcase só alcança o que
@@ -75,10 +79,31 @@ public sealed class PricesService
 public sealed record PricesCreateParams
 {
     /// <summary>A value of <see cref="Interval"/>.</summary>
+    public const string IntervalDay = "day";
+
+    /// <summary>A value of <see cref="Interval"/>.</summary>
+    public const string IntervalWeek = "week";
+
+    /// <summary>A value of <see cref="Interval"/>.</summary>
     public const string IntervalMonth = "month";
 
     /// <summary>A value of <see cref="Interval"/>.</summary>
     public const string IntervalYear = "year";
+
+    /// <summary>A value of <see cref="PricingModel"/>.</summary>
+    public const string PricingModelFixed = "fixed";
+
+    /// <summary>A value of <see cref="PricingModel"/>.</summary>
+    public const string PricingModelPerUnit = "per_unit";
+
+    /// <summary>A value of <see cref="PricingModel"/>.</summary>
+    public const string PricingModelVolume = "volume";
+
+    /// <summary>A value of <see cref="PricingModel"/>.</summary>
+    public const string PricingModelGraduated = "graduated";
+
+    /// <summary>A value of <see cref="PricingModel"/>.</summary>
+    public const string PricingModelSeat = "seat";
 
     /// <summary>A value of <see cref="Type"/>.</summary>
     public const string TypeOneTime = "one_time";
@@ -86,25 +111,66 @@ public sealed record PricesCreateParams
     /// <summary>A value of <see cref="Type"/>.</summary>
     public const string TypeRecurring = "recurring";
 
-    /// <summary>The <c>amount_cents</c> to send.</summary>
+    /// <summary>O valor, em centavos, de um preço fixo (pricing_model fixed, o padrão), obrigatório nele; 0 é um preço gratuito. Nos demais modelos é recusado com 422: o valor está em unit_amount_cents ou em tiers. Left out of the request when null.</summary>
     [JsonPropertyName("amount_cents")]
-    public required long AmountCents { get; init; }
+    public long? AmountCents { get; init; }
 
-    /// <summary>Obrigatório no preço recorrente; o preço one_time não tem intervalo. Left out of the request when null.</summary>
+    /// <summary>Obrigatório no preço recorrente; o preço one_time não tem intervalo. day é o preço diário e week o semanal. Left out of the request when null.</summary>
     [JsonPropertyName("interval")]
     public string? Interval { get; init; }
 
-    /// <summary>De quantos em quantos intervalos o preço renova; 1 se omitido. Com month vai de 1 a 12 (3 é trimestral, 6 semestral); com year só 1. O preço one_time não tem. Left out of the request when null.</summary>
+    /// <summary>De quantos em quantos intervalos o preço renova; 1 se omitido. Com day ou week vai de 1 a 999; com month de 1 a 12 (3 é trimestral, 6 semestral); com year só 1. O preço one_time não tem. Left out of the request when null.</summary>
     [JsonPropertyName("interval_count")]
     public long? IntervalCount { get; init; }
+
+    /// <summary>O mais que uma compra leva de unidades, não menor que minimum_units. Left out of the request when null.</summary>
+    [JsonPropertyName("maximum_units")]
+    public long? MaximumUnits { get; init; }
+
+    /// <summary>O menos que uma compra leva de unidades. Left out of the request when null.</summary>
+    [JsonPropertyName("minimum_units")]
+    public long? MinimumUnits { get; init; }
+
+    /// <summary>Como o valor é calculado; fixed quando fica de fora. per_unit cobra unit_amount_cents por unidade; seat, por assento; volume cobra a quantidade inteira pelo valor da faixa em que ela cai; graduated cobra cada faixa pelo seu valor: com a 1ª unidade a R$ 250,00 e as seguintes a R$ 150,00, três unidades custam 250 + 150 + 150 = R$ 550,00. volume e graduated pedem tiers. São os mesmos modelos que o painel cria. Left out of the request when null.</summary>
+    [JsonPropertyName("pricing_model")]
+    public string? PricingModel { get; init; }
 
     /// <summary>The <c>product_id</c> to send.</summary>
     [JsonPropertyName("product_id")]
     public required string ProductId { get; init; }
 
+    /// <summary>As faixas de um preço volume ou graduated, em ordem, de 1 a 50. Por exemplo, [{"up_to": 1, "unit_amount_cents": 25000}, {"up_to": null, "unit_amount_cents": 15000}]: a 1ª unidade a R$ 250,00 e as seguintes a R$ 150,00. Uma escada que não fecha (up_to repetido, fora de ordem, última faixa com limite) é recusada com 422. Left out of the request when null.</summary>
+    [JsonPropertyName("tiers")]
+    public IReadOnlyList<PricesCreateTier>? Tiers { get; init; }
+
     /// <summary>The <c>type</c> to send.</summary>
     [JsonPropertyName("type")]
     public required string Type { get; init; }
+
+    /// <summary>O valor de uma unidade (per_unit) ou de um assento (seat), em centavos; obrigatório nesses dois modelos e recusado nos outros. Left out of the request when null.</summary>
+    [JsonPropertyName("unit_amount_cents")]
+    public long? UnitAmountCents { get; init; }
+
+    /// <summary>Como o preço chama a unidade, no singular, de até 40 caracteres (por exemplo, câmera); só em per_unit, volume e graduated. Left out of the request when null.</summary>
+    [JsonPropertyName("unit_label")]
+    public string? UnitLabel { get; init; }
+
+    /// <summary>A unidade no plural, de até 40 caracteres (câmeras). Left out of the request when null.</summary>
+    [JsonPropertyName("unit_label_plural")]
+    public string? UnitLabelPlural { get; init; }
+}
+
+
+/// <summary>One item of tiers in PricesCreateParams.</summary>
+public sealed record PricesCreateTier
+{
+    /// <summary>O valor de uma unidade nesta faixa, em centavos.</summary>
+    [JsonPropertyName("unit_amount_cents")]
+    public required long UnitAmountCents { get; init; }
+
+    /// <summary>Até quantas unidades a faixa vai, inclusive. Crescente de uma faixa para a seguinte; null na última, que não tem limite, e só nela. Left out of the request when null.</summary>
+    [JsonPropertyName("up_to")]
+    public long? UpTo { get; init; }
 }
 
 

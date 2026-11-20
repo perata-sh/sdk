@@ -158,7 +158,7 @@ public sealed record CheckoutsCreateParams
     [JsonPropertyName("cancel_url")]
     public string? CancelUrl { get; init; }
 
-    /// <summary>O id do pedido no seu sistema, de até 255 caracteres. Volta no checkout, no pedido, no pagamento e nos eventos checkout.*, order.*, checkout_payment.* e refund.*, para você achar de qual pedido veio cada pagamento. Left out of the request when null.</summary>
+    /// <summary>O id do pedido no seu sistema, de até 255 caracteres. Volta no checkout, no pedido, no pagamento e nos eventos checkout.*, order.*, checkout_payment.* e refund.*, para você achar de qual pedido veio cada pagamento. Num checkout de assinatura fica também na assinatura, e cada pedido de renovação volta com ele. Left out of the request when null.</summary>
     [JsonPropertyName("client_reference_id")]
     public string? ClientReferenceId { get; init; }
 

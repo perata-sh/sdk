@@ -1220,7 +1220,7 @@ public struct Dispute: Codable, Sendable, Hashable {
     public let amountCents: Int
     /// O checkout (o pedido) da venda contestada; nulo quando não é de um checkout. É o mesmo valor de order_id.
     public let checkoutID: String?
-    /// O id do pedido no seu sistema, enviado ao criar o checkout; vazio sem ele.
+    /// O id do pedido no seu sistema, enviado ao criar o checkout; vazio sem ele. Na renovação de uma assinatura é o do checkout que a vendeu.
     public let clientReferenceID: String
     public let currency: DisputeCurrency
     public let customerID: String?
@@ -1440,7 +1440,7 @@ public struct MeterUnit: Codable, Sendable, Hashable {
 /// Order is a resource of Peráta's API.
 public struct Order: Codable, Sendable, Hashable {
     public let amountCents: Int
-    /// O id do pedido no seu sistema, enviado ao criar o checkout; vazio sem ele.
+    /// O id do pedido no seu sistema, enviado ao criar o checkout; vazio sem ele. Na renovação de uma assinatura é o do checkout que a vendeu.
     public let clientReferenceID: String
     public let currency: OrderCurrency
     public let customerID: String
@@ -1453,7 +1453,7 @@ public struct Order: Codable, Sendable, Hashable {
     public let installments: Int
     /// As linhas do pedido, quando o seu servidor as enviou ao criar o checkout; vazio sem elas.
     public let items: [CheckoutLine]
-    /// Os pares que o seu servidor enviou ao criar o checkout.
+    /// Os pares que o seu servidor enviou ao criar o checkout. Na renovação de uma assinatura são os da assinatura, que começou com os do checkout que a vendeu.
     public let metadata: [String: JSONValue]
     /// Onde o pedido está; status é o do checkout e continua succeeded depois de um reembolso, e este vira partially_refunded ou refunded. Nulo antes de haver pagamento.
     public let orderStatus: OrderOrderStatus?
@@ -1575,6 +1575,8 @@ public struct OrderInvoice: Codable, Sendable, Hashable {
 /// OrderReceipt is a resource of Peráta's API.
 public struct OrderReceipt: Codable, Sendable, Hashable {
     public let amountCents: Int
+    /// Quem fez a cobrança, na frase que o checkout e o e-mail usam: Cobrança feita por <empresa> (razão social e CNPJ, quando a organização vende com CNPJ); vazio quando a empresa não pôde ser lida.
+    public let chargedBy: String
     public let currency: OrderReceiptCurrency
     public let customerEmail: String
     public let customerName: String
@@ -1594,8 +1596,9 @@ public struct OrderReceipt: Codable, Sendable, Hashable {
     public let refundedCents: Int
     public let totalCents: Int
 
-    public init(amountCents: Int, currency: OrderReceiptCurrency, customerEmail: String, customerName: String, discountCents: Int, installmentInterestCents: Int, installments: Int, items: [CheckoutLine], number: String, orderID: String, paidAt: String?, paymentMethod: String, productName: String, refundedCents: Int, totalCents: Int) {
+    public init(amountCents: Int, chargedBy: String, currency: OrderReceiptCurrency, customerEmail: String, customerName: String, discountCents: Int, installmentInterestCents: Int, installments: Int, items: [CheckoutLine], number: String, orderID: String, paidAt: String?, paymentMethod: String, productName: String, refundedCents: Int, totalCents: Int) {
         self.amountCents = amountCents
+        self.chargedBy = chargedBy
         self.currency = currency
         self.customerEmail = customerEmail
         self.customerName = customerName
@@ -1614,6 +1617,7 @@ public struct OrderReceipt: Codable, Sendable, Hashable {
 
     enum CodingKeys: String, CodingKey {
         case amountCents = "amount_cents"
+        case chargedBy = "charged_by"
         case currency
         case customerEmail = "customer_email"
         case customerName = "customer_name"
@@ -1652,7 +1656,7 @@ public struct Payment: Codable, Sendable, Hashable {
     public let amountCents: Int
     public let capturedCents: Int
     public let checkoutID: String
-    /// O id do pedido no seu sistema, enviado ao criar o checkout; vazio sem ele.
+    /// O id do pedido no seu sistema, enviado ao criar o checkout; vazio sem ele. Na renovação de uma assinatura é o do checkout que a vendeu.
     public let clientReferenceID: String
     public let createdAt: String
     public let currency: PaymentCurrency
@@ -1666,7 +1670,7 @@ public struct Payment: Codable, Sendable, Hashable {
     public let installmentInterestCents: Int
     /// Em quantas parcelas o cartão de crédito foi cobrado; 1 à vista.
     public let installments: Int
-    /// Os pares que o seu servidor enviou ao criar o checkout.
+    /// Os pares que o seu servidor enviou ao criar o checkout. Na renovação de uma assinatura são os da assinatura, que começou com os do checkout que a vendeu.
     public let metadata: [String: JSONValue]
     public let method: PaymentMethodKind
     /// O fim do período que o ciclo paga; nulo fora de uma assinatura.
@@ -1770,26 +1774,47 @@ public struct PaymentMethodDetached: Codable, Sendable, Hashable {
 
 /// Price is a resource of Peráta's API.
 public struct Price: Codable, Sendable, Hashable {
-    /// Valor em centavos.
+    /// Valor em centavos do preço fixo (pricing_model fixed). Vale 0 nos modelos por unidade, assento e faixas, cujo valor está em unit_amount_cents e tiers.
     public let amountCents: Int
     public let currency: PriceCurrency
     public let id: String
     public let interval: PriceInterval
     /// De quantos em quantos intervalos o preço renova: 3 com month é trimestral, 6 semestral. 1 no preço one_time.
     public let intervalCount: Int
+    /// O mais que uma compra leva de unidades.
+    public let maximumUnits: Int?
+    /// O menos que uma compra leva de unidades.
+    public let minimumUnits: Int?
+    /// Como o valor é calculado. fixed cobra amount_cents uma vez; per_unit e seat cobram unit_amount_cents por unidade ou assento; volume cobra a quantidade inteira pelo valor da faixa em que ela cai; graduated cobra cada faixa pelo seu valor (a 1ª unidade a um valor e as seguintes a outro). free e custom (valor livre) são criados no painel.
+    public let pricingModel: PricePricingModel
     public let productID: String
     public let status: PriceStatus
+    /// As faixas de um preço volume ou graduated, em ordem; vazio nos demais modelos.
+    public let tiers: [PriceTier]
     public let type: PriceType
+    /// Valor de uma unidade (per_unit) ou de um assento (seat), em centavos; nulo nos demais modelos.
+    public let unitAmountCents: Int?
+    /// Como o preço chama a unidade, no singular (por exemplo, câmera); vazio sem rótulo.
+    public let unitLabel: String?
+    /// A unidade no plural (por exemplo, câmeras).
+    public let unitLabelPlural: String?
 
-    public init(amountCents: Int, currency: PriceCurrency, id: String, interval: PriceInterval, intervalCount: Int, productID: String, status: PriceStatus, type: PriceType) {
+    public init(amountCents: Int, currency: PriceCurrency, id: String, interval: PriceInterval, intervalCount: Int, pricingModel: PricePricingModel, productID: String, status: PriceStatus, tiers: [PriceTier], type: PriceType, unitAmountCents: Int?, maximumUnits: Int? = nil, minimumUnits: Int? = nil, unitLabel: String? = nil, unitLabelPlural: String? = nil) {
         self.amountCents = amountCents
         self.currency = currency
         self.id = id
         self.interval = interval
         self.intervalCount = intervalCount
+        self.maximumUnits = maximumUnits
+        self.minimumUnits = minimumUnits
+        self.pricingModel = pricingModel
         self.productID = productID
         self.status = status
+        self.tiers = tiers
         self.type = type
+        self.unitAmountCents = unitAmountCents
+        self.unitLabel = unitLabel
+        self.unitLabelPlural = unitLabelPlural
     }
 
     enum CodingKeys: String, CodingKey {
@@ -1798,9 +1823,34 @@ public struct Price: Codable, Sendable, Hashable {
         case id
         case interval
         case intervalCount = "interval_count"
+        case maximumUnits = "maximum_units"
+        case minimumUnits = "minimum_units"
+        case pricingModel = "pricing_model"
         case productID = "product_id"
         case status
+        case tiers
         case type
+        case unitAmountCents = "unit_amount_cents"
+        case unitLabel = "unit_label"
+        case unitLabelPlural = "unit_label_plural"
+    }
+}
+
+/// PriceTier is a resource of Peráta's API.
+public struct PriceTier: Codable, Sendable, Hashable {
+    /// Valor de uma unidade nesta faixa, em centavos.
+    public let unitAmountCents: Int
+    /// Até quantas unidades a faixa vai, inclusive; nulo na última faixa, que não tem limite.
+    public let upTo: Int?
+
+    public init(unitAmountCents: Int, upTo: Int?) {
+        self.unitAmountCents = unitAmountCents
+        self.upTo = upTo
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case unitAmountCents = "unit_amount_cents"
+        case upTo = "up_to"
     }
 }
 
@@ -1920,8 +1970,11 @@ public struct Showcase: Codable, Sendable, Hashable {
 
 /// Subscription is a resource of Peráta's API.
 public struct Subscription: Codable, Sendable, Hashable {
+    /// O que a assinatura cobra a cada ciclo, em centavos, já para a quantity que ela tem: é o total do ciclo, não o preço de uma unidade. O preço por unidade, por assento ou por faixas já está aplicado à quantity.
     public let amountCents: Int
     public let cancelAtPeriodEnd: Bool
+    /// O id do pedido no seu sistema, enviado ao criar o checkout que vendeu a assinatura; vazio sem ele. Cada pedido de renovação traz o mesmo client_reference_id, e o mesmo metadata, para você achar o cliente.
+    public let clientReferenceID: String
     public let currency: SubscriptionCurrency
     public let currentPeriodEnd: String
     public let currentPeriodStart: String
@@ -1932,6 +1985,8 @@ public struct Subscription: Codable, Sendable, Hashable {
     public let metadata: [String: JSONValue]
     public let priceID: String
     public let productID: String
+    /// Quantas unidades ou assentos a assinatura cobre, de 1 em diante; 1 num preço sem quantidade. amount_cents é o total do ciclo para esta quantity.
+    public let quantity: Int
     /// O showcase a que pertence: o da chave de API que fez a chamada. Uma chave só alcança o seu showcase.
     public let showcaseID: String
     public let status: SubscriptionStatus
@@ -1942,9 +1997,10 @@ public struct Subscription: Codable, Sendable, Hashable {
     public let trialEnd: String?
     public let trialStart: String?
 
-    public init(amountCents: Int, cancelAtPeriodEnd: Bool, currency: SubscriptionCurrency, currentPeriodEnd: String, currentPeriodStart: String, customerID: String, id: String, interval: String, metadata: [String: JSONValue], priceID: String, productID: String, showcaseID: String, status: SubscriptionStatus, suspendedAt: String?, suspensionReason: SubscriptionSuspensionReason?, trialEnd: String?, trialStart: String?) {
+    public init(amountCents: Int, cancelAtPeriodEnd: Bool, clientReferenceID: String, currency: SubscriptionCurrency, currentPeriodEnd: String, currentPeriodStart: String, customerID: String, id: String, interval: String, metadata: [String: JSONValue], priceID: String, productID: String, quantity: Int, showcaseID: String, status: SubscriptionStatus, suspendedAt: String?, suspensionReason: SubscriptionSuspensionReason?, trialEnd: String?, trialStart: String?) {
         self.amountCents = amountCents
         self.cancelAtPeriodEnd = cancelAtPeriodEnd
+        self.clientReferenceID = clientReferenceID
         self.currency = currency
         self.currentPeriodEnd = currentPeriodEnd
         self.currentPeriodStart = currentPeriodStart
@@ -1954,6 +2010,7 @@ public struct Subscription: Codable, Sendable, Hashable {
         self.metadata = metadata
         self.priceID = priceID
         self.productID = productID
+        self.quantity = quantity
         self.showcaseID = showcaseID
         self.status = status
         self.suspendedAt = suspendedAt
@@ -1965,6 +2022,7 @@ public struct Subscription: Codable, Sendable, Hashable {
     enum CodingKeys: String, CodingKey {
         case amountCents = "amount_cents"
         case cancelAtPeriodEnd = "cancel_at_period_end"
+        case clientReferenceID = "client_reference_id"
         case currency
         case currentPeriodEnd = "current_period_end"
         case currentPeriodStart = "current_period_start"
@@ -1974,6 +2032,7 @@ public struct Subscription: Codable, Sendable, Hashable {
         case metadata
         case priceID = "price_id"
         case productID = "product_id"
+        case quantity
         case showcaseID = "showcase_id"
         case status
         case suspendedAt = "suspended_at"
@@ -1989,7 +2048,7 @@ public struct UsageError: Codable, Sendable, Hashable {
     public let error: String
     /// Em invalid_request, o que há de errado em cada campo do evento.
     public let fields: [String: [String]]?
-    /// O que explica a recusa, em inglês.
+    /// O que explica a recusa, em português.
     public let message: String?
     /// Posição, a partir de 1, do evento do lote que causou a recusa (invalid_request e conflict); o lote inteiro foi revertido.
     public let record: Int?
@@ -2047,7 +2106,7 @@ public struct WebhookBenefit: Codable, Sendable, Hashable {
 public struct WebhookCheckout: Codable, Sendable, Hashable {
     public let amountCents: Int
     public let checkoutLinkID: String?
-    /// O id do pedido no sistema do lojista; vazio sem ele.
+    /// O id do pedido no sistema do lojista; vazio sem ele. Na renovação de uma assinatura é o do checkout que a vendeu.
     public let clientReferenceID: String?
     public let createdAt: String
     public let currency: WebhookCheckoutCurrency
@@ -2236,7 +2295,7 @@ public struct WebhookDispute: Codable, Sendable, Hashable {
     public let amountCents: Int
     /// O checkout (o pedido) da venda contestada; nulo quando não é de um checkout.
     public let checkoutID: String?
-    /// O id do pedido no seu sistema, enviado ao criar o checkout; vazio sem ele.
+    /// O id do pedido no seu sistema, enviado ao criar o checkout; vazio sem ele. Na renovação de uma assinatura é o do checkout que a vendeu.
     public let clientReferenceID: String?
     public let currency: WebhookDisputeCurrency
     public let customerID: String?
@@ -2395,7 +2454,7 @@ public struct WebhookEndpointCreated: Codable, Sendable, Hashable {
 /// O pedido como a API o devolve (Order) e, nos eventos que um reembolso causou (order.refunded e o order.updated que o acompanha), o reembolso que o causou. status continua sendo o do checkout (succeeded) depois de um reembolso: order_status e refunded_amount_cents dizem onde o dinheiro está.
 public struct WebhookOrder: Codable, Sendable, Hashable {
     public let amountCents: Int
-    /// O id do pedido no seu sistema, enviado ao criar o checkout; vazio sem ele.
+    /// O id do pedido no seu sistema, enviado ao criar o checkout; vazio sem ele. Na renovação de uma assinatura é o do checkout que a vendeu.
     public let clientReferenceID: String
     public let currency: WebhookOrderCurrency
     public let customerID: String
@@ -2487,7 +2546,7 @@ public struct WebhookRefund: Codable, Sendable, Hashable {
     public let amountCents: Int
     /// O checkout (o pedido) que o reembolso devolve, quando se sabe.
     public let checkoutID: String?
-    /// O id do pedido no sistema do lojista; vazio sem ele.
+    /// O id do pedido no sistema do lojista; vazio sem ele. Na renovação de uma assinatura é o do checkout que a vendeu.
     public let clientReferenceID: String
     public let id: String
     /// Os pares que o servidor do lojista enviou ao criar o checkout; vazio sem eles.
@@ -2540,7 +2599,7 @@ public struct WebhookSale: Codable, Sendable, Hashable {
     public let amountCents: Int?
     /// O checkout (o pedido) do pagamento ou do reembolso.
     public let checkoutID: String?
-    /// O id do pedido no sistema do lojista; vazio sem ele.
+    /// O id do pedido no sistema do lojista; vazio sem ele. Na renovação de uma assinatura é o do checkout que a vendeu.
     public let clientReferenceID: String?
     public let currency: WebhookSaleCurrency?
     /// O ciclo da assinatura que o pagamento cobra: 1 é o primeiro, 2 é a primeira renovação.
@@ -2622,8 +2681,11 @@ public struct WebhookSale: Codable, Sendable, Hashable {
 
 /// A assinatura como a API a devolve (Subscription) e, nos eventos que uma cobrança recusada causou (subscription.past_due, subscription.suspended e o subscription.updated que os acompanha), a cobrança recusada em payment_failure.
 public struct WebhookSubscription: Codable, Sendable, Hashable {
+    /// O que a assinatura cobra a cada ciclo, em centavos, já para a quantity que ela tem: é o total do ciclo, não o preço de uma unidade. O preço por unidade, por assento ou por faixas já está aplicado à quantity.
     public let amountCents: Int
     public let cancelAtPeriodEnd: Bool
+    /// O id do pedido no seu sistema, enviado ao criar o checkout que vendeu a assinatura; vazio sem ele. Cada pedido de renovação traz o mesmo client_reference_id, e o mesmo metadata, para você achar o cliente.
+    public let clientReferenceID: String
     public let currency: WebhookSubscriptionCurrency
     public let currentPeriodEnd: String
     public let currentPeriodStart: String
@@ -2636,6 +2698,8 @@ public struct WebhookSubscription: Codable, Sendable, Hashable {
     public let paymentFailure: WebhookSubscriptionPaymentFailure?
     public let priceID: String
     public let productID: String
+    /// Quantas unidades ou assentos a assinatura cobre, de 1 em diante; 1 num preço sem quantidade. amount_cents é o total do ciclo para esta quantity.
+    public let quantity: Int
     /// O showcase da venda.
     public let showcaseID: String
     public let status: WebhookSubscriptionStatus
@@ -2646,9 +2710,10 @@ public struct WebhookSubscription: Codable, Sendable, Hashable {
     public let trialEnd: String?
     public let trialStart: String?
 
-    public init(amountCents: Int, cancelAtPeriodEnd: Bool, currency: WebhookSubscriptionCurrency, currentPeriodEnd: String, currentPeriodStart: String, customerID: String, id: String, interval: String, metadata: [String: JSONValue], priceID: String, productID: String, showcaseID: String, status: WebhookSubscriptionStatus, suspendedAt: String?, suspensionReason: WebhookSubscriptionSuspensionReason?, trialEnd: String?, trialStart: String?, paymentFailure: WebhookSubscriptionPaymentFailure? = nil) {
+    public init(amountCents: Int, cancelAtPeriodEnd: Bool, clientReferenceID: String, currency: WebhookSubscriptionCurrency, currentPeriodEnd: String, currentPeriodStart: String, customerID: String, id: String, interval: String, metadata: [String: JSONValue], priceID: String, productID: String, quantity: Int, showcaseID: String, status: WebhookSubscriptionStatus, suspendedAt: String?, suspensionReason: WebhookSubscriptionSuspensionReason?, trialEnd: String?, trialStart: String?, paymentFailure: WebhookSubscriptionPaymentFailure? = nil) {
         self.amountCents = amountCents
         self.cancelAtPeriodEnd = cancelAtPeriodEnd
+        self.clientReferenceID = clientReferenceID
         self.currency = currency
         self.currentPeriodEnd = currentPeriodEnd
         self.currentPeriodStart = currentPeriodStart
@@ -2659,6 +2724,7 @@ public struct WebhookSubscription: Codable, Sendable, Hashable {
         self.paymentFailure = paymentFailure
         self.priceID = priceID
         self.productID = productID
+        self.quantity = quantity
         self.showcaseID = showcaseID
         self.status = status
         self.suspendedAt = suspendedAt
@@ -2670,6 +2736,7 @@ public struct WebhookSubscription: Codable, Sendable, Hashable {
     enum CodingKeys: String, CodingKey {
         case amountCents = "amount_cents"
         case cancelAtPeriodEnd = "cancel_at_period_end"
+        case clientReferenceID = "client_reference_id"
         case currency
         case currentPeriodEnd = "current_period_end"
         case currentPeriodStart = "current_period_start"
@@ -2680,6 +2747,7 @@ public struct WebhookSubscription: Codable, Sendable, Hashable {
         case paymentFailure = "payment_failure"
         case priceID = "price_id"
         case productID = "product_id"
+        case quantity
         case showcaseID = "showcase_id"
         case status
         case suspendedAt = "suspended_at"
@@ -2972,7 +3040,7 @@ public struct CheckoutsCreateParams: Encodable, Sendable, Hashable {
     /// O valor do pedido todo, em centavos, que o seu servidor fixa. Só vale em um preço de valor livre (custom); em outro preço é recusado com 422. Respeita o mínimo e o máximo do preço, também com 422. O comprador vê o valor e não pode mudá-lo, na página, no modal, nos componentes e no checkout transparente; vale para cartão de crédito, débito e Pix, e é o valor que volta em pedidos, pagamentos, recibo e eventos. Repetir a criação com a mesma Idempotency-Key e outro valor dá 409.
     public var amountCents: Int?
     public var cancelURL: String?
-    /// O id do pedido no seu sistema, de até 255 caracteres. Volta no checkout, no pedido, no pagamento e nos eventos checkout.*, order.*, checkout_payment.* e refund.*, para você achar de qual pedido veio cada pagamento.
+    /// O id do pedido no seu sistema, de até 255 caracteres. Volta no checkout, no pedido, no pagamento e nos eventos checkout.*, order.*, checkout_payment.* e refund.*, para você achar de qual pedido veio cada pagamento. Num checkout de assinatura fica também na assinatura, e cada pedido de renovação volta com ele.
     public var clientReferenceID: String?
     /// O e-mail do comprador, quando você o conhece; senão o navegador do comprador o pede.
     public var customerEmail: String?
@@ -3605,37 +3673,100 @@ public struct CustomersUpdateExternalBillingAddress: Encodable, Sendable, Hashab
 /// The initializer takes the required fields first; an optional field left
 /// nil is not sent.
 public struct PricesCreateParams: Encodable, Sendable, Hashable {
-    public var amountCents: Int
-    /// Obrigatório no preço recorrente; o preço one_time não tem intervalo.
+    /// O valor, em centavos, de um preço fixo (pricing_model fixed, o padrão), obrigatório nele; 0 é um preço gratuito. Nos demais modelos é recusado com 422: o valor está em unit_amount_cents ou em tiers.
+    public var amountCents: Int?
+    /// Obrigatório no preço recorrente; o preço one_time não tem intervalo. day é o preço diário e week o semanal.
     public var interval: PricesCreateParamsInterval?
-    /// De quantos em quantos intervalos o preço renova; 1 se omitido. Com month vai de 1 a 12 (3 é trimestral, 6 semestral); com year só 1. O preço one_time não tem.
+    /// De quantos em quantos intervalos o preço renova; 1 se omitido. Com day ou week vai de 1 a 999; com month de 1 a 12 (3 é trimestral, 6 semestral); com year só 1. O preço one_time não tem.
     public var intervalCount: Int?
+    /// O mais que uma compra leva de unidades, não menor que minimum_units.
+    public var maximumUnits: Int?
+    /// O menos que uma compra leva de unidades.
+    public var minimumUnits: Int?
+    /// Como o valor é calculado; fixed quando fica de fora. per_unit cobra unit_amount_cents por unidade; seat, por assento; volume cobra a quantidade inteira pelo valor da faixa em que ela cai; graduated cobra cada faixa pelo seu valor: com a 1ª unidade a R$ 250,00 e as seguintes a R$ 150,00, três unidades custam 250 + 150 + 150 = R$ 550,00. volume e graduated pedem tiers. São os mesmos modelos que o painel cria.
+    public var pricingModel: PricesCreateParamsPricingModel?
     public var productID: String
+    /// As faixas de um preço volume ou graduated, em ordem, de 1 a 50. Por exemplo, [{"up_to": 1, "unit_amount_cents": 25000}, {"up_to": null, "unit_amount_cents": 15000}]: a 1ª unidade a R$ 250,00 e as seguintes a R$ 150,00. Uma escada que não fecha (up_to repetido, fora de ordem, última faixa com limite) é recusada com 422.
+    public var tiers: [PricesCreateTier]?
     public var type: PricesCreateParamsType
+    /// O valor de uma unidade (per_unit) ou de um assento (seat), em centavos; obrigatório nesses dois modelos e recusado nos outros.
+    public var unitAmountCents: Int?
+    /// Como o preço chama a unidade, no singular, de até 40 caracteres (por exemplo, câmera); só em per_unit, volume e graduated.
+    public var unitLabel: String?
+    /// A unidade no plural, de até 40 caracteres (câmeras).
+    public var unitLabelPlural: String?
 
-    public init(amountCents: Int, productID: String, type: PricesCreateParamsType, interval: PricesCreateParamsInterval? = nil, intervalCount: Int? = nil) {
+    public init(productID: String, type: PricesCreateParamsType, amountCents: Int? = nil, interval: PricesCreateParamsInterval? = nil, intervalCount: Int? = nil, maximumUnits: Int? = nil, minimumUnits: Int? = nil, pricingModel: PricesCreateParamsPricingModel? = nil, tiers: [PricesCreateTier]? = nil, unitAmountCents: Int? = nil, unitLabel: String? = nil, unitLabelPlural: String? = nil) {
         self.amountCents = amountCents
         self.interval = interval
         self.intervalCount = intervalCount
+        self.maximumUnits = maximumUnits
+        self.minimumUnits = minimumUnits
+        self.pricingModel = pricingModel
         self.productID = productID
+        self.tiers = tiers
         self.type = type
+        self.unitAmountCents = unitAmountCents
+        self.unitLabel = unitLabel
+        self.unitLabelPlural = unitLabelPlural
     }
 
     enum CodingKeys: String, CodingKey {
         case amountCents = "amount_cents"
         case interval
         case intervalCount = "interval_count"
+        case maximumUnits = "maximum_units"
+        case minimumUnits = "minimum_units"
+        case pricingModel = "pricing_model"
         case productID = "product_id"
+        case tiers
         case type
+        case unitAmountCents = "unit_amount_cents"
+        case unitLabel = "unit_label"
+        case unitLabelPlural = "unit_label_plural"
     }
 
     public func encode(to encoder: any Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
-        try container.encode(amountCents, forKey: .amountCents)
+        try container.encodeIfPresent(amountCents, forKey: .amountCents)
         try container.encodeIfPresent(interval, forKey: .interval)
         try container.encodeIfPresent(intervalCount, forKey: .intervalCount)
+        try container.encodeIfPresent(maximumUnits, forKey: .maximumUnits)
+        try container.encodeIfPresent(minimumUnits, forKey: .minimumUnits)
+        try container.encodeIfPresent(pricingModel, forKey: .pricingModel)
         try container.encode(productID, forKey: .productID)
+        try container.encodeIfPresent(tiers, forKey: .tiers)
         try container.encode(type, forKey: .type)
+        try container.encodeIfPresent(unitAmountCents, forKey: .unitAmountCents)
+        try container.encodeIfPresent(unitLabel, forKey: .unitLabel)
+        try container.encodeIfPresent(unitLabelPlural, forKey: .unitLabelPlural)
+    }
+}
+
+/// One item of tiers in PricesCreateParams.
+///
+/// The initializer takes the required fields first; an optional field left
+/// nil is not sent.
+public struct PricesCreateTier: Encodable, Sendable, Hashable {
+    /// O valor de uma unidade nesta faixa, em centavos.
+    public var unitAmountCents: Int
+    /// Até quantas unidades a faixa vai, inclusive. Crescente de uma faixa para a seguinte; null na última, que não tem limite, e só nela.
+    public var upTo: Int?
+
+    public init(unitAmountCents: Int, upTo: Int? = nil) {
+        self.unitAmountCents = unitAmountCents
+        self.upTo = upTo
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case unitAmountCents = "unit_amount_cents"
+        case upTo = "up_to"
+    }
+
+    public func encode(to encoder: any Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(unitAmountCents, forKey: .unitAmountCents)
+        try container.encodeIfPresent(upTo, forKey: .upTo)
     }
 }
 
@@ -5024,10 +5155,44 @@ public struct PriceInterval: RawRepresentable, Codable, Sendable, Hashable, Expr
 
     /// `none`
     public static let none = PriceInterval(rawValue: "none")
+    /// `day`
+    public static let day = PriceInterval(rawValue: "day")
+    /// `week`
+    public static let week = PriceInterval(rawValue: "week")
     /// `month`
     public static let month = PriceInterval(rawValue: "month")
     /// `year`
     public static let year = PriceInterval(rawValue: "year")
+}
+
+/// The values of `Price.pricing_model`. Como o valor é calculado. fixed cobra amount_cents uma vez; per_unit e seat cobram unit_amount_cents por unidade ou assento; volume cobra a quantidade inteira pelo valor da faixa em que ela cai; graduated cobra cada faixa pelo seu valor (a 1ª unidade a um valor e as seguintes a outro). free e custom (valor livre) são criados no painel.
+///
+/// A value this SDK does not know yet is kept as it came, in `rawValue`.
+public struct PricePricingModel: RawRepresentable, Codable, Sendable, Hashable, ExpressibleByStringLiteral {
+    public let rawValue: String
+
+    public init(rawValue: String) {
+        self.rawValue = rawValue
+    }
+
+    public init(stringLiteral value: String) {
+        self.rawValue = value
+    }
+
+    /// `fixed`
+    public static let fixed = PricePricingModel(rawValue: "fixed")
+    /// `free`
+    public static let free = PricePricingModel(rawValue: "free")
+    /// `custom`
+    public static let custom = PricePricingModel(rawValue: "custom")
+    /// `per_unit`
+    public static let perUnit = PricePricingModel(rawValue: "per_unit")
+    /// `volume`
+    public static let volume = PricePricingModel(rawValue: "volume")
+    /// `graduated`
+    public static let graduated = PricePricingModel(rawValue: "graduated")
+    /// `seat`
+    public static let seat = PricePricingModel(rawValue: "seat")
 }
 
 /// The values of `Price.status`.
@@ -5964,7 +6129,7 @@ public struct CustomersUpdateExternalParamsTaxIdKind: RawRepresentable, Codable,
     public static let cnpj = CustomersUpdateExternalParamsTaxIdKind(rawValue: "cnpj")
 }
 
-/// The values of `PricesCreateParams.interval`. Obrigatório no preço recorrente; o preço one_time não tem intervalo.
+/// The values of `PricesCreateParams.interval`. Obrigatório no preço recorrente; o preço one_time não tem intervalo. day é o preço diário e week o semanal.
 ///
 /// A value this SDK does not know yet is kept as it came, in `rawValue`.
 public struct PricesCreateParamsInterval: RawRepresentable, Codable, Sendable, Hashable, ExpressibleByStringLiteral {
@@ -5978,10 +6143,40 @@ public struct PricesCreateParamsInterval: RawRepresentable, Codable, Sendable, H
         self.rawValue = value
     }
 
+    /// `day`
+    public static let day = PricesCreateParamsInterval(rawValue: "day")
+    /// `week`
+    public static let week = PricesCreateParamsInterval(rawValue: "week")
     /// `month`
     public static let month = PricesCreateParamsInterval(rawValue: "month")
     /// `year`
     public static let year = PricesCreateParamsInterval(rawValue: "year")
+}
+
+/// The values of `PricesCreateParams.pricing_model`. Como o valor é calculado; fixed quando fica de fora. per_unit cobra unit_amount_cents por unidade; seat, por assento; volume cobra a quantidade inteira pelo valor da faixa em que ela cai; graduated cobra cada faixa pelo seu valor: com a 1ª unidade a R$ 250,00 e as seguintes a R$ 150,00, três unidades custam 250 + 150 + 150 = R$ 550,00. volume e graduated pedem tiers. São os mesmos modelos que o painel cria.
+///
+/// A value this SDK does not know yet is kept as it came, in `rawValue`.
+public struct PricesCreateParamsPricingModel: RawRepresentable, Codable, Sendable, Hashable, ExpressibleByStringLiteral {
+    public let rawValue: String
+
+    public init(rawValue: String) {
+        self.rawValue = rawValue
+    }
+
+    public init(stringLiteral value: String) {
+        self.rawValue = value
+    }
+
+    /// `fixed`
+    public static let fixed = PricesCreateParamsPricingModel(rawValue: "fixed")
+    /// `per_unit`
+    public static let perUnit = PricesCreateParamsPricingModel(rawValue: "per_unit")
+    /// `volume`
+    public static let volume = PricesCreateParamsPricingModel(rawValue: "volume")
+    /// `graduated`
+    public static let graduated = PricesCreateParamsPricingModel(rawValue: "graduated")
+    /// `seat`
+    public static let seat = PricesCreateParamsPricingModel(rawValue: "seat")
 }
 
 /// The values of `PricesCreateParams.type`.

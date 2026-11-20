@@ -116,7 +116,7 @@ public final class Dispute {
         return checkoutId;
     }
 
-    /** @return O id do pedido no seu sistema, enviado ao criar o checkout; vazio sem ele. */
+    /** @return O id do pedido no seu sistema, enviado ao criar o checkout; vazio sem ele. Na renovação de uma assinatura é o do checkout que a vendeu. */
     public String getClientReferenceId() {
         return clientReferenceId;
     }

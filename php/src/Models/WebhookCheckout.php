@@ -12,7 +12,7 @@ final class WebhookCheckout
     public function __construct(
         public readonly int $amountCents,
         public readonly ?string $checkoutLinkId,
-        /** O id do pedido no sistema do lojista; vazio sem ele. */
+        /** O id do pedido no sistema do lojista; vazio sem ele. Na renovação de uma assinatura é o do checkout que a vendeu. */
         public readonly ?string $clientReferenceId,
         public readonly string $createdAt,
         /** @var 'BRL' */

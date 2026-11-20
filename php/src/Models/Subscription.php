@@ -10,8 +10,11 @@ namespace Perata\Models;
 final class Subscription
 {
     public function __construct(
+        /** O que a assinatura cobra a cada ciclo, em centavos, já para a quantity que ela tem: é o total do ciclo, não o preço de uma unidade. O preço por unidade, por assento ou por faixas já está aplicado à quantity. */
         public readonly int $amountCents,
         public readonly bool $cancelAtPeriodEnd,
+        /** O id do pedido no seu sistema, enviado ao criar o checkout que vendeu a assinatura; vazio sem ele. Cada pedido de renovação traz o mesmo client_reference_id, e o mesmo metadata, para você achar o cliente. */
+        public readonly string $clientReferenceId,
         /** @var 'BRL' */
         public readonly string $currency,
         public readonly string $currentPeriodEnd,
@@ -26,6 +29,8 @@ final class Subscription
         public readonly array $metadata,
         public readonly string $priceId,
         public readonly string $productId,
+        /** Quantas unidades ou assentos a assinatura cobre, de 1 em diante; 1 num preço sem quantidade. amount_cents é o total do ciclo para esta quantity. */
+        public readonly int $quantity,
         /** O showcase a que pertence: o da chave de API que fez a chamada. Uma chave só alcança o seu showcase. */
         public readonly string $showcaseId,
         /** @var 'trialing'|'active'|'past_due'|'suspended'|'paused'|'canceled' */
@@ -50,6 +55,7 @@ final class Subscription
         return new self(
             amountCents: $data['amount_cents'],
             cancelAtPeriodEnd: $data['cancel_at_period_end'],
+            clientReferenceId: $data['client_reference_id'],
             currency: $data['currency'],
             currentPeriodEnd: $data['current_period_end'],
             currentPeriodStart: $data['current_period_start'],
@@ -59,6 +65,7 @@ final class Subscription
             metadata: $data['metadata'],
             priceId: $data['price_id'],
             productId: $data['product_id'],
+            quantity: $data['quantity'],
             showcaseId: $data['showcase_id'],
             status: $data['status'],
             suspendedAt: $data['suspended_at'] ?? null,

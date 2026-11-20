@@ -264,7 +264,7 @@ defmodule Perata.CheckoutsCreateParams do
   * `allow_discount_codes` (optional): Deixa o comprador digitar um código de desconto; desligado quando fica de fora.
   * `amount_cents` (optional): O valor do pedido todo, em centavos, que o seu servidor fixa. Só vale em um preço de valor livre (custom); em outro preço é recusado com 422. Respeita o mínimo e o máximo do preço, também com 422. O comprador vê o valor e não pode mudá-lo, na página, no modal, nos componentes e no checkout transparente; vale para cartão de crédito, débito e Pix, e é o valor que volta em pedidos, pagamentos, recibo e eventos. Repetir a criação com a mesma Idempotency-Key e outro valor dá 409.
   * `cancel_url` (optional)
-  * `client_reference_id` (optional): O id do pedido no seu sistema, de até 255 caracteres. Volta no checkout, no pedido, no pagamento e nos eventos checkout.*, order.*, checkout_payment.* e refund.*, para você achar de qual pedido veio cada pagamento.
+  * `client_reference_id` (optional): O id do pedido no seu sistema, de até 255 caracteres. Volta no checkout, no pedido, no pagamento e nos eventos checkout.*, order.*, checkout_payment.* e refund.*, para você achar de qual pedido veio cada pagamento. Num checkout de assinatura fica também na assinatura, e cada pedido de renovação volta com ele.
   * `customer_email` (optional): O e-mail do comprador, quando você o conhece; senão o navegador do comprador o pede.
   * `customer_id` (optional): Um cliente seu: o checkout abre com o nome, o e-mail e os dados de cobrança dele. Não junto com external_customer_id, customer_email ou customer_name.
   * `customer_name` (optional): O nome do comprador, quando você o conhece.
@@ -921,20 +921,48 @@ defmodule Perata.PricesCreateParams do
   out is left out of the JSON.
   """
 
-  @enforce_keys [:amount_cents, :product_id, :type]
-  defstruct [:amount_cents, :interval, :interval_count, :product_id, :type]
+  @enforce_keys [:product_id, :type]
+  defstruct [
+    :amount_cents,
+    :interval,
+    :interval_count,
+    :maximum_units,
+    :minimum_units,
+    :pricing_model,
+    :product_id,
+    :tiers,
+    :type,
+    :unit_amount_cents,
+    :unit_label,
+    :unit_label_plural
+  ]
 
   @typedoc """
-  * `interval` (optional; one of `"month"`, `"year"`): Obrigatório no preço recorrente; o preço one_time não tem intervalo.
-  * `interval_count` (optional): De quantos em quantos intervalos o preço renova; 1 se omitido. Com month vai de 1 a 12 (3 é trimestral, 6 semestral); com year só 1. O preço one_time não tem.
+  * `amount_cents` (optional): O valor, em centavos, de um preço fixo (pricing_model fixed, o padrão), obrigatório nele; 0 é um preço gratuito. Nos demais modelos é recusado com 422: o valor está em unit_amount_cents ou em tiers.
+  * `interval` (optional; one of `"day"`, `"week"`, `"month"`, `"year"`): Obrigatório no preço recorrente; o preço one_time não tem intervalo. day é o preço diário e week o semanal.
+  * `interval_count` (optional): De quantos em quantos intervalos o preço renova; 1 se omitido. Com day ou week vai de 1 a 999; com month de 1 a 12 (3 é trimestral, 6 semestral); com year só 1. O preço one_time não tem.
+  * `maximum_units` (optional): O mais que uma compra leva de unidades, não menor que minimum_units.
+  * `minimum_units` (optional): O menos que uma compra leva de unidades.
+  * `pricing_model` (optional; one of `"fixed"`, `"per_unit"`, `"volume"`, `"graduated"`, `"seat"`): Como o valor é calculado; fixed quando fica de fora. per_unit cobra unit_amount_cents por unidade; seat, por assento; volume cobra a quantidade inteira pelo valor da faixa em que ela cai; graduated cobra cada faixa pelo seu valor: com a 1ª unidade a R$ 250,00 e as seguintes a R$ 150,00, três unidades custam 250 + 150 + 150 = R$ 550,00. volume e graduated pedem tiers. São os mesmos modelos que o painel cria.
+  * `tiers` (optional): As faixas de um preço volume ou graduated, em ordem, de 1 a 50. Por exemplo, [{"up_to": 1, "unit_amount_cents": 25000}, {"up_to": null, "unit_amount_cents": 15000}]: a 1ª unidade a R$ 250,00 e as seguintes a R$ 150,00. Uma escada que não fecha (up_to repetido, fora de ordem, última faixa com limite) é recusada com 422.
   * `type` (one of `"one_time"`, `"recurring"`)
+  * `unit_amount_cents` (optional): O valor de uma unidade (per_unit) ou de um assento (seat), em centavos; obrigatório nesses dois modelos e recusado nos outros.
+  * `unit_label` (optional): Como o preço chama a unidade, no singular, de até 40 caracteres (por exemplo, câmera); só em per_unit, volume e graduated.
+  * `unit_label_plural` (optional): A unidade no plural, de até 40 caracteres (câmeras).
   """
   @type t :: %__MODULE__{
-          amount_cents: integer(),
+          amount_cents: integer() | nil,
           interval: String.t() | nil,
           interval_count: integer() | nil,
+          maximum_units: integer() | nil,
+          minimum_units: integer() | nil,
+          pricing_model: String.t() | nil,
           product_id: String.t(),
-          type: String.t()
+          tiers: [Perata.PricesCreateTier.t()] | nil,
+          type: String.t(),
+          unit_amount_cents: integer() | nil,
+          unit_label: String.t() | nil,
+          unit_label_plural: String.t() | nil
         }
 
   @doc "The params as they are, or built from a keyword list or a map with atom keys."
@@ -947,13 +975,52 @@ defmodule Perata.PricesCreateParams do
   def to_map(params) do
     params = new(params)
 
-    %{
-      "amount_cents" => params.amount_cents,
-      "product_id" => params.product_id,
-      "type" => params.type
-    }
+    %{"product_id" => params.product_id, "type" => params.type}
+    |> Perata.Encode.put_optional("amount_cents", params.amount_cents)
     |> Perata.Encode.put_optional("interval", params.interval)
     |> Perata.Encode.put_optional("interval_count", params.interval_count)
+    |> Perata.Encode.put_optional("maximum_units", params.maximum_units)
+    |> Perata.Encode.put_optional("minimum_units", params.minimum_units)
+    |> Perata.Encode.put_optional("pricing_model", params.pricing_model)
+    |> Perata.Encode.put_optional("tiers", Perata.Encode.value(params.tiers))
+    |> Perata.Encode.put_optional("unit_amount_cents", params.unit_amount_cents)
+    |> Perata.Encode.put_optional("unit_label", params.unit_label)
+    |> Perata.Encode.put_optional("unit_label_plural", params.unit_label_plural)
+  end
+end
+
+defmodule Perata.PricesCreateTier do
+  @moduledoc """
+  One item of tiers in PricesCreateParams.
+
+  Build it with `new/1` from a keyword list or a map; an optional field left
+  out is left out of the JSON.
+  """
+
+  @enforce_keys [:unit_amount_cents]
+  defstruct [:unit_amount_cents, :up_to]
+
+  @typedoc """
+  * `unit_amount_cents`: O valor de uma unidade nesta faixa, em centavos.
+  * `up_to` (optional): Até quantas unidades a faixa vai, inclusive. Crescente de uma faixa para a seguinte; null na última, que não tem limite, e só nela.
+  """
+  @type t :: %__MODULE__{
+          unit_amount_cents: integer(),
+          up_to: integer() | nil
+        }
+
+  @doc "The params as they are, or built from a keyword list or a map with atom keys."
+  @spec new(t() | keyword() | map()) :: t()
+  def new(%__MODULE__{} = params), do: params
+  def new(fields), do: struct!(__MODULE__, fields)
+
+  @doc "The body as the API reads it, from the params or what `new/1` builds them from."
+  @spec to_map(t() | keyword() | map()) :: %{optional(String.t()) => term()}
+  def to_map(params) do
+    params = new(params)
+
+    %{"unit_amount_cents" => params.unit_amount_cents}
+    |> Perata.Encode.put_optional("up_to", params.up_to)
   end
 end
 

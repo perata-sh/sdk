@@ -805,7 +805,9 @@ export class OrdersService {
    * Ler um pedido.
    *
    * Devolve um pedido: um checkout pago. Se ele pagou um ciclo de assinatura,
-   * traz subscription_id, cycle_sequence, period_start e period_end.
+   * traz subscription_id, cycle_sequence, period_start e period_end. Num pedido
+   * de renovação, client_reference_id e metadata são os do checkout que vendeu
+   * a assinatura.
    *
    * Autenticação: chave de API da organização em Authorization: Bearer
    * (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
@@ -1010,8 +1012,12 @@ export class PricesService {
    * Criar um preço.
    *
    * Cria um preço em reais para um produto, avulso (one_time) ou recorrente
-   * (recurring). No recorrente, interval e interval_count dizem de quanto em
-   * quanto tempo ele renova: month com 3 é trimestral.
+   * (recurring). No recorrente, interval (day, week, month ou year) e
+   * interval_count dizem de quanto em quanto tempo ele renova: month com 3 é
+   * trimestral, day com 1 é diário. Com pricing_model o preço pode ser por
+   * quantidade, como no painel: per_unit, seat, volume ou graduated com tiers
+   * (por exemplo, a 1ª unidade a R$ 250,00 e as seguintes a R$ 150,00); sem
+   * ele, é um preço fixo de amount_cents.
    *
    * Autenticação: chave de API da organização em Authorization: Bearer
    * (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,

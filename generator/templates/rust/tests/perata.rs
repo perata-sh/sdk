@@ -8,9 +8,11 @@ use perata::{
     verify_webhook_at, verify_webhook_signature_at, BoxError, CheckoutClientPayment,
     CheckoutsCreateParams, CheckoutsListParams, Client, CustomersCreateParams, CustomersListParams,
     DiscountsCreateParams, DiscountsCreateParamsDuration, DiscountsCreateParamsType,
-    DiscountsListParams, Error, HttpRequest, HttpResponse, OrdersListParams, ProductStatus,
-    ProductsCreateParams, ProductsListParams, UsageIngestEvent, UsageIngestEventCost,
-    UsageIngestEventCostCurrency, UsageIngestParams, WebhookError, WebhookEvent,
+    DiscountsListParams, Error, HttpRequest, HttpResponse, OrdersListParams, PricePricingModel,
+    PricesCreateParams, PricesCreateParamsInterval, PricesCreateParamsPricingModel,
+    PricesCreateParamsType, PricesCreateTier, ProductStatus, ProductsCreateParams,
+    ProductsListParams, UsageIngestEvent, UsageIngestEventCost, UsageIngestEventCostCurrency,
+    UsageIngestParams, WebhookError, WebhookEvent,
 };
 
 type Seen = Arc<Mutex<Vec<HttpRequest>>>;
@@ -383,6 +385,60 @@ fn customers_are_listed_by_email() {
         seen.lock().unwrap()[0].url,
         "https://perata.test/api/v1/customers?email=ana%40example.com"
     );
+}
+
+// A graduated price goes out with its tiers and without the fixed amount, and a
+// subscription reads back the quantity it bills and the order reference it came
+// from; amount_cents is the cycle's total for that quantity.
+#[test]
+fn a_graduated_price_carries_its_tiers_and_a_subscription_its_quantity() {
+    let tiers = serde_json::json!([{"up_to": 1, "unit_amount_cents": 25000}, {"up_to": null, "unit_amount_cents": 15000}]);
+    let price = serde_json::json!({"id": "price_1", "product_id": "prod_1", "type": "recurring", "interval": "month", "interval_count": 1, "currency": "BRL", "status": "active", "amount_cents": 0, "pricing_model": "graduated", "unit_amount_cents": null, "unit_label": "câmera", "unit_label_plural": "câmeras", "tiers": tiers});
+    let subscription = serde_json::json!({"id": "sub_1", "amount_cents": 55000, "cancel_at_period_end": false, "client_reference_id": "pedido-9", "currency": "BRL", "current_period_end": "2026-12-20T00:00:00Z", "current_period_start": "2026-11-20T00:00:00Z", "customer_id": "cus_1", "interval": "month", "metadata": {"camera": "c1"}, "price_id": "price_1", "product_id": "prod_1", "quantity": 3, "showcase_id": "shw_1", "status": "active", "suspended_at": null, "suspension_reason": null, "trial_end": null, "trial_start": null});
+    let (client, seen) = client(move |request| {
+        if request.method == "POST" {
+            json(201, serde_json::json!({"data": price.clone()}))
+        } else {
+            json(200, serde_json::json!({"data": subscription.clone()}))
+        }
+    });
+    let created = client
+        .prices()
+        .create(
+            &PricesCreateParams::new("prod_1", PricesCreateParamsType::Recurring)
+                .interval(PricesCreateParamsInterval::Month)
+                .pricing_model(PricesCreateParamsPricingModel::Graduated)
+                .tiers(vec![
+                    PricesCreateTier::new(25000).up_to(1),
+                    PricesCreateTier::new(15000),
+                ])
+                .unit_label("câmera")
+                .unit_label_plural("câmeras"),
+        )
+        .unwrap();
+    let got = client.subscriptions().get("sub_1").unwrap();
+    let seen = seen.lock().unwrap();
+    assert_eq!(seen[0].url, "https://perata.test/api/v1/prices");
+    let sent: serde_json::Value = serde_json::from_slice(seen[0].body.as_deref().unwrap()).unwrap();
+    assert_eq!(sent["pricing_model"], "graduated");
+    assert_eq!(
+        sent["tiers"],
+        serde_json::json!([{"up_to": 1, "unit_amount_cents": 25000}, {"unit_amount_cents": 15000}])
+    );
+    assert!(sent.get("amount_cents").is_none());
+    assert_eq!(created.pricing_model, PricePricingModel::Graduated);
+    assert_eq!(created.amount_cents, 0);
+    assert_eq!(created.unit_amount_cents, None);
+    assert_eq!(created.tiers.len(), 2);
+    assert_eq!(created.tiers[0].up_to, Some(1));
+    assert_eq!(created.tiers[1].up_to, None);
+    assert_eq!(created.tiers[1].unit_amount_cents, 15000);
+    assert_eq!(
+        seen[1].url,
+        "https://perata.test/api/v1/subscriptions/sub_1"
+    );
+    assert_eq!((got.quantity, got.amount_cents), (3, 55000));
+    assert_eq!(got.client_reference_id, "pedido-9");
 }
 
 #[test]

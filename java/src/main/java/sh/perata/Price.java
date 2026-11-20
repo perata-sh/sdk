@@ -12,9 +12,27 @@ public final class Price {
     /** A value of {@link #getInterval()}. */
     public static final String INTERVAL_NONE = "none";
     /** A value of {@link #getInterval()}. */
+    public static final String INTERVAL_DAY = "day";
+    /** A value of {@link #getInterval()}. */
+    public static final String INTERVAL_WEEK = "week";
+    /** A value of {@link #getInterval()}. */
     public static final String INTERVAL_MONTH = "month";
     /** A value of {@link #getInterval()}. */
     public static final String INTERVAL_YEAR = "year";
+    /** A value of {@link #getPricingModel()}. */
+    public static final String PRICING_MODEL_FIXED = "fixed";
+    /** A value of {@link #getPricingModel()}. */
+    public static final String PRICING_MODEL_FREE = "free";
+    /** A value of {@link #getPricingModel()}. */
+    public static final String PRICING_MODEL_CUSTOM = "custom";
+    /** A value of {@link #getPricingModel()}. */
+    public static final String PRICING_MODEL_PER_UNIT = "per_unit";
+    /** A value of {@link #getPricingModel()}. */
+    public static final String PRICING_MODEL_VOLUME = "volume";
+    /** A value of {@link #getPricingModel()}. */
+    public static final String PRICING_MODEL_GRADUATED = "graduated";
+    /** A value of {@link #getPricingModel()}. */
+    public static final String PRICING_MODEL_SEAT = "seat";
     /** A value of {@link #getStatus()}. */
     public static final String STATUS_ACTIVE = "active";
     /** A value of {@link #getStatus()}. */
@@ -29,19 +47,33 @@ public final class Price {
     private final String id;
     private final String interval;
     private final long intervalCount;
+    private final Long maximumUnits;
+    private final Long minimumUnits;
+    private final String pricingModel;
     private final String productId;
     private final String status;
+    private final List<PriceTier> tiers;
     private final String type;
+    private final Long unitAmountCents;
+    private final String unitLabel;
+    private final String unitLabelPlural;
 
-    Price(long amountCents, String currency, String id, String interval, long intervalCount, String productId, String status, String type) {
+    Price(long amountCents, String currency, String id, String interval, long intervalCount, Long maximumUnits, Long minimumUnits, String pricingModel, String productId, String status, List<PriceTier> tiers, String type, Long unitAmountCents, String unitLabel, String unitLabelPlural) {
         this.amountCents = amountCents;
         this.currency = currency;
         this.id = id;
         this.interval = interval;
         this.intervalCount = intervalCount;
+        this.maximumUnits = maximumUnits;
+        this.minimumUnits = minimumUnits;
+        this.pricingModel = pricingModel;
         this.productId = productId;
         this.status = status;
+        this.tiers = tiers;
         this.type = type;
+        this.unitAmountCents = unitAmountCents;
+        this.unitLabel = unitLabel;
+        this.unitLabelPlural = unitLabelPlural;
     }
 
     static Price fromJson(Map<String, Object> data) {
@@ -51,12 +83,19 @@ public final class Price {
                 Json.required(data, "id", Json::asString),
                 Json.required(data, "interval", Json::asString),
                 Json.required(data, "interval_count", Json::asLong),
+                Json.optional(data, "maximum_units", Json::asLong),
+                Json.optional(data, "minimum_units", Json::asLong),
+                Json.required(data, "pricing_model", Json::asString),
                 Json.required(data, "product_id", Json::asString),
                 Json.required(data, "status", Json::asString),
-                Json.required(data, "type", Json::asString));
+                Json.required(data, "tiers", Json.list(Json.model(PriceTier::fromJson))),
+                Json.required(data, "type", Json::asString),
+                Json.optional(data, "unit_amount_cents", Json::asLong),
+                Json.optional(data, "unit_label", Json::asString),
+                Json.optional(data, "unit_label_plural", Json::asString));
     }
 
-    /** @return Valor em centavos. */
+    /** @return Valor em centavos do preço fixo (pricing_model fixed). Vale 0 nos modelos por unidade, assento e faixas, cujo valor está em unit_amount_cents e tiers. */
     public long getAmountCents() {
         return amountCents;
     }
@@ -81,6 +120,21 @@ public final class Price {
         return intervalCount;
     }
 
+    /** @return O mais que uma compra leva de unidades. (null when the API sends none) */
+    public Long getMaximumUnits() {
+        return maximumUnits;
+    }
+
+    /** @return O menos que uma compra leva de unidades. (null when the API sends none) */
+    public Long getMinimumUnits() {
+        return minimumUnits;
+    }
+
+    /** @return Como o valor é calculado. fixed cobra amount_cents uma vez; per_unit e seat cobram unit_amount_cents por unidade ou assento; volume cobra a quantidade inteira pelo valor da faixa em que ela cai; graduated cobra cada faixa pelo seu valor (a 1ª unidade a um valor e as seguintes a outro). free e custom (valor livre) são criados no painel. */
+    public String getPricingModel() {
+        return pricingModel;
+    }
+
     /** @return the API's {@code product_id} */
     public String getProductId() {
         return productId;
@@ -91,13 +145,33 @@ public final class Price {
         return status;
     }
 
+    /** @return As faixas de um preço volume ou graduated, em ordem; vazio nos demais modelos. */
+    public List<PriceTier> getTiers() {
+        return tiers;
+    }
+
     /** @return the API's {@code type} */
     public String getType() {
         return type;
     }
 
+    /** @return Valor de uma unidade (per_unit) ou de um assento (seat), em centavos; nulo nos demais modelos. (null when the API sends none) */
+    public Long getUnitAmountCents() {
+        return unitAmountCents;
+    }
+
+    /** @return Como o preço chama a unidade, no singular (por exemplo, câmera); vazio sem rótulo. (null when the API sends none) */
+    public String getUnitLabel() {
+        return unitLabel;
+    }
+
+    /** @return A unidade no plural (por exemplo, câmeras). (null when the API sends none) */
+    public String getUnitLabelPlural() {
+        return unitLabelPlural;
+    }
+
     @Override
     public String toString() {
-        return "Price{" + "amountCents=" + amountCents + ", currency=" + currency + ", id=" + id + ", interval=" + interval + ", intervalCount=" + intervalCount + ", productId=" + productId + ", status=" + status + ", type=" + type + "}";
+        return "Price{" + "amountCents=" + amountCents + ", currency=" + currency + ", id=" + id + ", interval=" + interval + ", intervalCount=" + intervalCount + ", maximumUnits=" + maximumUnits + ", minimumUnits=" + minimumUnits + ", pricingModel=" + pricingModel + ", productId=" + productId + ", status=" + status + ", tiers=" + tiers + ", type=" + type + ", unitAmountCents=" + unitAmountCents + ", unitLabel=" + unitLabel + ", unitLabelPlural=" + unitLabelPlural + "}";
     }
 }

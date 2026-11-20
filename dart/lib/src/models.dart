@@ -2139,6 +2139,7 @@ final class Dispute {
   final String? checkoutId;
 
   /// O id do pedido no seu sistema, enviado ao criar o checkout; vazio sem ele.
+  /// Na renovação de uma assinatura é o do checkout que a vendeu.
   final String clientReferenceId;
 
   /// One of `BRL`.
@@ -2500,6 +2501,7 @@ final class Order {
   final int amountCents;
 
   /// O id do pedido no seu sistema, enviado ao criar o checkout; vazio sem ele.
+  /// Na renovação de uma assinatura é o do checkout que a vendeu.
   final String clientReferenceId;
 
   /// One of `BRL`.
@@ -2523,7 +2525,9 @@ final class Order {
   /// vazio sem elas.
   final List<CheckoutLine> items;
 
-  /// Os pares que o seu servidor enviou ao criar o checkout.
+  /// Os pares que o seu servidor enviou ao criar o checkout. Na renovação de
+  /// uma assinatura são os da assinatura, que começou com os do checkout que a
+  /// vendeu.
   final Map<String, Object?> metadata;
 
   /// Onde o pedido está; status é o do checkout e continua succeeded depois de
@@ -2678,6 +2682,7 @@ final class OrderInvoice {
 final class OrderReceipt {
   const OrderReceipt({
     required this.amountCents,
+    required this.chargedBy,
     required this.currency,
     required this.customerEmail,
     required this.customerName,
@@ -2698,6 +2703,7 @@ final class OrderReceipt {
   factory OrderReceipt.fromJson(Map<String, Object?> json) {
     return OrderReceipt(
       amountCents: json['amount_cents'] as int,
+      chargedBy: json['charged_by'] as String,
       currency: json['currency'] as String,
       customerEmail: json['customer_email'] as String,
       customerName: json['customer_name'] as String,
@@ -2719,6 +2725,11 @@ final class OrderReceipt {
   }
 
   final int amountCents;
+
+  /// Quem fez a cobrança, na frase que o checkout e o e-mail usam: Cobrança
+  /// feita por &lt;empresa&gt; (razão social e CNPJ, quando a organização vende
+  /// com CNPJ); vazio quando a empresa não pôde ser lida.
+  final String chargedBy;
 
   /// One of `BRL`.
   final String currency;
@@ -2756,6 +2767,7 @@ final class OrderReceipt {
   /// The JSON the API answers.
   Map<String, Object?> toJson() => {
     'amount_cents': amountCents,
+    'charged_by': chargedBy,
     'currency': currency,
     'customer_email': customerEmail,
     'customer_name': customerName,
@@ -2857,6 +2869,7 @@ final class Payment {
   final String checkoutId;
 
   /// O id do pedido no seu sistema, enviado ao criar o checkout; vazio sem ele.
+  /// Na renovação de uma assinatura é o do checkout que a vendeu.
   final String clientReferenceId;
 
   final String createdAt;
@@ -2881,7 +2894,9 @@ final class Payment {
   /// Em quantas parcelas o cartão de crédito foi cobrado; 1 à vista.
   final int installments;
 
-  /// Os pares que o seu servidor enviou ao criar o checkout.
+  /// Os pares que o seu servidor enviou ao criar o checkout. Na renovação de
+  /// uma assinatura são os da assinatura, que começou com os do checkout que a
+  /// vendeu.
   final Map<String, Object?> metadata;
 
   /// One of `card`, `pix`, `boleto`.
@@ -3008,9 +3023,16 @@ final class Price {
     required this.id,
     required this.interval,
     required this.intervalCount,
+    this.maximumUnits,
+    this.minimumUnits,
+    required this.pricingModel,
     required this.productId,
     required this.status,
+    required this.tiers,
     required this.type,
+    this.unitAmountCents,
+    this.unitLabel,
+    this.unitLabelPlural,
   });
 
   /// A Price out of the API's JSON.
@@ -3021,13 +3043,25 @@ final class Price {
       id: json['id'] as String,
       interval: json['interval'] as String,
       intervalCount: json['interval_count'] as int,
+      maximumUnits: json['maximum_units'] as int?,
+      minimumUnits: json['minimum_units'] as int?,
+      pricingModel: json['pricing_model'] as String,
       productId: json['product_id'] as String,
       status: json['status'] as String,
+      tiers: readList(
+        json['tiers'],
+        (value) => PriceTier.fromJson(readObject(value)),
+      ),
       type: json['type'] as String,
+      unitAmountCents: json['unit_amount_cents'] as int?,
+      unitLabel: json['unit_label'] as String?,
+      unitLabelPlural: json['unit_label_plural'] as String?,
     );
   }
 
-  /// Valor em centavos.
+  /// Valor em centavos do preço fixo (pricing_model fixed). Vale 0 nos modelos
+  /// por unidade, assento e faixas, cujo valor está em unit_amount_cents e
+  /// tiers.
   final int amountCents;
 
   /// One of `BRL`.
@@ -3035,20 +3069,51 @@ final class Price {
 
   final String id;
 
-  /// One of `none`, `month`, `year`.
+  /// One of `none`, `day`, `week`, `month`, `year`.
   final String interval;
 
   /// De quantos em quantos intervalos o preço renova: 3 com month é trimestral,
   /// 6 semestral. 1 no preço one_time.
   final int intervalCount;
 
+  /// O mais que uma compra leva de unidades.
+  final int? maximumUnits;
+
+  /// O menos que uma compra leva de unidades.
+  final int? minimumUnits;
+
+  /// Como o valor é calculado. fixed cobra amount_cents uma vez; per_unit e
+  /// seat cobram unit_amount_cents por unidade ou assento; volume cobra a
+  /// quantidade inteira pelo valor da faixa em que ela cai; graduated cobra
+  /// cada faixa pelo seu valor (a 1ª unidade a um valor e as seguintes a
+  /// outro). free e custom (valor livre) são criados no painel.
+  ///
+  /// One of `fixed`, `free`, `custom`, `per_unit`, `volume`, `graduated`,
+  /// `seat`.
+  final String pricingModel;
+
   final String productId;
 
   /// One of `active`, `archived`.
   final String status;
 
+  /// As faixas de um preço volume ou graduated, em ordem; vazio nos demais
+  /// modelos.
+  final List<PriceTier> tiers;
+
   /// One of `one_time`, `recurring`.
   final String type;
+
+  /// Valor de uma unidade (per_unit) ou de um assento (seat), em centavos; nulo
+  /// nos demais modelos.
+  final int? unitAmountCents;
+
+  /// Como o preço chama a unidade, no singular (por exemplo, câmera); vazio sem
+  /// rótulo.
+  final String? unitLabel;
+
+  /// A unidade no plural (por exemplo, câmeras).
+  final String? unitLabelPlural;
 
   /// The JSON the API answers.
   Map<String, Object?> toJson() => {
@@ -3057,9 +3122,45 @@ final class Price {
     'id': id,
     'interval': interval,
     'interval_count': intervalCount,
+    'maximum_units': ?maximumUnits,
+    'minimum_units': ?minimumUnits,
+    'pricing_model': pricingModel,
     'product_id': productId,
     'status': status,
+    'tiers': tiers.map((item) => item.toJson()).toList(),
     'type': type,
+    'unit_amount_cents': unitAmountCents,
+    'unit_label': ?unitLabel,
+    'unit_label_plural': ?unitLabelPlural,
+  };
+}
+
+/// PriceTier is a resource of Peráta's API.
+final class PriceTier {
+  const PriceTier({
+    required this.unitAmountCents,
+    this.upTo,
+  });
+
+  /// A PriceTier out of the API's JSON.
+  factory PriceTier.fromJson(Map<String, Object?> json) {
+    return PriceTier(
+      unitAmountCents: json['unit_amount_cents'] as int,
+      upTo: json['up_to'] as int?,
+    );
+  }
+
+  /// Valor de uma unidade nesta faixa, em centavos.
+  final int unitAmountCents;
+
+  /// Até quantas unidades a faixa vai, inclusive; nulo na última faixa, que não
+  /// tem limite.
+  final int? upTo;
+
+  /// The JSON the API answers.
+  Map<String, Object?> toJson() => {
+    'unit_amount_cents': unitAmountCents,
+    'up_to': upTo,
   };
 }
 
@@ -3263,6 +3364,7 @@ final class Subscription {
   const Subscription({
     required this.amountCents,
     required this.cancelAtPeriodEnd,
+    required this.clientReferenceId,
     required this.currency,
     required this.currentPeriodEnd,
     required this.currentPeriodStart,
@@ -3272,6 +3374,7 @@ final class Subscription {
     required this.metadata,
     required this.priceId,
     required this.productId,
+    required this.quantity,
     required this.showcaseId,
     required this.status,
     this.suspendedAt,
@@ -3285,6 +3388,7 @@ final class Subscription {
     return Subscription(
       amountCents: json['amount_cents'] as int,
       cancelAtPeriodEnd: json['cancel_at_period_end'] as bool,
+      clientReferenceId: json['client_reference_id'] as String,
       currency: json['currency'] as String,
       currentPeriodEnd: json['current_period_end'] as String,
       currentPeriodStart: json['current_period_start'] as String,
@@ -3294,6 +3398,7 @@ final class Subscription {
       metadata: readMap(json['metadata'], (value) => value),
       priceId: json['price_id'] as String,
       productId: json['product_id'] as String,
+      quantity: json['quantity'] as int,
       showcaseId: json['showcase_id'] as String,
       status: json['status'] as String,
       suspendedAt: json['suspended_at'] as String?,
@@ -3303,9 +3408,17 @@ final class Subscription {
     );
   }
 
+  /// O que a assinatura cobra a cada ciclo, em centavos, já para a quantity que
+  /// ela tem: é o total do ciclo, não o preço de uma unidade. O preço por
+  /// unidade, por assento ou por faixas já está aplicado à quantity.
   final int amountCents;
 
   final bool cancelAtPeriodEnd;
+
+  /// O id do pedido no seu sistema, enviado ao criar o checkout que vendeu a
+  /// assinatura; vazio sem ele. Cada pedido de renovação traz o mesmo
+  /// client_reference_id, e o mesmo metadata, para você achar o cliente.
+  final String clientReferenceId;
 
   /// One of `BRL`.
   final String currency;
@@ -3327,6 +3440,10 @@ final class Subscription {
   final String priceId;
 
   final String productId;
+
+  /// Quantas unidades ou assentos a assinatura cobre, de 1 em diante; 1 num
+  /// preço sem quantidade. amount_cents é o total do ciclo para esta quantity.
+  final int quantity;
 
   /// O showcase a que pertence: o da chave de API que fez a chamada. Uma chave
   /// só alcança o seu showcase.
@@ -3355,6 +3472,7 @@ final class Subscription {
   Map<String, Object?> toJson() => {
     'amount_cents': amountCents,
     'cancel_at_period_end': cancelAtPeriodEnd,
+    'client_reference_id': clientReferenceId,
     'currency': currency,
     'current_period_end': currentPeriodEnd,
     'current_period_start': currentPeriodStart,
@@ -3364,6 +3482,7 @@ final class Subscription {
     'metadata': metadata,
     'price_id': priceId,
     'product_id': productId,
+    'quantity': quantity,
     'showcase_id': showcaseId,
     'status': status,
     'suspended_at': suspendedAt,
@@ -3402,7 +3521,7 @@ final class UsageError {
   /// Em invalid_request, o que há de errado em cada campo do evento.
   final Map<String, List<String>>? fields;
 
-  /// O que explica a recusa, em inglês.
+  /// O que explica a recusa, em português.
   final String? message;
 
   /// Posição, a partir de 1, do evento do lote que causou a recusa
@@ -3540,7 +3659,8 @@ final class WebhookCheckout {
 
   final String? checkoutLinkId;
 
-  /// O id do pedido no sistema do lojista; vazio sem ele.
+  /// O id do pedido no sistema do lojista; vazio sem ele. Na renovação de uma
+  /// assinatura é o do checkout que a vendeu.
   final String? clientReferenceId;
 
   final String createdAt;
@@ -3861,6 +3981,7 @@ final class WebhookDispute {
   final String? checkoutId;
 
   /// O id do pedido no seu sistema, enviado ao criar o checkout; vazio sem ele.
+  /// Na renovação de uma assinatura é o do checkout que a vendeu.
   final String? clientReferenceId;
 
   /// One of `BRL`.
@@ -4136,6 +4257,7 @@ final class WebhookOrder {
   final int amountCents;
 
   /// O id do pedido no seu sistema, enviado ao criar o checkout; vazio sem ele.
+  /// Na renovação de uma assinatura é o do checkout que a vendeu.
   final String clientReferenceId;
 
   /// One of `BRL`.
@@ -4269,7 +4391,8 @@ final class WebhookRefund {
   /// O checkout (o pedido) que o reembolso devolve, quando se sabe.
   final String? checkoutId;
 
-  /// O id do pedido no sistema do lojista; vazio sem ele.
+  /// O id do pedido no sistema do lojista; vazio sem ele. Na renovação de uma
+  /// assinatura é o do checkout que a vendeu.
   final String clientReferenceId;
 
   final String id;
@@ -4383,7 +4506,8 @@ final class WebhookSale {
   /// O checkout (o pedido) do pagamento ou do reembolso.
   final String? checkoutId;
 
-  /// O id do pedido no sistema do lojista; vazio sem ele.
+  /// O id do pedido no sistema do lojista; vazio sem ele. Na renovação de uma
+  /// assinatura é o do checkout que a vendeu.
   final String? clientReferenceId;
 
   /// One of `BRL`.
@@ -4475,6 +4599,7 @@ final class WebhookSubscription {
   const WebhookSubscription({
     required this.amountCents,
     required this.cancelAtPeriodEnd,
+    required this.clientReferenceId,
     required this.currency,
     required this.currentPeriodEnd,
     required this.currentPeriodStart,
@@ -4485,6 +4610,7 @@ final class WebhookSubscription {
     this.paymentFailure,
     required this.priceId,
     required this.productId,
+    required this.quantity,
     required this.showcaseId,
     required this.status,
     this.suspendedAt,
@@ -4498,6 +4624,7 @@ final class WebhookSubscription {
     return WebhookSubscription(
       amountCents: json['amount_cents'] as int,
       cancelAtPeriodEnd: json['cancel_at_period_end'] as bool,
+      clientReferenceId: json['client_reference_id'] as String,
       currency: json['currency'] as String,
       currentPeriodEnd: json['current_period_end'] as String,
       currentPeriodStart: json['current_period_start'] as String,
@@ -4513,6 +4640,7 @@ final class WebhookSubscription {
       ),
       priceId: json['price_id'] as String,
       productId: json['product_id'] as String,
+      quantity: json['quantity'] as int,
       showcaseId: json['showcase_id'] as String,
       status: json['status'] as String,
       suspendedAt: json['suspended_at'] as String?,
@@ -4522,9 +4650,17 @@ final class WebhookSubscription {
     );
   }
 
+  /// O que a assinatura cobra a cada ciclo, em centavos, já para a quantity que
+  /// ela tem: é o total do ciclo, não o preço de uma unidade. O preço por
+  /// unidade, por assento ou por faixas já está aplicado à quantity.
   final int amountCents;
 
   final bool cancelAtPeriodEnd;
+
+  /// O id do pedido no seu sistema, enviado ao criar o checkout que vendeu a
+  /// assinatura; vazio sem ele. Cada pedido de renovação traz o mesmo
+  /// client_reference_id, e o mesmo metadata, para você achar o cliente.
+  final String clientReferenceId;
 
   /// One of `BRL`.
   final String currency;
@@ -4551,6 +4687,10 @@ final class WebhookSubscription {
 
   final String productId;
 
+  /// Quantas unidades ou assentos a assinatura cobre, de 1 em diante; 1 num
+  /// preço sem quantidade. amount_cents é o total do ciclo para esta quantity.
+  final int quantity;
+
   /// O showcase da venda.
   final String showcaseId;
 
@@ -4574,6 +4714,7 @@ final class WebhookSubscription {
   Map<String, Object?> toJson() => {
     'amount_cents': amountCents,
     'cancel_at_period_end': cancelAtPeriodEnd,
+    'client_reference_id': clientReferenceId,
     'currency': currency,
     'current_period_end': currentPeriodEnd,
     'current_period_start': currentPeriodStart,
@@ -4584,6 +4725,7 @@ final class WebhookSubscription {
     'payment_failure': ?paymentFailure?.toJson(),
     'price_id': priceId,
     'product_id': productId,
+    'quantity': quantity,
     'showcase_id': showcaseId,
     'status': status,
     'suspended_at': suspendedAt,
@@ -4918,7 +5060,8 @@ final class CheckoutsCreateParams {
   /// O id do pedido no seu sistema, de até 255 caracteres. Volta no checkout,
   /// no pedido, no pagamento e nos eventos checkout.*, order.*,
   /// checkout_payment.* e refund.*, para você achar de qual pedido veio cada
-  /// pagamento.
+  /// pagamento. Num checkout de assinatura fica também na assinatura, e cada
+  /// pedido de renovação volta com ele.
   final String? clientReferenceId;
 
   /// O e-mail do comprador, quando você o conhece; senão o navegador do
@@ -5506,37 +5649,110 @@ final class CustomersUpdateExternalBillingAddress {
 /// The body of prices:create.
 final class PricesCreateParams {
   const PricesCreateParams({
-    required this.amountCents,
+    this.amountCents,
     this.interval,
     this.intervalCount,
+    this.maximumUnits,
+    this.minimumUnits,
+    this.pricingModel,
     required this.productId,
+    this.tiers,
     required this.type,
+    this.unitAmountCents,
+    this.unitLabel,
+    this.unitLabelPlural,
   });
 
-  final int amountCents;
+  /// O valor, em centavos, de um preço fixo (pricing_model fixed, o padrão),
+  /// obrigatório nele; 0 é um preço gratuito. Nos demais modelos é recusado com
+  /// 422: o valor está em unit_amount_cents ou em tiers.
+  final int? amountCents;
 
-  /// Obrigatório no preço recorrente; o preço one_time não tem intervalo.
+  /// Obrigatório no preço recorrente; o preço one_time não tem intervalo. day é
+  /// o preço diário e week o semanal.
   ///
-  /// One of `month`, `year`.
+  /// One of `day`, `week`, `month`, `year`.
   final String? interval;
 
-  /// De quantos em quantos intervalos o preço renova; 1 se omitido. Com month
-  /// vai de 1 a 12 (3 é trimestral, 6 semestral); com year só 1. O preço
-  /// one_time não tem.
+  /// De quantos em quantos intervalos o preço renova; 1 se omitido. Com day ou
+  /// week vai de 1 a 999; com month de 1 a 12 (3 é trimestral, 6 semestral);
+  /// com year só 1. O preço one_time não tem.
   final int? intervalCount;
 
+  /// O mais que uma compra leva de unidades, não menor que minimum_units.
+  final int? maximumUnits;
+
+  /// O menos que uma compra leva de unidades.
+  final int? minimumUnits;
+
+  /// Como o valor é calculado; fixed quando fica de fora. per_unit cobra
+  /// unit_amount_cents por unidade; seat, por assento; volume cobra a
+  /// quantidade inteira pelo valor da faixa em que ela cai; graduated cobra
+  /// cada faixa pelo seu valor: com a 1ª unidade a R$ 250,00 e as seguintes a
+  /// R$ 150,00, três unidades custam 250 + 150 + 150 = R$ 550,00. volume e
+  /// graduated pedem tiers. São os mesmos modelos que o painel cria.
+  ///
+  /// One of `fixed`, `per_unit`, `volume`, `graduated`, `seat`.
+  final String? pricingModel;
+
   final String productId;
+
+  /// As faixas de um preço volume ou graduated, em ordem, de 1 a 50. Por
+  /// exemplo, [{"up_to": 1, "unit_amount_cents": 25000}, {"up_to": null,
+  /// "unit_amount_cents": 15000}]: a 1ª unidade a R$ 250,00 e as seguintes a R$
+  /// 150,00. Uma escada que não fecha (up_to repetido, fora de ordem, última
+  /// faixa com limite) é recusada com 422.
+  final List<PricesCreateTier>? tiers;
 
   /// One of `one_time`, `recurring`.
   final String type;
 
+  /// O valor de uma unidade (per_unit) ou de um assento (seat), em centavos;
+  /// obrigatório nesses dois modelos e recusado nos outros.
+  final int? unitAmountCents;
+
+  /// Como o preço chama a unidade, no singular, de até 40 caracteres (por
+  /// exemplo, câmera); só em per_unit, volume e graduated.
+  final String? unitLabel;
+
+  /// A unidade no plural, de até 40 caracteres (câmeras).
+  final String? unitLabelPlural;
+
   /// The JSON the API takes; a field left null is left out.
   Map<String, Object?> toJson() => {
-    'amount_cents': amountCents,
+    'amount_cents': ?amountCents,
     'interval': ?interval,
     'interval_count': ?intervalCount,
+    'maximum_units': ?maximumUnits,
+    'minimum_units': ?minimumUnits,
+    'pricing_model': ?pricingModel,
     'product_id': productId,
+    'tiers': ?tiers?.map((item) => item.toJson()).toList(),
     'type': type,
+    'unit_amount_cents': ?unitAmountCents,
+    'unit_label': ?unitLabel,
+    'unit_label_plural': ?unitLabelPlural,
+  };
+}
+
+/// One item of tiers in PricesCreateParams.
+final class PricesCreateTier {
+  const PricesCreateTier({
+    required this.unitAmountCents,
+    this.upTo,
+  });
+
+  /// O valor de uma unidade nesta faixa, em centavos.
+  final int unitAmountCents;
+
+  /// Até quantas unidades a faixa vai, inclusive. Crescente de uma faixa para a
+  /// seguinte; null na última, que não tem limite, e só nela.
+  final int? upTo;
+
+  /// The JSON the API takes; a field left null is left out.
+  Map<String, Object?> toJson() => {
+    'unit_amount_cents': unitAmountCents,
+    'up_to': ?upTo,
   };
 }
 

@@ -20,7 +20,9 @@ public final class OrdersService {
      * Ler um pedido.
      *
      * Devolve um pedido: um checkout pago. Se ele pagou um ciclo de assinatura,
-     * traz subscription_id, cycle_sequence, period_start e period_end.
+     * traz subscription_id, cycle_sequence, period_start e period_end. Num
+     * pedido de renovação, client_reference_id e metadata são os do checkout
+     * que vendeu a assinatura.
      *
      * Autenticação: chave de API da organização em Authorization: Bearer
      * (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
@@ -42,7 +44,9 @@ public final class OrdersService {
      * Ler um pedido.
      *
      * Devolve um pedido: um checkout pago. Se ele pagou um ciclo de assinatura,
-     * traz subscription_id, cycle_sequence, period_start e period_end.
+     * traz subscription_id, cycle_sequence, period_start e period_end. Num
+     * pedido de renovação, client_reference_id e metadata são os do checkout
+     * que vendeu a assinatura.
      *
      * Autenticação: chave de API da organização em Authorization: Bearer
      * (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da

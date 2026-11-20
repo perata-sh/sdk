@@ -115,7 +115,7 @@ public final class Payment {
         return checkoutId;
     }
 
-    /** @return O id do pedido no seu sistema, enviado ao criar o checkout; vazio sem ele. */
+    /** @return O id do pedido no seu sistema, enviado ao criar o checkout; vazio sem ele. Na renovação de uma assinatura é o do checkout que a vendeu. */
     public String getClientReferenceId() {
         return clientReferenceId;
     }
@@ -160,7 +160,7 @@ public final class Payment {
         return installments;
     }
 
-    /** @return Os pares que o seu servidor enviou ao criar o checkout. */
+    /** @return Os pares que o seu servidor enviou ao criar o checkout. Na renovação de uma assinatura são os da assinatura, que começou com os do checkout que a vendeu. */
     public Map<String, Object> getMetadata() {
         return metadata;
     }

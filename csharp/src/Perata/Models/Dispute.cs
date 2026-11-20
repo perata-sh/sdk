@@ -53,7 +53,7 @@ public sealed record Dispute
     [JsonPropertyName("checkout_id")]
     public string? CheckoutId { get; init; }
 
-    /// <summary>O id do pedido no seu sistema, enviado ao criar o checkout; vazio sem ele.</summary>
+    /// <summary>O id do pedido no seu sistema, enviado ao criar o checkout; vazio sem ele. Na renovação de uma assinatura é o do checkout que a vendeu.</summary>
     [JsonPropertyName("client_reference_id")]
     public required string ClientReferenceId { get; init; }
 

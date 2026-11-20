@@ -71,7 +71,7 @@ public final class WebhookRefund {
         return checkoutId;
     }
 
-    /** @return O id do pedido no sistema do lojista; vazio sem ele. */
+    /** @return O id do pedido no sistema do lojista; vazio sem ele. Na renovação de uma assinatura é o do checkout que a vendeu. */
     public String getClientReferenceId() {
         return clientReferenceId;
     }
