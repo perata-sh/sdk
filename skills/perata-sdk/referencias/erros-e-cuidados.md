@@ -28,7 +28,7 @@ Todo erro da API tem a mesma forma:
 | `conflict` | 409 | o estado não permite a ação (checkout já pago, cartão em uso, assinatura que não está suspensa) | leia o contexto da rota |
 | `idempotency_conflict` | 409 | a `Idempotency-Key` já foi usada em outra requisição (outro corpo ou outra rota) | use outra chave para o novo pedido |
 | `idempotency_in_progress` | 409 | uma requisição com esta chave ainda está em andamento | espere o `Retry-After` (1 s) e repita |
-| `invalid_idempotency_key` | 400 | `Idempotency-Key` ausente onde é obrigatória (reembolso) ou com mais de 255 caracteres | corrija a chave |
+| `invalid_idempotency_key` | 400 | `Idempotency-Key` ausente onde é obrigatória (reembolso), com mais de 255 caracteres ou com caractere fora do ASCII (acento, emoji) | corrija a chave |
 | `unsupported_media_type` | 415 | o corpo não é `application/json` | envie `Content-Type: application/json` |
 | `invalid_request` | 422 | campo inválido ou desconhecido, filtro que a lista não aceita | corrija o que `fields` aponta |
 | `body_too_large` | 413 | corpo grande demais (na ingestão, mais de 65536 bytes) | divida em lotes |
@@ -39,7 +39,7 @@ Todo erro da API tem a mesma forma:
 
 Serve para repetir uma escrita sem fazê-la duas vezes (um tempo esgotado na rede, por exemplo).
 
-- Vai no cabeçalho `Idempotency-Key`, até 255 caracteres, em qualquer escrita. **O reembolso a exige.**
+- Vai no cabeçalho `Idempotency-Key`, até 255 caracteres ASCII (sem acento), em qualquer escrita. **O reembolso a exige.**
 - A mesma chave com o **mesmo corpo** (e a mesma rota) repete a resposta original, com o cabeçalho `Idempotent-Replayed: true`.
 - A mesma chave com **outro corpo**, ou em outra rota, dá 409 `idempotency_conflict`.
 - Uma resposta **2xx** fica guardada sob a chave. Uma recusa **4xx** ou uma falha **5xx** a **libera**: repita com a mesma chave, com o corpo corrigido ou como estava. (Até 18/11/2026 uma recusa prendia a chave; hoje não.)
