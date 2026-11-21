@@ -110,7 +110,7 @@ Mande `renewal_mode` em todo checkout de assinatura. A `Subscription` e todo `su
 |---|---|
 | `"manual"` | O comprador paga agora com qualquer meio (Pix, boleto, débito ou cartão). A cada ciclo a Peráta abre uma cobrança para ele pagar e avisa o seu sistema com `subscription.renewal_due`. O cartão não é guardado nem cobrado, mesmo que o primeiro pagamento tenha sido nele. A assinatura nasce com `renewal_mode: "manual"`. |
 | `"automatic"` | Só meios que cobram sozinhos: cartão de crédito (guardado) ou Pix Automático, este só onde a organização o tem ligado (hoje desligado: só o cartão). A página mostra só esses meios. Pagar por Pix, boleto ou débito é 422 em `payment_method`. A assinatura nasce `card` ou `pix_automatic`. |
-| `"buyer_choice"` | A página mostra a caixa "Ativar cobrança automática", desmarcada. Desmarcada é `manual`; marcada é `automatic` (a página esconde os meios que não cobram sozinhos). |
+| `"buyer_choice"` | A página mostra a caixa "Cobrança recorrente", desmarcada. Desmarcada é `manual`; marcada é `automatic` (a página esconde os meios que não cobram sozinhos). |
 | nada | Como sempre foi: sem caixa; o cartão de crédito que o pagamento guardou renova sozinho (`card`) e qualquer outro meio vira uma cobrança a cada ciclo (`manual`). |
 
 Funciona junto com `first_period_extra_days` e com `discount_id`, inclusive no Pix Automático: a primeira cobrança do banco cai no fim do período estendido. Só vale em preço recorrente com valor (senão 422 em `renewal_mode`); `manual` não vale com teste grátis nem com `subscription_start_at`, que guardam o cartão para cobrar no fim (422). Repetir a criação com a mesma `Idempotency-Key` e outro `renewal_mode` dá 409.
