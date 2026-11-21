@@ -14,7 +14,7 @@ Uma venda tem duas metades. O **servidor** cria o checkout com a chave de API. O
 | `quantity` | com `amount_cents` é sempre 1: envie 1 ou omita; outro valor é 422 |
 | `client_reference_id` | o id do pedido no seu sistema, até 255 caracteres |
 | `metadata` | até 50 pares guardados e devolvidos em tudo da venda |
-| `customer_id`, `external_customer_id`, ou `customer_email` com `customer_name` | quem compra. `customer_id` não vai junto com `external_customer_id`, `customer_email` nem `customer_name` |
+| `customer_id`, `external_customer_id`, ou `customer_email` com `customer_name` | quem compra. `customer_id` não vai junto com `external_customer_id`, `customer_email` nem `customer_name`. Um `customer_email` que já é de um cliente seu abre o checkout com os dados dele (nome, CPF ou CNPJ, endereço), como se você tivesse mandado o id, e o e-mail fica fixo; o `customer_name` que você manda vale no lugar do nome guardado. Se o cliente tem CPF ou CNPJ, o checkout mostra o documento mascarado e o comprador não pode trocá-lo (o servidor recusa outro com 422 em `tax_id`); sem documento, o checkout pede |
 | `success_url`, `cancel_url` | endereços https para onde o comprador volta depois de pagar ou se desistir. `return_url` é outro nome de `cancel_url` |
 | `expires_in` | segundos de validade da sessão e do `client_secret`, de 60 a 259200 (72 h); 1800 (30 min) se omitido |
 | `allow_discount_codes` | deixa o comprador digitar um código de desconto; desligado se omitido |
