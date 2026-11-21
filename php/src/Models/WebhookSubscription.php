@@ -28,11 +28,15 @@ final class WebhookSubscription
         public readonly ?int $firstPeriodExtraDays,
         public readonly string $id,
         public readonly string $interval,
+        /** O nome que o lojista deu à assinatura, copiado do label do checkout que a vendeu; vazio sem ele. */
+        public readonly string $label,
         /**
          * Metadados do lojista: pares chave e valor (texto, número ou booleano); objeto vazio quando não há.
          * @var array<string, mixed>
          */
         public readonly array $metadata,
+        /** Verdadeiro enquanto a Peráta escreve ao comprador a cada cobrança de renovação. */
+        public readonly bool $notifyCustomerEmail,
         /** A cobrança recusada que causou o evento; só nos eventos de cobrança recusada. */
         public readonly ?WebhookSubscriptionPaymentFailure $paymentFailure,
         /** A mudança de plano ou de quantidade agendada para o próximo período (PATCH com proration_behavior next_period); nulo quando não há nenhuma. Até effective_at a assinatura segue com o price_id, a quantity e o amount_cents de cima. */
@@ -41,6 +45,11 @@ final class WebhookSubscription
         public readonly string $productId,
         /** Quantas unidades ou assentos a assinatura cobre, de 1 em diante; 1 num preço sem quantidade. amount_cents é o total do ciclo para esta quantity. */
         public readonly int $quantity,
+        /**
+         * Como os próximos períodos são cobrados: manual (uma cobrança para o comprador pagar a cada ciclo, com o evento subscription.renewal_due; o cartão nunca é cobrado), card (o cartão de crédito guardado, cobrado sozinho) ou pix_automatic (o banco debita cada cobrança). card e pix_automatic são os automáticos.
+         * @var 'manual'|'card'|'pix_automatic'
+         */
+        public readonly string $renewalMode,
         /** O showcase da venda. */
         public readonly string $showcaseId,
         /** @var 'trialing'|'active'|'past_due'|'suspended'|'paused'|'canceled' */
@@ -75,12 +84,15 @@ final class WebhookSubscription
             firstPeriodExtraDays: $data['first_period_extra_days'] ?? null,
             id: $data['id'],
             interval: $data['interval'],
+            label: $data['label'],
             metadata: $data['metadata'],
+            notifyCustomerEmail: $data['notify_customer_email'],
             paymentFailure: isset($data['payment_failure']) ? WebhookSubscriptionPaymentFailure::fromArray($data['payment_failure']) : null,
             pendingUpdate: isset($data['pending_update']) ? WebhookSubscriptionPendingUpdate::fromArray($data['pending_update']) : null,
             priceId: $data['price_id'],
             productId: $data['product_id'],
             quantity: $data['quantity'],
+            renewalMode: $data['renewal_mode'],
             showcaseId: $data['showcase_id'],
             status: $data['status'],
             suspendedAt: $data['suspended_at'] ?? null,

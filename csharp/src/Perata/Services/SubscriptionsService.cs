@@ -62,6 +62,32 @@ public sealed class SubscriptionsService
         return client.RequestAsync(HttpMethod.Get, "/api/v1/subscriptions/" + PerataClient.Segment(subscription), null, null, PerataJson.Default.SubscriptionEnvelope, null, options, cancellationToken);
     }
 
+    /// <summary>Ler a cobrança de renovação em aberto.</summary>
+    /// <remarks>
+    /// <para>Devolve a cobrança de renovação que espera o comprador pagar: o
+    /// ciclo atual da assinatura, o valor, due_at e expires_at, o período e, em
+    /// payment_url, a página da Peráta onde ele paga (cartão, Pix ou boleto). É
+    /// o mesmo objeto do evento subscription.renewal_due, para quando o seu
+    /// sistema precisa dele de novo. Uma assinatura sem cobrança em aberto
+    /// (ciclo já pago, cobrada no cartão guardado ou pelo Pix Automático, ou
+    /// com o próximo ciclo ainda fechado) responde 404 com a mensagem dizendo
+    /// isso.</para>
+    /// <para>Autenticação: chave de API da organização em Authorization: Bearer
+    /// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+    /// chave, nunca da requisição: a chave criada num showcase só alcança o que
+    /// é dele. Respostas em JSON no envelope data; erros com error, message e
+    /// fields.</para>
+    /// </remarks>
+    /// <param name="subscription">The subscription.</param>
+    /// <param name="options">Another organization's key for this call.</param>
+    /// <param name="cancellationToken">Cancels the call.</param>
+    /// <returns>The renewalcharge.</returns>
+    /// <exception cref="PerataException">The API refused the call.</exception>
+    public Task<RenewalCharge> GetOpenChargeAsync(string subscription, RequestOptions? options = null, CancellationToken cancellationToken = default)
+    {
+        return client.RequestAsync(HttpMethod.Get, "/api/v1/subscriptions/" + PerataClient.Segment(subscription) + "/open-charge", null, null, PerataJson.Default.RenewalChargeEnvelope, null, options, cancellationToken);
+    }
+
     /// <summary>Listar assinaturas. One page; <see cref="ListIterAsync"/> walks every page.</summary>
     /// <remarks>
     /// <para>Devolve uma página das assinaturas. Filtre por cliente
@@ -113,13 +139,17 @@ public sealed class SubscriptionsService
         return client.RequestAsync(HttpMethod.Post, "/api/v1/subscriptions/" + PerataClient.Segment(subscription) + "/resume", null, null, PerataJson.Default.SubscriptionEnvelope, options?.IdempotencyKey, options, cancellationToken);
     }
 
-    /// <summary>Trocar o plano ou estender o período.</summary>
+    /// <summary>Trocar o plano, o período, o rótulo ou a renovação.</summary>
     /// <remarks>
     /// <para>Troca o plano de uma assinatura (outro preço e, se quiser, outra
     /// quantidade; o proration_behavior diz como ratear a diferença) ou, com
     /// extend_current_period_days sozinho, estende o período atual em até 365
     /// dias sem cobrar, para o crédito manual de dias: a próxima cobrança passa
-    /// a ser no novo current_period_end.</para>
+    /// a ser no novo current_period_end. Com label, renewal_mode (manual ou
+    /// card) e notify_customer_email, sem os outros campos, muda o nome da
+    /// assinatura, como ela renova (card exige um cartão guardado; manual deixa
+    /// de cobrar o cartão) e se a Peráta escreve ao comprador das
+    /// cobranças.</para>
     /// <para>Autenticação: chave de API da organização em Authorization: Bearer
     /// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
     /// chave, nunca da requisição: a chave criada num showcase só alcança o que
@@ -215,9 +245,23 @@ public sealed record SubscriptionsUpdateParams
     /// <summary>A value of <see cref="ProrationBehavior"/>.</summary>
     public const string ProrationBehaviorReset = "reset";
 
+    /// <summary>A value of <see cref="RenewalMode"/>.</summary>
+    public const string RenewalModeManual = "manual";
+
+    /// <summary>A value of <see cref="RenewalMode"/>.</summary>
+    public const string RenewalModeCard = "card";
+
     /// <summary>Estende o período atual em tantos dias, de 1 a 365, sem cobrar nada e sem criar pedido: a renovação (e a próxima cobrança) passa a ser no novo fim, current_period_end, e os períodos seguintes contam a partir dele. É o crédito manual de dias do lojista. Só uma assinatura active aceita (uma em teste grátis, atrasada, pausada, suspensa ou cancelada recusa); uma que termina no fim do período termina no novo fim. Vai sozinho, sem price_id, quantity nem proration_behavior, senão a resposta é 422. A mudança chega no webhook subscription.updated e fica registrada no log de atividades. Não é repetível por si: envie uma Idempotency-Key para que uma nova tentativa não some os dias duas vezes. Left out of the request when null.</summary>
     [JsonPropertyName("extend_current_period_days")]
     public long? ExtendCurrentPeriodDays { get; init; }
+
+    /// <summary>O nome da assinatura, até 200 caracteres e sem caracteres de controle; vazio tira o nome. Vai sozinho, com renewal_mode e notify_customer_email, sem price_id, quantity, proration_behavior nem extend_current_period_days. Chega no webhook subscription.updated. Left out of the request when null.</summary>
+    [JsonPropertyName("label")]
+    public string? Label { get; init; }
+
+    /// <summary>Liga ou desliga a mensagem que a Peráta manda ao comprador a cada cobrança de renovação. Vai sozinho, como label. Left out of the request when null.</summary>
+    [JsonPropertyName("notify_customer_email")]
+    public bool? NotifyCustomerEmail { get; init; }
 
     /// <summary>O preço recorrente para onde a assinatura vai. Obrigatório para trocar de plano; não se envia com extend_current_period_days. Left out of the request when null.</summary>
     [JsonPropertyName("price_id")]
@@ -230,6 +274,10 @@ public sealed record SubscriptionsUpdateParams
     /// <summary>A nova quantidade; omitida, fica a atual. Left out of the request when null.</summary>
     [JsonPropertyName("quantity")]
     public long? Quantity { get; init; }
+
+    /// <summary>Muda como a assinatura renova. manual: deixa de cobrar o cartão e passa a abrir uma cobrança a cada ciclo (o cartão guardado é solto). card: cobra o cartão guardado sozinho; exige um cartão já guardado na assinatura (o comprador o ativa no portal), senão 422. pix_automatic só o comprador ativa, no app do banco. Vai sozinho, como label. Left out of the request when null.</summary>
+    [JsonPropertyName("renewal_mode")]
+    public string? RenewalMode { get; init; }
 }
 
 

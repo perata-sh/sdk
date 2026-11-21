@@ -276,6 +276,16 @@ func dartParams(m *Method, variant string) string {
 			}
 		}
 	default:
+		if m.HTTPMethod == "GET" && !m.Paginated {
+			// A read with filters of its own (the balance's period): all optional.
+			for _, query := range m.Query {
+				if query.Map {
+					named = append(named, "Map<String, String>? "+dartParam(query.Name))
+				} else {
+					named = append(named, "String? "+dartParam(query.Name))
+				}
+			}
+		}
 		if m.Body != nil {
 			positional = append(positional, m.Body.Name+" params")
 		}

@@ -88,7 +88,7 @@ public class PerataTests
     }
 
     private static string SessionJson(string clientSecret) =>
-        $$"""{"id":"pcl_1","url":"https://perata.sh/pagamento/pcl_1","product_id":"prod_1","price_id":"price_1","status":"active","label":"","quantity":1,"success_url":"https://loja.example/obrigado","cancel_url":"","expires_at":null,"created_at":"2026-11-16T12:00:00Z","session_id":"cs_1","client_secret":"{{clientSecret}}","client_secret_expires_at":"2026-11-16T12:30:00Z","status_key":"sk_1","amount_cents":null,"items":[],"metadata":{},"client_reference_id":"","discount_id":"","showcase_id":"shw_1","subscription_start_at":null}""";
+        $$"""{"id":"pcl_1","url":"https://perata.sh/pagamento/pcl_1","product_id":"prod_1","price_id":"price_1","status":"active","label":"","notify_customer_email":true,"renewal_mode":"","quantity":1,"success_url":"https://loja.example/obrigado","cancel_url":"","expires_at":null,"created_at":"2026-11-16T12:00:00Z","session_id":"cs_1","client_secret":"{{clientSecret}}","client_secret_expires_at":"2026-11-16T12:30:00Z","status_key":"sk_1","amount_cents":null,"items":[],"metadata":{},"client_reference_id":"","discount_id":"","showcase_id":"shw_1","subscription_start_at":null}""";
 
     [Fact]
     public async Task ACheckoutSessionHandsBackTheClientSecretForTheBrowser()
@@ -163,7 +163,7 @@ public class PerataTests
     public async Task AGraduatedPriceCarriesItsTiersAndASubscriptionItsQuantity()
     {
         const string price = """{"id":"price_1","product_id":"prod_1","type":"recurring","interval":"month","interval_count":1,"currency":"BRL","status":"active","amount_cents":0,"pricing_model":"graduated","unit_amount_cents":null,"unit_label":"câmera","unit_label_plural":"câmeras","tiers":[{"up_to":1,"unit_amount_cents":25000},{"up_to":null,"unit_amount_cents":15000}]}""";
-        const string subscription = """{"id":"sub_1","amount_cents":55000,"cancel_at_period_end":false,"client_reference_id":"pedido-9","currency":"BRL","current_period_end":"2026-12-20T00:00:00Z","current_period_start":"2026-11-20T00:00:00Z","customer_id":"cus_1","interval":"month","metadata":{"camera":"c1"},"price_id":"price_1","product_id":"prod_1","quantity":3,"showcase_id":"shw_1","status":"active","suspended_at":null,"suspension_reason":null,"trial_end":null,"trial_start":null}""";
+        const string subscription = """{"id":"sub_1","label":"","notify_customer_email":true,"renewal_mode":"manual","amount_cents":55000,"cancel_at_period_end":false,"client_reference_id":"pedido-9","currency":"BRL","current_period_end":"2026-12-20T00:00:00Z","current_period_start":"2026-11-20T00:00:00Z","customer_id":"cus_1","interval":"month","metadata":{"camera":"c1"},"price_id":"price_1","product_id":"prod_1","quantity":3,"showcase_id":"shw_1","status":"active","suspended_at":null,"suspension_reason":null,"trial_end":null,"trial_start":null}""";
         var recorder = new Recorder(seen => seen.Method == HttpMethod.Post
             ? new Answer(HttpStatusCode.Created, $$"""{"data":{{price}}}""")
             : new Answer(HttpStatusCode.OK, $$"""{"data":{{subscription}}}"""));
@@ -207,9 +207,9 @@ public class PerataTests
     {
         var answers = new Dictionary<string, (HttpStatusCode, string)>
         {
-            ["POST /api/v1/checkouts"] = (HttpStatusCode.Created, """{"data":{"id":"pcl_1","showcase_id":"x","url":"x","product_id":"prod_1","price_id":"price_1","status":"active","label":"x","quantity":0,"amount_cents":null,"items":[],"metadata":{},"client_reference_id":"x","success_url":"x","cancel_url":"x","expires_at":null,"subscription_start_at":null,"discount_id":"disc_1","first_period_extra_days":30,"created_at":"2026-11-20T12:00:00Z","session_id":"cs_1","client_secret":"cs_secret_1","client_secret_expires_at":"2026-11-20T12:00:00Z","status_key":"x"}}"""),
-            ["PATCH /api/v1/subscriptions/sub_1"] = (HttpStatusCode.OK, """{"data":{"id":"sub_1","showcase_id":"x","customer_id":"x","product_id":"x","price_id":"x","status":"active","amount_cents":0,"quantity":0,"currency":"BRL","interval":"x","current_period_start":"2026-11-20T12:00:00Z","current_period_end":"2026-11-20T12:00:00Z","cancel_at_period_end":false,"pending_update":{"price_id":"price_2","quantity":5,"amount_cents":90000,"effective_at":"2026-12-20T03:00:00Z"},"suspended_at":null,"suspension_reason":null,"trial_start":null,"trial_end":null,"metadata":{},"client_reference_id":"x","discount_id":"disc_1","discount_ends_at":"2027-03-01T03:00:00Z","first_period_extra_days":30}}"""),
-            ["GET /api/v1/subscriptions/sub_2"] = (HttpStatusCode.OK, """{"data":{"id":"sub_2","showcase_id":"x","customer_id":"x","product_id":"x","price_id":"x","status":"active","amount_cents":0,"quantity":0,"currency":"BRL","interval":"x","current_period_start":"2026-11-20T12:00:00Z","current_period_end":"2026-11-20T12:00:00Z","cancel_at_period_end":false,"pending_update":null,"suspended_at":null,"suspension_reason":null,"trial_start":null,"trial_end":null,"metadata":{},"client_reference_id":"x","discount_id":null,"discount_ends_at":null,"first_period_extra_days":null}}"""),
+            ["POST /api/v1/checkouts"] = (HttpStatusCode.Created, """{"data":{"id":"pcl_1","showcase_id":"x","url":"x","product_id":"prod_1","price_id":"price_1","status":"active","label":"x","quantity":0,"amount_cents":null,"items":[],"metadata":{},"client_reference_id":"x","success_url":"x","cancel_url":"x","expires_at":null,"subscription_start_at":null,"discount_id":"disc_1","first_period_extra_days":30,"renewal_mode":"manual","notify_customer_email":false,"created_at":"2026-11-20T12:00:00Z","session_id":"cs_1","client_secret":"cs_secret_1","client_secret_expires_at":"2026-11-20T12:00:00Z","status_key":"x"}}"""),
+            ["PATCH /api/v1/subscriptions/sub_1"] = (HttpStatusCode.OK, """{"data":{"id":"sub_1","showcase_id":"x","customer_id":"x","product_id":"x","price_id":"x","status":"active","amount_cents":0,"quantity":0,"currency":"BRL","interval":"x","current_period_start":"2026-11-20T12:00:00Z","current_period_end":"2026-11-20T12:00:00Z","cancel_at_period_end":false,"pending_update":{"price_id":"price_2","quantity":5,"amount_cents":90000,"effective_at":"2026-12-20T03:00:00Z"},"suspended_at":null,"suspension_reason":null,"trial_start":null,"trial_end":null,"metadata":{},"client_reference_id":"x","discount_id":"disc_1","discount_ends_at":"2027-03-01T03:00:00Z","first_period_extra_days":30,"renewal_mode":"manual","label":"x","notify_customer_email":false}}"""),
+            ["GET /api/v1/subscriptions/sub_2"] = (HttpStatusCode.OK, """{"data":{"id":"sub_2","showcase_id":"x","customer_id":"x","product_id":"x","price_id":"x","status":"active","amount_cents":0,"quantity":0,"currency":"BRL","interval":"x","current_period_start":"2026-11-20T12:00:00Z","current_period_end":"2026-11-20T12:00:00Z","cancel_at_period_end":false,"pending_update":null,"suspended_at":null,"suspension_reason":null,"trial_start":null,"trial_end":null,"metadata":{},"client_reference_id":"x","discount_id":null,"discount_ends_at":null,"first_period_extra_days":null,"renewal_mode":"manual","label":"x","notify_customer_email":false}}"""),
             ["GET /api/v1/orders/ord_1"] = (HttpStatusCode.OK, """{"data":{"id":"ord_1","showcase_id":"x","customer_id":"x","product_id":"x","price_id":"x","amount_cents":9000,"currency":"BRL","status":"open","paid_at":null,"order_status":null,"refunded_amount_cents":0,"installments":0,"installment_interest_cents":0,"items":[],"metadata":{},"client_reference_id":"x","subscription_id":null,"cycle_sequence":null,"period_start":null,"period_end":null,"discount_id":"disc_1","discount_code":"BEMVINDO","subtotal_cents":10000,"discount_cents":1000}}"""),
             ["GET /api/v1/prices/price_1"] = (HttpStatusCode.OK, """{"data":{"id":"price_1","product_id":"prod_1","currency":"BRL","amount_cents":9000,"type":"one_time","interval":"none","interval_count":0,"pricing_model":"fixed","unit_amount_cents":null,"tiers":[],"unit_label":"x","unit_label_plural":"x","minimum_units":null,"maximum_units":null,"status":"archived"}}"""),
         };
@@ -243,6 +243,108 @@ public class PerataTests
         var price = await perata.Prices.GetAsync("price_1");
         Assert.Equal("/api/v1/prices/price_1", recorder.Requests[4].Url.AbsolutePath);
         Assert.Equal("archived", price.Status);
+    }
+
+    // The payment reads back its fee, its net, its split and the payout that pays it.
+    [Fact]
+    public async Task APaymentReadsBackItsFeeItsSplitAndItsPayout()
+    {
+        var perata = Client(new Recorder(_ => new Answer(HttpStatusCode.OK, """{"data":{"id":"pay_1","showcase_id":"x","checkout_id":"x","customer_id":"x","method":"card","state":"unknown","amount_cents":0,"captured_cents":0,"refunded_cents":0,"currency":"BRL","created_at":"2026-11-20T12:00:00Z","metadata":{},"client_reference_id":"x","installments":0,"installment_amount_cents":0,"installment_interest_cents":0,"subscription_id":null,"cycle_sequence":null,"period_start":null,"period_end":null,"fee_cents":450,"net_cents":8550,"expected_payout_on":"2026-12-21","payout_deposited_on":null,"payout_id":null,"split":[{"recipient_id":"shw_2","amount_cents":9000,"fee_cents":450,"net_cents":8550}]}}""")));
+        var payment = await perata.Payments.GetAsync("pay_1");
+        Assert.Equal((450L, 8550L, "2026-12-21"), (payment.FeeCents, payment.NetCents, payment.ExpectedPayoutOn));
+        Assert.Null(payment.PayoutId);
+        Assert.Null(payment.PayoutDepositedOn);
+        var split = Assert.Single(payment.Split);
+        Assert.Equal(("shw_2", 9000L, 450L, 8550L), (split.RecipientId, split.AmountCents, split.FeeCents, split.NetCents));
+    }
+
+    // The balance carries its period, the payouts are filtered and walked page by
+    // page, and a payout reads back its lines: a fee has no payment.
+    [Fact]
+    public async Task TheBalanceAndThePayoutsReadBackWhatWillBeDeposited()
+    {
+        var recorder = new Recorder(seen =>
+        {
+            var json = seen.Url.AbsolutePath switch
+            {
+                "/api/v1/balance" => """{"data":{"total_to_receive_cents":100000,"released_cents":10000,"held_cents":5000,"scheduled_cents":60000,"later_cents":25000,"deposited_cents":42000,"period_from":"2026-11-01","period_to":"2026-11-20","currency":"BRL"}}""",
+                "/api/v1/payouts/po_20261120" => """{"data":{"id":"po_20261120","status":"deposited","expected_on":"2026-11-20","deposited_on":"2026-11-20","amount_cents":10000,"fee_cents":450,"net_cents":9550,"currency":"BRL","item_count":2,"items":[{"kind":"sale","payment_id":"pay_1","installment":1,"status":"deposited","amount_cents":10000,"fee_cents":300,"net_cents":9700},{"kind":"fee","payment_id":null,"installment":0,"status":"deposited","amount_cents":0,"fee_cents":150,"net_cents":-150}]}}""",
+                _ => Query(seen.Url).GetValueOrDefault("page") == "2" ? """{"data":{"items":[{"id":"po_20261119","status":"released","expected_on":"2026-11-19","deposited_on":null,"amount_cents":5000,"fee_cents":200,"net_cents":4800,"currency":"BRL","item_count":2}],"pagination":{"total_count":2,"max_page":2}}}""" : """{"data":{"items":[{"id":"po_20261120","status":"deposited","expected_on":"2026-11-20","deposited_on":"2026-11-20","amount_cents":10000,"fee_cents":450,"net_cents":9550,"currency":"BRL","item_count":2}],"pagination":{"total_count":2,"max_page":2}}}""",
+            };
+            return new Answer(HttpStatusCode.OK, json);
+        });
+        var perata = Client(recorder);
+        var balance = await perata.Balance.GetAsync(new BalanceGetParams { DateFrom = "2026-11-01", DateTo = "2026-11-20" });
+        Assert.Equal("2026-11-01", Query(recorder.Requests[0].Url)["date_from"]);
+        Assert.Equal("2026-11-20", Query(recorder.Requests[0].Url)["date_to"]);
+        Assert.Equal((100000L, 42000L, "2026-11-01", "2026-11-20", "BRL"), (balance.TotalToReceiveCents, balance.DepositedCents, balance.PeriodFrom, balance.PeriodTo, balance.Currency));
+        Assert.Equal(balance.TotalToReceiveCents, balance.ReleasedCents + balance.HeldCents + balance.ScheduledCents + balance.LaterCents);
+        var walked = new List<string>();
+        await foreach (var payout in perata.Payouts.ListIterAsync(new PayoutsListParams { Limit = 1, Status = "deposited", DateFrom = "2026-11-01", Sorting = "-date" }))
+        {
+            walked.Add(payout.Id + ":" + payout.Status);
+            Assert.Equal(payout.AmountCents - payout.FeeCents, payout.NetCents);
+            Assert.Equal(payout.Status == "deposited", payout.DepositedOn is not null);
+        }
+        Assert.Equal(["po_20261120:deposited", "po_20261119:released"], walked);
+        var query = Query(recorder.Requests[1].Url);
+        Assert.Equal(("1", "1", "deposited", "2026-11-01", "-date"), (query["page"], query["limit"], query["status"], query["date_from"], query["sorting"]));
+        var detail = await perata.Payouts.GetAsync("po_20261120");
+        Assert.Equal((9550L, 2), (detail.NetCents, detail.Items.Count));
+        Assert.Equal(("sale", "pay_1", 1L, 9700L), (detail.Items[0].Kind, detail.Items[0].PaymentId, detail.Items[0].Installment, detail.Items[0].NetCents));
+        Assert.Equal(("fee", null, -150L), (detail.Items[1].Kind, detail.Items[1].PaymentId, detail.Items[1].NetCents));
+    }
+
+    // A checkout says how its subscription renews, the subscription reads back the
+    // mode it resolved to, its label and whether the buyer is written to, an update
+    // changes them, and the open renewal charge is read by its own route; without
+    // one the API answers 404 no_open_charge.
+    [Fact]
+    public async Task TheRenewalModeTheLabelAndTheOpenCharge()
+    {
+        var answers = new Dictionary<string, (HttpStatusCode, string)>
+        {
+            ["POST /api/v1/checkouts"] = (HttpStatusCode.Created, """{"data":{"id":"pcl_1","showcase_id":"x","url":"x","product_id":"prod_1","price_id":"price_1","status":"active","label":"Olho de Águia · Ana","quantity":0,"amount_cents":null,"items":[],"metadata":{},"client_reference_id":"x","success_url":"x","cancel_url":"x","expires_at":null,"subscription_start_at":null,"discount_id":"x","first_period_extra_days":null,"renewal_mode":"automatic","notify_customer_email":false,"created_at":"2026-11-20T12:00:00Z","session_id":"cs_1","client_secret":"cs_secret_1","client_secret_expires_at":"2026-11-20T12:00:00Z","status_key":"x"}}"""),
+            ["PATCH /api/v1/subscriptions/sub_1"] = (HttpStatusCode.OK, """{"data":{"id":"sub_1","showcase_id":"x","customer_id":"x","product_id":"x","price_id":"x","status":"active","amount_cents":0,"quantity":0,"currency":"BRL","interval":"x","current_period_start":"2026-11-20T12:00:00Z","current_period_end":"2026-11-20T12:00:00Z","cancel_at_period_end":false,"pending_update":null,"suspended_at":null,"suspension_reason":null,"trial_start":null,"trial_end":null,"metadata":{},"client_reference_id":"x","discount_id":null,"discount_ends_at":null,"first_period_extra_days":null,"renewal_mode":"pix_automatic","label":"Olho de Águia · Ana","notify_customer_email":false}}"""),
+            ["GET /api/v1/subscriptions/sub_1/open-charge"] = (HttpStatusCode.OK, """{"data":{"id":"rc_1","subscription_id":"sub_1","showcase_id":"x","customer_id":"x","product_id":"x","price_id":"x","cycle_sequence":2,"amount_cents":9000,"currency":"BRL","label":"Olho de Águia · Ana","renewal_mode":"manual","period_start":"2026-11-20T12:00:00Z","period_end":"2026-11-20T12:00:00Z","due_at":"2026-12-20T03:00:00Z","expires_at":"2026-12-27T03:00:00Z","payment_url":"https://perata.sh/pagar/rc_1","metadata":{},"client_reference_id":"x","reminder":null,"days_until_due":null,"notify_customer_email":true}}"""),
+        };
+        var recorder = new Recorder(seen => answers.TryGetValue(seen.Method + " " + seen.Url.AbsolutePath, out var found)
+            ? new Answer(found.Item1, found.Item2)
+            : new Answer(HttpStatusCode.NotFound, """{"error":"no_open_charge","message":"A assinatura não tem cobrança de renovação em aberto."}"""));
+        var perata = Client(recorder);
+        const string label = "Olho de Águia · Ana";
+        var checkout = await perata.Checkouts.CreateAsync(new CheckoutsCreateParams
+        {
+            ProductId = "prod_1", PriceId = "price_1", RenewalMode = CheckoutsCreateParams.RenewalModeAutomatic, NotifyCustomerEmail = false, Label = label,
+        });
+        using var created = JsonDocument.Parse(recorder.Requests[0].Body!);
+        Assert.Equal(("automatic", false, label), (created.RootElement.GetProperty("renewal_mode").GetString(), created.RootElement.GetProperty("notify_customer_email").GetBoolean(), created.RootElement.GetProperty("label").GetString()));
+        Assert.Equal(("automatic", false, label), (checkout.RenewalMode, checkout.NotifyCustomerEmail, checkout.Label));
+        var subscription = await perata.Subscriptions.UpdateAsync("sub_1", new SubscriptionsUpdateParams { RenewalMode = SubscriptionsUpdateParams.RenewalModeManual, NotifyCustomerEmail = true, Label = label });
+        using var sent = JsonDocument.Parse(recorder.Requests[1].Body!);
+        Assert.Equal(("manual", true, label), (sent.RootElement.GetProperty("renewal_mode").GetString(), sent.RootElement.GetProperty("notify_customer_email").GetBoolean(), sent.RootElement.GetProperty("label").GetString()));
+        Assert.Equal(("pix_automatic", label, false), (subscription.RenewalMode, subscription.Label, subscription.NotifyCustomerEmail));
+        var charge = await perata.Subscriptions.GetOpenChargeAsync("sub_1");
+        Assert.Equal("/api/v1/subscriptions/sub_1/open-charge", recorder.Requests[2].Url.AbsolutePath);
+        Assert.Equal(("rc_1", "sub_1", 9000L, "manual"), (charge.Id, charge.SubscriptionId, charge.AmountCents, charge.RenewalMode));
+        Assert.Equal(("https://perata.sh/pagar/rc_1", "2026-12-20T03:00:00Z", "2026-12-27T03:00:00Z"), (charge.PaymentUrl, charge.DueAt, charge.ExpiresAt));
+        Assert.Null(charge.Reminder);
+        Assert.Null(charge.DaysUntilDue);
+        Assert.True(charge.NotifyCustomerEmail);
+        var refused = await Assert.ThrowsAsync<PerataException>(() => perata.Subscriptions.GetOpenChargeAsync("sub_2"));
+        Assert.Equal((404, "no_open_charge"), (refused.Status, refused.Code));
+    }
+
+    // The renewal events carry the charge: due, and the reminder with its days.
+    [Fact]
+    public void TheRenewalEventsCarryTheCharge()
+    {
+        var now = DateTimeOffset.FromUnixTimeSeconds(SignedAt + 120);
+        var due = Assert.IsType<RenewalChargeWebhookEvent>(Webhook.Verify(NewSecret, WebhookHeaders("msg_7", SignedAt, "v1,BKbvaeGeiiLKhXAhfIIqaaxztbvGy5+Lj3u3m+Zec9w="), """{"id":"msg_7","type":"subscription.renewal_due","timestamp":"2026-10-22T12:00:00Z","data":{"id":"rc_1","subscription_id":"sub_1","showcase_id":"x","customer_id":"x","product_id":"x","price_id":"x","cycle_sequence":2,"amount_cents":9000,"currency":"BRL","label":"Olho de Águia · Ana","renewal_mode":"manual","period_start":"2026-11-20T12:00:00Z","period_end":"2026-11-20T12:00:00Z","due_at":"2026-12-20T03:00:00Z","expires_at":"2026-12-27T03:00:00Z","payment_url":"https://perata.sh/pagar/rc_1","metadata":{},"client_reference_id":"x","notify_customer_email":true,"reminder":null,"days_until_due":null}}""", now));
+        Assert.Equal(("subscription.renewal_due", "rc_1", "https://perata.sh/pagar/rc_1"), (due.Type, due.Data.Id, due.Data.PaymentUrl));
+        Assert.Null(due.Data.Reminder);
+        var reminder = Assert.IsType<RenewalChargeWebhookEvent>(Webhook.Verify(NewSecret, WebhookHeaders("msg_8", SignedAt, "v1,D1dd09VwdIBIDIq3Tp/yC+mhhlORnZyN/P/KU4sxX2Q="), """{"id":"msg_8","type":"subscription.renewal_reminder","timestamp":"2026-10-22T12:00:00Z","environment":"live","showcase_id":"shw_1","data":{"id":"rc_1","subscription_id":"sub_1","showcase_id":"x","customer_id":"x","product_id":"x","price_id":"x","cycle_sequence":2,"amount_cents":9000,"currency":"BRL","label":"Olho de Águia · Ana","renewal_mode":"manual","period_start":"2026-11-20T12:00:00Z","period_end":"2026-11-20T12:00:00Z","due_at":"2026-12-20T03:00:00Z","expires_at":"2026-12-27T03:00:00Z","payment_url":"https://perata.sh/pagar/rc_1","metadata":{},"client_reference_id":"x","notify_customer_email":true,"reminder":"before_due","days_until_due":3}}""", now));
+        Assert.Equal(("subscription.renewal_reminder", "live", "before_due", 3L), (reminder.Type, reminder.Environment, reminder.Data.Reminder, reminder.Data.DaysUntilDue));
     }
 
     [Fact]

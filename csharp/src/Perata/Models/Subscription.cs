@@ -12,6 +12,15 @@ public sealed record Subscription
     /// <summary>A value of <see cref="Currency"/>.</summary>
     public const string CurrencyBRL = "BRL";
 
+    /// <summary>A value of <see cref="RenewalMode"/>.</summary>
+    public const string RenewalModeManual = "manual";
+
+    /// <summary>A value of <see cref="RenewalMode"/>.</summary>
+    public const string RenewalModeCard = "card";
+
+    /// <summary>A value of <see cref="RenewalMode"/>.</summary>
+    public const string RenewalModePixAutomatic = "pix_automatic";
+
     /// <summary>A value of <see cref="Status"/>.</summary>
     public const string StatusTrialing = "trialing";
 
@@ -87,9 +96,17 @@ public sealed record Subscription
     [JsonPropertyName("interval")]
     public required string Interval { get; init; }
 
+    /// <summary>O nome que você deu à assinatura, copiado do label do checkout que a vendeu (por exemplo, Olho de Águia · Colaborador Ana); vazio sem ele. É o título da assinatura no portal do cliente e no painel. Troque com PATCH, até 200 caracteres.</summary>
+    [JsonPropertyName("label")]
+    public required string Label { get; init; }
+
     /// <summary>Metadados do lojista: pares chave e valor (texto, número ou booleano); objeto vazio quando não há.</summary>
     [JsonPropertyName("metadata")]
     public required IReadOnlyDictionary<string, JsonElement> Metadata { get; init; }
+
+    /// <summary>Verdadeiro enquanto a Peráta escreve ao comprador a cada cobrança de renovação; falso quando o seu sistema avisa o comprador e a Peráta fica quieta. Vem do notify_customer_email do checkout (verdadeiro por padrão) e ainda depende do aviso Cobrança da renovação em Configurações › Preferências, que a organização pode desligar.</summary>
+    [JsonPropertyName("notify_customer_email")]
+    public required bool NotifyCustomerEmail { get; init; }
 
     /// <summary>A mudança de plano ou de quantidade agendada para o próximo período (PATCH com proration_behavior next_period); nulo quando não há nenhuma. Até effective_at a assinatura segue com o price_id, a quantity e o amount_cents de cima. Null when the API sends none.</summary>
     [JsonPropertyName("pending_update")]
@@ -106,6 +123,10 @@ public sealed record Subscription
     /// <summary>Quantas unidades ou assentos a assinatura cobre, de 1 em diante; 1 num preço sem quantidade. amount_cents é o total do ciclo para esta quantity.</summary>
     [JsonPropertyName("quantity")]
     public required long Quantity { get; init; }
+
+    /// <summary>Como os próximos períodos são cobrados: manual (a cada ciclo a Peráta abre uma cobrança para o comprador pagar, com o evento subscription.renewal_due, e o cartão nunca é cobrado), card (o cartão de crédito guardado é cobrado sozinho) ou pix_automatic (o banco debita cada cobrança, autorizada uma vez pelo comprador). card e pix_automatic são os modos automáticos. Vem do renewal_mode do checkout; sem ele, é card quando o pagamento guardou o cartão e manual nos outros meios. Troque com PATCH (manual, ou card quando há cartão guardado).</summary>
+    [JsonPropertyName("renewal_mode")]
+    public required string RenewalMode { get; init; }
 
     /// <summary>O showcase a que pertence: o da chave de API que fez a chamada. Uma chave só alcança o seu showcase.</summary>
     [JsonPropertyName("showcase_id")]

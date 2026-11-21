@@ -2,6 +2,27 @@
 
 package perata
 
+// Balance is a resource of Peráta's API.
+type Balance struct {
+	Currency string `json:"currency"`
+	// Depositado no período de period_from a period_to: a soma do valor líquido dos repasses depositados nesses dias. Não faz parte do total a receber.
+	DepositedCents int64 `json:"deposited_cents"`
+	// Retido para análise: o valor que teria sido liberado ou previsto, mas que a Peráta mantém retido enquanto a conta da organização está em análise. Volta a ser liberado quando a análise termina.
+	HeldCents int64 `json:"held_cents"`
+	// A receber depois: o que falta do total e ainda não tem data de repasse, como as parcelas além dos próximos 31 dias.
+	LaterCents int64 `json:"later_cents"`
+	// O primeiro dia do período de deposited_cents, AAAA-MM-DD. Sem date_from na chamada, são os 30 dias até period_to.
+	PeriodFrom string `json:"period_from"`
+	// O último dia do período de deposited_cents, AAAA-MM-DD. Sem date_to na chamada, é hoje.
+	PeriodTo string `json:"period_to"`
+	// Liberado para repasse: o valor cuja data de repasse já chegou e que a Peráta ainda não registrou como depositado. Está em processamento.
+	ReleasedCents int64 `json:"released_cents"`
+	// Previsto: o valor com data de repasse nos próximos 31 dias.
+	ScheduledCents int64 `json:"scheduled_cents"`
+	// O valor total a receber: tudo o que a organização ainda vai receber das vendas capturadas, já descontadas as tarifas e os reembolsos. É sempre released_cents + held_cents + scheduled_cents + later_cents.
+	TotalToReceiveCents int64 `json:"total_to_receive_cents"`
+}
+
 // Benefit is a resource of Peráta's API.
 type Benefit struct {
 	CreatedAt   string `json:"created_at"`
@@ -106,10 +127,14 @@ type Checkout struct {
 	// Como o lojista chama o checkout nas próprias telas; o comprador não vê.
 	Label string `json:"label"`
 	// Os pares que o seu servidor guardou na criação; voltam nos eventos da venda.
-	Metadata  map[string]any `json:"metadata"`
-	PriceID   string         `json:"price_id"`
-	ProductID string         `json:"product_id"`
-	Quantity  int64          `json:"quantity"`
+	Metadata map[string]any `json:"metadata"`
+	// Falso quando o seu sistema avisa o comprador das cobranças de renovação e a Peráta fica quieta.
+	NotifyCustomerEmail bool   `json:"notify_customer_email"`
+	PriceID             string `json:"price_id"`
+	ProductID           string `json:"product_id"`
+	Quantity            int64  `json:"quantity"`
+	// O renewal_mode da criação: manual, automatic ou buyer_choice; vazio quando foi omitido. A assinatura que o pagamento começa traz o modo a que isso se resolveu em Subscription.renewal_mode.
+	RenewalMode string `json:"renewal_mode"`
 	// O showcase a que pertence: o da chave de API que fez a chamada. Uma chave só alcança o seu showcase.
 	ShowcaseID string `json:"showcase_id"`
 	// active abre sessões de compra; archived saiu de circulação.
@@ -273,10 +298,14 @@ type CheckoutCreated struct {
 	// Como o lojista chama o checkout nas próprias telas; o comprador não vê.
 	Label string `json:"label"`
 	// Os pares que o seu servidor enviou; voltam no pedido, no pagamento e nos eventos da venda (checkout.*, order.*, checkout_payment.* e refund.*).
-	Metadata  map[string]any `json:"metadata"`
-	PriceID   string         `json:"price_id"`
-	ProductID string         `json:"product_id"`
-	Quantity  int64          `json:"quantity"`
+	Metadata map[string]any `json:"metadata"`
+	// Falso quando o seu sistema avisa o comprador das cobranças de renovação e a Peráta fica quieta.
+	NotifyCustomerEmail bool   `json:"notify_customer_email"`
+	PriceID             string `json:"price_id"`
+	ProductID           string `json:"product_id"`
+	Quantity            int64  `json:"quantity"`
+	// O renewal_mode da criação: manual, automatic ou buyer_choice; vazio quando foi omitido. A assinatura que o pagamento começa traz o modo a que isso se resolveu em Subscription.renewal_mode.
+	RenewalMode string `json:"renewal_mode"`
 	// O ID da sessão de checkout; as rotas de cliente dela são /checkouts/client/{client_secret}.
 	SessionID string `json:"session_id"`
 	// O showcase a que pertence: o da chave de API que fez a chamada. Uma chave só alcança o seu showcase.
@@ -731,7 +760,11 @@ type Payment struct {
 	CustomerID        string `json:"customer_id"`
 	// Qual ciclo da assinatura o pagamento pagou: 1 é o primeiro; nulo fora de uma assinatura.
 	CycleSequence *int64 `json:"cycle_sequence"`
-	ID            string `json:"id"`
+	// A data prevista do próximo repasse que paga este pagamento, AAAA-MM-DD; nula quando nenhum repasse está esperando (já foi todo depositado, não foi capturado ou a data ainda não é conhecida). Num pagamento parcelado, é a da próxima parcela.
+	ExpectedPayoutOn *string `json:"expected_payout_on"`
+	// A tarifa que a Peráta cobrou desta venda, em centavos: a parte do valor capturado que a Peráta retém. 0 enquanto o pagamento não foi capturado.
+	FeeCents int64  `json:"fee_cents"`
+	ID       string `json:"id"`
 	// Valor de uma parcela; 0 à vista.
 	InstallmentAmountCents int64 `json:"installment_amount_cents"`
 	// Juros do parcelamento dentro de amount_cents.
@@ -741,6 +774,12 @@ type Payment struct {
 	// Os pares que o seu servidor enviou ao criar o checkout. Na renovação de uma assinatura são os da assinatura, que começou com os do checkout que a vendeu.
 	Metadata map[string]any `json:"metadata"`
 	Method   string         `json:"method"`
+	// O valor líquido da venda, em centavos: captured_cents menos fee_cents, o que fica para o vendedor, antes de reembolsos. 0 enquanto o pagamento não foi capturado.
+	NetCents int64 `json:"net_cents"`
+	// O dia em que o último repasse que pagou este pagamento foi depositado, AAAA-MM-DD; nulo enquanto nenhum foi.
+	PayoutDepositedOn *string `json:"payout_deposited_on"`
+	// O repasse em que o pagamento foi depositado: o id de GET /payouts/{id}; nulo enquanto nenhum foi. Num pagamento parcelado, é o da última parcela depositada.
+	PayoutID *string `json:"payout_id"`
 	// O fim do período que o ciclo paga; nulo fora de uma assinatura.
 	PeriodEnd *string `json:"period_end"`
 	// O começo do período que o ciclo paga; nulo fora de uma assinatura.
@@ -748,7 +787,9 @@ type Payment struct {
 	RefundedCents int64   `json:"refunded_cents"`
 	// O showcase a que pertence: o da chave de API que fez a chamada. Uma chave só alcança o seu showcase.
 	ShowcaseID string `json:"showcase_id"`
-	State      string `json:"state"`
+	// Como a venda foi dividida entre os destinatários, cada um com a sua parte, a tarifa e o líquido; uma venda sem divisão tem um só destinatário.
+	Split []SplitRecipient `json:"split"`
+	State string           `json:"state"`
 	// A assinatura que este pagamento cobrou (a primeira ou uma renovação); nulo quando o pagamento não é de uma assinatura.
 	SubscriptionID *string `json:"subscription_id"`
 }
@@ -766,6 +807,68 @@ type PaymentMethod struct {
 type PaymentMethodDetached struct {
 	Detached bool   `json:"detached"`
 	ID       string `json:"id"`
+}
+
+// Payout is a resource of Peráta's API.
+type Payout struct {
+	// O valor das vendas pagas neste repasse, antes das tarifas, em centavos, já com os reembolsos e as contestações que o repasse compensa (que o reduzem).
+	AmountCents int64  `json:"amount_cents"`
+	Currency    string `json:"currency"`
+	// O dia em que o repasse foi depositado, AAAA-MM-DD; nulo enquanto não foi.
+	DepositedOn *string `json:"deposited_on"`
+	// A data do repasse, AAAA-MM-DD: quando o valor é, ou foi, depositado.
+	ExpectedOn string `json:"expected_on"`
+	// O que o repasse desconta em tarifas, em centavos: a parte de cada venda que a Peráta retém e as tarifas cobradas no dia.
+	FeeCents int64 `json:"fee_cents"`
+	// O id do repasse: po_ e a data do repasse, como po_20261120.
+	ID string `json:"id"`
+	// Quantos lançamentos o repasse tem.
+	ItemCount int64 `json:"item_count"`
+	// O valor líquido do repasse, em centavos: amount_cents menos fee_cents, o que é depositado. Pode ser negativo quando os reembolsos do dia superam as vendas; então o saldo é compensado nos próximos repasses.
+	NetCents int64 `json:"net_cents"`
+	// scheduled: previsto, com data nos próximos dias. released: liberado para repasse, a data chegou e o depósito está em processamento. held: retido para análise enquanto a conta da organização está em análise. deposited: depositado na conta da organização, em deposited_on.
+	Status string `json:"status"`
+}
+
+// PayoutDetail is a resource of Peráta's API.
+type PayoutDetail struct {
+	// O valor das vendas pagas neste repasse, antes das tarifas, em centavos, já com os reembolsos e as contestações que o repasse compensa (que o reduzem).
+	AmountCents int64  `json:"amount_cents"`
+	Currency    string `json:"currency"`
+	// O dia em que o repasse foi depositado, AAAA-MM-DD; nulo enquanto não foi.
+	DepositedOn *string `json:"deposited_on"`
+	// A data do repasse, AAAA-MM-DD: quando o valor é, ou foi, depositado.
+	ExpectedOn string `json:"expected_on"`
+	// O que o repasse desconta em tarifas, em centavos: a parte de cada venda que a Peráta retém e as tarifas cobradas no dia.
+	FeeCents int64 `json:"fee_cents"`
+	// O id do repasse: po_ e a data do repasse, como po_20261120.
+	ID string `json:"id"`
+	// Quantos lançamentos o repasse tem.
+	ItemCount int64 `json:"item_count"`
+	// Os lançamentos do repasse, com o pagamento de cada um.
+	Items []PayoutItem `json:"items"`
+	// O valor líquido do repasse, em centavos: amount_cents menos fee_cents, o que é depositado. Pode ser negativo quando os reembolsos do dia superam as vendas; então o saldo é compensado nos próximos repasses.
+	NetCents int64 `json:"net_cents"`
+	// scheduled: previsto, com data nos próximos dias. released: liberado para repasse, a data chegou e o depósito está em processamento. held: retido para análise enquanto a conta da organização está em análise. deposited: depositado na conta da organização, em deposited_on.
+	Status string `json:"status"`
+}
+
+// PayoutItem is a resource of Peráta's API.
+type PayoutItem struct {
+	// O valor do lançamento antes da tarifa, em centavos; negativo nos reembolsos e nas contestações.
+	AmountCents int64 `json:"amount_cents"`
+	// A tarifa do lançamento, em centavos.
+	FeeCents int64 `json:"fee_cents"`
+	// Qual parcela da venda o lançamento paga; 0 quando a venda foi à vista.
+	Installment int64 `json:"installment"`
+	// sale: uma venda (ou uma parcela dela). refund: um reembolso que o repasse compensa. chargeback: uma contestação. fee: uma tarifa do dia. adjustment: um ajuste. anticipation: uma antecipação de recebíveis.
+	Kind string `json:"kind"`
+	// amount_cents menos fee_cents: o que o lançamento acrescenta ao depósito.
+	NetCents int64 `json:"net_cents"`
+	// O pagamento a que o lançamento se refere, o id de GET /payments/{id}; nulo nas tarifas e nos ajustes que não são de um pagamento.
+	PaymentID *string `json:"payment_id"`
+	// Como o do repasse, para este lançamento: um repasse com lançamentos em estados diferentes está no menos avançado deles.
+	Status string `json:"status"`
 }
 
 // Price is a resource of Peráta's API.
@@ -839,6 +942,45 @@ type Refund struct {
 	Status string `json:"status"`
 }
 
+// RenewalCharge is a resource of Peráta's API.
+type RenewalCharge struct {
+	// O que o comprador paga, em centavos: o ciclo já com desconto e rateio.
+	AmountCents int64 `json:"amount_cents"`
+	// O client_reference_id da assinatura.
+	ClientReferenceID string `json:"client_reference_id"`
+	Currency          string `json:"currency"`
+	CustomerID        string `json:"customer_id"`
+	// O ciclo que a cobrança paga: 2 é a primeira renovação.
+	CycleSequence int64 `json:"cycle_sequence"`
+	// Só nos lembretes: 3 em before_due, 0 em on_due; nulo no resto.
+	DaysUntilDue *int64 `json:"days_until_due"`
+	// Até quando a cobrança deve ser paga sem a assinatura ficar em atraso: o fim do período que ela cobra. Passado o prazo, a assinatura vira past_due e o mesmo payment_url continua valendo por mais 72 horas de tolerância; depois disso a assinatura é suspensa.
+	DueAt string `json:"due_at"`
+	// Quando o payment_url deixa de abrir; sempre depois da tolerância de 72 horas.
+	ExpiresAt *string `json:"expires_at"`
+	// O id da cobrança, que é o do ciclo da assinatura que ela cobra. O pedido só existe depois do pagamento: o order.paid que vem então traz o mesmo subscription_id e cycle_sequence.
+	ID string `json:"id"`
+	// O label da assinatura; vazio sem ele.
+	Label string `json:"label"`
+	// Os metadados da assinatura.
+	Metadata map[string]any `json:"metadata"`
+	// Se a Peráta escreve ao comprador desta cobrança.
+	NotifyCustomerEmail bool `json:"notify_customer_email"`
+	// A página da Peráta onde o comprador paga esta cobrança, por cartão, Pix ou boleto. O Pix é gerado nessa página, quando o comprador o escolhe, e vale 24 horas: a Peráta não gera o Pix na abertura da cobrança porque ele venceria antes do prazo da cobrança e, enquanto vale, impediria pagar de outro jeito. Entregue este endereço ao comprador.
+	PaymentURL  string `json:"payment_url"`
+	PeriodEnd   string `json:"period_end"`
+	PeriodStart string `json:"period_start"`
+	PriceID     string `json:"price_id"`
+	ProductID   string `json:"product_id"`
+	// Só nos eventos subscription.renewal_reminder: before_due (3 dias antes de due_at) ou on_due (no vencimento). Nulo na cobrança e em subscription.renewal_due.
+	Reminder *string `json:"reminder"`
+	// O modo de renovação da assinatura. Uma cobrança em aberto existe nos modos manual e, quando o cartão é recusado, card.
+	RenewalMode string `json:"renewal_mode"`
+	// O showcase a que pertence: o da chave de API que fez a chamada.
+	ShowcaseID     string `json:"showcase_id"`
+	SubscriptionID string `json:"subscription_id"`
+}
+
 // Showcase is a resource of Peráta's API.
 type Showcase struct {
 	CreatedAt string `json:"created_at"`
@@ -852,6 +994,18 @@ type Showcase struct {
 	IsPrincipal bool `json:"is_principal"`
 	// O nome do showcase, como o lojista o vê no painel.
 	Name string `json:"name"`
+}
+
+// SplitRecipient is a resource of Peráta's API.
+type SplitRecipient struct {
+	// O valor da parte deste destinatário, antes da tarifa, em centavos.
+	AmountCents int64 `json:"amount_cents"`
+	// A tarifa que esta parte pagou, em centavos.
+	FeeCents int64 `json:"fee_cents"`
+	// amount_cents menos fee_cents: o que sobra ao destinatário.
+	NetCents int64 `json:"net_cents"`
+	// O showcase destinatário desta parte da venda; nulo quando a Peráta não o identifica.
+	RecipientID *string `json:"recipient_id"`
 }
 
 // Subscription is a resource of Peráta's API.
@@ -873,14 +1027,20 @@ type Subscription struct {
 	FirstPeriodExtraDays *int64 `json:"first_period_extra_days"`
 	ID                   string `json:"id"`
 	Interval             string `json:"interval"`
+	// O nome que você deu à assinatura, copiado do label do checkout que a vendeu (por exemplo, Olho de Águia · Colaborador Ana); vazio sem ele. É o título da assinatura no portal do cliente e no painel. Troque com PATCH, até 200 caracteres.
+	Label string `json:"label"`
 	// Metadados do lojista: pares chave e valor (texto, número ou booleano); objeto vazio quando não há.
 	Metadata map[string]any `json:"metadata"`
+	// Verdadeiro enquanto a Peráta escreve ao comprador a cada cobrança de renovação; falso quando o seu sistema avisa o comprador e a Peráta fica quieta. Vem do notify_customer_email do checkout (verdadeiro por padrão) e ainda depende do aviso Cobrança da renovação em Configurações › Preferências, que a organização pode desligar.
+	NotifyCustomerEmail bool `json:"notify_customer_email"`
 	// A mudança de plano ou de quantidade agendada para o próximo período (PATCH com proration_behavior next_period); nulo quando não há nenhuma. Até effective_at a assinatura segue com o price_id, a quantity e o amount_cents de cima.
 	PendingUpdate *SubscriptionPendingUpdate `json:"pending_update"`
 	PriceID       string                     `json:"price_id"`
 	ProductID     string                     `json:"product_id"`
 	// Quantas unidades ou assentos a assinatura cobre, de 1 em diante; 1 num preço sem quantidade. amount_cents é o total do ciclo para esta quantity.
 	Quantity int64 `json:"quantity"`
+	// Como os próximos períodos são cobrados: manual (a cada ciclo a Peráta abre uma cobrança para o comprador pagar, com o evento subscription.renewal_due, e o cartão nunca é cobrado), card (o cartão de crédito guardado é cobrado sozinho) ou pix_automatic (o banco debita cada cobrança, autorizada uma vez pelo comprador). card e pix_automatic são os modos automáticos. Vem do renewal_mode do checkout; sem ele, é card quando o pagamento guardou o cartão e manual nos outros meios. Troque com PATCH (manual, ou card quando há cartão guardado).
+	RenewalMode string `json:"renewal_mode"`
 	// O showcase a que pertence: o da chave de API que fez a chamada. Uma chave só alcança o seu showcase.
 	ShowcaseID string `json:"showcase_id"`
 	Status     string `json:"status"`
@@ -1127,6 +1287,44 @@ type WebhookRefund struct {
 	Status     string `json:"status"`
 }
 
+// A cobrança de renovação que espera o comprador pagar (subscription.renewal_due e subscription.renewal_reminder), a mesma que GET /api/v1/subscriptions/{id}/open-charge devolve. Traz o que o seu sistema precisa para avisar o comprador: o valor, o prazo e a página onde ele paga.
+type WebhookRenewalCharge struct {
+	// O que o comprador paga, em centavos: o ciclo já com desconto e rateio.
+	AmountCents int64 `json:"amount_cents"`
+	// O client_reference_id da assinatura.
+	ClientReferenceID string `json:"client_reference_id"`
+	Currency          string `json:"currency"`
+	CustomerID        string `json:"customer_id"`
+	// O ciclo que a cobrança paga: 2 é a primeira renovação.
+	CycleSequence int64 `json:"cycle_sequence"`
+	// Só nos lembretes: 3 em before_due, 0 em on_due; nulo no resto.
+	DaysUntilDue *int64 `json:"days_until_due"`
+	// Até quando a cobrança deve ser paga sem a assinatura ficar em atraso: o fim do período que ela cobra. Passado o prazo, a assinatura vira past_due e o mesmo payment_url continua valendo pela tolerância de 72 horas; depois disso a assinatura é suspensa.
+	DueAt string `json:"due_at"`
+	// Quando o payment_url deixa de abrir; sempre depois da tolerância de 72 horas.
+	ExpiresAt *string `json:"expires_at"`
+	// O id da cobrança, que é o do ciclo da assinatura que ela cobra. O pedido só existe depois do pagamento: o order.paid que vem então traz o mesmo subscription_id e cycle_sequence.
+	ID string `json:"id"`
+	// O label da assinatura; vazio sem ele.
+	Label string `json:"label"`
+	// Os metadados da assinatura.
+	Metadata map[string]any `json:"metadata"`
+	// Se a Peráta escreve ao comprador desta cobrança.
+	NotifyCustomerEmail bool `json:"notify_customer_email"`
+	// A página da Peráta onde o comprador paga, por cartão, Pix ou boleto. O Pix é gerado nela, quando o comprador o escolhe, e vale 24 horas: a Peráta não gera o Pix na abertura da cobrança porque ele venceria antes do prazo e, enquanto vale, impediria pagar de outro jeito. Entregue este endereço ao comprador.
+	PaymentURL  string `json:"payment_url"`
+	PeriodEnd   string `json:"period_end"`
+	PeriodStart string `json:"period_start"`
+	PriceID     string `json:"price_id"`
+	ProductID   string `json:"product_id"`
+	// Só em subscription.renewal_reminder: before_due (3 dias antes de due_at) ou on_due (no vencimento). Nulo na cobrança e em subscription.renewal_due.
+	Reminder *string `json:"reminder"`
+	// O modo de renovação da assinatura. Uma cobrança em aberto existe no manual e, quando o cartão é recusado, no card.
+	RenewalMode    string `json:"renewal_mode"`
+	ShowcaseID     string `json:"showcase_id"`
+	SubscriptionID string `json:"subscription_id"`
+}
+
 // Os eventos da venda (checkout_payment.* e refund.*): os identificadores de sempre e, além deles, o checkout, o valor e o que o servidor do lojista enviou ao criar o checkout.
 type WebhookSale struct {
 	Aggregate   string `json:"aggregate"`
@@ -1186,8 +1384,12 @@ type WebhookSubscription struct {
 	FirstPeriodExtraDays *int64 `json:"first_period_extra_days"`
 	ID                   string `json:"id"`
 	Interval             string `json:"interval"`
+	// O nome que o lojista deu à assinatura, copiado do label do checkout que a vendeu; vazio sem ele.
+	Label string `json:"label"`
 	// Metadados do lojista: pares chave e valor (texto, número ou booleano); objeto vazio quando não há.
 	Metadata map[string]any `json:"metadata"`
+	// Verdadeiro enquanto a Peráta escreve ao comprador a cada cobrança de renovação.
+	NotifyCustomerEmail bool `json:"notify_customer_email"`
 	// A cobrança recusada que causou o evento; só nos eventos de cobrança recusada.
 	PaymentFailure WebhookSubscriptionPaymentFailure `json:"payment_failure,omitempty"`
 	// A mudança de plano ou de quantidade agendada para o próximo período (PATCH com proration_behavior next_period); nulo quando não há nenhuma. Até effective_at a assinatura segue com o price_id, a quantity e o amount_cents de cima.
@@ -1196,6 +1398,8 @@ type WebhookSubscription struct {
 	ProductID     string                            `json:"product_id"`
 	// Quantas unidades ou assentos a assinatura cobre, de 1 em diante; 1 num preço sem quantidade. amount_cents é o total do ciclo para esta quantity.
 	Quantity int64 `json:"quantity"`
+	// Como os próximos períodos são cobrados: manual (uma cobrança para o comprador pagar a cada ciclo, com o evento subscription.renewal_due; o cartão nunca é cobrado), card (o cartão de crédito guardado, cobrado sozinho) ou pix_automatic (o banco debita cada cobrança). card e pix_automatic são os automáticos.
+	RenewalMode string `json:"renewal_mode"`
 	// O showcase da venda.
 	ShowcaseID string `json:"showcase_id"`
 	Status     string `json:"status"`
@@ -1353,11 +1557,15 @@ type CheckoutsCreateParams struct {
 	Items []CheckoutsCreateItem `json:"items,omitempty"`
 	Label *string               `json:"label,omitempty"`
 	// Pares guardados no link do checkout e devolvidos no checkout, no pedido, no pagamento e nos eventos da venda. Até 50 pares de chave e valor: a chave tem de 1 a 40 caracteres, e o valor é um texto de 1 a 500 caracteres, um número ou um booleano. Texto sem caracteres de controle nem de direção invisível.
-	Metadata  map[string]any `json:"metadata,omitempty"`
-	PriceID   string         `json:"price_id"`
-	ProductID string         `json:"product_id"`
+	Metadata map[string]any `json:"metadata,omitempty"`
+	// Verdadeiro por padrão. Falso mantém a Peráta sem escrever ao comprador a cobrança de cada renovação (o seu sistema o avisa pelo evento subscription.renewal_due); a cobrança é aberta do mesmo jeito. Além disso, a organização pode desligar este aviso para todos em Configurações › Preferências › Cobrança da renovação.
+	NotifyCustomerEmail *bool  `json:"notify_customer_email,omitempty"`
+	PriceID             string `json:"price_id"`
+	ProductID           string `json:"product_id"`
 	// Quantas unidades. Com amount_cents é sempre 1: envie 1 ou omita; qualquer outro valor é recusado com 422.
 	Quantity *int64 `json:"quantity,omitempty"`
+	// Como a assinatura renova, numa assinatura (preço recorrente com valor). manual: a cada ciclo a Peráta abre uma cobrança para o comprador pagar (payment_url, por cartão, Pix ou boleto) e avisa o seu sistema com o evento subscription.renewal_due, mesmo que o primeiro pagamento tenha sido no cartão; o cartão nunca é cobrado e não é guardado. automatic: só os meios que cobram sozinhos, o cartão de crédito guardado ou o Pix Automático (quando a organização o tem ligado; senão só o cartão); a página mostra só esses meios, e a assinatura nasce com renewal_mode card ou pix_automatic. buyer_choice: a página mostra a caixa Ativar cobrança automática, desmarcada, e o comprador decide: desmarcada é manual, marcada é automatic. Sem o campo nada muda: sem caixa, o cartão de crédito renova sozinho e qualquer outro meio vira uma cobrança a cada ciclo. Funciona junto com first_period_extra_days e com desconto. Vale só em preço recorrente com valor (senão 422); manual não vale com teste grátis nem com subscription_start_at, que guardam o cartão para cobrar no fim (422). Pagar por um meio que o modo não aceita (Pix, boleto ou débito em automatic; Pix Automático em manual) é 422 em payment_method. A Subscription traz o modo a que isso se resolveu em renewal_mode: manual, card ou pix_automatic.
+	RenewalMode *string `json:"renewal_mode,omitempty"`
 	// Pede o endereço de cobrança completo de todo comprador, não só no boleto; desligado quando fica de fora.
 	RequireBillingAddress *bool `json:"require_billing_address,omitempty"`
 	// Outro nome de cancel_url: a página https a que o comprador volta sem pagar. Enviada com um cancel_url diferente, é recusada.
@@ -1600,12 +1808,18 @@ type RefundsCreateParams struct {
 type SubscriptionsUpdateParams struct {
 	// Estende o período atual em tantos dias, de 1 a 365, sem cobrar nada e sem criar pedido: a renovação (e a próxima cobrança) passa a ser no novo fim, current_period_end, e os períodos seguintes contam a partir dele. É o crédito manual de dias do lojista. Só uma assinatura active aceita (uma em teste grátis, atrasada, pausada, suspensa ou cancelada recusa); uma que termina no fim do período termina no novo fim. Vai sozinho, sem price_id, quantity nem proration_behavior, senão a resposta é 422. A mudança chega no webhook subscription.updated e fica registrada no log de atividades. Não é repetível por si: envie uma Idempotency-Key para que uma nova tentativa não some os dias duas vezes.
 	ExtendCurrentPeriodDays *int64 `json:"extend_current_period_days,omitempty"`
+	// O nome da assinatura, até 200 caracteres e sem caracteres de controle; vazio tira o nome. Vai sozinho, com renewal_mode e notify_customer_email, sem price_id, quantity, proration_behavior nem extend_current_period_days. Chega no webhook subscription.updated.
+	Label *string `json:"label,omitempty"`
+	// Liga ou desliga a mensagem que a Peráta manda ao comprador a cada cobrança de renovação. Vai sozinho, como label.
+	NotifyCustomerEmail *bool `json:"notify_customer_email,omitempty"`
 	// O preço recorrente para onde a assinatura vai. Obrigatório para trocar de plano; não se envia com extend_current_period_days.
 	PriceID *string `json:"price_id,omitempty"`
 	// prorate (padrão): rateia o resto do período no próximo valor cobrado; invoice: cobra a diferença agora; next_period: troca no fim do período; reset: cobra o período inteiro do novo plano agora e reinicia o ciclo.
 	ProrationBehavior *string `json:"proration_behavior,omitempty"`
 	// A nova quantidade; omitida, fica a atual.
 	Quantity *int64 `json:"quantity,omitempty"`
+	// Muda como a assinatura renova. manual: deixa de cobrar o cartão e passa a abrir uma cobrança a cada ciclo (o cartão guardado é solto). card: cobra o cartão guardado sozinho; exige um cartão já guardado na assinatura (o comprador o ativa no portal), senão 422. pix_automatic só o comprador ativa, no app do banco. Vai sozinho, como label.
+	RenewalMode *string `json:"renewal_mode,omitempty"`
 }
 
 // The body of subscriptions:cancel.
@@ -1682,6 +1896,7 @@ type WebhooksUpdateEndpointParams struct {
 
 // The values the API answers in an enumerated field.
 const (
+	BalanceCurrencyBRL                                      = "BRL"
 	BenefitStatusActive                                     = "active"
 	BenefitStatusArchived                                   = "archived"
 	BenefitTypeCustom                                       = "custom"
@@ -1706,6 +1921,9 @@ const (
 	CardAuthenticationEnvironmentLive                       = "live"
 	CardTokenizationEnvironmentTest                         = "test"
 	CardTokenizationEnvironmentLive                         = "live"
+	CheckoutRenewalModeManual                               = "manual"
+	CheckoutRenewalModeAutomatic                            = "automatic"
+	CheckoutRenewalModeBuyerChoice                          = "buyer_choice"
 	CheckoutStatusActive                                    = "active"
 	CheckoutStatusArchived                                  = "archived"
 	CheckoutClientCurrencyBRL                               = "BRL"
@@ -1727,6 +1945,9 @@ const (
 	CheckoutClientPaymentStateCanceled                      = "canceled"
 	CheckoutClientPaymentStateRefunded                      = "refunded"
 	CheckoutClientPaymentStatePartiallyRefunded             = "partially_refunded"
+	CheckoutCreatedRenewalModeManual                        = "manual"
+	CheckoutCreatedRenewalModeAutomatic                     = "automatic"
+	CheckoutCreatedRenewalModeBuyerChoice                   = "buyer_choice"
 	CheckoutCreatedStatusActive                             = "active"
 	CheckoutCreatedStatusArchived                           = "archived"
 	CheckoutExpiredStatusExpired                            = "expired"
@@ -1817,6 +2038,26 @@ const (
 	PaymentStateRefunded                                    = "refunded"
 	PaymentStatePartiallyRefunded                           = "partially_refunded"
 	PaymentMethodTypeCard                                   = "card"
+	PayoutCurrencyBRL                                       = "BRL"
+	PayoutStatusScheduled                                   = "scheduled"
+	PayoutStatusReleased                                    = "released"
+	PayoutStatusHeld                                        = "held"
+	PayoutStatusDeposited                                   = "deposited"
+	PayoutDetailCurrencyBRL                                 = "BRL"
+	PayoutDetailStatusScheduled                             = "scheduled"
+	PayoutDetailStatusReleased                              = "released"
+	PayoutDetailStatusHeld                                  = "held"
+	PayoutDetailStatusDeposited                             = "deposited"
+	PayoutItemKindSale                                      = "sale"
+	PayoutItemKindRefund                                    = "refund"
+	PayoutItemKindChargeback                                = "chargeback"
+	PayoutItemKindFee                                       = "fee"
+	PayoutItemKindAdjustment                                = "adjustment"
+	PayoutItemKindAnticipation                              = "anticipation"
+	PayoutItemStatusScheduled                               = "scheduled"
+	PayoutItemStatusReleased                                = "released"
+	PayoutItemStatusHeld                                    = "held"
+	PayoutItemStatusDeposited                               = "deposited"
 	PriceCurrencyBRL                                        = "BRL"
 	PriceIntervalNone                                       = "none"
 	PriceIntervalDay                                        = "day"
@@ -1842,9 +2083,19 @@ const (
 	RefundStatusSucceeded                                   = "succeeded"
 	RefundStatusFailed                                      = "failed"
 	RefundStatusCanceled                                    = "canceled"
+	RenewalChargeCurrencyBRL                                = "BRL"
+	RenewalChargeReminderBeforeDue                          = "before_due"
+	RenewalChargeReminderOnDue                              = "on_due"
+	RenewalChargeReminderNull                               = "null"
+	RenewalChargeRenewalModeManual                          = "manual"
+	RenewalChargeRenewalModeCard                            = "card"
+	RenewalChargeRenewalModePixAutomatic                    = "pix_automatic"
 	ShowcaseEnvironmentTest                                 = "test"
 	ShowcaseEnvironmentLive                                 = "live"
 	SubscriptionCurrencyBRL                                 = "BRL"
+	SubscriptionRenewalModeManual                           = "manual"
+	SubscriptionRenewalModeCard                             = "card"
+	SubscriptionRenewalModePixAutomatic                     = "pix_automatic"
 	SubscriptionStatusTrialing                              = "trialing"
 	SubscriptionStatusActive                                = "active"
 	SubscriptionStatusPastDue                               = "past_due"
@@ -1914,11 +2165,20 @@ const (
 	WebhookRefundStatusSucceeded                            = "succeeded"
 	WebhookRefundStatusFailed                               = "failed"
 	WebhookRefundStatusCanceled                             = "canceled"
+	WebhookRenewalChargeCurrencyBRL                         = "BRL"
+	WebhookRenewalChargeReminderBeforeDue                   = "before_due"
+	WebhookRenewalChargeReminderOnDue                       = "on_due"
+	WebhookRenewalChargeRenewalModeManual                   = "manual"
+	WebhookRenewalChargeRenewalModeCard                     = "card"
+	WebhookRenewalChargeRenewalModePixAutomatic             = "pix_automatic"
 	WebhookSaleCurrencyBRL                                  = "BRL"
 	WebhookSaleMethodCard                                   = "card"
 	WebhookSaleMethodPix                                    = "pix"
 	WebhookSaleMethodBoleto                                 = "boleto"
 	WebhookSubscriptionCurrencyBRL                          = "BRL"
+	WebhookSubscriptionRenewalModeManual                    = "manual"
+	WebhookSubscriptionRenewalModeCard                      = "card"
+	WebhookSubscriptionRenewalModePixAutomatic              = "pix_automatic"
 	WebhookSubscriptionStatusTrialing                       = "trialing"
 	WebhookSubscriptionStatusActive                         = "active"
 	WebhookSubscriptionStatusPastDue                        = "past_due"

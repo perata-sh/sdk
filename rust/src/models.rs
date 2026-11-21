@@ -9,6 +9,29 @@ use std::fmt;
 
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
+/// Balance is a resource of Peráta's API.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct Balance {
+    pub currency: BalanceCurrency,
+    /// Depositado no período de period_from a period_to: a soma do valor líquido dos repasses depositados nesses dias. Não faz parte do total a receber.
+    pub deposited_cents: i64,
+    /// Retido para análise: o valor que teria sido liberado ou previsto, mas que a Peráta mantém retido enquanto a conta da organização está em análise. Volta a ser liberado quando a análise termina.
+    pub held_cents: i64,
+    /// A receber depois: o que falta do total e ainda não tem data de repasse, como as parcelas além dos próximos 31 dias.
+    pub later_cents: i64,
+    /// O primeiro dia do período de deposited_cents, AAAA-MM-DD. Sem date_from na chamada, são os 30 dias até period_to.
+    pub period_from: String,
+    /// O último dia do período de deposited_cents, AAAA-MM-DD. Sem date_to na chamada, é hoje.
+    pub period_to: String,
+    /// Liberado para repasse: o valor cuja data de repasse já chegou e que a Peráta ainda não registrou como depositado. Está em processamento.
+    pub released_cents: i64,
+    /// Previsto: o valor com data de repasse nos próximos 31 dias.
+    pub scheduled_cents: i64,
+    /// O valor total a receber: tudo o que a organização ainda vai receber das vendas capturadas, já descontadas as tarifas e os reembolsos. É sempre released_cents + held_cents + scheduled_cents + later_cents.
+    pub total_to_receive_cents: i64,
+}
+
 /// Benefit is a resource of Peráta's API.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[non_exhaustive]
@@ -129,9 +152,13 @@ pub struct Checkout {
     pub label: String,
     /// Os pares que o seu servidor guardou na criação; voltam nos eventos da venda.
     pub metadata: std::collections::HashMap<String, serde_json::Value>,
+    /// Falso quando o seu sistema avisa o comprador das cobranças de renovação e a Peráta fica quieta.
+    pub notify_customer_email: bool,
     pub price_id: String,
     pub product_id: String,
     pub quantity: i64,
+    /// O renewal_mode da criação: manual, automatic ou buyer_choice; vazio quando foi omitido. A assinatura que o pagamento começa traz o modo a que isso se resolveu em Subscription.renewal_mode.
+    pub renewal_mode: CheckoutRenewalMode,
     /// O showcase a que pertence: o da chave de API que fez a chamada. Uma chave só alcança o seu showcase.
     pub showcase_id: String,
     /// active abre sessões de compra; archived saiu de circulação.
@@ -312,9 +339,13 @@ pub struct CheckoutCreated {
     pub label: String,
     /// Os pares que o seu servidor enviou; voltam no pedido, no pagamento e nos eventos da venda (checkout.*, order.*, checkout_payment.* e refund.*).
     pub metadata: std::collections::HashMap<String, serde_json::Value>,
+    /// Falso quando o seu sistema avisa o comprador das cobranças de renovação e a Peráta fica quieta.
+    pub notify_customer_email: bool,
     pub price_id: String,
     pub product_id: String,
     pub quantity: i64,
+    /// O renewal_mode da criação: manual, automatic ou buyer_choice; vazio quando foi omitido. A assinatura que o pagamento começa traz o modo a que isso se resolveu em Subscription.renewal_mode.
+    pub renewal_mode: CheckoutCreatedRenewalMode,
     /// O ID da sessão de checkout; as rotas de cliente dela são /checkouts/client/{client_secret}.
     pub session_id: String,
     /// O showcase a que pertence: o da chave de API que fez a chamada. Uma chave só alcança o seu showcase.
@@ -829,6 +860,10 @@ pub struct Payment {
     pub customer_id: String,
     /// Qual ciclo da assinatura o pagamento pagou: 1 é o primeiro; nulo fora de uma assinatura.
     pub cycle_sequence: Option<i64>,
+    /// A data prevista do próximo repasse que paga este pagamento, AAAA-MM-DD; nula quando nenhum repasse está esperando (já foi todo depositado, não foi capturado ou a data ainda não é conhecida). Num pagamento parcelado, é a da próxima parcela.
+    pub expected_payout_on: Option<String>,
+    /// A tarifa que a Peráta cobrou desta venda, em centavos: a parte do valor capturado que a Peráta retém. 0 enquanto o pagamento não foi capturado.
+    pub fee_cents: i64,
     pub id: String,
     /// Valor de uma parcela; 0 à vista.
     pub installment_amount_cents: i64,
@@ -839,6 +874,12 @@ pub struct Payment {
     /// Os pares que o seu servidor enviou ao criar o checkout. Na renovação de uma assinatura são os da assinatura, que começou com os do checkout que a vendeu.
     pub metadata: std::collections::HashMap<String, serde_json::Value>,
     pub method: PaymentMethodKind,
+    /// O valor líquido da venda, em centavos: captured_cents menos fee_cents, o que fica para o vendedor, antes de reembolsos. 0 enquanto o pagamento não foi capturado.
+    pub net_cents: i64,
+    /// O dia em que o último repasse que pagou este pagamento foi depositado, AAAA-MM-DD; nulo enquanto nenhum foi.
+    pub payout_deposited_on: Option<String>,
+    /// O repasse em que o pagamento foi depositado: o id de GET /payouts/{id}; nulo enquanto nenhum foi. Num pagamento parcelado, é o da última parcela depositada.
+    pub payout_id: Option<String>,
     /// O fim do período que o ciclo paga; nulo fora de uma assinatura.
     pub period_end: Option<String>,
     /// O começo do período que o ciclo paga; nulo fora de uma assinatura.
@@ -846,6 +887,8 @@ pub struct Payment {
     pub refunded_cents: i64,
     /// O showcase a que pertence: o da chave de API que fez a chamada. Uma chave só alcança o seu showcase.
     pub showcase_id: String,
+    /// Como a venda foi dividida entre os destinatários, cada um com a sua parte, a tarifa e o líquido; uma venda sem divisão tem um só destinatário.
+    pub split: Vec<SplitRecipient>,
     pub state: PaymentState,
     /// A assinatura que este pagamento cobrou (a primeira ou uma renovação); nulo quando o pagamento não é de uma assinatura.
     pub subscription_id: Option<String>,
@@ -869,6 +912,74 @@ pub struct PaymentMethod {
 pub struct PaymentMethodDetached {
     pub detached: bool,
     pub id: String,
+}
+
+/// Payout is a resource of Peráta's API.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct Payout {
+    /// O valor das vendas pagas neste repasse, antes das tarifas, em centavos, já com os reembolsos e as contestações que o repasse compensa (que o reduzem).
+    pub amount_cents: i64,
+    pub currency: PayoutCurrency,
+    /// O dia em que o repasse foi depositado, AAAA-MM-DD; nulo enquanto não foi.
+    pub deposited_on: Option<String>,
+    /// A data do repasse, AAAA-MM-DD: quando o valor é, ou foi, depositado.
+    pub expected_on: String,
+    /// O que o repasse desconta em tarifas, em centavos: a parte de cada venda que a Peráta retém e as tarifas cobradas no dia.
+    pub fee_cents: i64,
+    /// O id do repasse: po_ e a data do repasse, como po_20261120.
+    pub id: String,
+    /// Quantos lançamentos o repasse tem.
+    pub item_count: i64,
+    /// O valor líquido do repasse, em centavos: amount_cents menos fee_cents, o que é depositado. Pode ser negativo quando os reembolsos do dia superam as vendas; então o saldo é compensado nos próximos repasses.
+    pub net_cents: i64,
+    /// scheduled: previsto, com data nos próximos dias. released: liberado para repasse, a data chegou e o depósito está em processamento. held: retido para análise enquanto a conta da organização está em análise. deposited: depositado na conta da organização, em deposited_on.
+    pub status: PayoutStatus,
+}
+
+/// PayoutDetail is a resource of Peráta's API.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct PayoutDetail {
+    /// O valor das vendas pagas neste repasse, antes das tarifas, em centavos, já com os reembolsos e as contestações que o repasse compensa (que o reduzem).
+    pub amount_cents: i64,
+    pub currency: PayoutDetailCurrency,
+    /// O dia em que o repasse foi depositado, AAAA-MM-DD; nulo enquanto não foi.
+    pub deposited_on: Option<String>,
+    /// A data do repasse, AAAA-MM-DD: quando o valor é, ou foi, depositado.
+    pub expected_on: String,
+    /// O que o repasse desconta em tarifas, em centavos: a parte de cada venda que a Peráta retém e as tarifas cobradas no dia.
+    pub fee_cents: i64,
+    /// O id do repasse: po_ e a data do repasse, como po_20261120.
+    pub id: String,
+    /// Quantos lançamentos o repasse tem.
+    pub item_count: i64,
+    /// Os lançamentos do repasse, com o pagamento de cada um.
+    pub items: Vec<PayoutItem>,
+    /// O valor líquido do repasse, em centavos: amount_cents menos fee_cents, o que é depositado. Pode ser negativo quando os reembolsos do dia superam as vendas; então o saldo é compensado nos próximos repasses.
+    pub net_cents: i64,
+    /// scheduled: previsto, com data nos próximos dias. released: liberado para repasse, a data chegou e o depósito está em processamento. held: retido para análise enquanto a conta da organização está em análise. deposited: depositado na conta da organização, em deposited_on.
+    pub status: PayoutDetailStatus,
+}
+
+/// PayoutItem is a resource of Peráta's API.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct PayoutItem {
+    /// O valor do lançamento antes da tarifa, em centavos; negativo nos reembolsos e nas contestações.
+    pub amount_cents: i64,
+    /// A tarifa do lançamento, em centavos.
+    pub fee_cents: i64,
+    /// Qual parcela da venda o lançamento paga; 0 quando a venda foi à vista.
+    pub installment: i64,
+    /// sale: uma venda (ou uma parcela dela). refund: um reembolso que o repasse compensa. chargeback: uma contestação. fee: uma tarifa do dia. adjustment: um ajuste. anticipation: uma antecipação de recebíveis.
+    pub kind: PayoutItemKind,
+    /// amount_cents menos fee_cents: o que o lançamento acrescenta ao depósito.
+    pub net_cents: i64,
+    /// O pagamento a que o lançamento se refere, o id de GET /payments/{id}; nulo nas tarifas e nos ajustes que não são de um pagamento.
+    pub payment_id: Option<String>,
+    /// Como o do repasse, para este lançamento: um repasse com lançamentos em estados diferentes está no menos avançado deles.
+    pub status: PayoutItemStatus,
 }
 
 /// Price is a resource of Peráta's API.
@@ -955,6 +1066,47 @@ pub struct Refund {
     pub status: RefundStatus,
 }
 
+/// RenewalCharge is a resource of Peráta's API.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct RenewalCharge {
+    /// O que o comprador paga, em centavos: o ciclo já com desconto e rateio.
+    pub amount_cents: i64,
+    /// O client_reference_id da assinatura.
+    pub client_reference_id: String,
+    pub currency: RenewalChargeCurrency,
+    pub customer_id: String,
+    /// O ciclo que a cobrança paga: 2 é a primeira renovação.
+    pub cycle_sequence: i64,
+    /// Só nos lembretes: 3 em before_due, 0 em on_due; nulo no resto.
+    pub days_until_due: Option<i64>,
+    /// Até quando a cobrança deve ser paga sem a assinatura ficar em atraso: o fim do período que ela cobra. Passado o prazo, a assinatura vira past_due e o mesmo payment_url continua valendo por mais 72 horas de tolerância; depois disso a assinatura é suspensa.
+    pub due_at: String,
+    /// Quando o payment_url deixa de abrir; sempre depois da tolerância de 72 horas.
+    pub expires_at: Option<String>,
+    /// O id da cobrança, que é o do ciclo da assinatura que ela cobra. O pedido só existe depois do pagamento: o order.paid que vem então traz o mesmo subscription_id e cycle_sequence.
+    pub id: String,
+    /// O label da assinatura; vazio sem ele.
+    pub label: String,
+    /// Os metadados da assinatura.
+    pub metadata: std::collections::HashMap<String, serde_json::Value>,
+    /// Se a Peráta escreve ao comprador desta cobrança.
+    pub notify_customer_email: bool,
+    /// A página da Peráta onde o comprador paga esta cobrança, por cartão, Pix ou boleto. O Pix é gerado nessa página, quando o comprador o escolhe, e vale 24 horas: a Peráta não gera o Pix na abertura da cobrança porque ele venceria antes do prazo da cobrança e, enquanto vale, impediria pagar de outro jeito. Entregue este endereço ao comprador.
+    pub payment_url: String,
+    pub period_end: String,
+    pub period_start: String,
+    pub price_id: String,
+    pub product_id: String,
+    /// Só nos eventos subscription.renewal_reminder: before_due (3 dias antes de due_at) ou on_due (no vencimento). Nulo na cobrança e em subscription.renewal_due.
+    pub reminder: Option<RenewalChargeReminder>,
+    /// O modo de renovação da assinatura. Uma cobrança em aberto existe nos modos manual e, quando o cartão é recusado, card.
+    pub renewal_mode: RenewalChargeRenewalMode,
+    /// O showcase a que pertence: o da chave de API que fez a chamada.
+    pub showcase_id: String,
+    pub subscription_id: String,
+}
+
 /// Showcase is a resource of Peráta's API.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[non_exhaustive]
@@ -970,6 +1122,20 @@ pub struct Showcase {
     pub is_principal: bool,
     /// O nome do showcase, como o lojista o vê no painel.
     pub name: String,
+}
+
+/// SplitRecipient is a resource of Peráta's API.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct SplitRecipient {
+    /// O valor da parte deste destinatário, antes da tarifa, em centavos.
+    pub amount_cents: i64,
+    /// A tarifa que esta parte pagou, em centavos.
+    pub fee_cents: i64,
+    /// amount_cents menos fee_cents: o que sobra ao destinatário.
+    pub net_cents: i64,
+    /// O showcase destinatário desta parte da venda; nulo quando a Peráta não o identifica.
+    pub recipient_id: Option<String>,
 }
 
 /// Subscription is a resource of Peráta's API.
@@ -993,14 +1159,20 @@ pub struct Subscription {
     pub first_period_extra_days: Option<i64>,
     pub id: String,
     pub interval: String,
+    /// O nome que você deu à assinatura, copiado do label do checkout que a vendeu (por exemplo, Olho de Águia · Colaborador Ana); vazio sem ele. É o título da assinatura no portal do cliente e no painel. Troque com PATCH, até 200 caracteres.
+    pub label: String,
     /// Metadados do lojista: pares chave e valor (texto, número ou booleano); objeto vazio quando não há.
     pub metadata: std::collections::HashMap<String, serde_json::Value>,
+    /// Verdadeiro enquanto a Peráta escreve ao comprador a cada cobrança de renovação; falso quando o seu sistema avisa o comprador e a Peráta fica quieta. Vem do notify_customer_email do checkout (verdadeiro por padrão) e ainda depende do aviso Cobrança da renovação em Configurações › Preferências, que a organização pode desligar.
+    pub notify_customer_email: bool,
     /// A mudança de plano ou de quantidade agendada para o próximo período (PATCH com proration_behavior next_period); nulo quando não há nenhuma. Até effective_at a assinatura segue com o price_id, a quantity e o amount_cents de cima.
     pub pending_update: Option<SubscriptionPendingUpdate>,
     pub price_id: String,
     pub product_id: String,
     /// Quantas unidades ou assentos a assinatura cobre, de 1 em diante; 1 num preço sem quantidade. amount_cents é o total do ciclo para esta quantity.
     pub quantity: i64,
+    /// Como os próximos períodos são cobrados: manual (a cada ciclo a Peráta abre uma cobrança para o comprador pagar, com o evento subscription.renewal_due, e o cartão nunca é cobrado), card (o cartão de crédito guardado é cobrado sozinho) ou pix_automatic (o banco debita cada cobrança, autorizada uma vez pelo comprador). card e pix_automatic são os modos automáticos. Vem do renewal_mode do checkout; sem ele, é card quando o pagamento guardou o cartão e manual nos outros meios. Troque com PATCH (manual, ou card quando há cartão guardado).
+    pub renewal_mode: SubscriptionRenewalMode,
     /// O showcase a que pertence: o da chave de API que fez a chamada. Uma chave só alcança o seu showcase.
     pub showcase_id: String,
     pub status: SubscriptionStatus,
@@ -1293,6 +1465,46 @@ pub struct WebhookRefund {
     pub status: WebhookRefundStatus,
 }
 
+/// A cobrança de renovação que espera o comprador pagar (subscription.renewal_due e subscription.renewal_reminder), a mesma que GET /api/v1/subscriptions/{id}/open-charge devolve. Traz o que o seu sistema precisa para avisar o comprador: o valor, o prazo e a página onde ele paga.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct WebhookRenewalCharge {
+    /// O que o comprador paga, em centavos: o ciclo já com desconto e rateio.
+    pub amount_cents: i64,
+    /// O client_reference_id da assinatura.
+    pub client_reference_id: String,
+    pub currency: WebhookRenewalChargeCurrency,
+    pub customer_id: String,
+    /// O ciclo que a cobrança paga: 2 é a primeira renovação.
+    pub cycle_sequence: i64,
+    /// Só nos lembretes: 3 em before_due, 0 em on_due; nulo no resto.
+    pub days_until_due: Option<i64>,
+    /// Até quando a cobrança deve ser paga sem a assinatura ficar em atraso: o fim do período que ela cobra. Passado o prazo, a assinatura vira past_due e o mesmo payment_url continua valendo pela tolerância de 72 horas; depois disso a assinatura é suspensa.
+    pub due_at: String,
+    /// Quando o payment_url deixa de abrir; sempre depois da tolerância de 72 horas.
+    pub expires_at: Option<String>,
+    /// O id da cobrança, que é o do ciclo da assinatura que ela cobra. O pedido só existe depois do pagamento: o order.paid que vem então traz o mesmo subscription_id e cycle_sequence.
+    pub id: String,
+    /// O label da assinatura; vazio sem ele.
+    pub label: String,
+    /// Os metadados da assinatura.
+    pub metadata: std::collections::HashMap<String, serde_json::Value>,
+    /// Se a Peráta escreve ao comprador desta cobrança.
+    pub notify_customer_email: bool,
+    /// A página da Peráta onde o comprador paga, por cartão, Pix ou boleto. O Pix é gerado nela, quando o comprador o escolhe, e vale 24 horas: a Peráta não gera o Pix na abertura da cobrança porque ele venceria antes do prazo e, enquanto vale, impediria pagar de outro jeito. Entregue este endereço ao comprador.
+    pub payment_url: String,
+    pub period_end: String,
+    pub period_start: String,
+    pub price_id: String,
+    pub product_id: String,
+    /// Só em subscription.renewal_reminder: before_due (3 dias antes de due_at) ou on_due (no vencimento). Nulo na cobrança e em subscription.renewal_due.
+    pub reminder: Option<WebhookRenewalChargeReminder>,
+    /// O modo de renovação da assinatura. Uma cobrança em aberto existe no manual e, quando o cartão é recusado, no card.
+    pub renewal_mode: WebhookRenewalChargeRenewalMode,
+    pub showcase_id: String,
+    pub subscription_id: String,
+}
+
 /// Os eventos da venda (checkout_payment.* e refund.*): os identificadores de sempre e, além deles, o checkout, o valor e o que o servidor do lojista enviou ao criar o checkout.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[non_exhaustive]
@@ -1372,8 +1584,12 @@ pub struct WebhookSubscription {
     pub first_period_extra_days: Option<i64>,
     pub id: String,
     pub interval: String,
+    /// O nome que o lojista deu à assinatura, copiado do label do checkout que a vendeu; vazio sem ele.
+    pub label: String,
     /// Metadados do lojista: pares chave e valor (texto, número ou booleano); objeto vazio quando não há.
     pub metadata: std::collections::HashMap<String, serde_json::Value>,
+    /// Verdadeiro enquanto a Peráta escreve ao comprador a cada cobrança de renovação.
+    pub notify_customer_email: bool,
     /// A cobrança recusada que causou o evento; só nos eventos de cobrança recusada.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub payment_failure: Option<WebhookSubscriptionPaymentFailure>,
@@ -1383,6 +1599,8 @@ pub struct WebhookSubscription {
     pub product_id: String,
     /// Quantas unidades ou assentos a assinatura cobre, de 1 em diante; 1 num preço sem quantidade. amount_cents é o total do ciclo para esta quantity.
     pub quantity: i64,
+    /// Como os próximos períodos são cobrados: manual (uma cobrança para o comprador pagar a cada ciclo, com o evento subscription.renewal_due; o cartão nunca é cobrado), card (o cartão de crédito guardado, cobrado sozinho) ou pix_automatic (o banco debita cada cobrança). card e pix_automatic são os automáticos.
+    pub renewal_mode: WebhookSubscriptionRenewalMode,
     /// O showcase da venda.
     pub showcase_id: String,
     pub status: WebhookSubscriptionStatus,
@@ -1871,11 +2089,17 @@ pub struct CheckoutsCreateParams {
     /// Pares guardados no link do checkout e devolvidos no checkout, no pedido, no pagamento e nos eventos da venda. Até 50 pares de chave e valor: a chave tem de 1 a 40 caracteres, e o valor é um texto de 1 a 500 caracteres, um número ou um booleano. Texto sem caracteres de controle nem de direção invisível.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub metadata: Option<std::collections::HashMap<String, serde_json::Value>>,
+    /// Verdadeiro por padrão. Falso mantém a Peráta sem escrever ao comprador a cobrança de cada renovação (o seu sistema o avisa pelo evento subscription.renewal_due); a cobrança é aberta do mesmo jeito. Além disso, a organização pode desligar este aviso para todos em Configurações › Preferências › Cobrança da renovação.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub notify_customer_email: Option<bool>,
     pub price_id: String,
     pub product_id: String,
     /// Quantas unidades. Com amount_cents é sempre 1: envie 1 ou omita; qualquer outro valor é recusado com 422.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub quantity: Option<i64>,
+    /// Como a assinatura renova, numa assinatura (preço recorrente com valor). manual: a cada ciclo a Peráta abre uma cobrança para o comprador pagar (payment_url, por cartão, Pix ou boleto) e avisa o seu sistema com o evento subscription.renewal_due, mesmo que o primeiro pagamento tenha sido no cartão; o cartão nunca é cobrado e não é guardado. automatic: só os meios que cobram sozinhos, o cartão de crédito guardado ou o Pix Automático (quando a organização o tem ligado; senão só o cartão); a página mostra só esses meios, e a assinatura nasce com renewal_mode card ou pix_automatic. buyer_choice: a página mostra a caixa Ativar cobrança automática, desmarcada, e o comprador decide: desmarcada é manual, marcada é automatic. Sem o campo nada muda: sem caixa, o cartão de crédito renova sozinho e qualquer outro meio vira uma cobrança a cada ciclo. Funciona junto com first_period_extra_days e com desconto. Vale só em preço recorrente com valor (senão 422); manual não vale com teste grátis nem com subscription_start_at, que guardam o cartão para cobrar no fim (422). Pagar por um meio que o modo não aceita (Pix, boleto ou débito em automatic; Pix Automático em manual) é 422 em payment_method. A Subscription traz o modo a que isso se resolveu em renewal_mode: manual, card ou pix_automatic.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub renewal_mode: Option<CheckoutsCreateParamsRenewalMode>,
     /// Pede o endereço de cobrança completo de todo comprador, não só no boleto; desligado quando fica de fora.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub require_billing_address: Option<bool>,
@@ -1907,9 +2131,11 @@ impl CheckoutsCreateParams {
             items: None,
             label: None,
             metadata: None,
+            notify_customer_email: None,
             price_id: price_id.into(),
             product_id: product_id.into(),
             quantity: None,
+            renewal_mode: None,
             require_billing_address: None,
             return_url: None,
             subscription_start_at: None,
@@ -2001,9 +2227,21 @@ impl CheckoutsCreateParams {
         self
     }
 
+    /// Verdadeiro por padrão. Falso mantém a Peráta sem escrever ao comprador a cobrança de cada renovação (o seu sistema o avisa pelo evento subscription.renewal_due); a cobrança é aberta do mesmo jeito. Além disso, a organização pode desligar este aviso para todos em Configurações › Preferências › Cobrança da renovação.
+    pub fn notify_customer_email(mut self, notify_customer_email: bool) -> Self {
+        self.notify_customer_email = Some(notify_customer_email);
+        self
+    }
+
     /// Quantas unidades. Com amount_cents é sempre 1: envie 1 ou omita; qualquer outro valor é recusado com 422.
     pub fn quantity(mut self, quantity: i64) -> Self {
         self.quantity = Some(quantity);
+        self
+    }
+
+    /// Como a assinatura renova, numa assinatura (preço recorrente com valor). manual: a cada ciclo a Peráta abre uma cobrança para o comprador pagar (payment_url, por cartão, Pix ou boleto) e avisa o seu sistema com o evento subscription.renewal_due, mesmo que o primeiro pagamento tenha sido no cartão; o cartão nunca é cobrado e não é guardado. automatic: só os meios que cobram sozinhos, o cartão de crédito guardado ou o Pix Automático (quando a organização o tem ligado; senão só o cartão); a página mostra só esses meios, e a assinatura nasce com renewal_mode card ou pix_automatic. buyer_choice: a página mostra a caixa Ativar cobrança automática, desmarcada, e o comprador decide: desmarcada é manual, marcada é automatic. Sem o campo nada muda: sem caixa, o cartão de crédito renova sozinho e qualquer outro meio vira uma cobrança a cada ciclo. Funciona junto com first_period_extra_days e com desconto. Vale só em preço recorrente com valor (senão 422); manual não vale com teste grátis nem com subscription_start_at, que guardam o cartão para cobrar no fim (422). Pagar por um meio que o modo não aceita (Pix, boleto ou débito em automatic; Pix Automático em manual) é 422 em payment_method. A Subscription traz o modo a que isso se resolveu em renewal_mode: manual, card ou pix_automatic.
+    pub fn renewal_mode(mut self, renewal_mode: impl Into<CheckoutsCreateParamsRenewalMode>) -> Self {
+        self.renewal_mode = Some(renewal_mode.into());
         self
     }
 
@@ -3165,6 +3403,12 @@ pub struct SubscriptionsUpdateParams {
     /// Estende o período atual em tantos dias, de 1 a 365, sem cobrar nada e sem criar pedido: a renovação (e a próxima cobrança) passa a ser no novo fim, current_period_end, e os períodos seguintes contam a partir dele. É o crédito manual de dias do lojista. Só uma assinatura active aceita (uma em teste grátis, atrasada, pausada, suspensa ou cancelada recusa); uma que termina no fim do período termina no novo fim. Vai sozinho, sem price_id, quantity nem proration_behavior, senão a resposta é 422. A mudança chega no webhook subscription.updated e fica registrada no log de atividades. Não é repetível por si: envie uma Idempotency-Key para que uma nova tentativa não some os dias duas vezes.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub extend_current_period_days: Option<i64>,
+    /// O nome da assinatura, até 200 caracteres e sem caracteres de controle; vazio tira o nome. Vai sozinho, com renewal_mode e notify_customer_email, sem price_id, quantity, proration_behavior nem extend_current_period_days. Chega no webhook subscription.updated.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub label: Option<String>,
+    /// Liga ou desliga a mensagem que a Peráta manda ao comprador a cada cobrança de renovação. Vai sozinho, como label.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub notify_customer_email: Option<bool>,
     /// O preço recorrente para onde a assinatura vai. Obrigatório para trocar de plano; não se envia com extend_current_period_days.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub price_id: Option<String>,
@@ -3174,6 +3418,9 @@ pub struct SubscriptionsUpdateParams {
     /// A nova quantidade; omitida, fica a atual.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub quantity: Option<i64>,
+    /// Muda como a assinatura renova. manual: deixa de cobrar o cartão e passa a abrir uma cobrança a cada ciclo (o cartão guardado é solto). card: cobra o cartão guardado sozinho; exige um cartão já guardado na assinatura (o comprador o ativa no portal), senão 422. pix_automatic só o comprador ativa, no app do banco. Vai sozinho, como label.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub renewal_mode: Option<SubscriptionsUpdateParamsRenewalMode>,
 }
 
 impl SubscriptionsUpdateParams {
@@ -3181,15 +3428,30 @@ impl SubscriptionsUpdateParams {
     pub fn new() -> Self {
         Self {
             extend_current_period_days: None,
+            label: None,
+            notify_customer_email: None,
             price_id: None,
             proration_behavior: None,
             quantity: None,
+            renewal_mode: None,
         }
     }
 
     /// Estende o período atual em tantos dias, de 1 a 365, sem cobrar nada e sem criar pedido: a renovação (e a próxima cobrança) passa a ser no novo fim, current_period_end, e os períodos seguintes contam a partir dele. É o crédito manual de dias do lojista. Só uma assinatura active aceita (uma em teste grátis, atrasada, pausada, suspensa ou cancelada recusa); uma que termina no fim do período termina no novo fim. Vai sozinho, sem price_id, quantity nem proration_behavior, senão a resposta é 422. A mudança chega no webhook subscription.updated e fica registrada no log de atividades. Não é repetível por si: envie uma Idempotency-Key para que uma nova tentativa não some os dias duas vezes.
     pub fn extend_current_period_days(mut self, extend_current_period_days: i64) -> Self {
         self.extend_current_period_days = Some(extend_current_period_days);
+        self
+    }
+
+    /// O nome da assinatura, até 200 caracteres e sem caracteres de controle; vazio tira o nome. Vai sozinho, com renewal_mode e notify_customer_email, sem price_id, quantity, proration_behavior nem extend_current_period_days. Chega no webhook subscription.updated.
+    pub fn label(mut self, label: impl Into<String>) -> Self {
+        self.label = Some(label.into());
+        self
+    }
+
+    /// Liga ou desliga a mensagem que a Peráta manda ao comprador a cada cobrança de renovação. Vai sozinho, como label.
+    pub fn notify_customer_email(mut self, notify_customer_email: bool) -> Self {
+        self.notify_customer_email = Some(notify_customer_email);
         self
     }
 
@@ -3208,6 +3470,12 @@ impl SubscriptionsUpdateParams {
     /// A nova quantidade; omitida, fica a atual.
     pub fn quantity(mut self, quantity: i64) -> Self {
         self.quantity = Some(quantity);
+        self
+    }
+
+    /// Muda como a assinatura renova. manual: deixa de cobrar o cartão e passa a abrir uma cobrança a cada ciclo (o cartão guardado é solto). card: cobra o cartão guardado sozinho; exige um cartão já guardado na assinatura (o comprador o ativa no portal), senão 422. pix_automatic só o comprador ativa, no app do banco. Vai sozinho, como label.
+    pub fn renewal_mode(mut self, renewal_mode: impl Into<SubscriptionsUpdateParamsRenewalMode>) -> Self {
+        self.renewal_mode = Some(renewal_mode.into());
         self
     }
 }
@@ -3482,6 +3750,62 @@ impl WebhooksUpdateEndpointParams {
     pub fn url(mut self, url: impl Into<String>) -> Self {
         self.url = Some(url.into());
         self
+    }
+}
+
+/// The values of `Balance.currency`.
+///
+/// A value this SDK does not know yet is kept, as it came, in
+/// [`BalanceCurrency::Unrecognized`].
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[non_exhaustive]
+pub enum BalanceCurrency {
+    /// `BRL`
+    Brl,
+    /// A value this SDK does not know yet.
+    Unrecognized(String),
+}
+
+impl BalanceCurrency {
+    /// The value as the API writes it.
+    pub fn as_str(&self) -> &str {
+        match self {
+            BalanceCurrency::Brl => "BRL",
+            BalanceCurrency::Unrecognized(value) => value,
+        }
+    }
+}
+
+impl From<&str> for BalanceCurrency {
+    fn from(value: &str) -> Self {
+        match value {
+            "BRL" => BalanceCurrency::Brl,
+            other => BalanceCurrency::Unrecognized(other.to_owned()),
+        }
+    }
+}
+
+impl From<String> for BalanceCurrency {
+    fn from(value: String) -> Self {
+        Self::from(value.as_str())
+    }
+}
+
+impl fmt::Display for BalanceCurrency {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
+impl Serialize for BalanceCurrency {
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        serializer.serialize_str(self.as_str())
+    }
+}
+
+impl<'de> Deserialize<'de> for BalanceCurrency {
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        String::deserialize(deserializer).map(Self::from)
     }
 }
 
@@ -3945,6 +4269,70 @@ impl<'de> Deserialize<'de> for CardTokenizationEnvironment {
     }
 }
 
+/// The values of `Checkout.renewal_mode`. O renewal_mode da criação: manual, automatic ou buyer_choice; vazio quando foi omitido. A assinatura que o pagamento começa traz o modo a que isso se resolveu em Subscription.renewal_mode.
+///
+/// A value this SDK does not know yet is kept, as it came, in
+/// [`CheckoutRenewalMode::Unrecognized`].
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[non_exhaustive]
+pub enum CheckoutRenewalMode {
+    /// `manual`
+    Manual,
+    /// `automatic`
+    Automatic,
+    /// `buyer_choice`
+    BuyerChoice,
+    /// A value this SDK does not know yet.
+    Unrecognized(String),
+}
+
+impl CheckoutRenewalMode {
+    /// The value as the API writes it.
+    pub fn as_str(&self) -> &str {
+        match self {
+            CheckoutRenewalMode::Manual => "manual",
+            CheckoutRenewalMode::Automatic => "automatic",
+            CheckoutRenewalMode::BuyerChoice => "buyer_choice",
+            CheckoutRenewalMode::Unrecognized(value) => value,
+        }
+    }
+}
+
+impl From<&str> for CheckoutRenewalMode {
+    fn from(value: &str) -> Self {
+        match value {
+            "manual" => CheckoutRenewalMode::Manual,
+            "automatic" => CheckoutRenewalMode::Automatic,
+            "buyer_choice" => CheckoutRenewalMode::BuyerChoice,
+            other => CheckoutRenewalMode::Unrecognized(other.to_owned()),
+        }
+    }
+}
+
+impl From<String> for CheckoutRenewalMode {
+    fn from(value: String) -> Self {
+        Self::from(value.as_str())
+    }
+}
+
+impl fmt::Display for CheckoutRenewalMode {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
+impl Serialize for CheckoutRenewalMode {
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        serializer.serialize_str(self.as_str())
+    }
+}
+
+impl<'de> Deserialize<'de> for CheckoutRenewalMode {
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        String::deserialize(deserializer).map(Self::from)
+    }
+}
+
 /// The values of `Checkout.status`. active abre sessões de compra; archived saiu de circulação.
 ///
 /// A value this SDK does not know yet is kept, as it came, in
@@ -4336,6 +4724,70 @@ impl Serialize for CheckoutClientPaymentState {
 }
 
 impl<'de> Deserialize<'de> for CheckoutClientPaymentState {
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        String::deserialize(deserializer).map(Self::from)
+    }
+}
+
+/// The values of `CheckoutCreated.renewal_mode`. O renewal_mode da criação: manual, automatic ou buyer_choice; vazio quando foi omitido. A assinatura que o pagamento começa traz o modo a que isso se resolveu em Subscription.renewal_mode.
+///
+/// A value this SDK does not know yet is kept, as it came, in
+/// [`CheckoutCreatedRenewalMode::Unrecognized`].
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[non_exhaustive]
+pub enum CheckoutCreatedRenewalMode {
+    /// `manual`
+    Manual,
+    /// `automatic`
+    Automatic,
+    /// `buyer_choice`
+    BuyerChoice,
+    /// A value this SDK does not know yet.
+    Unrecognized(String),
+}
+
+impl CheckoutCreatedRenewalMode {
+    /// The value as the API writes it.
+    pub fn as_str(&self) -> &str {
+        match self {
+            CheckoutCreatedRenewalMode::Manual => "manual",
+            CheckoutCreatedRenewalMode::Automatic => "automatic",
+            CheckoutCreatedRenewalMode::BuyerChoice => "buyer_choice",
+            CheckoutCreatedRenewalMode::Unrecognized(value) => value,
+        }
+    }
+}
+
+impl From<&str> for CheckoutCreatedRenewalMode {
+    fn from(value: &str) -> Self {
+        match value {
+            "manual" => CheckoutCreatedRenewalMode::Manual,
+            "automatic" => CheckoutCreatedRenewalMode::Automatic,
+            "buyer_choice" => CheckoutCreatedRenewalMode::BuyerChoice,
+            other => CheckoutCreatedRenewalMode::Unrecognized(other.to_owned()),
+        }
+    }
+}
+
+impl From<String> for CheckoutCreatedRenewalMode {
+    fn from(value: String) -> Self {
+        Self::from(value.as_str())
+    }
+}
+
+impl fmt::Display for CheckoutCreatedRenewalMode {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
+impl Serialize for CheckoutCreatedRenewalMode {
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        serializer.serialize_str(self.as_str())
+    }
+}
+
+impl<'de> Deserialize<'de> for CheckoutCreatedRenewalMode {
     fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
         String::deserialize(deserializer).map(Self::from)
     }
@@ -6365,6 +6817,398 @@ impl<'de> Deserialize<'de> for PaymentMethodType {
     }
 }
 
+/// The values of `Payout.currency`.
+///
+/// A value this SDK does not know yet is kept, as it came, in
+/// [`PayoutCurrency::Unrecognized`].
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[non_exhaustive]
+pub enum PayoutCurrency {
+    /// `BRL`
+    Brl,
+    /// A value this SDK does not know yet.
+    Unrecognized(String),
+}
+
+impl PayoutCurrency {
+    /// The value as the API writes it.
+    pub fn as_str(&self) -> &str {
+        match self {
+            PayoutCurrency::Brl => "BRL",
+            PayoutCurrency::Unrecognized(value) => value,
+        }
+    }
+}
+
+impl From<&str> for PayoutCurrency {
+    fn from(value: &str) -> Self {
+        match value {
+            "BRL" => PayoutCurrency::Brl,
+            other => PayoutCurrency::Unrecognized(other.to_owned()),
+        }
+    }
+}
+
+impl From<String> for PayoutCurrency {
+    fn from(value: String) -> Self {
+        Self::from(value.as_str())
+    }
+}
+
+impl fmt::Display for PayoutCurrency {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
+impl Serialize for PayoutCurrency {
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        serializer.serialize_str(self.as_str())
+    }
+}
+
+impl<'de> Deserialize<'de> for PayoutCurrency {
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        String::deserialize(deserializer).map(Self::from)
+    }
+}
+
+/// The values of `Payout.status`. scheduled: previsto, com data nos próximos dias. released: liberado para repasse, a data chegou e o depósito está em processamento. held: retido para análise enquanto a conta da organização está em análise. deposited: depositado na conta da organização, em deposited_on.
+///
+/// A value this SDK does not know yet is kept, as it came, in
+/// [`PayoutStatus::Unrecognized`].
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[non_exhaustive]
+pub enum PayoutStatus {
+    /// `scheduled`
+    Scheduled,
+    /// `released`
+    Released,
+    /// `held`
+    Held,
+    /// `deposited`
+    Deposited,
+    /// A value this SDK does not know yet.
+    Unrecognized(String),
+}
+
+impl PayoutStatus {
+    /// The value as the API writes it.
+    pub fn as_str(&self) -> &str {
+        match self {
+            PayoutStatus::Scheduled => "scheduled",
+            PayoutStatus::Released => "released",
+            PayoutStatus::Held => "held",
+            PayoutStatus::Deposited => "deposited",
+            PayoutStatus::Unrecognized(value) => value,
+        }
+    }
+}
+
+impl From<&str> for PayoutStatus {
+    fn from(value: &str) -> Self {
+        match value {
+            "scheduled" => PayoutStatus::Scheduled,
+            "released" => PayoutStatus::Released,
+            "held" => PayoutStatus::Held,
+            "deposited" => PayoutStatus::Deposited,
+            other => PayoutStatus::Unrecognized(other.to_owned()),
+        }
+    }
+}
+
+impl From<String> for PayoutStatus {
+    fn from(value: String) -> Self {
+        Self::from(value.as_str())
+    }
+}
+
+impl fmt::Display for PayoutStatus {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
+impl Serialize for PayoutStatus {
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        serializer.serialize_str(self.as_str())
+    }
+}
+
+impl<'de> Deserialize<'de> for PayoutStatus {
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        String::deserialize(deserializer).map(Self::from)
+    }
+}
+
+/// The values of `PayoutDetail.currency`.
+///
+/// A value this SDK does not know yet is kept, as it came, in
+/// [`PayoutDetailCurrency::Unrecognized`].
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[non_exhaustive]
+pub enum PayoutDetailCurrency {
+    /// `BRL`
+    Brl,
+    /// A value this SDK does not know yet.
+    Unrecognized(String),
+}
+
+impl PayoutDetailCurrency {
+    /// The value as the API writes it.
+    pub fn as_str(&self) -> &str {
+        match self {
+            PayoutDetailCurrency::Brl => "BRL",
+            PayoutDetailCurrency::Unrecognized(value) => value,
+        }
+    }
+}
+
+impl From<&str> for PayoutDetailCurrency {
+    fn from(value: &str) -> Self {
+        match value {
+            "BRL" => PayoutDetailCurrency::Brl,
+            other => PayoutDetailCurrency::Unrecognized(other.to_owned()),
+        }
+    }
+}
+
+impl From<String> for PayoutDetailCurrency {
+    fn from(value: String) -> Self {
+        Self::from(value.as_str())
+    }
+}
+
+impl fmt::Display for PayoutDetailCurrency {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
+impl Serialize for PayoutDetailCurrency {
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        serializer.serialize_str(self.as_str())
+    }
+}
+
+impl<'de> Deserialize<'de> for PayoutDetailCurrency {
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        String::deserialize(deserializer).map(Self::from)
+    }
+}
+
+/// The values of `PayoutDetail.status`. scheduled: previsto, com data nos próximos dias. released: liberado para repasse, a data chegou e o depósito está em processamento. held: retido para análise enquanto a conta da organização está em análise. deposited: depositado na conta da organização, em deposited_on.
+///
+/// A value this SDK does not know yet is kept, as it came, in
+/// [`PayoutDetailStatus::Unrecognized`].
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[non_exhaustive]
+pub enum PayoutDetailStatus {
+    /// `scheduled`
+    Scheduled,
+    /// `released`
+    Released,
+    /// `held`
+    Held,
+    /// `deposited`
+    Deposited,
+    /// A value this SDK does not know yet.
+    Unrecognized(String),
+}
+
+impl PayoutDetailStatus {
+    /// The value as the API writes it.
+    pub fn as_str(&self) -> &str {
+        match self {
+            PayoutDetailStatus::Scheduled => "scheduled",
+            PayoutDetailStatus::Released => "released",
+            PayoutDetailStatus::Held => "held",
+            PayoutDetailStatus::Deposited => "deposited",
+            PayoutDetailStatus::Unrecognized(value) => value,
+        }
+    }
+}
+
+impl From<&str> for PayoutDetailStatus {
+    fn from(value: &str) -> Self {
+        match value {
+            "scheduled" => PayoutDetailStatus::Scheduled,
+            "released" => PayoutDetailStatus::Released,
+            "held" => PayoutDetailStatus::Held,
+            "deposited" => PayoutDetailStatus::Deposited,
+            other => PayoutDetailStatus::Unrecognized(other.to_owned()),
+        }
+    }
+}
+
+impl From<String> for PayoutDetailStatus {
+    fn from(value: String) -> Self {
+        Self::from(value.as_str())
+    }
+}
+
+impl fmt::Display for PayoutDetailStatus {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
+impl Serialize for PayoutDetailStatus {
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        serializer.serialize_str(self.as_str())
+    }
+}
+
+impl<'de> Deserialize<'de> for PayoutDetailStatus {
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        String::deserialize(deserializer).map(Self::from)
+    }
+}
+
+/// The values of `PayoutItem.kind`. sale: uma venda (ou uma parcela dela). refund: um reembolso que o repasse compensa. chargeback: uma contestação. fee: uma tarifa do dia. adjustment: um ajuste. anticipation: uma antecipação de recebíveis.
+///
+/// A value this SDK does not know yet is kept, as it came, in
+/// [`PayoutItemKind::Unrecognized`].
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[non_exhaustive]
+pub enum PayoutItemKind {
+    /// `sale`
+    Sale,
+    /// `refund`
+    Refund,
+    /// `chargeback`
+    Chargeback,
+    /// `fee`
+    Fee,
+    /// `adjustment`
+    Adjustment,
+    /// `anticipation`
+    Anticipation,
+    /// A value this SDK does not know yet.
+    Unrecognized(String),
+}
+
+impl PayoutItemKind {
+    /// The value as the API writes it.
+    pub fn as_str(&self) -> &str {
+        match self {
+            PayoutItemKind::Sale => "sale",
+            PayoutItemKind::Refund => "refund",
+            PayoutItemKind::Chargeback => "chargeback",
+            PayoutItemKind::Fee => "fee",
+            PayoutItemKind::Adjustment => "adjustment",
+            PayoutItemKind::Anticipation => "anticipation",
+            PayoutItemKind::Unrecognized(value) => value,
+        }
+    }
+}
+
+impl From<&str> for PayoutItemKind {
+    fn from(value: &str) -> Self {
+        match value {
+            "sale" => PayoutItemKind::Sale,
+            "refund" => PayoutItemKind::Refund,
+            "chargeback" => PayoutItemKind::Chargeback,
+            "fee" => PayoutItemKind::Fee,
+            "adjustment" => PayoutItemKind::Adjustment,
+            "anticipation" => PayoutItemKind::Anticipation,
+            other => PayoutItemKind::Unrecognized(other.to_owned()),
+        }
+    }
+}
+
+impl From<String> for PayoutItemKind {
+    fn from(value: String) -> Self {
+        Self::from(value.as_str())
+    }
+}
+
+impl fmt::Display for PayoutItemKind {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
+impl Serialize for PayoutItemKind {
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        serializer.serialize_str(self.as_str())
+    }
+}
+
+impl<'de> Deserialize<'de> for PayoutItemKind {
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        String::deserialize(deserializer).map(Self::from)
+    }
+}
+
+/// The values of `PayoutItem.status`. Como o do repasse, para este lançamento: um repasse com lançamentos em estados diferentes está no menos avançado deles.
+///
+/// A value this SDK does not know yet is kept, as it came, in
+/// [`PayoutItemStatus::Unrecognized`].
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[non_exhaustive]
+pub enum PayoutItemStatus {
+    /// `scheduled`
+    Scheduled,
+    /// `released`
+    Released,
+    /// `held`
+    Held,
+    /// `deposited`
+    Deposited,
+    /// A value this SDK does not know yet.
+    Unrecognized(String),
+}
+
+impl PayoutItemStatus {
+    /// The value as the API writes it.
+    pub fn as_str(&self) -> &str {
+        match self {
+            PayoutItemStatus::Scheduled => "scheduled",
+            PayoutItemStatus::Released => "released",
+            PayoutItemStatus::Held => "held",
+            PayoutItemStatus::Deposited => "deposited",
+            PayoutItemStatus::Unrecognized(value) => value,
+        }
+    }
+}
+
+impl From<&str> for PayoutItemStatus {
+    fn from(value: &str) -> Self {
+        match value {
+            "scheduled" => PayoutItemStatus::Scheduled,
+            "released" => PayoutItemStatus::Released,
+            "held" => PayoutItemStatus::Held,
+            "deposited" => PayoutItemStatus::Deposited,
+            other => PayoutItemStatus::Unrecognized(other.to_owned()),
+        }
+    }
+}
+
+impl From<String> for PayoutItemStatus {
+    fn from(value: String) -> Self {
+        Self::from(value.as_str())
+    }
+}
+
+impl fmt::Display for PayoutItemStatus {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
+impl Serialize for PayoutItemStatus {
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        serializer.serialize_str(self.as_str())
+    }
+}
+
+impl<'de> Deserialize<'de> for PayoutItemStatus {
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        String::deserialize(deserializer).map(Self::from)
+    }
+}
+
 /// The values of `Price.currency`.
 ///
 /// A value this SDK does not know yet is kept, as it came, in
@@ -6829,6 +7673,190 @@ impl<'de> Deserialize<'de> for RefundStatus {
     }
 }
 
+/// The values of `RenewalCharge.currency`.
+///
+/// A value this SDK does not know yet is kept, as it came, in
+/// [`RenewalChargeCurrency::Unrecognized`].
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[non_exhaustive]
+pub enum RenewalChargeCurrency {
+    /// `BRL`
+    Brl,
+    /// A value this SDK does not know yet.
+    Unrecognized(String),
+}
+
+impl RenewalChargeCurrency {
+    /// The value as the API writes it.
+    pub fn as_str(&self) -> &str {
+        match self {
+            RenewalChargeCurrency::Brl => "BRL",
+            RenewalChargeCurrency::Unrecognized(value) => value,
+        }
+    }
+}
+
+impl From<&str> for RenewalChargeCurrency {
+    fn from(value: &str) -> Self {
+        match value {
+            "BRL" => RenewalChargeCurrency::Brl,
+            other => RenewalChargeCurrency::Unrecognized(other.to_owned()),
+        }
+    }
+}
+
+impl From<String> for RenewalChargeCurrency {
+    fn from(value: String) -> Self {
+        Self::from(value.as_str())
+    }
+}
+
+impl fmt::Display for RenewalChargeCurrency {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
+impl Serialize for RenewalChargeCurrency {
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        serializer.serialize_str(self.as_str())
+    }
+}
+
+impl<'de> Deserialize<'de> for RenewalChargeCurrency {
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        String::deserialize(deserializer).map(Self::from)
+    }
+}
+
+/// The values of `RenewalCharge.reminder`. Só nos eventos subscription.renewal_reminder: before_due (3 dias antes de due_at) ou on_due (no vencimento). Nulo na cobrança e em subscription.renewal_due.
+///
+/// A value this SDK does not know yet is kept, as it came, in
+/// [`RenewalChargeReminder::Unrecognized`].
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[non_exhaustive]
+pub enum RenewalChargeReminder {
+    /// `before_due`
+    BeforeDue,
+    /// `on_due`
+    OnDue,
+    /// `null`
+    Null,
+    /// A value this SDK does not know yet.
+    Unrecognized(String),
+}
+
+impl RenewalChargeReminder {
+    /// The value as the API writes it.
+    pub fn as_str(&self) -> &str {
+        match self {
+            RenewalChargeReminder::BeforeDue => "before_due",
+            RenewalChargeReminder::OnDue => "on_due",
+            RenewalChargeReminder::Null => "null",
+            RenewalChargeReminder::Unrecognized(value) => value,
+        }
+    }
+}
+
+impl From<&str> for RenewalChargeReminder {
+    fn from(value: &str) -> Self {
+        match value {
+            "before_due" => RenewalChargeReminder::BeforeDue,
+            "on_due" => RenewalChargeReminder::OnDue,
+            "null" => RenewalChargeReminder::Null,
+            other => RenewalChargeReminder::Unrecognized(other.to_owned()),
+        }
+    }
+}
+
+impl From<String> for RenewalChargeReminder {
+    fn from(value: String) -> Self {
+        Self::from(value.as_str())
+    }
+}
+
+impl fmt::Display for RenewalChargeReminder {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
+impl Serialize for RenewalChargeReminder {
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        serializer.serialize_str(self.as_str())
+    }
+}
+
+impl<'de> Deserialize<'de> for RenewalChargeReminder {
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        String::deserialize(deserializer).map(Self::from)
+    }
+}
+
+/// The values of `RenewalCharge.renewal_mode`. O modo de renovação da assinatura. Uma cobrança em aberto existe nos modos manual e, quando o cartão é recusado, card.
+///
+/// A value this SDK does not know yet is kept, as it came, in
+/// [`RenewalChargeRenewalMode::Unrecognized`].
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[non_exhaustive]
+pub enum RenewalChargeRenewalMode {
+    /// `manual`
+    Manual,
+    /// `card`
+    Card,
+    /// `pix_automatic`
+    PixAutomatic,
+    /// A value this SDK does not know yet.
+    Unrecognized(String),
+}
+
+impl RenewalChargeRenewalMode {
+    /// The value as the API writes it.
+    pub fn as_str(&self) -> &str {
+        match self {
+            RenewalChargeRenewalMode::Manual => "manual",
+            RenewalChargeRenewalMode::Card => "card",
+            RenewalChargeRenewalMode::PixAutomatic => "pix_automatic",
+            RenewalChargeRenewalMode::Unrecognized(value) => value,
+        }
+    }
+}
+
+impl From<&str> for RenewalChargeRenewalMode {
+    fn from(value: &str) -> Self {
+        match value {
+            "manual" => RenewalChargeRenewalMode::Manual,
+            "card" => RenewalChargeRenewalMode::Card,
+            "pix_automatic" => RenewalChargeRenewalMode::PixAutomatic,
+            other => RenewalChargeRenewalMode::Unrecognized(other.to_owned()),
+        }
+    }
+}
+
+impl From<String> for RenewalChargeRenewalMode {
+    fn from(value: String) -> Self {
+        Self::from(value.as_str())
+    }
+}
+
+impl fmt::Display for RenewalChargeRenewalMode {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
+impl Serialize for RenewalChargeRenewalMode {
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        serializer.serialize_str(self.as_str())
+    }
+}
+
+impl<'de> Deserialize<'de> for RenewalChargeRenewalMode {
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        String::deserialize(deserializer).map(Self::from)
+    }
+}
+
 /// The values of `Showcase.environment`. O ambiente da chave.
 ///
 /// A value this SDK does not know yet is kept, as it came, in
@@ -6940,6 +7968,70 @@ impl Serialize for SubscriptionCurrency {
 }
 
 impl<'de> Deserialize<'de> for SubscriptionCurrency {
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        String::deserialize(deserializer).map(Self::from)
+    }
+}
+
+/// The values of `Subscription.renewal_mode`. Como os próximos períodos são cobrados: manual (a cada ciclo a Peráta abre uma cobrança para o comprador pagar, com o evento subscription.renewal_due, e o cartão nunca é cobrado), card (o cartão de crédito guardado é cobrado sozinho) ou pix_automatic (o banco debita cada cobrança, autorizada uma vez pelo comprador). card e pix_automatic são os modos automáticos. Vem do renewal_mode do checkout; sem ele, é card quando o pagamento guardou o cartão e manual nos outros meios. Troque com PATCH (manual, ou card quando há cartão guardado).
+///
+/// A value this SDK does not know yet is kept, as it came, in
+/// [`SubscriptionRenewalMode::Unrecognized`].
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[non_exhaustive]
+pub enum SubscriptionRenewalMode {
+    /// `manual`
+    Manual,
+    /// `card`
+    Card,
+    /// `pix_automatic`
+    PixAutomatic,
+    /// A value this SDK does not know yet.
+    Unrecognized(String),
+}
+
+impl SubscriptionRenewalMode {
+    /// The value as the API writes it.
+    pub fn as_str(&self) -> &str {
+        match self {
+            SubscriptionRenewalMode::Manual => "manual",
+            SubscriptionRenewalMode::Card => "card",
+            SubscriptionRenewalMode::PixAutomatic => "pix_automatic",
+            SubscriptionRenewalMode::Unrecognized(value) => value,
+        }
+    }
+}
+
+impl From<&str> for SubscriptionRenewalMode {
+    fn from(value: &str) -> Self {
+        match value {
+            "manual" => SubscriptionRenewalMode::Manual,
+            "card" => SubscriptionRenewalMode::Card,
+            "pix_automatic" => SubscriptionRenewalMode::PixAutomatic,
+            other => SubscriptionRenewalMode::Unrecognized(other.to_owned()),
+        }
+    }
+}
+
+impl From<String> for SubscriptionRenewalMode {
+    fn from(value: String) -> Self {
+        Self::from(value.as_str())
+    }
+}
+
+impl fmt::Display for SubscriptionRenewalMode {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
+impl Serialize for SubscriptionRenewalMode {
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        serializer.serialize_str(self.as_str())
+    }
+}
+
+impl<'de> Deserialize<'de> for SubscriptionRenewalMode {
     fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
         String::deserialize(deserializer).map(Self::from)
     }
@@ -8365,6 +9457,186 @@ impl<'de> Deserialize<'de> for WebhookRefundStatus {
     }
 }
 
+/// The values of `WebhookRenewalCharge.currency`.
+///
+/// A value this SDK does not know yet is kept, as it came, in
+/// [`WebhookRenewalChargeCurrency::Unrecognized`].
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[non_exhaustive]
+pub enum WebhookRenewalChargeCurrency {
+    /// `BRL`
+    Brl,
+    /// A value this SDK does not know yet.
+    Unrecognized(String),
+}
+
+impl WebhookRenewalChargeCurrency {
+    /// The value as the API writes it.
+    pub fn as_str(&self) -> &str {
+        match self {
+            WebhookRenewalChargeCurrency::Brl => "BRL",
+            WebhookRenewalChargeCurrency::Unrecognized(value) => value,
+        }
+    }
+}
+
+impl From<&str> for WebhookRenewalChargeCurrency {
+    fn from(value: &str) -> Self {
+        match value {
+            "BRL" => WebhookRenewalChargeCurrency::Brl,
+            other => WebhookRenewalChargeCurrency::Unrecognized(other.to_owned()),
+        }
+    }
+}
+
+impl From<String> for WebhookRenewalChargeCurrency {
+    fn from(value: String) -> Self {
+        Self::from(value.as_str())
+    }
+}
+
+impl fmt::Display for WebhookRenewalChargeCurrency {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
+impl Serialize for WebhookRenewalChargeCurrency {
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        serializer.serialize_str(self.as_str())
+    }
+}
+
+impl<'de> Deserialize<'de> for WebhookRenewalChargeCurrency {
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        String::deserialize(deserializer).map(Self::from)
+    }
+}
+
+/// The values of `WebhookRenewalCharge.reminder`. Só em subscription.renewal_reminder: before_due (3 dias antes de due_at) ou on_due (no vencimento). Nulo na cobrança e em subscription.renewal_due.
+///
+/// A value this SDK does not know yet is kept, as it came, in
+/// [`WebhookRenewalChargeReminder::Unrecognized`].
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[non_exhaustive]
+pub enum WebhookRenewalChargeReminder {
+    /// `before_due`
+    BeforeDue,
+    /// `on_due`
+    OnDue,
+    /// A value this SDK does not know yet.
+    Unrecognized(String),
+}
+
+impl WebhookRenewalChargeReminder {
+    /// The value as the API writes it.
+    pub fn as_str(&self) -> &str {
+        match self {
+            WebhookRenewalChargeReminder::BeforeDue => "before_due",
+            WebhookRenewalChargeReminder::OnDue => "on_due",
+            WebhookRenewalChargeReminder::Unrecognized(value) => value,
+        }
+    }
+}
+
+impl From<&str> for WebhookRenewalChargeReminder {
+    fn from(value: &str) -> Self {
+        match value {
+            "before_due" => WebhookRenewalChargeReminder::BeforeDue,
+            "on_due" => WebhookRenewalChargeReminder::OnDue,
+            other => WebhookRenewalChargeReminder::Unrecognized(other.to_owned()),
+        }
+    }
+}
+
+impl From<String> for WebhookRenewalChargeReminder {
+    fn from(value: String) -> Self {
+        Self::from(value.as_str())
+    }
+}
+
+impl fmt::Display for WebhookRenewalChargeReminder {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
+impl Serialize for WebhookRenewalChargeReminder {
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        serializer.serialize_str(self.as_str())
+    }
+}
+
+impl<'de> Deserialize<'de> for WebhookRenewalChargeReminder {
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        String::deserialize(deserializer).map(Self::from)
+    }
+}
+
+/// The values of `WebhookRenewalCharge.renewal_mode`. O modo de renovação da assinatura. Uma cobrança em aberto existe no manual e, quando o cartão é recusado, no card.
+///
+/// A value this SDK does not know yet is kept, as it came, in
+/// [`WebhookRenewalChargeRenewalMode::Unrecognized`].
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[non_exhaustive]
+pub enum WebhookRenewalChargeRenewalMode {
+    /// `manual`
+    Manual,
+    /// `card`
+    Card,
+    /// `pix_automatic`
+    PixAutomatic,
+    /// A value this SDK does not know yet.
+    Unrecognized(String),
+}
+
+impl WebhookRenewalChargeRenewalMode {
+    /// The value as the API writes it.
+    pub fn as_str(&self) -> &str {
+        match self {
+            WebhookRenewalChargeRenewalMode::Manual => "manual",
+            WebhookRenewalChargeRenewalMode::Card => "card",
+            WebhookRenewalChargeRenewalMode::PixAutomatic => "pix_automatic",
+            WebhookRenewalChargeRenewalMode::Unrecognized(value) => value,
+        }
+    }
+}
+
+impl From<&str> for WebhookRenewalChargeRenewalMode {
+    fn from(value: &str) -> Self {
+        match value {
+            "manual" => WebhookRenewalChargeRenewalMode::Manual,
+            "card" => WebhookRenewalChargeRenewalMode::Card,
+            "pix_automatic" => WebhookRenewalChargeRenewalMode::PixAutomatic,
+            other => WebhookRenewalChargeRenewalMode::Unrecognized(other.to_owned()),
+        }
+    }
+}
+
+impl From<String> for WebhookRenewalChargeRenewalMode {
+    fn from(value: String) -> Self {
+        Self::from(value.as_str())
+    }
+}
+
+impl fmt::Display for WebhookRenewalChargeRenewalMode {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
+impl Serialize for WebhookRenewalChargeRenewalMode {
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        serializer.serialize_str(self.as_str())
+    }
+}
+
+impl<'de> Deserialize<'de> for WebhookRenewalChargeRenewalMode {
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        String::deserialize(deserializer).map(Self::from)
+    }
+}
+
 /// The values of `WebhookSale.currency`.
 ///
 /// A value this SDK does not know yet is kept, as it came, in
@@ -8536,6 +9808,70 @@ impl Serialize for WebhookSubscriptionCurrency {
 }
 
 impl<'de> Deserialize<'de> for WebhookSubscriptionCurrency {
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        String::deserialize(deserializer).map(Self::from)
+    }
+}
+
+/// The values of `WebhookSubscription.renewal_mode`. Como os próximos períodos são cobrados: manual (uma cobrança para o comprador pagar a cada ciclo, com o evento subscription.renewal_due; o cartão nunca é cobrado), card (o cartão de crédito guardado, cobrado sozinho) ou pix_automatic (o banco debita cada cobrança). card e pix_automatic são os automáticos.
+///
+/// A value this SDK does not know yet is kept, as it came, in
+/// [`WebhookSubscriptionRenewalMode::Unrecognized`].
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[non_exhaustive]
+pub enum WebhookSubscriptionRenewalMode {
+    /// `manual`
+    Manual,
+    /// `card`
+    Card,
+    /// `pix_automatic`
+    PixAutomatic,
+    /// A value this SDK does not know yet.
+    Unrecognized(String),
+}
+
+impl WebhookSubscriptionRenewalMode {
+    /// The value as the API writes it.
+    pub fn as_str(&self) -> &str {
+        match self {
+            WebhookSubscriptionRenewalMode::Manual => "manual",
+            WebhookSubscriptionRenewalMode::Card => "card",
+            WebhookSubscriptionRenewalMode::PixAutomatic => "pix_automatic",
+            WebhookSubscriptionRenewalMode::Unrecognized(value) => value,
+        }
+    }
+}
+
+impl From<&str> for WebhookSubscriptionRenewalMode {
+    fn from(value: &str) -> Self {
+        match value {
+            "manual" => WebhookSubscriptionRenewalMode::Manual,
+            "card" => WebhookSubscriptionRenewalMode::Card,
+            "pix_automatic" => WebhookSubscriptionRenewalMode::PixAutomatic,
+            other => WebhookSubscriptionRenewalMode::Unrecognized(other.to_owned()),
+        }
+    }
+}
+
+impl From<String> for WebhookSubscriptionRenewalMode {
+    fn from(value: String) -> Self {
+        Self::from(value.as_str())
+    }
+}
+
+impl fmt::Display for WebhookSubscriptionRenewalMode {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
+impl Serialize for WebhookSubscriptionRenewalMode {
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        serializer.serialize_str(self.as_str())
+    }
+}
+
+impl<'de> Deserialize<'de> for WebhookSubscriptionRenewalMode {
     fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
         String::deserialize(deserializer).map(Self::from)
     }
@@ -8992,6 +10328,70 @@ impl Serialize for CheckoutLinksCreateParamsTrialInterval {
 }
 
 impl<'de> Deserialize<'de> for CheckoutLinksCreateParamsTrialInterval {
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        String::deserialize(deserializer).map(Self::from)
+    }
+}
+
+/// The values of `CheckoutsCreateParams.renewal_mode`. Como a assinatura renova, numa assinatura (preço recorrente com valor). manual: a cada ciclo a Peráta abre uma cobrança para o comprador pagar (payment_url, por cartão, Pix ou boleto) e avisa o seu sistema com o evento subscription.renewal_due, mesmo que o primeiro pagamento tenha sido no cartão; o cartão nunca é cobrado e não é guardado. automatic: só os meios que cobram sozinhos, o cartão de crédito guardado ou o Pix Automático (quando a organização o tem ligado; senão só o cartão); a página mostra só esses meios, e a assinatura nasce com renewal_mode card ou pix_automatic. buyer_choice: a página mostra a caixa Ativar cobrança automática, desmarcada, e o comprador decide: desmarcada é manual, marcada é automatic. Sem o campo nada muda: sem caixa, o cartão de crédito renova sozinho e qualquer outro meio vira uma cobrança a cada ciclo. Funciona junto com first_period_extra_days e com desconto. Vale só em preço recorrente com valor (senão 422); manual não vale com teste grátis nem com subscription_start_at, que guardam o cartão para cobrar no fim (422). Pagar por um meio que o modo não aceita (Pix, boleto ou débito em automatic; Pix Automático em manual) é 422 em payment_method. A Subscription traz o modo a que isso se resolveu em renewal_mode: manual, card ou pix_automatic.
+///
+/// A value this SDK does not know yet is kept, as it came, in
+/// [`CheckoutsCreateParamsRenewalMode::Unrecognized`].
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[non_exhaustive]
+pub enum CheckoutsCreateParamsRenewalMode {
+    /// `manual`
+    Manual,
+    /// `automatic`
+    Automatic,
+    /// `buyer_choice`
+    BuyerChoice,
+    /// A value this SDK does not know yet.
+    Unrecognized(String),
+}
+
+impl CheckoutsCreateParamsRenewalMode {
+    /// The value as the API writes it.
+    pub fn as_str(&self) -> &str {
+        match self {
+            CheckoutsCreateParamsRenewalMode::Manual => "manual",
+            CheckoutsCreateParamsRenewalMode::Automatic => "automatic",
+            CheckoutsCreateParamsRenewalMode::BuyerChoice => "buyer_choice",
+            CheckoutsCreateParamsRenewalMode::Unrecognized(value) => value,
+        }
+    }
+}
+
+impl From<&str> for CheckoutsCreateParamsRenewalMode {
+    fn from(value: &str) -> Self {
+        match value {
+            "manual" => CheckoutsCreateParamsRenewalMode::Manual,
+            "automatic" => CheckoutsCreateParamsRenewalMode::Automatic,
+            "buyer_choice" => CheckoutsCreateParamsRenewalMode::BuyerChoice,
+            other => CheckoutsCreateParamsRenewalMode::Unrecognized(other.to_owned()),
+        }
+    }
+}
+
+impl From<String> for CheckoutsCreateParamsRenewalMode {
+    fn from(value: String) -> Self {
+        Self::from(value.as_str())
+    }
+}
+
+impl fmt::Display for CheckoutsCreateParamsRenewalMode {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
+impl Serialize for CheckoutsCreateParamsRenewalMode {
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        serializer.serialize_str(self.as_str())
+    }
+}
+
+impl<'de> Deserialize<'de> for CheckoutsCreateParamsRenewalMode {
     fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
         String::deserialize(deserializer).map(Self::from)
     }
@@ -9640,6 +11040,66 @@ impl Serialize for SubscriptionsUpdateParamsProrationBehavior {
 }
 
 impl<'de> Deserialize<'de> for SubscriptionsUpdateParamsProrationBehavior {
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        String::deserialize(deserializer).map(Self::from)
+    }
+}
+
+/// The values of `SubscriptionsUpdateParams.renewal_mode`. Muda como a assinatura renova. manual: deixa de cobrar o cartão e passa a abrir uma cobrança a cada ciclo (o cartão guardado é solto). card: cobra o cartão guardado sozinho; exige um cartão já guardado na assinatura (o comprador o ativa no portal), senão 422. pix_automatic só o comprador ativa, no app do banco. Vai sozinho, como label.
+///
+/// A value this SDK does not know yet is kept, as it came, in
+/// [`SubscriptionsUpdateParamsRenewalMode::Unrecognized`].
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[non_exhaustive]
+pub enum SubscriptionsUpdateParamsRenewalMode {
+    /// `manual`
+    Manual,
+    /// `card`
+    Card,
+    /// A value this SDK does not know yet.
+    Unrecognized(String),
+}
+
+impl SubscriptionsUpdateParamsRenewalMode {
+    /// The value as the API writes it.
+    pub fn as_str(&self) -> &str {
+        match self {
+            SubscriptionsUpdateParamsRenewalMode::Manual => "manual",
+            SubscriptionsUpdateParamsRenewalMode::Card => "card",
+            SubscriptionsUpdateParamsRenewalMode::Unrecognized(value) => value,
+        }
+    }
+}
+
+impl From<&str> for SubscriptionsUpdateParamsRenewalMode {
+    fn from(value: &str) -> Self {
+        match value {
+            "manual" => SubscriptionsUpdateParamsRenewalMode::Manual,
+            "card" => SubscriptionsUpdateParamsRenewalMode::Card,
+            other => SubscriptionsUpdateParamsRenewalMode::Unrecognized(other.to_owned()),
+        }
+    }
+}
+
+impl From<String> for SubscriptionsUpdateParamsRenewalMode {
+    fn from(value: String) -> Self {
+        Self::from(value.as_str())
+    }
+}
+
+impl fmt::Display for SubscriptionsUpdateParamsRenewalMode {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
+impl Serialize for SubscriptionsUpdateParamsRenewalMode {
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        serializer.serialize_str(self.as_str())
+    }
+}
+
+impl<'de> Deserialize<'de> for SubscriptionsUpdateParamsRenewalMode {
     fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
         String::deserialize(deserializer).map(Self::from)
     }

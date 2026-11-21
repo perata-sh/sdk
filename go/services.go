@@ -17,6 +17,7 @@ var (
 )
 
 func (c *Client) initServices() {
+	c.Balance = &BalanceService{client: c}
 	c.Benefits = &BenefitsService{client: c}
 	c.CheckoutLinks = &CheckoutLinksService{client: c}
 	c.Checkouts = &CheckoutsService{client: c}
@@ -29,6 +30,7 @@ func (c *Client) initServices() {
 	c.Orders = &OrdersService{client: c}
 	c.PaymentMethods = &PaymentMethodsService{client: c}
 	c.Payments = &PaymentsService{client: c}
+	c.Payouts = &PayoutsService{client: c}
 	c.Prices = &PricesService{client: c}
 	c.Products = &ProductsService{client: c}
 	c.Refunds = &RefundsService{client: c}
@@ -36,6 +38,56 @@ func (c *Client) initServices() {
 	c.Subscriptions = &SubscriptionsService{client: c}
 	c.Usage = &UsageService{client: c}
 	c.Webhooks = &WebhooksService{client: c}
+}
+
+// BalanceService is the API's balance.
+type BalanceService struct{ client *Client }
+
+// BalanceGetParams are the filters of balance:get.
+type BalanceGetParams struct {
+	// O primeiro dia, AAAA-MM-DD, inclusive. Na lista, só os repasses com data a partir dele; no saldo, o começo do período de deposited_cents (sem ele, 30 dias até date_to).
+	DateFrom string
+	// O último dia, AAAA-MM-DD, inclusive. Na lista, só os repasses com data até ele; no saldo, o fim do período de deposited_cents (sem ele, hoje).
+	DateTo string
+}
+
+func (p *BalanceGetParams) query() url.Values {
+	q := url.Values{}
+	if p == nil {
+		return q
+	}
+	if p.DateFrom != "" {
+		q.Set("date_from", p.DateFrom)
+	}
+	if p.DateTo != "" {
+		q.Set("date_to", p.DateTo)
+	}
+	return q
+}
+
+// Get: Ler o saldo a receber. The filters are optional: pass nil for none.
+//
+// Devolve o saldo a receber da organização neste ambiente:
+// total_to_receive_cents, que é sempre a soma de released_cents (liberado, o
+// depósito está em processamento), held_cents (retido enquanto a conta está em
+// análise), scheduled_cents (previsto, com data nos próximos 31 dias) e
+// later_cents (sem data ainda, como as parcelas mais distantes).
+// deposited_cents é o que foi depositado no período de period_from a period_to
+// (date_from e date_to; sem eles, os 30 dias até hoje) e não entra no total. Os
+// valores são líquidos das tarifas e dos reembolsos, em centavos. Exige o
+// escopo payouts:read.
+//
+// Autenticação: chave de API da organização em Authorization: Bearer
+// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+// nunca da requisição: a chave criada num showcase só alcança o que é dele.
+// Respostas em JSON no envelope data; erros com error, message e fields.
+func (s *BalanceService) Get(ctx context.Context, params *BalanceGetParams, opts ...RequestOption) (*Balance, error) {
+	var out Balance
+	err := s.client.do(ctx, http.MethodGet, "/api/v1/balance", params.query(), nil, &out, opts)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
 }
 
 // BenefitsService is the API's benefits.
@@ -357,7 +409,14 @@ type CheckoutsService struct{ client *Client }
 // cobrança e a primeira cobrança acontece nesse dia. Para o comprador que ainda
 // tem dias pagos num plano anterior, envie first_period_extra_days (1 a 365):
 // ele paga hoje o valor cheio e a próxima cobrança só acontece no fim do
-// primeiro período mais esses dias.
+// primeiro período mais esses dias. Envie renewal_mode em toda assinatura:
+// manual (a cada ciclo a Peráta abre uma cobrança para o comprador pagar e
+// avisa o seu sistema com subscription.renewal_due, mesmo que o primeiro
+// pagamento tenha sido no cartão), automatic (só cartão de crédito guardado ou
+// Pix Automático; cobra sozinho) ou buyer_choice (a página mostra a caixa
+// Ativar cobrança automática e o comprador decide); sem o campo nada muda.
+// notify_customer_email false mantém a Peráta sem escrever ao comprador. label
+// dá nome à assinatura (por exemplo, Olho de Águia · Colaborador Ana).
 //
 // Autenticação: chave de API da organização em Authorization: Bearer
 // (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
@@ -1401,6 +1460,104 @@ func (s *PaymentsService) ListIter(ctx context.Context, params *PaymentsListPara
 	}, walk.Page)
 }
 
+// PayoutsService is the API's payouts.
+type PayoutsService struct{ client *Client }
+
+// Get: Ler um repasse.
+//
+// Devolve um repasse pelo ID (como po_20261120) com os seus lançamentos em
+// items: cada venda, reembolso, contestação, tarifa ou ajuste, com o
+// payment_id, a parcela, o valor, a tarifa e o líquido. Exige o escopo
+// payouts:read.
+//
+// Autenticação: chave de API da organização em Authorization: Bearer
+// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+// nunca da requisição: a chave criada num showcase só alcança o que é dele.
+// Respostas em JSON no envelope data; erros com error, message e fields.
+func (s *PayoutsService) Get(ctx context.Context, payout string, opts ...RequestOption) (*PayoutDetail, error) {
+	var out PayoutDetail
+	err := s.client.do(ctx, http.MethodGet, "/api/v1/payouts/"+url.PathEscape(payout), nil, nil, &out, opts)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+// PayoutsListParams are the page and filters of payouts:list.
+type PayoutsListParams struct {
+	// Page is the page, from 1; Limit the items a page, 1 to 100 (10 by default).
+	Page, Limit int
+	// Só os repasses neste status: scheduled, released, held ou deposited.
+	Status string
+	// O primeiro dia, AAAA-MM-DD, inclusive. Na lista, só os repasses com data a partir dele; no saldo, o começo do período de deposited_cents (sem ele, 30 dias até date_to).
+	DateFrom string
+	// O último dia, AAAA-MM-DD, inclusive. Na lista, só os repasses com data até ele; no saldo, o fim do período de deposited_cents (sem ele, hoje).
+	DateTo string
+	// Ordem da lista pela data do repasse: date, e com um - na frente é decrescente (-date, o mais novo primeiro, é o padrão).
+	Sorting string
+}
+
+func (p *PayoutsListParams) query() url.Values {
+	q := url.Values{}
+	if p == nil {
+		return q
+	}
+	if p.Page > 0 {
+		q.Set("page", strconv.Itoa(p.Page))
+	}
+	if p.Limit > 0 {
+		q.Set("limit", strconv.Itoa(p.Limit))
+	}
+	if p.Status != "" {
+		q.Set("status", p.Status)
+	}
+	if p.DateFrom != "" {
+		q.Set("date_from", p.DateFrom)
+	}
+	if p.DateTo != "" {
+		q.Set("date_to", p.DateTo)
+	}
+	if p.Sorting != "" {
+		q.Set("sorting", p.Sorting)
+	}
+	return q
+}
+
+// List: Listar repasses. It answers one page; ListIter walks every page.
+//
+// Devolve uma página dos repasses, o mais novo primeiro. Um repasse é o que a
+// organização recebe num dia: id (po_ e a data), status (scheduled, released,
+// held ou deposited), expected_on, deposited_on, amount_cents, fee_cents e
+// net_cents (amount_cents menos fee_cents, o que é depositado). Filtre por
+// status e pelos dias (date_from e date_to). Um repasse previsto pela regra do
+// Pix, e não pela agenda de recebíveis, ainda pode mudar de data até ser
+// depositado. Exige o escopo payouts:read.
+//
+// Autenticação: chave de API da organização em Authorization: Bearer
+// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+// nunca da requisição: a chave criada num showcase só alcança o que é dele.
+// Respostas em JSON no envelope data; erros com error, message e fields.
+func (s *PayoutsService) List(ctx context.Context, params *PayoutsListParams, opts ...RequestOption) (*Page[Payout], error) {
+	var page Page[Payout]
+	err := s.client.do(ctx, http.MethodGet, "/api/v1/payouts", params.query(), nil, &page, opts)
+	if err != nil {
+		return nil, err
+	}
+	return &page, nil
+}
+
+// ListIter walks every page of payouts:list, item by item.
+func (s *PayoutsService) ListIter(ctx context.Context, params *PayoutsListParams, opts ...RequestOption) iter.Seq2[Payout, error] {
+	walk := PayoutsListParams{}
+	if params != nil {
+		walk = *params
+	}
+	return iterate(func(page int) (*Page[Payout], error) {
+		walk.Page = page
+		return s.List(ctx, &walk, opts...)
+	}, walk.Page)
+}
+
 // PricesService is the API's prices.
 type PricesService struct{ client *Client }
 
@@ -1826,6 +1983,29 @@ func (s *SubscriptionsService) Get(ctx context.Context, subscription string, opt
 	return &out, nil
 }
 
+// GetOpenCharge: Ler a cobrança de renovação em aberto.
+//
+// Devolve a cobrança de renovação que espera o comprador pagar: o ciclo atual
+// da assinatura, o valor, due_at e expires_at, o período e, em payment_url, a
+// página da Peráta onde ele paga (cartão, Pix ou boleto). É o mesmo objeto do
+// evento subscription.renewal_due, para quando o seu sistema precisa dele de
+// novo. Uma assinatura sem cobrança em aberto (ciclo já pago, cobrada no cartão
+// guardado ou pelo Pix Automático, ou com o próximo ciclo ainda fechado)
+// responde 404 com a mensagem dizendo isso.
+//
+// Autenticação: chave de API da organização em Authorization: Bearer
+// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
+// nunca da requisição: a chave criada num showcase só alcança o que é dele.
+// Respostas em JSON no envelope data; erros com error, message e fields.
+func (s *SubscriptionsService) GetOpenCharge(ctx context.Context, subscription string, opts ...RequestOption) (*RenewalCharge, error) {
+	var out RenewalCharge
+	err := s.client.do(ctx, http.MethodGet, "/api/v1/subscriptions/"+url.PathEscape(subscription)+"/open-charge", nil, nil, &out, opts)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
 // SubscriptionsListParams are the page and filters of subscriptions:list.
 type SubscriptionsListParams struct {
 	// Page is the page, from 1; Limit the items a page, 1 to 100 (10 by default).
@@ -1933,13 +2113,16 @@ func (s *SubscriptionsService) Resume(ctx context.Context, subscription string, 
 	return &out, nil
 }
 
-// Update: Trocar o plano ou estender o período.
+// Update: Trocar o plano, o período, o rótulo ou a renovação.
 //
 // Troca o plano de uma assinatura (outro preço e, se quiser, outra quantidade;
 // o proration_behavior diz como ratear a diferença) ou, com
 // extend_current_period_days sozinho, estende o período atual em até 365 dias
 // sem cobrar, para o crédito manual de dias: a próxima cobrança passa a ser no
-// novo current_period_end.
+// novo current_period_end. Com label, renewal_mode (manual ou card) e
+// notify_customer_email, sem os outros campos, muda o nome da assinatura, como
+// ela renova (card exige um cartão guardado; manual deixa de cobrar o cartão) e
+// se a Peráta escreve ao comprador das cobranças.
 //
 // Autenticação: chave de API da organização em Authorization: Bearer
 // (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,

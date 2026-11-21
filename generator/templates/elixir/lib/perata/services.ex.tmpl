@@ -30,6 +30,21 @@ defmodule Perata.{{exService .Name $.Models}} do
   def {{snake .Name}}_stream(%Client{} = client{{range .PathParams}}, {{exName .}}{{end}}, opts \\ []) do
     Perata.Page.stream(opts[:page], &{{snake .Name}}(client{{range .PathParams}}, {{exName .}}{{end}}, Keyword.put(opts, :page, &1)))
   end
+{{- else if filteredGet .}}
+
+  @doc """
+  {{exDoc .Summary}}. The filters are optional.
+{{template "doc" .}}
+  Options: {{range .Query}}`:{{.Name}}`{{if .Map}} (a map of strings, sent as `{{.Name}}[key]=value`){{end}}, {{end}}and `:api_key`.
+  """
+{{exSpec . "call"}}
+  def {{snake .Name}}(%Client{} = client{{range .PathParams}}, {{exName .}}{{end}}, opts \\ []) do
+    path = {{template "path" .}}{{exRequest .}}
+
+    with {:ok, data} <- Client.request(client, {{quote .HTTPMethod}}, path, request) do
+      {:ok, Perata.{{.Response}}.from_map(data)}
+    end
+  end
 {{- else if .NoContent}}
 
   @doc """

@@ -52,6 +52,9 @@ class Perata implements Requester {
   final bool _ownsHttp;
   final Duration _timeout;
 
+  /// The API's balance.
+  late final balance = BalanceService(this);
+
   /// The API's benefits.
   late final benefits = BenefitsService(this);
 
@@ -87,6 +90,9 @@ class Perata implements Requester {
 
   /// The API's payments.
   late final payments = PaymentsService(this);
+
+  /// The API's payouts.
+  late final payouts = PayoutsService(this);
 
   /// The API's prices.
   late final prices = PricesService(this);

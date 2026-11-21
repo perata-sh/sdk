@@ -9,6 +9,12 @@ import java.util.Map;
 public final class Subscription {
     /** A value of {@link #getCurrency()}. */
     public static final String CURRENCY_BRL = "BRL";
+    /** A value of {@link #getRenewalMode()}. */
+    public static final String RENEWAL_MODE_MANUAL = "manual";
+    /** A value of {@link #getRenewalMode()}. */
+    public static final String RENEWAL_MODE_CARD = "card";
+    /** A value of {@link #getRenewalMode()}. */
+    public static final String RENEWAL_MODE_PIX_AUTOMATIC = "pix_automatic";
     /** A value of {@link #getStatus()}. */
     public static final String STATUS_TRIALING = "trialing";
     /** A value of {@link #getStatus()}. */
@@ -40,11 +46,14 @@ public final class Subscription {
     private final Long firstPeriodExtraDays;
     private final String id;
     private final String interval;
+    private final String label;
     private final Map<String, Object> metadata;
+    private final boolean notifyCustomerEmail;
     private final SubscriptionPendingUpdate pendingUpdate;
     private final String priceId;
     private final String productId;
     private final long quantity;
+    private final String renewalMode;
     private final String showcaseId;
     private final String status;
     private final String suspendedAt;
@@ -52,7 +61,7 @@ public final class Subscription {
     private final String trialEnd;
     private final String trialStart;
 
-    Subscription(long amountCents, boolean cancelAtPeriodEnd, String clientReferenceId, String currency, String currentPeriodEnd, String currentPeriodStart, String customerId, String discountEndsAt, String discountId, Long firstPeriodExtraDays, String id, String interval, Map<String, Object> metadata, SubscriptionPendingUpdate pendingUpdate, String priceId, String productId, long quantity, String showcaseId, String status, String suspendedAt, String suspensionReason, String trialEnd, String trialStart) {
+    Subscription(long amountCents, boolean cancelAtPeriodEnd, String clientReferenceId, String currency, String currentPeriodEnd, String currentPeriodStart, String customerId, String discountEndsAt, String discountId, Long firstPeriodExtraDays, String id, String interval, String label, Map<String, Object> metadata, boolean notifyCustomerEmail, SubscriptionPendingUpdate pendingUpdate, String priceId, String productId, long quantity, String renewalMode, String showcaseId, String status, String suspendedAt, String suspensionReason, String trialEnd, String trialStart) {
         this.amountCents = amountCents;
         this.cancelAtPeriodEnd = cancelAtPeriodEnd;
         this.clientReferenceId = clientReferenceId;
@@ -65,11 +74,14 @@ public final class Subscription {
         this.firstPeriodExtraDays = firstPeriodExtraDays;
         this.id = id;
         this.interval = interval;
+        this.label = label;
         this.metadata = metadata;
+        this.notifyCustomerEmail = notifyCustomerEmail;
         this.pendingUpdate = pendingUpdate;
         this.priceId = priceId;
         this.productId = productId;
         this.quantity = quantity;
+        this.renewalMode = renewalMode;
         this.showcaseId = showcaseId;
         this.status = status;
         this.suspendedAt = suspendedAt;
@@ -92,11 +104,14 @@ public final class Subscription {
                 Json.optional(data, "first_period_extra_days", Json::asLong),
                 Json.required(data, "id", Json::asString),
                 Json.required(data, "interval", Json::asString),
+                Json.required(data, "label", Json::asString),
                 Json.required(data, "metadata", Json.map(Json::any)),
+                Json.required(data, "notify_customer_email", Json::asBoolean),
                 Json.optional(data, "pending_update", Json.model(SubscriptionPendingUpdate::fromJson)),
                 Json.required(data, "price_id", Json::asString),
                 Json.required(data, "product_id", Json::asString),
                 Json.required(data, "quantity", Json::asLong),
+                Json.required(data, "renewal_mode", Json::asString),
                 Json.required(data, "showcase_id", Json::asString),
                 Json.required(data, "status", Json::asString),
                 Json.optional(data, "suspended_at", Json::asString),
@@ -165,9 +180,19 @@ public final class Subscription {
         return interval;
     }
 
+    /** @return O nome que você deu à assinatura, copiado do label do checkout que a vendeu (por exemplo, Olho de Águia · Colaborador Ana); vazio sem ele. É o título da assinatura no portal do cliente e no painel. Troque com PATCH, até 200 caracteres. */
+    public String getLabel() {
+        return label;
+    }
+
     /** @return Metadados do lojista: pares chave e valor (texto, número ou booleano); objeto vazio quando não há. */
     public Map<String, Object> getMetadata() {
         return metadata;
+    }
+
+    /** @return Verdadeiro enquanto a Peráta escreve ao comprador a cada cobrança de renovação; falso quando o seu sistema avisa o comprador e a Peráta fica quieta. Vem do notify_customer_email do checkout (verdadeiro por padrão) e ainda depende do aviso Cobrança da renovação em Configurações › Preferências, que a organização pode desligar. */
+    public boolean getNotifyCustomerEmail() {
+        return notifyCustomerEmail;
     }
 
     /** @return A mudança de plano ou de quantidade agendada para o próximo período (PATCH com proration_behavior next_period); nulo quando não há nenhuma. Até effective_at a assinatura segue com o price_id, a quantity e o amount_cents de cima. (null when the API sends none) */
@@ -188,6 +213,11 @@ public final class Subscription {
     /** @return Quantas unidades ou assentos a assinatura cobre, de 1 em diante; 1 num preço sem quantidade. amount_cents é o total do ciclo para esta quantity. */
     public long getQuantity() {
         return quantity;
+    }
+
+    /** @return Como os próximos períodos são cobrados: manual (a cada ciclo a Peráta abre uma cobrança para o comprador pagar, com o evento subscription.renewal_due, e o cartão nunca é cobrado), card (o cartão de crédito guardado é cobrado sozinho) ou pix_automatic (o banco debita cada cobrança, autorizada uma vez pelo comprador). card e pix_automatic são os modos automáticos. Vem do renewal_mode do checkout; sem ele, é card quando o pagamento guardou o cartão e manual nos outros meios. Troque com PATCH (manual, ou card quando há cartão guardado). */
+    public String getRenewalMode() {
+        return renewalMode;
     }
 
     /** @return O showcase a que pertence: o da chave de API que fez a chamada. Uma chave só alcança o seu showcase. */
@@ -222,6 +252,6 @@ public final class Subscription {
 
     @Override
     public String toString() {
-        return "Subscription{" + "amountCents=" + amountCents + ", cancelAtPeriodEnd=" + cancelAtPeriodEnd + ", clientReferenceId=" + clientReferenceId + ", currency=" + currency + ", currentPeriodEnd=" + currentPeriodEnd + ", currentPeriodStart=" + currentPeriodStart + ", customerId=" + customerId + ", discountEndsAt=" + discountEndsAt + ", discountId=" + discountId + ", firstPeriodExtraDays=" + firstPeriodExtraDays + ", id=" + id + ", interval=" + interval + ", metadata=" + metadata + ", pendingUpdate=" + pendingUpdate + ", priceId=" + priceId + ", productId=" + productId + ", quantity=" + quantity + ", showcaseId=" + showcaseId + ", status=" + status + ", suspendedAt=" + suspendedAt + ", suspensionReason=" + suspensionReason + ", trialEnd=" + trialEnd + ", trialStart=" + trialStart + "}";
+        return "Subscription{" + "amountCents=" + amountCents + ", cancelAtPeriodEnd=" + cancelAtPeriodEnd + ", clientReferenceId=" + clientReferenceId + ", currency=" + currency + ", currentPeriodEnd=" + currentPeriodEnd + ", currentPeriodStart=" + currentPeriodStart + ", customerId=" + customerId + ", discountEndsAt=" + discountEndsAt + ", discountId=" + discountId + ", firstPeriodExtraDays=" + firstPeriodExtraDays + ", id=" + id + ", interval=" + interval + ", label=" + label + ", metadata=" + metadata + ", notifyCustomerEmail=" + notifyCustomerEmail + ", pendingUpdate=" + pendingUpdate + ", priceId=" + priceId + ", productId=" + productId + ", quantity=" + quantity + ", renewalMode=" + renewalMode + ", showcaseId=" + showcaseId + ", status=" + status + ", suspendedAt=" + suspendedAt + ", suspensionReason=" + suspensionReason + ", trialEnd=" + trialEnd + ", trialStart=" + trialStart + "}";
     }
 }

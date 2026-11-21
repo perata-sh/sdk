@@ -12,6 +12,15 @@ public sealed record WebhookSubscription
     /// <summary>A value of <see cref="Currency"/>.</summary>
     public const string CurrencyBRL = "BRL";
 
+    /// <summary>A value of <see cref="RenewalMode"/>.</summary>
+    public const string RenewalModeManual = "manual";
+
+    /// <summary>A value of <see cref="RenewalMode"/>.</summary>
+    public const string RenewalModeCard = "card";
+
+    /// <summary>A value of <see cref="RenewalMode"/>.</summary>
+    public const string RenewalModePixAutomatic = "pix_automatic";
+
     /// <summary>A value of <see cref="Status"/>.</summary>
     public const string StatusTrialing = "trialing";
 
@@ -87,9 +96,17 @@ public sealed record WebhookSubscription
     [JsonPropertyName("interval")]
     public required string Interval { get; init; }
 
+    /// <summary>O nome que o lojista deu à assinatura, copiado do label do checkout que a vendeu; vazio sem ele.</summary>
+    [JsonPropertyName("label")]
+    public required string Label { get; init; }
+
     /// <summary>Metadados do lojista: pares chave e valor (texto, número ou booleano); objeto vazio quando não há.</summary>
     [JsonPropertyName("metadata")]
     public required IReadOnlyDictionary<string, JsonElement> Metadata { get; init; }
+
+    /// <summary>Verdadeiro enquanto a Peráta escreve ao comprador a cada cobrança de renovação.</summary>
+    [JsonPropertyName("notify_customer_email")]
+    public required bool NotifyCustomerEmail { get; init; }
 
     /// <summary>A cobrança recusada que causou o evento; só nos eventos de cobrança recusada. Null when the API sends none.</summary>
     [JsonPropertyName("payment_failure")]
@@ -110,6 +127,10 @@ public sealed record WebhookSubscription
     /// <summary>Quantas unidades ou assentos a assinatura cobre, de 1 em diante; 1 num preço sem quantidade. amount_cents é o total do ciclo para esta quantity.</summary>
     [JsonPropertyName("quantity")]
     public required long Quantity { get; init; }
+
+    /// <summary>Como os próximos períodos são cobrados: manual (uma cobrança para o comprador pagar a cada ciclo, com o evento subscription.renewal_due; o cartão nunca é cobrado), card (o cartão de crédito guardado, cobrado sozinho) ou pix_automatic (o banco debita cada cobrança). card e pix_automatic são os automáticos.</summary>
+    [JsonPropertyName("renewal_mode")]
+    public required string RenewalMode { get; init; }
 
     /// <summary>O showcase da venda.</summary>
     [JsonPropertyName("showcase_id")]

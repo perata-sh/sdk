@@ -7,6 +7,12 @@ import java.util.Map;
 
 /** Checkout is a resource of Peráta's API. */
 public final class Checkout {
+    /** A value of {@link #getRenewalMode()}. */
+    public static final String RENEWAL_MODE_MANUAL = "manual";
+    /** A value of {@link #getRenewalMode()}. */
+    public static final String RENEWAL_MODE_AUTOMATIC = "automatic";
+    /** A value of {@link #getRenewalMode()}. */
+    public static final String RENEWAL_MODE_BUYER_CHOICE = "buyer_choice";
     /** A value of {@link #getStatus()}. */
     public static final String STATUS_ACTIVE = "active";
     /** A value of {@link #getStatus()}. */
@@ -23,16 +29,18 @@ public final class Checkout {
     private final List<CheckoutLine> items;
     private final String label;
     private final Map<String, Object> metadata;
+    private final boolean notifyCustomerEmail;
     private final String priceId;
     private final String productId;
     private final long quantity;
+    private final String renewalMode;
     private final String showcaseId;
     private final String status;
     private final String subscriptionStartAt;
     private final String successUrl;
     private final String url;
 
-    Checkout(Long amountCents, String cancelUrl, String clientReferenceId, String createdAt, String discountId, String expiresAt, Long firstPeriodExtraDays, String id, List<CheckoutLine> items, String label, Map<String, Object> metadata, String priceId, String productId, long quantity, String showcaseId, String status, String subscriptionStartAt, String successUrl, String url) {
+    Checkout(Long amountCents, String cancelUrl, String clientReferenceId, String createdAt, String discountId, String expiresAt, Long firstPeriodExtraDays, String id, List<CheckoutLine> items, String label, Map<String, Object> metadata, boolean notifyCustomerEmail, String priceId, String productId, long quantity, String renewalMode, String showcaseId, String status, String subscriptionStartAt, String successUrl, String url) {
         this.amountCents = amountCents;
         this.cancelUrl = cancelUrl;
         this.clientReferenceId = clientReferenceId;
@@ -44,9 +52,11 @@ public final class Checkout {
         this.items = items;
         this.label = label;
         this.metadata = metadata;
+        this.notifyCustomerEmail = notifyCustomerEmail;
         this.priceId = priceId;
         this.productId = productId;
         this.quantity = quantity;
+        this.renewalMode = renewalMode;
         this.showcaseId = showcaseId;
         this.status = status;
         this.subscriptionStartAt = subscriptionStartAt;
@@ -67,9 +77,11 @@ public final class Checkout {
                 Json.required(data, "items", Json.list(Json.model(CheckoutLine::fromJson))),
                 Json.required(data, "label", Json::asString),
                 Json.required(data, "metadata", Json.map(Json::any)),
+                Json.required(data, "notify_customer_email", Json::asBoolean),
                 Json.required(data, "price_id", Json::asString),
                 Json.required(data, "product_id", Json::asString),
                 Json.required(data, "quantity", Json::asLong),
+                Json.required(data, "renewal_mode", Json::asString),
                 Json.required(data, "showcase_id", Json::asString),
                 Json.required(data, "status", Json::asString),
                 Json.optional(data, "subscription_start_at", Json::asString),
@@ -132,6 +144,11 @@ public final class Checkout {
         return metadata;
     }
 
+    /** @return Falso quando o seu sistema avisa o comprador das cobranças de renovação e a Peráta fica quieta. */
+    public boolean getNotifyCustomerEmail() {
+        return notifyCustomerEmail;
+    }
+
     /** @return the API's {@code price_id} */
     public String getPriceId() {
         return priceId;
@@ -145,6 +162,11 @@ public final class Checkout {
     /** @return the API's {@code quantity} */
     public long getQuantity() {
         return quantity;
+    }
+
+    /** @return O renewal_mode da criação: manual, automatic ou buyer_choice; vazio quando foi omitido. A assinatura que o pagamento começa traz o modo a que isso se resolveu em Subscription.renewal_mode. */
+    public String getRenewalMode() {
+        return renewalMode;
     }
 
     /** @return O showcase a que pertence: o da chave de API que fez a chamada. Uma chave só alcança o seu showcase. */
@@ -174,6 +196,6 @@ public final class Checkout {
 
     @Override
     public String toString() {
-        return "Checkout{" + "amountCents=" + amountCents + ", cancelUrl=" + cancelUrl + ", clientReferenceId=" + clientReferenceId + ", createdAt=" + createdAt + ", discountId=" + discountId + ", expiresAt=" + expiresAt + ", firstPeriodExtraDays=" + firstPeriodExtraDays + ", id=" + id + ", items=" + items + ", label=" + label + ", metadata=" + metadata + ", priceId=" + priceId + ", productId=" + productId + ", quantity=" + quantity + ", showcaseId=" + showcaseId + ", status=" + status + ", subscriptionStartAt=" + subscriptionStartAt + ", successUrl=" + successUrl + ", url=" + url + "}";
+        return "Checkout{" + "amountCents=" + amountCents + ", cancelUrl=" + cancelUrl + ", clientReferenceId=" + clientReferenceId + ", createdAt=" + createdAt + ", discountId=" + discountId + ", expiresAt=" + expiresAt + ", firstPeriodExtraDays=" + firstPeriodExtraDays + ", id=" + id + ", items=" + items + ", label=" + label + ", metadata=" + metadata + ", notifyCustomerEmail=" + notifyCustomerEmail + ", priceId=" + priceId + ", productId=" + productId + ", quantity=" + quantity + ", renewalMode=" + renewalMode + ", showcaseId=" + showcaseId + ", status=" + status + ", subscriptionStartAt=" + subscriptionStartAt + ", successUrl=" + successUrl + ", url=" + url + "}";
     }
 }

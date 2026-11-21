@@ -13,7 +13,7 @@ from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import Any, Literal, TypeAlias, cast, get_args
 
-from .models import BenefitGrant, Customer, Product, WebhookBenefit, WebhookCheckout, WebhookDiscount, WebhookDispute, WebhookOrder, WebhookRefund, WebhookSale, WebhookSubscription
+from .models import BenefitGrant, Customer, Product, WebhookBenefit, WebhookCheckout, WebhookDiscount, WebhookDispute, WebhookOrder, WebhookRefund, WebhookRenewalCharge, WebhookSale, WebhookSubscription
 
 WEBHOOK_TOLERANCE_SECONDS = 300
 """How far from now a webhook's timestamp may be."""
@@ -140,7 +140,7 @@ class DisputeWebhookEvent:
     data: WebhookDispute
 
 
-IdentifiersWebhookEventType: TypeAlias = Literal["benefit.archived", "benefit.version_created", "benefit_product_link.linked", "benefit_product_link.unlinked", "checkout_link.archived", "checkout_link.created", "checkout_session.confirmed", "checkout_session.expired", "checkout_session.failed", "checkout_session.opened", "checkout_session.succeeded", "customer.archived", "discount.exhausted", "discount.expired", "discount.reactivated", "discount.redeemed", "discount_redemption.released", "invoice.drafted", "invoice.issued", "invoice.settled", "invoice.uncollectible", "invoice.voided", "price.archived", "price.created", "product.archived", "seat_allocation.opened", "seat_allocation.resized", "seat_assignment.claimed", "seat_assignment.invited", "seat_assignment.revoked", "usage_event.recorded", "usage_period.closed", "usage_period.opened", "usage_period_adjustment.created"]
+IdentifiersWebhookEventType: TypeAlias = Literal["benefit.archived", "benefit.version_created", "benefit_product_link.linked", "benefit_product_link.unlinked", "checkout_link.archived", "checkout_link.created", "checkout_session.confirmed", "checkout_session.expired", "checkout_session.failed", "checkout_session.opened", "checkout_session.succeeded", "customer.archived", "discount.exhausted", "discount.expired", "discount.reactivated", "discount.redeemed", "discount_redemption.released", "invoice.drafted", "invoice.issued", "invoice.settled", "invoice.uncollectible", "invoice.voided", "payout.deposited", "payout.held", "payout.released", "payout.scheduled", "price.archived", "price.created", "product.archived", "seat_allocation.opened", "seat_allocation.resized", "seat_assignment.claimed", "seat_assignment.invited", "seat_assignment.revoked", "usage_event.recorded", "usage_period.closed", "usage_period.opened", "usage_period_adjustment.created"]
 
 
 @dataclass(frozen=True)
@@ -216,6 +216,25 @@ class RefundWebhookEvent:
     data: WebhookRefund
 
 
+RenewalChargeWebhookEventType: TypeAlias = Literal["subscription.renewal_due", "subscription.renewal_reminder"]
+
+
+@dataclass(frozen=True)
+class RenewalChargeWebhookEvent:
+    """The events that carry a WebhookRenewalCharge."""
+
+    id: str
+    """The message's id, the same as the webhook-id header."""
+    type: RenewalChargeWebhookEventType
+    timestamp: str
+    """When it happened, in RFC 3339."""
+    environment: str
+    """The environment it happened in, ``"test"`` or ``"live"``; empty when an older server did not send it."""
+    showcase_id: str
+    """The showcase of the sale, the same ``showcase_id`` the API's objects carry; empty when an older server did not send it."""
+    data: WebhookRenewalCharge
+
+
 SaleWebhookEventType: TypeAlias = Literal["checkout_payment.authorized", "checkout_payment.canceled", "checkout_payment.captured", "checkout_payment.partially_refunded", "checkout_payment.refunded", "checkout_payment.refused", "refund.canceled", "refund.failed", "refund.requested", "refund.succeeded"]
 
 
@@ -277,6 +296,7 @@ WebhookEvent: TypeAlias = (
     | OrderWebhookEvent
     | ProductWebhookEvent
     | RefundWebhookEvent
+    | RenewalChargeWebhookEvent
     | SaleWebhookEvent
     | SubscriptionWebhookEvent
     | UnknownWebhookEvent
@@ -385,6 +405,15 @@ def _event(raw: bytes) -> WebhookEvent:
             environment=environment,
             showcase_id=showcase_id,
             data=WebhookRefund.from_dict(data),
+        )
+    if kind in get_args(RenewalChargeWebhookEventType):
+        return RenewalChargeWebhookEvent(
+            id=event["id"],
+            type=cast(RenewalChargeWebhookEventType, kind),
+            timestamp=event["timestamp"],
+            environment=environment,
+            showcase_id=showcase_id,
+            data=WebhookRenewalCharge.from_dict(data),
         )
     if kind in get_args(SaleWebhookEventType):
         return SaleWebhookEvent(

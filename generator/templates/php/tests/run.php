@@ -8,6 +8,7 @@ use Perata\IdentifiersWebhookEvent;
 use Perata\OrderWebhookEvent;
 use Perata\Perata;
 use Perata\PerataException;
+use Perata\RenewalChargeWebhookEvent;
 use Perata\UnknownWebhookEvent;
 use Perata\Webhook;
 use Perata\WebhookVerificationException;
@@ -67,7 +68,7 @@ $tests['a write sends its body and idempotency key'] = static function (): void 
 $tests['a checkout session hands back the client secret for the browser'] = static function (): void {
     $session = static fn (string $secret): array => [
         'id' => 'pcl_1', 'url' => 'https://perata.sh/pagamento/pcl_1', 'product_id' => 'prod_1', 'price_id' => 'price_1',
-        'status' => 'active', 'label' => '', 'quantity' => 1, 'success_url' => 'https://loja.example/obrigado', 'cancel_url' => '',
+        'status' => 'active', 'label' => '', 'notify_customer_email' => true, 'renewal_mode' => '', 'quantity' => 1, 'success_url' => 'https://loja.example/obrigado', 'cancel_url' => '',
         'expires_at' => null, 'created_at' => '2026-11-16T12:00:00Z', 'session_id' => 'cs_1', 'client_secret' => $secret,
         'client_secret_expires_at' => '2026-11-16T12:30:00Z', 'status_key' => 'sk_1',
         'amount_cents' => null, 'items' => [], 'metadata' => [], 'client_reference_id' => '',
@@ -196,7 +197,7 @@ $tests['customers are listed by e-mail'] = static function (): void {
 $tests['a graduated price carries its tiers and a subscription its quantity'] = static function (): void {
     $tiers = [['up_to' => 1, 'unit_amount_cents' => 25000], ['up_to' => null, 'unit_amount_cents' => 15000]];
     $price = ['id' => 'price_1', 'product_id' => 'prod_1', 'type' => 'recurring', 'interval' => 'month', 'interval_count' => 1, 'currency' => 'BRL', 'status' => 'active', 'amount_cents' => 0, 'pricing_model' => 'graduated', 'unit_amount_cents' => null, 'unit_label' => 'câmera', 'unit_label_plural' => 'câmeras', 'tiers' => $tiers];
-    $subscription = ['id' => 'sub_1', 'amount_cents' => 55000, 'cancel_at_period_end' => false, 'client_reference_id' => 'pedido-9', 'currency' => 'BRL', 'current_period_end' => '2026-12-20T00:00:00Z', 'current_period_start' => '2026-11-20T00:00:00Z', 'customer_id' => 'cus_1', 'interval' => 'month', 'metadata' => ['camera' => 'c1'], 'price_id' => 'price_1', 'product_id' => 'prod_1', 'quantity' => 3, 'showcase_id' => 'shw_1', 'status' => 'active', 'suspended_at' => null, 'suspension_reason' => null, 'trial_end' => null, 'trial_start' => null];
+    $subscription = ['id' => 'sub_1', 'label' => '', 'notify_customer_email' => true, 'renewal_mode' => 'manual', 'amount_cents' => 55000, 'cancel_at_period_end' => false, 'client_reference_id' => 'pedido-9', 'currency' => 'BRL', 'current_period_end' => '2026-12-20T00:00:00Z', 'current_period_start' => '2026-11-20T00:00:00Z', 'customer_id' => 'cus_1', 'interval' => 'month', 'metadata' => ['camera' => 'c1'], 'price_id' => 'price_1', 'product_id' => 'prod_1', 'quantity' => 3, 'showcase_id' => 'shw_1', 'status' => 'active', 'suspended_at' => null, 'suspension_reason' => null, 'trial_end' => null, 'trial_start' => null];
     [$perata, $seen] = client(static fn (array $request): array => $request['method'] === 'POST' ? [201, [], ['data' => $price]] : [200, [], ['data' => $subscription]]);
     $created = $perata->prices->create(['product_id' => 'prod_1', 'type' => 'recurring', 'interval' => 'month', 'pricing_model' => 'graduated', 'tiers' => $tiers, 'unit_label' => 'câmera', 'unit_label_plural' => 'câmeras']);
     check($seen[0]['url'] === 'https://perata.test/api/v1/prices', 'path ' . $seen[0]['url']);
@@ -215,9 +216,9 @@ $tests['a graduated price carries its tiers and a subscription its quantity'] = 
 // next period.
 $tests['a first period extension and the discounts the sale reads back'] = static function (): void {
     $answers = [
-        'POST /api/v1/checkouts' => [201, '{"data":{"id":"pcl_1","showcase_id":"x","url":"x","product_id":"prod_1","price_id":"price_1","status":"active","label":"x","quantity":0,"amount_cents":null,"items":[],"metadata":{},"client_reference_id":"x","success_url":"x","cancel_url":"x","expires_at":null,"subscription_start_at":null,"discount_id":"disc_1","first_period_extra_days":30,"created_at":"2026-11-20T12:00:00Z","session_id":"cs_1","client_secret":"cs_secret_1","client_secret_expires_at":"2026-11-20T12:00:00Z","status_key":"x"}}'],
-        'PATCH /api/v1/subscriptions/sub_1' => [200, '{"data":{"id":"sub_1","showcase_id":"x","customer_id":"x","product_id":"x","price_id":"x","status":"active","amount_cents":0,"quantity":0,"currency":"BRL","interval":"x","current_period_start":"2026-11-20T12:00:00Z","current_period_end":"2026-11-20T12:00:00Z","cancel_at_period_end":false,"pending_update":{"price_id":"price_2","quantity":5,"amount_cents":90000,"effective_at":"2026-12-20T03:00:00Z"},"suspended_at":null,"suspension_reason":null,"trial_start":null,"trial_end":null,"metadata":{},"client_reference_id":"x","discount_id":"disc_1","discount_ends_at":"2027-03-01T03:00:00Z","first_period_extra_days":30}}'],
-        'GET /api/v1/subscriptions/sub_2' => [200, '{"data":{"id":"sub_2","showcase_id":"x","customer_id":"x","product_id":"x","price_id":"x","status":"active","amount_cents":0,"quantity":0,"currency":"BRL","interval":"x","current_period_start":"2026-11-20T12:00:00Z","current_period_end":"2026-11-20T12:00:00Z","cancel_at_period_end":false,"pending_update":null,"suspended_at":null,"suspension_reason":null,"trial_start":null,"trial_end":null,"metadata":{},"client_reference_id":"x","discount_id":null,"discount_ends_at":null,"first_period_extra_days":null}}'],
+        'POST /api/v1/checkouts' => [201, '{"data":{"id":"pcl_1","showcase_id":"x","url":"x","product_id":"prod_1","price_id":"price_1","status":"active","label":"x","quantity":0,"amount_cents":null,"items":[],"metadata":{},"client_reference_id":"x","success_url":"x","cancel_url":"x","expires_at":null,"subscription_start_at":null,"discount_id":"disc_1","first_period_extra_days":30,"renewal_mode":"manual","notify_customer_email":false,"created_at":"2026-11-20T12:00:00Z","session_id":"cs_1","client_secret":"cs_secret_1","client_secret_expires_at":"2026-11-20T12:00:00Z","status_key":"x"}}'],
+        'PATCH /api/v1/subscriptions/sub_1' => [200, '{"data":{"id":"sub_1","showcase_id":"x","customer_id":"x","product_id":"x","price_id":"x","status":"active","amount_cents":0,"quantity":0,"currency":"BRL","interval":"x","current_period_start":"2026-11-20T12:00:00Z","current_period_end":"2026-11-20T12:00:00Z","cancel_at_period_end":false,"pending_update":{"price_id":"price_2","quantity":5,"amount_cents":90000,"effective_at":"2026-12-20T03:00:00Z"},"suspended_at":null,"suspension_reason":null,"trial_start":null,"trial_end":null,"metadata":{},"client_reference_id":"x","discount_id":"disc_1","discount_ends_at":"2027-03-01T03:00:00Z","first_period_extra_days":30,"renewal_mode":"manual","label":"x","notify_customer_email":false}}'],
+        'GET /api/v1/subscriptions/sub_2' => [200, '{"data":{"id":"sub_2","showcase_id":"x","customer_id":"x","product_id":"x","price_id":"x","status":"active","amount_cents":0,"quantity":0,"currency":"BRL","interval":"x","current_period_start":"2026-11-20T12:00:00Z","current_period_end":"2026-11-20T12:00:00Z","cancel_at_period_end":false,"pending_update":null,"suspended_at":null,"suspension_reason":null,"trial_start":null,"trial_end":null,"metadata":{},"client_reference_id":"x","discount_id":null,"discount_ends_at":null,"first_period_extra_days":null,"renewal_mode":"manual","label":"x","notify_customer_email":false}}'],
         'GET /api/v1/orders/ord_1' => [200, '{"data":{"id":"ord_1","showcase_id":"x","customer_id":"x","product_id":"x","price_id":"x","amount_cents":9000,"currency":"BRL","status":"open","paid_at":null,"order_status":null,"refunded_amount_cents":0,"installments":0,"installment_interest_cents":0,"items":[],"metadata":{},"client_reference_id":"x","subscription_id":null,"cycle_sequence":null,"period_start":null,"period_end":null,"discount_id":"disc_1","discount_code":"BEMVINDO","subtotal_cents":10000,"discount_cents":1000}}'],
         'GET /api/v1/prices/price_1' => [200, '{"data":{"id":"price_1","product_id":"prod_1","currency":"BRL","amount_cents":9000,"type":"one_time","interval":"none","interval_count":0,"pricing_model":"fixed","unit_amount_cents":null,"tiers":[],"unit_label":"x","unit_label_plural":"x","minimum_units":null,"maximum_units":null,"status":"archived"}}'],
     ];
@@ -240,6 +241,94 @@ $tests['a first period extension and the discounts the sale reads back'] = stati
     check($order->subtotalCents === 10000 && $order->discountCents === 1000 && $order->discountId === 'disc_1' && $order->discountCode === 'BEMVINDO', 'order');
     $price = $perata->prices->get('price_1');
     check($seen[4]['url'] === 'https://perata.test/api/v1/prices/price_1' && $price->status === 'archived', 'price');
+};
+
+// The payment reads back its fee, its net, its split and the payout that pays it.
+$tests['a payment reads back its fee, its split and its payout'] = static function (): void {
+    [$perata] = client(static fn (): array => [200, [], json_decode('{"data":{"id":"pay_1","showcase_id":"x","checkout_id":"x","customer_id":"x","method":"card","state":"unknown","amount_cents":0,"captured_cents":0,"refunded_cents":0,"currency":"BRL","created_at":"2026-11-20T12:00:00Z","metadata":{},"client_reference_id":"x","installments":0,"installment_amount_cents":0,"installment_interest_cents":0,"subscription_id":null,"cycle_sequence":null,"period_start":null,"period_end":null,"fee_cents":450,"net_cents":8550,"expected_payout_on":"2026-12-21","payout_deposited_on":null,"payout_id":null,"split":[{"recipient_id":"shw_2","amount_cents":9000,"fee_cents":450,"net_cents":8550}]}}', true)]);
+    $payment = $perata->payments->get('pay_1');
+    check($payment->feeCents === 450 && $payment->netCents === 8550 && $payment->expectedPayoutOn === '2026-12-21' && $payment->payoutId === null && $payment->payoutDepositedOn === null, 'payment');
+    check(count($payment->split) === 1 && $payment->split[0]->recipientId === 'shw_2' && $payment->split[0]->amountCents === 9000 && $payment->split[0]->feeCents === 450 && $payment->split[0]->netCents === 8550, 'split');
+};
+
+// The balance carries its period, the payouts are filtered and walked page by
+// page, and a payout reads back its lines: a fee has no payment.
+$tests['the balance and the payouts read back what will be deposited'] = static function (): void {
+    [$perata, $seen] = client(static function (array $request): array {
+        $url = (string) $request['url'];
+        if (str_contains($url, '/api/v1/balance')) {
+            return [200, [], json_decode('{"data":{"total_to_receive_cents":100000,"released_cents":10000,"held_cents":5000,"scheduled_cents":60000,"later_cents":25000,"deposited_cents":42000,"period_from":"2026-11-01","period_to":"2026-11-20","currency":"BRL"}}', true)];
+        }
+        if (str_contains($url, '/api/v1/payouts/po_20261120')) {
+            return [200, [], json_decode('{"data":{"id":"po_20261120","status":"deposited","expected_on":"2026-11-20","deposited_on":"2026-11-20","amount_cents":10000,"fee_cents":450,"net_cents":9550,"currency":"BRL","item_count":2,"items":[{"kind":"sale","payment_id":"pay_1","installment":1,"status":"deposited","amount_cents":10000,"fee_cents":300,"net_cents":9700},{"kind":"fee","payment_id":null,"installment":0,"status":"deposited","amount_cents":0,"fee_cents":150,"net_cents":-150}]}}', true)];
+        }
+        return [200, [], str_contains($url, 'page=2') ? json_decode('{"data":{"items":[{"id":"po_20261119","status":"released","expected_on":"2026-11-19","deposited_on":null,"amount_cents":5000,"fee_cents":200,"net_cents":4800,"currency":"BRL","item_count":2}],"pagination":{"total_count":2,"max_page":2}}}', true) : json_decode('{"data":{"items":[{"id":"po_20261120","status":"deposited","expected_on":"2026-11-20","deposited_on":"2026-11-20","amount_cents":10000,"fee_cents":450,"net_cents":9550,"currency":"BRL","item_count":2}],"pagination":{"total_count":2,"max_page":2}}}', true)];
+    });
+    $balance = $perata->balance->get(['date_from' => '2026-11-01', 'date_to' => '2026-11-20']);
+    check($seen[0]['url'] === 'https://perata.test/api/v1/balance?date_from=2026-11-01&date_to=2026-11-20', 'balance url ' . $seen[0]['url']);
+    check($balance->totalToReceiveCents === 100000 && $balance->depositedCents === 42000 && $balance->periodFrom === '2026-11-01' && $balance->periodTo === '2026-11-20' && $balance->currency === 'BRL', 'balance');
+    check($balance->releasedCents + $balance->heldCents + $balance->scheduledCents + $balance->laterCents === $balance->totalToReceiveCents, 'balance parts');
+    $walked = [];
+    foreach ($perata->payouts->listIter(['status' => 'deposited', 'date_from' => '2026-11-01', 'sorting' => '-date', 'limit' => 1]) as $payout) {
+        $walked[] = $payout->id . ':' . $payout->status;
+        check($payout->netCents === $payout->amountCents - $payout->feeCents, 'payout net');
+        check(($payout->status === 'deposited') === ($payout->depositedOn !== null), 'deposited_on');
+    }
+    check($walked === ['po_20261120:deposited', 'po_20261119:released'], 'walked ' . implode(',', $walked));
+    check($seen[1]['url'] === 'https://perata.test/api/v1/payouts?page=1&status=deposited&date_from=2026-11-01&sorting=-date&limit=1', 'payouts url ' . $seen[1]['url']);
+    $payout = $perata->payouts->get('po_20261120');
+    check($payout->netCents === 9550 && count($payout->items) === 2, 'payout');
+    $sale = $payout->items[0];
+    $fee = $payout->items[1];
+    check($sale->kind === 'sale' && $sale->paymentId === 'pay_1' && $sale->installment === 1 && $sale->netCents === 9700, 'sale');
+    check($fee->kind === 'fee' && $fee->paymentId === null && $fee->netCents === -150, 'fee');
+};
+
+// A checkout says how its subscription renews, the subscription reads back the
+// mode it resolved to, its label and whether the buyer is written to, an update
+// changes them, and the open renewal charge is read by its own route; without
+// one the API answers 404 no_open_charge.
+$tests['the renewal mode, the label and the open charge'] = static function (): void {
+    $answers = [
+        'POST /api/v1/checkouts' => [201, '{"data":{"id":"pcl_1","showcase_id":"x","url":"x","product_id":"prod_1","price_id":"price_1","status":"active","label":"Olho de Águia · Ana","quantity":0,"amount_cents":null,"items":[],"metadata":{},"client_reference_id":"x","success_url":"x","cancel_url":"x","expires_at":null,"subscription_start_at":null,"discount_id":"x","first_period_extra_days":null,"renewal_mode":"automatic","notify_customer_email":false,"created_at":"2026-11-20T12:00:00Z","session_id":"cs_1","client_secret":"cs_secret_1","client_secret_expires_at":"2026-11-20T12:00:00Z","status_key":"x"}}'],
+        'PATCH /api/v1/subscriptions/sub_1' => [200, '{"data":{"id":"sub_1","showcase_id":"x","customer_id":"x","product_id":"x","price_id":"x","status":"active","amount_cents":0,"quantity":0,"currency":"BRL","interval":"x","current_period_start":"2026-11-20T12:00:00Z","current_period_end":"2026-11-20T12:00:00Z","cancel_at_period_end":false,"pending_update":null,"suspended_at":null,"suspension_reason":null,"trial_start":null,"trial_end":null,"metadata":{},"client_reference_id":"x","discount_id":null,"discount_ends_at":null,"first_period_extra_days":null,"renewal_mode":"pix_automatic","label":"Olho de Águia · Ana","notify_customer_email":false}}'],
+        'GET /api/v1/subscriptions/sub_1/open-charge' => [200, '{"data":{"id":"rc_1","subscription_id":"sub_1","showcase_id":"x","customer_id":"x","product_id":"x","price_id":"x","cycle_sequence":2,"amount_cents":9000,"currency":"BRL","label":"Olho de Águia · Ana","renewal_mode":"manual","period_start":"2026-11-20T12:00:00Z","period_end":"2026-11-20T12:00:00Z","due_at":"2026-12-20T03:00:00Z","expires_at":"2026-12-27T03:00:00Z","payment_url":"https://perata.sh/pagar/rc_1","metadata":{},"client_reference_id":"x","reminder":null,"days_until_due":null,"notify_customer_email":true}}'],
+    ];
+    [$perata, $seen] = client(static function (array $request) use ($answers): array {
+        $route = $request['method'] . ' ' . parse_url($request['url'], PHP_URL_PATH);
+        if (isset($answers[$route])) {
+            return [$answers[$route][0], [], json_decode($answers[$route][1], true)];
+        }
+        return [404, [], ['error' => 'no_open_charge', 'message' => 'A assinatura não tem cobrança de renovação em aberto.']];
+    });
+    $label = 'Olho de Águia · Ana';
+    $checkout = $perata->checkouts->create(['product_id' => 'prod_1', 'price_id' => 'price_1', 'renewal_mode' => 'automatic', 'notify_customer_email' => false, 'label' => $label]);
+    $sent = json_decode((string) $seen[0]['body'], true);
+    check($sent['renewal_mode'] === 'automatic' && $sent['notify_customer_email'] === false && $sent['label'] === $label, 'checkout body ' . $seen[0]['body']);
+    check($checkout->renewalMode === 'automatic' && $checkout->notifyCustomerEmail === false && $checkout->label === $label, 'checkout');
+    $subscription = $perata->subscriptions->update('sub_1', ['renewal_mode' => 'manual', 'notify_customer_email' => true, 'label' => $label]);
+    $sent = json_decode((string) $seen[1]['body'], true);
+    check($sent['renewal_mode'] === 'manual' && $sent['notify_customer_email'] === true && $sent['label'] === $label, 'update body ' . $seen[1]['body']);
+    check($subscription->renewalMode === 'pix_automatic' && $subscription->label === $label && $subscription->notifyCustomerEmail === false, 'subscription');
+    $charge = $perata->subscriptions->getOpenCharge('sub_1');
+    check($seen[2]['url'] === 'https://perata.test/api/v1/subscriptions/sub_1/open-charge', 'charge url ' . $seen[2]['url']);
+    check($charge->id === 'rc_1' && $charge->subscriptionId === 'sub_1' && $charge->amountCents === 9000 && $charge->renewalMode === 'manual', 'charge');
+    check($charge->paymentUrl === 'https://perata.sh/pagar/rc_1' && $charge->dueAt === '2026-12-20T03:00:00Z' && $charge->expiresAt === '2026-12-27T03:00:00Z' && $charge->reminder === null && $charge->daysUntilDue === null && $charge->notifyCustomerEmail === true, 'charge fields');
+    try {
+        $perata->subscriptions->getOpenCharge('sub_2');
+        check(false, 'a missing open charge was read');
+    } catch (PerataException $refused) {
+        check($refused->status === 404 && $refused->errorCode === 'no_open_charge', 'refusal');
+    }
+};
+
+// The renewal events carry the charge: due, and the reminder with its days.
+$tests['the renewal events carry the charge'] = static function (): void {
+    $now = SIGNED_AT + 120;
+    $due = Webhook::verify(NEW_SECRET, webhookHeaders('msg_7', SIGNED_AT, 'v1,BKbvaeGeiiLKhXAhfIIqaaxztbvGy5+Lj3u3m+Zec9w='), '{"id":"msg_7","type":"subscription.renewal_due","timestamp":"2026-10-22T12:00:00Z","data":{"id":"rc_1","subscription_id":"sub_1","showcase_id":"x","customer_id":"x","product_id":"x","price_id":"x","cycle_sequence":2,"amount_cents":9000,"currency":"BRL","label":"Olho de Águia · Ana","renewal_mode":"manual","period_start":"2026-11-20T12:00:00Z","period_end":"2026-11-20T12:00:00Z","due_at":"2026-12-20T03:00:00Z","expires_at":"2026-12-27T03:00:00Z","payment_url":"https://perata.sh/pagar/rc_1","metadata":{},"client_reference_id":"x","notify_customer_email":true,"reminder":null,"days_until_due":null}}', $now);
+    check($due instanceof RenewalChargeWebhookEvent && $due->type === 'subscription.renewal_due' && $due->data->id === 'rc_1' && $due->data->paymentUrl === 'https://perata.sh/pagar/rc_1' && $due->data->reminder === null, 'due event');
+    $reminder = Webhook::verify(NEW_SECRET, webhookHeaders('msg_8', SIGNED_AT, 'v1,D1dd09VwdIBIDIq3Tp/yC+mhhlORnZyN/P/KU4sxX2Q='), '{"id":"msg_8","type":"subscription.renewal_reminder","timestamp":"2026-10-22T12:00:00Z","environment":"live","showcase_id":"shw_1","data":{"id":"rc_1","subscription_id":"sub_1","showcase_id":"x","customer_id":"x","product_id":"x","price_id":"x","cycle_sequence":2,"amount_cents":9000,"currency":"BRL","label":"Olho de Águia · Ana","renewal_mode":"manual","period_start":"2026-11-20T12:00:00Z","period_end":"2026-11-20T12:00:00Z","due_at":"2026-12-20T03:00:00Z","expires_at":"2026-12-27T03:00:00Z","payment_url":"https://perata.sh/pagar/rc_1","metadata":{},"client_reference_id":"x","notify_customer_email":true,"reminder":"before_due","days_until_due":3}}', $now);
+    check($reminder instanceof RenewalChargeWebhookEvent && $reminder->type === 'subscription.renewal_reminder' && $reminder->environment === 'live' && $reminder->data->reminder === 'before_due' && $reminder->data->daysUntilDue === 3, 'reminder event');
 };
 
 $tests['usage ingestion carries the source credential and its events'] = static function (): void {

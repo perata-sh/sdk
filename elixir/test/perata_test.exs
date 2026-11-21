@@ -65,6 +65,8 @@ defmodule PerataTest do
       "price_id" => "price_1",
       "status" => "active",
       "label" => "",
+      "notify_customer_email" => true,
+      "renewal_mode" => "",
       "quantity" => 1,
       "success_url" => "https://loja.example/obrigado",
       "cancel_url" => "",
@@ -322,7 +324,7 @@ defmodule PerataTest do
     }
 
     subscription = %{
-      "id" => "sub_1", "amount_cents" => 55_000, "cancel_at_period_end" => false,
+      "id" => "sub_1", "label" => "", "notify_customer_email" => true, "renewal_mode" => "manual", "amount_cents" => 55_000, "cancel_at_period_end" => false,
       "client_reference_id" => "pedido-9", "currency" => "BRL",
       "current_period_end" => "2026-12-20T00:00:00Z", "current_period_start" => "2026-11-20T00:00:00Z",
       "customer_id" => "cus_1", "interval" => "month", "metadata" => %{"camera" => "c1"},
@@ -374,9 +376,9 @@ defmodule PerataTest do
   # the next period.
   test "a first period extension and the discounts the sale reads back" do
     answers = %{
-      "POST /api/v1/checkouts" => {201, ~S'{"data":{"id":"pcl_1","showcase_id":"x","url":"x","product_id":"prod_1","price_id":"price_1","status":"active","label":"x","quantity":0,"amount_cents":null,"items":[],"metadata":{},"client_reference_id":"x","success_url":"x","cancel_url":"x","expires_at":null,"subscription_start_at":null,"discount_id":"disc_1","first_period_extra_days":30,"created_at":"2026-11-20T12:00:00Z","session_id":"cs_1","client_secret":"cs_secret_1","client_secret_expires_at":"2026-11-20T12:00:00Z","status_key":"x"}}'},
-      "PATCH /api/v1/subscriptions/sub_1" => {200, ~S'{"data":{"id":"sub_1","showcase_id":"x","customer_id":"x","product_id":"x","price_id":"x","status":"active","amount_cents":0,"quantity":0,"currency":"BRL","interval":"x","current_period_start":"2026-11-20T12:00:00Z","current_period_end":"2026-11-20T12:00:00Z","cancel_at_period_end":false,"pending_update":{"price_id":"price_2","quantity":5,"amount_cents":90000,"effective_at":"2026-12-20T03:00:00Z"},"suspended_at":null,"suspension_reason":null,"trial_start":null,"trial_end":null,"metadata":{},"client_reference_id":"x","discount_id":"disc_1","discount_ends_at":"2027-03-01T03:00:00Z","first_period_extra_days":30}}'},
-      "GET /api/v1/subscriptions/sub_2" => {200, ~S'{"data":{"id":"sub_2","showcase_id":"x","customer_id":"x","product_id":"x","price_id":"x","status":"active","amount_cents":0,"quantity":0,"currency":"BRL","interval":"x","current_period_start":"2026-11-20T12:00:00Z","current_period_end":"2026-11-20T12:00:00Z","cancel_at_period_end":false,"pending_update":null,"suspended_at":null,"suspension_reason":null,"trial_start":null,"trial_end":null,"metadata":{},"client_reference_id":"x","discount_id":null,"discount_ends_at":null,"first_period_extra_days":null}}'},
+      "POST /api/v1/checkouts" => {201, ~S'{"data":{"id":"pcl_1","showcase_id":"x","url":"x","product_id":"prod_1","price_id":"price_1","status":"active","label":"x","quantity":0,"amount_cents":null,"items":[],"metadata":{},"client_reference_id":"x","success_url":"x","cancel_url":"x","expires_at":null,"subscription_start_at":null,"discount_id":"disc_1","first_period_extra_days":30,"renewal_mode":"manual","notify_customer_email":false,"created_at":"2026-11-20T12:00:00Z","session_id":"cs_1","client_secret":"cs_secret_1","client_secret_expires_at":"2026-11-20T12:00:00Z","status_key":"x"}}'},
+      "PATCH /api/v1/subscriptions/sub_1" => {200, ~S'{"data":{"id":"sub_1","showcase_id":"x","customer_id":"x","product_id":"x","price_id":"x","status":"active","amount_cents":0,"quantity":0,"currency":"BRL","interval":"x","current_period_start":"2026-11-20T12:00:00Z","current_period_end":"2026-11-20T12:00:00Z","cancel_at_period_end":false,"pending_update":{"price_id":"price_2","quantity":5,"amount_cents":90000,"effective_at":"2026-12-20T03:00:00Z"},"suspended_at":null,"suspension_reason":null,"trial_start":null,"trial_end":null,"metadata":{},"client_reference_id":"x","discount_id":"disc_1","discount_ends_at":"2027-03-01T03:00:00Z","first_period_extra_days":30,"renewal_mode":"manual","label":"x","notify_customer_email":false}}'},
+      "GET /api/v1/subscriptions/sub_2" => {200, ~S'{"data":{"id":"sub_2","showcase_id":"x","customer_id":"x","product_id":"x","price_id":"x","status":"active","amount_cents":0,"quantity":0,"currency":"BRL","interval":"x","current_period_start":"2026-11-20T12:00:00Z","current_period_end":"2026-11-20T12:00:00Z","cancel_at_period_end":false,"pending_update":null,"suspended_at":null,"suspension_reason":null,"trial_start":null,"trial_end":null,"metadata":{},"client_reference_id":"x","discount_id":null,"discount_ends_at":null,"first_period_extra_days":null,"renewal_mode":"manual","label":"x","notify_customer_email":false}}'},
       "GET /api/v1/orders/ord_1" => {200, ~S'{"data":{"id":"ord_1","showcase_id":"x","customer_id":"x","product_id":"x","price_id":"x","amount_cents":9000,"currency":"BRL","status":"open","paid_at":null,"order_status":null,"refunded_amount_cents":0,"installments":0,"installment_interest_cents":0,"items":[],"metadata":{},"client_reference_id":"x","subscription_id":null,"cycle_sequence":null,"period_start":null,"period_end":null,"discount_id":"disc_1","discount_code":"BEMVINDO","subtotal_cents":10000,"discount_cents":1000}}'},
       "GET /api/v1/prices/price_1" => {200, ~S'{"data":{"id":"price_1","product_id":"prod_1","currency":"BRL","amount_cents":9000,"type":"one_time","interval":"none","interval_count":0,"pricing_model":"fixed","unit_amount_cents":null,"tiers":[],"unit_label":"x","unit_label_plural":"x","minimum_units":null,"maximum_units":null,"status":"archived"}}'}
     }
@@ -418,6 +420,105 @@ defmodule PerataTest do
     assert_received {:request, _order}
     assert_received {:request, seen}
     assert seen.url.path == "/api/v1/prices/price_1"
+  end
+
+  # The payment reads back its fee, its net, its split and the payout that pays it.
+  test "a payment reads back its fee, its split and its payout" do
+    perata = client(fn _request -> {200, JSON.decode!(~S'{"data":{"id":"pay_1","showcase_id":"x","checkout_id":"x","customer_id":"x","method":"card","state":"unknown","amount_cents":0,"captured_cents":0,"refunded_cents":0,"currency":"BRL","created_at":"2026-11-20T12:00:00Z","metadata":{},"client_reference_id":"x","installments":0,"installment_amount_cents":0,"installment_interest_cents":0,"subscription_id":null,"cycle_sequence":null,"period_start":null,"period_end":null,"fee_cents":450,"net_cents":8550,"expected_payout_on":"2026-12-21","payout_deposited_on":null,"payout_id":null,"split":[{"recipient_id":"shw_2","amount_cents":9000,"fee_cents":450,"net_cents":8550}]}}'), []} end)
+
+    assert {:ok, %Perata.Payment{} = payment} = Perata.Payments.get(perata, "pay_1")
+    assert {payment.fee_cents, payment.net_cents, payment.expected_payout_on} == {450, 8550, "2026-12-21"}
+    assert {payment.payout_id, payment.payout_deposited_on} == {nil, nil}
+
+    assert [%Perata.SplitRecipient{recipient_id: "shw_2", amount_cents: 9000, fee_cents: 450, net_cents: 8550}] =
+             payment.split
+  end
+
+  # The balance carries its period, the payouts are filtered and walked page by
+  # page, and a payout reads back its lines: a fee has no payment.
+  test "the balance and the payouts read back what will be deposited" do
+    perata =
+      client(fn request ->
+        body =
+          cond do
+            request.url.path == "/api/v1/balance" -> ~S'{"data":{"total_to_receive_cents":100000,"released_cents":10000,"held_cents":5000,"scheduled_cents":60000,"later_cents":25000,"deposited_cents":42000,"period_from":"2026-11-01","period_to":"2026-11-20","currency":"BRL"}}'
+            request.url.path == "/api/v1/payouts/po_20261120" -> ~S'{"data":{"id":"po_20261120","status":"deposited","expected_on":"2026-11-20","deposited_on":"2026-11-20","amount_cents":10000,"fee_cents":450,"net_cents":9550,"currency":"BRL","item_count":2,"items":[{"kind":"sale","payment_id":"pay_1","installment":1,"status":"deposited","amount_cents":10000,"fee_cents":300,"net_cents":9700},{"kind":"fee","payment_id":null,"installment":0,"status":"deposited","amount_cents":0,"fee_cents":150,"net_cents":-150}]}}'
+            query(request)["page"] == "2" -> ~S'{"data":{"items":[{"id":"po_20261119","status":"released","expected_on":"2026-11-19","deposited_on":null,"amount_cents":5000,"fee_cents":200,"net_cents":4800,"currency":"BRL","item_count":2}],"pagination":{"total_count":2,"max_page":2}}}'
+            true -> ~S'{"data":{"items":[{"id":"po_20261120","status":"deposited","expected_on":"2026-11-20","deposited_on":"2026-11-20","amount_cents":10000,"fee_cents":450,"net_cents":9550,"currency":"BRL","item_count":2}],"pagination":{"total_count":2,"max_page":2}}}'
+          end
+
+        {200, JSON.decode!(body), []}
+      end)
+
+    assert {:ok, %Perata.Balance{} = balance} = Perata.BalanceService.get(perata, date_from: "2026-11-01", date_to: "2026-11-20")
+    assert_received {:request, seen}
+    assert query(seen) == %{"date_from" => "2026-11-01", "date_to" => "2026-11-20"}
+    assert {balance.total_to_receive_cents, balance.deposited_cents, balance.period_from, balance.period_to, balance.currency} == {100_000, 42_000, "2026-11-01", "2026-11-20", "BRL"}
+    assert balance.released_cents + balance.held_cents + balance.scheduled_cents + balance.later_cents == balance.total_to_receive_cents
+
+    walked =
+      perata
+      |> Perata.Payouts.list_stream(status: "deposited", date_from: "2026-11-01", sorting: "-date", limit: 1)
+      |> Enum.map(fn payout ->
+        assert payout.net_cents == payout.amount_cents - payout.fee_cents
+        assert (payout.status == "deposited") == (payout.deposited_on != nil)
+        "#{payout.id}:#{payout.status}"
+      end)
+
+    assert walked == ["po_20261120:deposited", "po_20261119:released"]
+    assert_received {:request, seen}
+    assert query(seen) == %{"page" => "1", "limit" => "1", "status" => "deposited", "date_from" => "2026-11-01", "sorting" => "-date"}
+    assert_received {:request, _second_page}
+
+    assert {:ok, %Perata.PayoutDetail{net_cents: 9550, items: [sale, fee]}} = Perata.Payouts.get(perata, "po_20261120")
+    assert {sale.kind, sale.payment_id, sale.installment, sale.net_cents} == {"sale", "pay_1", 1, 9700}
+    assert {fee.kind, fee.payment_id, fee.net_cents} == {"fee", nil, -150}
+  end
+
+  # A checkout says how its subscription renews, the subscription reads back the
+  # mode it resolved to, its label and whether the buyer is written to, an update
+  # changes them, and the open renewal charge is read by its own route; without
+  # one the API answers 404 no_open_charge.
+  test "the renewal mode, the label and the open charge" do
+    answers = %{
+      "POST /api/v1/checkouts" => {201, ~S'{"data":{"id":"pcl_1","showcase_id":"x","url":"x","product_id":"prod_1","price_id":"price_1","status":"active","label":"Olho de Águia · Ana","quantity":0,"amount_cents":null,"items":[],"metadata":{},"client_reference_id":"x","success_url":"x","cancel_url":"x","expires_at":null,"subscription_start_at":null,"discount_id":"x","first_period_extra_days":null,"renewal_mode":"automatic","notify_customer_email":false,"created_at":"2026-11-20T12:00:00Z","session_id":"cs_1","client_secret":"cs_secret_1","client_secret_expires_at":"2026-11-20T12:00:00Z","status_key":"x"}}'},
+      "PATCH /api/v1/subscriptions/sub_1" => {200, ~S'{"data":{"id":"sub_1","showcase_id":"x","customer_id":"x","product_id":"x","price_id":"x","status":"active","amount_cents":0,"quantity":0,"currency":"BRL","interval":"x","current_period_start":"2026-11-20T12:00:00Z","current_period_end":"2026-11-20T12:00:00Z","cancel_at_period_end":false,"pending_update":null,"suspended_at":null,"suspension_reason":null,"trial_start":null,"trial_end":null,"metadata":{},"client_reference_id":"x","discount_id":null,"discount_ends_at":null,"first_period_extra_days":null,"renewal_mode":"pix_automatic","label":"Olho de Águia · Ana","notify_customer_email":false}}'},
+      "GET /api/v1/subscriptions/sub_1/open-charge" => {200, ~S'{"data":{"id":"rc_1","subscription_id":"sub_1","showcase_id":"x","customer_id":"x","product_id":"x","price_id":"x","cycle_sequence":2,"amount_cents":9000,"currency":"BRL","label":"Olho de Águia · Ana","renewal_mode":"manual","period_start":"2026-11-20T12:00:00Z","period_end":"2026-11-20T12:00:00Z","due_at":"2026-12-20T03:00:00Z","expires_at":"2026-12-27T03:00:00Z","payment_url":"https://perata.sh/pagar/rc_1","metadata":{},"client_reference_id":"x","reminder":null,"days_until_due":null,"notify_customer_email":true}}'}
+    }
+
+    perata =
+      client(fn request ->
+        case Map.fetch(answers, "#{request.method} #{request.url.path}") do
+          {:ok, {status, body}} -> {status, JSON.decode!(body), []}
+          :error -> {404, %{"error" => "no_open_charge", "message" => "A assinatura não tem cobrança de renovação em aberto."}, []}
+        end
+      end)
+
+    label = "Olho de Águia · Ana"
+
+    assert {:ok, %Perata.CheckoutCreated{renewal_mode: "automatic", notify_customer_email: false, label: ^label}} =
+             Perata.Checkouts.create(perata, product_id: "prod_1", price_id: "price_1", renewal_mode: "automatic", notify_customer_email: false, label: label)
+
+    assert_received {:request, seen}
+    sent = JSON.decode!(seen.body)
+    assert {sent["renewal_mode"], sent["notify_customer_email"], sent["label"]} == {"automatic", false, label}
+
+    assert {:ok, %Perata.Subscription{renewal_mode: "pix_automatic", label: ^label, notify_customer_email: false}} =
+             Perata.Subscriptions.update(perata, "sub_1", renewal_mode: "manual", notify_customer_email: true, label: label)
+
+    assert_received {:request, seen}
+    sent = JSON.decode!(seen.body)
+    assert {sent["renewal_mode"], sent["notify_customer_email"], sent["label"]} == {"manual", true, label}
+
+    assert {:ok, %Perata.RenewalCharge{} = charge} = Perata.Subscriptions.get_open_charge(perata, "sub_1")
+    assert_received {:request, seen}
+    assert seen.url.path == "/api/v1/subscriptions/sub_1/open-charge"
+    assert {charge.id, charge.subscription_id, charge.amount_cents, charge.renewal_mode} == {"rc_1", "sub_1", 9000, "manual"}
+    assert {charge.payment_url, charge.due_at, charge.expires_at} == {"https://perata.sh/pagar/rc_1", "2026-12-20T03:00:00Z", "2026-12-27T03:00:00Z"}
+    assert {charge.reminder, charge.days_until_due, charge.notify_customer_email} == {nil, nil, true}
+
+    assert {:error, %Perata.Error{status: 404, code: "no_open_charge"}} =
+             Perata.Subscriptions.get_open_charge(perata, "sub_2")
   end
 
   test "usage ingestion carries the source credential and its events" do
@@ -654,6 +755,17 @@ defmodule PerataTest do
              Perata.verify_webhook(@new_secret, unknown_headers, @payout_sent, now: now)
 
     assert data == %{"payout_id" => "po_1", "amount_cents" => 5000}
+  end
+
+  # The renewal events carry the charge: due, and the reminder with its days.
+  test "the renewal events carry the charge" do
+    now = @signed_at + 120
+
+    assert {:ok, %Perata.RenewalChargeWebhookEvent{type: "subscription.renewal_due", data: %Perata.WebhookRenewalCharge{id: "rc_1", payment_url: "https://perata.sh/pagar/rc_1", reminder: nil}}} =
+             Perata.verify_webhook(@new_secret, webhook_headers("msg_7", @signed_at, "v1,BKbvaeGeiiLKhXAhfIIqaaxztbvGy5+Lj3u3m+Zec9w="), ~S'{"id":"msg_7","type":"subscription.renewal_due","timestamp":"2026-10-22T12:00:00Z","data":{"id":"rc_1","subscription_id":"sub_1","showcase_id":"x","customer_id":"x","product_id":"x","price_id":"x","cycle_sequence":2,"amount_cents":9000,"currency":"BRL","label":"Olho de Águia · Ana","renewal_mode":"manual","period_start":"2026-11-20T12:00:00Z","period_end":"2026-11-20T12:00:00Z","due_at":"2026-12-20T03:00:00Z","expires_at":"2026-12-27T03:00:00Z","payment_url":"https://perata.sh/pagar/rc_1","metadata":{},"client_reference_id":"x","notify_customer_email":true,"reminder":null,"days_until_due":null}}', now: now)
+
+    assert {:ok, %Perata.RenewalChargeWebhookEvent{type: "subscription.renewal_reminder", environment: "live", data: %Perata.WebhookRenewalCharge{reminder: "before_due", days_until_due: 3}}} =
+             Perata.verify_webhook(@new_secret, webhook_headers("msg_8", @signed_at, "v1,D1dd09VwdIBIDIq3Tp/yC+mhhlORnZyN/P/KU4sxX2Q="), ~S'{"id":"msg_8","type":"subscription.renewal_reminder","timestamp":"2026-10-22T12:00:00Z","environment":"live","showcase_id":"shw_1","data":{"id":"rc_1","subscription_id":"sub_1","showcase_id":"x","customer_id":"x","product_id":"x","price_id":"x","cycle_sequence":2,"amount_cents":9000,"currency":"BRL","label":"Olho de Águia · Ana","renewal_mode":"manual","period_start":"2026-11-20T12:00:00Z","period_end":"2026-11-20T12:00:00Z","due_at":"2026-12-20T03:00:00Z","expires_at":"2026-12-27T03:00:00Z","payment_url":"https://perata.sh/pagar/rc_1","metadata":{},"client_reference_id":"x","notify_customer_email":true,"reminder":"before_due","days_until_due":3}}', now: now)
   end
 
   test "the real HTTP sends and reads through httpc" do

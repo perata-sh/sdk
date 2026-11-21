@@ -41,6 +41,18 @@ final class {{pascal .Service.Name}}Service
     {
         return Page::iterate(fn (int $page): Page => $this->{{camel .Name}}({{range .PathParams}}${{phpName .}}, {{end}}['page' => $page] + $params, $apiKey), $params['page'] ?? 1);
     }
+{{- else if filteredGet .}}
+
+    /**
+     * {{.Summary}}. The filters are optional.{{template "doc" .}}
+     *
+     * @param array{ {{- range $i, $q := .Query}}{{if $i}}, {{end}}{{$q.Name}}?: {{if $q.Map}}array<string, string>{{else}}string{{end}}{{end -}} } $params
+     */
+    public function {{camel .Name}}({{range .PathParams}}string ${{phpName .}}, {{end}}array $params = [], ?string $apiKey = null): Models\{{.Response}}
+    {
+        $data = $this->client->request({{quote .HTTPMethod}}, {{template "path" .}}, query: $params, apiKey: $apiKey);
+        return Models\{{.Response}}::fromArray($data);
+    }
 {{- else if .NoContent}}
 
     /**

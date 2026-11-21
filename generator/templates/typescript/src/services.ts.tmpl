@@ -4,7 +4,14 @@ import type { Requester, RequestOptions } from "./core.ts";
 import type * as models from "./models.ts";
 import { iterate, type Page } from "./pagination.ts";
 {{range $service := .Services}}
-{{- range .Methods}}{{if .Paginated}}
+{{- range .Methods}}{{if filteredGet .}}
+/** The filters of {{.OperationID}}. */
+export interface {{pascal $service.Name}}{{pascal .Name}}Params {
+{{- range .Query}}
+{{tsDoc "  " .Description}}  {{.Name}}?: {{if .Map}}Record<string, string>{{else}}string{{end}};
+{{- end}}
+}
+{{else if .Paginated}}
 /** The page and filters of {{.OperationID}}. */
 export interface {{pascal $service.Name}}{{pascal .Name}}Params {
   /** The page, from 1. */
@@ -35,6 +42,13 @@ export class {{pascal .Name}}Service {
   /** Walks every page of {{.OperationID}}, item by item: `for await (const item of …)`. */
   {{camel .Name}}Iter({{range .PathParams}}{{camel .}}: string, {{end}}params: {{pascal $service.Name}}{{pascal .Name}}Params = {}, options?: RequestOptions): AsyncGenerator<models.{{.Item}}, void, undefined> {
     return iterate((page) => this.{{camel .Name}}({{range .PathParams}}{{camel .}}, {{end}}{ ...params, page }, options), params.page);
+  }
+{{- else if filteredGet .}}
+  /**
+   * {{.Summary}}. The filters are optional.{{template "doc" .}}
+   */
+  {{camel .Name}}({{range .PathParams}}{{camel .}}: string, {{end}}params: {{pascal $service.Name}}{{pascal .Name}}Params = {}, options?: RequestOptions): Promise<models.{{.Response}}> {
+    return this.#client.request({{quote .HTTPMethod}}, {{template "path" .}}, { query: { ...params }, options });
   }
 {{- else if .NoContent}}
   /**

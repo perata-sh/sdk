@@ -47,6 +47,19 @@ public sealed class {{pascal .Service.Name}}Service
         var walk = parameters ?? new {{$service}}{{pascal .Name}}Params();
         return Pages.IterateAsync((page, token) => {{pascal .Name}}Async({{template "args" .}}walk with { Page = page }, options, token), walk.Page, cancellationToken);
     }
+{{- else if filteredGet .}}
+
+    /// <summary>{{csText .Summary}}. The filters are optional.</summary>{{template "doc" .}}
+{{- range .PathParams}}
+    /// <param name="{{csParam .}}">The {{.}}.</param>
+{{- end}}
+    /// <param name="parameters">The filters; none when null.</param>
+    /// <param name="options">Another organization's key for this call.</param>
+    /// <param name="cancellationToken">Cancels the call.</param>
+    /// <returns>The {{lower .Response}}.</returns>
+    /// <exception cref="PerataException">The API refused the call.</exception>
+    public Task<{{.Response}}> {{pascal .Name}}Async({{template "sig" .}}{{$service}}{{pascal .Name}}Params? parameters = null, RequestOptions? options = null, CancellationToken cancellationToken = default) =>
+        client.RequestAsync(HttpMethod.{{pascal (lower .HTTPMethod)}}, {{template "path" .}}, parameters?.Query(), null, PerataJson.Default.{{.Response}}Envelope, null, options, cancellationToken);
 {{- else if .NoContent}}
 
     /// <summary>{{csText .Summary}}. The API answers 204, so there is nothing to return.</summary>{{template "doc" .}}
@@ -90,7 +103,34 @@ public sealed class {{pascal .Service.Name}}Service
 {{- end}}
 }
 {{- range .Service.Methods}}
-{{- if .Paginated}}
+{{- if filteredGet .}}
+
+/// <summary>The filters of {{.OperationID}}.</summary>
+public sealed record {{$service}}{{pascal .Name}}Params
+{
+{{- range $i, $q := .Query}}
+{{- if $i}}
+{{end}}
+    /// <summary>{{if $q.Description}}{{csText $q.Description}}{{else}}The <c>{{$q.Name}}</c> filter.{{end}}</summary>
+    public {{if $q.Map}}IReadOnlyDictionary<string, string>{{else}}string{{end}}? {{csName $q.Name}} { get; init; }
+{{- end}}
+
+    internal IEnumerable<KeyValuePair<string, string?>> Query()
+    {
+{{- range .Query}}
+{{- if .Map}}
+        // A map filter is one pair a key: {{.Name}}[key]=value, the keys sorted.
+        foreach (var pair in {{csName .Name}}?.OrderBy(each => each.Key, StringComparer.Ordinal) ?? Enumerable.Empty<KeyValuePair<string, string>>())
+        {
+            yield return new({{quote .Name}} + "[" + pair.Key + "]", pair.Value);
+        }
+{{- else}}
+        yield return new({{quote .Name}}, {{csName .Name}});
+{{- end}}
+{{- end}}
+    }
+}
+{{- else if .Paginated}}
 
 /// <summary>The page and filters of {{.OperationID}}.</summary>
 public sealed record {{$service}}{{pascal .Name}}Params

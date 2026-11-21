@@ -2,6 +2,85 @@
 
 import 'json.dart';
 
+/// Balance is a resource of Peráta's API.
+final class Balance {
+  const Balance({
+    required this.currency,
+    required this.depositedCents,
+    required this.heldCents,
+    required this.laterCents,
+    required this.periodFrom,
+    required this.periodTo,
+    required this.releasedCents,
+    required this.scheduledCents,
+    required this.totalToReceiveCents,
+  });
+
+  /// A Balance out of the API's JSON.
+  factory Balance.fromJson(Map<String, Object?> json) {
+    return Balance(
+      currency: json['currency'] as String,
+      depositedCents: json['deposited_cents'] as int,
+      heldCents: json['held_cents'] as int,
+      laterCents: json['later_cents'] as int,
+      periodFrom: json['period_from'] as String,
+      periodTo: json['period_to'] as String,
+      releasedCents: json['released_cents'] as int,
+      scheduledCents: json['scheduled_cents'] as int,
+      totalToReceiveCents: json['total_to_receive_cents'] as int,
+    );
+  }
+
+  /// One of `BRL`.
+  final String currency;
+
+  /// Depositado no período de period_from a period_to: a soma do valor líquido
+  /// dos repasses depositados nesses dias. Não faz parte do total a receber.
+  final int depositedCents;
+
+  /// Retido para análise: o valor que teria sido liberado ou previsto, mas que
+  /// a Peráta mantém retido enquanto a conta da organização está em análise.
+  /// Volta a ser liberado quando a análise termina.
+  final int heldCents;
+
+  /// A receber depois: o que falta do total e ainda não tem data de repasse,
+  /// como as parcelas além dos próximos 31 dias.
+  final int laterCents;
+
+  /// O primeiro dia do período de deposited_cents, AAAA-MM-DD. Sem date_from na
+  /// chamada, são os 30 dias até period_to.
+  final String periodFrom;
+
+  /// O último dia do período de deposited_cents, AAAA-MM-DD. Sem date_to na
+  /// chamada, é hoje.
+  final String periodTo;
+
+  /// Liberado para repasse: o valor cuja data de repasse já chegou e que a
+  /// Peráta ainda não registrou como depositado. Está em processamento.
+  final int releasedCents;
+
+  /// Previsto: o valor com data de repasse nos próximos 31 dias.
+  final int scheduledCents;
+
+  /// O valor total a receber: tudo o que a organização ainda vai receber das
+  /// vendas capturadas, já descontadas as tarifas e os reembolsos. É sempre
+  /// released_cents + held_cents + scheduled_cents + later_cents.
+  final int totalToReceiveCents;
+
+  /// The JSON the API answers.
+  Map<String, Object?> toJson() => {
+    'currency': currency,
+    'deposited_cents': depositedCents,
+    'held_cents': heldCents,
+    'later_cents': laterCents,
+    'period_from': periodFrom,
+    'period_to': periodTo,
+    'released_cents': releasedCents,
+    'scheduled_cents': scheduledCents,
+    'total_to_receive_cents': totalToReceiveCents,
+  };
+}
+
 /// Benefit is a resource of Peráta's API.
 final class Benefit {
   const Benefit({
@@ -367,9 +446,11 @@ final class Checkout {
     required this.items,
     required this.label,
     required this.metadata,
+    required this.notifyCustomerEmail,
     required this.priceId,
     required this.productId,
     required this.quantity,
+    required this.renewalMode,
     required this.showcaseId,
     required this.status,
     this.subscriptionStartAt,
@@ -394,9 +475,11 @@ final class Checkout {
       ),
       label: json['label'] as String,
       metadata: readMap(json['metadata'], (value) => value),
+      notifyCustomerEmail: json['notify_customer_email'] as bool,
       priceId: json['price_id'] as String,
       productId: json['product_id'] as String,
       quantity: json['quantity'] as int,
+      renewalMode: json['renewal_mode'] as String,
       showcaseId: json['showcase_id'] as String,
       status: json['status'] as String,
       subscriptionStartAt: json['subscription_start_at'] as String?,
@@ -444,11 +527,22 @@ final class Checkout {
   /// venda.
   final Map<String, Object?> metadata;
 
+  /// Falso quando o seu sistema avisa o comprador das cobranças de renovação e
+  /// a Peráta fica quieta.
+  final bool notifyCustomerEmail;
+
   final String priceId;
 
   final String productId;
 
   final int quantity;
+
+  /// O renewal_mode da criação: manual, automatic ou buyer_choice; vazio quando
+  /// foi omitido. A assinatura que o pagamento começa traz o modo a que isso se
+  /// resolveu em Subscription.renewal_mode.
+  ///
+  /// One of `manual`, `automatic`, `buyer_choice`.
+  final String renewalMode;
 
   /// O showcase a que pertence: o da chave de API que fez a chamada. Uma chave
   /// só alcança o seu showcase.
@@ -484,9 +578,11 @@ final class Checkout {
     'items': items.map((item) => item.toJson()).toList(),
     'label': label,
     'metadata': metadata,
+    'notify_customer_email': notifyCustomerEmail,
     'price_id': priceId,
     'product_id': productId,
     'quantity': quantity,
+    'renewal_mode': renewalMode,
     'showcase_id': showcaseId,
     'status': status,
     'subscription_start_at': subscriptionStartAt,
@@ -1024,9 +1120,11 @@ final class CheckoutCreated {
     required this.items,
     required this.label,
     required this.metadata,
+    required this.notifyCustomerEmail,
     required this.priceId,
     required this.productId,
     required this.quantity,
+    required this.renewalMode,
     required this.sessionId,
     required this.showcaseId,
     required this.status,
@@ -1055,9 +1153,11 @@ final class CheckoutCreated {
       ),
       label: json['label'] as String,
       metadata: readMap(json['metadata'], (value) => value),
+      notifyCustomerEmail: json['notify_customer_email'] as bool,
       priceId: json['price_id'] as String,
       productId: json['product_id'] as String,
       quantity: json['quantity'] as int,
+      renewalMode: json['renewal_mode'] as String,
       sessionId: json['session_id'] as String,
       showcaseId: json['showcase_id'] as String,
       status: json['status'] as String,
@@ -1117,11 +1217,22 @@ final class CheckoutCreated {
   /// eventos da venda (checkout.*, order.*, checkout_payment.* e refund.*).
   final Map<String, Object?> metadata;
 
+  /// Falso quando o seu sistema avisa o comprador das cobranças de renovação e
+  /// a Peráta fica quieta.
+  final bool notifyCustomerEmail;
+
   final String priceId;
 
   final String productId;
 
   final int quantity;
+
+  /// O renewal_mode da criação: manual, automatic ou buyer_choice; vazio quando
+  /// foi omitido. A assinatura que o pagamento começa traz o modo a que isso se
+  /// resolveu em Subscription.renewal_mode.
+  ///
+  /// One of `manual`, `automatic`, `buyer_choice`.
+  final String renewalMode;
 
   /// O ID da sessão de checkout; as rotas de cliente dela são
   /// /checkouts/client/{client_secret}.
@@ -1173,9 +1284,11 @@ final class CheckoutCreated {
     'items': items.map((item) => item.toJson()).toList(),
     'label': label,
     'metadata': metadata,
+    'notify_customer_email': notifyCustomerEmail,
     'price_id': priceId,
     'product_id': productId,
     'quantity': quantity,
+    'renewal_mode': renewalMode,
     'session_id': sessionId,
     'showcase_id': showcaseId,
     'status': status,
@@ -2898,16 +3011,22 @@ final class Payment {
     required this.currency,
     required this.customerId,
     this.cycleSequence,
+    this.expectedPayoutOn,
+    required this.feeCents,
     required this.id,
     required this.installmentAmountCents,
     required this.installmentInterestCents,
     required this.installments,
     required this.metadata,
     required this.method,
+    required this.netCents,
+    this.payoutDepositedOn,
+    this.payoutId,
     this.periodEnd,
     this.periodStart,
     required this.refundedCents,
     required this.showcaseId,
+    required this.split,
     required this.state,
     this.subscriptionId,
   });
@@ -2923,16 +3042,25 @@ final class Payment {
       currency: json['currency'] as String,
       customerId: json['customer_id'] as String,
       cycleSequence: json['cycle_sequence'] as int?,
+      expectedPayoutOn: json['expected_payout_on'] as String?,
+      feeCents: json['fee_cents'] as int,
       id: json['id'] as String,
       installmentAmountCents: json['installment_amount_cents'] as int,
       installmentInterestCents: json['installment_interest_cents'] as int,
       installments: json['installments'] as int,
       metadata: readMap(json['metadata'], (value) => value),
       method: json['method'] as String,
+      netCents: json['net_cents'] as int,
+      payoutDepositedOn: json['payout_deposited_on'] as String?,
+      payoutId: json['payout_id'] as String?,
       periodEnd: json['period_end'] as String?,
       periodStart: json['period_start'] as String?,
       refundedCents: json['refunded_cents'] as int,
       showcaseId: json['showcase_id'] as String,
+      split: readList(
+        json['split'],
+        (value) => SplitRecipient.fromJson(readObject(value)),
+      ),
       state: json['state'] as String,
       subscriptionId: json['subscription_id'] as String?,
     );
@@ -2959,6 +3087,16 @@ final class Payment {
   /// uma assinatura.
   final int? cycleSequence;
 
+  /// A data prevista do próximo repasse que paga este pagamento, AAAA-MM-DD;
+  /// nula quando nenhum repasse está esperando (já foi todo depositado, não foi
+  /// capturado ou a data ainda não é conhecida). Num pagamento parcelado, é a
+  /// da próxima parcela.
+  final String? expectedPayoutOn;
+
+  /// A tarifa que a Peráta cobrou desta venda, em centavos: a parte do valor
+  /// capturado que a Peráta retém. 0 enquanto o pagamento não foi capturado.
+  final int feeCents;
+
   final String id;
 
   /// Valor de uma parcela; 0 à vista.
@@ -2978,6 +3116,20 @@ final class Payment {
   /// One of `card`, `pix`, `boleto`.
   final String method;
 
+  /// O valor líquido da venda, em centavos: captured_cents menos fee_cents, o
+  /// que fica para o vendedor, antes de reembolsos. 0 enquanto o pagamento não
+  /// foi capturado.
+  final int netCents;
+
+  /// O dia em que o último repasse que pagou este pagamento foi depositado,
+  /// AAAA-MM-DD; nulo enquanto nenhum foi.
+  final String? payoutDepositedOn;
+
+  /// O repasse em que o pagamento foi depositado: o id de GET /payouts/{id};
+  /// nulo enquanto nenhum foi. Num pagamento parcelado, é o da última parcela
+  /// depositada.
+  final String? payoutId;
+
   /// O fim do período que o ciclo paga; nulo fora de uma assinatura.
   final String? periodEnd;
 
@@ -2989,6 +3141,10 @@ final class Payment {
   /// O showcase a que pertence: o da chave de API que fez a chamada. Uma chave
   /// só alcança o seu showcase.
   final String showcaseId;
+
+  /// Como a venda foi dividida entre os destinatários, cada um com a sua parte,
+  /// a tarifa e o líquido; uma venda sem divisão tem um só destinatário.
+  final List<SplitRecipient> split;
 
   /// One of `unknown`, `pending`, `authorized`, `captured`, `refused`,
   /// `canceled`, `refunded`, `partially_refunded`.
@@ -3008,16 +3164,22 @@ final class Payment {
     'currency': currency,
     'customer_id': customerId,
     'cycle_sequence': cycleSequence,
+    'expected_payout_on': expectedPayoutOn,
+    'fee_cents': feeCents,
     'id': id,
     'installment_amount_cents': installmentAmountCents,
     'installment_interest_cents': installmentInterestCents,
     'installments': installments,
     'metadata': metadata,
     'method': method,
+    'net_cents': netCents,
+    'payout_deposited_on': payoutDepositedOn,
+    'payout_id': payoutId,
     'period_end': periodEnd,
     'period_start': periodStart,
     'refunded_cents': refundedCents,
     'showcase_id': showcaseId,
+    'split': split.map((item) => item.toJson()).toList(),
     'state': state,
     'subscription_id': subscriptionId,
   };
@@ -3088,6 +3250,243 @@ final class PaymentMethodDetached {
   Map<String, Object?> toJson() => {
     'detached': detached,
     'id': id,
+  };
+}
+
+/// Payout is a resource of Peráta's API.
+final class Payout {
+  const Payout({
+    required this.amountCents,
+    required this.currency,
+    this.depositedOn,
+    required this.expectedOn,
+    required this.feeCents,
+    required this.id,
+    required this.itemCount,
+    required this.netCents,
+    required this.status,
+  });
+
+  /// A Payout out of the API's JSON.
+  factory Payout.fromJson(Map<String, Object?> json) {
+    return Payout(
+      amountCents: json['amount_cents'] as int,
+      currency: json['currency'] as String,
+      depositedOn: json['deposited_on'] as String?,
+      expectedOn: json['expected_on'] as String,
+      feeCents: json['fee_cents'] as int,
+      id: json['id'] as String,
+      itemCount: json['item_count'] as int,
+      netCents: json['net_cents'] as int,
+      status: json['status'] as String,
+    );
+  }
+
+  /// O valor das vendas pagas neste repasse, antes das tarifas, em centavos, já
+  /// com os reembolsos e as contestações que o repasse compensa (que o
+  /// reduzem).
+  final int amountCents;
+
+  /// One of `BRL`.
+  final String currency;
+
+  /// O dia em que o repasse foi depositado, AAAA-MM-DD; nulo enquanto não foi.
+  final String? depositedOn;
+
+  /// A data do repasse, AAAA-MM-DD: quando o valor é, ou foi, depositado.
+  final String expectedOn;
+
+  /// O que o repasse desconta em tarifas, em centavos: a parte de cada venda
+  /// que a Peráta retém e as tarifas cobradas no dia.
+  final int feeCents;
+
+  /// O id do repasse: po_ e a data do repasse, como po_20261120.
+  final String id;
+
+  /// Quantos lançamentos o repasse tem.
+  final int itemCount;
+
+  /// O valor líquido do repasse, em centavos: amount_cents menos fee_cents, o
+  /// que é depositado. Pode ser negativo quando os reembolsos do dia superam as
+  /// vendas; então o saldo é compensado nos próximos repasses.
+  final int netCents;
+
+  /// scheduled: previsto, com data nos próximos dias. released: liberado para
+  /// repasse, a data chegou e o depósito está em processamento. held: retido
+  /// para análise enquanto a conta da organização está em análise. deposited:
+  /// depositado na conta da organização, em deposited_on.
+  ///
+  /// One of `scheduled`, `released`, `held`, `deposited`.
+  final String status;
+
+  /// The JSON the API answers.
+  Map<String, Object?> toJson() => {
+    'amount_cents': amountCents,
+    'currency': currency,
+    'deposited_on': depositedOn,
+    'expected_on': expectedOn,
+    'fee_cents': feeCents,
+    'id': id,
+    'item_count': itemCount,
+    'net_cents': netCents,
+    'status': status,
+  };
+}
+
+/// PayoutDetail is a resource of Peráta's API.
+final class PayoutDetail {
+  const PayoutDetail({
+    required this.amountCents,
+    required this.currency,
+    this.depositedOn,
+    required this.expectedOn,
+    required this.feeCents,
+    required this.id,
+    required this.itemCount,
+    required this.items,
+    required this.netCents,
+    required this.status,
+  });
+
+  /// A PayoutDetail out of the API's JSON.
+  factory PayoutDetail.fromJson(Map<String, Object?> json) {
+    return PayoutDetail(
+      amountCents: json['amount_cents'] as int,
+      currency: json['currency'] as String,
+      depositedOn: json['deposited_on'] as String?,
+      expectedOn: json['expected_on'] as String,
+      feeCents: json['fee_cents'] as int,
+      id: json['id'] as String,
+      itemCount: json['item_count'] as int,
+      items: readList(
+        json['items'],
+        (value) => PayoutItem.fromJson(readObject(value)),
+      ),
+      netCents: json['net_cents'] as int,
+      status: json['status'] as String,
+    );
+  }
+
+  /// O valor das vendas pagas neste repasse, antes das tarifas, em centavos, já
+  /// com os reembolsos e as contestações que o repasse compensa (que o
+  /// reduzem).
+  final int amountCents;
+
+  /// One of `BRL`.
+  final String currency;
+
+  /// O dia em que o repasse foi depositado, AAAA-MM-DD; nulo enquanto não foi.
+  final String? depositedOn;
+
+  /// A data do repasse, AAAA-MM-DD: quando o valor é, ou foi, depositado.
+  final String expectedOn;
+
+  /// O que o repasse desconta em tarifas, em centavos: a parte de cada venda
+  /// que a Peráta retém e as tarifas cobradas no dia.
+  final int feeCents;
+
+  /// O id do repasse: po_ e a data do repasse, como po_20261120.
+  final String id;
+
+  /// Quantos lançamentos o repasse tem.
+  final int itemCount;
+
+  /// Os lançamentos do repasse, com o pagamento de cada um.
+  final List<PayoutItem> items;
+
+  /// O valor líquido do repasse, em centavos: amount_cents menos fee_cents, o
+  /// que é depositado. Pode ser negativo quando os reembolsos do dia superam as
+  /// vendas; então o saldo é compensado nos próximos repasses.
+  final int netCents;
+
+  /// scheduled: previsto, com data nos próximos dias. released: liberado para
+  /// repasse, a data chegou e o depósito está em processamento. held: retido
+  /// para análise enquanto a conta da organização está em análise. deposited:
+  /// depositado na conta da organização, em deposited_on.
+  ///
+  /// One of `scheduled`, `released`, `held`, `deposited`.
+  final String status;
+
+  /// The JSON the API answers.
+  Map<String, Object?> toJson() => {
+    'amount_cents': amountCents,
+    'currency': currency,
+    'deposited_on': depositedOn,
+    'expected_on': expectedOn,
+    'fee_cents': feeCents,
+    'id': id,
+    'item_count': itemCount,
+    'items': items.map((item) => item.toJson()).toList(),
+    'net_cents': netCents,
+    'status': status,
+  };
+}
+
+/// PayoutItem is a resource of Peráta's API.
+final class PayoutItem {
+  const PayoutItem({
+    required this.amountCents,
+    required this.feeCents,
+    required this.installment,
+    required this.kind,
+    required this.netCents,
+    this.paymentId,
+    required this.status,
+  });
+
+  /// A PayoutItem out of the API's JSON.
+  factory PayoutItem.fromJson(Map<String, Object?> json) {
+    return PayoutItem(
+      amountCents: json['amount_cents'] as int,
+      feeCents: json['fee_cents'] as int,
+      installment: json['installment'] as int,
+      kind: json['kind'] as String,
+      netCents: json['net_cents'] as int,
+      paymentId: json['payment_id'] as String?,
+      status: json['status'] as String,
+    );
+  }
+
+  /// O valor do lançamento antes da tarifa, em centavos; negativo nos
+  /// reembolsos e nas contestações.
+  final int amountCents;
+
+  /// A tarifa do lançamento, em centavos.
+  final int feeCents;
+
+  /// Qual parcela da venda o lançamento paga; 0 quando a venda foi à vista.
+  final int installment;
+
+  /// sale: uma venda (ou uma parcela dela). refund: um reembolso que o repasse
+  /// compensa. chargeback: uma contestação. fee: uma tarifa do dia. adjustment:
+  /// um ajuste. anticipation: uma antecipação de recebíveis.
+  ///
+  /// One of `sale`, `refund`, `chargeback`, `fee`, `adjustment`,
+  /// `anticipation`.
+  final String kind;
+
+  /// amount_cents menos fee_cents: o que o lançamento acrescenta ao depósito.
+  final int netCents;
+
+  /// O pagamento a que o lançamento se refere, o id de GET /payments/{id}; nulo
+  /// nas tarifas e nos ajustes que não são de um pagamento.
+  final String? paymentId;
+
+  /// Como o do repasse, para este lançamento: um repasse com lançamentos em
+  /// estados diferentes está no menos avançado deles.
+  ///
+  /// One of `scheduled`, `released`, `held`, `deposited`.
+  final String status;
+
+  /// The JSON the API answers.
+  Map<String, Object?> toJson() => {
+    'amount_cents': amountCents,
+    'fee_cents': feeCents,
+    'installment': installment,
+    'kind': kind,
+    'net_cents': netCents,
+    'payment_id': paymentId,
+    'status': status,
   };
 }
 
@@ -3382,6 +3781,159 @@ final class Refund {
   };
 }
 
+/// RenewalCharge is a resource of Peráta's API.
+final class RenewalCharge {
+  const RenewalCharge({
+    required this.amountCents,
+    required this.clientReferenceId,
+    required this.currency,
+    required this.customerId,
+    required this.cycleSequence,
+    this.daysUntilDue,
+    required this.dueAt,
+    this.expiresAt,
+    required this.id,
+    required this.label,
+    required this.metadata,
+    required this.notifyCustomerEmail,
+    required this.paymentUrl,
+    required this.periodEnd,
+    required this.periodStart,
+    required this.priceId,
+    required this.productId,
+    this.reminder,
+    required this.renewalMode,
+    required this.showcaseId,
+    required this.subscriptionId,
+  });
+
+  /// A RenewalCharge out of the API's JSON.
+  factory RenewalCharge.fromJson(Map<String, Object?> json) {
+    return RenewalCharge(
+      amountCents: json['amount_cents'] as int,
+      clientReferenceId: json['client_reference_id'] as String,
+      currency: json['currency'] as String,
+      customerId: json['customer_id'] as String,
+      cycleSequence: json['cycle_sequence'] as int,
+      daysUntilDue: json['days_until_due'] as int?,
+      dueAt: json['due_at'] as String,
+      expiresAt: json['expires_at'] as String?,
+      id: json['id'] as String,
+      label: json['label'] as String,
+      metadata: readMap(json['metadata'], (value) => value),
+      notifyCustomerEmail: json['notify_customer_email'] as bool,
+      paymentUrl: json['payment_url'] as String,
+      periodEnd: json['period_end'] as String,
+      periodStart: json['period_start'] as String,
+      priceId: json['price_id'] as String,
+      productId: json['product_id'] as String,
+      reminder: json['reminder'] as String?,
+      renewalMode: json['renewal_mode'] as String,
+      showcaseId: json['showcase_id'] as String,
+      subscriptionId: json['subscription_id'] as String,
+    );
+  }
+
+  /// O que o comprador paga, em centavos: o ciclo já com desconto e rateio.
+  final int amountCents;
+
+  /// O client_reference_id da assinatura.
+  final String clientReferenceId;
+
+  /// One of `BRL`.
+  final String currency;
+
+  final String customerId;
+
+  /// O ciclo que a cobrança paga: 2 é a primeira renovação.
+  final int cycleSequence;
+
+  /// Só nos lembretes: 3 em before_due, 0 em on_due; nulo no resto.
+  final int? daysUntilDue;
+
+  /// Até quando a cobrança deve ser paga sem a assinatura ficar em atraso: o
+  /// fim do período que ela cobra. Passado o prazo, a assinatura vira past_due
+  /// e o mesmo payment_url continua valendo por mais 72 horas de tolerância;
+  /// depois disso a assinatura é suspensa.
+  final String dueAt;
+
+  /// Quando o payment_url deixa de abrir; sempre depois da tolerância de 72
+  /// horas.
+  final String? expiresAt;
+
+  /// O id da cobrança, que é o do ciclo da assinatura que ela cobra. O pedido
+  /// só existe depois do pagamento: o order.paid que vem então traz o mesmo
+  /// subscription_id e cycle_sequence.
+  final String id;
+
+  /// O label da assinatura; vazio sem ele.
+  final String label;
+
+  /// Os metadados da assinatura.
+  final Map<String, Object?> metadata;
+
+  /// Se a Peráta escreve ao comprador desta cobrança.
+  final bool notifyCustomerEmail;
+
+  /// A página da Peráta onde o comprador paga esta cobrança, por cartão, Pix ou
+  /// boleto. O Pix é gerado nessa página, quando o comprador o escolhe, e vale
+  /// 24 horas: a Peráta não gera o Pix na abertura da cobrança porque ele
+  /// venceria antes do prazo da cobrança e, enquanto vale, impediria pagar de
+  /// outro jeito. Entregue este endereço ao comprador.
+  final String paymentUrl;
+
+  final String periodEnd;
+
+  final String periodStart;
+
+  final String priceId;
+
+  final String productId;
+
+  /// Só nos eventos subscription.renewal_reminder: before_due (3 dias antes de
+  /// due_at) ou on_due (no vencimento). Nulo na cobrança e em
+  /// subscription.renewal_due.
+  ///
+  /// One of `before_due`, `on_due`, `null`.
+  final String? reminder;
+
+  /// O modo de renovação da assinatura. Uma cobrança em aberto existe nos modos
+  /// manual e, quando o cartão é recusado, card.
+  ///
+  /// One of `manual`, `card`, `pix_automatic`.
+  final String renewalMode;
+
+  /// O showcase a que pertence: o da chave de API que fez a chamada.
+  final String showcaseId;
+
+  final String subscriptionId;
+
+  /// The JSON the API answers.
+  Map<String, Object?> toJson() => {
+    'amount_cents': amountCents,
+    'client_reference_id': clientReferenceId,
+    'currency': currency,
+    'customer_id': customerId,
+    'cycle_sequence': cycleSequence,
+    'days_until_due': daysUntilDue,
+    'due_at': dueAt,
+    'expires_at': expiresAt,
+    'id': id,
+    'label': label,
+    'metadata': metadata,
+    'notify_customer_email': notifyCustomerEmail,
+    'payment_url': paymentUrl,
+    'period_end': periodEnd,
+    'period_start': periodStart,
+    'price_id': priceId,
+    'product_id': productId,
+    'reminder': reminder,
+    'renewal_mode': renewalMode,
+    'showcase_id': showcaseId,
+    'subscription_id': subscriptionId,
+  };
+}
+
 /// Showcase is a resource of Peráta's API.
 final class Showcase {
   const Showcase({
@@ -3438,6 +3990,47 @@ final class Showcase {
   };
 }
 
+/// SplitRecipient is a resource of Peráta's API.
+final class SplitRecipient {
+  const SplitRecipient({
+    required this.amountCents,
+    required this.feeCents,
+    required this.netCents,
+    this.recipientId,
+  });
+
+  /// A SplitRecipient out of the API's JSON.
+  factory SplitRecipient.fromJson(Map<String, Object?> json) {
+    return SplitRecipient(
+      amountCents: json['amount_cents'] as int,
+      feeCents: json['fee_cents'] as int,
+      netCents: json['net_cents'] as int,
+      recipientId: json['recipient_id'] as String?,
+    );
+  }
+
+  /// O valor da parte deste destinatário, antes da tarifa, em centavos.
+  final int amountCents;
+
+  /// A tarifa que esta parte pagou, em centavos.
+  final int feeCents;
+
+  /// amount_cents menos fee_cents: o que sobra ao destinatário.
+  final int netCents;
+
+  /// O showcase destinatário desta parte da venda; nulo quando a Peráta não o
+  /// identifica.
+  final String? recipientId;
+
+  /// The JSON the API answers.
+  Map<String, Object?> toJson() => {
+    'amount_cents': amountCents,
+    'fee_cents': feeCents,
+    'net_cents': netCents,
+    'recipient_id': recipientId,
+  };
+}
+
 /// Subscription is a resource of Peráta's API.
 final class Subscription {
   const Subscription({
@@ -3453,11 +4046,14 @@ final class Subscription {
     this.firstPeriodExtraDays,
     required this.id,
     required this.interval,
+    required this.label,
     required this.metadata,
+    required this.notifyCustomerEmail,
     this.pendingUpdate,
     required this.priceId,
     required this.productId,
     required this.quantity,
+    required this.renewalMode,
     required this.showcaseId,
     required this.status,
     this.suspendedAt,
@@ -3481,7 +4077,9 @@ final class Subscription {
       firstPeriodExtraDays: json['first_period_extra_days'] as int?,
       id: json['id'] as String,
       interval: json['interval'] as String,
+      label: json['label'] as String,
       metadata: readMap(json['metadata'], (value) => value),
+      notifyCustomerEmail: json['notify_customer_email'] as bool,
       pendingUpdate: readOptional(
         json['pending_update'],
         (value) => SubscriptionPendingUpdate.fromJson(readObject(value)),
@@ -3489,6 +4087,7 @@ final class Subscription {
       priceId: json['price_id'] as String,
       productId: json['product_id'] as String,
       quantity: json['quantity'] as int,
+      renewalMode: json['renewal_mode'] as String,
       showcaseId: json['showcase_id'] as String,
       status: json['status'] as String,
       suspendedAt: json['suspended_at'] as String?,
@@ -3539,9 +4138,22 @@ final class Subscription {
 
   final String interval;
 
+  /// O nome que você deu à assinatura, copiado do label do checkout que a
+  /// vendeu (por exemplo, Olho de Águia · Colaborador Ana); vazio sem ele. É o
+  /// título da assinatura no portal do cliente e no painel. Troque com PATCH,
+  /// até 200 caracteres.
+  final String label;
+
   /// Metadados do lojista: pares chave e valor (texto, número ou booleano);
   /// objeto vazio quando não há.
   final Map<String, Object?> metadata;
+
+  /// Verdadeiro enquanto a Peráta escreve ao comprador a cada cobrança de
+  /// renovação; falso quando o seu sistema avisa o comprador e a Peráta fica
+  /// quieta. Vem do notify_customer_email do checkout (verdadeiro por padrão) e
+  /// ainda depende do aviso Cobrança da renovação em Configurações ›
+  /// Preferências, que a organização pode desligar.
+  final bool notifyCustomerEmail;
 
   /// A mudança de plano ou de quantidade agendada para o próximo período (PATCH
   /// com proration_behavior next_period); nulo quando não há nenhuma. Até
@@ -3556,6 +4168,18 @@ final class Subscription {
   /// Quantas unidades ou assentos a assinatura cobre, de 1 em diante; 1 num
   /// preço sem quantidade. amount_cents é o total do ciclo para esta quantity.
   final int quantity;
+
+  /// Como os próximos períodos são cobrados: manual (a cada ciclo a Peráta abre
+  /// uma cobrança para o comprador pagar, com o evento
+  /// subscription.renewal_due, e o cartão nunca é cobrado), card (o cartão de
+  /// crédito guardado é cobrado sozinho) ou pix_automatic (o banco debita cada
+  /// cobrança, autorizada uma vez pelo comprador). card e pix_automatic são os
+  /// modos automáticos. Vem do renewal_mode do checkout; sem ele, é card quando
+  /// o pagamento guardou o cartão e manual nos outros meios. Troque com PATCH
+  /// (manual, ou card quando há cartão guardado).
+  ///
+  /// One of `manual`, `card`, `pix_automatic`.
+  final String renewalMode;
 
   /// O showcase a que pertence: o da chave de API que fez a chamada. Uma chave
   /// só alcança o seu showcase.
@@ -3594,11 +4218,14 @@ final class Subscription {
     'first_period_extra_days': firstPeriodExtraDays,
     'id': id,
     'interval': interval,
+    'label': label,
     'metadata': metadata,
+    'notify_customer_email': notifyCustomerEmail,
     'pending_update': pendingUpdate?.toJson(),
     'price_id': priceId,
     'product_id': productId,
     'quantity': quantity,
+    'renewal_mode': renewalMode,
     'showcase_id': showcaseId,
     'status': status,
     'suspended_at': suspendedAt,
@@ -4582,6 +5209,160 @@ final class WebhookRefund {
   };
 }
 
+/// A cobrança de renovação que espera o comprador pagar
+/// (subscription.renewal_due e subscription.renewal_reminder), a mesma que GET
+/// /api/v1/subscriptions/{id}/open-charge devolve. Traz o que o seu sistema
+/// precisa para avisar o comprador: o valor, o prazo e a página onde ele paga.
+final class WebhookRenewalCharge {
+  const WebhookRenewalCharge({
+    required this.amountCents,
+    required this.clientReferenceId,
+    required this.currency,
+    required this.customerId,
+    required this.cycleSequence,
+    this.daysUntilDue,
+    required this.dueAt,
+    this.expiresAt,
+    required this.id,
+    required this.label,
+    required this.metadata,
+    required this.notifyCustomerEmail,
+    required this.paymentUrl,
+    required this.periodEnd,
+    required this.periodStart,
+    required this.priceId,
+    required this.productId,
+    this.reminder,
+    required this.renewalMode,
+    required this.showcaseId,
+    required this.subscriptionId,
+  });
+
+  /// A WebhookRenewalCharge out of the API's JSON.
+  factory WebhookRenewalCharge.fromJson(Map<String, Object?> json) {
+    return WebhookRenewalCharge(
+      amountCents: json['amount_cents'] as int,
+      clientReferenceId: json['client_reference_id'] as String,
+      currency: json['currency'] as String,
+      customerId: json['customer_id'] as String,
+      cycleSequence: json['cycle_sequence'] as int,
+      daysUntilDue: json['days_until_due'] as int?,
+      dueAt: json['due_at'] as String,
+      expiresAt: json['expires_at'] as String?,
+      id: json['id'] as String,
+      label: json['label'] as String,
+      metadata: readMap(json['metadata'], (value) => value),
+      notifyCustomerEmail: json['notify_customer_email'] as bool,
+      paymentUrl: json['payment_url'] as String,
+      periodEnd: json['period_end'] as String,
+      periodStart: json['period_start'] as String,
+      priceId: json['price_id'] as String,
+      productId: json['product_id'] as String,
+      reminder: json['reminder'] as String?,
+      renewalMode: json['renewal_mode'] as String,
+      showcaseId: json['showcase_id'] as String,
+      subscriptionId: json['subscription_id'] as String,
+    );
+  }
+
+  /// O que o comprador paga, em centavos: o ciclo já com desconto e rateio.
+  final int amountCents;
+
+  /// O client_reference_id da assinatura.
+  final String clientReferenceId;
+
+  /// One of `BRL`.
+  final String currency;
+
+  final String customerId;
+
+  /// O ciclo que a cobrança paga: 2 é a primeira renovação.
+  final int cycleSequence;
+
+  /// Só nos lembretes: 3 em before_due, 0 em on_due; nulo no resto.
+  final int? daysUntilDue;
+
+  /// Até quando a cobrança deve ser paga sem a assinatura ficar em atraso: o
+  /// fim do período que ela cobra. Passado o prazo, a assinatura vira past_due
+  /// e o mesmo payment_url continua valendo pela tolerância de 72 horas; depois
+  /// disso a assinatura é suspensa.
+  final String dueAt;
+
+  /// Quando o payment_url deixa de abrir; sempre depois da tolerância de 72
+  /// horas.
+  final String? expiresAt;
+
+  /// O id da cobrança, que é o do ciclo da assinatura que ela cobra. O pedido
+  /// só existe depois do pagamento: o order.paid que vem então traz o mesmo
+  /// subscription_id e cycle_sequence.
+  final String id;
+
+  /// O label da assinatura; vazio sem ele.
+  final String label;
+
+  /// Os metadados da assinatura.
+  final Map<String, Object?> metadata;
+
+  /// Se a Peráta escreve ao comprador desta cobrança.
+  final bool notifyCustomerEmail;
+
+  /// A página da Peráta onde o comprador paga, por cartão, Pix ou boleto. O Pix
+  /// é gerado nela, quando o comprador o escolhe, e vale 24 horas: a Peráta não
+  /// gera o Pix na abertura da cobrança porque ele venceria antes do prazo e,
+  /// enquanto vale, impediria pagar de outro jeito. Entregue este endereço ao
+  /// comprador.
+  final String paymentUrl;
+
+  final String periodEnd;
+
+  final String periodStart;
+
+  final String priceId;
+
+  final String productId;
+
+  /// Só em subscription.renewal_reminder: before_due (3 dias antes de due_at)
+  /// ou on_due (no vencimento). Nulo na cobrança e em subscription.renewal_due.
+  ///
+  /// One of `before_due`, `on_due`.
+  final String? reminder;
+
+  /// O modo de renovação da assinatura. Uma cobrança em aberto existe no manual
+  /// e, quando o cartão é recusado, no card.
+  ///
+  /// One of `manual`, `card`, `pix_automatic`.
+  final String renewalMode;
+
+  final String showcaseId;
+
+  final String subscriptionId;
+
+  /// The JSON the API answers.
+  Map<String, Object?> toJson() => {
+    'amount_cents': amountCents,
+    'client_reference_id': clientReferenceId,
+    'currency': currency,
+    'customer_id': customerId,
+    'cycle_sequence': cycleSequence,
+    'days_until_due': daysUntilDue,
+    'due_at': dueAt,
+    'expires_at': expiresAt,
+    'id': id,
+    'label': label,
+    'metadata': metadata,
+    'notify_customer_email': notifyCustomerEmail,
+    'payment_url': paymentUrl,
+    'period_end': periodEnd,
+    'period_start': periodStart,
+    'price_id': priceId,
+    'product_id': productId,
+    'reminder': reminder,
+    'renewal_mode': renewalMode,
+    'showcase_id': showcaseId,
+    'subscription_id': subscriptionId,
+  };
+}
+
 /// Os eventos da venda (checkout_payment.* e refund.*): os identificadores de
 /// sempre e, além deles, o checkout, o valor e o que o servidor do lojista
 /// enviou ao criar o checkout.
@@ -4754,12 +5535,15 @@ final class WebhookSubscription {
     this.firstPeriodExtraDays,
     required this.id,
     required this.interval,
+    required this.label,
     required this.metadata,
+    required this.notifyCustomerEmail,
     this.paymentFailure,
     this.pendingUpdate,
     required this.priceId,
     required this.productId,
     required this.quantity,
+    required this.renewalMode,
     required this.showcaseId,
     required this.status,
     this.suspendedAt,
@@ -4783,7 +5567,9 @@ final class WebhookSubscription {
       firstPeriodExtraDays: json['first_period_extra_days'] as int?,
       id: json['id'] as String,
       interval: json['interval'] as String,
+      label: json['label'] as String,
       metadata: readMap(json['metadata'], (value) => value),
+      notifyCustomerEmail: json['notify_customer_email'] as bool,
       paymentFailure: readOptional(
         json['payment_failure'],
         (value) => WebhookSubscriptionPaymentFailure.fromJson(
@@ -4797,6 +5583,7 @@ final class WebhookSubscription {
       priceId: json['price_id'] as String,
       productId: json['product_id'] as String,
       quantity: json['quantity'] as int,
+      renewalMode: json['renewal_mode'] as String,
       showcaseId: json['showcase_id'] as String,
       status: json['status'] as String,
       suspendedAt: json['suspended_at'] as String?,
@@ -4846,9 +5633,17 @@ final class WebhookSubscription {
 
   final String interval;
 
+  /// O nome que o lojista deu à assinatura, copiado do label do checkout que a
+  /// vendeu; vazio sem ele.
+  final String label;
+
   /// Metadados do lojista: pares chave e valor (texto, número ou booleano);
   /// objeto vazio quando não há.
   final Map<String, Object?> metadata;
+
+  /// Verdadeiro enquanto a Peráta escreve ao comprador a cada cobrança de
+  /// renovação.
+  final bool notifyCustomerEmail;
 
   /// A cobrança recusada que causou o evento; só nos eventos de cobrança
   /// recusada.
@@ -4867,6 +5662,15 @@ final class WebhookSubscription {
   /// Quantas unidades ou assentos a assinatura cobre, de 1 em diante; 1 num
   /// preço sem quantidade. amount_cents é o total do ciclo para esta quantity.
   final int quantity;
+
+  /// Como os próximos períodos são cobrados: manual (uma cobrança para o
+  /// comprador pagar a cada ciclo, com o evento subscription.renewal_due; o
+  /// cartão nunca é cobrado), card (o cartão de crédito guardado, cobrado
+  /// sozinho) ou pix_automatic (o banco debita cada cobrança). card e
+  /// pix_automatic são os automáticos.
+  ///
+  /// One of `manual`, `card`, `pix_automatic`.
+  final String renewalMode;
 
   /// O showcase da venda.
   final String showcaseId;
@@ -4901,12 +5705,15 @@ final class WebhookSubscription {
     'first_period_extra_days': firstPeriodExtraDays,
     'id': id,
     'interval': interval,
+    'label': label,
     'metadata': metadata,
+    'notify_customer_email': notifyCustomerEmail,
     'payment_failure': ?paymentFailure?.toJson(),
     'pending_update': pendingUpdate?.toJson(),
     'price_id': priceId,
     'product_id': productId,
     'quantity': quantity,
+    'renewal_mode': renewalMode,
     'showcase_id': showcaseId,
     'status': status,
     'suspended_at': suspendedAt,
@@ -5337,9 +6144,11 @@ final class CheckoutsCreateParams {
     this.items,
     this.label,
     this.metadata,
+    this.notifyCustomerEmail,
     required this.priceId,
     required this.productId,
     this.quantity,
+    this.renewalMode,
     this.requireBillingAddress,
     this.returnUrl,
     this.subscriptionStartAt,
@@ -5434,6 +6243,13 @@ final class CheckoutsCreateParams {
   /// de direção invisível.
   final Map<String, Object?>? metadata;
 
+  /// Verdadeiro por padrão. Falso mantém a Peráta sem escrever ao comprador a
+  /// cobrança de cada renovação (o seu sistema o avisa pelo evento
+  /// subscription.renewal_due); a cobrança é aberta do mesmo jeito. Além disso,
+  /// a organização pode desligar este aviso para todos em Configurações ›
+  /// Preferências › Cobrança da renovação.
+  final bool? notifyCustomerEmail;
+
   final String priceId;
 
   final String productId;
@@ -5441,6 +6257,29 @@ final class CheckoutsCreateParams {
   /// Quantas unidades. Com amount_cents é sempre 1: envie 1 ou omita; qualquer
   /// outro valor é recusado com 422.
   final int? quantity;
+
+  /// Como a assinatura renova, numa assinatura (preço recorrente com valor).
+  /// manual: a cada ciclo a Peráta abre uma cobrança para o comprador pagar
+  /// (payment_url, por cartão, Pix ou boleto) e avisa o seu sistema com o
+  /// evento subscription.renewal_due, mesmo que o primeiro pagamento tenha sido
+  /// no cartão; o cartão nunca é cobrado e não é guardado. automatic: só os
+  /// meios que cobram sozinhos, o cartão de crédito guardado ou o Pix
+  /// Automático (quando a organização o tem ligado; senão só o cartão); a
+  /// página mostra só esses meios, e a assinatura nasce com renewal_mode card
+  /// ou pix_automatic. buyer_choice: a página mostra a caixa Ativar cobrança
+  /// automática, desmarcada, e o comprador decide: desmarcada é manual, marcada
+  /// é automatic. Sem o campo nada muda: sem caixa, o cartão de crédito renova
+  /// sozinho e qualquer outro meio vira uma cobrança a cada ciclo. Funciona
+  /// junto com first_period_extra_days e com desconto. Vale só em preço
+  /// recorrente com valor (senão 422); manual não vale com teste grátis nem com
+  /// subscription_start_at, que guardam o cartão para cobrar no fim (422).
+  /// Pagar por um meio que o modo não aceita (Pix, boleto ou débito em
+  /// automatic; Pix Automático em manual) é 422 em payment_method. A
+  /// Subscription traz o modo a que isso se resolveu em renewal_mode: manual,
+  /// card ou pix_automatic.
+  ///
+  /// One of `manual`, `automatic`, `buyer_choice`.
+  final String? renewalMode;
 
   /// Pede o endereço de cobrança completo de todo comprador, não só no boleto;
   /// desligado quando fica de fora.
@@ -5480,9 +6319,11 @@ final class CheckoutsCreateParams {
     'items': ?items?.map((item) => item.toJson()).toList(),
     'label': ?label,
     'metadata': ?metadata,
+    'notify_customer_email': ?notifyCustomerEmail,
     'price_id': priceId,
     'product_id': productId,
     'quantity': ?quantity,
+    'renewal_mode': ?renewalMode,
     'require_billing_address': ?requireBillingAddress,
     'return_url': ?returnUrl,
     'subscription_start_at': ?subscriptionStartAt,
@@ -6171,9 +7012,12 @@ final class RefundsCreateParams {
 final class SubscriptionsUpdateParams {
   const SubscriptionsUpdateParams({
     this.extendCurrentPeriodDays,
+    this.label,
+    this.notifyCustomerEmail,
     this.priceId,
     this.prorationBehavior,
     this.quantity,
+    this.renewalMode,
   });
 
   /// Estende o período atual em tantos dias, de 1 a 365, sem cobrar nada e sem
@@ -6187,6 +7031,16 @@ final class SubscriptionsUpdateParams {
   /// Não é repetível por si: envie uma Idempotency-Key para que uma nova
   /// tentativa não some os dias duas vezes.
   final int? extendCurrentPeriodDays;
+
+  /// O nome da assinatura, até 200 caracteres e sem caracteres de controle;
+  /// vazio tira o nome. Vai sozinho, com renewal_mode e notify_customer_email,
+  /// sem price_id, quantity, proration_behavior nem extend_current_period_days.
+  /// Chega no webhook subscription.updated.
+  final String? label;
+
+  /// Liga ou desliga a mensagem que a Peráta manda ao comprador a cada cobrança
+  /// de renovação. Vai sozinho, como label.
+  final bool? notifyCustomerEmail;
 
   /// O preço recorrente para onde a assinatura vai. Obrigatório para trocar de
   /// plano; não se envia com extend_current_period_days.
@@ -6202,12 +7056,24 @@ final class SubscriptionsUpdateParams {
   /// A nova quantidade; omitida, fica a atual.
   final int? quantity;
 
+  /// Muda como a assinatura renova. manual: deixa de cobrar o cartão e passa a
+  /// abrir uma cobrança a cada ciclo (o cartão guardado é solto). card: cobra o
+  /// cartão guardado sozinho; exige um cartão já guardado na assinatura (o
+  /// comprador o ativa no portal), senão 422. pix_automatic só o comprador
+  /// ativa, no app do banco. Vai sozinho, como label.
+  ///
+  /// One of `manual`, `card`.
+  final String? renewalMode;
+
   /// The JSON the API takes; a field left null is left out.
   Map<String, Object?> toJson() => {
     'extend_current_period_days': ?extendCurrentPeriodDays,
+    'label': ?label,
+    'notify_customer_email': ?notifyCustomerEmail,
     'price_id': ?priceId,
     'proration_behavior': ?prorationBehavior,
     'quantity': ?quantity,
+    'renewal_mode': ?renewalMode,
   };
 }
 

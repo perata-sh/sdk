@@ -110,6 +110,8 @@ class PerataTest {
         session.put("price_id", "price_1");
         session.put("status", "active");
         session.put("label", "");
+        session.put("notify_customer_email", true);
+        session.put("renewal_mode", "");
         session.put("quantity", 1);
         session.put("success_url", "https://loja.example/obrigado");
         session.put("cancel_url", "");
@@ -313,7 +315,7 @@ class PerataTest {
     @Test
     void aGraduatedPriceCarriesItsTiersAndASubscriptionItsQuantity() {
         String price = "{\"id\":\"price_1\",\"product_id\":\"prod_1\",\"type\":\"recurring\",\"interval\":\"month\",\"interval_count\":1,\"currency\":\"BRL\",\"status\":\"active\",\"amount_cents\":0,\"pricing_model\":\"graduated\",\"unit_amount_cents\":null,\"unit_label\":\"câmera\",\"unit_label_plural\":\"câmeras\",\"tiers\":[{\"up_to\":1,\"unit_amount_cents\":25000},{\"up_to\":null,\"unit_amount_cents\":15000}]}";
-        String subscription = "{\"id\":\"sub_1\",\"amount_cents\":55000,\"cancel_at_period_end\":false,\"client_reference_id\":\"pedido-9\",\"currency\":\"BRL\",\"current_period_end\":\"2026-12-20T00:00:00Z\",\"current_period_start\":\"2026-11-20T00:00:00Z\",\"customer_id\":\"cus_1\",\"interval\":\"month\",\"metadata\":{\"camera\":\"c1\"},\"price_id\":\"price_1\",\"product_id\":\"prod_1\",\"quantity\":3,\"showcase_id\":\"shw_1\",\"status\":\"active\",\"suspended_at\":null,\"suspension_reason\":null,\"trial_end\":null,\"trial_start\":null}";
+        String subscription = "{\"id\":\"sub_1\",\"label\":\"\",\"notify_customer_email\":true,\"renewal_mode\":\"manual\",\"amount_cents\":55000,\"cancel_at_period_end\":false,\"client_reference_id\":\"pedido-9\",\"currency\":\"BRL\",\"current_period_end\":\"2026-12-20T00:00:00Z\",\"current_period_start\":\"2026-11-20T00:00:00Z\",\"customer_id\":\"cus_1\",\"interval\":\"month\",\"metadata\":{\"camera\":\"c1\"},\"price_id\":\"price_1\",\"product_id\":\"prod_1\",\"quantity\":3,\"showcase_id\":\"shw_1\",\"status\":\"active\",\"suspended_at\":null,\"suspension_reason\":null,\"trial_end\":null,\"trial_start\":null}";
         Recorder recorder = new Recorder(request -> "POST".equals(request.getMethod())
                 ? json(201, Map.of(), data(Json.parse(price)))
                 : json(200, Map.of(), data(Json.parse(subscription))));
@@ -351,9 +353,9 @@ class PerataTest {
     @Test
     void aFirstPeriodExtensionAndTheDiscountsTheSaleReadsBack() {
         Map<String, String> answers = new HashMap<>();
-        answers.put("POST /api/v1/checkouts", "{\"data\":{\"id\":\"pcl_1\",\"showcase_id\":\"x\",\"url\":\"x\",\"product_id\":\"prod_1\",\"price_id\":\"price_1\",\"status\":\"active\",\"label\":\"x\",\"quantity\":0,\"amount_cents\":null,\"items\":[],\"metadata\":{},\"client_reference_id\":\"x\",\"success_url\":\"x\",\"cancel_url\":\"x\",\"expires_at\":null,\"subscription_start_at\":null,\"discount_id\":\"disc_1\",\"first_period_extra_days\":30,\"created_at\":\"2026-11-20T12:00:00Z\",\"session_id\":\"cs_1\",\"client_secret\":\"cs_secret_1\",\"client_secret_expires_at\":\"2026-11-20T12:00:00Z\",\"status_key\":\"x\"}}");
-        answers.put("PATCH /api/v1/subscriptions/sub_1", "{\"data\":{\"id\":\"sub_1\",\"showcase_id\":\"x\",\"customer_id\":\"x\",\"product_id\":\"x\",\"price_id\":\"x\",\"status\":\"active\",\"amount_cents\":0,\"quantity\":0,\"currency\":\"BRL\",\"interval\":\"x\",\"current_period_start\":\"2026-11-20T12:00:00Z\",\"current_period_end\":\"2026-11-20T12:00:00Z\",\"cancel_at_period_end\":false,\"pending_update\":{\"price_id\":\"price_2\",\"quantity\":5,\"amount_cents\":90000,\"effective_at\":\"2026-12-20T03:00:00Z\"},\"suspended_at\":null,\"suspension_reason\":null,\"trial_start\":null,\"trial_end\":null,\"metadata\":{},\"client_reference_id\":\"x\",\"discount_id\":\"disc_1\",\"discount_ends_at\":\"2027-03-01T03:00:00Z\",\"first_period_extra_days\":30}}");
-        answers.put("GET /api/v1/subscriptions/sub_2", "{\"data\":{\"id\":\"sub_2\",\"showcase_id\":\"x\",\"customer_id\":\"x\",\"product_id\":\"x\",\"price_id\":\"x\",\"status\":\"active\",\"amount_cents\":0,\"quantity\":0,\"currency\":\"BRL\",\"interval\":\"x\",\"current_period_start\":\"2026-11-20T12:00:00Z\",\"current_period_end\":\"2026-11-20T12:00:00Z\",\"cancel_at_period_end\":false,\"pending_update\":null,\"suspended_at\":null,\"suspension_reason\":null,\"trial_start\":null,\"trial_end\":null,\"metadata\":{},\"client_reference_id\":\"x\",\"discount_id\":null,\"discount_ends_at\":null,\"first_period_extra_days\":null}}");
+        answers.put("POST /api/v1/checkouts", "{\"data\":{\"id\":\"pcl_1\",\"showcase_id\":\"x\",\"url\":\"x\",\"product_id\":\"prod_1\",\"price_id\":\"price_1\",\"status\":\"active\",\"label\":\"x\",\"quantity\":0,\"amount_cents\":null,\"items\":[],\"metadata\":{},\"client_reference_id\":\"x\",\"success_url\":\"x\",\"cancel_url\":\"x\",\"expires_at\":null,\"subscription_start_at\":null,\"discount_id\":\"disc_1\",\"first_period_extra_days\":30,\"renewal_mode\":\"manual\",\"notify_customer_email\":false,\"created_at\":\"2026-11-20T12:00:00Z\",\"session_id\":\"cs_1\",\"client_secret\":\"cs_secret_1\",\"client_secret_expires_at\":\"2026-11-20T12:00:00Z\",\"status_key\":\"x\"}}");
+        answers.put("PATCH /api/v1/subscriptions/sub_1", "{\"data\":{\"id\":\"sub_1\",\"showcase_id\":\"x\",\"customer_id\":\"x\",\"product_id\":\"x\",\"price_id\":\"x\",\"status\":\"active\",\"amount_cents\":0,\"quantity\":0,\"currency\":\"BRL\",\"interval\":\"x\",\"current_period_start\":\"2026-11-20T12:00:00Z\",\"current_period_end\":\"2026-11-20T12:00:00Z\",\"cancel_at_period_end\":false,\"pending_update\":{\"price_id\":\"price_2\",\"quantity\":5,\"amount_cents\":90000,\"effective_at\":\"2026-12-20T03:00:00Z\"},\"suspended_at\":null,\"suspension_reason\":null,\"trial_start\":null,\"trial_end\":null,\"metadata\":{},\"client_reference_id\":\"x\",\"discount_id\":\"disc_1\",\"discount_ends_at\":\"2027-03-01T03:00:00Z\",\"first_period_extra_days\":30,\"renewal_mode\":\"manual\",\"label\":\"x\",\"notify_customer_email\":false}}");
+        answers.put("GET /api/v1/subscriptions/sub_2", "{\"data\":{\"id\":\"sub_2\",\"showcase_id\":\"x\",\"customer_id\":\"x\",\"product_id\":\"x\",\"price_id\":\"x\",\"status\":\"active\",\"amount_cents\":0,\"quantity\":0,\"currency\":\"BRL\",\"interval\":\"x\",\"current_period_start\":\"2026-11-20T12:00:00Z\",\"current_period_end\":\"2026-11-20T12:00:00Z\",\"cancel_at_period_end\":false,\"pending_update\":null,\"suspended_at\":null,\"suspension_reason\":null,\"trial_start\":null,\"trial_end\":null,\"metadata\":{},\"client_reference_id\":\"x\",\"discount_id\":null,\"discount_ends_at\":null,\"first_period_extra_days\":null,\"renewal_mode\":\"manual\",\"label\":\"x\",\"notify_customer_email\":false}}");
         answers.put("GET /api/v1/orders/ord_1", "{\"data\":{\"id\":\"ord_1\",\"showcase_id\":\"x\",\"customer_id\":\"x\",\"product_id\":\"x\",\"price_id\":\"x\",\"amount_cents\":9000,\"currency\":\"BRL\",\"status\":\"open\",\"paid_at\":null,\"order_status\":null,\"refunded_amount_cents\":0,\"installments\":0,\"installment_interest_cents\":0,\"items\":[],\"metadata\":{},\"client_reference_id\":\"x\",\"subscription_id\":null,\"cycle_sequence\":null,\"period_start\":null,\"period_end\":null,\"discount_id\":\"disc_1\",\"discount_code\":\"BEMVINDO\",\"subtotal_cents\":10000,\"discount_cents\":1000}}");
         answers.put("GET /api/v1/prices/price_1", "{\"data\":{\"id\":\"price_1\",\"product_id\":\"prod_1\",\"currency\":\"BRL\",\"amount_cents\":9000,\"type\":\"one_time\",\"interval\":\"none\",\"interval_count\":0,\"pricing_model\":\"fixed\",\"unit_amount_cents\":null,\"tiers\":[],\"unit_label\":\"x\",\"unit_label_plural\":\"x\",\"minimum_units\":null,\"maximum_units\":null,\"status\":\"archived\"}}");
         Recorder recorder = new Recorder(request -> json("POST".equals(request.getMethod()) ? 201 : 200, Map.of(),
@@ -390,6 +392,145 @@ class PerataTest {
         Price price = perata.prices().get("price_1");
         assertEquals("/api/v1/prices/price_1", URI.create(recorder.seen.get(4).getUrl()).getPath());
         assertEquals("archived", price.getStatus());
+    }
+
+    // The payment reads back its fee, its net, its split and the payout that pays it.
+    @Test
+    void aPaymentReadsBackItsFeeItsSplitAndItsPayout() {
+        Recorder recorder = new Recorder(request -> json(200, Map.of(), Json.parse("{\"data\":{\"id\":\"pay_1\",\"showcase_id\":\"x\",\"checkout_id\":\"x\",\"customer_id\":\"x\",\"method\":\"card\",\"state\":\"unknown\",\"amount_cents\":0,\"captured_cents\":0,\"refunded_cents\":0,\"currency\":\"BRL\",\"created_at\":\"2026-11-20T12:00:00Z\",\"metadata\":{},\"client_reference_id\":\"x\",\"installments\":0,\"installment_amount_cents\":0,\"installment_interest_cents\":0,\"subscription_id\":null,\"cycle_sequence\":null,\"period_start\":null,\"period_end\":null,\"fee_cents\":450,\"net_cents\":8550,\"expected_payout_on\":\"2026-12-21\",\"payout_deposited_on\":null,\"payout_id\":null,\"split\":[{\"recipient_id\":\"shw_2\",\"amount_cents\":9000,\"fee_cents\":450,\"net_cents\":8550}]}}")));
+        Payment payment = client(recorder).payments().get("pay_1");
+        assertEquals(450L, payment.getFeeCents());
+        assertEquals(8550L, payment.getNetCents());
+        assertEquals("2026-12-21", payment.getExpectedPayoutOn());
+        assertNull(payment.getPayoutId());
+        assertNull(payment.getPayoutDepositedOn());
+        assertEquals(1, payment.getSplit().size());
+        assertEquals("shw_2", payment.getSplit().get(0).getRecipientId());
+        assertEquals(9000L, payment.getSplit().get(0).getAmountCents());
+        assertEquals(450L, payment.getSplit().get(0).getFeeCents());
+        assertEquals(8550L, payment.getSplit().get(0).getNetCents());
+    }
+
+    // The balance carries its period, the payouts are filtered and walked page by
+    // page, and a payout reads back its lines: a fee has no payment.
+    @Test
+    void theBalanceAndThePayoutsReadBackWhatWillBeDeposited() {
+        Recorder recorder = new Recorder(request -> {
+            String path = URI.create(request.getUrl()).getPath();
+            String raw = URI.create(request.getUrl()).getRawQuery();
+            String body = "{\"data\":{\"items\":[{\"id\":\"po_20261120\",\"status\":\"deposited\",\"expected_on\":\"2026-11-20\",\"deposited_on\":\"2026-11-20\",\"amount_cents\":10000,\"fee_cents\":450,\"net_cents\":9550,\"currency\":\"BRL\",\"item_count\":2}],\"pagination\":{\"total_count\":2,\"max_page\":2}}}";
+            if (path.equals("/api/v1/balance")) {
+                body = "{\"data\":{\"total_to_receive_cents\":100000,\"released_cents\":10000,\"held_cents\":5000,\"scheduled_cents\":60000,\"later_cents\":25000,\"deposited_cents\":42000,\"period_from\":\"2026-11-01\",\"period_to\":\"2026-11-20\",\"currency\":\"BRL\"}}";
+            } else if (path.equals("/api/v1/payouts/po_20261120")) {
+                body = "{\"data\":{\"id\":\"po_20261120\",\"status\":\"deposited\",\"expected_on\":\"2026-11-20\",\"deposited_on\":\"2026-11-20\",\"amount_cents\":10000,\"fee_cents\":450,\"net_cents\":9550,\"currency\":\"BRL\",\"item_count\":2,\"items\":[{\"kind\":\"sale\",\"payment_id\":\"pay_1\",\"installment\":1,\"status\":\"deposited\",\"amount_cents\":10000,\"fee_cents\":300,\"net_cents\":9700},{\"kind\":\"fee\",\"payment_id\":null,\"installment\":0,\"status\":\"deposited\",\"amount_cents\":0,\"fee_cents\":150,\"net_cents\":-150}]}}";
+            } else if (raw != null && raw.contains("page=2")) {
+                body = "{\"data\":{\"items\":[{\"id\":\"po_20261119\",\"status\":\"released\",\"expected_on\":\"2026-11-19\",\"deposited_on\":null,\"amount_cents\":5000,\"fee_cents\":200,\"net_cents\":4800,\"currency\":\"BRL\",\"item_count\":2}],\"pagination\":{\"total_count\":2,\"max_page\":2}}}";
+            }
+            return json(200, Map.of(), Json.parse(body));
+        });
+        Perata perata = client(recorder);
+        Balance balance = perata.balance().get(BalanceService.GetParams.builder().dateFrom("2026-11-01").dateTo("2026-11-20").build());
+        assertEquals(Map.of("date_from", "2026-11-01", "date_to", "2026-11-20"), query(recorder.seen.get(0).getUrl()));
+        assertEquals(100000L, balance.getTotalToReceiveCents());
+        assertEquals(balance.getTotalToReceiveCents(), balance.getReleasedCents() + balance.getHeldCents() + balance.getScheduledCents() + balance.getLaterCents());
+        assertEquals(42000L, balance.getDepositedCents());
+        assertEquals("2026-11-01", balance.getPeriodFrom());
+        assertEquals("2026-11-20", balance.getPeriodTo());
+        assertEquals("BRL", balance.getCurrency());
+        List<String> walked = new ArrayList<>();
+        for (Payout payout : perata.payouts().listIter(PayoutsService.ListParams.builder().status("deposited").dateFrom("2026-11-01").sorting("-date").limit(1).build())) {
+            walked.add(payout.getId() + ":" + payout.getStatus());
+            assertEquals(payout.getAmountCents() - payout.getFeeCents(), payout.getNetCents());
+            assertEquals("deposited".equals(payout.getStatus()), payout.getDepositedOn() != null);
+        }
+        assertEquals(List.of("po_20261120:deposited", "po_20261119:released"), walked);
+        assertEquals(Map.of("page", "1", "limit", "1", "status", "deposited", "date_from", "2026-11-01", "sorting", "-date"), query(recorder.seen.get(1).getUrl()));
+        PayoutDetail payout = perata.payouts().get("po_20261120");
+        assertEquals(9550L, payout.getNetCents());
+        assertEquals(2, payout.getItems().size());
+        PayoutItem sale = payout.getItems().get(0);
+        assertEquals("sale", sale.getKind());
+        assertEquals("pay_1", sale.getPaymentId());
+        assertEquals(1L, sale.getInstallment());
+        assertEquals(9700L, sale.getNetCents());
+        PayoutItem fee = payout.getItems().get(1);
+        assertEquals("fee", fee.getKind());
+        assertNull(fee.getPaymentId());
+        assertEquals(-150L, fee.getNetCents());
+    }
+
+    // A checkout says how its subscription renews, the subscription reads back the
+    // mode it resolved to, its label and whether the buyer is written to, an update
+    // changes them, and the open renewal charge is read by its own route; without
+    // one the API answers 404 no_open_charge.
+    @Test
+    void theRenewalModeTheLabelAndTheOpenCharge() {
+        Map<String, String> answers = new HashMap<>();
+        answers.put("POST /api/v1/checkouts", "{\"data\":{\"id\":\"pcl_1\",\"showcase_id\":\"x\",\"url\":\"x\",\"product_id\":\"prod_1\",\"price_id\":\"price_1\",\"status\":\"active\",\"label\":\"Olho de Águia · Ana\",\"quantity\":0,\"amount_cents\":null,\"items\":[],\"metadata\":{},\"client_reference_id\":\"x\",\"success_url\":\"x\",\"cancel_url\":\"x\",\"expires_at\":null,\"subscription_start_at\":null,\"discount_id\":\"x\",\"first_period_extra_days\":null,\"renewal_mode\":\"automatic\",\"notify_customer_email\":false,\"created_at\":\"2026-11-20T12:00:00Z\",\"session_id\":\"cs_1\",\"client_secret\":\"cs_secret_1\",\"client_secret_expires_at\":\"2026-11-20T12:00:00Z\",\"status_key\":\"x\"}}");
+        answers.put("PATCH /api/v1/subscriptions/sub_1", "{\"data\":{\"id\":\"sub_1\",\"showcase_id\":\"x\",\"customer_id\":\"x\",\"product_id\":\"x\",\"price_id\":\"x\",\"status\":\"active\",\"amount_cents\":0,\"quantity\":0,\"currency\":\"BRL\",\"interval\":\"x\",\"current_period_start\":\"2026-11-20T12:00:00Z\",\"current_period_end\":\"2026-11-20T12:00:00Z\",\"cancel_at_period_end\":false,\"pending_update\":null,\"suspended_at\":null,\"suspension_reason\":null,\"trial_start\":null,\"trial_end\":null,\"metadata\":{},\"client_reference_id\":\"x\",\"discount_id\":null,\"discount_ends_at\":null,\"first_period_extra_days\":null,\"renewal_mode\":\"pix_automatic\",\"label\":\"Olho de Águia · Ana\",\"notify_customer_email\":false}}");
+        answers.put("GET /api/v1/subscriptions/sub_1/open-charge", "{\"data\":{\"id\":\"rc_1\",\"subscription_id\":\"sub_1\",\"showcase_id\":\"x\",\"customer_id\":\"x\",\"product_id\":\"x\",\"price_id\":\"x\",\"cycle_sequence\":2,\"amount_cents\":9000,\"currency\":\"BRL\",\"label\":\"Olho de Águia · Ana\",\"renewal_mode\":\"manual\",\"period_start\":\"2026-11-20T12:00:00Z\",\"period_end\":\"2026-11-20T12:00:00Z\",\"due_at\":\"2026-12-20T03:00:00Z\",\"expires_at\":\"2026-12-27T03:00:00Z\",\"payment_url\":\"https://perata.sh/pagar/rc_1\",\"metadata\":{},\"client_reference_id\":\"x\",\"reminder\":null,\"days_until_due\":null,\"notify_customer_email\":true}}");
+        Recorder recorder = new Recorder(request -> {
+            String body = answers.get(request.getMethod() + " " + URI.create(request.getUrl()).getPath());
+            if (body == null) {
+                return json(404, Map.of(), Map.of("error", "no_open_charge", "message", "A assinatura não tem cobrança de renovação em aberto."));
+            }
+            return json("POST".equals(request.getMethod()) ? 201 : 200, Map.of(), Json.parse(body));
+        });
+        Perata perata = client(recorder);
+        String label = "Olho de Águia · Ana";
+        CheckoutCreated checkout = perata.checkouts().create(CheckoutsService.CreateParams.builder()
+                .productId("prod_1").priceId("price_1").renewalMode("automatic").notifyCustomerEmail(false).label(label).build());
+        Map<String, Object> sent = Json.asObject(Json.parse(new String(recorder.seen.get(0).getBody(), StandardCharsets.UTF_8)));
+        assertEquals("automatic", sent.get("renewal_mode"));
+        assertEquals(false, sent.get("notify_customer_email"));
+        assertEquals(label, sent.get("label"));
+        assertEquals("automatic", checkout.getRenewalMode());
+        assertFalse(checkout.getNotifyCustomerEmail());
+        assertEquals(label, checkout.getLabel());
+        Subscription subscription = perata.subscriptions().update("sub_1",
+                SubscriptionsService.UpdateParams.builder().renewalMode("manual").notifyCustomerEmail(true).label(label).build());
+        sent = Json.asObject(Json.parse(new String(recorder.seen.get(1).getBody(), StandardCharsets.UTF_8)));
+        assertEquals("manual", sent.get("renewal_mode"));
+        assertEquals(true, sent.get("notify_customer_email"));
+        assertEquals(label, sent.get("label"));
+        assertEquals("pix_automatic", subscription.getRenewalMode());
+        assertEquals(label, subscription.getLabel());
+        assertFalse(subscription.getNotifyCustomerEmail());
+        RenewalCharge charge = perata.subscriptions().getOpenCharge("sub_1");
+        assertEquals("/api/v1/subscriptions/sub_1/open-charge", URI.create(recorder.seen.get(2).getUrl()).getPath());
+        assertEquals("rc_1", charge.getId());
+        assertEquals("sub_1", charge.getSubscriptionId());
+        assertEquals(9000L, charge.getAmountCents());
+        assertEquals("manual", charge.getRenewalMode());
+        assertEquals("https://perata.sh/pagar/rc_1", charge.getPaymentUrl());
+        assertEquals("2026-12-20T03:00:00Z", charge.getDueAt());
+        assertEquals("2026-12-27T03:00:00Z", charge.getExpiresAt());
+        assertNull(charge.getReminder());
+        assertNull(charge.getDaysUntilDue());
+        assertTrue(charge.getNotifyCustomerEmail());
+        PerataException refused = assertThrows(PerataException.class, () -> perata.subscriptions().getOpenCharge("sub_2"));
+        assertEquals(404, refused.getStatus());
+        assertEquals("no_open_charge", refused.getCode());
+    }
+
+    // The renewal events carry the charge: due, and the reminder with its days.
+    @Test
+    void theRenewalEventsCarryTheCharge() {
+        Instant now = Instant.ofEpochSecond(SIGNED_AT + 120);
+        WebhookEvent due = Webhook.verify(NEW_SECRET, webhookHeaders("msg_7", SIGNED_AT, "v1,BKbvaeGeiiLKhXAhfIIqaaxztbvGy5+Lj3u3m+Zec9w="),
+                "{\"id\":\"msg_7\",\"type\":\"subscription.renewal_due\",\"timestamp\":\"2026-10-22T12:00:00Z\",\"data\":{\"id\":\"rc_1\",\"subscription_id\":\"sub_1\",\"showcase_id\":\"x\",\"customer_id\":\"x\",\"product_id\":\"x\",\"price_id\":\"x\",\"cycle_sequence\":2,\"amount_cents\":9000,\"currency\":\"BRL\",\"label\":\"Olho de Águia · Ana\",\"renewal_mode\":\"manual\",\"period_start\":\"2026-11-20T12:00:00Z\",\"period_end\":\"2026-11-20T12:00:00Z\",\"due_at\":\"2026-12-20T03:00:00Z\",\"expires_at\":\"2026-12-27T03:00:00Z\",\"payment_url\":\"https://perata.sh/pagar/rc_1\",\"metadata\":{},\"client_reference_id\":\"x\",\"notify_customer_email\":true,\"reminder\":null,\"days_until_due\":null}}".getBytes(StandardCharsets.UTF_8), now);
+        RenewalChargeWebhookEvent renewal = assertInstanceOf(RenewalChargeWebhookEvent.class, due);
+        assertEquals("subscription.renewal_due", renewal.getType());
+        assertEquals("rc_1", renewal.getData().getId());
+        assertEquals("https://perata.sh/pagar/rc_1", renewal.getData().getPaymentUrl());
+        assertNull(renewal.getData().getReminder());
+        WebhookEvent live = Webhook.verify(NEW_SECRET, webhookHeaders("msg_8", SIGNED_AT, "v1,D1dd09VwdIBIDIq3Tp/yC+mhhlORnZyN/P/KU4sxX2Q="),
+                "{\"id\":\"msg_8\",\"type\":\"subscription.renewal_reminder\",\"timestamp\":\"2026-10-22T12:00:00Z\",\"environment\":\"live\",\"showcase_id\":\"shw_1\",\"data\":{\"id\":\"rc_1\",\"subscription_id\":\"sub_1\",\"showcase_id\":\"x\",\"customer_id\":\"x\",\"product_id\":\"x\",\"price_id\":\"x\",\"cycle_sequence\":2,\"amount_cents\":9000,\"currency\":\"BRL\",\"label\":\"Olho de Águia · Ana\",\"renewal_mode\":\"manual\",\"period_start\":\"2026-11-20T12:00:00Z\",\"period_end\":\"2026-11-20T12:00:00Z\",\"due_at\":\"2026-12-20T03:00:00Z\",\"expires_at\":\"2026-12-27T03:00:00Z\",\"payment_url\":\"https://perata.sh/pagar/rc_1\",\"metadata\":{},\"client_reference_id\":\"x\",\"notify_customer_email\":true,\"reminder\":\"before_due\",\"days_until_due\":3}}".getBytes(StandardCharsets.UTF_8), now);
+        RenewalChargeWebhookEvent reminder = assertInstanceOf(RenewalChargeWebhookEvent.class, live);
+        assertEquals("subscription.renewal_reminder", reminder.getType());
+        assertEquals("live", reminder.getEnvironment());
+        assertEquals("before_due", reminder.getData().getReminder());
+        assertEquals(Long.valueOf(3), reminder.getData().getDaysUntilDue());
     }
 
     @Test

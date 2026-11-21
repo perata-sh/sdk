@@ -28,7 +28,7 @@ namespace Perata;
 public sealed class PerataClient
 {
     /// <summary>This SDK's version.</summary>
-    public const string Version = "0.5.8";
+    public const string Version = "0.5.9";
 
     /// <summary>The contract this SDK was generated from.</summary>
     public const string ApiVersion = "0.1.0";
@@ -61,6 +61,7 @@ public sealed class PerataClient
         timeout = options.Timeout ?? TimeSpan.FromSeconds(30);
         http = options.HttpClient
             ?? (options.Handler is null ? SharedHttp : new HttpClient(options.Handler, disposeHandler: false) { Timeout = System.Threading.Timeout.InfiniteTimeSpan });
+        Balance = new BalanceService(this);
         Benefits = new BenefitsService(this);
         CheckoutLinks = new CheckoutLinksService(this);
         Checkouts = new CheckoutsService(this);
@@ -73,6 +74,7 @@ public sealed class PerataClient
         Orders = new OrdersService(this);
         PaymentMethods = new PaymentMethodsService(this);
         Payments = new PaymentsService(this);
+        Payouts = new PayoutsService(this);
         Prices = new PricesService(this);
         Products = new ProductsService(this);
         Refunds = new RefundsService(this);
@@ -81,6 +83,9 @@ public sealed class PerataClient
         Usage = new UsageService(this);
         Webhooks = new WebhooksService(this);
     }
+
+    /// <summary>The API's balance.</summary>
+    public BalanceService Balance { get; }
 
     /// <summary>The API's benefits.</summary>
     public BenefitsService Benefits { get; }
@@ -117,6 +122,9 @@ public sealed class PerataClient
 
     /// <summary>The API's payments.</summary>
     public PaymentsService Payments { get; }
+
+    /// <summary>The API's payouts.</summary>
+    public PayoutsService Payouts { get; }
 
     /// <summary>The API's prices.</summary>
     public PricesService Prices { get; }

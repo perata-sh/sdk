@@ -9,6 +9,35 @@ from ._core import Requester, segment
 from ._pagination import Page, iterate
 
 
+class BalanceService:
+    """The API's balance."""
+
+    def __init__(self, client: Requester) -> None:
+        self._client = client
+
+    def get(self, *, date_from: str | None = None, date_to: str | None = None, api_key: str | None = None) -> models.Balance:
+        """Ler o saldo a receber. The filters are optional.
+
+        Devolve o saldo a receber da organização neste ambiente:
+        total_to_receive_cents, que é sempre a soma de released_cents (liberado,
+        o depósito está em processamento), held_cents (retido enquanto a conta
+        está em análise), scheduled_cents (previsto, com data nos próximos 31
+        dias) e later_cents (sem data ainda, como as parcelas mais distantes).
+        deposited_cents é o que foi depositado no período de period_from a
+        period_to (date_from e date_to; sem eles, os 30 dias até hoje) e não
+        entra no total. Os valores são líquidos das tarifas e dos reembolsos, em
+        centavos. Exige o escopo payouts:read.
+
+        Autenticação: chave de API da organização em Authorization: Bearer
+        (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+        chave, nunca da requisição: a chave criada num showcase só alcança o que
+        é dele. Respostas em JSON no envelope data; erros com error, message e
+        fields.
+        """
+        data = self._client.request("GET", "/api/v1/balance", query={"date_from": date_from, "date_to": date_to}, api_key=api_key)
+        return models.Balance.from_dict(data)
+
+
 class BenefitsService:
     """The API's benefits."""
 
@@ -220,6 +249,15 @@ class CheckoutsService:
         Para o comprador que ainda tem dias pagos num plano anterior, envie
         first_period_extra_days (1 a 365): ele paga hoje o valor cheio e a
         próxima cobrança só acontece no fim do primeiro período mais esses dias.
+        Envie renewal_mode em toda assinatura: manual (a cada ciclo a Peráta
+        abre uma cobrança para o comprador pagar e avisa o seu sistema com
+        subscription.renewal_due, mesmo que o primeiro pagamento tenha sido no
+        cartão), automatic (só cartão de crédito guardado ou Pix Automático;
+        cobra sozinho) ou buyer_choice (a página mostra a caixa Ativar cobrança
+        automática e o comprador decide); sem o campo nada muda.
+        notify_customer_email false mantém a Peráta sem escrever ao comprador.
+        label dá nome à assinatura (por exemplo, Olho de Águia · Colaborador
+        Ana).
 
         Autenticação: chave de API da organização em Authorization: Bearer
         (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
@@ -801,6 +839,55 @@ class PaymentsService:
         return iterate(lambda at: self.list(page=at, limit=limit, client_reference_id=client_reference_id, status=status, customer_id=customer_id, external_customer_id=external_customer_id, subscription_id=subscription_id, created_after=created_after, created_before=created_before, sorting=sorting, metadata=metadata, api_key=api_key), page)
 
 
+class PayoutsService:
+    """The API's payouts."""
+
+    def __init__(self, client: Requester) -> None:
+        self._client = client
+
+    def get(self, payout: str, *, api_key: str | None = None) -> models.PayoutDetail:
+        """Ler um repasse.
+
+        Devolve um repasse pelo ID (como po_20261120) com os seus lançamentos em
+        items: cada venda, reembolso, contestação, tarifa ou ajuste, com o
+        payment_id, a parcela, o valor, a tarifa e o líquido. Exige o escopo
+        payouts:read.
+
+        Autenticação: chave de API da organização em Authorization: Bearer
+        (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+        chave, nunca da requisição: a chave criada num showcase só alcança o que
+        é dele. Respostas em JSON no envelope data; erros com error, message e
+        fields.
+        """
+        data = self._client.request("GET", f"/api/v1/payouts/{segment(payout)}", api_key=api_key)
+        return models.PayoutDetail.from_dict(data)
+
+    def list(self, *, page: int | None = None, limit: int | None = None, status: str | None = None, date_from: str | None = None, date_to: str | None = None, sorting: str | None = None, api_key: str | None = None) -> Page[models.Payout]:
+        """Listar repasses. One page; ``list_iter`` walks every page.
+
+        Devolve uma página dos repasses, o mais novo primeiro. Um repasse é o
+        que a organização recebe num dia: id (po_ e a data), status (scheduled,
+        released, held ou deposited), expected_on, deposited_on, amount_cents,
+        fee_cents e net_cents (amount_cents menos fee_cents, o que é
+        depositado). Filtre por status e pelos dias (date_from e date_to). Um
+        repasse previsto pela regra do Pix, e não pela agenda de recebíveis,
+        ainda pode mudar de data até ser depositado. Exige o escopo
+        payouts:read.
+
+        Autenticação: chave de API da organização em Authorization: Bearer
+        (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+        chave, nunca da requisição: a chave criada num showcase só alcança o que
+        é dele. Respostas em JSON no envelope data; erros com error, message e
+        fields.
+        """
+        data = self._client.request("GET", "/api/v1/payouts", query={"page": page, "limit": limit, "status": status, "date_from": date_from, "date_to": date_to, "sorting": sorting}, api_key=api_key)
+        return Page.from_dict(data, models.Payout.from_dict)
+
+    def list_iter(self, *, page: int | None = None, limit: int | None = None, status: str | None = None, date_from: str | None = None, date_to: str | None = None, sorting: str | None = None, api_key: str | None = None) -> Iterator[models.Payout]:
+        """Walks every page of payouts:list, item by item."""
+        return iterate(lambda at: self.list(page=at, limit=limit, status=status, date_from=date_from, date_to=date_to, sorting=sorting, api_key=api_key), page)
+
+
 class PricesService:
     """The API's prices."""
 
@@ -1071,6 +1158,27 @@ class SubscriptionsService:
         data = self._client.request("GET", f"/api/v1/subscriptions/{segment(subscription)}", api_key=api_key)
         return models.Subscription.from_dict(data)
 
+    def get_open_charge(self, subscription: str, *, api_key: str | None = None) -> models.RenewalCharge:
+        """Ler a cobrança de renovação em aberto.
+
+        Devolve a cobrança de renovação que espera o comprador pagar: o ciclo
+        atual da assinatura, o valor, due_at e expires_at, o período e, em
+        payment_url, a página da Peráta onde ele paga (cartão, Pix ou boleto). É
+        o mesmo objeto do evento subscription.renewal_due, para quando o seu
+        sistema precisa dele de novo. Uma assinatura sem cobrança em aberto
+        (ciclo já pago, cobrada no cartão guardado ou pelo Pix Automático, ou
+        com o próximo ciclo ainda fechado) responde 404 com a mensagem dizendo
+        isso.
+
+        Autenticação: chave de API da organização em Authorization: Bearer
+        (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+        chave, nunca da requisição: a chave criada num showcase só alcança o que
+        é dele. Respostas em JSON no envelope data; erros com error, message e
+        fields.
+        """
+        data = self._client.request("GET", f"/api/v1/subscriptions/{segment(subscription)}/open-charge", api_key=api_key)
+        return models.RenewalCharge.from_dict(data)
+
     def list(self, *, page: int | None = None, limit: int | None = None, status: str | None = None, customer_id: str | None = None, external_customer_id: str | None = None, created_after: str | None = None, created_before: str | None = None, sorting: str | None = None, metadata: dict[str, str] | None = None, api_key: str | None = None) -> Page[models.Subscription]:
         """Listar assinaturas. One page; ``list_iter`` walks every page.
 
@@ -1107,13 +1215,16 @@ class SubscriptionsService:
         return models.Subscription.from_dict(data)
 
     def update(self, subscription: str, params: models.SubscriptionsUpdateParams, *, idempotency_key: str | None = None, api_key: str | None = None) -> models.Subscription:
-        """Trocar o plano ou estender o período.
+        """Trocar o plano, o período, o rótulo ou a renovação.
 
         Troca o plano de uma assinatura (outro preço e, se quiser, outra
         quantidade; o proration_behavior diz como ratear a diferença) ou, com
         extend_current_period_days sozinho, estende o período atual em até 365
         dias sem cobrar, para o crédito manual de dias: a próxima cobrança passa
-        a ser no novo current_period_end.
+        a ser no novo current_period_end. Com label, renewal_mode (manual ou
+        card) e notify_customer_email, sem os outros campos, muda o nome da
+        assinatura, como ela renova (card exige um cartão guardado; manual deixa
+        de cobrar o cartão) e se a Peráta escreve ao comprador das cobranças.
 
         Autenticação: chave de API da organização em Authorization: Bearer
         (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da

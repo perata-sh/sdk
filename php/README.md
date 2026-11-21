@@ -22,6 +22,7 @@ Um POST sem chave de idempotência é enviado com uma `Idempotency-Key` própria
 
 | Serviço | Métodos |
 |---|---|
+| `$perata->balance` | `get` |
 | `$perata->benefits` | `create`, `delete`, `get`, `list`, `listIter`, `listGrants`, `listGrantsIter`, `update` |
 | `$perata->checkoutLinks` | `create`, `delete`, `get`, `list`, `listIter`, `update` |
 | `$perata->checkouts` | `create`, `expire`, `get`, `list`, `listIter`, `update` |
@@ -34,11 +35,12 @@ Um POST sem chave de idempotência é enviado com uma `Idempotency-Key` própria
 | `$perata->orders` | `get`, `getInvoice`, `getReceipt`, `list`, `listIter` |
 | `$perata->paymentMethods` | `detach`, `list`, `listIter` |
 | `$perata->payments` | `get`, `list`, `listIter` |
+| `$perata->payouts` | `get`, `list`, `listIter` |
 | `$perata->prices` | `create`, `get`, `list`, `listIter` |
 | `$perata->products` | `archive`, `create`, `get`, `list`, `listIter`, `update` |
 | `$perata->refunds` | `create`, `get`, `list`, `listIter` |
 | `$perata->showcase` | `get` |
-| `$perata->subscriptions` | `cancel`, `get`, `list`, `listIter`, `resume`, `update` |
+| `$perata->subscriptions` | `cancel`, `get`, `getOpenCharge`, `list`, `listIter`, `resume`, `update` |
 | `$perata->usage` | `ingest` |
 | `$perata->webhooks` | `createEndpoint`, `deleteEndpoint`, `getEndpoint`, `listDeliveries`, `listDeliveriesIter`, `listEndpoints`, `listEndpointsIter`, `updateEndpoint` |
 
@@ -168,6 +170,28 @@ $order = $perata->orders->get($orderId);
 $price = $perata->prices->get($priceId);
 ```
 
+## Repasses, saldo e renovação
+
+**Saldo e repasses** (escopo `payouts:read`). `balance.get` devolve o que a organização tem a receber: `total_to_receive_cents`, que é sempre `released_cents` (liberado, o depósito está em processamento) mais `held_cents` (retido enquanto a conta está em análise) mais `scheduled_cents` (previsto, com data nos próximos 31 dias) mais `later_cents` (ainda sem data, como as parcelas mais distantes). `deposited_cents` é o que foi depositado no período de `period_from` a `period_to` (`date_from` e `date_to`, AAAA-MM-DD; sem eles, os 30 dias até hoje) e não entra no total. `payouts.list` lista os repasses, um por dia, com os filtros `status` (`scheduled`, `released`, `held` ou `deposited`), `date_from`, `date_to` e `sorting` (`date` ou `-date`, o padrão), e a iteração percorre todas as páginas; `payouts.get` lê um repasse (o id é como `po_20261120`) com os lançamentos em `items`: `kind`, `payment_id` (nulo numa tarifa), `installment`, `amount_cents`, `fee_cents` e `net_cents`. O `net_cents` de um repasse é `amount_cents` menos `fee_cents`. O `Payment` passa a trazer `fee_cents`, `net_cents`, `split` (cada destinatário, com `recipient_id`, `amount_cents`, `fee_cents` e `net_cents`), `expected_payout_on`, `payout_deposited_on` e `payout_id`. Os eventos `payout.scheduled`, `payout.released`, `payout.held` e `payout.deposited` trazem só os identificadores: leia o repasse com o `aggregate_id`.
+
+**Renovação.** `renewal_mode` em `checkouts.create` diz como a assinatura renova: `manual` (a cada ciclo a Peráta abre uma cobrança para o comprador pagar, em `payment_url`, e o evento `subscription.renewal_due` avisa o seu sistema), `automatic` (só os meios que cobram sozinhos: o cartão de crédito guardado ou o Pix Automático) ou `buyer_choice` (o comprador decide numa caixa da página). `label` dá nome à assinatura e `notify_customer_email` em `false` mantém a Peráta sem escrever ao comprador a cada cobrança (o aviso passa a ser o seu). A `Subscription` e o `subscription.*` do webhook trazem o modo a que isso se resolveu em `renewal_mode` (`manual`, `card` ou `pix_automatic`), o `label` e o `notify_customer_email`. `subscriptions.update` troca `label`, `renewal_mode` (`manual`, ou `card` quando já há cartão guardado) e `notify_customer_email`, sozinhos, sem `price_id`. `subscriptions.get_open_charge` lê a cobrança de renovação que espera o comprador pagar (`amount_cents`, `due_at`, `expires_at`, `payment_url`); sem cobrança em aberto a API responde 404 `no_open_charge`. Os eventos `subscription.renewal_due` e `subscription.renewal_reminder` trazem a mesma cobrança, e o lembrete sai 3 dias antes do vencimento (`reminder` `before_due`, `days_until_due` 3) e no vencimento (`on_due`, 0): cada SDK os lê como `RenewalChargeWebhookEvent`, com o `WebhookRenewalCharge` em `data`.
+
+```php
+$balance = $perata->balance->get(['date_from' => '2026-11-01', 'date_to' => '2026-11-20']);
+// $balance->totalToReceiveCents, $balance->releasedCents, $balance->depositedCents, $balance->periodFrom
+
+foreach ($perata->payouts->listIter(['status' => 'deposited', 'date_from' => '2026-11-01']) as $payout) {
+    // $payout->id, $payout->status, $payout->expectedOn, $payout->netCents
+}
+$payout = $perata->payouts->get('po_20261120');
+// $payout->items[0]->kind, $payout->items[0]->paymentId
+
+$checkout = $perata->checkouts->create(['product_id' => $productId, 'price_id' => $priceId, 'renewal_mode' => 'automatic', 'notify_customer_email' => false]);
+
+$charge = $perata->subscriptions->getOpenCharge($subscriptionId);
+// $charge->paymentUrl, $charge->dueAt, $charge->amountCents; um 404 no_open_charge é uma PerataException com errorCode 'no_open_charge'
+```
+
 ## Consumo (ingestão de eventos)
 
 A ingestão de consumo usa outra credencial: a de uma fonte de ingestão (**Configurações › Fontes de ingestão**), `pus_test_…` em teste e `pus_live_…` em produção. Monte um cliente com ela; a chave de API da organização (`prk_…`) é recusada aqui com 401, e uma credencial de um ambiente nunca escreve no outro.
@@ -215,4 +239,4 @@ O evento é tipado: um tipo para cada dado que o webhook carrega (`OrderWebhookE
 
 Todo evento traz o ambiente em que aconteceu, em `$event->environment`: `"test"` ou `"live"` (vazio se um servidor antigo não mandou). Recuse o evento do ambiente errado: um endpoint de produção deve responder 400 a um evento `"test"`, para que um teste não dê baixa em um pedido real. O showcase da venda vem em `$event->showcaseId` (vazio se um servidor antigo não mandou): um endpoint é de um showcase só, e o mesmo `showcase_id` está nos objetos do evento.
 
-Versão do SDK: 0.5.8 · contrato da API: 0.1.0
+Versão do SDK: 0.5.9 · contrato da API: 0.1.0

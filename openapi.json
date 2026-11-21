@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "API Peráta para Desenvolvedores",
-    "description": "API pública da Peráta: produtos, preços, clientes, checkouts, pedidos, pagamentos, assinaturas e reembolsos, com chave de API da organização em Authorization: Bearer (a chave pertence a um showcase e só alcança o que é dele) e Idempotency-Key nas escritas; e a ingestão de consumo com credencial de origem.",
+    "description": "API pública da Peráta: produtos, preços, clientes, checkouts, pedidos, pagamentos, assinaturas, reembolsos, saldo e repasses, com chave de API da organização em Authorization: Bearer (a chave pertence a um showcase e só alcança o que é dele) e Idempotency-Key nas escritas; e a ingestão de consumo com credencial de origem.",
     "version": "0.1.0"
   },
   "jsonSchemaDialect": "https://spec.openapis.org/oas/3.1/dialect/base",
@@ -13,6 +13,119 @@
     }
   ],
   "paths": {
+    "/api/v1/balance": {
+      "get": {
+        "tags": [
+          "balance"
+        ],
+        "summary": "Ler o saldo a receber",
+        "description": "Devolve o saldo a receber da organização neste ambiente: total_to_receive_cents, que é sempre a soma de released_cents (liberado, o depósito está em processamento), held_cents (retido enquanto a conta está em análise), scheduled_cents (previsto, com data nos próximos 31 dias) e later_cents (sem data ainda, como as parcelas mais distantes). deposited_cents é o que foi depositado no período de period_from a period_to (date_from e date_to; sem eles, os 30 dias até hoje) e não entra no total. Os valores são líquidos das tarifas e dos reembolsos, em centavos. Exige o escopo payouts:read.\n\nAutenticação: chave de API da organização em Authorization: Bearer (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave, nunca da requisição: a chave criada num showcase só alcança o que é dele. Respostas em JSON no envelope data; erros com error, message e fields.",
+        "operationId": "balance:get",
+        "parameters": [
+          {
+            "name": "date_from",
+            "in": "query",
+            "description": "O primeiro dia, AAAA-MM-DD, inclusive. Na lista, só os repasses com data a partir dele; no saldo, o começo do período de deposited_cents (sem ele, 30 dias até date_to).",
+            "schema": {
+              "type": "string"
+            },
+            "example": "2026-11-01"
+          },
+          {
+            "name": "date_to",
+            "in": "query",
+            "description": "O último dia, AAAA-MM-DD, inclusive. Na lista, só os repasses com data até ele; no saldo, o fim do período de deposited_cents (sem ele, hoje).",
+            "schema": {
+              "type": "string"
+            },
+            "example": "2026-11-30"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "O recurso no envelope data.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BalanceEnvelope"
+                },
+                "example": {
+                  "data": {
+                    "total_to_receive_cents": 184230,
+                    "released_cents": 20000,
+                    "held_cents": 0,
+                    "scheduled_cents": 120430,
+                    "later_cents": 43800,
+                    "deposited_cents": 96510,
+                    "period_from": "2026-11-01",
+                    "period_to": "2026-11-30",
+                    "currency": "BRL"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Chave ausente, inválida ou revogada.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "A chave não tem o escopo que a operação exige (message diz qual, como orders:read, e a permissão que ele dá) ou quem a criou não tem mais acesso. Marque o escopo em Configurações › Tokens de acesso.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Recurso inexistente nesta organização e ambiente.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Campos inválidos; fields detalha cada um.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Orçamento de requisições excedido; respeite Retry-After."
+          },
+          "500": {
+            "description": "Indisponível. Nada fica guardado sob a Idempotency-Key: repita com a mesma chave. Se ainda houver uma requisição com a chave em andamento, a resposta é 409 idempotency_in_progress.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "apiKey": []
+          }
+        ]
+      }
+    },
     "/api/v1/benefits": {
       "get": {
         "tags": [
@@ -1611,7 +1724,7 @@
           "checkouts"
         ],
         "summary": "Criar um checkout",
-        "description": "Cria um checkout. Devolve o endereço para onde mandar o comprador e a sessão de compra aberta para ele, com o client_secret que o navegador do comprador usa para pagar sem chave de API; o client_secret vem só nesta resposta. Para cobrar um valor que o seu servidor define, envie amount_cents e items (preço de valor livre). Envie client_reference_id e metadata para achar o pedido depois. Em uma assinatura, envie as linhas do pedido em items (só para exibição, com a soma igual ao valor do preço) e o desconto em discount_id. Para uma assinatura que só começa a cobrar numa data, envie subscription_start_at com o preço recorrente: o cartão é guardado sem cobrança e a primeira cobrança acontece nesse dia. Para o comprador que ainda tem dias pagos num plano anterior, envie first_period_extra_days (1 a 365): ele paga hoje o valor cheio e a próxima cobrança só acontece no fim do primeiro período mais esses dias.\n\nAutenticação: chave de API da organização em Authorization: Bearer (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave, nunca da requisição: a chave criada num showcase só alcança o que é dele. Respostas em JSON no envelope data; erros com error, message e fields.",
+        "description": "Cria um checkout. Devolve o endereço para onde mandar o comprador e a sessão de compra aberta para ele, com o client_secret que o navegador do comprador usa para pagar sem chave de API; o client_secret vem só nesta resposta. Para cobrar um valor que o seu servidor define, envie amount_cents e items (preço de valor livre). Envie client_reference_id e metadata para achar o pedido depois. Em uma assinatura, envie as linhas do pedido em items (só para exibição, com a soma igual ao valor do preço) e o desconto em discount_id. Para uma assinatura que só começa a cobrar numa data, envie subscription_start_at com o preço recorrente: o cartão é guardado sem cobrança e a primeira cobrança acontece nesse dia. Para o comprador que ainda tem dias pagos num plano anterior, envie first_period_extra_days (1 a 365): ele paga hoje o valor cheio e a próxima cobrança só acontece no fim do primeiro período mais esses dias. Envie renewal_mode em toda assinatura: manual (a cada ciclo a Peráta abre uma cobrança para o comprador pagar e avisa o seu sistema com subscription.renewal_due, mesmo que o primeiro pagamento tenha sido no cartão), automatic (só cartão de crédito guardado ou Pix Automático; cobra sozinho) ou buyer_choice (a página mostra a caixa Ativar cobrança automática e o comprador decide); sem o campo nada muda. notify_customer_email false mantém a Peráta sem escrever ao comprador. label dá nome à assinatura (por exemplo, Olho de Águia · Colaborador Ana).\n\nAutenticação: chave de API da organização em Authorization: Bearer (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave, nunca da requisição: a chave criada num showcase só alcança o que é dele. Respostas em JSON no envelope data; erros com error, message e fields.",
         "operationId": "checkouts:create",
         "parameters": [
           {
@@ -1754,6 +1867,19 @@
                     "minimum": 1,
                     "maximum": 365
                   },
+                  "renewal_mode": {
+                    "type": "string",
+                    "description": "Como a assinatura renova, numa assinatura (preço recorrente com valor). manual: a cada ciclo a Peráta abre uma cobrança para o comprador pagar (payment_url, por cartão, Pix ou boleto) e avisa o seu sistema com o evento subscription.renewal_due, mesmo que o primeiro pagamento tenha sido no cartão; o cartão nunca é cobrado e não é guardado. automatic: só os meios que cobram sozinhos, o cartão de crédito guardado ou o Pix Automático (quando a organização o tem ligado; senão só o cartão); a página mostra só esses meios, e a assinatura nasce com renewal_mode card ou pix_automatic. buyer_choice: a página mostra a caixa Ativar cobrança automática, desmarcada, e o comprador decide: desmarcada é manual, marcada é automatic. Sem o campo nada muda: sem caixa, o cartão de crédito renova sozinho e qualquer outro meio vira uma cobrança a cada ciclo. Funciona junto com first_period_extra_days e com desconto. Vale só em preço recorrente com valor (senão 422); manual não vale com teste grátis nem com subscription_start_at, que guardam o cartão para cobrar no fim (422). Pagar por um meio que o modo não aceita (Pix, boleto ou débito em automatic; Pix Automático em manual) é 422 em payment_method. A Subscription traz o modo a que isso se resolveu em renewal_mode: manual, card ou pix_automatic.",
+                    "enum": [
+                      "manual",
+                      "automatic",
+                      "buyer_choice"
+                    ]
+                  },
+                  "notify_customer_email": {
+                    "type": "boolean",
+                    "description": "Verdadeiro por padrão. Falso mantém a Peráta sem escrever ao comprador a cobrança de cada renovação (o seu sistema o avisa pelo evento subscription.renewal_due); a cobrança é aberta do mesmo jeito. Além disso, a organização pode desligar este aviso para todos em Configurações › Preferências › Cobrança da renovação."
+                  },
                   "subscription_start_at": {
                     "type": "string",
                     "description": "O dia da primeira cobrança de uma assinatura, como o trial_end do Stripe: o cartão é guardado e conferido com o emissor, nada é cobrado hoje e a primeira cobrança acontece nesse dia, no cartão guardado; as seguintes seguem a periodicidade do preço a partir dele. Só vale em um preço recorrente com valor, e só no cartão de crédito: a página não oferece Pix nem boleto. Vale o dia no horário de São Paulo, da meia-noite dele, qualquer que seja o fuso enviado; a hora não conta. Tem de ser de amanhã a um ano, senão a resposta é 422. A resposta devolve o instante como a Peráta o guarda, em subscription_start_at. Quem abre o checkout depois da data recebe 410.",
@@ -1767,6 +1893,30 @@
                 "additionalProperties": false
               },
               "examples": {
+                "assinatura_com_cobranca_a_cada_ciclo": {
+                  "summary": "Assinatura que renova por uma cobrança a cada ciclo (Pix, boleto ou cartão), com o nome da assinatura e o aviso ao comprador por conta do seu sistema",
+                  "value": {
+                    "product_id": "0193c5e2-4a7d-7b1e-9c3f-2d8a6e5f1b40",
+                    "price_id": "0193c5e3-0b8c-7a49-a5d2-6e4f8b1c2d73",
+                    "renewal_mode": "manual",
+                    "notify_customer_email": false,
+                    "label": "Olho de Águia · Colaborador Ana",
+                    "customer_email": "ana@exemplo.com.br",
+                    "client_reference_id": "camera-portaria",
+                    "success_url": "https://exemplo.com/obrigado"
+                  }
+                },
+                "assinatura_com_cobranca_automatica": {
+                  "summary": "Assinatura cobrada sozinha: só cartão de crédito (ou Pix Automático, quando a organização o tem)",
+                  "value": {
+                    "product_id": "0193c5e2-4a7d-7b1e-9c3f-2d8a6e5f1b40",
+                    "price_id": "0193c5e3-0b8c-7a49-a5d2-6e4f8b1c2d73",
+                    "renewal_mode": "automatic",
+                    "customer_email": "ana@exemplo.com.br",
+                    "client_reference_id": "camera-portaria",
+                    "success_url": "https://exemplo.com/obrigado"
+                  }
+                },
                 "assinatura_com_dias_extras_no_primeiro_periodo": {
                   "summary": "Cobrar hoje o valor cheio e somar 21 dias ao primeiro período (o comprador tinha dias pagos num plano anterior)",
                   "value": {
@@ -1912,6 +2062,8 @@
                     "subscription_start_at": null,
                     "discount_id": "",
                     "first_period_extra_days": null,
+                    "renewal_mode": "",
+                    "notify_customer_email": false,
                     "created_at": "2026-11-18T14:32:07Z",
                     "session_id": "0193c6b1-3e5a-7f90-b2c4-1d8e6a7f3b95",
                     "client_secret": "pcs_test_Zk3VdQ8mTn5yRw1A",
@@ -2378,7 +2530,7 @@
           "checkouts"
         ],
         "summary": "Gerar o token do cartão de uma sessão de checkout",
-        "description": "Gera o token do Silent Order Post com que os campos seguros enviam o cartão à Cielo. O número do cartão nunca passa por esta API. É entregue só a pedidos que o navegador envia de uma página da própria origem da Peráta, o quadro dos campos seguros, que antes resolve um desafio Cloudflare Turnstile e o envia em turnstile_token; a página de um lojista, ou um pedido sem o desafio, recebe 403. Sem chave de API: o client_secret da sessão, no endereço, é a credencial; o POST /checkouts o devolve uma só vez ao servidor do lojista. Um navegador numa página das origens que a organização cadastra em Checkout incorporado pode chamá-la (CORS, sem credenciais nem cookies). Os erros são o documento de erro da API, o mesmo das demais operações de /api/v1: error (o código), message (a frase) e, quando há campo recusado, fields. O script que monta os campos de pagamento, perata.js, vem de /v1/perata.js, que recebe as correções em minutos; para fixar uma versão, carregue-o do endereço que leva o hash do conteúdo (/v1/perata.\u003chash\u003e.js) com o atributo integrity (Subresource Integrity, sha384) e crossorigin=\"anonymous\". O endereço e o valor de cada versão ficam em Configurações › Como integrar, no painel.",
+        "description": "Gera o token do Silent Order Post com que os campos seguros enviam o cartão ao processamento. O número do cartão nunca passa por esta API. É entregue só a pedidos que o navegador envia de uma página da própria origem da Peráta, o quadro dos campos seguros, que antes resolve um desafio Cloudflare Turnstile e o envia em turnstile_token; a página de um lojista, ou um pedido sem o desafio, recebe 403. Sem chave de API: o client_secret da sessão, no endereço, é a credencial; o POST /checkouts o devolve uma só vez ao servidor do lojista. Um navegador numa página das origens que a organização cadastra em Checkout incorporado pode chamá-la (CORS, sem credenciais nem cookies). Os erros são o documento de erro da API, o mesmo das demais operações de /api/v1: error (o código), message (a frase) e, quando há campo recusado, fields. O script que monta os campos de pagamento, perata.js, vem de /v1/perata.js, que recebe as correções em minutos; para fixar uma versão, carregue-o do endereço que leva o hash do conteúdo (/v1/perata.\u003chash\u003e.js) com o atributo integrity (Subresource Integrity, sha384) e crossorigin=\"anonymous\". O endereço e o valor de cada versão ficam em Configurações › Como integrar, no painel.",
         "operationId": "checkouts:client_card_tokenization",
         "parameters": [
           {
@@ -2514,7 +2666,7 @@
                   },
                   "card_token": {
                     "type": "string",
-                    "description": "O CardToken de um cartão que será guardado, para um teste grátis ou compras futuras, devolvido pelos campos seguros. Numa assinatura o cartão é sempre guardado para as renovações: envie card_token, não payment_token."
+                    "description": "O CardToken de um cartão que será guardado, para um teste grátis ou compras futuras, devolvido pelos campos seguros. Numa assinatura de renovação automática (renewal_mode automatic, ou o padrão quando o cartão é o meio) o cartão é guardado; com renewal_mode manual não é para as renovações: envie card_token, não payment_token."
                   },
                   "card_ticket": {
                     "type": "string",
@@ -2537,11 +2689,19 @@
                   },
                   "save_card": {
                     "type": "boolean",
-                    "description": "Guardar o cartão com o lojista para as próximas compras do comprador. Numa assinatura o cartão é sempre guardado, e este campo não é preciso."
+                    "description": "Guardar o cartão com o lojista para as próximas compras do comprador. Numa assinatura de renovação automática (renewal_mode automatic, ou o padrão quando o cartão é o meio) o cartão é guardado; com renewal_mode manual não é, e este campo não é preciso."
                   },
                   "save_link": {
                     "type": "boolean",
                     "description": "Guardá-lo também no Peráta Link do comprador."
+                  },
+                  "renewal_choice": {
+                    "type": "string",
+                    "description": "Só num checkout de assinatura criado com renewal_mode buyer_choice: automatic quando o comprador marcou \"Ativar cobrança automática\" (só cartão de crédito guardado ou Pix Automático; outro meio é 422), manual quando não marcou (a renovação é uma cobrança a cada ciclo e o cartão não é guardado). Sem o campo, vale manual. Nos outros checkouts é ignorado.",
+                    "enum": [
+                      "automatic",
+                      "manual"
+                    ]
                   },
                   "saved_card": {
                     "type": "string",
@@ -6678,6 +6838,259 @@
         ]
       }
     },
+    "/api/v1/payouts": {
+      "get": {
+        "tags": [
+          "payouts"
+        ],
+        "summary": "Listar repasses",
+        "description": "Devolve uma página dos repasses, o mais novo primeiro. Um repasse é o que a organização recebe num dia: id (po_ e a data), status (scheduled, released, held ou deposited), expected_on, deposited_on, amount_cents, fee_cents e net_cents (amount_cents menos fee_cents, o que é depositado). Filtre por status e pelos dias (date_from e date_to). Um repasse previsto pela regra do Pix, e não pela agenda de recebíveis, ainda pode mudar de data até ser depositado. Exige o escopo payouts:read.\n\nAutenticação: chave de API da organização em Authorization: Bearer (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave, nunca da requisição: a chave criada num showcase só alcança o que é dele. Respostas em JSON no envelope data; erros com error, message e fields.",
+        "operationId": "payouts:list",
+        "parameters": [
+          {
+            "name": "status",
+            "in": "query",
+            "description": "Só os repasses neste status: scheduled, released, held ou deposited.",
+            "schema": {
+              "type": "string"
+            },
+            "example": "deposited"
+          },
+          {
+            "name": "date_from",
+            "in": "query",
+            "description": "O primeiro dia, AAAA-MM-DD, inclusive. Na lista, só os repasses com data a partir dele; no saldo, o começo do período de deposited_cents (sem ele, 30 dias até date_to).",
+            "schema": {
+              "type": "string"
+            },
+            "example": "2026-11-01"
+          },
+          {
+            "name": "date_to",
+            "in": "query",
+            "description": "O último dia, AAAA-MM-DD, inclusive. Na lista, só os repasses com data até ele; no saldo, o fim do período de deposited_cents (sem ele, hoje).",
+            "schema": {
+              "type": "string"
+            },
+            "example": "2026-11-30"
+          },
+          {
+            "name": "sorting",
+            "in": "query",
+            "description": "Ordem da lista pela data do repasse: date, e com um - na frente é decrescente (-date, o mais novo primeiro, é o padrão).",
+            "schema": {
+              "type": "string"
+            },
+            "example": "-date"
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "description": "Página, de 1 a 1000000; além da última a lista vem vazia.",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Itens por página, de 1 a 100; 10 por padrão.",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Uma página da lista no envelope data.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PayoutListEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Chave ausente, inválida ou revogada.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "A chave não tem o escopo que a operação exige (message diz qual, como orders:read, e a permissão que ele dá) ou quem a criou não tem mais acesso. Marque o escopo em Configurações › Tokens de acesso.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Recurso inexistente nesta organização e ambiente.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Campos inválidos; fields detalha cada um.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Orçamento de requisições excedido; respeite Retry-After."
+          },
+          "500": {
+            "description": "Indisponível. Nada fica guardado sob a Idempotency-Key: repita com a mesma chave. Se ainda houver uma requisição com a chave em andamento, a resposta é 409 idempotency_in_progress.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "apiKey": []
+          }
+        ],
+        "x-perata-pagination": {
+          "item_schema": "Payout",
+          "type": "page_limit"
+        }
+      }
+    },
+    "/api/v1/payouts/{payout}": {
+      "get": {
+        "tags": [
+          "payouts"
+        ],
+        "summary": "Ler um repasse",
+        "description": "Devolve um repasse pelo ID (como po_20261120) com os seus lançamentos em items: cada venda, reembolso, contestação, tarifa ou ajuste, com o payment_id, a parcela, o valor, a tarifa e o líquido. Exige o escopo payouts:read.\n\nAutenticação: chave de API da organização em Authorization: Bearer (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave, nunca da requisição: a chave criada num showcase só alcança o que é dele. Respostas em JSON no envelope data; erros com error, message e fields.",
+        "operationId": "payouts:get",
+        "parameters": [
+          {
+            "name": "payout",
+            "in": "path",
+            "description": "Identificador do recurso.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "O recurso no envelope data.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PayoutDetailEnvelope"
+                },
+                "example": {
+                  "data": {
+                    "id": "po_20261120",
+                    "status": "deposited",
+                    "expected_on": "2026-11-20",
+                    "deposited_on": "2026-11-20",
+                    "amount_cents": 50508,
+                    "fee_cents": 1894,
+                    "net_cents": 48614,
+                    "currency": "BRL",
+                    "item_count": 1,
+                    "items": [
+                      {
+                        "kind": "sale",
+                        "payment_id": "0193c6b8-7a21-7d4c-9e06-5b3f8a2c1e47",
+                        "installment": 0,
+                        "status": "deposited",
+                        "amount_cents": 50508,
+                        "fee_cents": 1894,
+                        "net_cents": 48614
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Chave ausente, inválida ou revogada.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "A chave não tem o escopo que a operação exige (message diz qual, como orders:read, e a permissão que ele dá) ou quem a criou não tem mais acesso. Marque o escopo em Configurações › Tokens de acesso.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Recurso inexistente nesta organização e ambiente.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Campos inválidos; fields detalha cada um.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Orçamento de requisições excedido; respeite Retry-After."
+          },
+          "500": {
+            "description": "Indisponível. Nada fica guardado sob a Idempotency-Key: repita com a mesma chave. Se ainda houver uma requisição com a chave em andamento, a resposta é 409 idempotency_in_progress.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "apiKey": []
+          }
+        ]
+      }
+    },
     "/api/v1/prices": {
       "get": {
         "tags": [
@@ -8552,8 +8965,8 @@
         "tags": [
           "subscriptions"
         ],
-        "summary": "Trocar o plano ou estender o período",
-        "description": "Troca o plano de uma assinatura (outro preço e, se quiser, outra quantidade; o proration_behavior diz como ratear a diferença) ou, com extend_current_period_days sozinho, estende o período atual em até 365 dias sem cobrar, para o crédito manual de dias: a próxima cobrança passa a ser no novo current_period_end.\n\nAutenticação: chave de API da organização em Authorization: Bearer (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave, nunca da requisição: a chave criada num showcase só alcança o que é dele. Respostas em JSON no envelope data; erros com error, message e fields.",
+        "summary": "Trocar o plano, o período, o rótulo ou a renovação",
+        "description": "Troca o plano de uma assinatura (outro preço e, se quiser, outra quantidade; o proration_behavior diz como ratear a diferença) ou, com extend_current_period_days sozinho, estende o período atual em até 365 dias sem cobrar, para o crédito manual de dias: a próxima cobrança passa a ser no novo current_period_end. Com label, renewal_mode (manual ou card) e notify_customer_email, sem os outros campos, muda o nome da assinatura, como ela renova (card exige um cartão guardado; manual deixa de cobrar o cartão) e se a Peráta escreve ao comprador das cobranças.\n\nAutenticação: chave de API da organização em Authorization: Bearer (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave, nunca da requisição: a chave criada num showcase só alcança o que é dele. Respostas em JSON no envelope data; erros com error, message e fields.",
         "operationId": "subscriptions:update",
         "parameters": [
           {
@@ -8590,6 +9003,22 @@
                     "minimum": 1,
                     "maximum": 365
                   },
+                  "label": {
+                    "type": "string",
+                    "description": "O nome da assinatura, até 200 caracteres e sem caracteres de controle; vazio tira o nome. Vai sozinho, com renewal_mode e notify_customer_email, sem price_id, quantity, proration_behavior nem extend_current_period_days. Chega no webhook subscription.updated."
+                  },
+                  "renewal_mode": {
+                    "type": "string",
+                    "description": "Muda como a assinatura renova. manual: deixa de cobrar o cartão e passa a abrir uma cobrança a cada ciclo (o cartão guardado é solto). card: cobra o cartão guardado sozinho; exige um cartão já guardado na assinatura (o comprador o ativa no portal), senão 422. pix_automatic só o comprador ativa, no app do banco. Vai sozinho, como label.",
+                    "enum": [
+                      "manual",
+                      "card"
+                    ]
+                  },
+                  "notify_customer_email": {
+                    "type": "boolean",
+                    "description": "Liga ou desliga a mensagem que a Peráta manda ao comprador a cada cobrança de renovação. Vai sozinho, como label."
+                  },
                   "quantity": {
                     "type": "integer",
                     "description": "A nova quantidade; omitida, fica a atual."
@@ -8608,6 +9037,14 @@
                 "additionalProperties": false
               },
               "examples": {
+                "ajustar_nome_e_renovacao": {
+                  "summary": "Dar nome à assinatura, passar a renovar por cobrança a cada ciclo e deixar o aviso ao comprador com o seu sistema",
+                  "value": {
+                    "label": "Olho de Águia · Colaborador Ana",
+                    "renewal_mode": "manual",
+                    "notify_customer_email": false
+                  }
+                },
                 "estender_o_periodo": {
                   "summary": "Somar 21 dias ao período atual, sem cobrar (crédito manual de dias)",
                   "value": {
@@ -8660,7 +9097,10 @@
                     "client_reference_id": "camera-portaria",
                     "discount_id": null,
                     "discount_ends_at": null,
-                    "first_period_extra_days": 21
+                    "first_period_extra_days": 21,
+                    "renewal_mode": "",
+                    "label": "",
+                    "notify_customer_email": false
                   }
                 }
               }
@@ -8893,6 +9333,124 @@
         ]
       }
     },
+    "/api/v1/subscriptions/{subscription}/open-charge": {
+      "get": {
+        "tags": [
+          "subscriptions"
+        ],
+        "summary": "Ler a cobrança de renovação em aberto",
+        "description": "Devolve a cobrança de renovação que espera o comprador pagar: o ciclo atual da assinatura, o valor, due_at e expires_at, o período e, em payment_url, a página da Peráta onde ele paga (cartão, Pix ou boleto). É o mesmo objeto do evento subscription.renewal_due, para quando o seu sistema precisa dele de novo. Uma assinatura sem cobrança em aberto (ciclo já pago, cobrada no cartão guardado ou pelo Pix Automático, ou com o próximo ciclo ainda fechado) responde 404 com a mensagem dizendo isso.\n\nAutenticação: chave de API da organização em Authorization: Bearer (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave, nunca da requisição: a chave criada num showcase só alcança o que é dele. Respostas em JSON no envelope data; erros com error, message e fields.",
+        "operationId": "subscriptions:get_open_charge",
+        "parameters": [
+          {
+            "name": "subscription",
+            "in": "path",
+            "description": "Identificador do recurso.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "O recurso no envelope data.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RenewalChargeEnvelope"
+                },
+                "example": {
+                  "data": {
+                    "id": "cyc_5d2f9a",
+                    "subscription_id": "0193c6d0-6b34-7e58-a1f9-3c7d2b8e5a16",
+                    "showcase_id": "0193c5d9-1c42-7a60-8d17-5e3b9f2a4c61",
+                    "customer_id": "0193c60a-91d4-7c3b-8e15-4f2a7d6b9c08",
+                    "product_id": "0193c5e2-4a7d-7b1e-9c3f-2d8a6e5f1b40",
+                    "price_id": "0193c5e3-0b8c-7a49-a5d2-6e4f8b1c2d73",
+                    "cycle_sequence": 2,
+                    "amount_cents": 9900,
+                    "currency": "BRL",
+                    "label": "Olho de Águia · Colaborador Ana",
+                    "renewal_mode": "manual",
+                    "period_start": "2026-12-20T03:00:00Z",
+                    "period_end": "2027-01-20T03:00:00Z",
+                    "due_at": "2027-01-20T03:00:00Z",
+                    "expires_at": "2027-01-27T03:00:00Z",
+                    "payment_url": "https://perata.sh/pagamento/pcl_8Hq2mZp4VtRn",
+                    "metadata": {
+                      "camera": "portaria"
+                    },
+                    "client_reference_id": "camera-portaria",
+                    "reminder": null,
+                    "days_until_due": null,
+                    "notify_customer_email": true
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Chave ausente, inválida ou revogada.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "A chave não tem o escopo que a operação exige (message diz qual, como orders:read, e a permissão que ele dá) ou quem a criou não tem mais acesso. Marque o escopo em Configurações › Tokens de acesso.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Recurso inexistente nesta organização e ambiente.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Campos inválidos; fields detalha cada um.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Orçamento de requisições excedido; respeite Retry-After."
+          },
+          "500": {
+            "description": "Indisponível. Nada fica guardado sob a Idempotency-Key: repita com a mesma chave. Se ainda houver uma requisição com a chave em andamento, a resposta é 409 idempotency_in_progress.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "apiKey": []
+          }
+        ]
+      }
+    },
     "/api/v1/subscriptions/{subscription}/resume": {
       "post": {
         "tags": [
@@ -8954,7 +9512,10 @@
                     "client_reference_id": "camera-portaria",
                     "discount_id": null,
                     "discount_ends_at": null,
-                    "first_period_extra_days": null
+                    "first_period_extra_days": null,
+                    "renewal_mode": "",
+                    "label": "",
+                    "notify_customer_email": false
                   }
                 }
               }
@@ -13112,6 +13673,262 @@
         }
       }
     },
+    "payout.deposited": {
+      "post": {
+        "tags": [
+          "webhooks"
+        ],
+        "summary": "O repasse de um dia foi depositado na conta de recebimento da organização. data traz só os identificadores; leia GET /api/v1/payouts/{id} com o aggregate_id, que mostra o valor líquido e os lançamentos.",
+        "description": "Enviado por POST ao endpoint assinante, no padrão Standard Webhooks: cabeçalhos webhook-id, webhook-timestamp e webhook-signature (HMAC-SHA256 de \"{id}.{timestamp}.{corpo}\" com o segredo whsec_). Responda 2xx; outra resposta é repetida em 30 s, 5 min, 30 min, 2 h, 5 h e 10 h.",
+        "operationId": "webhooks:payout.deposited",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "data": {
+                    "$ref": "#/components/schemas/WebhookIdentifiers"
+                  },
+                  "environment": {
+                    "description": "O ambiente em que o evento aconteceu, em toda mensagem; o mesmo valor que as chaves test e live da API.",
+                    "enum": [
+                      "test",
+                      "live"
+                    ],
+                    "type": "string"
+                  },
+                  "id": {
+                    "description": "Identificador da mensagem, igual ao cabeçalho webhook-id.",
+                    "type": "string"
+                  },
+                  "showcase_id": {
+                    "description": "O showcase em que o evento aconteceu, em toda mensagem: o mesmo showcase_id dos objetos da API. Um endpoint é de um showcase só e recebe só os eventos das vendas dele.",
+                    "type": "string"
+                  },
+                  "timestamp": {
+                    "format": "date-time",
+                    "type": "string"
+                  },
+                  "type": {
+                    "enum": [
+                      "payout.deposited"
+                    ],
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "id",
+                  "type",
+                  "timestamp",
+                  "environment",
+                  "showcase_id",
+                  "data"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "2XX": {
+            "description": "Recebido."
+          }
+        }
+      }
+    },
+    "payout.held": {
+      "post": {
+        "tags": [
+          "webhooks"
+        ],
+        "summary": "O repasse de um dia está retido enquanto a conta da organização está em análise. Volta a ser liberado quando a análise termina. data traz só os identificadores; leia GET /api/v1/payouts/{id} com o aggregate_id.",
+        "description": "Enviado por POST ao endpoint assinante, no padrão Standard Webhooks: cabeçalhos webhook-id, webhook-timestamp e webhook-signature (HMAC-SHA256 de \"{id}.{timestamp}.{corpo}\" com o segredo whsec_). Responda 2xx; outra resposta é repetida em 30 s, 5 min, 30 min, 2 h, 5 h e 10 h.",
+        "operationId": "webhooks:payout.held",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "data": {
+                    "$ref": "#/components/schemas/WebhookIdentifiers"
+                  },
+                  "environment": {
+                    "description": "O ambiente em que o evento aconteceu, em toda mensagem; o mesmo valor que as chaves test e live da API.",
+                    "enum": [
+                      "test",
+                      "live"
+                    ],
+                    "type": "string"
+                  },
+                  "id": {
+                    "description": "Identificador da mensagem, igual ao cabeçalho webhook-id.",
+                    "type": "string"
+                  },
+                  "showcase_id": {
+                    "description": "O showcase em que o evento aconteceu, em toda mensagem: o mesmo showcase_id dos objetos da API. Um endpoint é de um showcase só e recebe só os eventos das vendas dele.",
+                    "type": "string"
+                  },
+                  "timestamp": {
+                    "format": "date-time",
+                    "type": "string"
+                  },
+                  "type": {
+                    "enum": [
+                      "payout.held"
+                    ],
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "id",
+                  "type",
+                  "timestamp",
+                  "environment",
+                  "showcase_id",
+                  "data"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "2XX": {
+            "description": "Recebido."
+          }
+        }
+      }
+    },
+    "payout.released": {
+      "post": {
+        "tags": [
+          "webhooks"
+        ],
+        "summary": "O repasse de um dia foi liberado: a data chegou e o depósito está em processamento. data traz só os identificadores; leia GET /api/v1/payouts/{id} com o aggregate_id.",
+        "description": "Enviado por POST ao endpoint assinante, no padrão Standard Webhooks: cabeçalhos webhook-id, webhook-timestamp e webhook-signature (HMAC-SHA256 de \"{id}.{timestamp}.{corpo}\" com o segredo whsec_). Responda 2xx; outra resposta é repetida em 30 s, 5 min, 30 min, 2 h, 5 h e 10 h.",
+        "operationId": "webhooks:payout.released",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "data": {
+                    "$ref": "#/components/schemas/WebhookIdentifiers"
+                  },
+                  "environment": {
+                    "description": "O ambiente em que o evento aconteceu, em toda mensagem; o mesmo valor que as chaves test e live da API.",
+                    "enum": [
+                      "test",
+                      "live"
+                    ],
+                    "type": "string"
+                  },
+                  "id": {
+                    "description": "Identificador da mensagem, igual ao cabeçalho webhook-id.",
+                    "type": "string"
+                  },
+                  "showcase_id": {
+                    "description": "O showcase em que o evento aconteceu, em toda mensagem: o mesmo showcase_id dos objetos da API. Um endpoint é de um showcase só e recebe só os eventos das vendas dele.",
+                    "type": "string"
+                  },
+                  "timestamp": {
+                    "format": "date-time",
+                    "type": "string"
+                  },
+                  "type": {
+                    "enum": [
+                      "payout.released"
+                    ],
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "id",
+                  "type",
+                  "timestamp",
+                  "environment",
+                  "showcase_id",
+                  "data"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "2XX": {
+            "description": "Recebido."
+          }
+        }
+      }
+    },
+    "payout.scheduled": {
+      "post": {
+        "tags": [
+          "webhooks"
+        ],
+        "summary": "O repasse de um dia passou a ter data prevista. data traz só os identificadores; o aggregate_id é o id do repasse (po_ e a data): leia GET /api/v1/payouts/{id}. Um repasse sai de novo a cada mudança de estado, e a primeira sincronização de uma organização não avisa o passado.",
+        "description": "Enviado por POST ao endpoint assinante, no padrão Standard Webhooks: cabeçalhos webhook-id, webhook-timestamp e webhook-signature (HMAC-SHA256 de \"{id}.{timestamp}.{corpo}\" com o segredo whsec_). Responda 2xx; outra resposta é repetida em 30 s, 5 min, 30 min, 2 h, 5 h e 10 h.",
+        "operationId": "webhooks:payout.scheduled",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "data": {
+                    "$ref": "#/components/schemas/WebhookIdentifiers"
+                  },
+                  "environment": {
+                    "description": "O ambiente em que o evento aconteceu, em toda mensagem; o mesmo valor que as chaves test e live da API.",
+                    "enum": [
+                      "test",
+                      "live"
+                    ],
+                    "type": "string"
+                  },
+                  "id": {
+                    "description": "Identificador da mensagem, igual ao cabeçalho webhook-id.",
+                    "type": "string"
+                  },
+                  "showcase_id": {
+                    "description": "O showcase em que o evento aconteceu, em toda mensagem: o mesmo showcase_id dos objetos da API. Um endpoint é de um showcase só e recebe só os eventos das vendas dele.",
+                    "type": "string"
+                  },
+                  "timestamp": {
+                    "format": "date-time",
+                    "type": "string"
+                  },
+                  "type": {
+                    "enum": [
+                      "payout.scheduled"
+                    ],
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "id",
+                  "type",
+                  "timestamp",
+                  "environment",
+                  "showcase_id",
+                  "data"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "2XX": {
+            "description": "Recebido."
+          }
+        }
+      }
+    },
     "price.archived": {
       "post": {
         "tags": [
@@ -14520,6 +15337,134 @@
         }
       }
     },
+    "subscription.renewal_due": {
+      "post": {
+        "tags": [
+          "webhooks"
+        ],
+        "summary": "Uma cobrança de renovação foi aberta para o comprador pagar: o ciclo de uma assinatura que não é cobrada no cartão guardado abriu (renewal_mode manual, ou um pagamento que não guardou cartão), ou o cartão foi recusado e sobrou o link. Sai no dia em que a cobrança abre, uma vez por ciclo. data traz a cobrança: subscription_id, cycle_sequence, amount_cents, due_at (até quando pagar sem atraso), expires_at, period_start, period_end, client_reference_id, metadata e payment_url, a página da Peráta onde o comprador paga. Entregue o payment_url ao comprador; o pedido chega depois em order.paid. A Peráta não gera o Pix na abertura: ele vale 24 horas e a cobrança, dias, e um Pix aberto impediria pagar de outro jeito; o Pix é gerado no payment_url, quando o comprador o escolhe. Com notify_customer_email falso a Peráta não escreve ao comprador, e este aviso é o seu. Uma assinatura cobrada no cartão guardado que paga sem recusa não gera este evento.",
+        "description": "Enviado por POST ao endpoint assinante, no padrão Standard Webhooks: cabeçalhos webhook-id, webhook-timestamp e webhook-signature (HMAC-SHA256 de \"{id}.{timestamp}.{corpo}\" com o segredo whsec_). Responda 2xx; outra resposta é repetida em 30 s, 5 min, 30 min, 2 h, 5 h e 10 h.",
+        "operationId": "webhooks:subscription.renewal_due",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "data": {
+                    "$ref": "#/components/schemas/WebhookRenewalCharge"
+                  },
+                  "environment": {
+                    "description": "O ambiente em que o evento aconteceu, em toda mensagem; o mesmo valor que as chaves test e live da API.",
+                    "enum": [
+                      "test",
+                      "live"
+                    ],
+                    "type": "string"
+                  },
+                  "id": {
+                    "description": "Identificador da mensagem, igual ao cabeçalho webhook-id.",
+                    "type": "string"
+                  },
+                  "showcase_id": {
+                    "description": "O showcase em que o evento aconteceu, em toda mensagem: o mesmo showcase_id dos objetos da API. Um endpoint é de um showcase só e recebe só os eventos das vendas dele.",
+                    "type": "string"
+                  },
+                  "timestamp": {
+                    "format": "date-time",
+                    "type": "string"
+                  },
+                  "type": {
+                    "enum": [
+                      "subscription.renewal_due"
+                    ],
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "id",
+                  "type",
+                  "timestamp",
+                  "environment",
+                  "showcase_id",
+                  "data"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "2XX": {
+            "description": "Recebido."
+          }
+        }
+      }
+    },
+    "subscription.renewal_reminder": {
+      "post": {
+        "tags": [
+          "webhooks"
+        ],
+        "summary": "Lembrete de uma cobrança de renovação ainda não paga: sai 3 dias antes de due_at (reminder before_due, days_until_due 3) e no vencimento (reminder on_due, days_until_due 0), uma vez cada, só enquanto a cobrança continua em aberto. data é a mesma cobrança de subscription.renewal_due. Uma cobrança aberta menos de 3 dias antes do vencimento só tem o lembrete do vencimento.",
+        "description": "Enviado por POST ao endpoint assinante, no padrão Standard Webhooks: cabeçalhos webhook-id, webhook-timestamp e webhook-signature (HMAC-SHA256 de \"{id}.{timestamp}.{corpo}\" com o segredo whsec_). Responda 2xx; outra resposta é repetida em 30 s, 5 min, 30 min, 2 h, 5 h e 10 h.",
+        "operationId": "webhooks:subscription.renewal_reminder",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "data": {
+                    "$ref": "#/components/schemas/WebhookRenewalCharge"
+                  },
+                  "environment": {
+                    "description": "O ambiente em que o evento aconteceu, em toda mensagem; o mesmo valor que as chaves test e live da API.",
+                    "enum": [
+                      "test",
+                      "live"
+                    ],
+                    "type": "string"
+                  },
+                  "id": {
+                    "description": "Identificador da mensagem, igual ao cabeçalho webhook-id.",
+                    "type": "string"
+                  },
+                  "showcase_id": {
+                    "description": "O showcase em que o evento aconteceu, em toda mensagem: o mesmo showcase_id dos objetos da API. Um endpoint é de um showcase só e recebe só os eventos das vendas dele.",
+                    "type": "string"
+                  },
+                  "timestamp": {
+                    "format": "date-time",
+                    "type": "string"
+                  },
+                  "type": {
+                    "enum": [
+                      "subscription.renewal_reminder"
+                    ],
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "id",
+                  "type",
+                  "timestamp",
+                  "environment",
+                  "showcase_id",
+                  "data"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "2XX": {
+            "description": "Recebido."
+          }
+        }
+      }
+    },
     "subscription.resumed": {
       "post": {
         "tags": [
@@ -15099,6 +16044,73 @@
   },
   "components": {
     "schemas": {
+      "Balance": {
+        "type": "object",
+        "required": [
+          "total_to_receive_cents",
+          "released_cents",
+          "held_cents",
+          "scheduled_cents",
+          "later_cents",
+          "deposited_cents",
+          "period_from",
+          "period_to",
+          "currency"
+        ],
+        "properties": {
+          "total_to_receive_cents": {
+            "type": "integer",
+            "description": "O valor total a receber: tudo o que a organização ainda vai receber das vendas capturadas, já descontadas as tarifas e os reembolsos. É sempre released_cents + held_cents + scheduled_cents + later_cents."
+          },
+          "released_cents": {
+            "type": "integer",
+            "description": "Liberado para repasse: o valor cuja data de repasse já chegou e que a Peráta ainda não registrou como depositado. Está em processamento."
+          },
+          "held_cents": {
+            "type": "integer",
+            "description": "Retido para análise: o valor que teria sido liberado ou previsto, mas que a Peráta mantém retido enquanto a conta da organização está em análise. Volta a ser liberado quando a análise termina."
+          },
+          "scheduled_cents": {
+            "type": "integer",
+            "description": "Previsto: o valor com data de repasse nos próximos 31 dias."
+          },
+          "later_cents": {
+            "type": "integer",
+            "description": "A receber depois: o que falta do total e ainda não tem data de repasse, como as parcelas além dos próximos 31 dias."
+          },
+          "deposited_cents": {
+            "type": "integer",
+            "description": "Depositado no período de period_from a period_to: a soma do valor líquido dos repasses depositados nesses dias. Não faz parte do total a receber."
+          },
+          "period_from": {
+            "type": "string",
+            "format": "date",
+            "description": "O primeiro dia do período de deposited_cents, AAAA-MM-DD. Sem date_from na chamada, são os 30 dias até period_to."
+          },
+          "period_to": {
+            "type": "string",
+            "format": "date",
+            "description": "O último dia do período de deposited_cents, AAAA-MM-DD. Sem date_to na chamada, é hoje."
+          },
+          "currency": {
+            "type": "string",
+            "enum": [
+              "BRL"
+            ]
+          }
+        }
+      },
+      "BalanceEnvelope": {
+        "type": "object",
+        "required": [
+          "data"
+        ],
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/Balance"
+          }
+        }
+      },
       "Benefit": {
         "type": "object",
         "required": [
@@ -15507,6 +16519,8 @@
           "subscription_start_at",
           "discount_id",
           "first_period_extra_days",
+          "renewal_mode",
+          "notify_customer_email",
           "created_at"
         ],
         "properties": {
@@ -15600,6 +16614,20 @@
               "null"
             ],
             "description": "Quantos dias o seu servidor somou ao primeiro período da assinatura (first_period_extra_days na criação); nulo quando o primeiro período é o comum. O comprador paga hoje o valor cheio, e a próxima cobrança só acontece no fim do período mais longo."
+          },
+          "renewal_mode": {
+            "type": "string",
+            "description": "O renewal_mode da criação: manual, automatic ou buyer_choice; vazio quando foi omitido. A assinatura que o pagamento começa traz o modo a que isso se resolveu em Subscription.renewal_mode.",
+            "enum": [
+              "manual",
+              "automatic",
+              "buyer_choice",
+              ""
+            ]
+          },
+          "notify_customer_email": {
+            "type": "boolean",
+            "description": "Falso quando o seu sistema avisa o comprador das cobranças de renovação e a Peráta fica quieta."
           },
           "created_at": {
             "type": "string",
@@ -16094,6 +17122,8 @@
           "subscription_start_at",
           "discount_id",
           "first_period_extra_days",
+          "renewal_mode",
+          "notify_customer_email",
           "created_at",
           "session_id",
           "client_secret",
@@ -16192,6 +17222,20 @@
               "null"
             ],
             "description": "Quantos dias o seu servidor somou ao primeiro período da assinatura (first_period_extra_days na criação); nulo quando o primeiro período é o comum. O comprador paga hoje o valor cheio, e a próxima cobrança só acontece no fim do período mais longo."
+          },
+          "renewal_mode": {
+            "type": "string",
+            "description": "O renewal_mode da criação: manual, automatic ou buyer_choice; vazio quando foi omitido. A assinatura que o pagamento começa traz o modo a que isso se resolveu em Subscription.renewal_mode.",
+            "enum": [
+              "manual",
+              "automatic",
+              "buyer_choice",
+              ""
+            ]
+          },
+          "notify_customer_email": {
+            "type": "boolean",
+            "description": "Falso quando o seu sistema avisa o comprador das cobranças de renovação e a Peráta fica quieta."
           },
           "created_at": {
             "type": "string",
@@ -18102,7 +19146,13 @@
           "subscription_id",
           "cycle_sequence",
           "period_start",
-          "period_end"
+          "period_end",
+          "fee_cents",
+          "net_cents",
+          "expected_payout_on",
+          "payout_deposited_on",
+          "payout_id",
+          "split"
         ],
         "properties": {
           "id": {
@@ -18208,6 +19258,44 @@
             ],
             "format": "date-time",
             "description": "O fim do período que o ciclo paga; nulo fora de uma assinatura."
+          },
+          "fee_cents": {
+            "type": "integer",
+            "description": "A tarifa que a Peráta cobrou desta venda, em centavos: a parte do valor capturado que a Peráta retém. 0 enquanto o pagamento não foi capturado."
+          },
+          "net_cents": {
+            "type": "integer",
+            "description": "O valor líquido da venda, em centavos: captured_cents menos fee_cents, o que fica para o vendedor, antes de reembolsos. 0 enquanto o pagamento não foi capturado."
+          },
+          "expected_payout_on": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date",
+            "description": "A data prevista do próximo repasse que paga este pagamento, AAAA-MM-DD; nula quando nenhum repasse está esperando (já foi todo depositado, não foi capturado ou a data ainda não é conhecida). Num pagamento parcelado, é a da próxima parcela."
+          },
+          "payout_deposited_on": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date",
+            "description": "O dia em que o último repasse que pagou este pagamento foi depositado, AAAA-MM-DD; nulo enquanto nenhum foi."
+          },
+          "payout_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "O repasse em que o pagamento foi depositado: o id de GET /payouts/{id}; nulo enquanto nenhum foi. Num pagamento parcelado, é o da última parcela depositada."
+          },
+          "split": {
+            "type": "array",
+            "description": "Como a venda foi dividida entre os destinatários, cada um com a sua parte, a tarifa e o líquido; uma venda sem divisão tem um só destinatário.",
+            "items": {
+              "$ref": "#/components/schemas/SplitRecipient"
+            }
           }
         }
       },
@@ -18345,6 +19433,243 @@
         "properties": {
           "data": {
             "$ref": "#/components/schemas/PaymentMethodList"
+          }
+        }
+      },
+      "Payout": {
+        "type": "object",
+        "required": [
+          "id",
+          "status",
+          "expected_on",
+          "deposited_on",
+          "amount_cents",
+          "fee_cents",
+          "net_cents",
+          "currency",
+          "item_count"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "O id do repasse: po_ e a data do repasse, como po_20261120."
+          },
+          "status": {
+            "type": "string",
+            "description": "scheduled: previsto, com data nos próximos dias. released: liberado para repasse, a data chegou e o depósito está em processamento. held: retido para análise enquanto a conta da organização está em análise. deposited: depositado na conta da organização, em deposited_on.",
+            "enum": [
+              "scheduled",
+              "released",
+              "held",
+              "deposited"
+            ]
+          },
+          "expected_on": {
+            "type": "string",
+            "format": "date",
+            "description": "A data do repasse, AAAA-MM-DD: quando o valor é, ou foi, depositado."
+          },
+          "deposited_on": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date",
+            "description": "O dia em que o repasse foi depositado, AAAA-MM-DD; nulo enquanto não foi."
+          },
+          "amount_cents": {
+            "type": "integer",
+            "description": "O valor das vendas pagas neste repasse, antes das tarifas, em centavos, já com os reembolsos e as contestações que o repasse compensa (que o reduzem)."
+          },
+          "fee_cents": {
+            "type": "integer",
+            "description": "O que o repasse desconta em tarifas, em centavos: a parte de cada venda que a Peráta retém e as tarifas cobradas no dia."
+          },
+          "net_cents": {
+            "type": "integer",
+            "description": "O valor líquido do repasse, em centavos: amount_cents menos fee_cents, o que é depositado. Pode ser negativo quando os reembolsos do dia superam as vendas; então o saldo é compensado nos próximos repasses."
+          },
+          "currency": {
+            "type": "string",
+            "enum": [
+              "BRL"
+            ]
+          },
+          "item_count": {
+            "type": "integer",
+            "description": "Quantos lançamentos o repasse tem."
+          }
+        }
+      },
+      "PayoutDetail": {
+        "type": "object",
+        "required": [
+          "id",
+          "status",
+          "expected_on",
+          "deposited_on",
+          "amount_cents",
+          "fee_cents",
+          "net_cents",
+          "currency",
+          "item_count",
+          "items"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "O id do repasse: po_ e a data do repasse, como po_20261120."
+          },
+          "status": {
+            "type": "string",
+            "description": "scheduled: previsto, com data nos próximos dias. released: liberado para repasse, a data chegou e o depósito está em processamento. held: retido para análise enquanto a conta da organização está em análise. deposited: depositado na conta da organização, em deposited_on.",
+            "enum": [
+              "scheduled",
+              "released",
+              "held",
+              "deposited"
+            ]
+          },
+          "expected_on": {
+            "type": "string",
+            "format": "date",
+            "description": "A data do repasse, AAAA-MM-DD: quando o valor é, ou foi, depositado."
+          },
+          "deposited_on": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date",
+            "description": "O dia em que o repasse foi depositado, AAAA-MM-DD; nulo enquanto não foi."
+          },
+          "amount_cents": {
+            "type": "integer",
+            "description": "O valor das vendas pagas neste repasse, antes das tarifas, em centavos, já com os reembolsos e as contestações que o repasse compensa (que o reduzem)."
+          },
+          "fee_cents": {
+            "type": "integer",
+            "description": "O que o repasse desconta em tarifas, em centavos: a parte de cada venda que a Peráta retém e as tarifas cobradas no dia."
+          },
+          "net_cents": {
+            "type": "integer",
+            "description": "O valor líquido do repasse, em centavos: amount_cents menos fee_cents, o que é depositado. Pode ser negativo quando os reembolsos do dia superam as vendas; então o saldo é compensado nos próximos repasses."
+          },
+          "currency": {
+            "type": "string",
+            "enum": [
+              "BRL"
+            ]
+          },
+          "item_count": {
+            "type": "integer",
+            "description": "Quantos lançamentos o repasse tem."
+          },
+          "items": {
+            "type": "array",
+            "description": "Os lançamentos do repasse, com o pagamento de cada um.",
+            "items": {
+              "$ref": "#/components/schemas/PayoutItem"
+            }
+          }
+        }
+      },
+      "PayoutDetailEnvelope": {
+        "type": "object",
+        "required": [
+          "data"
+        ],
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/PayoutDetail"
+          }
+        }
+      },
+      "PayoutItem": {
+        "type": "object",
+        "required": [
+          "kind",
+          "payment_id",
+          "installment",
+          "status",
+          "amount_cents",
+          "fee_cents",
+          "net_cents"
+        ],
+        "properties": {
+          "kind": {
+            "type": "string",
+            "description": "sale: uma venda (ou uma parcela dela). refund: um reembolso que o repasse compensa. chargeback: uma contestação. fee: uma tarifa do dia. adjustment: um ajuste. anticipation: uma antecipação de recebíveis.",
+            "enum": [
+              "sale",
+              "refund",
+              "chargeback",
+              "fee",
+              "adjustment",
+              "anticipation"
+            ]
+          },
+          "payment_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "O pagamento a que o lançamento se refere, o id de GET /payments/{id}; nulo nas tarifas e nos ajustes que não são de um pagamento."
+          },
+          "installment": {
+            "type": "integer",
+            "description": "Qual parcela da venda o lançamento paga; 0 quando a venda foi à vista."
+          },
+          "status": {
+            "type": "string",
+            "description": "Como o do repasse, para este lançamento: um repasse com lançamentos em estados diferentes está no menos avançado deles.",
+            "enum": [
+              "scheduled",
+              "released",
+              "held",
+              "deposited"
+            ]
+          },
+          "amount_cents": {
+            "type": "integer",
+            "description": "O valor do lançamento antes da tarifa, em centavos; negativo nos reembolsos e nas contestações."
+          },
+          "fee_cents": {
+            "type": "integer",
+            "description": "A tarifa do lançamento, em centavos."
+          },
+          "net_cents": {
+            "type": "integer",
+            "description": "amount_cents menos fee_cents: o que o lançamento acrescenta ao depósito."
+          }
+        }
+      },
+      "PayoutList": {
+        "type": "object",
+        "required": [
+          "items",
+          "pagination"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Payout"
+            }
+          },
+          "pagination": {
+            "$ref": "#/components/schemas/Pagination"
+          }
+        }
+      },
+      "PayoutListEnvelope": {
+        "type": "object",
+        "required": [
+          "data"
+        ],
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/PayoutList"
           }
         }
       },
@@ -18707,6 +20032,150 @@
           }
         }
       },
+      "RenewalCharge": {
+        "type": "object",
+        "required": [
+          "id",
+          "subscription_id",
+          "showcase_id",
+          "customer_id",
+          "product_id",
+          "price_id",
+          "cycle_sequence",
+          "amount_cents",
+          "currency",
+          "label",
+          "renewal_mode",
+          "period_start",
+          "period_end",
+          "due_at",
+          "expires_at",
+          "payment_url",
+          "metadata",
+          "client_reference_id",
+          "reminder",
+          "days_until_due",
+          "notify_customer_email"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "O id da cobrança, que é o do ciclo da assinatura que ela cobra. O pedido só existe depois do pagamento: o order.paid que vem então traz o mesmo subscription_id e cycle_sequence."
+          },
+          "subscription_id": {
+            "type": "string"
+          },
+          "showcase_id": {
+            "type": "string",
+            "description": "O showcase a que pertence: o da chave de API que fez a chamada."
+          },
+          "customer_id": {
+            "type": "string"
+          },
+          "product_id": {
+            "type": "string"
+          },
+          "price_id": {
+            "type": "string"
+          },
+          "cycle_sequence": {
+            "type": "integer",
+            "description": "O ciclo que a cobrança paga: 2 é a primeira renovação."
+          },
+          "amount_cents": {
+            "type": "integer",
+            "description": "O que o comprador paga, em centavos: o ciclo já com desconto e rateio."
+          },
+          "currency": {
+            "type": "string",
+            "enum": [
+              "BRL"
+            ]
+          },
+          "label": {
+            "type": "string",
+            "description": "O label da assinatura; vazio sem ele."
+          },
+          "renewal_mode": {
+            "type": "string",
+            "description": "O modo de renovação da assinatura. Uma cobrança em aberto existe nos modos manual e, quando o cartão é recusado, card.",
+            "enum": [
+              "manual",
+              "card",
+              "pix_automatic"
+            ]
+          },
+          "period_start": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "period_end": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "due_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Até quando a cobrança deve ser paga sem a assinatura ficar em atraso: o fim do período que ela cobra. Passado o prazo, a assinatura vira past_due e o mesmo payment_url continua valendo por mais 72 horas de tolerância; depois disso a assinatura é suspensa."
+          },
+          "expires_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time",
+            "description": "Quando o payment_url deixa de abrir; sempre depois da tolerância de 72 horas."
+          },
+          "payment_url": {
+            "type": "string",
+            "description": "A página da Peráta onde o comprador paga esta cobrança, por cartão, Pix ou boleto. O Pix é gerado nessa página, quando o comprador o escolhe, e vale 24 horas: a Peráta não gera o Pix na abertura da cobrança porque ele venceria antes do prazo da cobrança e, enquanto vale, impediria pagar de outro jeito. Entregue este endereço ao comprador."
+          },
+          "metadata": {
+            "type": "object",
+            "description": "Os metadados da assinatura.",
+            "additionalProperties": {}
+          },
+          "client_reference_id": {
+            "type": "string",
+            "description": "O client_reference_id da assinatura."
+          },
+          "reminder": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Só nos eventos subscription.renewal_reminder: before_due (3 dias antes de due_at) ou on_due (no vencimento). Nulo na cobrança e em subscription.renewal_due.",
+            "enum": [
+              "before_due",
+              "on_due",
+              "null",
+              null
+            ]
+          },
+          "days_until_due": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "description": "Só nos lembretes: 3 em before_due, 0 em on_due; nulo no resto."
+          },
+          "notify_customer_email": {
+            "type": "boolean",
+            "description": "Se a Peráta escreve ao comprador desta cobrança."
+          }
+        }
+      },
+      "RenewalChargeEnvelope": {
+        "type": "object",
+        "required": [
+          "data"
+        ],
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/RenewalCharge"
+          }
+        }
+      },
       "Showcase": {
         "type": "object",
         "required": [
@@ -18759,6 +20228,36 @@
           }
         }
       },
+      "SplitRecipient": {
+        "type": "object",
+        "required": [
+          "recipient_id",
+          "amount_cents",
+          "fee_cents",
+          "net_cents"
+        ],
+        "properties": {
+          "recipient_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "O showcase destinatário desta parte da venda; nulo quando a Peráta não o identifica."
+          },
+          "amount_cents": {
+            "type": "integer",
+            "description": "O valor da parte deste destinatário, antes da tarifa, em centavos."
+          },
+          "fee_cents": {
+            "type": "integer",
+            "description": "A tarifa que esta parte pagou, em centavos."
+          },
+          "net_cents": {
+            "type": "integer",
+            "description": "amount_cents menos fee_cents: o que sobra ao destinatário."
+          }
+        }
+      },
       "Subscription": {
         "type": "object",
         "required": [
@@ -18784,7 +20283,10 @@
           "client_reference_id",
           "discount_id",
           "discount_ends_at",
-          "first_period_extra_days"
+          "first_period_extra_days",
+          "renewal_mode",
+          "label",
+          "notify_customer_email"
         ],
         "properties": {
           "id": {
@@ -18943,6 +20445,23 @@
               "null"
             ],
             "description": "Quantos dias o checkout que vendeu a assinatura somou ao primeiro período, para você conferir; nulo quando o primeiro período foi o comum. O primeiro período vai do dia do pagamento até esse dia mais um intervalo do preço mais estes dias, e current_period_end já vem com eles."
+          },
+          "renewal_mode": {
+            "type": "string",
+            "description": "Como os próximos períodos são cobrados: manual (a cada ciclo a Peráta abre uma cobrança para o comprador pagar, com o evento subscription.renewal_due, e o cartão nunca é cobrado), card (o cartão de crédito guardado é cobrado sozinho) ou pix_automatic (o banco debita cada cobrança, autorizada uma vez pelo comprador). card e pix_automatic são os modos automáticos. Vem do renewal_mode do checkout; sem ele, é card quando o pagamento guardou o cartão e manual nos outros meios. Troque com PATCH (manual, ou card quando há cartão guardado).",
+            "enum": [
+              "manual",
+              "card",
+              "pix_automatic"
+            ]
+          },
+          "label": {
+            "type": "string",
+            "description": "O nome que você deu à assinatura, copiado do label do checkout que a vendeu (por exemplo, Olho de Águia · Colaborador Ana); vazio sem ele. É o título da assinatura no portal do cliente e no painel. Troque com PATCH, até 200 caracteres."
+          },
+          "notify_customer_email": {
+            "type": "boolean",
+            "description": "Verdadeiro enquanto a Peráta escreve ao comprador a cada cobrança de renovação; falso quando o seu sistema avisa o comprador e a Peráta fica quieta. Vem do notify_customer_email do checkout (verdadeiro por padrão) e ainda depende do aviso Cobrança da renovação em Configurações › Preferências, que a organização pode desligar."
           }
         }
       },
@@ -19954,6 +21473,138 @@
           }
         }
       },
+      "WebhookRenewalCharge": {
+        "type": "object",
+        "description": "A cobrança de renovação que espera o comprador pagar (subscription.renewal_due e subscription.renewal_reminder), a mesma que GET /api/v1/subscriptions/{id}/open-charge devolve. Traz o que o seu sistema precisa para avisar o comprador: o valor, o prazo e a página onde ele paga.",
+        "required": [
+          "id",
+          "subscription_id",
+          "showcase_id",
+          "customer_id",
+          "product_id",
+          "price_id",
+          "cycle_sequence",
+          "amount_cents",
+          "currency",
+          "label",
+          "renewal_mode",
+          "period_start",
+          "period_end",
+          "due_at",
+          "expires_at",
+          "payment_url",
+          "metadata",
+          "client_reference_id",
+          "notify_customer_email",
+          "reminder",
+          "days_until_due"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "O id da cobrança, que é o do ciclo da assinatura que ela cobra. O pedido só existe depois do pagamento: o order.paid que vem então traz o mesmo subscription_id e cycle_sequence."
+          },
+          "subscription_id": {
+            "type": "string"
+          },
+          "showcase_id": {
+            "type": "string"
+          },
+          "customer_id": {
+            "type": "string"
+          },
+          "product_id": {
+            "type": "string"
+          },
+          "price_id": {
+            "type": "string"
+          },
+          "cycle_sequence": {
+            "type": "integer",
+            "description": "O ciclo que a cobrança paga: 2 é a primeira renovação."
+          },
+          "amount_cents": {
+            "type": "integer",
+            "description": "O que o comprador paga, em centavos: o ciclo já com desconto e rateio."
+          },
+          "currency": {
+            "type": "string",
+            "enum": [
+              "BRL"
+            ]
+          },
+          "label": {
+            "type": "string",
+            "description": "O label da assinatura; vazio sem ele."
+          },
+          "renewal_mode": {
+            "type": "string",
+            "enum": [
+              "manual",
+              "card",
+              "pix_automatic"
+            ],
+            "description": "O modo de renovação da assinatura. Uma cobrança em aberto existe no manual e, quando o cartão é recusado, no card."
+          },
+          "period_start": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "period_end": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "due_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Até quando a cobrança deve ser paga sem a assinatura ficar em atraso: o fim do período que ela cobra. Passado o prazo, a assinatura vira past_due e o mesmo payment_url continua valendo pela tolerância de 72 horas; depois disso a assinatura é suspensa."
+          },
+          "expires_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time",
+            "description": "Quando o payment_url deixa de abrir; sempre depois da tolerância de 72 horas."
+          },
+          "payment_url": {
+            "type": "string",
+            "description": "A página da Peráta onde o comprador paga, por cartão, Pix ou boleto. O Pix é gerado nela, quando o comprador o escolhe, e vale 24 horas: a Peráta não gera o Pix na abertura da cobrança porque ele venceria antes do prazo e, enquanto vale, impediria pagar de outro jeito. Entregue este endereço ao comprador."
+          },
+          "metadata": {
+            "type": "object",
+            "additionalProperties": {},
+            "description": "Os metadados da assinatura."
+          },
+          "client_reference_id": {
+            "type": "string",
+            "description": "O client_reference_id da assinatura."
+          },
+          "notify_customer_email": {
+            "type": "boolean",
+            "description": "Se a Peráta escreve ao comprador desta cobrança."
+          },
+          "reminder": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "enum": [
+              "before_due",
+              "on_due",
+              null
+            ],
+            "description": "Só em subscription.renewal_reminder: before_due (3 dias antes de due_at) ou on_due (no vencimento). Nulo na cobrança e em subscription.renewal_due."
+          },
+          "days_until_due": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "description": "Só nos lembretes: 3 em before_due, 0 em on_due; nulo no resto."
+          }
+        }
+      },
       "WebhookSale": {
         "type": "object",
         "description": "Os eventos da venda (checkout_payment.* e refund.*): os identificadores de sempre e, além deles, o checkout, o valor e o que o servidor do lojista enviou ao criar o checkout.",
@@ -20094,7 +21745,10 @@
           "client_reference_id",
           "discount_id",
           "discount_ends_at",
-          "first_period_extra_days"
+          "first_period_extra_days",
+          "renewal_mode",
+          "label",
+          "notify_customer_email"
         ],
         "properties": {
           "id": {
@@ -20255,6 +21909,23 @@
             "description": "Quantos dias o checkout que vendeu a assinatura somou ao primeiro período, para você conferir; nulo quando o primeiro período foi o comum. O primeiro período vai do dia do pagamento até esse dia mais um intervalo do preço mais estes dias, e current_period_end já vem com eles.",
             "minimum": 1,
             "maximum": 365
+          },
+          "renewal_mode": {
+            "type": "string",
+            "enum": [
+              "manual",
+              "card",
+              "pix_automatic"
+            ],
+            "description": "Como os próximos períodos são cobrados: manual (uma cobrança para o comprador pagar a cada ciclo, com o evento subscription.renewal_due; o cartão nunca é cobrado), card (o cartão de crédito guardado, cobrado sozinho) ou pix_automatic (o banco debita cada cobrança). card e pix_automatic são os automáticos."
+          },
+          "label": {
+            "type": "string",
+            "description": "O nome que o lojista deu à assinatura, copiado do label do checkout que a vendeu; vazio sem ele."
+          },
+          "notify_customer_email": {
+            "type": "boolean",
+            "description": "Verdadeiro enquanto a Peráta escreve ao comprador a cada cobrança de renovação."
           },
           "payment_failure": {
             "type": "object",
@@ -20424,6 +22095,14 @@
     {
       "name": "showcase",
       "description": "O showcase da chave: onde o seu sistema está quando chama a API."
+    },
+    {
+      "name": "balance",
+      "description": "O saldo a receber da organização: o que já foi liberado, o que está retido, o que está previsto e o que foi depositado num período."
+    },
+    {
+      "name": "payouts",
+      "description": "Os repasses: o que a organização recebe em cada dia na conta de recebimento, com as tarifas e os lançamentos."
     },
     {
       "name": "webhooks",

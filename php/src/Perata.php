@@ -17,6 +17,7 @@ namespace Perata;
  */
 final class Perata implements Requester
 {
+    public readonly Services\BalanceService $balance;
     public readonly Services\BenefitsService $benefits;
     public readonly Services\CheckoutLinksService $checkoutLinks;
     public readonly Services\CheckoutsService $checkouts;
@@ -29,6 +30,7 @@ final class Perata implements Requester
     public readonly Services\OrdersService $orders;
     public readonly Services\PaymentMethodsService $paymentMethods;
     public readonly Services\PaymentsService $payments;
+    public readonly Services\PayoutsService $payouts;
     public readonly Services\PricesService $prices;
     public readonly Services\ProductsService $products;
     public readonly Services\RefundsService $refunds;
@@ -58,6 +60,7 @@ final class Perata implements Requester
         $this->baseUrl = rtrim($baseUrl ?? Version::DEFAULT_BASE_URL, '/');
         self::checkBaseUrl($this->baseUrl);
         $this->transport = $transport ?? self::curlTransport(...);
+        $this->balance = new Services\BalanceService($this);
         $this->benefits = new Services\BenefitsService($this);
         $this->checkoutLinks = new Services\CheckoutLinksService($this);
         $this->checkouts = new Services\CheckoutsService($this);
@@ -70,6 +73,7 @@ final class Perata implements Requester
         $this->orders = new Services\OrdersService($this);
         $this->paymentMethods = new Services\PaymentMethodsService($this);
         $this->payments = new Services\PaymentsService($this);
+        $this->payouts = new Services\PayoutsService($this);
         $this->prices = new Services\PricesService($this);
         $this->products = new Services\ProductsService($this);
         $this->refunds = new Services\RefundsService($this);

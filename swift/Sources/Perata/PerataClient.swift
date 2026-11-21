@@ -14,6 +14,8 @@ import Foundation
 ///     let product = try await perata.products.create(ProductsCreateParams(name: "Curso"))
 ///     for try await product in perata.products.listIter() { … }
 public final class PerataClient: Sendable {
+    /// The API's balance.
+    public let balance: BalanceService
     /// The API's benefits.
     public let benefits: BenefitsService
     /// The API's checkout-links.
@@ -38,6 +40,8 @@ public final class PerataClient: Sendable {
     public let paymentMethods: PaymentMethodsService
     /// The API's payments.
     public let payments: PaymentsService
+    /// The API's payouts.
+    public let payouts: PayoutsService
     /// The API's prices.
     public let prices: PricesService
     /// The API's products.
@@ -73,6 +77,7 @@ public final class PerataClient: Sendable {
         }
         var requester = Requester(apiKey: apiKey, baseURL: base, timeout: timeout, transport: transport ?? Requester.urlSession)
         requester.baseURLError = PerataError.insecureBaseURL(baseURL)
+        balance = BalanceService(requester: requester)
         benefits = BenefitsService(requester: requester)
         checkoutLinks = CheckoutLinksService(requester: requester)
         checkouts = CheckoutsService(requester: requester)
@@ -85,6 +90,7 @@ public final class PerataClient: Sendable {
         orders = OrdersService(requester: requester)
         paymentMethods = PaymentMethodsService(requester: requester)
         payments = PaymentsService(requester: requester)
+        payouts = PayoutsService(requester: requester)
         prices = PricesService(requester: requester)
         products = ProductsService(requester: requester)
         refunds = RefundsService(requester: requester)

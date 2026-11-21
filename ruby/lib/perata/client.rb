@@ -32,6 +32,8 @@ module Perata
   #   product = perata.products.create({ name: "Curso" })
   #   perata.products.list_iter { |product| puts product.name }
   class Client
+    # @return [BalanceService]
+    attr_reader :balance
     # @return [BenefitsService]
     attr_reader :benefits
     # @return [CheckoutLinksService]
@@ -56,6 +58,8 @@ module Perata
     attr_reader :payment_methods
     # @return [PaymentsService]
     attr_reader :payments
+    # @return [PayoutsService]
+    attr_reader :payouts
     # @return [PricesService]
     attr_reader :prices
     # @return [ProductsService]
@@ -79,6 +83,7 @@ module Perata
       check_base_url!(@base_url)
       @timeout = timeout
       @transport = transport
+      @balance = BalanceService.new(self)
       @benefits = BenefitsService.new(self)
       @checkout_links = CheckoutLinksService.new(self)
       @checkouts = CheckoutsService.new(self)
@@ -91,6 +96,7 @@ module Perata
       @orders = OrdersService.new(self)
       @payment_methods = PaymentMethodsService.new(self)
       @payments = PaymentsService.new(self)
+      @payouts = PayoutsService.new(self)
       @prices = PricesService.new(self)
       @products = ProductsService.new(self)
       @refunds = RefundsService.new(self)

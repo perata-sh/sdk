@@ -34,7 +34,15 @@ public sealed class CheckoutsService
     /// cobrança acontece nesse dia. Para o comprador que ainda tem dias pagos
     /// num plano anterior, envie first_period_extra_days (1 a 365): ele paga
     /// hoje o valor cheio e a próxima cobrança só acontece no fim do primeiro
-    /// período mais esses dias.</para>
+    /// período mais esses dias. Envie renewal_mode em toda assinatura: manual
+    /// (a cada ciclo a Peráta abre uma cobrança para o comprador pagar e avisa
+    /// o seu sistema com subscription.renewal_due, mesmo que o primeiro
+    /// pagamento tenha sido no cartão), automatic (só cartão de crédito
+    /// guardado ou Pix Automático; cobra sozinho) ou buyer_choice (a página
+    /// mostra a caixa Ativar cobrança automática e o comprador decide); sem o
+    /// campo nada muda. notify_customer_email false mantém a Peráta sem
+    /// escrever ao comprador. label dá nome à assinatura (por exemplo, Olho de
+    /// Águia · Colaborador Ana).</para>
     /// <para>Autenticação: chave de API da organização em Authorization: Bearer
     /// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
     /// chave, nunca da requisição: a chave criada num showcase só alcança o que
@@ -149,6 +157,15 @@ public sealed class CheckoutsService
 /// <summary>The body of checkouts:create.</summary>
 public sealed record CheckoutsCreateParams
 {
+    /// <summary>A value of <see cref="RenewalMode"/>.</summary>
+    public const string RenewalModeManual = "manual";
+
+    /// <summary>A value of <see cref="RenewalMode"/>.</summary>
+    public const string RenewalModeAutomatic = "automatic";
+
+    /// <summary>A value of <see cref="RenewalMode"/>.</summary>
+    public const string RenewalModeBuyerChoice = "buyer_choice";
+
     /// <summary>Deixa o comprador digitar um código de desconto; desligado quando fica de fora. Left out of the request when null.</summary>
     [JsonPropertyName("allow_discount_codes")]
     public bool? AllowDiscountCodes { get; init; }
@@ -205,6 +222,10 @@ public sealed record CheckoutsCreateParams
     [JsonPropertyName("metadata")]
     public IReadOnlyDictionary<string, JsonElement>? Metadata { get; init; }
 
+    /// <summary>Verdadeiro por padrão. Falso mantém a Peráta sem escrever ao comprador a cobrança de cada renovação (o seu sistema o avisa pelo evento subscription.renewal_due); a cobrança é aberta do mesmo jeito. Além disso, a organização pode desligar este aviso para todos em Configurações › Preferências › Cobrança da renovação. Left out of the request when null.</summary>
+    [JsonPropertyName("notify_customer_email")]
+    public bool? NotifyCustomerEmail { get; init; }
+
     /// <summary>The <c>price_id</c> to send.</summary>
     [JsonPropertyName("price_id")]
     public required string PriceId { get; init; }
@@ -216,6 +237,10 @@ public sealed record CheckoutsCreateParams
     /// <summary>Quantas unidades. Com amount_cents é sempre 1: envie 1 ou omita; qualquer outro valor é recusado com 422. Left out of the request when null.</summary>
     [JsonPropertyName("quantity")]
     public long? Quantity { get; init; }
+
+    /// <summary>Como a assinatura renova, numa assinatura (preço recorrente com valor). manual: a cada ciclo a Peráta abre uma cobrança para o comprador pagar (payment_url, por cartão, Pix ou boleto) e avisa o seu sistema com o evento subscription.renewal_due, mesmo que o primeiro pagamento tenha sido no cartão; o cartão nunca é cobrado e não é guardado. automatic: só os meios que cobram sozinhos, o cartão de crédito guardado ou o Pix Automático (quando a organização o tem ligado; senão só o cartão); a página mostra só esses meios, e a assinatura nasce com renewal_mode card ou pix_automatic. buyer_choice: a página mostra a caixa Ativar cobrança automática, desmarcada, e o comprador decide: desmarcada é manual, marcada é automatic. Sem o campo nada muda: sem caixa, o cartão de crédito renova sozinho e qualquer outro meio vira uma cobrança a cada ciclo. Funciona junto com first_period_extra_days e com desconto. Vale só em preço recorrente com valor (senão 422); manual não vale com teste grátis nem com subscription_start_at, que guardam o cartão para cobrar no fim (422). Pagar por um meio que o modo não aceita (Pix, boleto ou débito em automatic; Pix Automático em manual) é 422 em payment_method. A Subscription traz o modo a que isso se resolveu em renewal_mode: manual, card ou pix_automatic. Left out of the request when null.</summary>
+    [JsonPropertyName("renewal_mode")]
+    public string? RenewalMode { get; init; }
 
     /// <summary>Pede o endereço de cobrança completo de todo comprador, não só no boleto; desligado quando fica de fora. Left out of the request when null.</summary>
     [JsonPropertyName("require_billing_address")]

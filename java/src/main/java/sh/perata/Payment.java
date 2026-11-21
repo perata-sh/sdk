@@ -40,20 +40,26 @@ public final class Payment {
     private final String currency;
     private final String customerId;
     private final Long cycleSequence;
+    private final String expectedPayoutOn;
+    private final long feeCents;
     private final String id;
     private final long installmentAmountCents;
     private final long installmentInterestCents;
     private final long installments;
     private final Map<String, Object> metadata;
     private final String method;
+    private final long netCents;
+    private final String payoutDepositedOn;
+    private final String payoutId;
     private final String periodEnd;
     private final String periodStart;
     private final long refundedCents;
     private final String showcaseId;
+    private final List<SplitRecipient> split;
     private final String state;
     private final String subscriptionId;
 
-    Payment(long amountCents, long capturedCents, String checkoutId, String clientReferenceId, String createdAt, String currency, String customerId, Long cycleSequence, String id, long installmentAmountCents, long installmentInterestCents, long installments, Map<String, Object> metadata, String method, String periodEnd, String periodStart, long refundedCents, String showcaseId, String state, String subscriptionId) {
+    Payment(long amountCents, long capturedCents, String checkoutId, String clientReferenceId, String createdAt, String currency, String customerId, Long cycleSequence, String expectedPayoutOn, long feeCents, String id, long installmentAmountCents, long installmentInterestCents, long installments, Map<String, Object> metadata, String method, long netCents, String payoutDepositedOn, String payoutId, String periodEnd, String periodStart, long refundedCents, String showcaseId, List<SplitRecipient> split, String state, String subscriptionId) {
         this.amountCents = amountCents;
         this.capturedCents = capturedCents;
         this.checkoutId = checkoutId;
@@ -62,16 +68,22 @@ public final class Payment {
         this.currency = currency;
         this.customerId = customerId;
         this.cycleSequence = cycleSequence;
+        this.expectedPayoutOn = expectedPayoutOn;
+        this.feeCents = feeCents;
         this.id = id;
         this.installmentAmountCents = installmentAmountCents;
         this.installmentInterestCents = installmentInterestCents;
         this.installments = installments;
         this.metadata = metadata;
         this.method = method;
+        this.netCents = netCents;
+        this.payoutDepositedOn = payoutDepositedOn;
+        this.payoutId = payoutId;
         this.periodEnd = periodEnd;
         this.periodStart = periodStart;
         this.refundedCents = refundedCents;
         this.showcaseId = showcaseId;
+        this.split = split;
         this.state = state;
         this.subscriptionId = subscriptionId;
     }
@@ -86,16 +98,22 @@ public final class Payment {
                 Json.required(data, "currency", Json::asString),
                 Json.required(data, "customer_id", Json::asString),
                 Json.optional(data, "cycle_sequence", Json::asLong),
+                Json.optional(data, "expected_payout_on", Json::asString),
+                Json.required(data, "fee_cents", Json::asLong),
                 Json.required(data, "id", Json::asString),
                 Json.required(data, "installment_amount_cents", Json::asLong),
                 Json.required(data, "installment_interest_cents", Json::asLong),
                 Json.required(data, "installments", Json::asLong),
                 Json.required(data, "metadata", Json.map(Json::any)),
                 Json.required(data, "method", Json::asString),
+                Json.required(data, "net_cents", Json::asLong),
+                Json.optional(data, "payout_deposited_on", Json::asString),
+                Json.optional(data, "payout_id", Json::asString),
                 Json.optional(data, "period_end", Json::asString),
                 Json.optional(data, "period_start", Json::asString),
                 Json.required(data, "refunded_cents", Json::asLong),
                 Json.required(data, "showcase_id", Json::asString),
+                Json.required(data, "split", Json.list(Json.model(SplitRecipient::fromJson))),
                 Json.required(data, "state", Json::asString),
                 Json.optional(data, "subscription_id", Json::asString));
     }
@@ -140,6 +158,16 @@ public final class Payment {
         return cycleSequence;
     }
 
+    /** @return A data prevista do próximo repasse que paga este pagamento, AAAA-MM-DD; nula quando nenhum repasse está esperando (já foi todo depositado, não foi capturado ou a data ainda não é conhecida). Num pagamento parcelado, é a da próxima parcela. (null when the API sends none) */
+    public String getExpectedPayoutOn() {
+        return expectedPayoutOn;
+    }
+
+    /** @return A tarifa que a Peráta cobrou desta venda, em centavos: a parte do valor capturado que a Peráta retém. 0 enquanto o pagamento não foi capturado. */
+    public long getFeeCents() {
+        return feeCents;
+    }
+
     /** @return the API's {@code id} */
     public String getId() {
         return id;
@@ -170,6 +198,21 @@ public final class Payment {
         return method;
     }
 
+    /** @return O valor líquido da venda, em centavos: captured_cents menos fee_cents, o que fica para o vendedor, antes de reembolsos. 0 enquanto o pagamento não foi capturado. */
+    public long getNetCents() {
+        return netCents;
+    }
+
+    /** @return O dia em que o último repasse que pagou este pagamento foi depositado, AAAA-MM-DD; nulo enquanto nenhum foi. (null when the API sends none) */
+    public String getPayoutDepositedOn() {
+        return payoutDepositedOn;
+    }
+
+    /** @return O repasse em que o pagamento foi depositado: o id de GET /payouts/{id}; nulo enquanto nenhum foi. Num pagamento parcelado, é o da última parcela depositada. (null when the API sends none) */
+    public String getPayoutId() {
+        return payoutId;
+    }
+
     /** @return O fim do período que o ciclo paga; nulo fora de uma assinatura. (null when the API sends none) */
     public String getPeriodEnd() {
         return periodEnd;
@@ -190,6 +233,11 @@ public final class Payment {
         return showcaseId;
     }
 
+    /** @return Como a venda foi dividida entre os destinatários, cada um com a sua parte, a tarifa e o líquido; uma venda sem divisão tem um só destinatário. */
+    public List<SplitRecipient> getSplit() {
+        return split;
+    }
+
     /** @return the API's {@code state} */
     public String getState() {
         return state;
@@ -202,6 +250,6 @@ public final class Payment {
 
     @Override
     public String toString() {
-        return "Payment{" + "amountCents=" + amountCents + ", capturedCents=" + capturedCents + ", checkoutId=" + checkoutId + ", clientReferenceId=" + clientReferenceId + ", createdAt=" + createdAt + ", currency=" + currency + ", customerId=" + customerId + ", cycleSequence=" + cycleSequence + ", id=" + id + ", installmentAmountCents=" + installmentAmountCents + ", installmentInterestCents=" + installmentInterestCents + ", installments=" + installments + ", metadata=" + metadata + ", method=" + method + ", periodEnd=" + periodEnd + ", periodStart=" + periodStart + ", refundedCents=" + refundedCents + ", showcaseId=" + showcaseId + ", state=" + state + ", subscriptionId=" + subscriptionId + "}";
+        return "Payment{" + "amountCents=" + amountCents + ", capturedCents=" + capturedCents + ", checkoutId=" + checkoutId + ", clientReferenceId=" + clientReferenceId + ", createdAt=" + createdAt + ", currency=" + currency + ", customerId=" + customerId + ", cycleSequence=" + cycleSequence + ", expectedPayoutOn=" + expectedPayoutOn + ", feeCents=" + feeCents + ", id=" + id + ", installmentAmountCents=" + installmentAmountCents + ", installmentInterestCents=" + installmentInterestCents + ", installments=" + installments + ", metadata=" + metadata + ", method=" + method + ", netCents=" + netCents + ", payoutDepositedOn=" + payoutDepositedOn + ", payoutId=" + payoutId + ", periodEnd=" + periodEnd + ", periodStart=" + periodStart + ", refundedCents=" + refundedCents + ", showcaseId=" + showcaseId + ", split=" + split + ", state=" + state + ", subscriptionId=" + subscriptionId + "}";
     }
 }

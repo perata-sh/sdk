@@ -34,7 +34,7 @@ import java.util.UUID;
  */
 public final class Perata {
     /** This SDK's version. */
-    public static final String VERSION = "0.5.8";
+    public static final String VERSION = "0.5.9";
 
     /** The contract this SDK was generated from. */
     public static final String API_VERSION = "0.1.0";
@@ -46,6 +46,7 @@ public final class Perata {
     private final String baseUrl;
     private final Duration timeout;
     private final Transport transport;
+    private final BalanceService balance;
     private final BenefitsService benefits;
     private final CheckoutLinksService checkoutLinks;
     private final CheckoutsService checkouts;
@@ -58,6 +59,7 @@ public final class Perata {
     private final OrdersService orders;
     private final PaymentMethodsService paymentMethods;
     private final PaymentsService payments;
+    private final PayoutsService payouts;
     private final PricesService prices;
     private final ProductsService products;
     private final RefundsService refunds;
@@ -81,6 +83,7 @@ public final class Perata {
         checkBaseUrl(this.baseUrl);
         this.timeout = builder.timeout;
         this.transport = builder.transport == null ? new HttpTransport() : builder.transport;
+        this.balance = new BalanceService(this);
         this.benefits = new BenefitsService(this);
         this.checkoutLinks = new CheckoutLinksService(this);
         this.checkouts = new CheckoutsService(this);
@@ -93,6 +96,7 @@ public final class Perata {
         this.orders = new OrdersService(this);
         this.paymentMethods = new PaymentMethodsService(this);
         this.payments = new PaymentsService(this);
+        this.payouts = new PayoutsService(this);
         this.prices = new PricesService(this);
         this.products = new ProductsService(this);
         this.refunds = new RefundsService(this);
@@ -110,6 +114,11 @@ public final class Perata {
      */
     public static Builder builder(String apiKey) {
         return new Builder(apiKey);
+    }
+
+    /** @return the API's balance */
+    public BalanceService balance() {
+        return balance;
     }
 
     /** @return the API's benefits */
@@ -170,6 +179,11 @@ public final class Perata {
     /** @return the API's payments */
     public PaymentsService payments() {
         return payments;
+    }
+
+    /** @return the API's payouts */
+    public PayoutsService payouts() {
+        return payouts;
     }
 
     /** @return the API's prices */

@@ -4,6 +4,14 @@ Todos os SDKs da Peráta saem com a mesma versão; as mudanças de cada uma est�
 
 ## {{.Version}} (20/11/2026)
 
+Gerado a partir do contrato da API {{.APIVersion}} (perata.sh d48f3888).
+
+- Saldo e repasses: `balance.get` (com `dateFrom` e `dateTo`), `payouts.list`, `payouts.listIter` e `payouts.get` (`Balance`, `Payout`, `PayoutDetail`, `PayoutItem`). O `Payment` traz `feeCents`, `netCents`, `split` (`SplitRecipient`), `expectedPayoutOn`, `payoutDepositedOn` e `payoutId`.
+- Renovação: `checkouts.create` aceita `renewalMode` (`manual`, `automatic` ou `buyer_choice`), `label` e `notifyCustomerEmail`; `Subscription` traz `renewalMode`, `label` e `notifyCustomerEmail`, e `subscriptions.update` troca os três. `subscriptions.getOpenCharge` lê a cobrança em aberto (`RenewalCharge`; 404 `no_open_charge` sem ela).
+- Eventos `subscription.renewal_due` e `subscription.renewal_reminder` (`RenewalChargeWebhookEvent`, com `WebhookRenewalCharge`) e `payout.*`.
+
+## 0.5.8 (20/11/2026)
+
 Gerado a partir do contrato da API {{.APIVersion}} (perata.sh e1e917df).
 
 - Dias extras no primeiro período: `checkouts.create` aceita `firstPeriodExtraDays` (1 a 365), e `Checkout`, `CheckoutCreated`, `Subscription` e `WebhookSubscription` o devolvem; o estado do comprador (`CheckoutClient`) traz também `firstPeriodEndAt`.

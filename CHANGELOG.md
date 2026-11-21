@@ -9,6 +9,23 @@ Todos os SDKs da Peráta saem com a mesma versão (`VERSION`). O histórico de c
 - `js/`: `perata.components.wallet` (o botão do Google Pay e do Apple Pay no layout do lojista), os tipos `WalletComponent`, `WalletComponentOptions`, `WalletComponentEvents` e `WalletKind`, `ChangeEvent.available`, `update({ customer })` e os códigos de erro `wallet_element_required`, `customer_incomplete` e `wallet_unavailable`. `components.payment` passa a trazer a carteira do aparelho e os cartões salvos. Seguem o `perata.js` do perata.sh e valem depois do deploy dele.
 - `react/`: `WalletComponent`.
 
+## 0.5.9 (20/11/2026)
+
+Gerado a partir do contrato da API 0.1.0 (perata.sh d48f3888).
+
+### Os 11 SDKs de servidor
+
+- **Saldo.** Novo serviço `balance` com `get` (`GET /api/v1/balance`, escopo `payouts:read`): `total_to_receive_cents` (a soma de `released_cents`, `held_cents`, `scheduled_cents` e `later_cents`), `deposited_cents` do período de `period_from` a `period_to` e a moeda. `get` aceita os filtros `date_from` e `date_to` (AAAA-MM-DD; sem eles, os 30 dias até hoje). O gerador passou a escrever os filtros de uma leitura que não é lista: Go `*BalanceGetParams` (pode ser `nil`), TypeScript, Python, Ruby, PHP, Elixir, Dart e Swift os recebem por nome, Java `BalanceService.GetParams`, C# `BalanceGetParams` e Rust `BalanceGetParams`.
+- **Repasses.** Novo serviço `payouts` com `list` e `list_iter` (`GET /api/v1/payouts`, paginado, com os filtros `status`, `date_from`, `date_to` e `sorting`) e `get` (`GET /api/v1/payouts/{id}`, com os lançamentos em `items`). Novos modelos `Payout`, `PayoutDetail` e `PayoutItem`. Status do repasse e do lançamento: `scheduled`, `released`, `held` e `deposited`; tipo do lançamento: `sale`, `refund`, `chargeback`, `fee`, `adjustment` e `anticipation`.
+- **Pagamento.** `Payment` traz `fee_cents`, `net_cents`, `split` (novo modelo `SplitRecipient`), `expected_payout_on`, `payout_deposited_on` e `payout_id`. Os eventos `payout.scheduled`, `payout.released`, `payout.held` e `payout.deposited` chegam como os de identificadores.
+- **Modo de renovação.** `checkouts.create` aceita `renewal_mode` (`manual`, `automatic` ou `buyer_choice`), `label` e `notify_customer_email`; `Checkout` e `CheckoutCreated` os devolvem (`renewal_mode` vazio quando foi omitido). `Subscription` e `WebhookSubscription` trazem o `renewal_mode` a que o checkout se resolveu (`manual`, `card` ou `pix_automatic`), o `label` e o `notify_customer_email`. `subscriptions.update` aceita `label`, `renewal_mode` (`manual` ou `card`) e `notify_customer_email`, sozinhos.
+- **Cobrança em aberto.** `subscriptions.get_open_charge` (`GET /api/v1/subscriptions/{id}/open-charge`) devolve a nova `RenewalCharge` (com `payment_url`, `due_at` e `expires_at`); sem cobrança em aberto a API responde 404 `no_open_charge`.
+- **Eventos de renovação.** `subscription.renewal_due` e `subscription.renewal_reminder` chegam como `RenewalChargeWebhookEvent`, com o novo `WebhookRenewalCharge` em `data` (`reminder` `before_due` ou `on_due`, e `days_until_due`).
+- **Gerador.** O valor vazio de uma lista de valores permitidos (o `renewal_mode` de um checkout sem o campo) não vira constante; nas linguagens que tipam os valores, ele chega como o valor que o SDK não conhece. Em Rust, a anotação `clippy::large_enum_variant` no `WebhookEvent`, que passou do limite com o `SubscriptionWebhookEvent`.
+- **Contrato.** O `reminder` de `RenewalCharge` e `WebhookRenewalCharge` lista a palavra `null` entre os valores permitidos, além do nulo; os SDKs tipados mostram essa palavra como um valor a mais (em Rust, `RenewalChargeReminder::Null`). É um defeito do contrato do perata.sh, não do SDK.
+- **Testes.** Cada SDK testa o pagamento com tarifa e divisão, o saldo com o período, os repasses filtrados e percorridos página a página, o repasse com os lançamentos, o checkout e a assinatura com o modo de renovação, `get_open_charge` (e o 404) e os dois eventos de renovação assinados.
+- **READMEs.** Seção nova sobre repasses, saldo e renovação.
+
 ## 0.5.8 (20/11/2026)
 
 Gerado a partir do contrato da API 0.1.0 (perata.sh e1e917df), o que está no ar.

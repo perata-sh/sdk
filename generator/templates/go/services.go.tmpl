@@ -25,7 +25,46 @@ func (c *Client) initServices() {
 // {{pascal .Name}}Service is the API's {{.Name}}.
 type {{pascal .Name}}Service struct{ client *Client }
 {{range .Methods}}
-{{- if .Paginated}}
+{{- if filteredGet .}}
+// {{pascal $service.Name}}{{pascal .Name}}Params are the filters of {{.OperationID}}.
+type {{pascal $service.Name}}{{pascal .Name}}Params struct {
+{{- range .Query}}
+{{goComment "\t" .Description}}	{{pascal .Name}} {{if .Map}}map[string]string{{else}}string{{end}}
+{{- end}}
+}
+
+func (p *{{pascal $service.Name}}{{pascal .Name}}Params) query() url.Values {
+	q := url.Values{}
+	if p == nil {
+		return q
+	}
+{{- range .Query}}
+{{- if .Map}}
+	// A map filter is sent once for each pair, as {{.Name}}[key]=value; Encode writes the pairs sorted.
+	for key, value := range p.{{pascal .Name}} {
+		if value != "" {
+			q.Set({{quote .Name}}+"["+key+"]", value)
+		}
+	}
+{{- else}}
+	if p.{{pascal .Name}} != "" {
+		q.Set({{quote .Name}}, p.{{pascal .Name}})
+	}
+{{- end}}
+{{- end}}
+	return q
+}
+
+// {{pascal .Name}}: {{.Summary}}. The filters are optional: pass nil for none.{{template "doc" .}}
+func (s *{{pascal $service.Name}}Service) {{pascal .Name}}(ctx context.Context{{range .PathParams}}, {{goParam .}} string{{end}}, params *{{pascal $service.Name}}{{pascal .Name}}Params, opts ...RequestOption) (*{{.Response}}, error) {
+	var out {{.Response}}
+	err := s.client.do(ctx, http.Method{{pascal (lower .HTTPMethod)}}, {{template "path" .}}, params.query(), nil, &out, opts)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+{{- else if .Paginated}}
 // {{pascal $service.Name}}{{pascal .Name}}Params are the page and filters of {{.OperationID}}.
 type {{pascal $service.Name}}{{pascal .Name}}Params struct {
 	// Page is the page, from 1; Limit the items a page, 1 to 100 (10 by default).

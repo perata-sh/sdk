@@ -117,7 +117,7 @@ public sealed record DisputeWebhookEvent(string Id, string Type, string Timestam
     };
 }
 
-/// <summary>The events that carry the event's identifiers: <c>benefit.archived</c>, <c>benefit.version_created</c>, <c>benefit_product_link.linked</c>, <c>benefit_product_link.unlinked</c>, <c>checkout_link.archived</c>, <c>checkout_link.created</c>, <c>checkout_session.confirmed</c>, <c>checkout_session.expired</c>, <c>checkout_session.failed</c>, <c>checkout_session.opened</c>, <c>checkout_session.succeeded</c>, <c>customer.archived</c>, <c>discount.exhausted</c>, <c>discount.expired</c>, <c>discount.reactivated</c>, <c>discount.redeemed</c>, <c>discount_redemption.released</c>, <c>invoice.drafted</c>, <c>invoice.issued</c>, <c>invoice.settled</c>, <c>invoice.uncollectible</c>, <c>invoice.voided</c>, <c>price.archived</c>, <c>price.created</c>, <c>product.archived</c>, <c>seat_allocation.opened</c>, <c>seat_allocation.resized</c>, <c>seat_assignment.claimed</c>, <c>seat_assignment.invited</c>, <c>seat_assignment.revoked</c>, <c>usage_event.recorded</c>, <c>usage_period.closed</c>, <c>usage_period.opened</c>, <c>usage_period_adjustment.created</c>.</summary>
+/// <summary>The events that carry the event's identifiers: <c>benefit.archived</c>, <c>benefit.version_created</c>, <c>benefit_product_link.linked</c>, <c>benefit_product_link.unlinked</c>, <c>checkout_link.archived</c>, <c>checkout_link.created</c>, <c>checkout_session.confirmed</c>, <c>checkout_session.expired</c>, <c>checkout_session.failed</c>, <c>checkout_session.opened</c>, <c>checkout_session.succeeded</c>, <c>customer.archived</c>, <c>discount.exhausted</c>, <c>discount.expired</c>, <c>discount.reactivated</c>, <c>discount.redeemed</c>, <c>discount_redemption.released</c>, <c>invoice.drafted</c>, <c>invoice.issued</c>, <c>invoice.settled</c>, <c>invoice.uncollectible</c>, <c>invoice.voided</c>, <c>payout.deposited</c>, <c>payout.held</c>, <c>payout.released</c>, <c>payout.scheduled</c>, <c>price.archived</c>, <c>price.created</c>, <c>product.archived</c>, <c>seat_allocation.opened</c>, <c>seat_allocation.resized</c>, <c>seat_assignment.claimed</c>, <c>seat_assignment.invited</c>, <c>seat_assignment.revoked</c>, <c>usage_event.recorded</c>, <c>usage_period.closed</c>, <c>usage_period.opened</c>, <c>usage_period_adjustment.created</c>.</summary>
 /// <param name="Id">The message's id.</param>
 /// <param name="Type">What happened.</param>
 /// <param name="Timestamp">When it happened, RFC 3339.</param>
@@ -152,6 +152,10 @@ public sealed record IdentifiersWebhookEvent(string Id, string Type, string Time
         "invoice.settled",
         "invoice.uncollectible",
         "invoice.voided",
+        "payout.deposited",
+        "payout.held",
+        "payout.released",
+        "payout.scheduled",
         "price.archived",
         "price.created",
         "product.archived",
@@ -220,6 +224,24 @@ public sealed record RefundWebhookEvent(string Id, string Type, string Timestamp
     {
         "refund.created",
         "refund.updated",
+    };
+}
+
+/// <summary>The events that carry a WebhookRenewalCharge: <c>subscription.renewal_due</c>, <c>subscription.renewal_reminder</c>.</summary>
+/// <param name="Id">The message's id.</param>
+/// <param name="Type">What happened.</param>
+/// <param name="Timestamp">When it happened, RFC 3339.</param>
+/// <param name="Environment">The environment it happened in, <c>test</c> or <c>live</c>.</param>
+/// <param name="ShowcaseId">The showcase of the sale.</param>
+/// <param name="Data">What the event carries.</param>
+public sealed record RenewalChargeWebhookEvent(string Id, string Type, string Timestamp, string Environment, string ShowcaseId, WebhookRenewalCharge Data)
+    : WebhookEvent(Id, Type, Timestamp, Environment, ShowcaseId)
+{
+    /// <summary>The event types this record carries.</summary>
+    public static IReadOnlySet<string> Types { get; } = new HashSet<string>
+    {
+        "subscription.renewal_due",
+        "subscription.renewal_reminder",
     };
 }
 

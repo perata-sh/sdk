@@ -67,5 +67,6 @@ pub use webhooks::IdentifiersWebhookEvent;
 pub use webhooks::OrderWebhookEvent;
 pub use webhooks::ProductWebhookEvent;
 pub use webhooks::RefundWebhookEvent;
+pub use webhooks::RenewalChargeWebhookEvent;
 pub use webhooks::SaleWebhookEvent;
 pub use webhooks::SubscriptionWebhookEvent;

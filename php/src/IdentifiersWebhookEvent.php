@@ -30,6 +30,10 @@ namespace Perata;
  * invoice.settled
  * invoice.uncollectible
  * invoice.voided
+ * payout.deposited
+ * payout.held
+ * payout.released
+ * payout.scheduled
  * price.archived
  * price.created
  * product.archived
@@ -46,7 +50,7 @@ namespace Perata;
 final class IdentifiersWebhookEvent extends WebhookEvent
 {
     /** The event types this class carries. */
-    public const TYPES = ['benefit.archived', 'benefit.version_created', 'benefit_product_link.linked', 'benefit_product_link.unlinked', 'checkout_link.archived', 'checkout_link.created', 'checkout_session.confirmed', 'checkout_session.expired', 'checkout_session.failed', 'checkout_session.opened', 'checkout_session.succeeded', 'customer.archived', 'discount.exhausted', 'discount.expired', 'discount.reactivated', 'discount.redeemed', 'discount_redemption.released', 'invoice.drafted', 'invoice.issued', 'invoice.settled', 'invoice.uncollectible', 'invoice.voided', 'price.archived', 'price.created', 'product.archived', 'seat_allocation.opened', 'seat_allocation.resized', 'seat_assignment.claimed', 'seat_assignment.invited', 'seat_assignment.revoked', 'usage_event.recorded', 'usage_period.closed', 'usage_period.opened', 'usage_period_adjustment.created'];
+    public const TYPES = ['benefit.archived', 'benefit.version_created', 'benefit_product_link.linked', 'benefit_product_link.unlinked', 'checkout_link.archived', 'checkout_link.created', 'checkout_session.confirmed', 'checkout_session.expired', 'checkout_session.failed', 'checkout_session.opened', 'checkout_session.succeeded', 'customer.archived', 'discount.exhausted', 'discount.expired', 'discount.reactivated', 'discount.redeemed', 'discount_redemption.released', 'invoice.drafted', 'invoice.issued', 'invoice.settled', 'invoice.uncollectible', 'invoice.voided', 'payout.deposited', 'payout.held', 'payout.released', 'payout.scheduled', 'price.archived', 'price.created', 'product.archived', 'seat_allocation.opened', 'seat_allocation.resized', 'seat_assignment.claimed', 'seat_assignment.invited', 'seat_assignment.revoked', 'usage_event.recorded', 'usage_period.closed', 'usage_period.opened', 'usage_period_adjustment.created'];
 
     /**
      * @param array<string, string> $data

@@ -346,6 +346,100 @@ test("a first period extension and the discounts the sale reads back", async () 
   assert.equal(price.status, "archived");
 });
 
+// The payment reads back its fee, its net, its split and the payout that pays it.
+test("a payment reads back its fee, its split and its payout", async () => {
+  const { perata } = client(() => json(200, {"data":{"id":"pay_1","showcase_id":"x","checkout_id":"x","customer_id":"x","method":"card","state":"unknown","amount_cents":0,"captured_cents":0,"refunded_cents":0,"currency":"BRL","created_at":"2026-11-20T12:00:00Z","metadata":{},"client_reference_id":"x","installments":0,"installment_amount_cents":0,"installment_interest_cents":0,"subscription_id":null,"cycle_sequence":null,"period_start":null,"period_end":null,"fee_cents":450,"net_cents":8550,"expected_payout_on":"2026-12-21","payout_deposited_on":null,"payout_id":null,"split":[{"recipient_id":"shw_2","amount_cents":9000,"fee_cents":450,"net_cents":8550}]}}));
+  const payment = await perata.payments.get("pay_1");
+  assert.equal(payment.fee_cents, 450);
+  assert.equal(payment.net_cents, 8550);
+  assert.equal(payment.expected_payout_on, "2026-12-21");
+  assert.equal(payment.payout_id, null);
+  assert.equal(payment.payout_deposited_on, null);
+  assert.deepEqual(payment.split, [{ recipient_id: "shw_2", amount_cents: 9000, fee_cents: 450, net_cents: 8550 }]);
+});
+
+// The balance carries its period, the payouts are filtered and walked page by
+// page, and a payout reads back its lines: a fee has no payment.
+test("the balance and the payouts read back what will be deposited", async () => {
+  const { perata, seen } = client(({ url }) => {
+    if (url.pathname === "/api/v1/balance") return json(200, {"data":{"total_to_receive_cents":100000,"released_cents":10000,"held_cents":5000,"scheduled_cents":60000,"later_cents":25000,"deposited_cents":42000,"period_from":"2026-11-01","period_to":"2026-11-20","currency":"BRL"}});
+    if (url.pathname === "/api/v1/payouts/po_20261120") return json(200, {"data":{"id":"po_20261120","status":"deposited","expected_on":"2026-11-20","deposited_on":"2026-11-20","amount_cents":10000,"fee_cents":450,"net_cents":9550,"currency":"BRL","item_count":2,"items":[{"kind":"sale","payment_id":"pay_1","installment":1,"status":"deposited","amount_cents":10000,"fee_cents":300,"net_cents":9700},{"kind":"fee","payment_id":null,"installment":0,"status":"deposited","amount_cents":0,"fee_cents":150,"net_cents":-150}]}});
+    return url.searchParams.get("page") === "2" ? json(200, {"data":{"items":[{"id":"po_20261119","status":"released","expected_on":"2026-11-19","deposited_on":null,"amount_cents":5000,"fee_cents":200,"net_cents":4800,"currency":"BRL","item_count":2}],"pagination":{"total_count":2,"max_page":2}}}) : json(200, {"data":{"items":[{"id":"po_20261120","status":"deposited","expected_on":"2026-11-20","deposited_on":"2026-11-20","amount_cents":10000,"fee_cents":450,"net_cents":9550,"currency":"BRL","item_count":2}],"pagination":{"total_count":2,"max_page":2}}});
+  });
+  const balance = await perata.balance.get({ date_from: "2026-11-01", date_to: "2026-11-20" });
+  assert.equal(seen[0]?.url.search, "?date_from=2026-11-01&date_to=2026-11-20");
+  assert.equal(balance.total_to_receive_cents, 100000);
+  assert.equal(balance.released_cents + balance.held_cents + balance.scheduled_cents + balance.later_cents, balance.total_to_receive_cents);
+  assert.equal(balance.deposited_cents, 42000);
+  assert.deepEqual([balance.period_from, balance.period_to, balance.currency], ["2026-11-01", "2026-11-20", "BRL"]);
+  const walked: string[] = [];
+  for await (const payout of perata.payouts.listIter({ status: "deposited", date_from: "2026-11-01", sorting: "-date", limit: 1 })) {
+    walked.push(`${payout.id}:${payout.status}`);
+    assert.equal(payout.net_cents, payout.amount_cents - payout.fee_cents);
+    assert.equal(payout.status === "deposited", payout.deposited_on !== null);
+  }
+  assert.deepEqual(walked, ["po_20261120:deposited", "po_20261119:released"]);
+  assert.deepEqual(Object.fromEntries(seen[1]?.url.searchParams ?? []), { page: "1", limit: "1", status: "deposited", date_from: "2026-11-01", sorting: "-date" });
+  const payout = await perata.payouts.get("po_20261120");
+  assert.equal(payout.net_cents, 9550);
+  assert.equal(payout.items.length, 2);
+  assert.deepEqual(payout.items[0], { kind: "sale", payment_id: "pay_1", installment: 1, status: "deposited", amount_cents: 10000, fee_cents: 300, net_cents: 9700 });
+  assert.equal(payout.items[1]?.kind, "fee");
+  assert.equal(payout.items[1]?.payment_id, null);
+  assert.equal(payout.items[1]?.net_cents, -150);
+});
+
+// A checkout says how its subscription renews, the subscription reads back the
+// mode it resolved to, its label and whether the buyer is written to, an update
+// changes them, and the open renewal charge is read by its own route; without
+// one the API answers 404 no_open_charge.
+test("the renewal mode, the label and the open charge", async () => {
+  const { perata, seen } = client(({ method, url }) => {
+    switch (`${method} ${url.pathname}`) {
+      case "POST /api/v1/checkouts":
+        return json(201, {"data":{"id":"pcl_1","showcase_id":"x","url":"x","product_id":"prod_1","price_id":"price_1","status":"active","label":"Olho de Águia · Ana","quantity":0,"amount_cents":null,"items":[],"metadata":{},"client_reference_id":"x","success_url":"x","cancel_url":"x","expires_at":null,"subscription_start_at":null,"discount_id":"x","first_period_extra_days":null,"renewal_mode":"automatic","notify_customer_email":false,"created_at":"2026-11-20T12:00:00Z","session_id":"cs_1","client_secret":"cs_secret_1","client_secret_expires_at":"2026-11-20T12:00:00Z","status_key":"x"}});
+      case "PATCH /api/v1/subscriptions/sub_1":
+        return json(200, {"data":{"id":"sub_1","showcase_id":"x","customer_id":"x","product_id":"x","price_id":"x","status":"active","amount_cents":0,"quantity":0,"currency":"BRL","interval":"x","current_period_start":"2026-11-20T12:00:00Z","current_period_end":"2026-11-20T12:00:00Z","cancel_at_period_end":false,"pending_update":null,"suspended_at":null,"suspension_reason":null,"trial_start":null,"trial_end":null,"metadata":{},"client_reference_id":"x","discount_id":null,"discount_ends_at":null,"first_period_extra_days":null,"renewal_mode":"pix_automatic","label":"Olho de Águia · Ana","notify_customer_email":false}});
+      case "GET /api/v1/subscriptions/sub_1/open-charge":
+        return json(200, {"data":{"id":"rc_1","subscription_id":"sub_1","showcase_id":"x","customer_id":"x","product_id":"x","price_id":"x","cycle_sequence":2,"amount_cents":9000,"currency":"BRL","label":"Olho de Águia · Ana","renewal_mode":"manual","period_start":"2026-11-20T12:00:00Z","period_end":"2026-11-20T12:00:00Z","due_at":"2026-12-20T03:00:00Z","expires_at":"2026-12-27T03:00:00Z","payment_url":"https://perata.sh/pagar/rc_1","metadata":{},"client_reference_id":"x","reminder":null,"days_until_due":null,"notify_customer_email":true}});
+      default:
+        return json(404, { error: "no_open_charge", message: "A assinatura não tem cobrança de renovação em aberto." });
+    }
+  });
+  const label = "Olho de Águia · Ana";
+  const checkout = await perata.checkouts.create({ product_id: "prod_1", price_id: "price_1", renewal_mode: "automatic", notify_customer_email: false, label });
+  assert.deepEqual(
+    ["renewal_mode", "notify_customer_email", "label"].map((key) => (JSON.parse(seen[0]?.body ?? "") as Record<string, unknown>)[key]),
+    ["automatic", false, label],
+  );
+  assert.deepEqual([checkout.renewal_mode, checkout.notify_customer_email, checkout.label], ["automatic", false, label]);
+  const subscription = await perata.subscriptions.update("sub_1", { renewal_mode: "manual", notify_customer_email: true, label });
+  assert.deepEqual(
+    ["renewal_mode", "notify_customer_email", "label"].map((key) => (JSON.parse(seen[1]?.body ?? "") as Record<string, unknown>)[key]),
+    ["manual", true, label],
+  );
+  assert.deepEqual([subscription.renewal_mode, subscription.label, subscription.notify_customer_email], ["pix_automatic", label, false]);
+  const charge = await perata.subscriptions.getOpenCharge("sub_1");
+  assert.equal(seen[2]?.url.pathname, "/api/v1/subscriptions/sub_1/open-charge");
+  assert.deepEqual([charge.id, charge.subscription_id, charge.amount_cents, charge.renewal_mode], ["rc_1", "sub_1", 9000, "manual"]);
+  assert.deepEqual([charge.payment_url, charge.due_at, charge.expires_at, charge.reminder, charge.days_until_due, charge.notify_customer_email], ["https://perata.sh/pagar/rc_1", "2026-12-20T03:00:00Z", "2026-12-27T03:00:00Z", null, null, true]);
+  await assert.rejects(perata.subscriptions.getOpenCharge("sub_2"), (error: unknown) => error instanceof PerataError && error.status === 404 && error.code === "no_open_charge");
+});
+
+// The renewal events carry the charge: due, and the reminder with its days.
+test("the renewal events carry the charge", async () => {
+  const now = (signedAt + 120) * 1000;
+  const due = await verifyWebhook(newSecret, webhookHeaders("msg_7", signedAt, "v1,BKbvaeGeiiLKhXAhfIIqaaxztbvGy5+Lj3u3m+Zec9w="), '{"id":"msg_7","type":"subscription.renewal_due","timestamp":"2026-10-22T12:00:00Z","data":{"id":"rc_1","subscription_id":"sub_1","showcase_id":"x","customer_id":"x","product_id":"x","price_id":"x","cycle_sequence":2,"amount_cents":9000,"currency":"BRL","label":"Olho de Águia · Ana","renewal_mode":"manual","period_start":"2026-11-20T12:00:00Z","period_end":"2026-11-20T12:00:00Z","due_at":"2026-12-20T03:00:00Z","expires_at":"2026-12-27T03:00:00Z","payment_url":"https://perata.sh/pagar/rc_1","metadata":{},"client_reference_id":"x","notify_customer_email":true,"reminder":null,"days_until_due":null}}', now);
+  assert.equal(due.type, "subscription.renewal_due");
+  assert.equal(due.type === "subscription.renewal_due" && due.data.id, "rc_1");
+  assert.equal(due.type === "subscription.renewal_due" && due.data.payment_url, "https://perata.sh/pagar/rc_1");
+  assert.equal(due.type === "subscription.renewal_due" && due.data.reminder, null);
+  const reminder = await verifyWebhook(newSecret, webhookHeaders("msg_8", signedAt, "v1,D1dd09VwdIBIDIq3Tp/yC+mhhlORnZyN/P/KU4sxX2Q="), '{"id":"msg_8","type":"subscription.renewal_reminder","timestamp":"2026-10-22T12:00:00Z","environment":"live","showcase_id":"shw_1","data":{"id":"rc_1","subscription_id":"sub_1","showcase_id":"x","customer_id":"x","product_id":"x","price_id":"x","cycle_sequence":2,"amount_cents":9000,"currency":"BRL","label":"Olho de Águia · Ana","renewal_mode":"manual","period_start":"2026-11-20T12:00:00Z","period_end":"2026-11-20T12:00:00Z","due_at":"2026-12-20T03:00:00Z","expires_at":"2026-12-27T03:00:00Z","payment_url":"https://perata.sh/pagar/rc_1","metadata":{},"client_reference_id":"x","notify_customer_email":true,"reminder":"before_due","days_until_due":3}}', now);
+  assert.equal(reminder.environment, "live");
+  assert.equal(reminder.type === "subscription.renewal_reminder" && reminder.data.reminder, "before_due");
+  assert.equal(reminder.type === "subscription.renewal_reminder" && reminder.data.days_until_due, 3);
+});
+
 test("a refusal is a typed error", async () => {
   const { perata } = client(({ url }) =>
     url.pathname === "/api/v1/customers"

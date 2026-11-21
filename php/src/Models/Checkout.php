@@ -36,9 +36,16 @@ final class Checkout
          * @var array<string, mixed>
          */
         public readonly array $metadata,
+        /** Falso quando o seu sistema avisa o comprador das cobranças de renovação e a Peráta fica quieta. */
+        public readonly bool $notifyCustomerEmail,
         public readonly string $priceId,
         public readonly string $productId,
         public readonly int $quantity,
+        /**
+         * O renewal_mode da criação: manual, automatic ou buyer_choice; vazio quando foi omitido. A assinatura que o pagamento começa traz o modo a que isso se resolveu em Subscription.renewal_mode.
+         * @var 'manual'|'automatic'|'buyer_choice'
+         */
+        public readonly string $renewalMode,
         /** O showcase a que pertence: o da chave de API que fez a chamada. Uma chave só alcança o seu showcase. */
         public readonly string $showcaseId,
         /**
@@ -72,9 +79,11 @@ final class Checkout
             items: array_values(array_map(static fn (array $item) => CheckoutLine::fromArray($item), $data['items'])),
             label: $data['label'],
             metadata: $data['metadata'],
+            notifyCustomerEmail: $data['notify_customer_email'],
             priceId: $data['price_id'],
             productId: $data['product_id'],
             quantity: $data['quantity'],
+            renewalMode: $data['renewal_mode'],
             showcaseId: $data['showcase_id'],
             status: $data['status'],
             subscriptionStartAt: $data['subscription_start_at'] ?? null,

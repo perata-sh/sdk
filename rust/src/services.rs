@@ -8,6 +8,11 @@ use crate::models::*;
 use crate::pagination::{iterate, Page};
 
 impl Client {
+    /// The API's balance.
+    pub fn balance(&self) -> BalanceService<'_> {
+        BalanceService::new(self)
+    }
+
     /// The API's benefits.
     pub fn benefits(&self) -> BenefitsService<'_> {
         BenefitsService::new(self)
@@ -68,6 +73,11 @@ impl Client {
         PaymentsService::new(self)
     }
 
+    /// The API's payouts.
+    pub fn payouts(&self) -> PayoutsService<'_> {
+        PayoutsService::new(self)
+    }
+
     /// The API's prices.
     pub fn prices(&self) -> PricesService<'_> {
         PricesService::new(self)
@@ -104,6 +114,104 @@ impl Client {
     }
 }
 
+
+/// The filters of balance:get.
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+#[non_exhaustive]
+pub struct BalanceGetParams {
+    /// O primeiro dia, AAAA-MM-DD, inclusive. Na lista, só os repasses com data a partir dele; no saldo, o começo do período de deposited_cents (sem ele, 30 dias até date_to).
+    pub date_from: Option<String>,
+    /// O último dia, AAAA-MM-DD, inclusive. Na lista, só os repasses com data até ele; no saldo, o fim do período de deposited_cents (sem ele, hoje).
+    pub date_to: Option<String>,
+}
+
+impl BalanceGetParams {
+    /// No filter.
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    /// O primeiro dia, AAAA-MM-DD, inclusive. Na lista, só os repasses com data a partir dele; no saldo, o começo do período de deposited_cents (sem ele, 30 dias até date_to).
+    pub fn date_from(mut self, date_from: impl Into<String>) -> Self {
+        self.date_from = Some(date_from.into());
+        self
+    }
+
+    /// O último dia, AAAA-MM-DD, inclusive. Na lista, só os repasses com data até ele; no saldo, o fim do período de deposited_cents (sem ele, hoje).
+    pub fn date_to(mut self, date_to: impl Into<String>) -> Self {
+        self.date_to = Some(date_to.into());
+        self
+    }
+
+    fn query(&self) -> Vec<(String, String)> {
+        let mut query = Vec::new();
+        if let Some(value) = &self.date_from {
+            query.push(("date_from".to_owned(), value.clone()));
+        }
+        if let Some(value) = &self.date_to {
+            query.push(("date_to".to_owned(), value.clone()));
+        }
+        query
+    }
+}
+
+/// The API's balance: `client.balance()`.
+///
+/// [`idempotency_key`](Self::idempotency_key) and [`api_key`](Self::api_key)
+/// set the options of the call made through it.
+#[derive(Debug, Clone)]
+pub struct BalanceService<'a> {
+    client: &'a Client,
+    options: RequestOptions,
+}
+
+impl<'a> BalanceService<'a> {
+    pub(crate) fn new(client: &'a Client) -> Self {
+        Self { client, options: RequestOptions::default() }
+    }
+
+    /// Makes the write safe to repeat: the same key with the same body
+    /// answers the first response again; with another body, a 409. A 2xx
+    /// answer stays under the key; a 4xx or 5xx frees it, so the same key can
+    /// be sent again.
+    pub fn idempotency_key(mut self, key: impl Into<String>) -> Self {
+        self.options.idempotency_key = Some(key.into());
+        self
+    }
+
+    /// Calls with another organization's key.
+    pub fn api_key(mut self, key: impl Into<String>) -> Self {
+        self.options.api_key = Some(key.into());
+        self
+    }
+
+    /// Calls with these options.
+    pub fn options(mut self, options: RequestOptions) -> Self {
+        self.options = options;
+        self
+    }
+
+    /// Ler o saldo a receber. The filters are optional: pass `&Default::default()` for none.
+    ///
+    /// Devolve o saldo a receber da organização neste ambiente:
+    /// total_to_receive_cents, que é sempre a soma de released_cents (liberado,
+    /// o depósito está em processamento), held_cents (retido enquanto a conta
+    /// está em análise), scheduled_cents (previsto, com data nos próximos 31
+    /// dias) e later_cents (sem data ainda, como as parcelas mais distantes).
+    /// deposited_cents é o que foi depositado no período de period_from a
+    /// period_to (date_from e date_to; sem eles, os 30 dias até hoje) e não
+    /// entra no total. Os valores são líquidos das tarifas e dos reembolsos, em
+    /// centavos. Exige o escopo payouts:read.
+    ///
+    /// Autenticação: chave de API da organização em Authorization: Bearer
+    /// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+    /// chave, nunca da requisição: a chave criada num showcase só alcança o que
+    /// é dele. Respostas em JSON no envelope data; erros com error, message e
+    /// fields.
+    pub fn get(&self, params: &BalanceGetParams) -> Result<Balance, Error> {
+        self.client.request("GET", "/api/v1/balance", &params.query(), None::<&()>, &self.options)
+    }
+}
 
 /// The page and filters of benefits:list.
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
@@ -680,6 +788,15 @@ impl<'a> CheckoutsService<'a> {
     /// Para o comprador que ainda tem dias pagos num plano anterior, envie
     /// first_period_extra_days (1 a 365): ele paga hoje o valor cheio e a
     /// próxima cobrança só acontece no fim do primeiro período mais esses dias.
+    /// Envie renewal_mode em toda assinatura: manual (a cada ciclo a Peráta
+    /// abre uma cobrança para o comprador pagar e avisa o seu sistema com
+    /// subscription.renewal_due, mesmo que o primeiro pagamento tenha sido no
+    /// cartão), automatic (só cartão de crédito guardado ou Pix Automático;
+    /// cobra sozinho) ou buyer_choice (a página mostra a caixa Ativar cobrança
+    /// automática e o comprador decide); sem o campo nada muda.
+    /// notify_customer_email false mantém a Peráta sem escrever ao comprador.
+    /// label dá nome à assinatura (por exemplo, Olho de Águia · Colaborador
+    /// Ana).
     ///
     /// Autenticação: chave de API da organização em Authorization: Bearer
     /// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
@@ -2160,6 +2277,175 @@ impl<'a> PaymentsService<'a> {
     }
 }
 
+/// The page and filters of payouts:list.
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+#[non_exhaustive]
+pub struct PayoutsListParams {
+    /// The page, from 1.
+    pub page: Option<u32>,
+    /// Items a page, 1 to 100 (10 by default).
+    pub limit: Option<u32>,
+    /// Só os repasses neste status: scheduled, released, held ou deposited.
+    pub status: Option<String>,
+    /// O primeiro dia, AAAA-MM-DD, inclusive. Na lista, só os repasses com data a partir dele; no saldo, o começo do período de deposited_cents (sem ele, 30 dias até date_to).
+    pub date_from: Option<String>,
+    /// O último dia, AAAA-MM-DD, inclusive. Na lista, só os repasses com data até ele; no saldo, o fim do período de deposited_cents (sem ele, hoje).
+    pub date_to: Option<String>,
+    /// Ordem da lista pela data do repasse: date, e com um - na frente é decrescente (-date, o mais novo primeiro, é o padrão).
+    pub sorting: Option<String>,
+}
+
+impl PayoutsListParams {
+    /// The first page, with the API's default limit and no filter.
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    /// Sets the page, from 1.
+    pub fn page(mut self, page: u32) -> Self {
+        self.page = Some(page);
+        self
+    }
+
+    /// Sets the items a page, 1 to 100.
+    pub fn limit(mut self, limit: u32) -> Self {
+        self.limit = Some(limit);
+        self
+    }
+
+    /// Só os repasses neste status: scheduled, released, held ou deposited.
+    pub fn status(mut self, status: impl Into<String>) -> Self {
+        self.status = Some(status.into());
+        self
+    }
+
+    /// O primeiro dia, AAAA-MM-DD, inclusive. Na lista, só os repasses com data a partir dele; no saldo, o começo do período de deposited_cents (sem ele, 30 dias até date_to).
+    pub fn date_from(mut self, date_from: impl Into<String>) -> Self {
+        self.date_from = Some(date_from.into());
+        self
+    }
+
+    /// O último dia, AAAA-MM-DD, inclusive. Na lista, só os repasses com data até ele; no saldo, o fim do período de deposited_cents (sem ele, hoje).
+    pub fn date_to(mut self, date_to: impl Into<String>) -> Self {
+        self.date_to = Some(date_to.into());
+        self
+    }
+
+    /// Ordem da lista pela data do repasse: date, e com um - na frente é decrescente (-date, o mais novo primeiro, é o padrão).
+    pub fn sorting(mut self, sorting: impl Into<String>) -> Self {
+        self.sorting = Some(sorting.into());
+        self
+    }
+
+    fn query(&self) -> Vec<(String, String)> {
+        let mut query = Vec::new();
+        if let Some(page) = self.page {
+            query.push(("page".to_owned(), page.to_string()));
+        }
+        if let Some(limit) = self.limit {
+            query.push(("limit".to_owned(), limit.to_string()));
+        }
+        if let Some(value) = &self.status {
+            query.push(("status".to_owned(), value.clone()));
+        }
+        if let Some(value) = &self.date_from {
+            query.push(("date_from".to_owned(), value.clone()));
+        }
+        if let Some(value) = &self.date_to {
+            query.push(("date_to".to_owned(), value.clone()));
+        }
+        if let Some(value) = &self.sorting {
+            query.push(("sorting".to_owned(), value.clone()));
+        }
+        query
+    }
+}
+
+/// The API's payouts: `client.payouts()`.
+///
+/// [`idempotency_key`](Self::idempotency_key) and [`api_key`](Self::api_key)
+/// set the options of the call made through it.
+#[derive(Debug, Clone)]
+pub struct PayoutsService<'a> {
+    client: &'a Client,
+    options: RequestOptions,
+}
+
+impl<'a> PayoutsService<'a> {
+    pub(crate) fn new(client: &'a Client) -> Self {
+        Self { client, options: RequestOptions::default() }
+    }
+
+    /// Makes the write safe to repeat: the same key with the same body
+    /// answers the first response again; with another body, a 409. A 2xx
+    /// answer stays under the key; a 4xx or 5xx frees it, so the same key can
+    /// be sent again.
+    pub fn idempotency_key(mut self, key: impl Into<String>) -> Self {
+        self.options.idempotency_key = Some(key.into());
+        self
+    }
+
+    /// Calls with another organization's key.
+    pub fn api_key(mut self, key: impl Into<String>) -> Self {
+        self.options.api_key = Some(key.into());
+        self
+    }
+
+    /// Calls with these options.
+    pub fn options(mut self, options: RequestOptions) -> Self {
+        self.options = options;
+        self
+    }
+
+    /// Ler um repasse.
+    ///
+    /// Devolve um repasse pelo ID (como po_20261120) com os seus lançamentos em
+    /// items: cada venda, reembolso, contestação, tarifa ou ajuste, com o
+    /// payment_id, a parcela, o valor, a tarifa e o líquido. Exige o escopo
+    /// payouts:read.
+    ///
+    /// Autenticação: chave de API da organização em Authorization: Bearer
+    /// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+    /// chave, nunca da requisição: a chave criada num showcase só alcança o que
+    /// é dele. Respostas em JSON no envelope data; erros com error, message e
+    /// fields.
+    pub fn get(&self, payout: &str) -> Result<PayoutDetail, Error> {
+        self.client.request("GET", &format!("/api/v1/payouts/{}", crate::client::escape(payout)), &[], None::<&()>, &self.options)
+    }
+
+    /// Listar repasses. One page; [`list_iter`](Self::list_iter) walks every page.
+    ///
+    /// Devolve uma página dos repasses, o mais novo primeiro. Um repasse é o
+    /// que a organização recebe num dia: id (po_ e a data), status (scheduled,
+    /// released, held ou deposited), expected_on, deposited_on, amount_cents,
+    /// fee_cents e net_cents (amount_cents menos fee_cents, o que é
+    /// depositado). Filtre por status e pelos dias (date_from e date_to). Um
+    /// repasse previsto pela regra do Pix, e não pela agenda de recebíveis,
+    /// ainda pode mudar de data até ser depositado. Exige o escopo
+    /// payouts:read.
+    ///
+    /// Autenticação: chave de API da organização em Authorization: Bearer
+    /// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+    /// chave, nunca da requisição: a chave criada num showcase só alcança o que
+    /// é dele. Respostas em JSON no envelope data; erros com error, message e
+    /// fields.
+    pub fn list(&self, params: &PayoutsListParams) -> Result<Page<Payout>, Error> {
+        self.client.request("GET", "/api/v1/payouts", &params.query(), None::<&()>, &self.options)
+    }
+
+    /// Walks every page of payouts:list, from `params.page`, item by item.
+    pub fn list_iter(&self, params: PayoutsListParams) -> impl Iterator<Item = Result<Payout, Error>> + 'a {
+        let client = self.client;
+        let options = self.options.clone();
+        let path = String::from("/api/v1/payouts");
+        let first = params.page.unwrap_or(1);
+        iterate(first, move |page| {
+            let query = params.clone().page(page).query();
+            client.request("GET", &path, &query, None::<&()>, &options)
+        })
+    }
+}
+
 /// The page and filters of prices:list.
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 #[non_exhaustive]
@@ -2928,6 +3214,26 @@ impl<'a> SubscriptionsService<'a> {
         self.client.request("GET", &format!("/api/v1/subscriptions/{}", crate::client::escape(subscription)), &[], None::<&()>, &self.options)
     }
 
+    /// Ler a cobrança de renovação em aberto.
+    ///
+    /// Devolve a cobrança de renovação que espera o comprador pagar: o ciclo
+    /// atual da assinatura, o valor, due_at e expires_at, o período e, em
+    /// payment_url, a página da Peráta onde ele paga (cartão, Pix ou boleto). É
+    /// o mesmo objeto do evento subscription.renewal_due, para quando o seu
+    /// sistema precisa dele de novo. Uma assinatura sem cobrança em aberto
+    /// (ciclo já pago, cobrada no cartão guardado ou pelo Pix Automático, ou
+    /// com o próximo ciclo ainda fechado) responde 404 com a mensagem dizendo
+    /// isso.
+    ///
+    /// Autenticação: chave de API da organização em Authorization: Bearer
+    /// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
+    /// chave, nunca da requisição: a chave criada num showcase só alcança o que
+    /// é dele. Respostas em JSON no envelope data; erros com error, message e
+    /// fields.
+    pub fn get_open_charge(&self, subscription: &str) -> Result<RenewalCharge, Error> {
+        self.client.request("GET", &format!("/api/v1/subscriptions/{}/open-charge", crate::client::escape(subscription)), &[], None::<&()>, &self.options)
+    }
+
     /// Listar assinaturas. One page; [`list_iter`](Self::list_iter) walks every page.
     ///
     /// Devolve uma página das assinaturas. Filtre por cliente (customer_id ou
@@ -2969,13 +3275,16 @@ impl<'a> SubscriptionsService<'a> {
         self.client.request("POST", &format!("/api/v1/subscriptions/{}/resume", crate::client::escape(subscription)), &[], None::<&()>, &self.options)
     }
 
-    /// Trocar o plano ou estender o período.
+    /// Trocar o plano, o período, o rótulo ou a renovação.
     ///
     /// Troca o plano de uma assinatura (outro preço e, se quiser, outra
     /// quantidade; o proration_behavior diz como ratear a diferença) ou, com
     /// extend_current_period_days sozinho, estende o período atual em até 365
     /// dias sem cobrar, para o crédito manual de dias: a próxima cobrança passa
-    /// a ser no novo current_period_end.
+    /// a ser no novo current_period_end. Com label, renewal_mode (manual ou
+    /// card) e notify_customer_email, sem os outros campos, muda o nome da
+    /// assinatura, como ela renova (card exige um cartão guardado; manual deixa
+    /// de cobrar o cartão) e se a Peráta escreve ao comprador das cobranças.
     ///
     /// Autenticação: chave de API da organização em Authorization: Bearer
     /// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da

@@ -77,7 +77,7 @@ final class PerataTests: XCTestCase {
         @Sendable func session(_ clientSecret: String) -> [String: Any] {
             [
                     "id": "pcl_1", "url": "https://perata.sh/pagamento/pcl_1", "product_id": "prod_1", "price_id": "price_1",
-                    "status": "active", "label": "", "quantity": 1, "success_url": "https://loja.example/obrigado", "cancel_url": "",
+                    "status": "active", "label": "", "notify_customer_email": true, "renewal_mode": "", "quantity": 1, "success_url": "https://loja.example/obrigado", "cancel_url": "",
                     "expires_at": NSNull(), "created_at": "2026-11-16T12:00:00Z", "session_id": "cs_1", "client_secret": clientSecret,
                     "client_secret_expires_at": "2026-11-16T12:30:00Z", "status_key": "sk_1",
                     "amount_cents": NSNull(), "items": [], "metadata": [String: Any](), "client_reference_id": "",
@@ -246,7 +246,7 @@ final class PerataTests: XCTestCase {
         }
         @Sendable func subscription() -> [String: Any] {
             [
-                "id": "sub_1", "amount_cents": 55000, "cancel_at_period_end": false, "client_reference_id": "pedido-9",
+                "id": "sub_1", "label": "", "notify_customer_email": true, "renewal_mode": "manual", "amount_cents": 55000, "cancel_at_period_end": false, "client_reference_id": "pedido-9",
                 "currency": "BRL", "current_period_end": "2026-12-20T00:00:00Z", "current_period_start": "2026-11-20T00:00:00Z",
                 "customer_id": "cus_1", "interval": "month", "metadata": ["camera": "c1"], "price_id": "price_1",
                 "product_id": "prod_1", "quantity": 3, "showcase_id": "shw_1", "status": "active",
@@ -285,9 +285,9 @@ final class PerataTests: XCTestCase {
     // scheduled for the next period.
     func testAFirstPeriodExtensionAndTheDiscountsTheSaleReadsBack() async throws {
         let answers: [String: (Int, String)] = [
-            "POST /api/v1/checkouts": (201, #"{"data":{"id":"pcl_1","showcase_id":"x","url":"x","product_id":"prod_1","price_id":"price_1","status":"active","label":"x","quantity":0,"amount_cents":null,"items":[],"metadata":{},"client_reference_id":"x","success_url":"x","cancel_url":"x","expires_at":null,"subscription_start_at":null,"discount_id":"disc_1","first_period_extra_days":30,"created_at":"2026-11-20T12:00:00Z","session_id":"cs_1","client_secret":"cs_secret_1","client_secret_expires_at":"2026-11-20T12:00:00Z","status_key":"x"}}"#),
-            "PATCH /api/v1/subscriptions/sub_1": (200, #"{"data":{"id":"sub_1","showcase_id":"x","customer_id":"x","product_id":"x","price_id":"x","status":"active","amount_cents":0,"quantity":0,"currency":"BRL","interval":"x","current_period_start":"2026-11-20T12:00:00Z","current_period_end":"2026-11-20T12:00:00Z","cancel_at_period_end":false,"pending_update":{"price_id":"price_2","quantity":5,"amount_cents":90000,"effective_at":"2026-12-20T03:00:00Z"},"suspended_at":null,"suspension_reason":null,"trial_start":null,"trial_end":null,"metadata":{},"client_reference_id":"x","discount_id":"disc_1","discount_ends_at":"2027-03-01T03:00:00Z","first_period_extra_days":30}}"#),
-            "GET /api/v1/subscriptions/sub_2": (200, #"{"data":{"id":"sub_2","showcase_id":"x","customer_id":"x","product_id":"x","price_id":"x","status":"active","amount_cents":0,"quantity":0,"currency":"BRL","interval":"x","current_period_start":"2026-11-20T12:00:00Z","current_period_end":"2026-11-20T12:00:00Z","cancel_at_period_end":false,"pending_update":null,"suspended_at":null,"suspension_reason":null,"trial_start":null,"trial_end":null,"metadata":{},"client_reference_id":"x","discount_id":null,"discount_ends_at":null,"first_period_extra_days":null}}"#),
+            "POST /api/v1/checkouts": (201, #"{"data":{"id":"pcl_1","showcase_id":"x","url":"x","product_id":"prod_1","price_id":"price_1","status":"active","label":"x","quantity":0,"amount_cents":null,"items":[],"metadata":{},"client_reference_id":"x","success_url":"x","cancel_url":"x","expires_at":null,"subscription_start_at":null,"discount_id":"disc_1","first_period_extra_days":30,"renewal_mode":"manual","notify_customer_email":false,"created_at":"2026-11-20T12:00:00Z","session_id":"cs_1","client_secret":"cs_secret_1","client_secret_expires_at":"2026-11-20T12:00:00Z","status_key":"x"}}"#),
+            "PATCH /api/v1/subscriptions/sub_1": (200, #"{"data":{"id":"sub_1","showcase_id":"x","customer_id":"x","product_id":"x","price_id":"x","status":"active","amount_cents":0,"quantity":0,"currency":"BRL","interval":"x","current_period_start":"2026-11-20T12:00:00Z","current_period_end":"2026-11-20T12:00:00Z","cancel_at_period_end":false,"pending_update":{"price_id":"price_2","quantity":5,"amount_cents":90000,"effective_at":"2026-12-20T03:00:00Z"},"suspended_at":null,"suspension_reason":null,"trial_start":null,"trial_end":null,"metadata":{},"client_reference_id":"x","discount_id":"disc_1","discount_ends_at":"2027-03-01T03:00:00Z","first_period_extra_days":30,"renewal_mode":"manual","label":"x","notify_customer_email":false}}"#),
+            "GET /api/v1/subscriptions/sub_2": (200, #"{"data":{"id":"sub_2","showcase_id":"x","customer_id":"x","product_id":"x","price_id":"x","status":"active","amount_cents":0,"quantity":0,"currency":"BRL","interval":"x","current_period_start":"2026-11-20T12:00:00Z","current_period_end":"2026-11-20T12:00:00Z","cancel_at_period_end":false,"pending_update":null,"suspended_at":null,"suspension_reason":null,"trial_start":null,"trial_end":null,"metadata":{},"client_reference_id":"x","discount_id":null,"discount_ends_at":null,"first_period_extra_days":null,"renewal_mode":"manual","label":"x","notify_customer_email":false}}"#),
             "GET /api/v1/orders/ord_1": (200, #"{"data":{"id":"ord_1","showcase_id":"x","customer_id":"x","product_id":"x","price_id":"x","amount_cents":9000,"currency":"BRL","status":"open","paid_at":null,"order_status":null,"refunded_amount_cents":0,"installments":0,"installment_interest_cents":0,"items":[],"metadata":{},"client_reference_id":"x","subscription_id":null,"cycle_sequence":null,"period_start":null,"period_end":null,"discount_id":"disc_1","discount_code":"BEMVINDO","subtotal_cents":10000,"discount_cents":1000}}"#),
             "GET /api/v1/prices/price_1": (200, #"{"data":{"id":"price_1","product_id":"prod_1","currency":"BRL","amount_cents":9000,"type":"one_time","interval":"none","interval_count":0,"pricing_model":"fixed","unit_amount_cents":null,"tiers":[],"unit_label":"x","unit_label_plural":"x","minimum_units":null,"maximum_units":null,"status":"archived"}}"#),
         ]
@@ -325,6 +325,112 @@ final class PerataTests: XCTestCase {
         let price = try await perata.prices.get("price_1")
         XCTAssertEqual(recorder.seen[4].url?.path, "/api/v1/prices/price_1")
         XCTAssertEqual(price.status, .archived)
+    }
+
+    // The payment reads back its fee, its net, its split and the payout that pays it.
+    func testAPaymentReadsBackItsFeeItsSplitAndItsPayout() async throws {
+        let json = #"{"data":{"id":"pay_1","showcase_id":"x","checkout_id":"x","customer_id":"x","method":"card","state":"unknown","amount_cents":0,"captured_cents":0,"refunded_cents":0,"currency":"BRL","created_at":"2026-11-20T12:00:00Z","metadata":{},"client_reference_id":"x","installments":0,"installment_amount_cents":0,"installment_interest_cents":0,"subscription_id":null,"cycle_sequence":null,"period_start":null,"period_end":null,"fee_cents":450,"net_cents":8550,"expected_payout_on":"2026-12-21","payout_deposited_on":null,"payout_id":null,"split":[{"recipient_id":"shw_2","amount_cents":9000,"fee_cents":450,"net_cents":8550}]}}"#
+        let (perata, _) = client { _ in (200, [:], try? JSONSerialization.jsonObject(with: Data(json.utf8))) }
+        let payment = try await perata.payments.get("pay_1")
+        XCTAssertEqual(payment.feeCents, 450)
+        XCTAssertEqual(payment.netCents, 8550)
+        XCTAssertEqual(payment.expectedPayoutOn, "2026-12-21")
+        XCTAssertNil(payment.payoutID)
+        XCTAssertNil(payment.payoutDepositedOn)
+        XCTAssertEqual(payment.split.count, 1)
+        XCTAssertEqual(payment.split[0].recipientID, "shw_2")
+        XCTAssertEqual(payment.split[0].amountCents, 9000)
+        XCTAssertEqual(payment.split[0].feeCents, 450)
+        XCTAssertEqual(payment.split[0].netCents, 8550)
+    }
+
+    // The balance carries its period, the payouts are filtered and walked page by
+    // page, and a payout reads back its lines: a fee has no payment.
+    func testTheBalanceAndThePayoutsReadBackWhatWillBeDeposited() async throws {
+        let (perata, recorder) = client { request in
+            let body: String
+            switch request.url?.path {
+            case "/api/v1/balance": body = #"{"data":{"total_to_receive_cents":100000,"released_cents":10000,"held_cents":5000,"scheduled_cents":60000,"later_cents":25000,"deposited_cents":42000,"period_from":"2026-11-01","period_to":"2026-11-20","currency":"BRL"}}"#
+            case "/api/v1/payouts/po_20261120": body = #"{"data":{"id":"po_20261120","status":"deposited","expected_on":"2026-11-20","deposited_on":"2026-11-20","amount_cents":10000,"fee_cents":450,"net_cents":9550,"currency":"BRL","item_count":2,"items":[{"kind":"sale","payment_id":"pay_1","installment":1,"status":"deposited","amount_cents":10000,"fee_cents":300,"net_cents":9700},{"kind":"fee","payment_id":null,"installment":0,"status":"deposited","amount_cents":0,"fee_cents":150,"net_cents":-150}]}}"#
+            default: body = queryItem(request, "page") == "2" ? #"{"data":{"items":[{"id":"po_20261119","status":"released","expected_on":"2026-11-19","deposited_on":null,"amount_cents":5000,"fee_cents":200,"net_cents":4800,"currency":"BRL","item_count":2}],"pagination":{"total_count":2,"max_page":2}}}"# : #"{"data":{"items":[{"id":"po_20261120","status":"deposited","expected_on":"2026-11-20","deposited_on":"2026-11-20","amount_cents":10000,"fee_cents":450,"net_cents":9550,"currency":"BRL","item_count":2}],"pagination":{"total_count":2,"max_page":2}}}"#
+            }
+            return (200, [:], try? JSONSerialization.jsonObject(with: Data(body.utf8)))
+        }
+        let balance = try await perata.balance.get(dateFrom: "2026-11-01", dateTo: "2026-11-20")
+        XCTAssertEqual(queryItem(recorder.seen[0], "date_from"), "2026-11-01")
+        XCTAssertEqual(queryItem(recorder.seen[0], "date_to"), "2026-11-20")
+        XCTAssertEqual(balance.totalToReceiveCents, 100000)
+        XCTAssertEqual(balance.releasedCents + balance.heldCents + balance.scheduledCents + balance.laterCents, balance.totalToReceiveCents)
+        XCTAssertEqual(balance.depositedCents, 42000)
+        XCTAssertEqual([balance.periodFrom, balance.periodTo, balance.currency.rawValue], ["2026-11-01", "2026-11-20", "BRL"])
+        var walked: [String] = []
+        for try await payout in perata.payouts.listIter(limit: 1, status: "deposited", dateFrom: "2026-11-01", sorting: "-date") {
+            walked.append("\(payout.id):\(payout.status.rawValue)")
+            XCTAssertEqual(payout.netCents, payout.amountCents - payout.feeCents)
+            XCTAssertEqual(payout.status.rawValue == "deposited", payout.depositedOn != nil)
+        }
+        XCTAssertEqual(walked, ["po_20261120:deposited", "po_20261119:released"])
+        for (name, value) in [("page", "1"), ("limit", "1"), ("status", "deposited"), ("date_from", "2026-11-01"), ("sorting", "-date")] {
+            XCTAssertEqual(queryItem(recorder.seen[1], name), value, name)
+        }
+        let payout = try await perata.payouts.get("po_20261120")
+        XCTAssertEqual(payout.netCents, 9550)
+        XCTAssertEqual(payout.items.count, 2)
+        XCTAssertEqual([payout.items[0].kind.rawValue, payout.items[0].paymentID, "\(payout.items[0].installment)", "\(payout.items[0].netCents)"], ["sale", "pay_1", "1", "9700"])
+        XCTAssertEqual(payout.items[1].kind.rawValue, "fee")
+        XCTAssertNil(payout.items[1].paymentID)
+        XCTAssertEqual(payout.items[1].netCents, -150)
+    }
+
+    // A checkout says how its subscription renews, the subscription reads back the
+    // mode it resolved to, its label and whether the buyer is written to, an update
+    // changes them, and the open renewal charge is read by its own route; without
+    // one the API answers 404 no_open_charge.
+    func testTheRenewalModeTheLabelAndTheOpenCharge() async throws {
+        let answers: [String: (Int, String)] = [
+            "POST /api/v1/checkouts": (201, #"{"data":{"id":"pcl_1","showcase_id":"x","url":"x","product_id":"prod_1","price_id":"price_1","status":"active","label":"Olho de Águia · Ana","quantity":0,"amount_cents":null,"items":[],"metadata":{},"client_reference_id":"x","success_url":"x","cancel_url":"x","expires_at":null,"subscription_start_at":null,"discount_id":"x","first_period_extra_days":null,"renewal_mode":"automatic","notify_customer_email":false,"created_at":"2026-11-20T12:00:00Z","session_id":"cs_1","client_secret":"cs_secret_1","client_secret_expires_at":"2026-11-20T12:00:00Z","status_key":"x"}}"#),
+            "PATCH /api/v1/subscriptions/sub_1": (200, #"{"data":{"id":"sub_1","showcase_id":"x","customer_id":"x","product_id":"x","price_id":"x","status":"active","amount_cents":0,"quantity":0,"currency":"BRL","interval":"x","current_period_start":"2026-11-20T12:00:00Z","current_period_end":"2026-11-20T12:00:00Z","cancel_at_period_end":false,"pending_update":null,"suspended_at":null,"suspension_reason":null,"trial_start":null,"trial_end":null,"metadata":{},"client_reference_id":"x","discount_id":null,"discount_ends_at":null,"first_period_extra_days":null,"renewal_mode":"pix_automatic","label":"Olho de Águia · Ana","notify_customer_email":false}}"#),
+            "GET /api/v1/subscriptions/sub_1/open-charge": (200, #"{"data":{"id":"rc_1","subscription_id":"sub_1","showcase_id":"x","customer_id":"x","product_id":"x","price_id":"x","cycle_sequence":2,"amount_cents":9000,"currency":"BRL","label":"Olho de Águia · Ana","renewal_mode":"manual","period_start":"2026-11-20T12:00:00Z","period_end":"2026-11-20T12:00:00Z","due_at":"2026-12-20T03:00:00Z","expires_at":"2026-12-27T03:00:00Z","payment_url":"https://perata.sh/pagar/rc_1","metadata":{},"client_reference_id":"x","reminder":null,"days_until_due":null,"notify_customer_email":true}}"#),
+        ]
+        let (perata, recorder) = client { request in
+            guard let (status, body) = answers["\(request.httpMethod ?? "") \(request.url?.path ?? "")"] else {
+                return (404, [:], ["error": "no_open_charge", "message": "A assinatura não tem cobrança de renovação em aberto."])
+            }
+            return (status, [:], try? JSONSerialization.jsonObject(with: Data(body.utf8)))
+        }
+        let label = "Olho de Águia · Ana"
+        let checkout = try await perata.checkouts.create(
+            CheckoutsCreateParams(priceID: "price_1", productID: "prod_1", label: label, notifyCustomerEmail: false, renewalMode: "automatic"))
+        var sent = try XCTUnwrap(JSONSerialization.jsonObject(with: XCTUnwrap(recorder.seen[0].httpBody)) as? [String: Any])
+        XCTAssertEqual(sent["renewal_mode"] as? String, "automatic")
+        XCTAssertEqual(sent["notify_customer_email"] as? Bool, false)
+        XCTAssertEqual(sent["label"] as? String, label)
+        XCTAssertEqual(checkout.renewalMode.rawValue, "automatic")
+        XCTAssertFalse(checkout.notifyCustomerEmail)
+        XCTAssertEqual(checkout.label, label)
+        let subscription = try await perata.subscriptions.update(
+            "sub_1", SubscriptionsUpdateParams(label: label, notifyCustomerEmail: true, renewalMode: "manual"))
+        sent = try XCTUnwrap(JSONSerialization.jsonObject(with: XCTUnwrap(recorder.seen[1].httpBody)) as? [String: Any])
+        XCTAssertEqual(sent["renewal_mode"] as? String, "manual")
+        XCTAssertEqual(sent["notify_customer_email"] as? Bool, true)
+        XCTAssertEqual(sent["label"] as? String, label)
+        XCTAssertEqual(subscription.renewalMode.rawValue, "pix_automatic")
+        XCTAssertEqual(subscription.label, label)
+        XCTAssertFalse(subscription.notifyCustomerEmail)
+        let charge = try await perata.subscriptions.getOpenCharge("sub_1")
+        XCTAssertEqual(recorder.seen[2].url?.path, "/api/v1/subscriptions/sub_1/open-charge")
+        XCTAssertEqual([charge.id, charge.subscriptionID, "\(charge.amountCents)", charge.renewalMode.rawValue], ["rc_1", "sub_1", "9000", "manual"])
+        XCTAssertEqual([charge.paymentURL, charge.dueAt, charge.expiresAt], ["https://perata.sh/pagar/rc_1", "2026-12-20T03:00:00Z", "2026-12-27T03:00:00Z"])
+        XCTAssertNil(charge.reminder)
+        XCTAssertNil(charge.daysUntilDue)
+        XCTAssertTrue(charge.notifyCustomerEmail)
+        do {
+            _ = try await perata.subscriptions.getOpenCharge("sub_2")
+            XCTFail("a missing open charge was read")
+        } catch let refused as PerataError {
+            XCTAssertEqual(refused.status, 404)
+            XCTAssertEqual(refused.code, "no_open_charge")
+        }
     }
 
     func testUsageIngestionCarriesTheSourceCredentialAndItsEvents() async throws {
@@ -518,6 +624,27 @@ final class PerataTests: XCTestCase {
             }
             XCTAssertEqual(event.type, "payout.sent")
             XCTAssertEqual(event.body, Self.payoutSent)
+        }
+
+        // The renewal events carry the charge: due, and the reminder with its days.
+        func testTheRenewalEventsCarryTheCharge() throws {
+            let now = Date(timeIntervalSince1970: TimeInterval(Self.signedAt + 120))
+            let dueBody = Data(#"{"id":"msg_7","type":"subscription.renewal_due","timestamp":"2026-10-22T12:00:00Z","data":{"id":"rc_1","subscription_id":"sub_1","showcase_id":"x","customer_id":"x","product_id":"x","price_id":"x","cycle_sequence":2,"amount_cents":9000,"currency":"BRL","label":"Olho de Águia · Ana","renewal_mode":"manual","period_start":"2026-11-20T12:00:00Z","period_end":"2026-11-20T12:00:00Z","due_at":"2026-12-20T03:00:00Z","expires_at":"2026-12-27T03:00:00Z","payment_url":"https://perata.sh/pagar/rc_1","metadata":{},"client_reference_id":"x","notify_customer_email":true,"reminder":null,"days_until_due":null}}"#.utf8)
+            guard case let .renewalCharge(due) = try verifyWebhook(secret: Self.newSecret, headers: webhookHeaders("msg_7", Self.signedAt, "v1,BKbvaeGeiiLKhXAhfIIqaaxztbvGy5+Lj3u3m+Zec9w="), body: dueBody, now: now) else {
+                return XCTFail("not a renewal event")
+            }
+            XCTAssertEqual(due.type, "subscription.renewal_due")
+            XCTAssertEqual(due.data.id, "rc_1")
+            XCTAssertEqual(due.data.paymentURL, "https://perata.sh/pagar/rc_1")
+            XCTAssertNil(due.data.reminder)
+            let reminderBody = Data(#"{"id":"msg_8","type":"subscription.renewal_reminder","timestamp":"2026-10-22T12:00:00Z","environment":"live","showcase_id":"shw_1","data":{"id":"rc_1","subscription_id":"sub_1","showcase_id":"x","customer_id":"x","product_id":"x","price_id":"x","cycle_sequence":2,"amount_cents":9000,"currency":"BRL","label":"Olho de Águia · Ana","renewal_mode":"manual","period_start":"2026-11-20T12:00:00Z","period_end":"2026-11-20T12:00:00Z","due_at":"2026-12-20T03:00:00Z","expires_at":"2026-12-27T03:00:00Z","payment_url":"https://perata.sh/pagar/rc_1","metadata":{},"client_reference_id":"x","notify_customer_email":true,"reminder":"before_due","days_until_due":3}}"#.utf8)
+            guard case let .renewalCharge(reminder) = try verifyWebhook(secret: Self.newSecret, headers: webhookHeaders("msg_8", Self.signedAt, "v1,D1dd09VwdIBIDIq3Tp/yC+mhhlORnZyN/P/KU4sxX2Q="), body: reminderBody, now: now) else {
+                return XCTFail("not a renewal event")
+            }
+            XCTAssertEqual(reminder.type, "subscription.renewal_reminder")
+            XCTAssertEqual(reminder.environment, "live")
+            XCTAssertEqual(reminder.data.reminder?.rawValue, "before_due")
+            XCTAssertEqual(reminder.data.daysUntilDue, 3)
         }
     #endif
 

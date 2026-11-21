@@ -2,6 +2,14 @@
 
 Todos os SDKs da Peráta saem com a mesma versão; as mudanças de cada uma estão também nas [releases de perata-sh/sdk](https://github.com/perata-sh/sdk/releases).
 
+## 0.5.9 (20/11/2026)
+
+Gerado a partir do contrato da API 0.1.0 (perata.sh d48f3888).
+
+- Saldo e repasses: `balance.get` (com `dateFrom` e `dateTo`), `payouts.list`, `payouts.listIter` e `payouts.get` (`Balance`, `Payout`, `PayoutDetail`, `PayoutItem`). O `Payment` traz `feeCents`, `netCents`, `split` (`SplitRecipient`), `expectedPayoutOn`, `payoutDepositedOn` e `payoutId`.
+- Renovação: `checkouts.create` aceita `renewalMode` (`manual`, `automatic` ou `buyer_choice`), `label` e `notifyCustomerEmail`; `Subscription` traz `renewalMode`, `label` e `notifyCustomerEmail`, e `subscriptions.update` troca os três. `subscriptions.getOpenCharge` lê a cobrança em aberto (`RenewalCharge`; 404 `no_open_charge` sem ela).
+- Eventos `subscription.renewal_due` e `subscription.renewal_reminder` (`RenewalChargeWebhookEvent`, com `WebhookRenewalCharge`) e `payout.*`.
+
 ## 0.5.8 (20/11/2026)
 
 Gerado a partir do contrato da API 0.1.0 (perata.sh e1e917df).

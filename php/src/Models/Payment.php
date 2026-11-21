@@ -21,6 +21,10 @@ final class Payment
         public readonly string $customerId,
         /** Qual ciclo da assinatura o pagamento pagou: 1 é o primeiro; nulo fora de uma assinatura. */
         public readonly ?int $cycleSequence,
+        /** A data prevista do próximo repasse que paga este pagamento, AAAA-MM-DD; nula quando nenhum repasse está esperando (já foi todo depositado, não foi capturado ou a data ainda não é conhecida). Num pagamento parcelado, é a da próxima parcela. */
+        public readonly ?string $expectedPayoutOn,
+        /** A tarifa que a Peráta cobrou desta venda, em centavos: a parte do valor capturado que a Peráta retém. 0 enquanto o pagamento não foi capturado. */
+        public readonly int $feeCents,
         public readonly string $id,
         /** Valor de uma parcela; 0 à vista. */
         public readonly int $installmentAmountCents,
@@ -35,6 +39,12 @@ final class Payment
         public readonly array $metadata,
         /** @var 'card'|'pix'|'boleto' */
         public readonly string $method,
+        /** O valor líquido da venda, em centavos: captured_cents menos fee_cents, o que fica para o vendedor, antes de reembolsos. 0 enquanto o pagamento não foi capturado. */
+        public readonly int $netCents,
+        /** O dia em que o último repasse que pagou este pagamento foi depositado, AAAA-MM-DD; nulo enquanto nenhum foi. */
+        public readonly ?string $payoutDepositedOn,
+        /** O repasse em que o pagamento foi depositado: o id de GET /payouts/{id}; nulo enquanto nenhum foi. Num pagamento parcelado, é o da última parcela depositada. */
+        public readonly ?string $payoutId,
         /** O fim do período que o ciclo paga; nulo fora de uma assinatura. */
         public readonly ?string $periodEnd,
         /** O começo do período que o ciclo paga; nulo fora de uma assinatura. */
@@ -42,6 +52,11 @@ final class Payment
         public readonly int $refundedCents,
         /** O showcase a que pertence: o da chave de API que fez a chamada. Uma chave só alcança o seu showcase. */
         public readonly string $showcaseId,
+        /**
+         * Como a venda foi dividida entre os destinatários, cada um com a sua parte, a tarifa e o líquido; uma venda sem divisão tem um só destinatário.
+         * @var list<SplitRecipient>
+         */
+        public readonly array $split,
         /** @var 'unknown'|'pending'|'authorized'|'captured'|'refused'|'canceled'|'refunded'|'partially_refunded' */
         public readonly string $state,
         /** A assinatura que este pagamento cobrou (a primeira ou uma renovação); nulo quando o pagamento não é de uma assinatura. */
@@ -63,16 +78,22 @@ final class Payment
             currency: $data['currency'],
             customerId: $data['customer_id'],
             cycleSequence: $data['cycle_sequence'] ?? null,
+            expectedPayoutOn: $data['expected_payout_on'] ?? null,
+            feeCents: $data['fee_cents'],
             id: $data['id'],
             installmentAmountCents: $data['installment_amount_cents'],
             installmentInterestCents: $data['installment_interest_cents'],
             installments: $data['installments'],
             metadata: $data['metadata'],
             method: $data['method'],
+            netCents: $data['net_cents'],
+            payoutDepositedOn: $data['payout_deposited_on'] ?? null,
+            payoutId: $data['payout_id'] ?? null,
             periodEnd: $data['period_end'] ?? null,
             periodStart: $data['period_start'] ?? null,
             refundedCents: $data['refunded_cents'],
             showcaseId: $data['showcase_id'],
+            split: array_values(array_map(static fn (array $item) => SplitRecipient::fromArray($item), $data['split'])),
             state: $data['state'],
             subscriptionId: $data['subscription_id'] ?? null,
         );

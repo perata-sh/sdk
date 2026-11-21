@@ -207,6 +207,113 @@ public final class {{pascal .Service.Name}}Service {
             }
         }
     }
+{{- else if filteredGet .}}
+
+    /**
+     * {{javaText .Summary}}. The filters are optional.{{template "doc" .}}
+{{- range .PathParams}}
+     * @param {{javaName .}} the {{.}}
+{{- end}}
+     * @param params the filters, or null
+     * @param options options for this call, or null
+     * @return the {{lower .Response}}
+     * @throws PerataException when the API refuses the call
+     */
+    public {{.Response}} {{camel .Name}}({{template "sig" .}}{{pascal .Name}}Params params, RequestOptions options) {
+        Object data = client.request({{quote .HTTPMethod}}, {{template "path" .}}, params == null ? null : params.query(), null, null, options);
+        return {{.Response}}.fromJson(Json.asObject(data));
+    }
+
+    /**
+     * {{javaText .Summary}}.{{template "doc" .}}
+{{- range .PathParams}}
+     * @param {{javaName .}} the {{.}}
+{{- end}}
+     * @param params the filters, or null
+     * @return the {{lower .Response}}
+     */
+    public {{.Response}} {{camel .Name}}({{template "sig" .}}{{pascal .Name}}Params params) {
+        return {{camel .Name}}({{template "args" .}}params, null);
+    }
+
+    /**
+     * {{javaText .Summary}}, with no filter.{{template "doc" .}}
+{{- range .PathParams}}
+     * @param {{javaName .}} the {{.}}
+{{- end}}
+     * @return the {{lower .Response}}
+     */
+    public {{.Response}} {{camel .Name}}({{template "only" .}}) {
+        return {{camel .Name}}({{template "args" .}}null, null);
+    }
+
+    /** The filters of {{.OperationID}}. */
+    public static final class {{pascal .Name}}Params {
+{{- range .Query}}
+        private final {{if .Map}}Map<String, String>{{else}}String{{end}} {{javaName .Name}};
+{{- end}}
+
+        private {{pascal .Name}}Params(Builder builder) {
+{{- range .Query}}
+            this.{{javaName .Name}} = builder.{{javaName .Name}};
+{{- end}}
+        }
+
+        /** @return a builder of the filters */
+        public static Builder builder() {
+            return new Builder();
+        }
+{{- range .Query}}
+
+        /** @return {{if .Description}}{{javaText .Description}}{{else}}the {@code {{.Name}}} filter{{end}} (null when not filtered) */
+        public {{if .Map}}Map<String, String>{{else}}String{{end}} {{javaGetter .Name}}() {
+            return {{javaName .Name}};
+        }
+{{- end}}
+
+        Map<String, String> query() {
+            Map<String, String> query = new LinkedHashMap<>();
+{{- range .Query}}
+{{- if .Map}}
+            if ({{javaName .Name}} != null) {
+                // A map filter is one pair a key: {{.Name}}[key]=value, the keys sorted.
+                for (Map.Entry<String, String> pair : new TreeMap<>({{javaName .Name}}).entrySet()) {
+                    query.put({{quote .Name}} + "[" + pair.getKey() + "]", pair.getValue());
+                }
+            }
+{{- else}}
+            query.put({{quote .Name}}, {{javaName .Name}});
+{{- end}}
+{{- end}}
+            return query;
+        }
+
+        /** Builds {@link {{pascal .Name}}Params}. */
+        public static final class Builder {
+{{- range .Query}}
+            private {{if .Map}}Map<String, String>{{else}}String{{end}} {{javaName .Name}};
+{{- end}}
+
+            private Builder() {
+            }
+{{- range .Query}}
+
+            /**
+             * @param {{javaName .Name}} {{if .Description}}{{javaText .Description}}{{else}}the {@code {{.Name}}} filter{{end}}
+             * @return this builder
+             */
+            public Builder {{javaName .Name}}({{if .Map}}Map<String, String>{{else}}String{{end}} {{javaName .Name}}) {
+                this.{{javaName .Name}} = {{if .Map}}{{javaName .Name}} == null ? null : new TreeMap<>({{javaName .Name}}){{else}}{{javaName .Name}}{{end}};
+                return this;
+            }
+{{- end}}
+
+            /** @return the filters */
+            public {{pascal .Name}}Params build() {
+                return new {{pascal .Name}}Params(this);
+            }
+        }
+    }
 {{- else}}
 
     /**

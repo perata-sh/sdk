@@ -2,6 +2,51 @@
 
 // The resources Peráta's API answers and the bodies its writes take.
 
+/// Balance is a resource of Peráta's API.
+public struct Balance: Codable, Sendable, Hashable {
+    public let currency: BalanceCurrency
+    /// Depositado no período de period_from a period_to: a soma do valor líquido dos repasses depositados nesses dias. Não faz parte do total a receber.
+    public let depositedCents: Int
+    /// Retido para análise: o valor que teria sido liberado ou previsto, mas que a Peráta mantém retido enquanto a conta da organização está em análise. Volta a ser liberado quando a análise termina.
+    public let heldCents: Int
+    /// A receber depois: o que falta do total e ainda não tem data de repasse, como as parcelas além dos próximos 31 dias.
+    public let laterCents: Int
+    /// O primeiro dia do período de deposited_cents, AAAA-MM-DD. Sem date_from na chamada, são os 30 dias até period_to.
+    public let periodFrom: String
+    /// O último dia do período de deposited_cents, AAAA-MM-DD. Sem date_to na chamada, é hoje.
+    public let periodTo: String
+    /// Liberado para repasse: o valor cuja data de repasse já chegou e que a Peráta ainda não registrou como depositado. Está em processamento.
+    public let releasedCents: Int
+    /// Previsto: o valor com data de repasse nos próximos 31 dias.
+    public let scheduledCents: Int
+    /// O valor total a receber: tudo o que a organização ainda vai receber das vendas capturadas, já descontadas as tarifas e os reembolsos. É sempre released_cents + held_cents + scheduled_cents + later_cents.
+    public let totalToReceiveCents: Int
+
+    public init(currency: BalanceCurrency, depositedCents: Int, heldCents: Int, laterCents: Int, periodFrom: String, periodTo: String, releasedCents: Int, scheduledCents: Int, totalToReceiveCents: Int) {
+        self.currency = currency
+        self.depositedCents = depositedCents
+        self.heldCents = heldCents
+        self.laterCents = laterCents
+        self.periodFrom = periodFrom
+        self.periodTo = periodTo
+        self.releasedCents = releasedCents
+        self.scheduledCents = scheduledCents
+        self.totalToReceiveCents = totalToReceiveCents
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case currency
+        case depositedCents = "deposited_cents"
+        case heldCents = "held_cents"
+        case laterCents = "later_cents"
+        case periodFrom = "period_from"
+        case periodTo = "period_to"
+        case releasedCents = "released_cents"
+        case scheduledCents = "scheduled_cents"
+        case totalToReceiveCents = "total_to_receive_cents"
+    }
+}
+
 /// Benefit is a resource of Peráta's API.
 public struct Benefit: Codable, Sendable, Hashable {
     public let createdAt: String
@@ -233,9 +278,13 @@ public struct Checkout: Codable, Sendable, Hashable {
     public let label: String
     /// Os pares que o seu servidor guardou na criação; voltam nos eventos da venda.
     public let metadata: [String: JSONValue]
+    /// Falso quando o seu sistema avisa o comprador das cobranças de renovação e a Peráta fica quieta.
+    public let notifyCustomerEmail: Bool
     public let priceID: String
     public let productID: String
     public let quantity: Int
+    /// O renewal_mode da criação: manual, automatic ou buyer_choice; vazio quando foi omitido. A assinatura que o pagamento começa traz o modo a que isso se resolveu em Subscription.renewal_mode.
+    public let renewalMode: CheckoutRenewalMode
     /// O showcase a que pertence: o da chave de API que fez a chamada. Uma chave só alcança o seu showcase.
     public let showcaseID: String
     /// active abre sessões de compra; archived saiu de circulação.
@@ -247,7 +296,7 @@ public struct Checkout: Codable, Sendable, Hashable {
     /// Endereço para onde o comprador é enviado.
     public let url: String
 
-    public init(amountCents: Int?, cancelURL: String, clientReferenceID: String, createdAt: String, discountID: String, expiresAt: String?, firstPeriodExtraDays: Int?, id: String, items: [CheckoutLine], label: String, metadata: [String: JSONValue], priceID: String, productID: String, quantity: Int, showcaseID: String, status: CheckoutStatus, subscriptionStartAt: String?, successURL: String, url: String) {
+    public init(amountCents: Int?, cancelURL: String, clientReferenceID: String, createdAt: String, discountID: String, expiresAt: String?, firstPeriodExtraDays: Int?, id: String, items: [CheckoutLine], label: String, metadata: [String: JSONValue], notifyCustomerEmail: Bool, priceID: String, productID: String, quantity: Int, renewalMode: CheckoutRenewalMode, showcaseID: String, status: CheckoutStatus, subscriptionStartAt: String?, successURL: String, url: String) {
         self.amountCents = amountCents
         self.cancelURL = cancelURL
         self.clientReferenceID = clientReferenceID
@@ -259,9 +308,11 @@ public struct Checkout: Codable, Sendable, Hashable {
         self.items = items
         self.label = label
         self.metadata = metadata
+        self.notifyCustomerEmail = notifyCustomerEmail
         self.priceID = priceID
         self.productID = productID
         self.quantity = quantity
+        self.renewalMode = renewalMode
         self.showcaseID = showcaseID
         self.status = status
         self.subscriptionStartAt = subscriptionStartAt
@@ -281,9 +332,11 @@ public struct Checkout: Codable, Sendable, Hashable {
         case items
         case label
         case metadata
+        case notifyCustomerEmail = "notify_customer_email"
         case priceID = "price_id"
         case productID = "product_id"
         case quantity
+        case renewalMode = "renewal_mode"
         case showcaseID = "showcase_id"
         case status
         case subscriptionStartAt = "subscription_start_at"
@@ -608,9 +661,13 @@ public struct CheckoutCreated: Codable, Sendable, Hashable {
     public let label: String
     /// Os pares que o seu servidor enviou; voltam no pedido, no pagamento e nos eventos da venda (checkout.*, order.*, checkout_payment.* e refund.*).
     public let metadata: [String: JSONValue]
+    /// Falso quando o seu sistema avisa o comprador das cobranças de renovação e a Peráta fica quieta.
+    public let notifyCustomerEmail: Bool
     public let priceID: String
     public let productID: String
     public let quantity: Int
+    /// O renewal_mode da criação: manual, automatic ou buyer_choice; vazio quando foi omitido. A assinatura que o pagamento começa traz o modo a que isso se resolveu em Subscription.renewal_mode.
+    public let renewalMode: CheckoutCreatedRenewalMode
     /// O ID da sessão de checkout; as rotas de cliente dela são /checkouts/client/{client_secret}.
     public let sessionID: String
     /// O showcase a que pertence: o da chave de API que fez a chamada. Uma chave só alcança o seu showcase.
@@ -626,7 +683,7 @@ public struct CheckoutCreated: Codable, Sendable, Hashable {
     /// O endereço hospedado desta sessão: redirecione o comprador para cá, ou abra-o no modal, e ele paga na página da Peráta exatamente a sessão que esta resposta abriu, que aparece no status_key, no GET da sessão e nos webhooks com o mesmo checkout_id. Quem abre o endereço depois do pagamento vê a confirmação e nada é cobrado de novo. Na repetição de uma criação idempotente o segredo não existe mais e o endereço volta a ser o do link, que abre uma sessão nova a cada visita.
     public let url: String
 
-    public init(amountCents: Int?, cancelURL: String, clientReferenceID: String, clientSecret: String, clientSecretExpiresAt: String, createdAt: String, discountID: String, expiresAt: String?, firstPeriodExtraDays: Int?, id: String, items: [CheckoutLine], label: String, metadata: [String: JSONValue], priceID: String, productID: String, quantity: Int, sessionID: String, showcaseID: String, status: CheckoutCreatedStatus, statusKey: String, subscriptionStartAt: String?, successURL: String, url: String) {
+    public init(amountCents: Int?, cancelURL: String, clientReferenceID: String, clientSecret: String, clientSecretExpiresAt: String, createdAt: String, discountID: String, expiresAt: String?, firstPeriodExtraDays: Int?, id: String, items: [CheckoutLine], label: String, metadata: [String: JSONValue], notifyCustomerEmail: Bool, priceID: String, productID: String, quantity: Int, renewalMode: CheckoutCreatedRenewalMode, sessionID: String, showcaseID: String, status: CheckoutCreatedStatus, statusKey: String, subscriptionStartAt: String?, successURL: String, url: String) {
         self.amountCents = amountCents
         self.cancelURL = cancelURL
         self.clientReferenceID = clientReferenceID
@@ -640,9 +697,11 @@ public struct CheckoutCreated: Codable, Sendable, Hashable {
         self.items = items
         self.label = label
         self.metadata = metadata
+        self.notifyCustomerEmail = notifyCustomerEmail
         self.priceID = priceID
         self.productID = productID
         self.quantity = quantity
+        self.renewalMode = renewalMode
         self.sessionID = sessionID
         self.showcaseID = showcaseID
         self.status = status
@@ -666,9 +725,11 @@ public struct CheckoutCreated: Codable, Sendable, Hashable {
         case items
         case label
         case metadata
+        case notifyCustomerEmail = "notify_customer_email"
         case priceID = "price_id"
         case productID = "product_id"
         case quantity
+        case renewalMode = "renewal_mode"
         case sessionID = "session_id"
         case showcaseID = "showcase_id"
         case status
@@ -1699,6 +1760,10 @@ public struct Payment: Codable, Sendable, Hashable {
     public let customerID: String
     /// Qual ciclo da assinatura o pagamento pagou: 1 é o primeiro; nulo fora de uma assinatura.
     public let cycleSequence: Int?
+    /// A data prevista do próximo repasse que paga este pagamento, AAAA-MM-DD; nula quando nenhum repasse está esperando (já foi todo depositado, não foi capturado ou a data ainda não é conhecida). Num pagamento parcelado, é a da próxima parcela.
+    public let expectedPayoutOn: String?
+    /// A tarifa que a Peráta cobrou desta venda, em centavos: a parte do valor capturado que a Peráta retém. 0 enquanto o pagamento não foi capturado.
+    public let feeCents: Int
     public let id: String
     /// Valor de uma parcela; 0 à vista.
     public let installmentAmountCents: Int
@@ -1709,6 +1774,12 @@ public struct Payment: Codable, Sendable, Hashable {
     /// Os pares que o seu servidor enviou ao criar o checkout. Na renovação de uma assinatura são os da assinatura, que começou com os do checkout que a vendeu.
     public let metadata: [String: JSONValue]
     public let method: PaymentMethodKind
+    /// O valor líquido da venda, em centavos: captured_cents menos fee_cents, o que fica para o vendedor, antes de reembolsos. 0 enquanto o pagamento não foi capturado.
+    public let netCents: Int
+    /// O dia em que o último repasse que pagou este pagamento foi depositado, AAAA-MM-DD; nulo enquanto nenhum foi.
+    public let payoutDepositedOn: String?
+    /// O repasse em que o pagamento foi depositado: o id de GET /payouts/{id}; nulo enquanto nenhum foi. Num pagamento parcelado, é o da última parcela depositada.
+    public let payoutID: String?
     /// O fim do período que o ciclo paga; nulo fora de uma assinatura.
     public let periodEnd: String?
     /// O começo do período que o ciclo paga; nulo fora de uma assinatura.
@@ -1716,11 +1787,13 @@ public struct Payment: Codable, Sendable, Hashable {
     public let refundedCents: Int
     /// O showcase a que pertence: o da chave de API que fez a chamada. Uma chave só alcança o seu showcase.
     public let showcaseID: String
+    /// Como a venda foi dividida entre os destinatários, cada um com a sua parte, a tarifa e o líquido; uma venda sem divisão tem um só destinatário.
+    public let split: [SplitRecipient]
     public let state: PaymentState
     /// A assinatura que este pagamento cobrou (a primeira ou uma renovação); nulo quando o pagamento não é de uma assinatura.
     public let subscriptionID: String?
 
-    public init(amountCents: Int, capturedCents: Int, checkoutID: String, clientReferenceID: String, createdAt: String, currency: PaymentCurrency, customerID: String, cycleSequence: Int?, id: String, installmentAmountCents: Int, installmentInterestCents: Int, installments: Int, metadata: [String: JSONValue], method: PaymentMethodKind, periodEnd: String?, periodStart: String?, refundedCents: Int, showcaseID: String, state: PaymentState, subscriptionID: String?) {
+    public init(amountCents: Int, capturedCents: Int, checkoutID: String, clientReferenceID: String, createdAt: String, currency: PaymentCurrency, customerID: String, cycleSequence: Int?, expectedPayoutOn: String?, feeCents: Int, id: String, installmentAmountCents: Int, installmentInterestCents: Int, installments: Int, metadata: [String: JSONValue], method: PaymentMethodKind, netCents: Int, payoutDepositedOn: String?, payoutID: String?, periodEnd: String?, periodStart: String?, refundedCents: Int, showcaseID: String, split: [SplitRecipient], state: PaymentState, subscriptionID: String?) {
         self.amountCents = amountCents
         self.capturedCents = capturedCents
         self.checkoutID = checkoutID
@@ -1729,16 +1802,22 @@ public struct Payment: Codable, Sendable, Hashable {
         self.currency = currency
         self.customerID = customerID
         self.cycleSequence = cycleSequence
+        self.expectedPayoutOn = expectedPayoutOn
+        self.feeCents = feeCents
         self.id = id
         self.installmentAmountCents = installmentAmountCents
         self.installmentInterestCents = installmentInterestCents
         self.installments = installments
         self.metadata = metadata
         self.method = method
+        self.netCents = netCents
+        self.payoutDepositedOn = payoutDepositedOn
+        self.payoutID = payoutID
         self.periodEnd = periodEnd
         self.periodStart = periodStart
         self.refundedCents = refundedCents
         self.showcaseID = showcaseID
+        self.split = split
         self.state = state
         self.subscriptionID = subscriptionID
     }
@@ -1752,16 +1831,22 @@ public struct Payment: Codable, Sendable, Hashable {
         case currency
         case customerID = "customer_id"
         case cycleSequence = "cycle_sequence"
+        case expectedPayoutOn = "expected_payout_on"
+        case feeCents = "fee_cents"
         case id
         case installmentAmountCents = "installment_amount_cents"
         case installmentInterestCents = "installment_interest_cents"
         case installments
         case metadata
         case method
+        case netCents = "net_cents"
+        case payoutDepositedOn = "payout_deposited_on"
+        case payoutID = "payout_id"
         case periodEnd = "period_end"
         case periodStart = "period_start"
         case refundedCents = "refunded_cents"
         case showcaseID = "showcase_id"
+        case split
         case state
         case subscriptionID = "subscription_id"
     }
@@ -1805,6 +1890,138 @@ public struct PaymentMethodDetached: Codable, Sendable, Hashable {
     enum CodingKeys: String, CodingKey {
         case detached
         case id
+    }
+}
+
+/// Payout is a resource of Peráta's API.
+public struct Payout: Codable, Sendable, Hashable {
+    /// O valor das vendas pagas neste repasse, antes das tarifas, em centavos, já com os reembolsos e as contestações que o repasse compensa (que o reduzem).
+    public let amountCents: Int
+    public let currency: PayoutCurrency
+    /// O dia em que o repasse foi depositado, AAAA-MM-DD; nulo enquanto não foi.
+    public let depositedOn: String?
+    /// A data do repasse, AAAA-MM-DD: quando o valor é, ou foi, depositado.
+    public let expectedOn: String
+    /// O que o repasse desconta em tarifas, em centavos: a parte de cada venda que a Peráta retém e as tarifas cobradas no dia.
+    public let feeCents: Int
+    /// O id do repasse: po_ e a data do repasse, como po_20261120.
+    public let id: String
+    /// Quantos lançamentos o repasse tem.
+    public let itemCount: Int
+    /// O valor líquido do repasse, em centavos: amount_cents menos fee_cents, o que é depositado. Pode ser negativo quando os reembolsos do dia superam as vendas; então o saldo é compensado nos próximos repasses.
+    public let netCents: Int
+    /// scheduled: previsto, com data nos próximos dias. released: liberado para repasse, a data chegou e o depósito está em processamento. held: retido para análise enquanto a conta da organização está em análise. deposited: depositado na conta da organização, em deposited_on.
+    public let status: PayoutStatus
+
+    public init(amountCents: Int, currency: PayoutCurrency, depositedOn: String?, expectedOn: String, feeCents: Int, id: String, itemCount: Int, netCents: Int, status: PayoutStatus) {
+        self.amountCents = amountCents
+        self.currency = currency
+        self.depositedOn = depositedOn
+        self.expectedOn = expectedOn
+        self.feeCents = feeCents
+        self.id = id
+        self.itemCount = itemCount
+        self.netCents = netCents
+        self.status = status
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case amountCents = "amount_cents"
+        case currency
+        case depositedOn = "deposited_on"
+        case expectedOn = "expected_on"
+        case feeCents = "fee_cents"
+        case id
+        case itemCount = "item_count"
+        case netCents = "net_cents"
+        case status
+    }
+}
+
+/// PayoutDetail is a resource of Peráta's API.
+public struct PayoutDetail: Codable, Sendable, Hashable {
+    /// O valor das vendas pagas neste repasse, antes das tarifas, em centavos, já com os reembolsos e as contestações que o repasse compensa (que o reduzem).
+    public let amountCents: Int
+    public let currency: PayoutDetailCurrency
+    /// O dia em que o repasse foi depositado, AAAA-MM-DD; nulo enquanto não foi.
+    public let depositedOn: String?
+    /// A data do repasse, AAAA-MM-DD: quando o valor é, ou foi, depositado.
+    public let expectedOn: String
+    /// O que o repasse desconta em tarifas, em centavos: a parte de cada venda que a Peráta retém e as tarifas cobradas no dia.
+    public let feeCents: Int
+    /// O id do repasse: po_ e a data do repasse, como po_20261120.
+    public let id: String
+    /// Quantos lançamentos o repasse tem.
+    public let itemCount: Int
+    /// Os lançamentos do repasse, com o pagamento de cada um.
+    public let items: [PayoutItem]
+    /// O valor líquido do repasse, em centavos: amount_cents menos fee_cents, o que é depositado. Pode ser negativo quando os reembolsos do dia superam as vendas; então o saldo é compensado nos próximos repasses.
+    public let netCents: Int
+    /// scheduled: previsto, com data nos próximos dias. released: liberado para repasse, a data chegou e o depósito está em processamento. held: retido para análise enquanto a conta da organização está em análise. deposited: depositado na conta da organização, em deposited_on.
+    public let status: PayoutDetailStatus
+
+    public init(amountCents: Int, currency: PayoutDetailCurrency, depositedOn: String?, expectedOn: String, feeCents: Int, id: String, itemCount: Int, items: [PayoutItem], netCents: Int, status: PayoutDetailStatus) {
+        self.amountCents = amountCents
+        self.currency = currency
+        self.depositedOn = depositedOn
+        self.expectedOn = expectedOn
+        self.feeCents = feeCents
+        self.id = id
+        self.itemCount = itemCount
+        self.items = items
+        self.netCents = netCents
+        self.status = status
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case amountCents = "amount_cents"
+        case currency
+        case depositedOn = "deposited_on"
+        case expectedOn = "expected_on"
+        case feeCents = "fee_cents"
+        case id
+        case itemCount = "item_count"
+        case items
+        case netCents = "net_cents"
+        case status
+    }
+}
+
+/// PayoutItem is a resource of Peráta's API.
+public struct PayoutItem: Codable, Sendable, Hashable {
+    /// O valor do lançamento antes da tarifa, em centavos; negativo nos reembolsos e nas contestações.
+    public let amountCents: Int
+    /// A tarifa do lançamento, em centavos.
+    public let feeCents: Int
+    /// Qual parcela da venda o lançamento paga; 0 quando a venda foi à vista.
+    public let installment: Int
+    /// sale: uma venda (ou uma parcela dela). refund: um reembolso que o repasse compensa. chargeback: uma contestação. fee: uma tarifa do dia. adjustment: um ajuste. anticipation: uma antecipação de recebíveis.
+    public let kind: PayoutItemKind
+    /// amount_cents menos fee_cents: o que o lançamento acrescenta ao depósito.
+    public let netCents: Int
+    /// O pagamento a que o lançamento se refere, o id de GET /payments/{id}; nulo nas tarifas e nos ajustes que não são de um pagamento.
+    public let paymentID: String?
+    /// Como o do repasse, para este lançamento: um repasse com lançamentos em estados diferentes está no menos avançado deles.
+    public let status: PayoutItemStatus
+
+    public init(amountCents: Int, feeCents: Int, installment: Int, kind: PayoutItemKind, netCents: Int, paymentID: String?, status: PayoutItemStatus) {
+        self.amountCents = amountCents
+        self.feeCents = feeCents
+        self.installment = installment
+        self.kind = kind
+        self.netCents = netCents
+        self.paymentID = paymentID
+        self.status = status
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case amountCents = "amount_cents"
+        case feeCents = "fee_cents"
+        case installment
+        case kind
+        case netCents = "net_cents"
+        case paymentID = "payment_id"
+        case status
     }
 }
 
@@ -1971,6 +2188,93 @@ public struct Refund: Codable, Sendable, Hashable {
     }
 }
 
+/// RenewalCharge is a resource of Peráta's API.
+public struct RenewalCharge: Codable, Sendable, Hashable {
+    /// O que o comprador paga, em centavos: o ciclo já com desconto e rateio.
+    public let amountCents: Int
+    /// O client_reference_id da assinatura.
+    public let clientReferenceID: String
+    public let currency: RenewalChargeCurrency
+    public let customerID: String
+    /// O ciclo que a cobrança paga: 2 é a primeira renovação.
+    public let cycleSequence: Int
+    /// Só nos lembretes: 3 em before_due, 0 em on_due; nulo no resto.
+    public let daysUntilDue: Int?
+    /// Até quando a cobrança deve ser paga sem a assinatura ficar em atraso: o fim do período que ela cobra. Passado o prazo, a assinatura vira past_due e o mesmo payment_url continua valendo por mais 72 horas de tolerância; depois disso a assinatura é suspensa.
+    public let dueAt: String
+    /// Quando o payment_url deixa de abrir; sempre depois da tolerância de 72 horas.
+    public let expiresAt: String?
+    /// O id da cobrança, que é o do ciclo da assinatura que ela cobra. O pedido só existe depois do pagamento: o order.paid que vem então traz o mesmo subscription_id e cycle_sequence.
+    public let id: String
+    /// O label da assinatura; vazio sem ele.
+    public let label: String
+    /// Os metadados da assinatura.
+    public let metadata: [String: JSONValue]
+    /// Se a Peráta escreve ao comprador desta cobrança.
+    public let notifyCustomerEmail: Bool
+    /// A página da Peráta onde o comprador paga esta cobrança, por cartão, Pix ou boleto. O Pix é gerado nessa página, quando o comprador o escolhe, e vale 24 horas: a Peráta não gera o Pix na abertura da cobrança porque ele venceria antes do prazo da cobrança e, enquanto vale, impediria pagar de outro jeito. Entregue este endereço ao comprador.
+    public let paymentURL: String
+    public let periodEnd: String
+    public let periodStart: String
+    public let priceID: String
+    public let productID: String
+    /// Só nos eventos subscription.renewal_reminder: before_due (3 dias antes de due_at) ou on_due (no vencimento). Nulo na cobrança e em subscription.renewal_due.
+    public let reminder: RenewalChargeReminder?
+    /// O modo de renovação da assinatura. Uma cobrança em aberto existe nos modos manual e, quando o cartão é recusado, card.
+    public let renewalMode: RenewalChargeRenewalMode
+    /// O showcase a que pertence: o da chave de API que fez a chamada.
+    public let showcaseID: String
+    public let subscriptionID: String
+
+    public init(amountCents: Int, clientReferenceID: String, currency: RenewalChargeCurrency, customerID: String, cycleSequence: Int, daysUntilDue: Int?, dueAt: String, expiresAt: String?, id: String, label: String, metadata: [String: JSONValue], notifyCustomerEmail: Bool, paymentURL: String, periodEnd: String, periodStart: String, priceID: String, productID: String, reminder: RenewalChargeReminder?, renewalMode: RenewalChargeRenewalMode, showcaseID: String, subscriptionID: String) {
+        self.amountCents = amountCents
+        self.clientReferenceID = clientReferenceID
+        self.currency = currency
+        self.customerID = customerID
+        self.cycleSequence = cycleSequence
+        self.daysUntilDue = daysUntilDue
+        self.dueAt = dueAt
+        self.expiresAt = expiresAt
+        self.id = id
+        self.label = label
+        self.metadata = metadata
+        self.notifyCustomerEmail = notifyCustomerEmail
+        self.paymentURL = paymentURL
+        self.periodEnd = periodEnd
+        self.periodStart = periodStart
+        self.priceID = priceID
+        self.productID = productID
+        self.reminder = reminder
+        self.renewalMode = renewalMode
+        self.showcaseID = showcaseID
+        self.subscriptionID = subscriptionID
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case amountCents = "amount_cents"
+        case clientReferenceID = "client_reference_id"
+        case currency
+        case customerID = "customer_id"
+        case cycleSequence = "cycle_sequence"
+        case daysUntilDue = "days_until_due"
+        case dueAt = "due_at"
+        case expiresAt = "expires_at"
+        case id
+        case label
+        case metadata
+        case notifyCustomerEmail = "notify_customer_email"
+        case paymentURL = "payment_url"
+        case periodEnd = "period_end"
+        case periodStart = "period_start"
+        case priceID = "price_id"
+        case productID = "product_id"
+        case reminder
+        case renewalMode = "renewal_mode"
+        case showcaseID = "showcase_id"
+        case subscriptionID = "subscription_id"
+    }
+}
+
 /// Showcase is a resource of Peráta's API.
 public struct Showcase: Codable, Sendable, Hashable {
     public let createdAt: String
@@ -2004,6 +2308,32 @@ public struct Showcase: Codable, Sendable, Hashable {
     }
 }
 
+/// SplitRecipient is a resource of Peráta's API.
+public struct SplitRecipient: Codable, Sendable, Hashable {
+    /// O valor da parte deste destinatário, antes da tarifa, em centavos.
+    public let amountCents: Int
+    /// A tarifa que esta parte pagou, em centavos.
+    public let feeCents: Int
+    /// amount_cents menos fee_cents: o que sobra ao destinatário.
+    public let netCents: Int
+    /// O showcase destinatário desta parte da venda; nulo quando a Peráta não o identifica.
+    public let recipientID: String?
+
+    public init(amountCents: Int, feeCents: Int, netCents: Int, recipientID: String?) {
+        self.amountCents = amountCents
+        self.feeCents = feeCents
+        self.netCents = netCents
+        self.recipientID = recipientID
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case amountCents = "amount_cents"
+        case feeCents = "fee_cents"
+        case netCents = "net_cents"
+        case recipientID = "recipient_id"
+    }
+}
+
 /// Subscription is a resource of Peráta's API.
 public struct Subscription: Codable, Sendable, Hashable {
     /// O que a assinatura cobra a cada ciclo, em centavos, já para a quantity que ela tem: é o total do ciclo, não o preço de uma unidade. O preço por unidade, por assento ou por faixas já está aplicado à quantity.
@@ -2023,14 +2353,20 @@ public struct Subscription: Codable, Sendable, Hashable {
     public let firstPeriodExtraDays: Int?
     public let id: String
     public let interval: String
+    /// O nome que você deu à assinatura, copiado do label do checkout que a vendeu (por exemplo, Olho de Águia · Colaborador Ana); vazio sem ele. É o título da assinatura no portal do cliente e no painel. Troque com PATCH, até 200 caracteres.
+    public let label: String
     /// Metadados do lojista: pares chave e valor (texto, número ou booleano); objeto vazio quando não há.
     public let metadata: [String: JSONValue]
+    /// Verdadeiro enquanto a Peráta escreve ao comprador a cada cobrança de renovação; falso quando o seu sistema avisa o comprador e a Peráta fica quieta. Vem do notify_customer_email do checkout (verdadeiro por padrão) e ainda depende do aviso Cobrança da renovação em Configurações › Preferências, que a organização pode desligar.
+    public let notifyCustomerEmail: Bool
     /// A mudança de plano ou de quantidade agendada para o próximo período (PATCH com proration_behavior next_period); nulo quando não há nenhuma. Até effective_at a assinatura segue com o price_id, a quantity e o amount_cents de cima.
     public let pendingUpdate: SubscriptionPendingUpdate?
     public let priceID: String
     public let productID: String
     /// Quantas unidades ou assentos a assinatura cobre, de 1 em diante; 1 num preço sem quantidade. amount_cents é o total do ciclo para esta quantity.
     public let quantity: Int
+    /// Como os próximos períodos são cobrados: manual (a cada ciclo a Peráta abre uma cobrança para o comprador pagar, com o evento subscription.renewal_due, e o cartão nunca é cobrado), card (o cartão de crédito guardado é cobrado sozinho) ou pix_automatic (o banco debita cada cobrança, autorizada uma vez pelo comprador). card e pix_automatic são os modos automáticos. Vem do renewal_mode do checkout; sem ele, é card quando o pagamento guardou o cartão e manual nos outros meios. Troque com PATCH (manual, ou card quando há cartão guardado).
+    public let renewalMode: SubscriptionRenewalMode
     /// O showcase a que pertence: o da chave de API que fez a chamada. Uma chave só alcança o seu showcase.
     public let showcaseID: String
     public let status: SubscriptionStatus
@@ -2041,7 +2377,7 @@ public struct Subscription: Codable, Sendable, Hashable {
     public let trialEnd: String?
     public let trialStart: String?
 
-    public init(amountCents: Int, cancelAtPeriodEnd: Bool, clientReferenceID: String, currency: SubscriptionCurrency, currentPeriodEnd: String, currentPeriodStart: String, customerID: String, discountEndsAt: String?, discountID: String?, firstPeriodExtraDays: Int?, id: String, interval: String, metadata: [String: JSONValue], pendingUpdate: SubscriptionPendingUpdate?, priceID: String, productID: String, quantity: Int, showcaseID: String, status: SubscriptionStatus, suspendedAt: String?, suspensionReason: SubscriptionSuspensionReason?, trialEnd: String?, trialStart: String?) {
+    public init(amountCents: Int, cancelAtPeriodEnd: Bool, clientReferenceID: String, currency: SubscriptionCurrency, currentPeriodEnd: String, currentPeriodStart: String, customerID: String, discountEndsAt: String?, discountID: String?, firstPeriodExtraDays: Int?, id: String, interval: String, label: String, metadata: [String: JSONValue], notifyCustomerEmail: Bool, pendingUpdate: SubscriptionPendingUpdate?, priceID: String, productID: String, quantity: Int, renewalMode: SubscriptionRenewalMode, showcaseID: String, status: SubscriptionStatus, suspendedAt: String?, suspensionReason: SubscriptionSuspensionReason?, trialEnd: String?, trialStart: String?) {
         self.amountCents = amountCents
         self.cancelAtPeriodEnd = cancelAtPeriodEnd
         self.clientReferenceID = clientReferenceID
@@ -2054,11 +2390,14 @@ public struct Subscription: Codable, Sendable, Hashable {
         self.firstPeriodExtraDays = firstPeriodExtraDays
         self.id = id
         self.interval = interval
+        self.label = label
         self.metadata = metadata
+        self.notifyCustomerEmail = notifyCustomerEmail
         self.pendingUpdate = pendingUpdate
         self.priceID = priceID
         self.productID = productID
         self.quantity = quantity
+        self.renewalMode = renewalMode
         self.showcaseID = showcaseID
         self.status = status
         self.suspendedAt = suspendedAt
@@ -2080,11 +2419,14 @@ public struct Subscription: Codable, Sendable, Hashable {
         case firstPeriodExtraDays = "first_period_extra_days"
         case id
         case interval
+        case label
         case metadata
+        case notifyCustomerEmail = "notify_customer_email"
         case pendingUpdate = "pending_update"
         case priceID = "price_id"
         case productID = "product_id"
         case quantity
+        case renewalMode = "renewal_mode"
         case showcaseID = "showcase_id"
         case status
         case suspendedAt = "suspended_at"
@@ -2659,6 +3001,92 @@ public struct WebhookRefund: Codable, Sendable, Hashable {
     }
 }
 
+/// A cobrança de renovação que espera o comprador pagar (subscription.renewal_due e subscription.renewal_reminder), a mesma que GET /api/v1/subscriptions/{id}/open-charge devolve. Traz o que o seu sistema precisa para avisar o comprador: o valor, o prazo e a página onde ele paga.
+public struct WebhookRenewalCharge: Codable, Sendable, Hashable {
+    /// O que o comprador paga, em centavos: o ciclo já com desconto e rateio.
+    public let amountCents: Int
+    /// O client_reference_id da assinatura.
+    public let clientReferenceID: String
+    public let currency: WebhookRenewalChargeCurrency
+    public let customerID: String
+    /// O ciclo que a cobrança paga: 2 é a primeira renovação.
+    public let cycleSequence: Int
+    /// Só nos lembretes: 3 em before_due, 0 em on_due; nulo no resto.
+    public let daysUntilDue: Int?
+    /// Até quando a cobrança deve ser paga sem a assinatura ficar em atraso: o fim do período que ela cobra. Passado o prazo, a assinatura vira past_due e o mesmo payment_url continua valendo pela tolerância de 72 horas; depois disso a assinatura é suspensa.
+    public let dueAt: String
+    /// Quando o payment_url deixa de abrir; sempre depois da tolerância de 72 horas.
+    public let expiresAt: String?
+    /// O id da cobrança, que é o do ciclo da assinatura que ela cobra. O pedido só existe depois do pagamento: o order.paid que vem então traz o mesmo subscription_id e cycle_sequence.
+    public let id: String
+    /// O label da assinatura; vazio sem ele.
+    public let label: String
+    /// Os metadados da assinatura.
+    public let metadata: [String: JSONValue]
+    /// Se a Peráta escreve ao comprador desta cobrança.
+    public let notifyCustomerEmail: Bool
+    /// A página da Peráta onde o comprador paga, por cartão, Pix ou boleto. O Pix é gerado nela, quando o comprador o escolhe, e vale 24 horas: a Peráta não gera o Pix na abertura da cobrança porque ele venceria antes do prazo e, enquanto vale, impediria pagar de outro jeito. Entregue este endereço ao comprador.
+    public let paymentURL: String
+    public let periodEnd: String
+    public let periodStart: String
+    public let priceID: String
+    public let productID: String
+    /// Só em subscription.renewal_reminder: before_due (3 dias antes de due_at) ou on_due (no vencimento). Nulo na cobrança e em subscription.renewal_due.
+    public let reminder: WebhookRenewalChargeReminder?
+    /// O modo de renovação da assinatura. Uma cobrança em aberto existe no manual e, quando o cartão é recusado, no card.
+    public let renewalMode: WebhookRenewalChargeRenewalMode
+    public let showcaseID: String
+    public let subscriptionID: String
+
+    public init(amountCents: Int, clientReferenceID: String, currency: WebhookRenewalChargeCurrency, customerID: String, cycleSequence: Int, daysUntilDue: Int?, dueAt: String, expiresAt: String?, id: String, label: String, metadata: [String: JSONValue], notifyCustomerEmail: Bool, paymentURL: String, periodEnd: String, periodStart: String, priceID: String, productID: String, reminder: WebhookRenewalChargeReminder?, renewalMode: WebhookRenewalChargeRenewalMode, showcaseID: String, subscriptionID: String) {
+        self.amountCents = amountCents
+        self.clientReferenceID = clientReferenceID
+        self.currency = currency
+        self.customerID = customerID
+        self.cycleSequence = cycleSequence
+        self.daysUntilDue = daysUntilDue
+        self.dueAt = dueAt
+        self.expiresAt = expiresAt
+        self.id = id
+        self.label = label
+        self.metadata = metadata
+        self.notifyCustomerEmail = notifyCustomerEmail
+        self.paymentURL = paymentURL
+        self.periodEnd = periodEnd
+        self.periodStart = periodStart
+        self.priceID = priceID
+        self.productID = productID
+        self.reminder = reminder
+        self.renewalMode = renewalMode
+        self.showcaseID = showcaseID
+        self.subscriptionID = subscriptionID
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case amountCents = "amount_cents"
+        case clientReferenceID = "client_reference_id"
+        case currency
+        case customerID = "customer_id"
+        case cycleSequence = "cycle_sequence"
+        case daysUntilDue = "days_until_due"
+        case dueAt = "due_at"
+        case expiresAt = "expires_at"
+        case id
+        case label
+        case metadata
+        case notifyCustomerEmail = "notify_customer_email"
+        case paymentURL = "payment_url"
+        case periodEnd = "period_end"
+        case periodStart = "period_start"
+        case priceID = "price_id"
+        case productID = "product_id"
+        case reminder
+        case renewalMode = "renewal_mode"
+        case showcaseID = "showcase_id"
+        case subscriptionID = "subscription_id"
+    }
+}
+
 /// Os eventos da venda (checkout_payment.* e refund.*): os identificadores de sempre e, além deles, o checkout, o valor e o que o servidor do lojista enviou ao criar o checkout.
 public struct WebhookSale: Codable, Sendable, Hashable {
     public let aggregate: String
@@ -2766,8 +3194,12 @@ public struct WebhookSubscription: Codable, Sendable, Hashable {
     public let firstPeriodExtraDays: Int?
     public let id: String
     public let interval: String
+    /// O nome que o lojista deu à assinatura, copiado do label do checkout que a vendeu; vazio sem ele.
+    public let label: String
     /// Metadados do lojista: pares chave e valor (texto, número ou booleano); objeto vazio quando não há.
     public let metadata: [String: JSONValue]
+    /// Verdadeiro enquanto a Peráta escreve ao comprador a cada cobrança de renovação.
+    public let notifyCustomerEmail: Bool
     /// A cobrança recusada que causou o evento; só nos eventos de cobrança recusada.
     public let paymentFailure: WebhookSubscriptionPaymentFailure?
     /// A mudança de plano ou de quantidade agendada para o próximo período (PATCH com proration_behavior next_period); nulo quando não há nenhuma. Até effective_at a assinatura segue com o price_id, a quantity e o amount_cents de cima.
@@ -2776,6 +3208,8 @@ public struct WebhookSubscription: Codable, Sendable, Hashable {
     public let productID: String
     /// Quantas unidades ou assentos a assinatura cobre, de 1 em diante; 1 num preço sem quantidade. amount_cents é o total do ciclo para esta quantity.
     public let quantity: Int
+    /// Como os próximos períodos são cobrados: manual (uma cobrança para o comprador pagar a cada ciclo, com o evento subscription.renewal_due; o cartão nunca é cobrado), card (o cartão de crédito guardado, cobrado sozinho) ou pix_automatic (o banco debita cada cobrança). card e pix_automatic são os automáticos.
+    public let renewalMode: WebhookSubscriptionRenewalMode
     /// O showcase da venda.
     public let showcaseID: String
     public let status: WebhookSubscriptionStatus
@@ -2786,7 +3220,7 @@ public struct WebhookSubscription: Codable, Sendable, Hashable {
     public let trialEnd: String?
     public let trialStart: String?
 
-    public init(amountCents: Int, cancelAtPeriodEnd: Bool, clientReferenceID: String, currency: WebhookSubscriptionCurrency, currentPeriodEnd: String, currentPeriodStart: String, customerID: String, discountEndsAt: String?, discountID: String?, firstPeriodExtraDays: Int?, id: String, interval: String, metadata: [String: JSONValue], pendingUpdate: WebhookSubscriptionPendingUpdate?, priceID: String, productID: String, quantity: Int, showcaseID: String, status: WebhookSubscriptionStatus, suspendedAt: String?, suspensionReason: WebhookSubscriptionSuspensionReason?, trialEnd: String?, trialStart: String?, paymentFailure: WebhookSubscriptionPaymentFailure? = nil) {
+    public init(amountCents: Int, cancelAtPeriodEnd: Bool, clientReferenceID: String, currency: WebhookSubscriptionCurrency, currentPeriodEnd: String, currentPeriodStart: String, customerID: String, discountEndsAt: String?, discountID: String?, firstPeriodExtraDays: Int?, id: String, interval: String, label: String, metadata: [String: JSONValue], notifyCustomerEmail: Bool, pendingUpdate: WebhookSubscriptionPendingUpdate?, priceID: String, productID: String, quantity: Int, renewalMode: WebhookSubscriptionRenewalMode, showcaseID: String, status: WebhookSubscriptionStatus, suspendedAt: String?, suspensionReason: WebhookSubscriptionSuspensionReason?, trialEnd: String?, trialStart: String?, paymentFailure: WebhookSubscriptionPaymentFailure? = nil) {
         self.amountCents = amountCents
         self.cancelAtPeriodEnd = cancelAtPeriodEnd
         self.clientReferenceID = clientReferenceID
@@ -2799,12 +3233,15 @@ public struct WebhookSubscription: Codable, Sendable, Hashable {
         self.firstPeriodExtraDays = firstPeriodExtraDays
         self.id = id
         self.interval = interval
+        self.label = label
         self.metadata = metadata
+        self.notifyCustomerEmail = notifyCustomerEmail
         self.paymentFailure = paymentFailure
         self.pendingUpdate = pendingUpdate
         self.priceID = priceID
         self.productID = productID
         self.quantity = quantity
+        self.renewalMode = renewalMode
         self.showcaseID = showcaseID
         self.status = status
         self.suspendedAt = suspendedAt
@@ -2826,12 +3263,15 @@ public struct WebhookSubscription: Codable, Sendable, Hashable {
         case firstPeriodExtraDays = "first_period_extra_days"
         case id
         case interval
+        case label
         case metadata
+        case notifyCustomerEmail = "notify_customer_email"
         case paymentFailure = "payment_failure"
         case pendingUpdate = "pending_update"
         case priceID = "price_id"
         case productID = "product_id"
         case quantity
+        case renewalMode = "renewal_mode"
         case showcaseID = "showcase_id"
         case status
         case suspendedAt = "suspended_at"
@@ -3223,10 +3663,14 @@ public struct CheckoutsCreateParams: Encodable, Sendable, Hashable {
     public var label: String?
     /// Pares guardados no link do checkout e devolvidos no checkout, no pedido, no pagamento e nos eventos da venda. Até 50 pares de chave e valor: a chave tem de 1 a 40 caracteres, e o valor é um texto de 1 a 500 caracteres, um número ou um booleano. Texto sem caracteres de controle nem de direção invisível.
     public var metadata: [String: JSONValue]?
+    /// Verdadeiro por padrão. Falso mantém a Peráta sem escrever ao comprador a cobrança de cada renovação (o seu sistema o avisa pelo evento subscription.renewal_due); a cobrança é aberta do mesmo jeito. Além disso, a organização pode desligar este aviso para todos em Configurações › Preferências › Cobrança da renovação.
+    public var notifyCustomerEmail: Bool?
     public var priceID: String
     public var productID: String
     /// Quantas unidades. Com amount_cents é sempre 1: envie 1 ou omita; qualquer outro valor é recusado com 422.
     public var quantity: Int?
+    /// Como a assinatura renova, numa assinatura (preço recorrente com valor). manual: a cada ciclo a Peráta abre uma cobrança para o comprador pagar (payment_url, por cartão, Pix ou boleto) e avisa o seu sistema com o evento subscription.renewal_due, mesmo que o primeiro pagamento tenha sido no cartão; o cartão nunca é cobrado e não é guardado. automatic: só os meios que cobram sozinhos, o cartão de crédito guardado ou o Pix Automático (quando a organização o tem ligado; senão só o cartão); a página mostra só esses meios, e a assinatura nasce com renewal_mode card ou pix_automatic. buyer_choice: a página mostra a caixa Ativar cobrança automática, desmarcada, e o comprador decide: desmarcada é manual, marcada é automatic. Sem o campo nada muda: sem caixa, o cartão de crédito renova sozinho e qualquer outro meio vira uma cobrança a cada ciclo. Funciona junto com first_period_extra_days e com desconto. Vale só em preço recorrente com valor (senão 422); manual não vale com teste grátis nem com subscription_start_at, que guardam o cartão para cobrar no fim (422). Pagar por um meio que o modo não aceita (Pix, boleto ou débito em automatic; Pix Automático em manual) é 422 em payment_method. A Subscription traz o modo a que isso se resolveu em renewal_mode: manual, card ou pix_automatic.
+    public var renewalMode: CheckoutsCreateParamsRenewalMode?
     /// Pede o endereço de cobrança completo de todo comprador, não só no boleto; desligado quando fica de fora.
     public var requireBillingAddress: Bool?
     /// Outro nome de cancel_url: a página https a que o comprador volta sem pagar. Enviada com um cancel_url diferente, é recusada.
@@ -3235,7 +3679,7 @@ public struct CheckoutsCreateParams: Encodable, Sendable, Hashable {
     public var subscriptionStartAt: String?
     public var successURL: String?
 
-    public init(priceID: String, productID: String, allowDiscountCodes: Bool? = nil, amountCents: Int? = nil, cancelURL: String? = nil, clientReferenceID: String? = nil, customerEmail: String? = nil, customerID: String? = nil, customerName: String? = nil, discountID: String? = nil, expiresIn: Int? = nil, externalCustomerID: String? = nil, firstPeriodExtraDays: Int? = nil, items: [CheckoutsCreateItem]? = nil, label: String? = nil, metadata: [String: JSONValue]? = nil, quantity: Int? = nil, requireBillingAddress: Bool? = nil, returnURL: String? = nil, subscriptionStartAt: String? = nil, successURL: String? = nil) {
+    public init(priceID: String, productID: String, allowDiscountCodes: Bool? = nil, amountCents: Int? = nil, cancelURL: String? = nil, clientReferenceID: String? = nil, customerEmail: String? = nil, customerID: String? = nil, customerName: String? = nil, discountID: String? = nil, expiresIn: Int? = nil, externalCustomerID: String? = nil, firstPeriodExtraDays: Int? = nil, items: [CheckoutsCreateItem]? = nil, label: String? = nil, metadata: [String: JSONValue]? = nil, notifyCustomerEmail: Bool? = nil, quantity: Int? = nil, renewalMode: CheckoutsCreateParamsRenewalMode? = nil, requireBillingAddress: Bool? = nil, returnURL: String? = nil, subscriptionStartAt: String? = nil, successURL: String? = nil) {
         self.allowDiscountCodes = allowDiscountCodes
         self.amountCents = amountCents
         self.cancelURL = cancelURL
@@ -3250,9 +3694,11 @@ public struct CheckoutsCreateParams: Encodable, Sendable, Hashable {
         self.items = items
         self.label = label
         self.metadata = metadata
+        self.notifyCustomerEmail = notifyCustomerEmail
         self.priceID = priceID
         self.productID = productID
         self.quantity = quantity
+        self.renewalMode = renewalMode
         self.requireBillingAddress = requireBillingAddress
         self.returnURL = returnURL
         self.subscriptionStartAt = subscriptionStartAt
@@ -3274,9 +3720,11 @@ public struct CheckoutsCreateParams: Encodable, Sendable, Hashable {
         case items
         case label
         case metadata
+        case notifyCustomerEmail = "notify_customer_email"
         case priceID = "price_id"
         case productID = "product_id"
         case quantity
+        case renewalMode = "renewal_mode"
         case requireBillingAddress = "require_billing_address"
         case returnURL = "return_url"
         case subscriptionStartAt = "subscription_start_at"
@@ -3299,9 +3747,11 @@ public struct CheckoutsCreateParams: Encodable, Sendable, Hashable {
         try container.encodeIfPresent(items, forKey: .items)
         try container.encodeIfPresent(label, forKey: .label)
         try container.encodeIfPresent(metadata, forKey: .metadata)
+        try container.encodeIfPresent(notifyCustomerEmail, forKey: .notifyCustomerEmail)
         try container.encode(priceID, forKey: .priceID)
         try container.encode(productID, forKey: .productID)
         try container.encodeIfPresent(quantity, forKey: .quantity)
+        try container.encodeIfPresent(renewalMode, forKey: .renewalMode)
         try container.encodeIfPresent(requireBillingAddress, forKey: .requireBillingAddress)
         try container.encodeIfPresent(returnURL, forKey: .returnURL)
         try container.encodeIfPresent(subscriptionStartAt, forKey: .subscriptionStartAt)
@@ -4041,33 +4491,48 @@ public struct RefundsCreateParams: Encodable, Sendable, Hashable {
 public struct SubscriptionsUpdateParams: Encodable, Sendable, Hashable {
     /// Estende o período atual em tantos dias, de 1 a 365, sem cobrar nada e sem criar pedido: a renovação (e a próxima cobrança) passa a ser no novo fim, current_period_end, e os períodos seguintes contam a partir dele. É o crédito manual de dias do lojista. Só uma assinatura active aceita (uma em teste grátis, atrasada, pausada, suspensa ou cancelada recusa); uma que termina no fim do período termina no novo fim. Vai sozinho, sem price_id, quantity nem proration_behavior, senão a resposta é 422. A mudança chega no webhook subscription.updated e fica registrada no log de atividades. Não é repetível por si: envie uma Idempotency-Key para que uma nova tentativa não some os dias duas vezes.
     public var extendCurrentPeriodDays: Int?
+    /// O nome da assinatura, até 200 caracteres e sem caracteres de controle; vazio tira o nome. Vai sozinho, com renewal_mode e notify_customer_email, sem price_id, quantity, proration_behavior nem extend_current_period_days. Chega no webhook subscription.updated.
+    public var label: String?
+    /// Liga ou desliga a mensagem que a Peráta manda ao comprador a cada cobrança de renovação. Vai sozinho, como label.
+    public var notifyCustomerEmail: Bool?
     /// O preço recorrente para onde a assinatura vai. Obrigatório para trocar de plano; não se envia com extend_current_period_days.
     public var priceID: String?
     /// prorate (padrão): rateia o resto do período no próximo valor cobrado; invoice: cobra a diferença agora; next_period: troca no fim do período; reset: cobra o período inteiro do novo plano agora e reinicia o ciclo.
     public var prorationBehavior: SubscriptionsUpdateParamsProrationBehavior?
     /// A nova quantidade; omitida, fica a atual.
     public var quantity: Int?
+    /// Muda como a assinatura renova. manual: deixa de cobrar o cartão e passa a abrir uma cobrança a cada ciclo (o cartão guardado é solto). card: cobra o cartão guardado sozinho; exige um cartão já guardado na assinatura (o comprador o ativa no portal), senão 422. pix_automatic só o comprador ativa, no app do banco. Vai sozinho, como label.
+    public var renewalMode: SubscriptionsUpdateParamsRenewalMode?
 
-    public init(extendCurrentPeriodDays: Int? = nil, priceID: String? = nil, prorationBehavior: SubscriptionsUpdateParamsProrationBehavior? = nil, quantity: Int? = nil) {
+    public init(extendCurrentPeriodDays: Int? = nil, label: String? = nil, notifyCustomerEmail: Bool? = nil, priceID: String? = nil, prorationBehavior: SubscriptionsUpdateParamsProrationBehavior? = nil, quantity: Int? = nil, renewalMode: SubscriptionsUpdateParamsRenewalMode? = nil) {
         self.extendCurrentPeriodDays = extendCurrentPeriodDays
+        self.label = label
+        self.notifyCustomerEmail = notifyCustomerEmail
         self.priceID = priceID
         self.prorationBehavior = prorationBehavior
         self.quantity = quantity
+        self.renewalMode = renewalMode
     }
 
     enum CodingKeys: String, CodingKey {
         case extendCurrentPeriodDays = "extend_current_period_days"
+        case label
+        case notifyCustomerEmail = "notify_customer_email"
         case priceID = "price_id"
         case prorationBehavior = "proration_behavior"
         case quantity
+        case renewalMode = "renewal_mode"
     }
 
     public func encode(to encoder: any Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encodeIfPresent(extendCurrentPeriodDays, forKey: .extendCurrentPeriodDays)
+        try container.encodeIfPresent(label, forKey: .label)
+        try container.encodeIfPresent(notifyCustomerEmail, forKey: .notifyCustomerEmail)
         try container.encodeIfPresent(priceID, forKey: .priceID)
         try container.encodeIfPresent(prorationBehavior, forKey: .prorationBehavior)
         try container.encodeIfPresent(quantity, forKey: .quantity)
+        try container.encodeIfPresent(renewalMode, forKey: .renewalMode)
     }
 }
 
@@ -4303,6 +4768,24 @@ public struct WebhooksUpdateEndpointParams: Encodable, Sendable, Hashable {
     }
 }
 
+/// The values of `Balance.currency`.
+///
+/// A value this SDK does not know yet is kept as it came, in `rawValue`.
+public struct BalanceCurrency: RawRepresentable, Codable, Sendable, Hashable, ExpressibleByStringLiteral {
+    public let rawValue: String
+
+    public init(rawValue: String) {
+        self.rawValue = rawValue
+    }
+
+    public init(stringLiteral value: String) {
+        self.rawValue = value
+    }
+
+    /// `BRL`
+    public static let brl = BalanceCurrency(rawValue: "BRL")
+}
+
 /// The values of `Benefit.status`.
 ///
 /// A value this SDK does not know yet is kept as it came, in `rawValue`.
@@ -4463,6 +4946,28 @@ public struct CardTokenizationEnvironment: RawRepresentable, Codable, Sendable, 
     public static let live = CardTokenizationEnvironment(rawValue: "live")
 }
 
+/// The values of `Checkout.renewal_mode`. O renewal_mode da criação: manual, automatic ou buyer_choice; vazio quando foi omitido. A assinatura que o pagamento começa traz o modo a que isso se resolveu em Subscription.renewal_mode.
+///
+/// A value this SDK does not know yet is kept as it came, in `rawValue`.
+public struct CheckoutRenewalMode: RawRepresentable, Codable, Sendable, Hashable, ExpressibleByStringLiteral {
+    public let rawValue: String
+
+    public init(rawValue: String) {
+        self.rawValue = rawValue
+    }
+
+    public init(stringLiteral value: String) {
+        self.rawValue = value
+    }
+
+    /// `manual`
+    public static let manual = CheckoutRenewalMode(rawValue: "manual")
+    /// `automatic`
+    public static let automatic = CheckoutRenewalMode(rawValue: "automatic")
+    /// `buyer_choice`
+    public static let buyerChoice = CheckoutRenewalMode(rawValue: "buyer_choice")
+}
+
 /// The values of `Checkout.status`. active abre sessões de compra; archived saiu de circulação.
 ///
 /// A value this SDK does not know yet is kept as it came, in `rawValue`.
@@ -4599,6 +5104,28 @@ public struct CheckoutClientPaymentState: RawRepresentable, Codable, Sendable, H
     public static let refunded = CheckoutClientPaymentState(rawValue: "refunded")
     /// `partially_refunded`
     public static let partiallyRefunded = CheckoutClientPaymentState(rawValue: "partially_refunded")
+}
+
+/// The values of `CheckoutCreated.renewal_mode`. O renewal_mode da criação: manual, automatic ou buyer_choice; vazio quando foi omitido. A assinatura que o pagamento começa traz o modo a que isso se resolveu em Subscription.renewal_mode.
+///
+/// A value this SDK does not know yet is kept as it came, in `rawValue`.
+public struct CheckoutCreatedRenewalMode: RawRepresentable, Codable, Sendable, Hashable, ExpressibleByStringLiteral {
+    public let rawValue: String
+
+    public init(rawValue: String) {
+        self.rawValue = rawValue
+    }
+
+    public init(stringLiteral value: String) {
+        self.rawValue = value
+    }
+
+    /// `manual`
+    public static let manual = CheckoutCreatedRenewalMode(rawValue: "manual")
+    /// `automatic`
+    public static let automatic = CheckoutCreatedRenewalMode(rawValue: "automatic")
+    /// `buyer_choice`
+    public static let buyerChoice = CheckoutCreatedRenewalMode(rawValue: "buyer_choice")
 }
 
 /// The values of `CheckoutCreated.status`. active abre sessões de compra; archived saiu de circulação.
@@ -5293,6 +5820,142 @@ public struct PaymentMethodType: RawRepresentable, Codable, Sendable, Hashable, 
     public static let card = PaymentMethodType(rawValue: "card")
 }
 
+/// The values of `Payout.currency`.
+///
+/// A value this SDK does not know yet is kept as it came, in `rawValue`.
+public struct PayoutCurrency: RawRepresentable, Codable, Sendable, Hashable, ExpressibleByStringLiteral {
+    public let rawValue: String
+
+    public init(rawValue: String) {
+        self.rawValue = rawValue
+    }
+
+    public init(stringLiteral value: String) {
+        self.rawValue = value
+    }
+
+    /// `BRL`
+    public static let brl = PayoutCurrency(rawValue: "BRL")
+}
+
+/// The values of `Payout.status`. scheduled: previsto, com data nos próximos dias. released: liberado para repasse, a data chegou e o depósito está em processamento. held: retido para análise enquanto a conta da organização está em análise. deposited: depositado na conta da organização, em deposited_on.
+///
+/// A value this SDK does not know yet is kept as it came, in `rawValue`.
+public struct PayoutStatus: RawRepresentable, Codable, Sendable, Hashable, ExpressibleByStringLiteral {
+    public let rawValue: String
+
+    public init(rawValue: String) {
+        self.rawValue = rawValue
+    }
+
+    public init(stringLiteral value: String) {
+        self.rawValue = value
+    }
+
+    /// `scheduled`
+    public static let scheduled = PayoutStatus(rawValue: "scheduled")
+    /// `released`
+    public static let released = PayoutStatus(rawValue: "released")
+    /// `held`
+    public static let held = PayoutStatus(rawValue: "held")
+    /// `deposited`
+    public static let deposited = PayoutStatus(rawValue: "deposited")
+}
+
+/// The values of `PayoutDetail.currency`.
+///
+/// A value this SDK does not know yet is kept as it came, in `rawValue`.
+public struct PayoutDetailCurrency: RawRepresentable, Codable, Sendable, Hashable, ExpressibleByStringLiteral {
+    public let rawValue: String
+
+    public init(rawValue: String) {
+        self.rawValue = rawValue
+    }
+
+    public init(stringLiteral value: String) {
+        self.rawValue = value
+    }
+
+    /// `BRL`
+    public static let brl = PayoutDetailCurrency(rawValue: "BRL")
+}
+
+/// The values of `PayoutDetail.status`. scheduled: previsto, com data nos próximos dias. released: liberado para repasse, a data chegou e o depósito está em processamento. held: retido para análise enquanto a conta da organização está em análise. deposited: depositado na conta da organização, em deposited_on.
+///
+/// A value this SDK does not know yet is kept as it came, in `rawValue`.
+public struct PayoutDetailStatus: RawRepresentable, Codable, Sendable, Hashable, ExpressibleByStringLiteral {
+    public let rawValue: String
+
+    public init(rawValue: String) {
+        self.rawValue = rawValue
+    }
+
+    public init(stringLiteral value: String) {
+        self.rawValue = value
+    }
+
+    /// `scheduled`
+    public static let scheduled = PayoutDetailStatus(rawValue: "scheduled")
+    /// `released`
+    public static let released = PayoutDetailStatus(rawValue: "released")
+    /// `held`
+    public static let held = PayoutDetailStatus(rawValue: "held")
+    /// `deposited`
+    public static let deposited = PayoutDetailStatus(rawValue: "deposited")
+}
+
+/// The values of `PayoutItem.kind`. sale: uma venda (ou uma parcela dela). refund: um reembolso que o repasse compensa. chargeback: uma contestação. fee: uma tarifa do dia. adjustment: um ajuste. anticipation: uma antecipação de recebíveis.
+///
+/// A value this SDK does not know yet is kept as it came, in `rawValue`.
+public struct PayoutItemKind: RawRepresentable, Codable, Sendable, Hashable, ExpressibleByStringLiteral {
+    public let rawValue: String
+
+    public init(rawValue: String) {
+        self.rawValue = rawValue
+    }
+
+    public init(stringLiteral value: String) {
+        self.rawValue = value
+    }
+
+    /// `sale`
+    public static let sale = PayoutItemKind(rawValue: "sale")
+    /// `refund`
+    public static let refund = PayoutItemKind(rawValue: "refund")
+    /// `chargeback`
+    public static let chargeback = PayoutItemKind(rawValue: "chargeback")
+    /// `fee`
+    public static let fee = PayoutItemKind(rawValue: "fee")
+    /// `adjustment`
+    public static let adjustment = PayoutItemKind(rawValue: "adjustment")
+    /// `anticipation`
+    public static let anticipation = PayoutItemKind(rawValue: "anticipation")
+}
+
+/// The values of `PayoutItem.status`. Como o do repasse, para este lançamento: um repasse com lançamentos em estados diferentes está no menos avançado deles.
+///
+/// A value this SDK does not know yet is kept as it came, in `rawValue`.
+public struct PayoutItemStatus: RawRepresentable, Codable, Sendable, Hashable, ExpressibleByStringLiteral {
+    public let rawValue: String
+
+    public init(rawValue: String) {
+        self.rawValue = rawValue
+    }
+
+    public init(stringLiteral value: String) {
+        self.rawValue = value
+    }
+
+    /// `scheduled`
+    public static let scheduled = PayoutItemStatus(rawValue: "scheduled")
+    /// `released`
+    public static let released = PayoutItemStatus(rawValue: "released")
+    /// `held`
+    public static let held = PayoutItemStatus(rawValue: "held")
+    /// `deposited`
+    public static let deposited = PayoutItemStatus(rawValue: "deposited")
+}
+
 /// The values of `Price.currency`.
 ///
 /// A value this SDK does not know yet is kept as it came, in `rawValue`.
@@ -5455,6 +6118,68 @@ public struct RefundStatus: RawRepresentable, Codable, Sendable, Hashable, Expre
     public static let canceled = RefundStatus(rawValue: "canceled")
 }
 
+/// The values of `RenewalCharge.currency`.
+///
+/// A value this SDK does not know yet is kept as it came, in `rawValue`.
+public struct RenewalChargeCurrency: RawRepresentable, Codable, Sendable, Hashable, ExpressibleByStringLiteral {
+    public let rawValue: String
+
+    public init(rawValue: String) {
+        self.rawValue = rawValue
+    }
+
+    public init(stringLiteral value: String) {
+        self.rawValue = value
+    }
+
+    /// `BRL`
+    public static let brl = RenewalChargeCurrency(rawValue: "BRL")
+}
+
+/// The values of `RenewalCharge.reminder`. Só nos eventos subscription.renewal_reminder: before_due (3 dias antes de due_at) ou on_due (no vencimento). Nulo na cobrança e em subscription.renewal_due.
+///
+/// A value this SDK does not know yet is kept as it came, in `rawValue`.
+public struct RenewalChargeReminder: RawRepresentable, Codable, Sendable, Hashable, ExpressibleByStringLiteral {
+    public let rawValue: String
+
+    public init(rawValue: String) {
+        self.rawValue = rawValue
+    }
+
+    public init(stringLiteral value: String) {
+        self.rawValue = value
+    }
+
+    /// `before_due`
+    public static let beforeDue = RenewalChargeReminder(rawValue: "before_due")
+    /// `on_due`
+    public static let onDue = RenewalChargeReminder(rawValue: "on_due")
+    /// `null`
+    public static let null = RenewalChargeReminder(rawValue: "null")
+}
+
+/// The values of `RenewalCharge.renewal_mode`. O modo de renovação da assinatura. Uma cobrança em aberto existe nos modos manual e, quando o cartão é recusado, card.
+///
+/// A value this SDK does not know yet is kept as it came, in `rawValue`.
+public struct RenewalChargeRenewalMode: RawRepresentable, Codable, Sendable, Hashable, ExpressibleByStringLiteral {
+    public let rawValue: String
+
+    public init(rawValue: String) {
+        self.rawValue = rawValue
+    }
+
+    public init(stringLiteral value: String) {
+        self.rawValue = value
+    }
+
+    /// `manual`
+    public static let manual = RenewalChargeRenewalMode(rawValue: "manual")
+    /// `card`
+    public static let card = RenewalChargeRenewalMode(rawValue: "card")
+    /// `pix_automatic`
+    public static let pixAutomatic = RenewalChargeRenewalMode(rawValue: "pix_automatic")
+}
+
 /// The values of `Showcase.environment`. O ambiente da chave.
 ///
 /// A value this SDK does not know yet is kept as it came, in `rawValue`.
@@ -5491,6 +6216,28 @@ public struct SubscriptionCurrency: RawRepresentable, Codable, Sendable, Hashabl
 
     /// `BRL`
     public static let brl = SubscriptionCurrency(rawValue: "BRL")
+}
+
+/// The values of `Subscription.renewal_mode`. Como os próximos períodos são cobrados: manual (a cada ciclo a Peráta abre uma cobrança para o comprador pagar, com o evento subscription.renewal_due, e o cartão nunca é cobrado), card (o cartão de crédito guardado é cobrado sozinho) ou pix_automatic (o banco debita cada cobrança, autorizada uma vez pelo comprador). card e pix_automatic são os modos automáticos. Vem do renewal_mode do checkout; sem ele, é card quando o pagamento guardou o cartão e manual nos outros meios. Troque com PATCH (manual, ou card quando há cartão guardado).
+///
+/// A value this SDK does not know yet is kept as it came, in `rawValue`.
+public struct SubscriptionRenewalMode: RawRepresentable, Codable, Sendable, Hashable, ExpressibleByStringLiteral {
+    public let rawValue: String
+
+    public init(rawValue: String) {
+        self.rawValue = rawValue
+    }
+
+    public init(stringLiteral value: String) {
+        self.rawValue = value
+    }
+
+    /// `manual`
+    public static let manual = SubscriptionRenewalMode(rawValue: "manual")
+    /// `card`
+    public static let card = SubscriptionRenewalMode(rawValue: "card")
+    /// `pix_automatic`
+    public static let pixAutomatic = SubscriptionRenewalMode(rawValue: "pix_automatic")
 }
 
 /// The values of `Subscription.status`.
@@ -5983,6 +6730,66 @@ public struct WebhookRefundStatus: RawRepresentable, Codable, Sendable, Hashable
     public static let canceled = WebhookRefundStatus(rawValue: "canceled")
 }
 
+/// The values of `WebhookRenewalCharge.currency`.
+///
+/// A value this SDK does not know yet is kept as it came, in `rawValue`.
+public struct WebhookRenewalChargeCurrency: RawRepresentable, Codable, Sendable, Hashable, ExpressibleByStringLiteral {
+    public let rawValue: String
+
+    public init(rawValue: String) {
+        self.rawValue = rawValue
+    }
+
+    public init(stringLiteral value: String) {
+        self.rawValue = value
+    }
+
+    /// `BRL`
+    public static let brl = WebhookRenewalChargeCurrency(rawValue: "BRL")
+}
+
+/// The values of `WebhookRenewalCharge.reminder`. Só em subscription.renewal_reminder: before_due (3 dias antes de due_at) ou on_due (no vencimento). Nulo na cobrança e em subscription.renewal_due.
+///
+/// A value this SDK does not know yet is kept as it came, in `rawValue`.
+public struct WebhookRenewalChargeReminder: RawRepresentable, Codable, Sendable, Hashable, ExpressibleByStringLiteral {
+    public let rawValue: String
+
+    public init(rawValue: String) {
+        self.rawValue = rawValue
+    }
+
+    public init(stringLiteral value: String) {
+        self.rawValue = value
+    }
+
+    /// `before_due`
+    public static let beforeDue = WebhookRenewalChargeReminder(rawValue: "before_due")
+    /// `on_due`
+    public static let onDue = WebhookRenewalChargeReminder(rawValue: "on_due")
+}
+
+/// The values of `WebhookRenewalCharge.renewal_mode`. O modo de renovação da assinatura. Uma cobrança em aberto existe no manual e, quando o cartão é recusado, no card.
+///
+/// A value this SDK does not know yet is kept as it came, in `rawValue`.
+public struct WebhookRenewalChargeRenewalMode: RawRepresentable, Codable, Sendable, Hashable, ExpressibleByStringLiteral {
+    public let rawValue: String
+
+    public init(rawValue: String) {
+        self.rawValue = rawValue
+    }
+
+    public init(stringLiteral value: String) {
+        self.rawValue = value
+    }
+
+    /// `manual`
+    public static let manual = WebhookRenewalChargeRenewalMode(rawValue: "manual")
+    /// `card`
+    public static let card = WebhookRenewalChargeRenewalMode(rawValue: "card")
+    /// `pix_automatic`
+    public static let pixAutomatic = WebhookRenewalChargeRenewalMode(rawValue: "pix_automatic")
+}
+
 /// The values of `WebhookSale.currency`.
 ///
 /// A value this SDK does not know yet is kept as it came, in `rawValue`.
@@ -6039,6 +6846,28 @@ public struct WebhookSubscriptionCurrency: RawRepresentable, Codable, Sendable, 
 
     /// `BRL`
     public static let brl = WebhookSubscriptionCurrency(rawValue: "BRL")
+}
+
+/// The values of `WebhookSubscription.renewal_mode`. Como os próximos períodos são cobrados: manual (uma cobrança para o comprador pagar a cada ciclo, com o evento subscription.renewal_due; o cartão nunca é cobrado), card (o cartão de crédito guardado, cobrado sozinho) ou pix_automatic (o banco debita cada cobrança). card e pix_automatic são os automáticos.
+///
+/// A value this SDK does not know yet is kept as it came, in `rawValue`.
+public struct WebhookSubscriptionRenewalMode: RawRepresentable, Codable, Sendable, Hashable, ExpressibleByStringLiteral {
+    public let rawValue: String
+
+    public init(rawValue: String) {
+        self.rawValue = rawValue
+    }
+
+    public init(stringLiteral value: String) {
+        self.rawValue = value
+    }
+
+    /// `manual`
+    public static let manual = WebhookSubscriptionRenewalMode(rawValue: "manual")
+    /// `card`
+    public static let card = WebhookSubscriptionRenewalMode(rawValue: "card")
+    /// `pix_automatic`
+    public static let pixAutomatic = WebhookSubscriptionRenewalMode(rawValue: "pix_automatic")
 }
 
 /// The values of `WebhookSubscription.status`.
@@ -6197,6 +7026,28 @@ public struct CheckoutLinksCreateParamsTrialInterval: RawRepresentable, Codable,
     public static let month = CheckoutLinksCreateParamsTrialInterval(rawValue: "month")
     /// `year`
     public static let year = CheckoutLinksCreateParamsTrialInterval(rawValue: "year")
+}
+
+/// The values of `CheckoutsCreateParams.renewal_mode`. Como a assinatura renova, numa assinatura (preço recorrente com valor). manual: a cada ciclo a Peráta abre uma cobrança para o comprador pagar (payment_url, por cartão, Pix ou boleto) e avisa o seu sistema com o evento subscription.renewal_due, mesmo que o primeiro pagamento tenha sido no cartão; o cartão nunca é cobrado e não é guardado. automatic: só os meios que cobram sozinhos, o cartão de crédito guardado ou o Pix Automático (quando a organização o tem ligado; senão só o cartão); a página mostra só esses meios, e a assinatura nasce com renewal_mode card ou pix_automatic. buyer_choice: a página mostra a caixa Ativar cobrança automática, desmarcada, e o comprador decide: desmarcada é manual, marcada é automatic. Sem o campo nada muda: sem caixa, o cartão de crédito renova sozinho e qualquer outro meio vira uma cobrança a cada ciclo. Funciona junto com first_period_extra_days e com desconto. Vale só em preço recorrente com valor (senão 422); manual não vale com teste grátis nem com subscription_start_at, que guardam o cartão para cobrar no fim (422). Pagar por um meio que o modo não aceita (Pix, boleto ou débito em automatic; Pix Automático em manual) é 422 em payment_method. A Subscription traz o modo a que isso se resolveu em renewal_mode: manual, card ou pix_automatic.
+///
+/// A value this SDK does not know yet is kept as it came, in `rawValue`.
+public struct CheckoutsCreateParamsRenewalMode: RawRepresentable, Codable, Sendable, Hashable, ExpressibleByStringLiteral {
+    public let rawValue: String
+
+    public init(rawValue: String) {
+        self.rawValue = rawValue
+    }
+
+    public init(stringLiteral value: String) {
+        self.rawValue = value
+    }
+
+    /// `manual`
+    public static let manual = CheckoutsCreateParamsRenewalMode(rawValue: "manual")
+    /// `automatic`
+    public static let automatic = CheckoutsCreateParamsRenewalMode(rawValue: "automatic")
+    /// `buyer_choice`
+    public static let buyerChoice = CheckoutsCreateParamsRenewalMode(rawValue: "buyer_choice")
 }
 
 /// The values of `CustomersCreateParams.tax_id_kind`. Qual documento tax_id é; sem ele, o número diz.
@@ -6421,6 +7272,26 @@ public struct SubscriptionsUpdateParamsProrationBehavior: RawRepresentable, Coda
     public static let nextPeriod = SubscriptionsUpdateParamsProrationBehavior(rawValue: "next_period")
     /// `reset`
     public static let reset = SubscriptionsUpdateParamsProrationBehavior(rawValue: "reset")
+}
+
+/// The values of `SubscriptionsUpdateParams.renewal_mode`. Muda como a assinatura renova. manual: deixa de cobrar o cartão e passa a abrir uma cobrança a cada ciclo (o cartão guardado é solto). card: cobra o cartão guardado sozinho; exige um cartão já guardado na assinatura (o comprador o ativa no portal), senão 422. pix_automatic só o comprador ativa, no app do banco. Vai sozinho, como label.
+///
+/// A value this SDK does not know yet is kept as it came, in `rawValue`.
+public struct SubscriptionsUpdateParamsRenewalMode: RawRepresentable, Codable, Sendable, Hashable, ExpressibleByStringLiteral {
+    public let rawValue: String
+
+    public init(rawValue: String) {
+        self.rawValue = rawValue
+    }
+
+    public init(stringLiteral value: String) {
+        self.rawValue = value
+    }
+
+    /// `manual`
+    public static let manual = SubscriptionsUpdateParamsRenewalMode(rawValue: "manual")
+    /// `card`
+    public static let card = SubscriptionsUpdateParamsRenewalMode(rawValue: "card")
 }
 
 /// The values of `UsageIngestEventCost.currency`. Moeda do custo. Apenas brl.

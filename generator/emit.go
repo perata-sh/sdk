@@ -188,6 +188,9 @@ func commonFuncs() template.FuncMap {
 		"outputs": func(models []*Model) []*Model { return pick(models, false) },
 		"inputs":  func(models []*Model) []*Model { return pick(models, true) },
 		"hasPath": func(m *Method) bool { return len(m.PathParams) > 0 },
+		// filteredGet says a method is a read of one resource that takes optional
+		// filters of its own (the balance's period): its answer is not a page.
+		"filteredGet": func(m *Method) bool { return m.HTTPMethod == "GET" && !m.Paginated && len(m.Query) > 0 },
 		// hasMap says a method takes a map filter (a deepObject), sent as one
 		// pair a key.
 		"hasMap": func(m *Method) bool {

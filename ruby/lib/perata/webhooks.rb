@@ -81,7 +81,7 @@ module Perata
 
   # The events that carry the event's identifiers; +data+ is Hash{String => String}.
   class IdentifiersWebhookEvent < WebhookEvent
-    TYPES = %w[benefit.archived benefit.version_created benefit_product_link.linked benefit_product_link.unlinked checkout_link.archived checkout_link.created checkout_session.confirmed checkout_session.expired checkout_session.failed checkout_session.opened checkout_session.succeeded customer.archived discount.exhausted discount.expired discount.reactivated discount.redeemed discount_redemption.released invoice.drafted invoice.issued invoice.settled invoice.uncollectible invoice.voided price.archived price.created product.archived seat_allocation.opened seat_allocation.resized seat_assignment.claimed seat_assignment.invited seat_assignment.revoked usage_event.recorded usage_period.closed usage_period.opened usage_period_adjustment.created].freeze
+    TYPES = %w[benefit.archived benefit.version_created benefit_product_link.linked benefit_product_link.unlinked checkout_link.archived checkout_link.created checkout_session.confirmed checkout_session.expired checkout_session.failed checkout_session.opened checkout_session.succeeded customer.archived discount.exhausted discount.expired discount.reactivated discount.redeemed discount_redemption.released invoice.drafted invoice.issued invoice.settled invoice.uncollectible invoice.voided payout.deposited payout.held payout.released payout.scheduled price.archived price.created product.archived seat_allocation.opened seat_allocation.resized seat_assignment.claimed seat_assignment.invited seat_assignment.revoked usage_event.recorded usage_period.closed usage_period.opened usage_period_adjustment.created].freeze
   end
 
   # The events that carry a WebhookOrder; +data+ is WebhookOrder.
@@ -97,6 +97,11 @@ module Perata
   # The events that carry a WebhookRefund; +data+ is WebhookRefund.
   class RefundWebhookEvent < WebhookEvent
     TYPES = %w[refund.created refund.updated].freeze
+  end
+
+  # The events that carry a WebhookRenewalCharge; +data+ is WebhookRenewalCharge.
+  class RenewalChargeWebhookEvent < WebhookEvent
+    TYPES = %w[subscription.renewal_due subscription.renewal_reminder].freeze
   end
 
   # The events that carry a WebhookSale; +data+ is WebhookSale.
@@ -180,6 +185,7 @@ module Perata
     when *OrderWebhookEvent::TYPES then OrderWebhookEvent.new(**message, data: WebhookOrder.from_hash(data))
     when *ProductWebhookEvent::TYPES then ProductWebhookEvent.new(**message, data: Product.from_hash(data))
     when *RefundWebhookEvent::TYPES then RefundWebhookEvent.new(**message, data: WebhookRefund.from_hash(data))
+    when *RenewalChargeWebhookEvent::TYPES then RenewalChargeWebhookEvent.new(**message, data: WebhookRenewalCharge.from_hash(data))
     when *SaleWebhookEvent::TYPES then SaleWebhookEvent.new(**message, data: WebhookSale.from_hash(data))
     when *SubscriptionWebhookEvent::TYPES then SubscriptionWebhookEvent.new(**message, data: WebhookSubscription.from_hash(data))
     else UnknownWebhookEvent.new(**message, data: data)

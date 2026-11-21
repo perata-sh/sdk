@@ -18,7 +18,7 @@ O pedido também diz **qual desconto aplicou**, para o seu sistema gravar o uso 
 
 No **pagamento**: `id`, `checkout_id`, `method` (`card`, `pix`, `boleto`), `state` (`unknown`, `pending`, `authorized`, `captured`, `refused`, `canceled`, `refunded`, `partially_refunded`), `amount_cents`, `captured_cents`, `refunded_cents`, `installments`, `installment_amount_cents`.
 
-O pagamento também diz quanto ficou e quando cai: `fee_cents` (a tarifa que a Peráta cobrou da venda) e `net_cents` (`captured_cents` menos `fee_cents`, antes de reembolsos), os dois 0 até a captura; `expected_payout_on` (a data prevista do próximo repasse que paga este pagamento, `AAAA-MM-DD`; nula quando nenhum espera, e num pagamento parcelado é a da próxima parcela); `payout_deposited_on` (o dia em que o último repasse que pagou este pagamento foi depositado; nulo enquanto nenhum foi); `payout_id` (esse repasse, `po_AAAAMMDD`, o id de `GET /payouts/{id}`; nulo enquanto nenhum foi) e `split` (como a venda foi dividida: uma lista com `recipient_id`, `amount_cents`, `fee_cents` e `net_cents` de cada destinatário; uma venda sem divisão tem um só). Nenhum SDK publicado traz estes campos ainda: chegam na 0.5.9, e até lá se lê o JSON da resposta.
+O pagamento também diz quanto ficou e quando cai: `fee_cents` (a tarifa que a Peráta cobrou da venda) e `net_cents` (`captured_cents` menos `fee_cents`, antes de reembolsos), os dois 0 até a captura; `expected_payout_on` (a data prevista do próximo repasse que paga este pagamento, `AAAA-MM-DD`; nula quando nenhum espera, e num pagamento parcelado é a da próxima parcela); `payout_deposited_on` (o dia em que o último repasse que pagou este pagamento foi depositado; nulo enquanto nenhum foi); `payout_id` (esse repasse, `po_AAAAMMDD`, o id de `GET /payouts/{id}`; nulo enquanto nenhum foi) e `split` (como a venda foi dividida: uma lista com `recipient_id`, `amount_cents`, `fee_cents` e `net_cents` de cada destinatário; uma venda sem divisão tem um só). Os SDKs trazem estes campos a partir da 0.5.9; numa versão anterior, leia o JSON da resposta.
 
 ### Achar uma venda: os filtros das listas
 
@@ -131,7 +131,7 @@ Um **repasse** é o que a organização recebe num dia na conta de recebimento: 
 | Listar repasses | `GET /api/v1/payouts` | `payouts:read` |
 | Ler um repasse, com os lançamentos | `GET /api/v1/payouts/{id}` | `payouts:read` |
 
-Estas rotas não estão em nenhum SDK publicado: chegam na 0.5.9, e até lá se chama a API REST com a mesma chave e se lê o JSON da resposta. A chave que já existe não ganha o escopo `payouts:read` sozinha; crie outra marcando-o.
+No SDK são `balance.get`, `payouts.list` (e `payouts.list_iter`) e `payouts.get`, a partir da 0.5.9; numa versão anterior, chame a API REST com a mesma chave e leia o JSON da resposta. A chave que já existe não ganha o escopo `payouts:read` sozinha; crie outra marcando-o.
 
 **Saldo** (`GET /balance`, filtros `date_from` e `date_to`, `AAAA-MM-DD`):
 

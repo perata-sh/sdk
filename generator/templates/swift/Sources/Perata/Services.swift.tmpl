@@ -29,6 +29,19 @@ public struct {{pascal .Name}}Service: Sendable {
             try await self.{{swName .Name}}({{range .PathParams}}{{swName .}}, {{end}}page: page, limit: limit{{range .Query}}, {{swName .Name}}: {{swName .Name}}{{end}}, apiKey: apiKey)
         }
     }
+{{- else if filteredGet .}}
+    /// {{.Summary}}. The filters are optional.{{template "doc" .}}
+    public func {{swName .Name}}({{range .PathParams}}_ {{swName .}}: String, {{end}}{{range .Query}}{{swName .Name}}: {{if .Map}}[String: String]?{{else}}String?{{end}} = nil, {{end}}apiKey: String? = nil) async throws -> {{.Response}} {
+        {{if hasMap .}}var{{else}}let{{end}} query: [(String, String?)] = [{{range $i, $q := .Query}}{{if not $q.Map}}{{if $i}}, {{end}}({{swLiteral $q.Name}}, {{swName $q.Name}}){{end}}{{end}}]
+{{- range .Query}}{{if .Map}}
+        query += deepObject({{swLiteral .Name}}, {{swName .Name}})
+{{- end}}{{end}}
+        return try await requester.request(
+            {{quote .HTTPMethod}}, {{swPath .}},
+            query: query,
+            apiKey: apiKey
+        )
+    }
 {{- else if .NoContent}}
     /// {{.Summary}}. The API answers 204, so there is nothing to return.{{template "doc" .}}
     public func {{swName .Name}}({{range .PathParams}}_ {{swName .}}: String, {{end}}{{if .Body}}_ params: {{.Body.Name}}, {{end}}{{if .Write}}idempotencyKey: String? = nil, {{end}}apiKey: String? = nil) async throws {

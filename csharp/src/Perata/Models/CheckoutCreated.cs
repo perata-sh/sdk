@@ -9,6 +9,15 @@ namespace Perata;
 /// <summary>CheckoutCreated is a resource of Peráta's API.</summary>
 public sealed record CheckoutCreated
 {
+    /// <summary>A value of <see cref="RenewalMode"/>.</summary>
+    public const string RenewalModeManual = "manual";
+
+    /// <summary>A value of <see cref="RenewalMode"/>.</summary>
+    public const string RenewalModeAutomatic = "automatic";
+
+    /// <summary>A value of <see cref="RenewalMode"/>.</summary>
+    public const string RenewalModeBuyerChoice = "buyer_choice";
+
     /// <summary>A value of <see cref="Status"/>.</summary>
     public const string StatusActive = "active";
 
@@ -67,6 +76,10 @@ public sealed record CheckoutCreated
     [JsonPropertyName("metadata")]
     public required IReadOnlyDictionary<string, JsonElement> Metadata { get; init; }
 
+    /// <summary>Falso quando o seu sistema avisa o comprador das cobranças de renovação e a Peráta fica quieta.</summary>
+    [JsonPropertyName("notify_customer_email")]
+    public required bool NotifyCustomerEmail { get; init; }
+
     /// <summary>The API's <c>price_id</c>.</summary>
     [JsonPropertyName("price_id")]
     public required string PriceId { get; init; }
@@ -78,6 +91,10 @@ public sealed record CheckoutCreated
     /// <summary>The API's <c>quantity</c>.</summary>
     [JsonPropertyName("quantity")]
     public required long Quantity { get; init; }
+
+    /// <summary>O renewal_mode da criação: manual, automatic ou buyer_choice; vazio quando foi omitido. A assinatura que o pagamento começa traz o modo a que isso se resolveu em Subscription.renewal_mode.</summary>
+    [JsonPropertyName("renewal_mode")]
+    public required string RenewalMode { get; init; }
 
     /// <summary>O ID da sessão de checkout; as rotas de cliente dela são /checkouts/client/{client_secret}.</summary>
     [JsonPropertyName("session_id")]

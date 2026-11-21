@@ -238,7 +238,7 @@ module Perata
 
   # The body of checkouts:create.
   class CheckoutsCreateParams < Params
-    MEMBERS = %i[allow_discount_codes amount_cents cancel_url client_reference_id customer_email customer_id customer_name discount_id expires_in external_customer_id first_period_extra_days items label metadata price_id product_id quantity require_billing_address return_url subscription_start_at success_url].freeze
+    MEMBERS = %i[allow_discount_codes amount_cents cancel_url client_reference_id customer_email customer_id customer_name discount_id expires_in external_customer_id first_period_extra_days items label metadata notify_customer_email price_id product_id quantity renewal_mode require_billing_address return_url subscription_start_at success_url].freeze
 
     # Deixa o comprador digitar um código de desconto; desligado quando fica de fora.
     # @return [Boolean, nil]
@@ -294,6 +294,10 @@ module Perata
     # @return [Hash{String => Object}, nil]
     attr_reader :metadata
 
+    # Verdadeiro por padrão. Falso mantém a Peráta sem escrever ao comprador a cobrança de cada renovação (o seu sistema o avisa pelo evento subscription.renewal_due); a cobrança é aberta do mesmo jeito. Além disso, a organização pode desligar este aviso para todos em Configurações › Preferências › Cobrança da renovação.
+    # @return [Boolean, nil]
+    attr_reader :notify_customer_email
+
     # @return [String]
     attr_reader :price_id
 
@@ -303,6 +307,10 @@ module Perata
     # Quantas unidades. Com amount_cents é sempre 1: envie 1 ou omita; qualquer outro valor é recusado com 422.
     # @return [Integer, nil]
     attr_reader :quantity
+
+    # Como a assinatura renova, numa assinatura (preço recorrente com valor). manual: a cada ciclo a Peráta abre uma cobrança para o comprador pagar (payment_url, por cartão, Pix ou boleto) e avisa o seu sistema com o evento subscription.renewal_due, mesmo que o primeiro pagamento tenha sido no cartão; o cartão nunca é cobrado e não é guardado. automatic: só os meios que cobram sozinhos, o cartão de crédito guardado ou o Pix Automático (quando a organização o tem ligado; senão só o cartão); a página mostra só esses meios, e a assinatura nasce com renewal_mode card ou pix_automatic. buyer_choice: a página mostra a caixa Ativar cobrança automática, desmarcada, e o comprador decide: desmarcada é manual, marcada é automatic. Sem o campo nada muda: sem caixa, o cartão de crédito renova sozinho e qualquer outro meio vira uma cobrança a cada ciclo. Funciona junto com first_period_extra_days e com desconto. Vale só em preço recorrente com valor (senão 422); manual não vale com teste grátis nem com subscription_start_at, que guardam o cartão para cobrar no fim (422). Pagar por um meio que o modo não aceita (Pix, boleto ou débito em automatic; Pix Automático em manual) é 422 em payment_method. A Subscription traz o modo a que isso se resolveu em renewal_mode: manual, card ou pix_automatic.
+    # @return [String ("manual", "automatic", "buyer_choice"), nil]
+    attr_reader :renewal_mode
 
     # Pede o endereço de cobrança completo de todo comprador, não só no boleto; desligado quando fica de fora.
     # @return [Boolean, nil]
@@ -319,7 +327,7 @@ module Perata
     # @return [String, nil]
     attr_reader :success_url
 
-    def initialize(allow_discount_codes: nil, amount_cents: nil, cancel_url: nil, client_reference_id: nil, customer_email: nil, customer_id: nil, customer_name: nil, discount_id: nil, expires_in: nil, external_customer_id: nil, first_period_extra_days: nil, items: nil, label: nil, metadata: nil, price_id:, product_id:, quantity: nil, require_billing_address: nil, return_url: nil, subscription_start_at: nil, success_url: nil)
+    def initialize(allow_discount_codes: nil, amount_cents: nil, cancel_url: nil, client_reference_id: nil, customer_email: nil, customer_id: nil, customer_name: nil, discount_id: nil, expires_in: nil, external_customer_id: nil, first_period_extra_days: nil, items: nil, label: nil, metadata: nil, notify_customer_email: nil, price_id:, product_id:, quantity: nil, renewal_mode: nil, require_billing_address: nil, return_url: nil, subscription_start_at: nil, success_url: nil)
       @allow_discount_codes = allow_discount_codes
       @amount_cents = amount_cents
       @cancel_url = cancel_url
@@ -334,9 +342,11 @@ module Perata
       @items = items
       @label = label
       @metadata = metadata
+      @notify_customer_email = notify_customer_email
       @price_id = price_id
       @product_id = product_id
       @quantity = quantity
+      @renewal_mode = renewal_mode
       @require_billing_address = require_billing_address
       @return_url = return_url
       @subscription_start_at = subscription_start_at
@@ -361,9 +371,11 @@ module Perata
       wire["items"] = Perata.wire(@items) unless @items.nil?
       wire["label"] = @label unless @label.nil?
       wire["metadata"] = Perata.wire(@metadata) unless @metadata.nil?
+      wire["notify_customer_email"] = @notify_customer_email unless @notify_customer_email.nil?
       wire["price_id"] = @price_id
       wire["product_id"] = @product_id
       wire["quantity"] = @quantity unless @quantity.nil?
+      wire["renewal_mode"] = @renewal_mode unless @renewal_mode.nil?
       wire["require_billing_address"] = @require_billing_address unless @require_billing_address.nil?
       wire["return_url"] = @return_url unless @return_url.nil?
       wire["subscription_start_at"] = @subscription_start_at unless @subscription_start_at.nil?
@@ -1163,11 +1175,19 @@ module Perata
 
   # The body of subscriptions:update.
   class SubscriptionsUpdateParams < Params
-    MEMBERS = %i[extend_current_period_days price_id proration_behavior quantity].freeze
+    MEMBERS = %i[extend_current_period_days label notify_customer_email price_id proration_behavior quantity renewal_mode].freeze
 
     # Estende o período atual em tantos dias, de 1 a 365, sem cobrar nada e sem criar pedido: a renovação (e a próxima cobrança) passa a ser no novo fim, current_period_end, e os períodos seguintes contam a partir dele. É o crédito manual de dias do lojista. Só uma assinatura active aceita (uma em teste grátis, atrasada, pausada, suspensa ou cancelada recusa); uma que termina no fim do período termina no novo fim. Vai sozinho, sem price_id, quantity nem proration_behavior, senão a resposta é 422. A mudança chega no webhook subscription.updated e fica registrada no log de atividades. Não é repetível por si: envie uma Idempotency-Key para que uma nova tentativa não some os dias duas vezes.
     # @return [Integer, nil]
     attr_reader :extend_current_period_days
+
+    # O nome da assinatura, até 200 caracteres e sem caracteres de controle; vazio tira o nome. Vai sozinho, com renewal_mode e notify_customer_email, sem price_id, quantity, proration_behavior nem extend_current_period_days. Chega no webhook subscription.updated.
+    # @return [String, nil]
+    attr_reader :label
+
+    # Liga ou desliga a mensagem que a Peráta manda ao comprador a cada cobrança de renovação. Vai sozinho, como label.
+    # @return [Boolean, nil]
+    attr_reader :notify_customer_email
 
     # O preço recorrente para onde a assinatura vai. Obrigatório para trocar de plano; não se envia com extend_current_period_days.
     # @return [String, nil]
@@ -1181,11 +1201,18 @@ module Perata
     # @return [Integer, nil]
     attr_reader :quantity
 
-    def initialize(extend_current_period_days: nil, price_id: nil, proration_behavior: nil, quantity: nil)
+    # Muda como a assinatura renova. manual: deixa de cobrar o cartão e passa a abrir uma cobrança a cada ciclo (o cartão guardado é solto). card: cobra o cartão guardado sozinho; exige um cartão já guardado na assinatura (o comprador o ativa no portal), senão 422. pix_automatic só o comprador ativa, no app do banco. Vai sozinho, como label.
+    # @return [String ("manual", "card"), nil]
+    attr_reader :renewal_mode
+
+    def initialize(extend_current_period_days: nil, label: nil, notify_customer_email: nil, price_id: nil, proration_behavior: nil, quantity: nil, renewal_mode: nil)
       @extend_current_period_days = extend_current_period_days
+      @label = label
+      @notify_customer_email = notify_customer_email
       @price_id = price_id
       @proration_behavior = proration_behavior
       @quantity = quantity
+      @renewal_mode = renewal_mode
       freeze
     end
 
@@ -1193,9 +1220,12 @@ module Perata
     def to_wire
       wire = {}
       wire["extend_current_period_days"] = @extend_current_period_days unless @extend_current_period_days.nil?
+      wire["label"] = @label unless @label.nil?
+      wire["notify_customer_email"] = @notify_customer_email unless @notify_customer_email.nil?
       wire["price_id"] = @price_id unless @price_id.nil?
       wire["proration_behavior"] = @proration_behavior unless @proration_behavior.nil?
       wire["quantity"] = @quantity unless @quantity.nil?
+      wire["renewal_mode"] = @renewal_mode unless @renewal_mode.nil?
       wire
     end
   end

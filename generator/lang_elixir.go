@@ -151,8 +151,11 @@ func exSpec(m *Method, kind string) string {
 // apart with a blank line.
 func exRequest(m *Method) string {
 	var items []string
-	if m.Paginated {
-		query := []string{"page: opts[:page]", "limit: opts[:limit]"}
+	if m.Paginated || (m.HTTPMethod == "GET" && len(m.Query) > 0) {
+		var query []string
+		if m.Paginated {
+			query = []string{"page: opts[:page]", "limit: opts[:limit]"}
+		}
 		for _, param := range m.Query {
 			query = append(query, param.Name+": opts[:"+param.Name+"]")
 		}

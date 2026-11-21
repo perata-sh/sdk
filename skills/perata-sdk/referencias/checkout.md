@@ -21,8 +21,8 @@ Uma venda tem duas metades. O **servidor** cria o checkout com a chave de API. O
 | `require_billing_address` | pede o endereço completo de todo comprador, não só no boleto; desligado se omitido |
 | `discount_id` | aplica um desconto do catálogo sozinho (SDK 0.5.6+) |
 | `subscription_start_at` | só em assinatura: dia da primeira cobrança (SDK 0.5.6+). Veja `assinaturas.md` |
-| `first_period_extra_days` | só em assinatura: de 1 a 365 dias somados ao primeiro período; cobra hoje o valor cheio. Não vale com `subscription_start_at`. Veja `assinaturas.md` (ainda não está nos SDKs: use a API REST) |
-| `renewal_mode` | só em assinatura: `manual`, `automatic` ou `buyer_choice`; sem o campo nada muda. Veja `assinaturas.md` (ainda não está nos SDKs: use a API REST) |
+| `first_period_extra_days` | só em assinatura: de 1 a 365 dias somados ao primeiro período; cobra hoje o valor cheio. Não vale com `subscription_start_at`. Veja `assinaturas.md` (SDK 0.5.8+) |
+| `renewal_mode` | só em assinatura: `manual`, `automatic` ou `buyer_choice`; sem o campo nada muda. Veja `assinaturas.md` (SDK 0.5.9+) |
 | `notify_customer_email` | `false` mantém a Peráta sem escrever ao comprador a cobrança de cada renovação; `true` se omitido |
 | `label` | nome que você dá ao checkout nas suas telas; o comprador não vê. Numa assinatura vira o `label` dela (até 200 caracteres), que aparece no portal do cliente e no painel |
 

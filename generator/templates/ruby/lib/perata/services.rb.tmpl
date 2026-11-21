@@ -33,6 +33,17 @@ module Perata
       end
       block ? items.each(&block) : items
     end
+{{- else if filteredGet .}}
+
+    # {{.Summary}}. The filters are optional.
+{{- template "doc" .}}
+    #
+    # @return [{{.Response}}]
+    def {{snake .Name}}({{range .PathParams}}{{rbName .}}, {{end}}{{range .Query}}{{rbName .Name}}: nil, {{end}}api_key: nil)
+      query = { {{range $i, $q := .Query}}{{if $i}}, {{end}}{{quote $q.Name}} => {{rbName $q.Name}}{{end}} }
+      data = @client.request({{quote .HTTPMethod}}, {{template "path" .}}, query: query, api_key: api_key)
+      {{.Response}}.from_hash(data)
+    end
 {{- else if .NoContent}}
 
     # {{.Summary}}. The API answers 204, so there is nothing to return.

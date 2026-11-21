@@ -19,7 +19,53 @@ impl Client {
 }
 
 {{range $service := .Services}}
-{{- range .Methods}}{{if .Paginated}}
+{{- range .Methods}}{{if filteredGet .}}
+/// The filters of {{.OperationID}}.
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+#[non_exhaustive]
+pub struct {{pascal $service.Name}}{{pascal .Name}}Params {
+{{- range .Query}}
+{{rsDoc "    " .Description}}    pub {{rsName .Name}}: {{if .Map}}BTreeMap<String, String>{{else}}Option<String>{{end}},
+{{- end}}
+}
+
+impl {{pascal $service.Name}}{{pascal .Name}}Params {
+    /// No filter.
+    pub fn new() -> Self {
+        Self::default()
+    }
+{{- range .Query}}
+
+{{if .Description}}{{rsDoc "    " .Description}}{{else}}    /// Sets {{.Name}}.
+{{end}}{{if .Map}}    pub fn {{rsName .Name}}<K: Into<String>, V: Into<String>>(mut self, {{rsName .Name}}: impl IntoIterator<Item = (K, V)>) -> Self {
+        self.{{rsName .Name}} = {{rsName .Name}}.into_iter().map(|(key, value)| (key.into(), value.into())).collect();
+        self
+    }
+{{- else}}    pub fn {{rsName .Name}}(mut self, {{rsName .Name}}: impl Into<String>) -> Self {
+        self.{{rsName .Name}} = Some({{rsName .Name}}.into());
+        self
+    }
+{{- end}}
+{{- end}}
+
+    fn query(&self) -> Vec<(String, String)> {
+        let mut query = Vec::new();
+{{- range .Query}}
+{{- if .Map}}
+        // A map filter is one pair a key: {{.Name}}[key]=value, the keys sorted.
+        for (key, value) in &self.{{rsName .Name}} {
+            query.push((format!("{{.Name}}[{key}]"), value.clone()));
+        }
+{{- else}}
+        if let Some(value) = &self.{{rsName .Name}} {
+            query.push(({{quote .Name}}.to_owned(), value.clone()));
+        }
+{{- end}}
+{{- end}}
+        query
+    }
+}
+{{else if .Paginated}}
 /// The page and filters of {{.OperationID}}.
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 #[non_exhaustive]
@@ -140,6 +186,11 @@ impl<'a> {{pascal .Name}}Service<'a> {
             let query = params.clone().page(page).query();
             client.request({{quote .HTTPMethod}}, &path, &query, None::<&()>, &options)
         })
+    }
+{{- else if filteredGet .}}
+    /// {{.Summary}}. The filters are optional: pass `&Default::default()` for none.{{template "doc" .}}
+    pub fn {{rsName .Name}}(&self{{range .PathParams}}, {{rsName .}}: &str{{end}}, params: &{{pascal $service.Name}}{{pascal .Name}}Params) -> Result<{{.Response}}, Error> {
+        self.client.request({{quote .HTTPMethod}}, {{rsPath .}}, &params.query(), None::<&()>, &self.options)
     }
 {{- else if .NoContent}}
     /// {{.Summary}}. The API answers 204, so there is nothing to return.{{template "doc" .}}

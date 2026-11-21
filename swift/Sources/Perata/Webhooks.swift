@@ -71,7 +71,7 @@ public typealias DiscountWebhookEvent = WebhookMessage<WebhookDiscount>
 /// The events that carry a WebhookDispute: `dispute.lost`, `dispute.opened`, `dispute.won`.
 public typealias DisputeWebhookEvent = WebhookMessage<WebhookDispute>
 
-/// The events that carry the event's identifiers: `benefit.archived`, `benefit.version_created`, `benefit_product_link.linked`, `benefit_product_link.unlinked`, `checkout_link.archived`, `checkout_link.created`, `checkout_session.confirmed`, `checkout_session.expired`, `checkout_session.failed`, `checkout_session.opened`, `checkout_session.succeeded`, `customer.archived`, `discount.exhausted`, `discount.expired`, `discount.reactivated`, `discount.redeemed`, `discount_redemption.released`, `invoice.drafted`, `invoice.issued`, `invoice.settled`, `invoice.uncollectible`, `invoice.voided`, `price.archived`, `price.created`, `product.archived`, `seat_allocation.opened`, `seat_allocation.resized`, `seat_assignment.claimed`, `seat_assignment.invited`, `seat_assignment.revoked`, `usage_event.recorded`, `usage_period.closed`, `usage_period.opened`, `usage_period_adjustment.created`.
+/// The events that carry the event's identifiers: `benefit.archived`, `benefit.version_created`, `benefit_product_link.linked`, `benefit_product_link.unlinked`, `checkout_link.archived`, `checkout_link.created`, `checkout_session.confirmed`, `checkout_session.expired`, `checkout_session.failed`, `checkout_session.opened`, `checkout_session.succeeded`, `customer.archived`, `discount.exhausted`, `discount.expired`, `discount.reactivated`, `discount.redeemed`, `discount_redemption.released`, `invoice.drafted`, `invoice.issued`, `invoice.settled`, `invoice.uncollectible`, `invoice.voided`, `payout.deposited`, `payout.held`, `payout.released`, `payout.scheduled`, `price.archived`, `price.created`, `product.archived`, `seat_allocation.opened`, `seat_allocation.resized`, `seat_assignment.claimed`, `seat_assignment.invited`, `seat_assignment.revoked`, `usage_event.recorded`, `usage_period.closed`, `usage_period.opened`, `usage_period_adjustment.created`.
 public typealias IdentifiersWebhookEvent = WebhookMessage<[String: String]>
 
 /// The events that carry a WebhookOrder: `order.created`, `order.paid`, `order.refunded`, `order.updated`.
@@ -82,6 +82,9 @@ public typealias ProductWebhookEvent = WebhookMessage<Product>
 
 /// The events that carry a WebhookRefund: `refund.created`, `refund.updated`.
 public typealias RefundWebhookEvent = WebhookMessage<WebhookRefund>
+
+/// The events that carry a WebhookRenewalCharge: `subscription.renewal_due`, `subscription.renewal_reminder`.
+public typealias RenewalChargeWebhookEvent = WebhookMessage<WebhookRenewalCharge>
 
 /// The events that carry a WebhookSale: `checkout_payment.authorized`, `checkout_payment.canceled`, `checkout_payment.captured`, `checkout_payment.partially_refunded`, `checkout_payment.refunded`, `checkout_payment.refused`, `refund.canceled`, `refund.failed`, `refund.requested`, `refund.succeeded`.
 public typealias SaleWebhookEvent = WebhookMessage<WebhookSale>
@@ -117,7 +120,7 @@ public enum WebhookEvent: Sendable, Hashable {
     case discount(DiscountWebhookEvent)
     /// `dispute.lost`, `dispute.opened`, `dispute.won`.
     case dispute(DisputeWebhookEvent)
-    /// `benefit.archived`, `benefit.version_created`, `benefit_product_link.linked`, `benefit_product_link.unlinked`, `checkout_link.archived`, `checkout_link.created`, `checkout_session.confirmed`, `checkout_session.expired`, `checkout_session.failed`, `checkout_session.opened`, `checkout_session.succeeded`, `customer.archived`, `discount.exhausted`, `discount.expired`, `discount.reactivated`, `discount.redeemed`, `discount_redemption.released`, `invoice.drafted`, `invoice.issued`, `invoice.settled`, `invoice.uncollectible`, `invoice.voided`, `price.archived`, `price.created`, `product.archived`, `seat_allocation.opened`, `seat_allocation.resized`, `seat_assignment.claimed`, `seat_assignment.invited`, `seat_assignment.revoked`, `usage_event.recorded`, `usage_period.closed`, `usage_period.opened`, `usage_period_adjustment.created`.
+    /// `benefit.archived`, `benefit.version_created`, `benefit_product_link.linked`, `benefit_product_link.unlinked`, `checkout_link.archived`, `checkout_link.created`, `checkout_session.confirmed`, `checkout_session.expired`, `checkout_session.failed`, `checkout_session.opened`, `checkout_session.succeeded`, `customer.archived`, `discount.exhausted`, `discount.expired`, `discount.reactivated`, `discount.redeemed`, `discount_redemption.released`, `invoice.drafted`, `invoice.issued`, `invoice.settled`, `invoice.uncollectible`, `invoice.voided`, `payout.deposited`, `payout.held`, `payout.released`, `payout.scheduled`, `price.archived`, `price.created`, `product.archived`, `seat_allocation.opened`, `seat_allocation.resized`, `seat_assignment.claimed`, `seat_assignment.invited`, `seat_assignment.revoked`, `usage_event.recorded`, `usage_period.closed`, `usage_period.opened`, `usage_period_adjustment.created`.
     case identifiers(IdentifiersWebhookEvent)
     /// `order.created`, `order.paid`, `order.refunded`, `order.updated`.
     case order(OrderWebhookEvent)
@@ -125,6 +128,8 @@ public enum WebhookEvent: Sendable, Hashable {
     case product(ProductWebhookEvent)
     /// `refund.created`, `refund.updated`.
     case refund(RefundWebhookEvent)
+    /// `subscription.renewal_due`, `subscription.renewal_reminder`.
+    case renewalCharge(RenewalChargeWebhookEvent)
     /// `checkout_payment.authorized`, `checkout_payment.canceled`, `checkout_payment.captured`, `checkout_payment.partially_refunded`, `checkout_payment.refunded`, `checkout_payment.refused`, `refund.canceled`, `refund.failed`, `refund.requested`, `refund.succeeded`.
     case sale(SaleWebhookEvent)
     /// `subscription.active`, `subscription.canceled`, `subscription.created`, `subscription.cycled`, `subscription.past_due`, `subscription.paused`, `subscription.resumed`, `subscription.revoked`, `subscription.suspended`, `subscription.uncanceled`, `subscription.updated`.
@@ -145,6 +150,7 @@ public enum WebhookEvent: Sendable, Hashable {
         case let .order(event): event.id
         case let .product(event): event.id
         case let .refund(event): event.id
+        case let .renewalCharge(event): event.id
         case let .sale(event): event.id
         case let .subscription(event): event.id
         case let .unknown(event): event.id
@@ -164,6 +170,7 @@ public enum WebhookEvent: Sendable, Hashable {
         case let .order(event): event.type
         case let .product(event): event.type
         case let .refund(event): event.type
+        case let .renewalCharge(event): event.type
         case let .sale(event): event.type
         case let .subscription(event): event.type
         case let .unknown(event): event.type
@@ -183,6 +190,7 @@ public enum WebhookEvent: Sendable, Hashable {
         case let .order(event): event.timestamp
         case let .product(event): event.timestamp
         case let .refund(event): event.timestamp
+        case let .renewalCharge(event): event.timestamp
         case let .sale(event): event.timestamp
         case let .subscription(event): event.timestamp
         case let .unknown(event): event.timestamp
@@ -203,6 +211,7 @@ public enum WebhookEvent: Sendable, Hashable {
         case let .order(event): event.environment
         case let .product(event): event.environment
         case let .refund(event): event.environment
+        case let .renewalCharge(event): event.environment
         case let .sale(event): event.environment
         case let .subscription(event): event.environment
         case let .unknown(event): event.environment
@@ -223,6 +232,7 @@ public enum WebhookEvent: Sendable, Hashable {
         case let .order(event): event.showcaseId
         case let .product(event): event.showcaseId
         case let .refund(event): event.showcaseId
+        case let .renewalCharge(event): event.showcaseId
         case let .sale(event): event.showcaseId
         case let .subscription(event): event.showcaseId
         case let .unknown(event): event.showcaseId
@@ -254,7 +264,7 @@ public enum WebhookEvent: Sendable, Hashable {
             return try .discount(decoder.decode(DiscountWebhookEvent.self, from: body))
         case "dispute.lost", "dispute.opened", "dispute.won":
             return try .dispute(decoder.decode(DisputeWebhookEvent.self, from: body))
-        case "benefit.archived", "benefit.version_created", "benefit_product_link.linked", "benefit_product_link.unlinked", "checkout_link.archived", "checkout_link.created", "checkout_session.confirmed", "checkout_session.expired", "checkout_session.failed", "checkout_session.opened", "checkout_session.succeeded", "customer.archived", "discount.exhausted", "discount.expired", "discount.reactivated", "discount.redeemed", "discount_redemption.released", "invoice.drafted", "invoice.issued", "invoice.settled", "invoice.uncollectible", "invoice.voided", "price.archived", "price.created", "product.archived", "seat_allocation.opened", "seat_allocation.resized", "seat_assignment.claimed", "seat_assignment.invited", "seat_assignment.revoked", "usage_event.recorded", "usage_period.closed", "usage_period.opened", "usage_period_adjustment.created":
+        case "benefit.archived", "benefit.version_created", "benefit_product_link.linked", "benefit_product_link.unlinked", "checkout_link.archived", "checkout_link.created", "checkout_session.confirmed", "checkout_session.expired", "checkout_session.failed", "checkout_session.opened", "checkout_session.succeeded", "customer.archived", "discount.exhausted", "discount.expired", "discount.reactivated", "discount.redeemed", "discount_redemption.released", "invoice.drafted", "invoice.issued", "invoice.settled", "invoice.uncollectible", "invoice.voided", "payout.deposited", "payout.held", "payout.released", "payout.scheduled", "price.archived", "price.created", "product.archived", "seat_allocation.opened", "seat_allocation.resized", "seat_assignment.claimed", "seat_assignment.invited", "seat_assignment.revoked", "usage_event.recorded", "usage_period.closed", "usage_period.opened", "usage_period_adjustment.created":
             return try .identifiers(decoder.decode(IdentifiersWebhookEvent.self, from: body))
         case "order.created", "order.paid", "order.refunded", "order.updated":
             return try .order(decoder.decode(OrderWebhookEvent.self, from: body))
@@ -262,6 +272,8 @@ public enum WebhookEvent: Sendable, Hashable {
             return try .product(decoder.decode(ProductWebhookEvent.self, from: body))
         case "refund.created", "refund.updated":
             return try .refund(decoder.decode(RefundWebhookEvent.self, from: body))
+        case "subscription.renewal_due", "subscription.renewal_reminder":
+            return try .renewalCharge(decoder.decode(RenewalChargeWebhookEvent.self, from: body))
         case "checkout_payment.authorized", "checkout_payment.canceled", "checkout_payment.captured", "checkout_payment.partially_refunded", "checkout_payment.refunded", "checkout_payment.refused", "refund.canceled", "refund.failed", "refund.requested", "refund.succeeded":
             return try .sale(decoder.decode(SaleWebhookEvent.self, from: body))
         case "subscription.active", "subscription.canceled", "subscription.created", "subscription.cycled", "subscription.past_due", "subscription.paused", "subscription.resumed", "subscription.revoked", "subscription.suspended", "subscription.uncanceled", "subscription.updated":

@@ -7,6 +7,12 @@ import java.util.Map;
 
 /** CheckoutCreated is a resource of Peráta's API. */
 public final class CheckoutCreated {
+    /** A value of {@link #getRenewalMode()}. */
+    public static final String RENEWAL_MODE_MANUAL = "manual";
+    /** A value of {@link #getRenewalMode()}. */
+    public static final String RENEWAL_MODE_AUTOMATIC = "automatic";
+    /** A value of {@link #getRenewalMode()}. */
+    public static final String RENEWAL_MODE_BUYER_CHOICE = "buyer_choice";
     /** A value of {@link #getStatus()}. */
     public static final String STATUS_ACTIVE = "active";
     /** A value of {@link #getStatus()}. */
@@ -25,9 +31,11 @@ public final class CheckoutCreated {
     private final List<CheckoutLine> items;
     private final String label;
     private final Map<String, Object> metadata;
+    private final boolean notifyCustomerEmail;
     private final String priceId;
     private final String productId;
     private final long quantity;
+    private final String renewalMode;
     private final String sessionId;
     private final String showcaseId;
     private final String status;
@@ -36,7 +44,7 @@ public final class CheckoutCreated {
     private final String successUrl;
     private final String url;
 
-    CheckoutCreated(Long amountCents, String cancelUrl, String clientReferenceId, String clientSecret, String clientSecretExpiresAt, String createdAt, String discountId, String expiresAt, Long firstPeriodExtraDays, String id, List<CheckoutLine> items, String label, Map<String, Object> metadata, String priceId, String productId, long quantity, String sessionId, String showcaseId, String status, String statusKey, String subscriptionStartAt, String successUrl, String url) {
+    CheckoutCreated(Long amountCents, String cancelUrl, String clientReferenceId, String clientSecret, String clientSecretExpiresAt, String createdAt, String discountId, String expiresAt, Long firstPeriodExtraDays, String id, List<CheckoutLine> items, String label, Map<String, Object> metadata, boolean notifyCustomerEmail, String priceId, String productId, long quantity, String renewalMode, String sessionId, String showcaseId, String status, String statusKey, String subscriptionStartAt, String successUrl, String url) {
         this.amountCents = amountCents;
         this.cancelUrl = cancelUrl;
         this.clientReferenceId = clientReferenceId;
@@ -50,9 +58,11 @@ public final class CheckoutCreated {
         this.items = items;
         this.label = label;
         this.metadata = metadata;
+        this.notifyCustomerEmail = notifyCustomerEmail;
         this.priceId = priceId;
         this.productId = productId;
         this.quantity = quantity;
+        this.renewalMode = renewalMode;
         this.sessionId = sessionId;
         this.showcaseId = showcaseId;
         this.status = status;
@@ -77,9 +87,11 @@ public final class CheckoutCreated {
                 Json.required(data, "items", Json.list(Json.model(CheckoutLine::fromJson))),
                 Json.required(data, "label", Json::asString),
                 Json.required(data, "metadata", Json.map(Json::any)),
+                Json.required(data, "notify_customer_email", Json::asBoolean),
                 Json.required(data, "price_id", Json::asString),
                 Json.required(data, "product_id", Json::asString),
                 Json.required(data, "quantity", Json::asLong),
+                Json.required(data, "renewal_mode", Json::asString),
                 Json.required(data, "session_id", Json::asString),
                 Json.required(data, "showcase_id", Json::asString),
                 Json.required(data, "status", Json::asString),
@@ -154,6 +166,11 @@ public final class CheckoutCreated {
         return metadata;
     }
 
+    /** @return Falso quando o seu sistema avisa o comprador das cobranças de renovação e a Peráta fica quieta. */
+    public boolean getNotifyCustomerEmail() {
+        return notifyCustomerEmail;
+    }
+
     /** @return the API's {@code price_id} */
     public String getPriceId() {
         return priceId;
@@ -167,6 +184,11 @@ public final class CheckoutCreated {
     /** @return the API's {@code quantity} */
     public long getQuantity() {
         return quantity;
+    }
+
+    /** @return O renewal_mode da criação: manual, automatic ou buyer_choice; vazio quando foi omitido. A assinatura que o pagamento começa traz o modo a que isso se resolveu em Subscription.renewal_mode. */
+    public String getRenewalMode() {
+        return renewalMode;
     }
 
     /** @return O ID da sessão de checkout; as rotas de cliente dela são /checkouts/client/{client_secret}. */
@@ -206,6 +228,6 @@ public final class CheckoutCreated {
 
     @Override
     public String toString() {
-        return "CheckoutCreated{" + "amountCents=" + amountCents + ", cancelUrl=" + cancelUrl + ", clientReferenceId=" + clientReferenceId + ", clientSecret=" + clientSecret + ", clientSecretExpiresAt=" + clientSecretExpiresAt + ", createdAt=" + createdAt + ", discountId=" + discountId + ", expiresAt=" + expiresAt + ", firstPeriodExtraDays=" + firstPeriodExtraDays + ", id=" + id + ", items=" + items + ", label=" + label + ", metadata=" + metadata + ", priceId=" + priceId + ", productId=" + productId + ", quantity=" + quantity + ", sessionId=" + sessionId + ", showcaseId=" + showcaseId + ", status=" + status + ", statusKey=" + statusKey + ", subscriptionStartAt=" + subscriptionStartAt + ", successUrl=" + successUrl + ", url=" + url + "}";
+        return "CheckoutCreated{" + "amountCents=" + amountCents + ", cancelUrl=" + cancelUrl + ", clientReferenceId=" + clientReferenceId + ", clientSecret=" + clientSecret + ", clientSecretExpiresAt=" + clientSecretExpiresAt + ", createdAt=" + createdAt + ", discountId=" + discountId + ", expiresAt=" + expiresAt + ", firstPeriodExtraDays=" + firstPeriodExtraDays + ", id=" + id + ", items=" + items + ", label=" + label + ", metadata=" + metadata + ", notifyCustomerEmail=" + notifyCustomerEmail + ", priceId=" + priceId + ", productId=" + productId + ", quantity=" + quantity + ", renewalMode=" + renewalMode + ", sessionId=" + sessionId + ", showcaseId=" + showcaseId + ", status=" + status + ", statusKey=" + statusKey + ", subscriptionStartAt=" + subscriptionStartAt + ", successUrl=" + successUrl + ", url=" + url + "}";
     }
 }

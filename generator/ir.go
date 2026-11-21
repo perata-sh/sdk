@@ -683,6 +683,12 @@ func (l *loader) typeOf(s *schema) (*TypeRef, bool, error) {
 				nullable = true
 				continue
 			}
+			if *value == "" {
+				// The empty text is "not given" (a mode the request left out): it
+				// has no constant, and a language that types its values keeps it
+				// as the value it does not know.
+				continue
+			}
 			if err := checkMatch("allowed value", *value, enumValue); err != nil {
 				return nil, false, err
 			}

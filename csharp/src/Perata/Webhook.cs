@@ -194,6 +194,11 @@ public static class Webhook
             return new RefundWebhookEvent(id, type, timestamp, environment, showcaseId, data.Deserialize(PerataJson.Default.WebhookRefund)
                 ?? throw new JsonException("perata: the webhook has no data"));
         }
+        if (RenewalChargeWebhookEvent.Types.Contains(type))
+        {
+            return new RenewalChargeWebhookEvent(id, type, timestamp, environment, showcaseId, data.Deserialize(PerataJson.Default.WebhookRenewalCharge)
+                ?? throw new JsonException("perata: the webhook has no data"));
+        }
         if (SaleWebhookEvent.Types.Contains(type))
         {
             return new SaleWebhookEvent(id, type, timestamp, environment, showcaseId, data.Deserialize(PerataJson.Default.WebhookSale)

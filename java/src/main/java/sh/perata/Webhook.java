@@ -182,6 +182,9 @@ public final class Webhook {
         if (RefundWebhookEvent.TYPES.contains(type)) {
             return RefundWebhookEvent.fromJson(id, type, timestamp, environment, showcaseId, data);
         }
+        if (RenewalChargeWebhookEvent.TYPES.contains(type)) {
+            return RenewalChargeWebhookEvent.fromJson(id, type, timestamp, environment, showcaseId, data);
+        }
         if (SaleWebhookEvent.TYPES.contains(type)) {
             return SaleWebhookEvent.fromJson(id, type, timestamp, environment, showcaseId, data);
         }

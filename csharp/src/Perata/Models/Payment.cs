@@ -77,6 +77,14 @@ public sealed record Payment
     [JsonPropertyName("cycle_sequence")]
     public long? CycleSequence { get; init; }
 
+    /// <summary>A data prevista do próximo repasse que paga este pagamento, AAAA-MM-DD; nula quando nenhum repasse está esperando (já foi todo depositado, não foi capturado ou a data ainda não é conhecida). Num pagamento parcelado, é a da próxima parcela. Null when the API sends none.</summary>
+    [JsonPropertyName("expected_payout_on")]
+    public string? ExpectedPayoutOn { get; init; }
+
+    /// <summary>A tarifa que a Peráta cobrou desta venda, em centavos: a parte do valor capturado que a Peráta retém. 0 enquanto o pagamento não foi capturado.</summary>
+    [JsonPropertyName("fee_cents")]
+    public required long FeeCents { get; init; }
+
     /// <summary>The API's <c>id</c>.</summary>
     [JsonPropertyName("id")]
     public required string Id { get; init; }
@@ -101,6 +109,18 @@ public sealed record Payment
     [JsonPropertyName("method")]
     public required string Method { get; init; }
 
+    /// <summary>O valor líquido da venda, em centavos: captured_cents menos fee_cents, o que fica para o vendedor, antes de reembolsos. 0 enquanto o pagamento não foi capturado.</summary>
+    [JsonPropertyName("net_cents")]
+    public required long NetCents { get; init; }
+
+    /// <summary>O dia em que o último repasse que pagou este pagamento foi depositado, AAAA-MM-DD; nulo enquanto nenhum foi. Null when the API sends none.</summary>
+    [JsonPropertyName("payout_deposited_on")]
+    public string? PayoutDepositedOn { get; init; }
+
+    /// <summary>O repasse em que o pagamento foi depositado: o id de GET /payouts/{id}; nulo enquanto nenhum foi. Num pagamento parcelado, é o da última parcela depositada. Null when the API sends none.</summary>
+    [JsonPropertyName("payout_id")]
+    public string? PayoutId { get; init; }
+
     /// <summary>O fim do período que o ciclo paga; nulo fora de uma assinatura. Null when the API sends none.</summary>
     [JsonPropertyName("period_end")]
     public string? PeriodEnd { get; init; }
@@ -116,6 +136,10 @@ public sealed record Payment
     /// <summary>O showcase a que pertence: o da chave de API que fez a chamada. Uma chave só alcança o seu showcase.</summary>
     [JsonPropertyName("showcase_id")]
     public required string ShowcaseId { get; init; }
+
+    /// <summary>Como a venda foi dividida entre os destinatários, cada um com a sua parte, a tarifa e o líquido; uma venda sem divisão tem um só destinatário.</summary>
+    [JsonPropertyName("split")]
+    public required IReadOnlyList<SplitRecipient> Split { get; init; }
 
     /// <summary>The API's <c>state</c>.</summary>
     [JsonPropertyName("state")]

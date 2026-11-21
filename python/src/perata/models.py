@@ -8,6 +8,43 @@ from typing import Any, Literal, NotRequired, TypedDict
 
 
 @dataclass(frozen=True)
+class Balance:
+    """Balance is a resource of Peráta's API."""
+
+    currency: Literal["BRL"]
+    deposited_cents: int
+    """Depositado no período de period_from a period_to: a soma do valor líquido dos repasses depositados nesses dias. Não faz parte do total a receber."""
+    held_cents: int
+    """Retido para análise: o valor que teria sido liberado ou previsto, mas que a Peráta mantém retido enquanto a conta da organização está em análise. Volta a ser liberado quando a análise termina."""
+    later_cents: int
+    """A receber depois: o que falta do total e ainda não tem data de repasse, como as parcelas além dos próximos 31 dias."""
+    period_from: str
+    """O primeiro dia do período de deposited_cents, AAAA-MM-DD. Sem date_from na chamada, são os 30 dias até period_to."""
+    period_to: str
+    """O último dia do período de deposited_cents, AAAA-MM-DD. Sem date_to na chamada, é hoje."""
+    released_cents: int
+    """Liberado para repasse: o valor cuja data de repasse já chegou e que a Peráta ainda não registrou como depositado. Está em processamento."""
+    scheduled_cents: int
+    """Previsto: o valor com data de repasse nos próximos 31 dias."""
+    total_to_receive_cents: int
+    """O valor total a receber: tudo o que a organização ainda vai receber das vendas capturadas, já descontadas as tarifas e os reembolsos. É sempre released_cents + held_cents + scheduled_cents + later_cents."""
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> Balance:
+        return cls(
+            currency=data["currency"],
+            deposited_cents=data["deposited_cents"],
+            held_cents=data["held_cents"],
+            later_cents=data["later_cents"],
+            period_from=data["period_from"],
+            period_to=data["period_to"],
+            released_cents=data["released_cents"],
+            scheduled_cents=data["scheduled_cents"],
+            total_to_receive_cents=data["total_to_receive_cents"],
+        )
+
+
+@dataclass(frozen=True)
 class Benefit:
     """Benefit is a resource of Peráta's API."""
 
@@ -201,9 +238,13 @@ class Checkout:
     """Como o lojista chama o checkout nas próprias telas; o comprador não vê."""
     metadata: dict[str, Any]
     """Os pares que o seu servidor guardou na criação; voltam nos eventos da venda."""
+    notify_customer_email: bool
+    """Falso quando o seu sistema avisa o comprador das cobranças de renovação e a Peráta fica quieta."""
     price_id: str
     product_id: str
     quantity: int
+    renewal_mode: Literal["manual", "automatic", "buyer_choice"]
+    """O renewal_mode da criação: manual, automatic ou buyer_choice; vazio quando foi omitido. A assinatura que o pagamento começa traz o modo a que isso se resolveu em Subscription.renewal_mode."""
     showcase_id: str
     """O showcase a que pertence: o da chave de API que fez a chamada. Uma chave só alcança o seu showcase."""
     status: Literal["active", "archived"]
@@ -229,9 +270,11 @@ class Checkout:
             items=[CheckoutLine.from_dict(item) for item in data["items"]],
             label=data["label"],
             metadata=data["metadata"],
+            notify_customer_email=data["notify_customer_email"],
             price_id=data["price_id"],
             product_id=data["product_id"],
             quantity=data["quantity"],
+            renewal_mode=data["renewal_mode"],
             showcase_id=data["showcase_id"],
             status=data["status"],
             subscription_start_at=data.get("subscription_start_at"),
@@ -504,9 +547,13 @@ class CheckoutCreated:
     """Como o lojista chama o checkout nas próprias telas; o comprador não vê."""
     metadata: dict[str, Any]
     """Os pares que o seu servidor enviou; voltam no pedido, no pagamento e nos eventos da venda (checkout.*, order.*, checkout_payment.* e refund.*)."""
+    notify_customer_email: bool
+    """Falso quando o seu sistema avisa o comprador das cobranças de renovação e a Peráta fica quieta."""
     price_id: str
     product_id: str
     quantity: int
+    renewal_mode: Literal["manual", "automatic", "buyer_choice"]
+    """O renewal_mode da criação: manual, automatic ou buyer_choice; vazio quando foi omitido. A assinatura que o pagamento começa traz o modo a que isso se resolveu em Subscription.renewal_mode."""
     session_id: str
     """O ID da sessão de checkout; as rotas de cliente dela são /checkouts/client/{client_secret}."""
     showcase_id: str
@@ -538,9 +585,11 @@ class CheckoutCreated:
             items=[CheckoutLine.from_dict(item) for item in data["items"]],
             label=data["label"],
             metadata=data["metadata"],
+            notify_customer_email=data["notify_customer_email"],
             price_id=data["price_id"],
             product_id=data["product_id"],
             quantity=data["quantity"],
+            renewal_mode=data["renewal_mode"],
             session_id=data["session_id"],
             showcase_id=data["showcase_id"],
             status=data["status"],
@@ -1382,6 +1431,10 @@ class Payment:
     customer_id: str
     cycle_sequence: int | None
     """Qual ciclo da assinatura o pagamento pagou: 1 é o primeiro; nulo fora de uma assinatura."""
+    expected_payout_on: str | None
+    """A data prevista do próximo repasse que paga este pagamento, AAAA-MM-DD; nula quando nenhum repasse está esperando (já foi todo depositado, não foi capturado ou a data ainda não é conhecida). Num pagamento parcelado, é a da próxima parcela."""
+    fee_cents: int
+    """A tarifa que a Peráta cobrou desta venda, em centavos: a parte do valor capturado que a Peráta retém. 0 enquanto o pagamento não foi capturado."""
     id: str
     installment_amount_cents: int
     """Valor de uma parcela; 0 à vista."""
@@ -1392,6 +1445,12 @@ class Payment:
     metadata: dict[str, Any]
     """Os pares que o seu servidor enviou ao criar o checkout. Na renovação de uma assinatura são os da assinatura, que começou com os do checkout que a vendeu."""
     method: Literal["card", "pix", "boleto"]
+    net_cents: int
+    """O valor líquido da venda, em centavos: captured_cents menos fee_cents, o que fica para o vendedor, antes de reembolsos. 0 enquanto o pagamento não foi capturado."""
+    payout_deposited_on: str | None
+    """O dia em que o último repasse que pagou este pagamento foi depositado, AAAA-MM-DD; nulo enquanto nenhum foi."""
+    payout_id: str | None
+    """O repasse em que o pagamento foi depositado: o id de GET /payouts/{id}; nulo enquanto nenhum foi. Num pagamento parcelado, é o da última parcela depositada."""
     period_end: str | None
     """O fim do período que o ciclo paga; nulo fora de uma assinatura."""
     period_start: str | None
@@ -1399,6 +1458,8 @@ class Payment:
     refunded_cents: int
     showcase_id: str
     """O showcase a que pertence: o da chave de API que fez a chamada. Uma chave só alcança o seu showcase."""
+    split: list[SplitRecipient]
+    """Como a venda foi dividida entre os destinatários, cada um com a sua parte, a tarifa e o líquido; uma venda sem divisão tem um só destinatário."""
     state: Literal["unknown", "pending", "authorized", "captured", "refused", "canceled", "refunded", "partially_refunded"]
     subscription_id: str | None
     """A assinatura que este pagamento cobrou (a primeira ou uma renovação); nulo quando o pagamento não é de uma assinatura."""
@@ -1414,16 +1475,22 @@ class Payment:
             currency=data["currency"],
             customer_id=data["customer_id"],
             cycle_sequence=data.get("cycle_sequence"),
+            expected_payout_on=data.get("expected_payout_on"),
+            fee_cents=data["fee_cents"],
             id=data["id"],
             installment_amount_cents=data["installment_amount_cents"],
             installment_interest_cents=data["installment_interest_cents"],
             installments=data["installments"],
             metadata=data["metadata"],
             method=data["method"],
+            net_cents=data["net_cents"],
+            payout_deposited_on=data.get("payout_deposited_on"),
+            payout_id=data.get("payout_id"),
             period_end=data.get("period_end"),
             period_start=data.get("period_start"),
             refunded_cents=data["refunded_cents"],
             showcase_id=data["showcase_id"],
+            split=[SplitRecipient.from_dict(item) for item in data["split"]],
             state=data["state"],
             subscription_id=data.get("subscription_id"),
         )
@@ -1462,6 +1529,115 @@ class PaymentMethodDetached:
         return cls(
             detached=data["detached"],
             id=data["id"],
+        )
+
+
+@dataclass(frozen=True)
+class Payout:
+    """Payout is a resource of Peráta's API."""
+
+    amount_cents: int
+    """O valor das vendas pagas neste repasse, antes das tarifas, em centavos, já com os reembolsos e as contestações que o repasse compensa (que o reduzem)."""
+    currency: Literal["BRL"]
+    deposited_on: str | None
+    """O dia em que o repasse foi depositado, AAAA-MM-DD; nulo enquanto não foi."""
+    expected_on: str
+    """A data do repasse, AAAA-MM-DD: quando o valor é, ou foi, depositado."""
+    fee_cents: int
+    """O que o repasse desconta em tarifas, em centavos: a parte de cada venda que a Peráta retém e as tarifas cobradas no dia."""
+    id: str
+    """O id do repasse: po_ e a data do repasse, como po_20261120."""
+    item_count: int
+    """Quantos lançamentos o repasse tem."""
+    net_cents: int
+    """O valor líquido do repasse, em centavos: amount_cents menos fee_cents, o que é depositado. Pode ser negativo quando os reembolsos do dia superam as vendas; então o saldo é compensado nos próximos repasses."""
+    status: Literal["scheduled", "released", "held", "deposited"]
+    """scheduled: previsto, com data nos próximos dias. released: liberado para repasse, a data chegou e o depósito está em processamento. held: retido para análise enquanto a conta da organização está em análise. deposited: depositado na conta da organização, em deposited_on."""
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> Payout:
+        return cls(
+            amount_cents=data["amount_cents"],
+            currency=data["currency"],
+            deposited_on=data.get("deposited_on"),
+            expected_on=data["expected_on"],
+            fee_cents=data["fee_cents"],
+            id=data["id"],
+            item_count=data["item_count"],
+            net_cents=data["net_cents"],
+            status=data["status"],
+        )
+
+
+@dataclass(frozen=True)
+class PayoutDetail:
+    """PayoutDetail is a resource of Peráta's API."""
+
+    amount_cents: int
+    """O valor das vendas pagas neste repasse, antes das tarifas, em centavos, já com os reembolsos e as contestações que o repasse compensa (que o reduzem)."""
+    currency: Literal["BRL"]
+    deposited_on: str | None
+    """O dia em que o repasse foi depositado, AAAA-MM-DD; nulo enquanto não foi."""
+    expected_on: str
+    """A data do repasse, AAAA-MM-DD: quando o valor é, ou foi, depositado."""
+    fee_cents: int
+    """O que o repasse desconta em tarifas, em centavos: a parte de cada venda que a Peráta retém e as tarifas cobradas no dia."""
+    id: str
+    """O id do repasse: po_ e a data do repasse, como po_20261120."""
+    item_count: int
+    """Quantos lançamentos o repasse tem."""
+    items: list[PayoutItem]
+    """Os lançamentos do repasse, com o pagamento de cada um."""
+    net_cents: int
+    """O valor líquido do repasse, em centavos: amount_cents menos fee_cents, o que é depositado. Pode ser negativo quando os reembolsos do dia superam as vendas; então o saldo é compensado nos próximos repasses."""
+    status: Literal["scheduled", "released", "held", "deposited"]
+    """scheduled: previsto, com data nos próximos dias. released: liberado para repasse, a data chegou e o depósito está em processamento. held: retido para análise enquanto a conta da organização está em análise. deposited: depositado na conta da organização, em deposited_on."""
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> PayoutDetail:
+        return cls(
+            amount_cents=data["amount_cents"],
+            currency=data["currency"],
+            deposited_on=data.get("deposited_on"),
+            expected_on=data["expected_on"],
+            fee_cents=data["fee_cents"],
+            id=data["id"],
+            item_count=data["item_count"],
+            items=[PayoutItem.from_dict(item) for item in data["items"]],
+            net_cents=data["net_cents"],
+            status=data["status"],
+        )
+
+
+@dataclass(frozen=True)
+class PayoutItem:
+    """PayoutItem is a resource of Peráta's API."""
+
+    amount_cents: int
+    """O valor do lançamento antes da tarifa, em centavos; negativo nos reembolsos e nas contestações."""
+    fee_cents: int
+    """A tarifa do lançamento, em centavos."""
+    installment: int
+    """Qual parcela da venda o lançamento paga; 0 quando a venda foi à vista."""
+    kind: Literal["sale", "refund", "chargeback", "fee", "adjustment", "anticipation"]
+    """sale: uma venda (ou uma parcela dela). refund: um reembolso que o repasse compensa. chargeback: uma contestação. fee: uma tarifa do dia. adjustment: um ajuste. anticipation: uma antecipação de recebíveis."""
+    net_cents: int
+    """amount_cents menos fee_cents: o que o lançamento acrescenta ao depósito."""
+    payment_id: str | None
+    """O pagamento a que o lançamento se refere, o id de GET /payments/{id}; nulo nas tarifas e nos ajustes que não são de um pagamento."""
+    status: Literal["scheduled", "released", "held", "deposited"]
+    """Como o do repasse, para este lançamento: um repasse com lançamentos em estados diferentes está no menos avançado deles."""
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> PayoutItem:
+        return cls(
+            amount_cents=data["amount_cents"],
+            fee_cents=data["fee_cents"],
+            installment=data["installment"],
+            kind=data["kind"],
+            net_cents=data["net_cents"],
+            payment_id=data.get("payment_id"),
+            status=data["status"],
         )
 
 
@@ -1599,6 +1775,73 @@ class Refund:
 
 
 @dataclass(frozen=True)
+class RenewalCharge:
+    """RenewalCharge is a resource of Peráta's API."""
+
+    amount_cents: int
+    """O que o comprador paga, em centavos: o ciclo já com desconto e rateio."""
+    client_reference_id: str
+    """O client_reference_id da assinatura."""
+    currency: Literal["BRL"]
+    customer_id: str
+    cycle_sequence: int
+    """O ciclo que a cobrança paga: 2 é a primeira renovação."""
+    days_until_due: int | None
+    """Só nos lembretes: 3 em before_due, 0 em on_due; nulo no resto."""
+    due_at: str
+    """Até quando a cobrança deve ser paga sem a assinatura ficar em atraso: o fim do período que ela cobra. Passado o prazo, a assinatura vira past_due e o mesmo payment_url continua valendo por mais 72 horas de tolerância; depois disso a assinatura é suspensa."""
+    expires_at: str | None
+    """Quando o payment_url deixa de abrir; sempre depois da tolerância de 72 horas."""
+    id: str
+    """O id da cobrança, que é o do ciclo da assinatura que ela cobra. O pedido só existe depois do pagamento: o order.paid que vem então traz o mesmo subscription_id e cycle_sequence."""
+    label: str
+    """O label da assinatura; vazio sem ele."""
+    metadata: dict[str, Any]
+    """Os metadados da assinatura."""
+    notify_customer_email: bool
+    """Se a Peráta escreve ao comprador desta cobrança."""
+    payment_url: str
+    """A página da Peráta onde o comprador paga esta cobrança, por cartão, Pix ou boleto. O Pix é gerado nessa página, quando o comprador o escolhe, e vale 24 horas: a Peráta não gera o Pix na abertura da cobrança porque ele venceria antes do prazo da cobrança e, enquanto vale, impediria pagar de outro jeito. Entregue este endereço ao comprador."""
+    period_end: str
+    period_start: str
+    price_id: str
+    product_id: str
+    reminder: Literal["before_due", "on_due", "null"] | None
+    """Só nos eventos subscription.renewal_reminder: before_due (3 dias antes de due_at) ou on_due (no vencimento). Nulo na cobrança e em subscription.renewal_due."""
+    renewal_mode: Literal["manual", "card", "pix_automatic"]
+    """O modo de renovação da assinatura. Uma cobrança em aberto existe nos modos manual e, quando o cartão é recusado, card."""
+    showcase_id: str
+    """O showcase a que pertence: o da chave de API que fez a chamada."""
+    subscription_id: str
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> RenewalCharge:
+        return cls(
+            amount_cents=data["amount_cents"],
+            client_reference_id=data["client_reference_id"],
+            currency=data["currency"],
+            customer_id=data["customer_id"],
+            cycle_sequence=data["cycle_sequence"],
+            days_until_due=data.get("days_until_due"),
+            due_at=data["due_at"],
+            expires_at=data.get("expires_at"),
+            id=data["id"],
+            label=data["label"],
+            metadata=data["metadata"],
+            notify_customer_email=data["notify_customer_email"],
+            payment_url=data["payment_url"],
+            period_end=data["period_end"],
+            period_start=data["period_start"],
+            price_id=data["price_id"],
+            product_id=data["product_id"],
+            reminder=data.get("reminder"),
+            renewal_mode=data["renewal_mode"],
+            showcase_id=data["showcase_id"],
+            subscription_id=data["subscription_id"],
+        )
+
+
+@dataclass(frozen=True)
 class Showcase:
     """Showcase is a resource of Peráta's API."""
 
@@ -1627,6 +1870,29 @@ class Showcase:
 
 
 @dataclass(frozen=True)
+class SplitRecipient:
+    """SplitRecipient is a resource of Peráta's API."""
+
+    amount_cents: int
+    """O valor da parte deste destinatário, antes da tarifa, em centavos."""
+    fee_cents: int
+    """A tarifa que esta parte pagou, em centavos."""
+    net_cents: int
+    """amount_cents menos fee_cents: o que sobra ao destinatário."""
+    recipient_id: str | None
+    """O showcase destinatário desta parte da venda; nulo quando a Peráta não o identifica."""
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> SplitRecipient:
+        return cls(
+            amount_cents=data["amount_cents"],
+            fee_cents=data["fee_cents"],
+            net_cents=data["net_cents"],
+            recipient_id=data.get("recipient_id"),
+        )
+
+
+@dataclass(frozen=True)
 class Subscription:
     """Subscription is a resource of Peráta's API."""
 
@@ -1647,14 +1913,20 @@ class Subscription:
     """Quantos dias o checkout que vendeu a assinatura somou ao primeiro período, para você conferir; nulo quando o primeiro período foi o comum. O primeiro período vai do dia do pagamento até esse dia mais um intervalo do preço mais estes dias, e current_period_end já vem com eles."""
     id: str
     interval: str
+    label: str
+    """O nome que você deu à assinatura, copiado do label do checkout que a vendeu (por exemplo, Olho de Águia · Colaborador Ana); vazio sem ele. É o título da assinatura no portal do cliente e no painel. Troque com PATCH, até 200 caracteres."""
     metadata: dict[str, Any]
     """Metadados do lojista: pares chave e valor (texto, número ou booleano); objeto vazio quando não há."""
+    notify_customer_email: bool
+    """Verdadeiro enquanto a Peráta escreve ao comprador a cada cobrança de renovação; falso quando o seu sistema avisa o comprador e a Peráta fica quieta. Vem do notify_customer_email do checkout (verdadeiro por padrão) e ainda depende do aviso Cobrança da renovação em Configurações › Preferências, que a organização pode desligar."""
     pending_update: SubscriptionPendingUpdate | None
     """A mudança de plano ou de quantidade agendada para o próximo período (PATCH com proration_behavior next_period); nulo quando não há nenhuma. Até effective_at a assinatura segue com o price_id, a quantity e o amount_cents de cima."""
     price_id: str
     product_id: str
     quantity: int
     """Quantas unidades ou assentos a assinatura cobre, de 1 em diante; 1 num preço sem quantidade. amount_cents é o total do ciclo para esta quantity."""
+    renewal_mode: Literal["manual", "card", "pix_automatic"]
+    """Como os próximos períodos são cobrados: manual (a cada ciclo a Peráta abre uma cobrança para o comprador pagar, com o evento subscription.renewal_due, e o cartão nunca é cobrado), card (o cartão de crédito guardado é cobrado sozinho) ou pix_automatic (o banco debita cada cobrança, autorizada uma vez pelo comprador). card e pix_automatic são os modos automáticos. Vem do renewal_mode do checkout; sem ele, é card quando o pagamento guardou o cartão e manual nos outros meios. Troque com PATCH (manual, ou card quando há cartão guardado)."""
     showcase_id: str
     """O showcase a que pertence: o da chave de API que fez a chamada. Uma chave só alcança o seu showcase."""
     status: Literal["trialing", "active", "past_due", "suspended", "paused", "canceled"]
@@ -1680,11 +1952,14 @@ class Subscription:
             first_period_extra_days=data.get("first_period_extra_days"),
             id=data["id"],
             interval=data["interval"],
+            label=data["label"],
             metadata=data["metadata"],
+            notify_customer_email=data["notify_customer_email"],
             pending_update=None if data.get("pending_update") is None else SubscriptionPendingUpdate.from_dict(data["pending_update"]),
             price_id=data["price_id"],
             product_id=data["product_id"],
             quantity=data["quantity"],
+            renewal_mode=data["renewal_mode"],
             showcase_id=data["showcase_id"],
             status=data["status"],
             suspended_at=data.get("suspended_at"),
@@ -2135,6 +2410,72 @@ class WebhookRefund:
 
 
 @dataclass(frozen=True)
+class WebhookRenewalCharge:
+    """A cobrança de renovação que espera o comprador pagar (subscription.renewal_due e subscription.renewal_reminder), a mesma que GET /api/v1/subscriptions/{id}/open-charge devolve. Traz o que o seu sistema precisa para avisar o comprador: o valor, o prazo e a página onde ele paga."""
+
+    amount_cents: int
+    """O que o comprador paga, em centavos: o ciclo já com desconto e rateio."""
+    client_reference_id: str
+    """O client_reference_id da assinatura."""
+    currency: Literal["BRL"]
+    customer_id: str
+    cycle_sequence: int
+    """O ciclo que a cobrança paga: 2 é a primeira renovação."""
+    days_until_due: int | None
+    """Só nos lembretes: 3 em before_due, 0 em on_due; nulo no resto."""
+    due_at: str
+    """Até quando a cobrança deve ser paga sem a assinatura ficar em atraso: o fim do período que ela cobra. Passado o prazo, a assinatura vira past_due e o mesmo payment_url continua valendo pela tolerância de 72 horas; depois disso a assinatura é suspensa."""
+    expires_at: str | None
+    """Quando o payment_url deixa de abrir; sempre depois da tolerância de 72 horas."""
+    id: str
+    """O id da cobrança, que é o do ciclo da assinatura que ela cobra. O pedido só existe depois do pagamento: o order.paid que vem então traz o mesmo subscription_id e cycle_sequence."""
+    label: str
+    """O label da assinatura; vazio sem ele."""
+    metadata: dict[str, Any]
+    """Os metadados da assinatura."""
+    notify_customer_email: bool
+    """Se a Peráta escreve ao comprador desta cobrança."""
+    payment_url: str
+    """A página da Peráta onde o comprador paga, por cartão, Pix ou boleto. O Pix é gerado nela, quando o comprador o escolhe, e vale 24 horas: a Peráta não gera o Pix na abertura da cobrança porque ele venceria antes do prazo e, enquanto vale, impediria pagar de outro jeito. Entregue este endereço ao comprador."""
+    period_end: str
+    period_start: str
+    price_id: str
+    product_id: str
+    reminder: Literal["before_due", "on_due"] | None
+    """Só em subscription.renewal_reminder: before_due (3 dias antes de due_at) ou on_due (no vencimento). Nulo na cobrança e em subscription.renewal_due."""
+    renewal_mode: Literal["manual", "card", "pix_automatic"]
+    """O modo de renovação da assinatura. Uma cobrança em aberto existe no manual e, quando o cartão é recusado, no card."""
+    showcase_id: str
+    subscription_id: str
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> WebhookRenewalCharge:
+        return cls(
+            amount_cents=data["amount_cents"],
+            client_reference_id=data["client_reference_id"],
+            currency=data["currency"],
+            customer_id=data["customer_id"],
+            cycle_sequence=data["cycle_sequence"],
+            days_until_due=data.get("days_until_due"),
+            due_at=data["due_at"],
+            expires_at=data.get("expires_at"),
+            id=data["id"],
+            label=data["label"],
+            metadata=data["metadata"],
+            notify_customer_email=data["notify_customer_email"],
+            payment_url=data["payment_url"],
+            period_end=data["period_end"],
+            period_start=data["period_start"],
+            price_id=data["price_id"],
+            product_id=data["product_id"],
+            reminder=data.get("reminder"),
+            renewal_mode=data["renewal_mode"],
+            showcase_id=data["showcase_id"],
+            subscription_id=data["subscription_id"],
+        )
+
+
+@dataclass(frozen=True)
 class WebhookSale:
     """Os eventos da venda (checkout_payment.* e refund.*): os identificadores de sempre e, além deles, o checkout, o valor e o que o servidor do lojista enviou ao criar o checkout."""
 
@@ -2223,8 +2564,12 @@ class WebhookSubscription:
     """Quantos dias o checkout que vendeu a assinatura somou ao primeiro período, para você conferir; nulo quando o primeiro período foi o comum. O primeiro período vai do dia do pagamento até esse dia mais um intervalo do preço mais estes dias, e current_period_end já vem com eles."""
     id: str
     interval: str
+    label: str
+    """O nome que o lojista deu à assinatura, copiado do label do checkout que a vendeu; vazio sem ele."""
     metadata: dict[str, Any]
     """Metadados do lojista: pares chave e valor (texto, número ou booleano); objeto vazio quando não há."""
+    notify_customer_email: bool
+    """Verdadeiro enquanto a Peráta escreve ao comprador a cada cobrança de renovação."""
     payment_failure: WebhookSubscriptionPaymentFailure | None
     """A cobrança recusada que causou o evento; só nos eventos de cobrança recusada."""
     pending_update: WebhookSubscriptionPendingUpdate | None
@@ -2233,6 +2578,8 @@ class WebhookSubscription:
     product_id: str
     quantity: int
     """Quantas unidades ou assentos a assinatura cobre, de 1 em diante; 1 num preço sem quantidade. amount_cents é o total do ciclo para esta quantity."""
+    renewal_mode: Literal["manual", "card", "pix_automatic"]
+    """Como os próximos períodos são cobrados: manual (uma cobrança para o comprador pagar a cada ciclo, com o evento subscription.renewal_due; o cartão nunca é cobrado), card (o cartão de crédito guardado, cobrado sozinho) ou pix_automatic (o banco debita cada cobrança). card e pix_automatic são os automáticos."""
     showcase_id: str
     """O showcase da venda."""
     status: Literal["trialing", "active", "past_due", "suspended", "paused", "canceled"]
@@ -2258,12 +2605,15 @@ class WebhookSubscription:
             first_period_extra_days=data.get("first_period_extra_days"),
             id=data["id"],
             interval=data["interval"],
+            label=data["label"],
             metadata=data["metadata"],
+            notify_customer_email=data["notify_customer_email"],
             payment_failure=None if data.get("payment_failure") is None else WebhookSubscriptionPaymentFailure.from_dict(data["payment_failure"]),
             pending_update=None if data.get("pending_update") is None else WebhookSubscriptionPendingUpdate.from_dict(data["pending_update"]),
             price_id=data["price_id"],
             product_id=data["product_id"],
             quantity=data["quantity"],
+            renewal_mode=data["renewal_mode"],
             showcase_id=data["showcase_id"],
             status=data["status"],
             suspended_at=data.get("suspended_at"),
@@ -2490,10 +2840,14 @@ class CheckoutsCreateParams(TypedDict):
     label: NotRequired[str]
     metadata: NotRequired[dict[str, Any]]
     """Pares guardados no link do checkout e devolvidos no checkout, no pedido, no pagamento e nos eventos da venda. Até 50 pares de chave e valor: a chave tem de 1 a 40 caracteres, e o valor é um texto de 1 a 500 caracteres, um número ou um booleano. Texto sem caracteres de controle nem de direção invisível."""
+    notify_customer_email: NotRequired[bool]
+    """Verdadeiro por padrão. Falso mantém a Peráta sem escrever ao comprador a cobrança de cada renovação (o seu sistema o avisa pelo evento subscription.renewal_due); a cobrança é aberta do mesmo jeito. Além disso, a organização pode desligar este aviso para todos em Configurações › Preferências › Cobrança da renovação."""
     price_id: str
     product_id: str
     quantity: NotRequired[int]
     """Quantas unidades. Com amount_cents é sempre 1: envie 1 ou omita; qualquer outro valor é recusado com 422."""
+    renewal_mode: NotRequired[Literal["manual", "automatic", "buyer_choice"]]
+    """Como a assinatura renova, numa assinatura (preço recorrente com valor). manual: a cada ciclo a Peráta abre uma cobrança para o comprador pagar (payment_url, por cartão, Pix ou boleto) e avisa o seu sistema com o evento subscription.renewal_due, mesmo que o primeiro pagamento tenha sido no cartão; o cartão nunca é cobrado e não é guardado. automatic: só os meios que cobram sozinhos, o cartão de crédito guardado ou o Pix Automático (quando a organização o tem ligado; senão só o cartão); a página mostra só esses meios, e a assinatura nasce com renewal_mode card ou pix_automatic. buyer_choice: a página mostra a caixa Ativar cobrança automática, desmarcada, e o comprador decide: desmarcada é manual, marcada é automatic. Sem o campo nada muda: sem caixa, o cartão de crédito renova sozinho e qualquer outro meio vira uma cobrança a cada ciclo. Funciona junto com first_period_extra_days e com desconto. Vale só em preço recorrente com valor (senão 422); manual não vale com teste grátis nem com subscription_start_at, que guardam o cartão para cobrar no fim (422). Pagar por um meio que o modo não aceita (Pix, boleto ou débito em automatic; Pix Automático em manual) é 422 em payment_method. A Subscription traz o modo a que isso se resolveu em renewal_mode: manual, card ou pix_automatic."""
     require_billing_address: NotRequired[bool]
     """Pede o endereço de cobrança completo de todo comprador, não só no boleto; desligado quando fica de fora."""
     return_url: NotRequired[str]
@@ -2753,12 +3107,18 @@ class SubscriptionsUpdateParams(TypedDict):
 
     extend_current_period_days: NotRequired[int]
     """Estende o período atual em tantos dias, de 1 a 365, sem cobrar nada e sem criar pedido: a renovação (e a próxima cobrança) passa a ser no novo fim, current_period_end, e os períodos seguintes contam a partir dele. É o crédito manual de dias do lojista. Só uma assinatura active aceita (uma em teste grátis, atrasada, pausada, suspensa ou cancelada recusa); uma que termina no fim do período termina no novo fim. Vai sozinho, sem price_id, quantity nem proration_behavior, senão a resposta é 422. A mudança chega no webhook subscription.updated e fica registrada no log de atividades. Não é repetível por si: envie uma Idempotency-Key para que uma nova tentativa não some os dias duas vezes."""
+    label: NotRequired[str]
+    """O nome da assinatura, até 200 caracteres e sem caracteres de controle; vazio tira o nome. Vai sozinho, com renewal_mode e notify_customer_email, sem price_id, quantity, proration_behavior nem extend_current_period_days. Chega no webhook subscription.updated."""
+    notify_customer_email: NotRequired[bool]
+    """Liga ou desliga a mensagem que a Peráta manda ao comprador a cada cobrança de renovação. Vai sozinho, como label."""
     price_id: NotRequired[str]
     """O preço recorrente para onde a assinatura vai. Obrigatório para trocar de plano; não se envia com extend_current_period_days."""
     proration_behavior: NotRequired[Literal["prorate", "invoice", "next_period", "reset"]]
     """prorate (padrão): rateia o resto do período no próximo valor cobrado; invoice: cobra a diferença agora; next_period: troca no fim do período; reset: cobra o período inteiro do novo plano agora e reinicia o ciclo."""
     quantity: NotRequired[int]
     """A nova quantidade; omitida, fica a atual."""
+    renewal_mode: NotRequired[Literal["manual", "card"]]
+    """Muda como a assinatura renova. manual: deixa de cobrar o cartão e passa a abrir uma cobrança a cada ciclo (o cartão guardado é solto). card: cobra o cartão guardado sozinho; exige um cartão já guardado na assinatura (o comprador o ativa no portal), senão 422. pix_automatic só o comprador ativa, no app do banco. Vai sozinho, como label."""
 
 
 class SubscriptionsCancelParams(TypedDict):

@@ -48,8 +48,12 @@ pub type UnknownWebhookEvent = WebhookMessage<serde_json::Value>;
 /// A webhook Peráta sent, verified: one variant a kind of data, the event's
 /// type telling apart what happened, or [`WebhookEvent::Unknown`] for a type
 /// this SDK does not know yet.
+///
+/// A webhook is read once and then matched, so the size of the largest variant
+/// costs nothing that boxing would save; the variants stay plain values.
 #[derive(Debug, Clone, PartialEq)]
 #[non_exhaustive]
+#[allow(clippy::large_enum_variant)]
 pub enum WebhookEvent {
 {{- range .Webhooks}}
     /// {{range $i, $t := .Types}}{{if $i}}, {{end}}`{{$t}}`{{end}}.

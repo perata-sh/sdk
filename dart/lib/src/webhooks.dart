@@ -202,6 +202,10 @@ final class IdentifiersWebhookEvent extends WebhookEvent {
     'invoice.settled',
     'invoice.uncollectible',
     'invoice.voided',
+    'payout.deposited',
+    'payout.held',
+    'payout.released',
+    'payout.scheduled',
     'price.archived',
     'price.created',
     'product.archived',
@@ -283,6 +287,27 @@ final class RefundWebhookEvent extends WebhookEvent {
 
   /// What the event carries.
   final WebhookRefund data;
+}
+
+/// The events that carry a WebhookRenewalCharge.
+final class RenewalChargeWebhookEvent extends WebhookEvent {
+  const RenewalChargeWebhookEvent({
+    required super.id,
+    required super.type,
+    required super.timestamp,
+    super.environment,
+    super.showcaseId,
+    required this.data,
+  });
+
+  /// The event types this class carries.
+  static const types = {
+    'subscription.renewal_due',
+    'subscription.renewal_reminder',
+  };
+
+  /// What the event carries.
+  final WebhookRenewalCharge data;
 }
 
 /// The events that carry a WebhookSale.
@@ -576,6 +601,16 @@ WebhookEvent _event(List<int> raw) {
         environment: environment,
         showcaseId: showcaseId,
         data: WebhookRefund.fromJson(data),
+      );
+    }
+    if (RenewalChargeWebhookEvent.types.contains(type)) {
+      return RenewalChargeWebhookEvent(
+        id: id,
+        type: type,
+        timestamp: timestamp,
+        environment: environment,
+        showcaseId: showcaseId,
+        data: WebhookRenewalCharge.fromJson(data),
       );
     }
     if (SaleWebhookEvent.types.contains(type)) {

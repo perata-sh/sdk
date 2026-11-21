@@ -252,9 +252,11 @@ defmodule Perata.CheckoutsCreateParams do
     :items,
     :label,
     :metadata,
+    :notify_customer_email,
     :price_id,
     :product_id,
     :quantity,
+    :renewal_mode,
     :require_billing_address,
     :return_url,
     :subscription_start_at,
@@ -276,7 +278,9 @@ defmodule Perata.CheckoutsCreateParams do
   * `items` (optional): As linhas do pedido, até 50, para o comprador ler o detalhe: aparecem no checkout (página, modal, componentes e transparente), no pedido, no recibo, no portal do cliente e nos eventos. Em um preço de valor livre, a soma de quantity vezes unit_amount_cents precisa ser igual a amount_cents, ou a resposta é 422; enviadas sem amount_cents, a soma é o valor. Em um preço com valor próprio, como o de uma assinatura, as linhas só mostram ao comprador do que o valor é feito e fixam nada: envie-as sem amount_cents, com a soma igual ao valor do preço vezes a quantidade (senão 422), e o preço continua sendo quem define o que se cobra.
   * `label` (optional)
   * `metadata` (optional): Pares guardados no link do checkout e devolvidos no checkout, no pedido, no pagamento e nos eventos da venda. Até 50 pares de chave e valor: a chave tem de 1 a 40 caracteres, e o valor é um texto de 1 a 500 caracteres, um número ou um booleano. Texto sem caracteres de controle nem de direção invisível.
+  * `notify_customer_email` (optional): Verdadeiro por padrão. Falso mantém a Peráta sem escrever ao comprador a cobrança de cada renovação (o seu sistema o avisa pelo evento subscription.renewal_due); a cobrança é aberta do mesmo jeito. Além disso, a organização pode desligar este aviso para todos em Configurações › Preferências › Cobrança da renovação.
   * `quantity` (optional): Quantas unidades. Com amount_cents é sempre 1: envie 1 ou omita; qualquer outro valor é recusado com 422.
+  * `renewal_mode` (optional; one of `"manual"`, `"automatic"`, `"buyer_choice"`): Como a assinatura renova, numa assinatura (preço recorrente com valor). manual: a cada ciclo a Peráta abre uma cobrança para o comprador pagar (payment_url, por cartão, Pix ou boleto) e avisa o seu sistema com o evento subscription.renewal_due, mesmo que o primeiro pagamento tenha sido no cartão; o cartão nunca é cobrado e não é guardado. automatic: só os meios que cobram sozinhos, o cartão de crédito guardado ou o Pix Automático (quando a organização o tem ligado; senão só o cartão); a página mostra só esses meios, e a assinatura nasce com renewal_mode card ou pix_automatic. buyer_choice: a página mostra a caixa Ativar cobrança automática, desmarcada, e o comprador decide: desmarcada é manual, marcada é automatic. Sem o campo nada muda: sem caixa, o cartão de crédito renova sozinho e qualquer outro meio vira uma cobrança a cada ciclo. Funciona junto com first_period_extra_days e com desconto. Vale só em preço recorrente com valor (senão 422); manual não vale com teste grátis nem com subscription_start_at, que guardam o cartão para cobrar no fim (422). Pagar por um meio que o modo não aceita (Pix, boleto ou débito em automatic; Pix Automático em manual) é 422 em payment_method. A Subscription traz o modo a que isso se resolveu em renewal_mode: manual, card ou pix_automatic.
   * `require_billing_address` (optional): Pede o endereço de cobrança completo de todo comprador, não só no boleto; desligado quando fica de fora.
   * `return_url` (optional): Outro nome de cancel_url: a página https a que o comprador volta sem pagar. Enviada com um cancel_url diferente, é recusada.
   * `subscription_start_at` (optional): O dia da primeira cobrança de uma assinatura, como o trial_end do Stripe: o cartão é guardado e conferido com o emissor, nada é cobrado hoje e a primeira cobrança acontece nesse dia, no cartão guardado; as seguintes seguem a periodicidade do preço a partir dele. Só vale em um preço recorrente com valor, e só no cartão de crédito: a página não oferece Pix nem boleto. Vale o dia no horário de São Paulo, da meia-noite dele, qualquer que seja o fuso enviado; a hora não conta. Tem de ser de amanhã a um ano, senão a resposta é 422. A resposta devolve o instante como a Peráta o guarda, em subscription_start_at. Quem abre o checkout depois da data recebe 410.
@@ -297,9 +301,11 @@ defmodule Perata.CheckoutsCreateParams do
           items: [Perata.CheckoutsCreateItem.t()] | nil,
           label: String.t() | nil,
           metadata: %{optional(String.t()) => term()} | nil,
+          notify_customer_email: boolean() | nil,
           price_id: String.t(),
           product_id: String.t(),
           quantity: integer() | nil,
+          renewal_mode: String.t() | nil,
           require_billing_address: boolean() | nil,
           return_url: String.t() | nil,
           subscription_start_at: String.t() | nil,
@@ -331,7 +337,9 @@ defmodule Perata.CheckoutsCreateParams do
     |> Perata.Encode.put_optional("items", Perata.Encode.value(params.items))
     |> Perata.Encode.put_optional("label", params.label)
     |> Perata.Encode.put_optional("metadata", Perata.Encode.value(params.metadata))
+    |> Perata.Encode.put_optional("notify_customer_email", params.notify_customer_email)
     |> Perata.Encode.put_optional("quantity", params.quantity)
+    |> Perata.Encode.put_optional("renewal_mode", params.renewal_mode)
     |> Perata.Encode.put_optional("require_billing_address", params.require_billing_address)
     |> Perata.Encode.put_optional("return_url", params.return_url)
     |> Perata.Encode.put_optional("subscription_start_at", params.subscription_start_at)
@@ -1152,19 +1160,33 @@ defmodule Perata.SubscriptionsUpdateParams do
   out is left out of the JSON.
   """
 
-  defstruct [:extend_current_period_days, :price_id, :proration_behavior, :quantity]
+  defstruct [
+    :extend_current_period_days,
+    :label,
+    :notify_customer_email,
+    :price_id,
+    :proration_behavior,
+    :quantity,
+    :renewal_mode
+  ]
 
   @typedoc """
   * `extend_current_period_days` (optional): Estende o período atual em tantos dias, de 1 a 365, sem cobrar nada e sem criar pedido: a renovação (e a próxima cobrança) passa a ser no novo fim, current_period_end, e os períodos seguintes contam a partir dele. É o crédito manual de dias do lojista. Só uma assinatura active aceita (uma em teste grátis, atrasada, pausada, suspensa ou cancelada recusa); uma que termina no fim do período termina no novo fim. Vai sozinho, sem price_id, quantity nem proration_behavior, senão a resposta é 422. A mudança chega no webhook subscription.updated e fica registrada no log de atividades. Não é repetível por si: envie uma Idempotency-Key para que uma nova tentativa não some os dias duas vezes.
+  * `label` (optional): O nome da assinatura, até 200 caracteres e sem caracteres de controle; vazio tira o nome. Vai sozinho, com renewal_mode e notify_customer_email, sem price_id, quantity, proration_behavior nem extend_current_period_days. Chega no webhook subscription.updated.
+  * `notify_customer_email` (optional): Liga ou desliga a mensagem que a Peráta manda ao comprador a cada cobrança de renovação. Vai sozinho, como label.
   * `price_id` (optional): O preço recorrente para onde a assinatura vai. Obrigatório para trocar de plano; não se envia com extend_current_period_days.
   * `proration_behavior` (optional; one of `"prorate"`, `"invoice"`, `"next_period"`, `"reset"`): prorate (padrão): rateia o resto do período no próximo valor cobrado; invoice: cobra a diferença agora; next_period: troca no fim do período; reset: cobra o período inteiro do novo plano agora e reinicia o ciclo.
   * `quantity` (optional): A nova quantidade; omitida, fica a atual.
+  * `renewal_mode` (optional; one of `"manual"`, `"card"`): Muda como a assinatura renova. manual: deixa de cobrar o cartão e passa a abrir uma cobrança a cada ciclo (o cartão guardado é solto). card: cobra o cartão guardado sozinho; exige um cartão já guardado na assinatura (o comprador o ativa no portal), senão 422. pix_automatic só o comprador ativa, no app do banco. Vai sozinho, como label.
   """
   @type t :: %__MODULE__{
           extend_current_period_days: integer() | nil,
+          label: String.t() | nil,
+          notify_customer_email: boolean() | nil,
           price_id: String.t() | nil,
           proration_behavior: String.t() | nil,
-          quantity: integer() | nil
+          quantity: integer() | nil,
+          renewal_mode: String.t() | nil
         }
 
   @doc "The params as they are, or built from a keyword list or a map with atom keys."
@@ -1179,9 +1201,12 @@ defmodule Perata.SubscriptionsUpdateParams do
 
     %{}
     |> Perata.Encode.put_optional("extend_current_period_days", params.extend_current_period_days)
+    |> Perata.Encode.put_optional("label", params.label)
+    |> Perata.Encode.put_optional("notify_customer_email", params.notify_customer_email)
     |> Perata.Encode.put_optional("price_id", params.price_id)
     |> Perata.Encode.put_optional("proration_behavior", params.proration_behavior)
     |> Perata.Encode.put_optional("quantity", params.quantity)
+    |> Perata.Encode.put_optional("renewal_mode", params.renewal_mode)
   end
 end
 

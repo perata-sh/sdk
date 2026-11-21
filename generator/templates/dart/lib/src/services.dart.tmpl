@@ -49,6 +49,22 @@ class {{pascal .Name}}Service {
       page,
     );
   }
+{{- else if filteredGet .}}
+
+  /// {{dartText .Summary}}. The filters are optional.{{template "doc" .}}
+  Future<{{.Response}}> {{dartName .Name}}{{dartParams . "call"}} async {
+    final data = await _client.request(
+      {{quote .HTTPMethod}},
+      {{dartPath .}},
+      query: {
+{{- range .Query}}
+        {{quote .Name}}: {{dartParam .Name}},
+{{- end}}
+      },
+      apiKey: apiKey,
+    );
+    return {{.Response}}.fromJson(data);
+  }
 {{- else if .NoContent}}
 
   /// {{dartText .Summary}}. The API answers 204, so there is nothing to return.{{template "doc" .}}

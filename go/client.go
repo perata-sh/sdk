@@ -39,6 +39,7 @@ type Client struct {
 	http    *http.Client
 	// baseURLErr is why the base URL is refused, answered by every call.
 	baseURLErr       error
+	Balance          *BalanceService
 	Benefits         *BenefitsService
 	CheckoutLinks    *CheckoutLinksService
 	Checkouts        *CheckoutsService
@@ -51,6 +52,7 @@ type Client struct {
 	Orders           *OrdersService
 	PaymentMethods   *PaymentMethodsService
 	Payments         *PaymentsService
+	Payouts          *PayoutsService
 	Prices           *PricesService
 	Products         *ProductsService
 	Refunds          *RefundsService

@@ -152,10 +152,10 @@ end
 
 defmodule Perata.IdentifiersWebhookEvent do
   @moduledoc """
-  The events that carry the event's identifiers: `benefit.archived`, `benefit.version_created`, `benefit_product_link.linked`, `benefit_product_link.unlinked`, `checkout_link.archived`, `checkout_link.created`, `checkout_session.confirmed`, `checkout_session.expired`, `checkout_session.failed`, `checkout_session.opened`, `checkout_session.succeeded`, `customer.archived`, `discount.exhausted`, `discount.expired`, `discount.reactivated`, `discount.redeemed`, `discount_redemption.released`, `invoice.drafted`, `invoice.issued`, `invoice.settled`, `invoice.uncollectible`, `invoice.voided`, `price.archived`, `price.created`, `product.archived`, `seat_allocation.opened`, `seat_allocation.resized`, `seat_assignment.claimed`, `seat_assignment.invited`, `seat_assignment.revoked`, `usage_event.recorded`, `usage_period.closed`, `usage_period.opened`, `usage_period_adjustment.created`.
+  The events that carry the event's identifiers: `benefit.archived`, `benefit.version_created`, `benefit_product_link.linked`, `benefit_product_link.unlinked`, `checkout_link.archived`, `checkout_link.created`, `checkout_session.confirmed`, `checkout_session.expired`, `checkout_session.failed`, `checkout_session.opened`, `checkout_session.succeeded`, `customer.archived`, `discount.exhausted`, `discount.expired`, `discount.reactivated`, `discount.redeemed`, `discount_redemption.released`, `invoice.drafted`, `invoice.issued`, `invoice.settled`, `invoice.uncollectible`, `invoice.voided`, `payout.deposited`, `payout.held`, `payout.released`, `payout.scheduled`, `price.archived`, `price.created`, `product.archived`, `seat_allocation.opened`, `seat_allocation.resized`, `seat_assignment.claimed`, `seat_assignment.invited`, `seat_assignment.revoked`, `usage_event.recorded`, `usage_period.closed`, `usage_period.opened`, `usage_period_adjustment.created`.
   """
 
-  @types ~w(benefit.archived benefit.version_created benefit_product_link.linked benefit_product_link.unlinked checkout_link.archived checkout_link.created checkout_session.confirmed checkout_session.expired checkout_session.failed checkout_session.opened checkout_session.succeeded customer.archived discount.exhausted discount.expired discount.reactivated discount.redeemed discount_redemption.released invoice.drafted invoice.issued invoice.settled invoice.uncollectible invoice.voided price.archived price.created product.archived seat_allocation.opened seat_allocation.resized seat_assignment.claimed seat_assignment.invited seat_assignment.revoked usage_event.recorded usage_period.closed usage_period.opened usage_period_adjustment.created)
+  @types ~w(benefit.archived benefit.version_created benefit_product_link.linked benefit_product_link.unlinked checkout_link.archived checkout_link.created checkout_session.confirmed checkout_session.expired checkout_session.failed checkout_session.opened checkout_session.succeeded customer.archived discount.exhausted discount.expired discount.reactivated discount.redeemed discount_redemption.released invoice.drafted invoice.issued invoice.settled invoice.uncollectible invoice.voided payout.deposited payout.held payout.released payout.scheduled price.archived price.created product.archived seat_allocation.opened seat_allocation.resized seat_assignment.claimed seat_assignment.invited seat_assignment.revoked usage_event.recorded usage_period.closed usage_period.opened usage_period_adjustment.created)
 
   @enforce_keys [:id, :type, :timestamp, :data]
   defstruct [:id, :type, :timestamp, :data, environment: "", showcase_id: ""]
@@ -250,6 +250,31 @@ defmodule Perata.RefundWebhookEvent do
   def types, do: @types
 end
 
+defmodule Perata.RenewalChargeWebhookEvent do
+  @moduledoc """
+  The events that carry a WebhookRenewalCharge: `subscription.renewal_due`, `subscription.renewal_reminder`.
+  """
+
+  @types ~w(subscription.renewal_due subscription.renewal_reminder)
+
+  @enforce_keys [:id, :type, :timestamp, :data]
+  defstruct [:id, :type, :timestamp, :data, environment: "", showcase_id: ""]
+
+  @typedoc "`environment` is \"test\" or \"live\", and `showcase_id` is the showcase of the sale; each empty when an older server did not send it."
+  @type t :: %__MODULE__{
+          id: String.t(),
+          type: String.t(),
+          timestamp: String.t(),
+          environment: String.t(),
+          showcase_id: String.t(),
+          data: Perata.WebhookRenewalCharge.t()
+        }
+
+  @doc "The event types this struct carries."
+  @spec types() :: [String.t()]
+  def types, do: @types
+end
+
 defmodule Perata.SaleWebhookEvent do
   @moduledoc """
   The events that carry a WebhookSale: `checkout_payment.authorized`, `checkout_payment.canceled`, `checkout_payment.captured`, `checkout_payment.partially_refunded`, `checkout_payment.refunded`, `checkout_payment.refused`, `refund.canceled`, `refund.failed`, `refund.requested`, `refund.succeeded`.
@@ -336,6 +361,7 @@ defmodule Perata.WebhookEvent do
           | Perata.OrderWebhookEvent.t()
           | Perata.ProductWebhookEvent.t()
           | Perata.RefundWebhookEvent.t()
+          | Perata.RenewalChargeWebhookEvent.t()
           | Perata.SaleWebhookEvent.t()
           | Perata.SubscriptionWebhookEvent.t()
           | Perata.UnknownWebhookEvent.t()
@@ -448,6 +474,16 @@ defmodule Perata.WebhookEvent do
           environment: environment,
           showcase_id: showcase_id,
           data: Perata.WebhookRefund.from_map(data)
+        }
+
+      type in Perata.RenewalChargeWebhookEvent.types() ->
+        %Perata.RenewalChargeWebhookEvent{
+          id: id,
+          type: type,
+          timestamp: timestamp,
+          environment: environment,
+          showcase_id: showcase_id,
+          data: Perata.WebhookRenewalCharge.from_map(data)
         }
 
       type in Perata.SaleWebhookEvent.types() ->
