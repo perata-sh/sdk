@@ -50,9 +50,9 @@ A primeira parte reúne casos que aconteceram de verdade numa integração (o al
 - **Causa:** o filtro `metadata[chave]=valor` chega ao SDK na 0.5.5; a API o aceita antes.
 - **Correção:** atualize o SDK, ou chame a rota direto com `metadata[camera_id]=cam-77` na consulta (`linguagens.md`).
 
-### 8. "Quem é Stelo S.A.?"
+### 8. O nome no app do banco não é o do lojista
 
-No app do banco, quem recebe um Pix da Peráta aparece como **Stelo S.A.**, a empresa que processa o Pix da Peráta (exigência do Banco Central). A tela do QR code já avisa isso; repasse a explicação ao cliente que perguntar.
+No app do banco, quem recebe um Pix da Peráta aparece com o nome do processador de pagamentos da Peráta, não com o do lojista (exigência do Banco Central). A tela do QR code já avisa isso; repasse a explicação ao cliente que perguntar.
 
 ## Parte 2. Armadilhas que o contrato prevê
 
