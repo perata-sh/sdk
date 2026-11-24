@@ -64,6 +64,14 @@ public sealed record OrderReceipt
     [JsonPropertyName("payment_method")]
     public required string PaymentMethod { get; init; }
 
+    /// <summary>A taxa do desconto da forma de pagamento, em centésimos de ponto percentual (500 é 5%); 0 sem ele.</summary>
+    [JsonPropertyName("payment_method_discount_bp")]
+    public required long PaymentMethodDiscountBp { get; init; }
+
+    /// <summary>Quanto o desconto da forma de pagamento (Pix ou boleto) tirou de total_cents, em centavos; 0 sem ele. Foi pago total_cents menos este valor.</summary>
+    [JsonPropertyName("payment_method_discount_cents")]
+    public required long PaymentMethodDiscountCents { get; init; }
+
     /// <summary>The API's <c>product_name</c>.</summary>
     [JsonPropertyName("product_name")]
     public required string ProductName { get; init; }

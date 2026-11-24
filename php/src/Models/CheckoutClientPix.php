@@ -12,7 +12,7 @@ final class CheckoutClientPix
     public function __construct(
         /** O código Pix copia e cola. */
         public readonly string $copiaECola,
-        /** Quando o Pix deixa de poder ser pago, como o adquirente o deu. */
+        /** Quando o Pix deixa de poder ser pago, como o processador de pagamentos o deu. */
         public readonly ?string $expiresAt,
         /** O QR do código, desenhado como um documento SVG. */
         public readonly string $qrCodeSvg,

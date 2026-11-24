@@ -234,7 +234,8 @@ public final class SubscriptionsService {
      * Listar assinaturas. One page; {@link #listIter} walks every page.
      *
      * Devolve uma página das assinaturas. Filtre por cliente (customer_id ou
-     * external_customer_id), status, período ou metadados.
+     * external_customer_id), status, tipo de cobrança (renewal_mode: card,
+     * pix_automatic ou manual), período ou metadados.
      *
      * Autenticação: chave de API da organização em Authorization: Bearer
      * (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
@@ -256,7 +257,8 @@ public final class SubscriptionsService {
      * Listar assinaturas. One page.
      *
      * Devolve uma página das assinaturas. Filtre por cliente (customer_id ou
-     * external_customer_id), status, período ou metadados.
+     * external_customer_id), status, tipo de cobrança (renewal_mode: card,
+     * pix_automatic ou manual), período ou metadados.
      *
      * Autenticação: chave de API da organização em Authorization: Bearer
      * (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
@@ -275,7 +277,8 @@ public final class SubscriptionsService {
      * Listar assinaturas. The first page.
      *
      * Devolve uma página das assinaturas. Filtre por cliente (customer_id ou
-     * external_customer_id), status, período ou metadados.
+     * external_customer_id), status, tipo de cobrança (renewal_mode: card,
+     * pix_automatic ou manual), período ou metadados.
      *
      * Autenticação: chave de API da organização em Authorization: Bearer
      * (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
@@ -324,6 +327,7 @@ public final class SubscriptionsService {
         private final Integer page;
         private final Integer limit;
         private final String status;
+        private final String renewalMode;
         private final String customerId;
         private final String externalCustomerId;
         private final String createdAfter;
@@ -335,6 +339,7 @@ public final class SubscriptionsService {
             this.page = builder.page;
             this.limit = builder.limit;
             this.status = builder.status;
+            this.renewalMode = builder.renewalMode;
             this.customerId = builder.customerId;
             this.externalCustomerId = builder.externalCustomerId;
             this.createdAfter = builder.createdAfter;
@@ -361,6 +366,11 @@ public final class SubscriptionsService {
         /** @return Só as assinaturas neste status: trialing, active, past_due, paused, canceled e os demais do ciclo de vida. (null when not filtered) */
         public String getStatus() {
             return status;
+        }
+
+        /** @return Só as assinaturas cobradas deste jeito: card (o cartão guardado é cobrado sozinho todo ciclo), pix_automatic (o banco debita cada cobrança) ou manual (a cada ciclo o comprador paga uma cobrança, por Pix, boleto ou cartão digitado). Para vários, separe por vírgula: card,pix_automatic. Uma assinatura sem modo guardado conta como card quando tem cartão guardado e como manual quando não tem. (null when not filtered) */
+        public String getRenewalMode() {
+            return renewalMode;
         }
 
         /** @return Só os deste cliente. (null when not filtered) */
@@ -397,6 +407,7 @@ public final class SubscriptionsService {
             Builder builder = builder().page(page);
             builder.limit = limit;
             builder.status = status;
+            builder.renewalMode = renewalMode;
             builder.customerId = customerId;
             builder.externalCustomerId = externalCustomerId;
             builder.createdAfter = createdAfter;
@@ -411,6 +422,7 @@ public final class SubscriptionsService {
             query.put("page", page == null ? null : page.toString());
             query.put("limit", limit == null ? null : limit.toString());
             query.put("status", status);
+            query.put("renewal_mode", renewalMode);
             query.put("customer_id", customerId);
             query.put("external_customer_id", externalCustomerId);
             query.put("created_after", createdAfter);
@@ -430,6 +442,7 @@ public final class SubscriptionsService {
             private Integer page;
             private Integer limit;
             private String status;
+            private String renewalMode;
             private String customerId;
             private String externalCustomerId;
             private String createdAfter;
@@ -464,6 +477,15 @@ public final class SubscriptionsService {
              */
             public Builder status(String status) {
                 this.status = status;
+                return this;
+            }
+
+            /**
+             * @param renewalMode Só as assinaturas cobradas deste jeito: card (o cartão guardado é cobrado sozinho todo ciclo), pix_automatic (o banco debita cada cobrança) ou manual (a cada ciclo o comprador paga uma cobrança, por Pix, boleto ou cartão digitado). Para vários, separe por vírgula: card,pix_automatic. Uma assinatura sem modo guardado conta como card quando tem cartão guardado e como manual quando não tem.
+             * @return this builder
+             */
+            public Builder renewalMode(String renewalMode) {
+                this.renewalMode = renewalMode;
                 return this;
             }
 

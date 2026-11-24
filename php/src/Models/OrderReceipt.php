@@ -32,6 +32,10 @@ final class OrderReceipt
         public readonly ?string $paidAt,
         /** card, pix ou boleto; vazio quando o pagamento não foi achado. */
         public readonly string $paymentMethod,
+        /** A taxa do desconto da forma de pagamento, em centésimos de ponto percentual (500 é 5%); 0 sem ele. */
+        public readonly int $paymentMethodDiscountBp,
+        /** Quanto o desconto da forma de pagamento (Pix ou boleto) tirou de total_cents, em centavos; 0 sem ele. Foi pago total_cents menos este valor. */
+        public readonly int $paymentMethodDiscountCents,
         public readonly string $productName,
         public readonly int $refundedCents,
         public readonly int $totalCents,
@@ -57,6 +61,8 @@ final class OrderReceipt
             orderId: $data['order_id'],
             paidAt: $data['paid_at'] ?? null,
             paymentMethod: $data['payment_method'],
+            paymentMethodDiscountBp: $data['payment_method_discount_bp'],
+            paymentMethodDiscountCents: $data['payment_method_discount_cents'],
             productName: $data['product_name'],
             refundedCents: $data['refunded_cents'],
             totalCents: $data['total_cents'],

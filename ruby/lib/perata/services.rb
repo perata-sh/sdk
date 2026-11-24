@@ -286,10 +286,10 @@ module Perata
     # cobrança para o comprador pagar e avisa o seu sistema com
     # subscription.renewal_due, mesmo que o primeiro pagamento tenha sido no
     # cartão), automatic (só cartão de crédito guardado ou Pix Automático; cobra
-    # sozinho) ou buyer_choice (a página mostra a caixa Ativar cobrança
-    # automática e o comprador decide); sem o campo nada muda.
-    # notify_customer_email false mantém a Peráta sem escrever ao comprador.
-    # label dá nome à assinatura (por exemplo, Olho de Águia · Colaborador Ana).
+    # sozinho) ou buyer_choice (a página mostra a caixa Cobrança recorrente e o
+    # comprador decide); sem o campo nada muda. notify_customer_email false
+    # mantém a Peráta sem escrever ao comprador. label dá nome à assinatura (por
+    # exemplo, Olho de Águia · Colaborador Ana).
     #
     # Autenticação: chave de API da organização em Authorization: Bearer
     # (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
@@ -951,7 +951,8 @@ module Perata
     # Listar pagamentos. One page; +list_iter+ walks every page.
     #
     # Devolve uma página dos pagamentos. Filtre por client_reference_id, estado,
-    # cliente, assinatura (subscription_id), período ou metadados.
+    # meio (method: card, pix ou boleto), cliente, assinatura (subscription_id),
+    # período ou metadados.
     #
     # Autenticação: chave de API da organização em Authorization: Bearer
     # (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
@@ -959,8 +960,8 @@ module Perata
     # Respostas em JSON no envelope data; erros com error, message e fields.
     #
     # @return [Page<Payment>]
-    def list(page: nil, limit: nil, client_reference_id: nil, status: nil, customer_id: nil, external_customer_id: nil, subscription_id: nil, created_after: nil, created_before: nil, sorting: nil, metadata: nil, api_key: nil)
-      query = { "page" => page, "limit" => limit, "client_reference_id" => client_reference_id, "status" => status, "customer_id" => customer_id, "external_customer_id" => external_customer_id, "subscription_id" => subscription_id, "created_after" => created_after, "created_before" => created_before, "sorting" => sorting, "metadata" => metadata }
+    def list(page: nil, limit: nil, client_reference_id: nil, status: nil, customer_id: nil, external_customer_id: nil, subscription_id: nil, method: nil, created_after: nil, created_before: nil, sorting: nil, metadata: nil, api_key: nil)
+      query = { "page" => page, "limit" => limit, "client_reference_id" => client_reference_id, "status" => status, "customer_id" => customer_id, "external_customer_id" => external_customer_id, "subscription_id" => subscription_id, "method" => method, "created_after" => created_after, "created_before" => created_before, "sorting" => sorting, "metadata" => metadata }
       data = @client.request("GET", "/api/v1/payments", query: query, api_key: api_key)
       Page.from_hash(data) { |item| Payment.from_hash(item) }
     end
@@ -968,9 +969,9 @@ module Perata
     # Walks every page of payments:list from +page+, item by item.
     #
     # @return [Enumerator<Payment>]
-    def list_iter(page: nil, limit: nil, client_reference_id: nil, status: nil, customer_id: nil, external_customer_id: nil, subscription_id: nil, created_after: nil, created_before: nil, sorting: nil, metadata: nil, api_key: nil, &block)
+    def list_iter(page: nil, limit: nil, client_reference_id: nil, status: nil, customer_id: nil, external_customer_id: nil, subscription_id: nil, method: nil, created_after: nil, created_before: nil, sorting: nil, metadata: nil, api_key: nil, &block)
       items = Page.iterate(page) do |at|
-        list(page: at, limit: limit, client_reference_id: client_reference_id, status: status, customer_id: customer_id, external_customer_id: external_customer_id, subscription_id: subscription_id, created_after: created_after, created_before: created_before, sorting: sorting, metadata: metadata, api_key: api_key)
+        list(page: at, limit: limit, client_reference_id: client_reference_id, status: status, customer_id: customer_id, external_customer_id: external_customer_id, subscription_id: subscription_id, method: method, created_after: created_after, created_before: created_before, sorting: sorting, metadata: metadata, api_key: api_key)
       end
       block ? items.each(&block) : items
     end
@@ -1215,11 +1216,16 @@ module Perata
     # Devolve dinheiro de um pagamento, que você nomeia pelo payment_id ou pelo
     # order_id do pedido que ele pagou (os dois, só se forem do mesmo
     # pagamento). Sem amount_cents devolve tudo o que ainda pode ser devolvido;
-    # com ele, uma parte, até esse limite. O reason, sem ele, é
-    # requested_by_customer. O metadata fica no reembolso e volta nele e nos
-    # eventos refund.*. A Idempotency-Key é obrigatória: sem ela, repetir a
-    # chamada depois de um tempo esgotado seria devolver duas vezes; repetida
-    # com a mesma chave, devolve o mesmo reembolso.
+    # com ele, uma parte, até esse limite. Um pagamento de cartão aceita vários
+    # reembolsos parciais, um depois do outro, e a soma deles nunca passa do
+    # valor capturado: um pedido acima do que resta volta 409, e um pedido feito
+    # enquanto o reembolso anterior ainda está em andamento também volta 409
+    # (espere ele terminar e repita). Um pagamento por Pix aceita um só
+    # reembolso. O reason, sem ele, é requested_by_customer. O metadata fica no
+    # reembolso e volta nele e nos eventos refund.*. A Idempotency-Key é
+    # obrigatória: sem ela, repetir a chamada depois de um tempo esgotado seria
+    # devolver duas vezes; repetida com a mesma chave, devolve o mesmo
+    # reembolso.
     #
     # Autenticação: chave de API da organização em Authorization: Bearer
     # (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
@@ -1367,7 +1373,8 @@ module Perata
     # Listar assinaturas. One page; +list_iter+ walks every page.
     #
     # Devolve uma página das assinaturas. Filtre por cliente (customer_id ou
-    # external_customer_id), status, período ou metadados.
+    # external_customer_id), status, tipo de cobrança (renewal_mode: card,
+    # pix_automatic ou manual), período ou metadados.
     #
     # Autenticação: chave de API da organização em Authorization: Bearer
     # (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
@@ -1375,8 +1382,8 @@ module Perata
     # Respostas em JSON no envelope data; erros com error, message e fields.
     #
     # @return [Page<Subscription>]
-    def list(page: nil, limit: nil, status: nil, customer_id: nil, external_customer_id: nil, created_after: nil, created_before: nil, sorting: nil, metadata: nil, api_key: nil)
-      query = { "page" => page, "limit" => limit, "status" => status, "customer_id" => customer_id, "external_customer_id" => external_customer_id, "created_after" => created_after, "created_before" => created_before, "sorting" => sorting, "metadata" => metadata }
+    def list(page: nil, limit: nil, status: nil, renewal_mode: nil, customer_id: nil, external_customer_id: nil, created_after: nil, created_before: nil, sorting: nil, metadata: nil, api_key: nil)
+      query = { "page" => page, "limit" => limit, "status" => status, "renewal_mode" => renewal_mode, "customer_id" => customer_id, "external_customer_id" => external_customer_id, "created_after" => created_after, "created_before" => created_before, "sorting" => sorting, "metadata" => metadata }
       data = @client.request("GET", "/api/v1/subscriptions", query: query, api_key: api_key)
       Page.from_hash(data) { |item| Subscription.from_hash(item) }
     end
@@ -1384,9 +1391,9 @@ module Perata
     # Walks every page of subscriptions:list from +page+, item by item.
     #
     # @return [Enumerator<Subscription>]
-    def list_iter(page: nil, limit: nil, status: nil, customer_id: nil, external_customer_id: nil, created_after: nil, created_before: nil, sorting: nil, metadata: nil, api_key: nil, &block)
+    def list_iter(page: nil, limit: nil, status: nil, renewal_mode: nil, customer_id: nil, external_customer_id: nil, created_after: nil, created_before: nil, sorting: nil, metadata: nil, api_key: nil, &block)
       items = Page.iterate(page) do |at|
-        list(page: at, limit: limit, status: status, customer_id: customer_id, external_customer_id: external_customer_id, created_after: created_after, created_before: created_before, sorting: sorting, metadata: metadata, api_key: api_key)
+        list(page: at, limit: limit, status: status, renewal_mode: renewal_mode, customer_id: customer_id, external_customer_id: external_customer_id, created_after: created_after, created_before: created_before, sorting: sorting, metadata: metadata, api_key: api_key)
       end
       block ? items.each(&block) : items
     end

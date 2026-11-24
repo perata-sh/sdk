@@ -52,7 +52,7 @@ const orderPaid =
     '","price_id":"price_1","amount_cents":12000,"currency":"BRL","stat'
     'us":"succeeded","paid_at":"2026-10-22T12:00:00Z","order_status":"p'
     'aid","refunded_amount_cents":0,"refund_id":null,"refund_amount_cen'
-    'ts":null,"installments":3,"installment_interest_cents":360,"items"'
+    'ts":null,"installments":3,"installment_interest_cents":360,"payment_method_discount_cents":0,"payment_method_discount_bp":0,"items"'
     ':[],"metadata":{},"client_reference_id":"","showcase_id":"shw_1",'
     '"subtotal_cents":12000,"discount_cents":0,"discount_id":null,'
     '"discount_code":null}}';
@@ -71,7 +71,7 @@ const orderPaidLive =
     'currency":"BRL","status":"succeeded","paid_at":"2026-10-22T12:00:0'
     '0Z","order_status":"paid","refunded_amount_cents":0,"refund_id":nu'
     'll,"refund_amount_cents":null,"installments":3,"installment_intere'
-    'st_cents":360,"items":[],"metadata":{},"client_reference_id":"","showcase_id":"shw_1",'
+    'st_cents":360,"payment_method_discount_cents":0,"payment_method_discount_bp":0,"items":[],"metadata":{},"client_reference_id":"","showcase_id":"shw_1",'
     '"subtotal_cents":12000,"discount_cents":0,"discount_id":null,'
     '"discount_code":null}}';
 const payoutSentTest =
@@ -134,6 +134,14 @@ void main() {
         'created_at': '2026-11-16T12:00:00Z',
         'session_id': 'cs_1',
         'client_secret': clientSecret,
+        'max_installments': 0,
+        'installment_interest': null,
+        'interest_free_installments': 0,
+        'installment_monthly_rate_bp': 0,
+        'min_installment_cents': 0,
+        'pix_discount_bp': null,
+        'boleto_discount_bp': null,
+        'coupon_stacks_with_method_discount': null,
         'client_secret_expires_at': '2026-11-16T12:30:00Z',
         'status_key': 'sk_1',
         'amount_cents': null,
@@ -504,7 +512,7 @@ void main() {
     final answers = <String, (int, String)>{
       'POST /api/v1/checkouts': (
         201,
-        r'''{"data":{"id":"pcl_1","showcase_id":"x","url":"x","product_id":"prod_1","price_id":"price_1","status":"active","label":"x","quantity":0,"amount_cents":null,"items":[],"metadata":{},"client_reference_id":"x","success_url":"x","cancel_url":"x","expires_at":null,"subscription_start_at":null,"discount_id":"disc_1","first_period_extra_days":30,"renewal_mode":"manual","notify_customer_email":false,"created_at":"2026-11-20T12:00:00Z","session_id":"cs_1","client_secret":"cs_secret_1","client_secret_expires_at":"2026-11-20T12:00:00Z","status_key":"x"}}''',
+        r'''{"data":{"id":"pcl_1","showcase_id":"x","url":"x","product_id":"prod_1","price_id":"price_1","status":"active","label":"x","quantity":0,"amount_cents":null,"items":[],"metadata":{},"client_reference_id":"x","success_url":"x","cancel_url":"x","expires_at":null,"subscription_start_at":null,"discount_id":"disc_1","first_period_extra_days":30,"renewal_mode":"manual","notify_customer_email":false,"created_at":"2026-11-20T12:00:00Z","session_id":"cs_1","client_secret":"cs_secret_1","max_installments":0,"installment_interest":null,"interest_free_installments":0,"installment_monthly_rate_bp":0,"min_installment_cents":0,"pix_discount_bp":null,"boleto_discount_bp":null,"coupon_stacks_with_method_discount":null,"client_secret_expires_at":"2026-11-20T12:00:00Z","status_key":"x"}}''',
       ),
       'PATCH /api/v1/subscriptions/sub_1': (
         200,
@@ -516,7 +524,7 @@ void main() {
       ),
       'GET /api/v1/orders/ord_1': (
         200,
-        r'''{"data":{"id":"ord_1","showcase_id":"x","customer_id":"x","product_id":"x","price_id":"x","amount_cents":9000,"currency":"BRL","status":"open","paid_at":null,"order_status":null,"refunded_amount_cents":0,"installments":0,"installment_interest_cents":0,"items":[],"metadata":{},"client_reference_id":"x","subscription_id":null,"cycle_sequence":null,"period_start":null,"period_end":null,"discount_id":"disc_1","discount_code":"BEMVINDO","subtotal_cents":10000,"discount_cents":1000}}''',
+        r'''{"data":{"id":"ord_1","showcase_id":"x","customer_id":"x","product_id":"x","price_id":"x","amount_cents":9000,"currency":"BRL","status":"open","paid_at":null,"order_status":null,"refunded_amount_cents":0,"installments":0,"installment_interest_cents":0,"payment_method_discount_cents":0,"payment_method_discount_bp":0,"items":[],"metadata":{},"client_reference_id":"x","subscription_id":null,"cycle_sequence":null,"period_start":null,"period_end":null,"discount_id":"disc_1","discount_code":"BEMVINDO","subtotal_cents":10000,"discount_cents":1000}}''',
       ),
       'GET /api/v1/prices/price_1': (
         200,
@@ -588,7 +596,7 @@ void main() {
       (_) => json(
         200,
         jsonDecode(
-          r'''{"data":{"id":"pay_1","showcase_id":"x","checkout_id":"x","customer_id":"x","method":"card","state":"unknown","amount_cents":0,"captured_cents":0,"refunded_cents":0,"currency":"BRL","created_at":"2026-11-20T12:00:00Z","metadata":{},"client_reference_id":"x","installments":0,"installment_amount_cents":0,"installment_interest_cents":0,"subscription_id":null,"cycle_sequence":null,"period_start":null,"period_end":null,"fee_cents":450,"net_cents":8550,"expected_payout_on":"2026-12-21","payout_deposited_on":null,"payout_id":null,"split":[{"recipient_id":"shw_2","amount_cents":9000,"fee_cents":450,"net_cents":8550}]}}''',
+          r'''{"data":{"id":"pay_1","showcase_id":"x","checkout_id":"x","customer_id":"x","method":"card","state":"unknown","amount_cents":0,"captured_cents":0,"refunded_cents":0,"currency":"BRL","created_at":"2026-11-20T12:00:00Z","metadata":{},"client_reference_id":"x","installments":0,"installment_amount_cents":0,"installment_interest_cents":0,"payment_method_discount_cents":0,"payment_method_discount_bp":0,"subscription_id":null,"cycle_sequence":null,"period_start":null,"period_end":null,"fee_cents":450,"net_cents":8550,"expected_payout_on":"2026-12-21","payout_deposited_on":null,"payout_id":null,"split":[{"recipient_id":"shw_2","amount_cents":9000,"fee_cents":450,"net_cents":8550}]}}''',
         ),
       ),
     );
@@ -686,7 +694,7 @@ void main() {
     final answers = <String, (int, String)>{
       'POST /api/v1/checkouts': (
         201,
-        r'''{"data":{"id":"pcl_1","showcase_id":"x","url":"x","product_id":"prod_1","price_id":"price_1","status":"active","label":"Olho de Águia · Ana","quantity":0,"amount_cents":null,"items":[],"metadata":{},"client_reference_id":"x","success_url":"x","cancel_url":"x","expires_at":null,"subscription_start_at":null,"discount_id":"x","first_period_extra_days":null,"renewal_mode":"automatic","notify_customer_email":false,"created_at":"2026-11-20T12:00:00Z","session_id":"cs_1","client_secret":"cs_secret_1","client_secret_expires_at":"2026-11-20T12:00:00Z","status_key":"x"}}''',
+        r'''{"data":{"id":"pcl_1","showcase_id":"x","url":"x","product_id":"prod_1","price_id":"price_1","status":"active","label":"Olho de Águia · Ana","quantity":0,"amount_cents":null,"items":[],"metadata":{},"client_reference_id":"x","success_url":"x","cancel_url":"x","expires_at":null,"subscription_start_at":null,"discount_id":"x","first_period_extra_days":null,"renewal_mode":"automatic","notify_customer_email":false,"created_at":"2026-11-20T12:00:00Z","session_id":"cs_1","client_secret":"cs_secret_1","max_installments":0,"installment_interest":null,"interest_free_installments":0,"installment_monthly_rate_bp":0,"min_installment_cents":0,"pix_discount_bp":null,"boleto_discount_bp":null,"coupon_stacks_with_method_discount":null,"client_secret_expires_at":"2026-11-20T12:00:00Z","status_key":"x"}}''',
       ),
       'PATCH /api/v1/subscriptions/sub_1': (
         200,
@@ -1049,7 +1057,7 @@ void main() {
     final older = [
       (
         'msg_2',
-        'v1,wR5lfpym2P4TnG65MaTym1j5wWmRCtcygqTrQNICOEQ= v1,BLGtoe01YFYZHfU7Hcj8qvYNfluZvoTrRaAjcfB8JSs=',
+        'v1,F6yjAk5yoz2jK2Q70MVlMG2eFKNVM17nIhiWKfmjCzc= v1,npiewgDGHvzxB3L7ys4KBiP2hooWdiMkdW2tPNyOv/8=',
         orderPaid,
       ),
       (
@@ -1074,7 +1082,7 @@ void main() {
       webhookHeaders(
         'msg_5',
         signedAt,
-        'v1,vJOO2qPe9Vzlr42VPwCuIO+a6Sg8ZVfl9z4WuLJItwg=',
+        'v1,uz6PnD5ymh2ny+f3isuMCyoYJ/B1du6G21/9CW1HB7I=',
       ),
       orderPaidLive,
       now: now,
@@ -1106,8 +1114,8 @@ void main() {
     final headers = webhookHeaders(
       'msg_2',
       signedAt,
-      'v1,wR5lfpym2P4TnG65MaTym1j5wWmRCtcygqTrQNICOEQ= '
-          'v1,BLGtoe01YFYZHfU7Hcj8qvYNfluZvoTrRaAjcfB8JSs=',
+      'v1,F6yjAk5yoz2jK2Q70MVlMG2eFKNVM17nIhiWKfmjCzc= '
+          'v1,npiewgDGHvzxB3L7ys4KBiP2hooWdiMkdW2tPNyOv/8=',
     );
     for (final secret in [newSecret, oldSecret]) {
       final event = verifyWebhook(secret, headers, orderPaid, now: now);

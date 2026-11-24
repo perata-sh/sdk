@@ -17,7 +17,7 @@ final class CardAuthentication
         /** Segundos de vida do token. */
         public readonly int $expiresIn,
         public readonly string $provider,
-        /** O script de autenticação do adquirente. */
+        /** O script de autenticação do processador de pagamentos. */
         public readonly string $scriptUrl,
         /** O valor, em centavos, que o script deve autenticar: o total da sessão no servidor. Copie-o no campo bpmpi_totalamount; depois que ele é entregue, o total da sessão não muda mais. */
         public readonly int $totalCents,

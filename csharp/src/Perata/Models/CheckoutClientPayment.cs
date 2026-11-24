@@ -74,7 +74,7 @@ public sealed record CheckoutClientPayment
     [JsonPropertyName("state")]
     public required string State { get; init; }
 
-    /// <summary>Verdadeiro enquanto a resposta do adquirente ainda é descoberta; o comprador espera.</summary>
+    /// <summary>Verdadeiro enquanto a resposta do processador de pagamentos ainda é descoberta; o comprador espera.</summary>
     [JsonPropertyName("unresolved")]
     public required bool Unresolved { get; init; }
 }

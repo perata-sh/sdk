@@ -31,7 +31,7 @@ public sealed record CardAuthentication
     [JsonPropertyName("provider")]
     public required string Provider { get; init; }
 
-    /// <summary>O script de autenticação do adquirente.</summary>
+    /// <summary>O script de autenticação do processador de pagamentos.</summary>
     [JsonPropertyName("script_url")]
     public required string ScriptUrl { get; init; }
 

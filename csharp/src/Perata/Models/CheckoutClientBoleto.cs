@@ -17,7 +17,7 @@ public sealed record CheckoutClientBoleto
     [JsonPropertyName("due_date")]
     public string? DueDate { get; init; }
 
-    /// <summary>Onde o boleto é baixado; vazio quando o adquirente não deu nenhum.</summary>
+    /// <summary>Onde o boleto é baixado; vazio quando o processador de pagamentos não deu nenhum.</summary>
     [JsonPropertyName("pdf_url")]
     public required string PdfUrl { get; init; }
 }

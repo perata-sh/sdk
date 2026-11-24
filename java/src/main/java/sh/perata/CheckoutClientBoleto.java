@@ -35,7 +35,7 @@ public final class CheckoutClientBoleto {
         return dueDate;
     }
 
-    /** @return Onde o boleto é baixado; vazio quando o adquirente não deu nenhum. */
+    /** @return Onde o boleto é baixado; vazio quando o processador de pagamentos não deu nenhum. */
     public String getPdfUrl() {
         return pdfUrl;
     }

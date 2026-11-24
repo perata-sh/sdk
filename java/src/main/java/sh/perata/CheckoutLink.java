@@ -11,6 +11,16 @@ public final class CheckoutLink {
     public static final String CAPTURE_MODE_AUTOMATIC = "automatic";
     /** A value of {@link #getCaptureMode()}. */
     public static final String CAPTURE_MODE_MANUAL = "manual";
+    /** A value of {@link #getInstallmentInterest()}. */
+    public static final String INSTALLMENT_INTEREST_MERCHANT = "merchant";
+    /** A value of {@link #getInstallmentInterest()}. */
+    public static final String INSTALLMENT_INTEREST_BUYER = "buyer";
+    /** A value of {@link #getRenewalMode()}. */
+    public static final String RENEWAL_MODE_MANUAL = "manual";
+    /** A value of {@link #getRenewalMode()}. */
+    public static final String RENEWAL_MODE_AUTOMATIC = "automatic";
+    /** A value of {@link #getRenewalMode()}. */
+    public static final String RENEWAL_MODE_BUYER_CHOICE = "buyer_choice";
     /** A value of {@link #getStatus()}. */
     public static final String STATUS_ACTIVE = "active";
     /** A value of {@link #getStatus()}. */
@@ -25,20 +35,28 @@ public final class CheckoutLink {
     public static final String TRIAL_INTERVAL_YEAR = "year";
 
     private final boolean allowDiscountCodes;
+    private final Long boletoDiscountBp;
     private final String cancelUrl;
     private final String captureMode;
+    private final Boolean couponStacksWithMethodDiscount;
     private final String createdAt;
     private final String discountId;
     private final String expiresAt;
     private final String id;
+    private final String installmentInterest;
+    private final long installmentMonthlyRateBp;
+    private final long interestFreeInstallments;
     private final String label;
     private final long maxInstallments;
     private final Map<String, Object> metadata;
+    private final long minInstallmentCents;
     private final String modifiedAt;
+    private final Long pixDiscountBp;
     private final String priceId;
     private final String productId;
     private final List<CheckoutLinkProduct> products;
     private final long quantity;
+    private final String renewalMode;
     private final boolean requireBillingAddress;
     private final String status;
     private final String successUrl;
@@ -46,22 +64,30 @@ public final class CheckoutLink {
     private final Long trialIntervalCount;
     private final String url;
 
-    CheckoutLink(boolean allowDiscountCodes, String cancelUrl, String captureMode, String createdAt, String discountId, String expiresAt, String id, String label, long maxInstallments, Map<String, Object> metadata, String modifiedAt, String priceId, String productId, List<CheckoutLinkProduct> products, long quantity, boolean requireBillingAddress, String status, String successUrl, String trialInterval, Long trialIntervalCount, String url) {
+    CheckoutLink(boolean allowDiscountCodes, Long boletoDiscountBp, String cancelUrl, String captureMode, Boolean couponStacksWithMethodDiscount, String createdAt, String discountId, String expiresAt, String id, String installmentInterest, long installmentMonthlyRateBp, long interestFreeInstallments, String label, long maxInstallments, Map<String, Object> metadata, long minInstallmentCents, String modifiedAt, Long pixDiscountBp, String priceId, String productId, List<CheckoutLinkProduct> products, long quantity, String renewalMode, boolean requireBillingAddress, String status, String successUrl, String trialInterval, Long trialIntervalCount, String url) {
         this.allowDiscountCodes = allowDiscountCodes;
+        this.boletoDiscountBp = boletoDiscountBp;
         this.cancelUrl = cancelUrl;
         this.captureMode = captureMode;
+        this.couponStacksWithMethodDiscount = couponStacksWithMethodDiscount;
         this.createdAt = createdAt;
         this.discountId = discountId;
         this.expiresAt = expiresAt;
         this.id = id;
+        this.installmentInterest = installmentInterest;
+        this.installmentMonthlyRateBp = installmentMonthlyRateBp;
+        this.interestFreeInstallments = interestFreeInstallments;
         this.label = label;
         this.maxInstallments = maxInstallments;
         this.metadata = metadata;
+        this.minInstallmentCents = minInstallmentCents;
         this.modifiedAt = modifiedAt;
+        this.pixDiscountBp = pixDiscountBp;
         this.priceId = priceId;
         this.productId = productId;
         this.products = products;
         this.quantity = quantity;
+        this.renewalMode = renewalMode;
         this.requireBillingAddress = requireBillingAddress;
         this.status = status;
         this.successUrl = successUrl;
@@ -73,20 +99,28 @@ public final class CheckoutLink {
     static CheckoutLink fromJson(Map<String, Object> data) {
         return new CheckoutLink(
                 Json.required(data, "allow_discount_codes", Json::asBoolean),
+                Json.optional(data, "boleto_discount_bp", Json::asLong),
                 Json.required(data, "cancel_url", Json::asString),
                 Json.required(data, "capture_mode", Json::asString),
+                Json.optional(data, "coupon_stacks_with_method_discount", Json::asBoolean),
                 Json.required(data, "created_at", Json::asString),
                 Json.optional(data, "discount_id", Json::asString),
                 Json.optional(data, "expires_at", Json::asString),
                 Json.required(data, "id", Json::asString),
+                Json.optional(data, "installment_interest", Json::asString),
+                Json.required(data, "installment_monthly_rate_bp", Json::asLong),
+                Json.required(data, "interest_free_installments", Json::asLong),
                 Json.required(data, "label", Json::asString),
                 Json.required(data, "max_installments", Json::asLong),
                 Json.required(data, "metadata", Json.map(Json::any)),
+                Json.required(data, "min_installment_cents", Json::asLong),
                 Json.required(data, "modified_at", Json::asString),
+                Json.optional(data, "pix_discount_bp", Json::asLong),
                 Json.required(data, "price_id", Json::asString),
                 Json.required(data, "product_id", Json::asString),
                 Json.required(data, "products", Json.list(Json.model(CheckoutLinkProduct::fromJson))),
                 Json.required(data, "quantity", Json::asLong),
+                Json.optional(data, "renewal_mode", Json::asString),
                 Json.required(data, "require_billing_address", Json::asBoolean),
                 Json.required(data, "status", Json::asString),
                 Json.required(data, "success_url", Json::asString),
@@ -100,6 +134,11 @@ public final class CheckoutLink {
         return allowDiscountCodes;
     }
 
+    /** @return O desconto de quem paga com boleto neste checkout, em centésimos de ponto percentual; 0 desliga o desconto aqui; nulo segue a organização. (null when the API sends none) */
+    public Long getBoletoDiscountBp() {
+        return boletoDiscountBp;
+    }
+
     /** @return Endereço https para onde o comprador volta se desistir; vazio sem ele. */
     public String getCancelUrl() {
         return cancelUrl;
@@ -108,6 +147,11 @@ public final class CheckoutLink {
     /** @return manual segura a venda no cartão para o lojista capturar depois. */
     public String getCaptureMode() {
         return captureMode;
+    }
+
+    /** @return Se o cupom soma com o desconto do Pix ou do boleto neste checkout: true soma (o cupom primeiro, o desconto da forma depois), false vale só o maior dos dois em centavos sobre o mesmo preço; nulo segue a organização (que por padrão não soma). Em assinatura o cupom sempre soma. (null when the API sends none) */
+    public Boolean getCouponStacksWithMethodDiscount() {
+        return couponStacksWithMethodDiscount;
     }
 
     /** @return the API's {@code created_at} */
@@ -130,6 +174,21 @@ public final class CheckoutLink {
         return id;
     }
 
+    /** @return Quem paga os juros do parcelamento deste checkout: merchant (sem juros) ou buyer (com juros); nulo segue a organização. (null when the API sends none) */
+    public String getInstallmentInterest() {
+        return installmentInterest;
+    }
+
+    /** @return A taxa de juros ao mês que o comprador paga, em centésimos de ponto percentual (299 é 2,99%); 0 segue a organização. */
+    public long getInstallmentMonthlyRateBp() {
+        return installmentMonthlyRateBp;
+    }
+
+    /** @return Quantas parcelas saem sem juros quando o comprador paga os juros; 0 segue a organização. */
+    public long getInterestFreeInstallments() {
+        return interestFreeInstallments;
+    }
+
     /** @return Como o lojista chama o link nas próprias telas; o comprador não vê. */
     public String getLabel() {
         return label;
@@ -145,9 +204,19 @@ public final class CheckoutLink {
         return metadata;
     }
 
+    /** @return A menor parcela, em centavos; 0 segue a organização. */
+    public long getMinInstallmentCents() {
+        return minInstallmentCents;
+    }
+
     /** @return the API's {@code modified_at} */
     public String getModifiedAt() {
         return modifiedAt;
+    }
+
+    /** @return O desconto de quem paga com Pix neste checkout, em centésimos de ponto percentual (500 é 5%); 0 desliga o desconto aqui; nulo segue a organização. (null when the API sends none) */
+    public Long getPixDiscountBp() {
+        return pixDiscountBp;
     }
 
     /** @return O preço do primeiro produto. */
@@ -168,6 +237,11 @@ public final class CheckoutLink {
     /** @return the API's {@code quantity} */
     public long getQuantity() {
         return quantity;
+    }
+
+    /** @return Como a assinatura que o link vende renova: manual (uma cobrança por link a cada ciclo), automatic (só cartão guardado ou Pix Automático), buyer_choice (o comprador marca a caixa Cobrança recorrente na página); nulo é o padrão, em que o cartão guardado renova e, sem cartão, o comprador recebe o link. (null when the API sends none) */
+    public String getRenewalMode() {
+        return renewalMode;
     }
 
     /** @return the API's {@code require_billing_address} */
@@ -202,6 +276,6 @@ public final class CheckoutLink {
 
     @Override
     public String toString() {
-        return "CheckoutLink{" + "allowDiscountCodes=" + allowDiscountCodes + ", cancelUrl=" + cancelUrl + ", captureMode=" + captureMode + ", createdAt=" + createdAt + ", discountId=" + discountId + ", expiresAt=" + expiresAt + ", id=" + id + ", label=" + label + ", maxInstallments=" + maxInstallments + ", metadata=" + metadata + ", modifiedAt=" + modifiedAt + ", priceId=" + priceId + ", productId=" + productId + ", products=" + products + ", quantity=" + quantity + ", requireBillingAddress=" + requireBillingAddress + ", status=" + status + ", successUrl=" + successUrl + ", trialInterval=" + trialInterval + ", trialIntervalCount=" + trialIntervalCount + ", url=" + url + "}";
+        return "CheckoutLink{" + "allowDiscountCodes=" + allowDiscountCodes + ", boletoDiscountBp=" + boletoDiscountBp + ", cancelUrl=" + cancelUrl + ", captureMode=" + captureMode + ", couponStacksWithMethodDiscount=" + couponStacksWithMethodDiscount + ", createdAt=" + createdAt + ", discountId=" + discountId + ", expiresAt=" + expiresAt + ", id=" + id + ", installmentInterest=" + installmentInterest + ", installmentMonthlyRateBp=" + installmentMonthlyRateBp + ", interestFreeInstallments=" + interestFreeInstallments + ", label=" + label + ", maxInstallments=" + maxInstallments + ", metadata=" + metadata + ", minInstallmentCents=" + minInstallmentCents + ", modifiedAt=" + modifiedAt + ", pixDiscountBp=" + pixDiscountBp + ", priceId=" + priceId + ", productId=" + productId + ", products=" + products + ", quantity=" + quantity + ", renewalMode=" + renewalMode + ", requireBillingAddress=" + requireBillingAddress + ", status=" + status + ", successUrl=" + successUrl + ", trialInterval=" + trialInterval + ", trialIntervalCount=" + trialIntervalCount + ", url=" + url + "}";
     }
 }

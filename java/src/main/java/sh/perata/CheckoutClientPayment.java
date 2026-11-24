@@ -105,7 +105,7 @@ public final class CheckoutClientPayment {
         return state;
     }
 
-    /** @return Verdadeiro enquanto a resposta do adquirente ainda é descoberta; o comprador espera. */
+    /** @return Verdadeiro enquanto a resposta do processador de pagamentos ainda é descoberta; o comprador espera. */
     public boolean getUnresolved() {
         return unresolved;
     }

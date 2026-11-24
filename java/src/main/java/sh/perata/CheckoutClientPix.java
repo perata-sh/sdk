@@ -30,7 +30,7 @@ public final class CheckoutClientPix {
         return copiaECola;
     }
 
-    /** @return Quando o Pix deixa de poder ser pago, como o adquirente o deu. (null when the API sends none) */
+    /** @return Quando o Pix deixa de poder ser pago, como o processador de pagamentos o deu. (null when the API sends none) */
     public String getExpiresAt() {
         return expiresAt;
     }

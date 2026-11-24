@@ -13,7 +13,7 @@ public sealed record CheckoutClientPix
     [JsonPropertyName("copia_e_cola")]
     public required string CopiaECola { get; init; }
 
-    /// <summary>Quando o Pix deixa de poder ser pago, como o adquirente o deu. Null when the API sends none.</summary>
+    /// <summary>Quando o Pix deixa de poder ser pago, como o processador de pagamentos o deu. Null when the API sends none.</summary>
     [JsonPropertyName("expires_at")]
     public string? ExpiresAt { get; init; }
 

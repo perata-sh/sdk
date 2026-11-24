@@ -361,7 +361,7 @@ final class CardAuthentication {
 
   final String provider;
 
-  /// O script de autenticação do adquirente.
+  /// O script de autenticação do processador de pagamentos.
   final String scriptUrl;
 
   /// O valor, em centavos, que o script deve autenticar: o total da sessão no
@@ -403,8 +403,8 @@ final class CardTokenization {
     );
   }
 
-  /// O token com que o script do adquirente envia o cartão; entregue só a uma
-  /// página da própria origem da Peráta.
+  /// O token com que o script do processador de pagamentos envia o cartão;
+  /// entregue só a uma página da própria origem da Peráta.
   final String accessToken;
 
   /// O bilhete da tentativa deste cartão: de uso único, válido só para esta
@@ -436,17 +436,25 @@ final class CardTokenization {
 final class Checkout {
   const Checkout({
     this.amountCents,
+    this.boletoDiscountBp,
     required this.cancelUrl,
     required this.clientReferenceId,
+    this.couponStacksWithMethodDiscount,
     required this.createdAt,
     required this.discountId,
     this.expiresAt,
     this.firstPeriodExtraDays,
     required this.id,
+    this.installmentInterest,
+    required this.installmentMonthlyRateBp,
+    required this.interestFreeInstallments,
     required this.items,
     required this.label,
+    required this.maxInstallments,
     required this.metadata,
+    required this.minInstallmentCents,
     required this.notifyCustomerEmail,
+    this.pixDiscountBp,
     required this.priceId,
     required this.productId,
     required this.quantity,
@@ -462,20 +470,29 @@ final class Checkout {
   factory Checkout.fromJson(Map<String, Object?> json) {
     return Checkout(
       amountCents: json['amount_cents'] as int?,
+      boletoDiscountBp: json['boleto_discount_bp'] as int?,
       cancelUrl: json['cancel_url'] as String,
       clientReferenceId: json['client_reference_id'] as String,
+      couponStacksWithMethodDiscount:
+          json['coupon_stacks_with_method_discount'] as bool?,
       createdAt: json['created_at'] as String,
       discountId: json['discount_id'] as String,
       expiresAt: json['expires_at'] as String?,
       firstPeriodExtraDays: json['first_period_extra_days'] as int?,
       id: json['id'] as String,
+      installmentInterest: json['installment_interest'] as String?,
+      installmentMonthlyRateBp: json['installment_monthly_rate_bp'] as int,
+      interestFreeInstallments: json['interest_free_installments'] as int,
       items: readList(
         json['items'],
         (value) => CheckoutLine.fromJson(readObject(value)),
       ),
       label: json['label'] as String,
+      maxInstallments: json['max_installments'] as int,
       metadata: readMap(json['metadata'], (value) => value),
+      minInstallmentCents: json['min_installment_cents'] as int,
       notifyCustomerEmail: json['notify_customer_email'] as bool,
+      pixDiscountBp: json['pix_discount_bp'] as int?,
       priceId: json['price_id'] as String,
       productId: json['product_id'] as String,
       quantity: json['quantity'] as int,
@@ -492,12 +509,22 @@ final class Checkout {
   /// comprador quem digita o valor.
   final int? amountCents;
 
+  /// O desconto de quem paga com boleto neste checkout, em centésimos de ponto
+  /// percentual; 0 desliga o desconto aqui; nulo segue a organização.
+  final int? boletoDiscountBp;
+
   /// Endereço https para onde o comprador volta se desistir; vazio sem ele.
   final String cancelUrl;
 
   /// O id do pedido no seu sistema, como o seu servidor o enviou na criação;
   /// vazio sem ele. Volta no checkout, no pedido, no pagamento e nos eventos.
   final String clientReferenceId;
+
+  /// Se o cupom soma com o desconto do Pix ou do boleto neste checkout: true
+  /// soma (o cupom primeiro, o desconto da forma depois), false vale só o maior
+  /// dos dois em centavos sobre o mesmo preço; nulo segue a organização (que
+  /// por padrão não soma). Em assinatura o cupom sempre soma.
+  final bool? couponStacksWithMethodDiscount;
 
   final String createdAt;
 
@@ -517,19 +544,45 @@ final class Checkout {
 
   final String id;
 
+  /// Quem paga os juros do parcelamento deste checkout: merchant (sem juros) ou
+  /// buyer (com juros); nulo segue a organização.
+  ///
+  /// One of `merchant`, `buyer`.
+  final String? installmentInterest;
+
+  /// A taxa de juros ao mês que o comprador paga, em centésimos de ponto
+  /// percentual (299 é 2,99%); 0 segue a organização.
+  final int installmentMonthlyRateBp;
+
+  /// Quantas parcelas saem sem juros quando o comprador paga os juros; 0 segue
+  /// a organização.
+  final int interestFreeInstallments;
+
   /// As linhas do valor fixado, na ordem em que foram enviadas; vazio sem elas.
   final List<CheckoutLine> items;
 
   /// Como o lojista chama o checkout nas próprias telas; o comprador não vê.
   final String label;
 
+  /// O máximo de parcelas no cartão de crédito deste checkout; 0 segue o que a
+  /// organização definiu, 1 vende só à vista.
+  final int maxInstallments;
+
   /// Os pares que o seu servidor guardou na criação; voltam nos eventos da
   /// venda.
   final Map<String, Object?> metadata;
 
+  /// A menor parcela, em centavos; 0 segue a organização.
+  final int minInstallmentCents;
+
   /// Falso quando o seu sistema avisa o comprador das cobranças de renovação e
   /// a Peráta fica quieta.
   final bool notifyCustomerEmail;
+
+  /// O desconto de quem paga com Pix neste checkout, em centésimos de ponto
+  /// percentual (500 é 5%); 0 desliga o desconto aqui; nulo segue a
+  /// organização.
+  final int? pixDiscountBp;
 
   final String priceId;
 
@@ -568,17 +621,25 @@ final class Checkout {
   /// The JSON the API answers.
   Map<String, Object?> toJson() => {
     'amount_cents': amountCents,
+    'boleto_discount_bp': boletoDiscountBp,
     'cancel_url': cancelUrl,
     'client_reference_id': clientReferenceId,
+    'coupon_stacks_with_method_discount': couponStacksWithMethodDiscount,
     'created_at': createdAt,
     'discount_id': discountId,
     'expires_at': expiresAt,
     'first_period_extra_days': firstPeriodExtraDays,
     'id': id,
+    'installment_interest': installmentInterest,
+    'installment_monthly_rate_bp': installmentMonthlyRateBp,
+    'interest_free_installments': interestFreeInstallments,
     'items': items.map((item) => item.toJson()).toList(),
     'label': label,
+    'max_installments': maxInstallments,
     'metadata': metadata,
+    'min_installment_cents': minInstallmentCents,
     'notify_customer_email': notifyCustomerEmail,
+    'pix_discount_bp': pixDiscountBp,
     'price_id': priceId,
     'product_id': productId,
     'quantity': quantity,
@@ -615,6 +676,7 @@ final class CheckoutClient {
     required this.missing,
     required this.nextAction,
     this.payment,
+    required this.paymentDiscounts,
     required this.paymentMethods,
     required this.requiresBillingAddress,
     required this.requiresTaxId,
@@ -663,6 +725,10 @@ final class CheckoutClient {
         json['payment'],
         (value) => CheckoutClientPayment.fromJson(readObject(value)),
       ),
+      paymentDiscounts: readList(
+        json['payment_discounts'],
+        (value) => CheckoutClientPaymentDiscount.fromJson(readObject(value)),
+      ),
       paymentMethods: readList(json['payment_methods'], readString),
       requiresBillingAddress: json['requires_billing_address'] as bool,
       requiresTaxId: json['requires_tax_id'] as bool,
@@ -684,7 +750,8 @@ final class CheckoutClient {
   /// Para onde o comprador volta sem pagar.
   final String cancelUrl;
 
-  /// credit, e debit onde a autenticação do adquirente está ligada.
+  /// credit, e debit onde a autenticação do processador de pagamentos está
+  /// ligada.
   final List<String> cardKinds;
 
   /// O id do pedido no seu sistema, quando o seu servidor o enviou; vazio sem
@@ -742,6 +809,13 @@ final class CheckoutClient {
 
   final CheckoutClientPayment? payment;
 
+  /// O desconto de cada forma de pagamento que tem um (Pix e boleto), depois do
+  /// cupom e sobre o valor já com o cupom quando o cupom soma; quando não soma,
+  /// só aparece a forma cujo desconto é maior que o do cupom, sobre o preço sem
+  /// cupom; vazio quando nenhuma tem. O cartão de crédito não tem desconto. O
+  /// Pix Automático também não.
+  final List<CheckoutClientPaymentDiscount> paymentDiscounts;
+
   /// As formas em que a sessão pode ser paga, entre card, pix, boleto e free;
   /// free é uma sessão que não pede pagamento.
   final List<String> paymentMethods;
@@ -794,6 +868,7 @@ final class CheckoutClient {
     'missing': missing,
     'next_action': nextAction.toJson(),
     'payment': payment?.toJson(),
+    'payment_discounts': paymentDiscounts.map((item) => item.toJson()).toList(),
     'payment_methods': paymentMethods,
     'requires_billing_address': requiresBillingAddress,
     'requires_tax_id': requiresTaxId,
@@ -828,7 +903,8 @@ final class CheckoutClientBoleto {
   /// horário de Brasília.
   final String? dueDate;
 
-  /// Onde o boleto é baixado; vazio quando o adquirente não deu nenhum.
+  /// Onde o boleto é baixado; vazio quando o processador de pagamentos não deu
+  /// nenhum.
   final String pdfUrl;
 
   /// The JSON the API answers.
@@ -848,6 +924,7 @@ final class CheckoutClientCustomer {
     required this.locked,
     required this.name,
     required this.taxId,
+    required this.taxIdFixed,
     required this.taxIdKind,
   });
 
@@ -860,6 +937,7 @@ final class CheckoutClientCustomer {
       locked: json['locked'] as bool,
       name: json['name'] as String,
       taxId: json['tax_id'] as String,
+      taxIdFixed: json['tax_id_fixed'] as bool,
       taxIdKind: json['tax_id_kind'] as String,
     );
   }
@@ -881,6 +959,10 @@ final class CheckoutClientCustomer {
   /// O CPF ou CNPJ do comprador, só dígitos; vazio enquanto não for informado.
   final String taxId;
 
+  /// Verdadeiro quando o CPF ou CNPJ é o que o lojista tem do cliente: o
+  /// comprador não pode trocá-lo e o servidor recusa outro (422 em tax_id).
+  final bool taxIdFixed;
+
   final String taxIdKind;
 
   /// The JSON the API answers.
@@ -891,6 +973,7 @@ final class CheckoutClientCustomer {
     'locked': locked,
     'name': name,
     'tax_id': taxId,
+    'tax_id_fixed': taxIdFixed,
     'tax_id_kind': taxIdKind,
   };
 }
@@ -1052,8 +1135,8 @@ final class CheckoutClientPayment {
   /// `canceled`, `refunded`, `partially_refunded`.
   final String state;
 
-  /// Verdadeiro enquanto a resposta do adquirente ainda é descoberta; o
-  /// comprador espera.
+  /// Verdadeiro enquanto a resposta do processador de pagamentos ainda é
+  /// descoberta; o comprador espera.
   final bool unresolved;
 
   /// The JSON the API answers.
@@ -1090,7 +1173,8 @@ final class CheckoutClientPix {
   /// O código Pix copia e cola.
   final String copiaECola;
 
-  /// Quando o Pix deixa de poder ser pago, como o adquirente o deu.
+  /// Quando o Pix deixa de poder ser pago, como o processador de pagamentos o
+  /// deu.
   final String? expiresAt;
 
   /// O QR do código, desenhado como um documento SVG.
@@ -1108,19 +1192,27 @@ final class CheckoutClientPix {
 final class CheckoutCreated {
   const CheckoutCreated({
     this.amountCents,
+    this.boletoDiscountBp,
     required this.cancelUrl,
     required this.clientReferenceId,
     required this.clientSecret,
     required this.clientSecretExpiresAt,
+    this.couponStacksWithMethodDiscount,
     required this.createdAt,
     required this.discountId,
     this.expiresAt,
     this.firstPeriodExtraDays,
     required this.id,
+    this.installmentInterest,
+    required this.installmentMonthlyRateBp,
+    required this.interestFreeInstallments,
     required this.items,
     required this.label,
+    required this.maxInstallments,
     required this.metadata,
+    required this.minInstallmentCents,
     required this.notifyCustomerEmail,
+    this.pixDiscountBp,
     required this.priceId,
     required this.productId,
     required this.quantity,
@@ -1138,22 +1230,31 @@ final class CheckoutCreated {
   factory CheckoutCreated.fromJson(Map<String, Object?> json) {
     return CheckoutCreated(
       amountCents: json['amount_cents'] as int?,
+      boletoDiscountBp: json['boleto_discount_bp'] as int?,
       cancelUrl: json['cancel_url'] as String,
       clientReferenceId: json['client_reference_id'] as String,
       clientSecret: json['client_secret'] as String,
       clientSecretExpiresAt: json['client_secret_expires_at'] as String,
+      couponStacksWithMethodDiscount:
+          json['coupon_stacks_with_method_discount'] as bool?,
       createdAt: json['created_at'] as String,
       discountId: json['discount_id'] as String,
       expiresAt: json['expires_at'] as String?,
       firstPeriodExtraDays: json['first_period_extra_days'] as int?,
       id: json['id'] as String,
+      installmentInterest: json['installment_interest'] as String?,
+      installmentMonthlyRateBp: json['installment_monthly_rate_bp'] as int,
+      interestFreeInstallments: json['interest_free_installments'] as int,
       items: readList(
         json['items'],
         (value) => CheckoutLine.fromJson(readObject(value)),
       ),
       label: json['label'] as String,
+      maxInstallments: json['max_installments'] as int,
       metadata: readMap(json['metadata'], (value) => value),
+      minInstallmentCents: json['min_installment_cents'] as int,
       notifyCustomerEmail: json['notify_customer_email'] as bool,
+      pixDiscountBp: json['pix_discount_bp'] as int?,
       priceId: json['price_id'] as String,
       productId: json['product_id'] as String,
       quantity: json['quantity'] as int,
@@ -1172,6 +1273,10 @@ final class CheckoutCreated {
   /// pode mudá-lo. Nulo quando é o comprador quem digita o valor.
   final int? amountCents;
 
+  /// O desconto de quem paga com boleto neste checkout, em centésimos de ponto
+  /// percentual; 0 desliga o desconto aqui; nulo segue a organização.
+  final int? boletoDiscountBp;
+
   /// Endereço https para onde o comprador volta se desistir; vazio sem ele.
   final String cancelUrl;
 
@@ -1187,6 +1292,12 @@ final class CheckoutCreated {
 
   /// Quando a sessão e o client_secret deixam de valer.
   final String clientSecretExpiresAt;
+
+  /// Se o cupom soma com o desconto do Pix ou do boleto neste checkout: true
+  /// soma (o cupom primeiro, o desconto da forma depois), false vale só o maior
+  /// dos dois em centavos sobre o mesmo preço; nulo segue a organização (que
+  /// por padrão não soma). Em assinatura o cupom sempre soma.
+  final bool? couponStacksWithMethodDiscount;
 
   final String createdAt;
 
@@ -1207,19 +1318,45 @@ final class CheckoutCreated {
   /// O ID do link do checkout, o que GET e PATCH /checkouts/{id} recebem.
   final String id;
 
+  /// Quem paga os juros do parcelamento deste checkout: merchant (sem juros) ou
+  /// buyer (com juros); nulo segue a organização.
+  ///
+  /// One of `merchant`, `buyer`.
+  final String? installmentInterest;
+
+  /// A taxa de juros ao mês que o comprador paga, em centésimos de ponto
+  /// percentual (299 é 2,99%); 0 segue a organização.
+  final int installmentMonthlyRateBp;
+
+  /// Quantas parcelas saem sem juros quando o comprador paga os juros; 0 segue
+  /// a organização.
+  final int interestFreeInstallments;
+
   /// As linhas do valor fixado, na ordem em que foram enviadas; vazio sem elas.
   final List<CheckoutLine> items;
 
   /// Como o lojista chama o checkout nas próprias telas; o comprador não vê.
   final String label;
 
+  /// O máximo de parcelas no cartão de crédito deste checkout; 0 segue o que a
+  /// organização definiu, 1 vende só à vista.
+  final int maxInstallments;
+
   /// Os pares que o seu servidor enviou; voltam no pedido, no pagamento e nos
   /// eventos da venda (checkout.*, order.*, checkout_payment.* e refund.*).
   final Map<String, Object?> metadata;
 
+  /// A menor parcela, em centavos; 0 segue a organização.
+  final int minInstallmentCents;
+
   /// Falso quando o seu sistema avisa o comprador das cobranças de renovação e
   /// a Peráta fica quieta.
   final bool notifyCustomerEmail;
+
+  /// O desconto de quem paga com Pix neste checkout, em centésimos de ponto
+  /// percentual (500 é 5%); 0 desliga o desconto aqui; nulo segue a
+  /// organização.
+  final int? pixDiscountBp;
 
   final String priceId;
 
@@ -1272,19 +1409,27 @@ final class CheckoutCreated {
   /// The JSON the API answers.
   Map<String, Object?> toJson() => {
     'amount_cents': amountCents,
+    'boleto_discount_bp': boletoDiscountBp,
     'cancel_url': cancelUrl,
     'client_reference_id': clientReferenceId,
     'client_secret': clientSecret,
     'client_secret_expires_at': clientSecretExpiresAt,
+    'coupon_stacks_with_method_discount': couponStacksWithMethodDiscount,
     'created_at': createdAt,
     'discount_id': discountId,
     'expires_at': expiresAt,
     'first_period_extra_days': firstPeriodExtraDays,
     'id': id,
+    'installment_interest': installmentInterest,
+    'installment_monthly_rate_bp': installmentMonthlyRateBp,
+    'interest_free_installments': interestFreeInstallments,
     'items': items.map((item) => item.toJson()).toList(),
     'label': label,
+    'max_installments': maxInstallments,
     'metadata': metadata,
+    'min_installment_cents': minInstallmentCents,
     'notify_customer_email': notifyCustomerEmail,
+    'pix_discount_bp': pixDiscountBp,
     'price_id': priceId,
     'product_id': productId,
     'quantity': quantity,
@@ -1483,20 +1628,28 @@ final class CheckoutLine {
 final class CheckoutLink {
   const CheckoutLink({
     required this.allowDiscountCodes,
+    this.boletoDiscountBp,
     required this.cancelUrl,
     required this.captureMode,
+    this.couponStacksWithMethodDiscount,
     required this.createdAt,
     this.discountId,
     this.expiresAt,
     required this.id,
+    this.installmentInterest,
+    required this.installmentMonthlyRateBp,
+    required this.interestFreeInstallments,
     required this.label,
     required this.maxInstallments,
     required this.metadata,
+    required this.minInstallmentCents,
     required this.modifiedAt,
+    this.pixDiscountBp,
     required this.priceId,
     required this.productId,
     required this.products,
     required this.quantity,
+    this.renewalMode,
     required this.requireBillingAddress,
     required this.status,
     required this.successUrl,
@@ -1509,16 +1662,24 @@ final class CheckoutLink {
   factory CheckoutLink.fromJson(Map<String, Object?> json) {
     return CheckoutLink(
       allowDiscountCodes: json['allow_discount_codes'] as bool,
+      boletoDiscountBp: json['boleto_discount_bp'] as int?,
       cancelUrl: json['cancel_url'] as String,
       captureMode: json['capture_mode'] as String,
+      couponStacksWithMethodDiscount:
+          json['coupon_stacks_with_method_discount'] as bool?,
       createdAt: json['created_at'] as String,
       discountId: json['discount_id'] as String?,
       expiresAt: json['expires_at'] as String?,
       id: json['id'] as String,
+      installmentInterest: json['installment_interest'] as String?,
+      installmentMonthlyRateBp: json['installment_monthly_rate_bp'] as int,
+      interestFreeInstallments: json['interest_free_installments'] as int,
       label: json['label'] as String,
       maxInstallments: json['max_installments'] as int,
       metadata: readMap(json['metadata'], (value) => value),
+      minInstallmentCents: json['min_installment_cents'] as int,
       modifiedAt: json['modified_at'] as String,
+      pixDiscountBp: json['pix_discount_bp'] as int?,
       priceId: json['price_id'] as String,
       productId: json['product_id'] as String,
       products: readList(
@@ -1526,6 +1687,7 @@ final class CheckoutLink {
         (value) => CheckoutLinkProduct.fromJson(readObject(value)),
       ),
       quantity: json['quantity'] as int,
+      renewalMode: json['renewal_mode'] as String?,
       requireBillingAddress: json['require_billing_address'] as bool,
       status: json['status'] as String,
       successUrl: json['success_url'] as String,
@@ -1538,6 +1700,10 @@ final class CheckoutLink {
   /// Se o comprador pode digitar um código de desconto.
   final bool allowDiscountCodes;
 
+  /// O desconto de quem paga com boleto neste checkout, em centésimos de ponto
+  /// percentual; 0 desliga o desconto aqui; nulo segue a organização.
+  final int? boletoDiscountBp;
+
   /// Endereço https para onde o comprador volta se desistir; vazio sem ele.
   final String cancelUrl;
 
@@ -1545,6 +1711,12 @@ final class CheckoutLink {
   ///
   /// One of `automatic`, `manual`.
   final String captureMode;
+
+  /// Se o cupom soma com o desconto do Pix ou do boleto neste checkout: true
+  /// soma (o cupom primeiro, o desconto da forma depois), false vale só o maior
+  /// dos dois em centavos sobre o mesmo preço; nulo segue a organização (que
+  /// por padrão não soma). Em assinatura o cupom sempre soma.
+  final bool? couponStacksWithMethodDiscount;
 
   final String createdAt;
 
@@ -1555,6 +1727,20 @@ final class CheckoutLink {
   final String? expiresAt;
 
   final String id;
+
+  /// Quem paga os juros do parcelamento deste checkout: merchant (sem juros) ou
+  /// buyer (com juros); nulo segue a organização.
+  ///
+  /// One of `merchant`, `buyer`.
+  final String? installmentInterest;
+
+  /// A taxa de juros ao mês que o comprador paga, em centésimos de ponto
+  /// percentual (299 é 2,99%); 0 segue a organização.
+  final int installmentMonthlyRateBp;
+
+  /// Quantas parcelas saem sem juros quando o comprador paga os juros; 0 segue
+  /// a organização.
+  final int interestFreeInstallments;
 
   /// Como o lojista chama o link nas próprias telas; o comprador não vê.
   final String label;
@@ -1567,7 +1753,15 @@ final class CheckoutLink {
   /// objeto vazio quando não há.
   final Map<String, Object?> metadata;
 
+  /// A menor parcela, em centavos; 0 segue a organização.
+  final int minInstallmentCents;
+
   final String modifiedAt;
+
+  /// O desconto de quem paga com Pix neste checkout, em centésimos de ponto
+  /// percentual (500 é 5%); 0 desliga o desconto aqui; nulo segue a
+  /// organização.
+  final int? pixDiscountBp;
 
   /// O preço do primeiro produto.
   final String priceId;
@@ -1579,6 +1773,15 @@ final class CheckoutLink {
   final List<CheckoutLinkProduct> products;
 
   final int quantity;
+
+  /// Como a assinatura que o link vende renova: manual (uma cobrança por link a
+  /// cada ciclo), automatic (só cartão guardado ou Pix Automático),
+  /// buyer_choice (o comprador marca a caixa Cobrança recorrente na página);
+  /// nulo é o padrão, em que o cartão guardado renova e, sem cartão, o
+  /// comprador recebe o link.
+  ///
+  /// One of `manual`, `automatic`, `buyer_choice`.
+  final String? renewalMode;
 
   final bool requireBillingAddress;
 
@@ -1602,20 +1805,28 @@ final class CheckoutLink {
   /// The JSON the API answers.
   Map<String, Object?> toJson() => {
     'allow_discount_codes': allowDiscountCodes,
+    'boleto_discount_bp': boletoDiscountBp,
     'cancel_url': cancelUrl,
     'capture_mode': captureMode,
+    'coupon_stacks_with_method_discount': couponStacksWithMethodDiscount,
     'created_at': createdAt,
     'discount_id': discountId,
     'expires_at': expiresAt,
     'id': id,
+    'installment_interest': installmentInterest,
+    'installment_monthly_rate_bp': installmentMonthlyRateBp,
+    'interest_free_installments': interestFreeInstallments,
     'label': label,
     'max_installments': maxInstallments,
     'metadata': metadata,
+    'min_installment_cents': minInstallmentCents,
     'modified_at': modifiedAt,
+    'pix_discount_bp': pixDiscountBp,
     'price_id': priceId,
     'product_id': productId,
     'products': products.map((item) => item.toJson()).toList(),
     'quantity': quantity,
+    'renewal_mode': renewalMode,
     'require_billing_address': requireBillingAddress,
     'status': status,
     'success_url': successUrl,
@@ -2333,7 +2544,7 @@ final class Dispute {
   /// O pedido que a venda contestada pagou; nulo quando não é de um checkout.
   final String? orderId;
 
-  /// O PaymentId da venda contestada.
+  /// O id do pagamento da venda contestada.
   final String paymentId;
 
   /// Como a venda contestada foi paga: card ou pix.
@@ -2345,10 +2556,11 @@ final class Dispute {
   /// O motivo informado pelo emissor ou pela bandeira.
   final String providerReason;
 
-  /// Motivo, do conjunto fechado; unknown quando a adquirente não informou.
+  /// Motivo, do conjunto fechado; unknown quando o processador de pagamentos
+  /// não informou.
   final String reason;
 
-  /// One of `operator`, `cielo_chargeback`.
+  /// One of `operator`, `processor_chargeback`.
   final String source;
 
   /// One of `opened`, `needs_evidence`, `submitted`, `under_review`, `won`,
@@ -2621,6 +2833,8 @@ final class Order {
     required this.metadata,
     this.orderStatus,
     this.paidAt,
+    required this.paymentMethodDiscountBp,
+    required this.paymentMethodDiscountCents,
     this.periodEnd,
     this.periodStart,
     required this.priceId,
@@ -2653,6 +2867,8 @@ final class Order {
       metadata: readMap(json['metadata'], (value) => value),
       orderStatus: json['order_status'] as String?,
       paidAt: json['paid_at'] as String?,
+      paymentMethodDiscountBp: json['payment_method_discount_bp'] as int,
+      paymentMethodDiscountCents: json['payment_method_discount_cents'] as int,
       periodEnd: json['period_end'] as String?,
       periodStart: json['period_start'] as String?,
       priceId: json['price_id'] as String,
@@ -2720,6 +2936,16 @@ final class Order {
 
   final String? paidAt;
 
+  /// A taxa do desconto da forma de pagamento, em centésimos de ponto
+  /// percentual (500 é 5%); 0 sem ele.
+  final int paymentMethodDiscountBp;
+
+  /// Quanto o desconto da forma de pagamento (Pix ou boleto) tirou de
+  /// amount_cents, em centavos; 0 sem ele. O comprador pagou amount_cents menos
+  /// este valor. Com cupom que soma, o desconto da forma vem depois do cupom;
+  /// com cupom que não soma, vale só o maior dos dois e o outro não aparece.
+  final int paymentMethodDiscountCents;
+
   /// O fim do período que o ciclo paga; nulo fora de uma assinatura.
   final String? periodEnd;
 
@@ -2766,6 +2992,8 @@ final class Order {
     'metadata': metadata,
     'order_status': orderStatus,
     'paid_at': paidAt,
+    'payment_method_discount_bp': paymentMethodDiscountBp,
+    'payment_method_discount_cents': paymentMethodDiscountCents,
     'period_end': periodEnd,
     'period_start': periodStart,
     'price_id': priceId,
@@ -2883,6 +3111,8 @@ final class OrderReceipt {
     required this.orderId,
     this.paidAt,
     required this.paymentMethod,
+    required this.paymentMethodDiscountBp,
+    required this.paymentMethodDiscountCents,
     required this.productName,
     required this.refundedCents,
     required this.totalCents,
@@ -2907,6 +3137,8 @@ final class OrderReceipt {
       orderId: json['order_id'] as String,
       paidAt: json['paid_at'] as String?,
       paymentMethod: json['payment_method'] as String,
+      paymentMethodDiscountBp: json['payment_method_discount_bp'] as int,
+      paymentMethodDiscountCents: json['payment_method_discount_cents'] as int,
       productName: json['product_name'] as String,
       refundedCents: json['refunded_cents'] as int,
       totalCents: json['total_cents'] as int,
@@ -2947,6 +3179,15 @@ final class OrderReceipt {
   /// card, pix ou boleto; vazio quando o pagamento não foi achado.
   final String paymentMethod;
 
+  /// A taxa do desconto da forma de pagamento, em centésimos de ponto
+  /// percentual (500 é 5%); 0 sem ele.
+  final int paymentMethodDiscountBp;
+
+  /// Quanto o desconto da forma de pagamento (Pix ou boleto) tirou de
+  /// total_cents, em centavos; 0 sem ele. Foi pago total_cents menos este
+  /// valor.
+  final int paymentMethodDiscountCents;
+
   final String productName;
 
   final int refundedCents;
@@ -2968,6 +3209,8 @@ final class OrderReceipt {
     'order_id': orderId,
     'paid_at': paidAt,
     'payment_method': paymentMethod,
+    'payment_method_discount_bp': paymentMethodDiscountBp,
+    'payment_method_discount_cents': paymentMethodDiscountCents,
     'product_name': productName,
     'refunded_cents': refundedCents,
     'total_cents': totalCents,
@@ -3020,6 +3263,8 @@ final class Payment {
     required this.metadata,
     required this.method,
     required this.netCents,
+    required this.paymentMethodDiscountBp,
+    required this.paymentMethodDiscountCents,
     this.payoutDepositedOn,
     this.payoutId,
     this.periodEnd,
@@ -3051,6 +3296,8 @@ final class Payment {
       metadata: readMap(json['metadata'], (value) => value),
       method: json['method'] as String,
       netCents: json['net_cents'] as int,
+      paymentMethodDiscountBp: json['payment_method_discount_bp'] as int,
+      paymentMethodDiscountCents: json['payment_method_discount_cents'] as int,
       payoutDepositedOn: json['payout_deposited_on'] as String?,
       payoutId: json['payout_id'] as String?,
       periodEnd: json['period_end'] as String?,
@@ -3121,6 +3368,15 @@ final class Payment {
   /// foi capturado.
   final int netCents;
 
+  /// A taxa do desconto da forma de pagamento, em centésimos de ponto
+  /// percentual (500 é 5%); 0 sem ele.
+  final int paymentMethodDiscountBp;
+
+  /// Quanto o desconto da forma de pagamento (Pix ou boleto) tirou do total do
+  /// pedido, em centavos; 0 sem ele. amount_cents já é o valor com o desconto:
+  /// é o que foi cobrado.
+  final int paymentMethodDiscountCents;
+
   /// O dia em que o último repasse que pagou este pagamento foi depositado,
   /// AAAA-MM-DD; nulo enquanto nenhum foi.
   final String? payoutDepositedOn;
@@ -3173,6 +3429,8 @@ final class Payment {
     'metadata': metadata,
     'method': method,
     'net_cents': netCents,
+    'payment_method_discount_bp': paymentMethodDiscountBp,
+    'payment_method_discount_cents': paymentMethodDiscountCents,
     'payout_deposited_on': payoutDepositedOn,
     'payout_id': payoutId,
     'period_end': periodEnd,
@@ -3894,7 +4152,7 @@ final class RenewalCharge {
   /// due_at) ou on_due (no vencimento). Nulo na cobrança e em
   /// subscription.renewal_due.
   ///
-  /// One of `before_due`, `on_due`, `null`.
+  /// One of `before_due`, `on_due`.
   final String? reminder;
 
   /// O modo de renovação da assinatura. Uma cobrança em aberto existe nos modos
@@ -4756,7 +5014,7 @@ final class WebhookDispute {
 
   final String openedAt;
 
-  /// O PaymentId da venda contestada.
+  /// O id do pagamento da venda contestada.
   final String paymentId;
 
   /// Como a venda contestada foi paga: card ou pix.
@@ -4768,10 +5026,11 @@ final class WebhookDispute {
   /// O motivo informado pelo emissor ou pela bandeira.
   final String providerReason;
 
-  /// Motivo, do conjunto fechado; unknown quando a adquirente não informou.
+  /// Motivo, do conjunto fechado; unknown quando o processador de pagamentos
+  /// não informou.
   final String reason;
 
-  /// One of `operator`, `cielo_chargeback`.
+  /// One of `operator`, `processor_chargeback`.
   final String source;
 
   /// One of `opened`, `needs_evidence`, `submitted`, `under_review`, `won`,
@@ -4957,6 +5216,8 @@ final class WebhookOrder {
     required this.metadata,
     this.orderStatus,
     this.paidAt,
+    required this.paymentMethodDiscountBp,
+    required this.paymentMethodDiscountCents,
     this.periodEnd,
     this.periodStart,
     required this.priceId,
@@ -4991,6 +5252,8 @@ final class WebhookOrder {
       metadata: readMap(json['metadata'], (value) => value),
       orderStatus: json['order_status'] as String?,
       paidAt: json['paid_at'] as String?,
+      paymentMethodDiscountBp: json['payment_method_discount_bp'] as int,
+      paymentMethodDiscountCents: json['payment_method_discount_cents'] as int,
       periodEnd: json['period_end'] as String?,
       periodStart: json['period_start'] as String?,
       priceId: json['price_id'] as String,
@@ -5058,6 +5321,16 @@ final class WebhookOrder {
 
   final String? paidAt;
 
+  /// A taxa do desconto da forma de pagamento, em centésimos de ponto
+  /// percentual (500 é 5%); 0 sem ele.
+  final int paymentMethodDiscountBp;
+
+  /// Quanto o desconto da forma de pagamento (Pix ou boleto) tirou de
+  /// amount_cents, em centavos; 0 sem ele. O comprador pagou amount_cents menos
+  /// este valor. Com cupom que soma, o desconto da forma vem depois do cupom;
+  /// com cupom que não soma, vale só o maior dos dois e o outro não aparece.
+  final int paymentMethodDiscountCents;
+
   /// O fim do período do ciclo que o pagamento cobra.
   final String? periodEnd;
 
@@ -5111,6 +5384,8 @@ final class WebhookOrder {
     'metadata': metadata,
     'order_status': orderStatus,
     'paid_at': paidAt,
+    'payment_method_discount_bp': paymentMethodDiscountBp,
+    'payment_method_discount_cents': paymentMethodDiscountCents,
     'period_end': ?periodEnd,
     'period_start': ?periodStart,
     'price_id': priceId,
@@ -5723,6 +5998,51 @@ final class WebhookSubscription {
   };
 }
 
+/// One item of payment_discounts in CheckoutClient.
+final class CheckoutClientPaymentDiscount {
+  const CheckoutClientPaymentDiscount({
+    required this.basisPoints,
+    required this.discountCents,
+    required this.method,
+    required this.totalCents,
+  });
+
+  /// A CheckoutClientPaymentDiscount out of the API's JSON.
+  factory CheckoutClientPaymentDiscount.fromJson(Map<String, Object?> json) {
+    return CheckoutClientPaymentDiscount(
+      basisPoints: json['basis_points'] as int,
+      discountCents: json['discount_cents'] as int,
+      method: json['method'] as String,
+      totalCents: json['total_cents'] as int,
+    );
+  }
+
+  /// A taxa do desconto, em centésimos de ponto percentual (500 é 5%).
+  final int basisPoints;
+
+  /// Quanto o desconto tira do total da sessão, em centavos, depois de qualquer
+  /// cupom.
+  final int discountCents;
+
+  /// A forma de pagamento que tem desconto.
+  ///
+  /// One of `pix`, `boleto`.
+  final String method;
+
+  /// O que o comprador paga por esta forma: o total da sessão menos
+  /// discount_cents. O servidor cobra o seu próprio cálculo, nunca um valor do
+  /// cliente.
+  final int totalCents;
+
+  /// The JSON the API answers.
+  Map<String, Object?> toJson() => {
+    'basis_points': basisPoints,
+    'discount_cents': discountCents,
+    'method': method,
+    'total_cents': totalCents,
+  };
+}
+
 /// One item of bands in CheckoutClientItem.
 final class CheckoutClientItemBand {
   const CheckoutClientItemBand({
@@ -6008,17 +6328,25 @@ final class BenefitsUpdateParams {
 final class CheckoutLinksCreateParams {
   const CheckoutLinksCreateParams({
     this.allowDiscountCodes,
+    this.boletoDiscountBp,
     this.cancelUrl,
     this.captureMode,
+    this.couponStacksWithMethodDiscount,
     this.discountId,
     this.expiresAt,
+    this.installmentInterest,
+    this.installmentMonthlyRateBp,
+    this.interestFreeInstallments,
     this.label,
     this.maxInstallments,
     this.metadata,
+    this.minInstallmentCents,
+    this.pixDiscountBp,
     this.priceId,
     this.priceIds,
     this.productId,
     this.quantity,
+    this.renewalMode,
     this.requireBillingAddress,
     this.successUrl,
     this.trialInterval,
@@ -6027,16 +6355,44 @@ final class CheckoutLinksCreateParams {
 
   final bool? allowDiscountCodes;
 
+  /// O desconto de quem paga com boleto, em centésimos de ponto percentual, de
+  /// 0 a 5000. 0 desliga o desconto neste checkout; ausente ou nulo segue a
+  /// organização.
+  final int? boletoDiscountBp;
+
   final String? cancelUrl;
 
   /// One of `automatic`, `manual`.
   final String? captureMode;
+
+  /// Se o cupom soma com o desconto do Pix ou do boleto neste checkout: true
+  /// soma (o cupom primeiro, o desconto da forma depois); false vale só o maior
+  /// dos dois em centavos sobre o mesmo preço, e o pedido mostra só o desconto
+  /// que valeu. Ausente ou nulo segue a organização, que por padrão não soma.
+  /// Em assinatura o cupom sempre soma.
+  final bool? couponStacksWithMethodDiscount;
 
   /// Desconto fixado no link.
   final String? discountId;
 
   /// Data e hora RFC 3339 no futuro.
   final String? expiresAt;
+
+  /// Quem paga os juros do parcelamento: merchant (sem juros, a loja absorve a
+  /// taxa) ou buyer (com juros pagos pelo comprador, com
+  /// installment_monthly_rate_bp). Ausente segue a organização.
+  ///
+  /// One of `merchant`, `buyer`.
+  final String? installmentInterest;
+
+  /// A taxa de juros ao mês que o comprador paga, em centésimos de ponto
+  /// percentual: 299 é 2,99%, no máximo 1000 (10%). Obrigatória com
+  /// installment_interest buyer; 0 ou ausente segue a organização.
+  final int? installmentMonthlyRateBp;
+
+  /// Quantas parcelas saem sem juros quando o comprador paga os juros, de 1
+  /// (nenhuma além da à vista) a 12; 0 ou ausente segue a organização.
+  final int? interestFreeInstallments;
 
   final String? label;
 
@@ -6048,6 +6404,17 @@ final class CheckoutLinksCreateParams {
   /// booleano. Texto sem caracteres de controle nem de direção invisível.
   final Map<String, Object?>? metadata;
 
+  /// A menor parcela, em centavos, de 100 a 1000000; 0 ou ausente segue a
+  /// organização.
+  final int? minInstallmentCents;
+
+  /// O desconto de quem paga com Pix, em centésimos de ponto percentual (500 é
+  /// 5%), de 0 a 5000. 0 desliga o desconto neste checkout; ausente ou nulo
+  /// segue a organização. Com cupom, vale a regra de
+  /// coupon_stacks_with_method_discount. O cartão de crédito e o de débito não
+  /// têm desconto.
+  final int? pixDiscountBp;
+
   final String? priceId;
 
   /// Um preço de cada produto, na ordem em que o comprador os vê; até 20.
@@ -6057,6 +6424,19 @@ final class CheckoutLinksCreateParams {
   final String? productId;
 
   final int? quantity;
+
+  /// Como a assinatura que o link vende renova, num link com preço recorrente
+  /// com valor. manual: a cada ciclo o comprador paga por um link. automatic:
+  /// só cartão de crédito guardado ou Pix Automático, que cobram sozinhos.
+  /// buyer_choice: a página mostra a caixa Cobrança recorrente, desmarcada;
+  /// marcada cobra sozinho, desmarcada paga só esta vez e recebe o link nos
+  /// meses seguintes. Sem o campo vale o padrão: o cartão guardado renova e,
+  /// sem cartão, o comprador recebe o link. Preço de compra única não aceita
+  /// (422); manual não vale com teste grátis (422). Cada checkout aberto pelo
+  /// link herda o modo.
+  ///
+  /// One of `manual`, `automatic`, `buyer_choice`.
+  final String? renewalMode;
 
   final bool? requireBillingAddress;
 
@@ -6070,17 +6450,25 @@ final class CheckoutLinksCreateParams {
   /// The JSON the API takes; a field left null is left out.
   Map<String, Object?> toJson() => {
     'allow_discount_codes': ?allowDiscountCodes,
+    'boleto_discount_bp': ?boletoDiscountBp,
     'cancel_url': ?cancelUrl,
     'capture_mode': ?captureMode,
+    'coupon_stacks_with_method_discount': ?couponStacksWithMethodDiscount,
     'discount_id': ?discountId,
     'expires_at': ?expiresAt,
+    'installment_interest': ?installmentInterest,
+    'installment_monthly_rate_bp': ?installmentMonthlyRateBp,
+    'interest_free_installments': ?interestFreeInstallments,
     'label': ?label,
     'max_installments': ?maxInstallments,
     'metadata': ?metadata,
+    'min_installment_cents': ?minInstallmentCents,
+    'pix_discount_bp': ?pixDiscountBp,
     'price_id': ?priceId,
     'price_ids': ?priceIds,
     'product_id': ?productId,
     'quantity': ?quantity,
+    'renewal_mode': ?renewalMode,
     'require_billing_address': ?requireBillingAddress,
     'success_url': ?successUrl,
     'trial_interval': ?trialInterval,
@@ -6095,6 +6483,7 @@ final class CheckoutLinksUpdateParams {
     this.label,
     this.metadata,
     this.priceIds,
+    this.renewalMode,
     this.requireBillingAddress,
     this.successUrl,
   });
@@ -6112,6 +6501,13 @@ final class CheckoutLinksUpdateParams {
   /// Substitui os produtos do link.
   final List<String>? priceIds;
 
+  /// Troca como a assinatura do link renova; vazio volta ao padrão. Os
+  /// checkouts já abertos guardam o modo que viram. Vale as mesmas regras da
+  /// criação (422 em preço de compra única, ou manual com teste grátis).
+  ///
+  /// One of `manual`, `automatic`, `buyer_choice`.
+  final String? renewalMode;
+
   final bool? requireBillingAddress;
 
   final String? successUrl;
@@ -6122,6 +6518,7 @@ final class CheckoutLinksUpdateParams {
     'label': ?label,
     'metadata': ?metadata,
     'price_ids': ?priceIds,
+    'renewal_mode': ?renewalMode,
     'require_billing_address': ?requireBillingAddress,
     'success_url': ?successUrl,
   };
@@ -6132,8 +6529,10 @@ final class CheckoutsCreateParams {
   const CheckoutsCreateParams({
     this.allowDiscountCodes,
     this.amountCents,
+    this.boletoDiscountBp,
     this.cancelUrl,
     this.clientReferenceId,
+    this.couponStacksWithMethodDiscount,
     this.customerEmail,
     this.customerId,
     this.customerName,
@@ -6141,10 +6540,16 @@ final class CheckoutsCreateParams {
     this.expiresIn,
     this.externalCustomerId,
     this.firstPeriodExtraDays,
+    this.installmentInterest,
+    this.installmentMonthlyRateBp,
+    this.interestFreeInstallments,
     this.items,
     this.label,
+    this.maxInstallments,
     this.metadata,
+    this.minInstallmentCents,
     this.notifyCustomerEmail,
+    this.pixDiscountBp,
     required this.priceId,
     required this.productId,
     this.quantity,
@@ -6168,6 +6573,11 @@ final class CheckoutsCreateParams {
   /// criação com a mesma Idempotency-Key e outro valor dá 409.
   final int? amountCents;
 
+  /// O desconto de quem paga com boleto, em centésimos de ponto percentual, de
+  /// 0 a 5000. 0 desliga o desconto neste checkout; ausente ou nulo segue a
+  /// organização.
+  final int? boletoDiscountBp;
+
   final String? cancelUrl;
 
   /// O id do pedido no seu sistema, de até 255 caracteres. Volta no checkout,
@@ -6177,8 +6587,17 @@ final class CheckoutsCreateParams {
   /// pedido de renovação volta com ele.
   final String? clientReferenceId;
 
+  /// Se o cupom soma com o desconto do Pix ou do boleto neste checkout: true
+  /// soma (o cupom primeiro, o desconto da forma depois); false vale só o maior
+  /// dos dois em centavos sobre o mesmo preço, e o pedido mostra só o desconto
+  /// que valeu. Ausente ou nulo segue a organização, que por padrão não soma.
+  /// Em assinatura o cupom sempre soma.
+  final bool? couponStacksWithMethodDiscount;
+
   /// O e-mail do comprador, quando você o conhece; senão o navegador do
-  /// comprador o pede.
+  /// comprador o pede. Se este e-mail é de um cliente seu, o checkout abre com
+  /// os dados dele, como com customer_id, e o e-mail fica fixo. Se o cliente
+  /// tem CPF ou CNPJ, o comprador não pode trocá-lo.
   final String? customerEmail;
 
   /// Um cliente seu: o checkout abre com o nome, o e-mail e os dados de
@@ -6223,6 +6642,22 @@ final class CheckoutsCreateParams {
   /// mesma Idempotency-Key e outro número dá 409.
   final int? firstPeriodExtraDays;
 
+  /// Quem paga os juros do parcelamento: merchant (sem juros, a loja absorve a
+  /// taxa) ou buyer (com juros pagos pelo comprador, com
+  /// installment_monthly_rate_bp). Ausente segue a organização.
+  ///
+  /// One of `merchant`, `buyer`.
+  final String? installmentInterest;
+
+  /// A taxa de juros ao mês que o comprador paga, em centésimos de ponto
+  /// percentual: 299 é 2,99%, no máximo 1000 (10%). Obrigatória com
+  /// installment_interest buyer; 0 ou ausente segue a organização.
+  final int? installmentMonthlyRateBp;
+
+  /// Quantas parcelas saem sem juros quando o comprador paga os juros, de 1
+  /// (nenhuma além da à vista) a 12; 0 ou ausente segue a organização.
+  final int? interestFreeInstallments;
+
   /// As linhas do pedido, até 50, para o comprador ler o detalhe: aparecem no
   /// checkout (página, modal, componentes e transparente), no pedido, no
   /// recibo, no portal do cliente e nos eventos. Em um preço de valor livre, a
@@ -6236,6 +6671,11 @@ final class CheckoutsCreateParams {
 
   final String? label;
 
+  /// O máximo de parcelas no cartão de crédito deste checkout, de 1 a 12; vale
+  /// mais que a organização, e 1 vende só à vista. 0 ou ausente segue a
+  /// organização.
+  final int? maxInstallments;
+
   /// Pares guardados no link do checkout e devolvidos no checkout, no pedido,
   /// no pagamento e nos eventos da venda. Até 50 pares de chave e valor: a
   /// chave tem de 1 a 40 caracteres, e o valor é um texto de 1 a 500
@@ -6243,12 +6683,23 @@ final class CheckoutsCreateParams {
   /// de direção invisível.
   final Map<String, Object?>? metadata;
 
+  /// A menor parcela, em centavos, de 100 a 1000000; 0 ou ausente segue a
+  /// organização.
+  final int? minInstallmentCents;
+
   /// Verdadeiro por padrão. Falso mantém a Peráta sem escrever ao comprador a
   /// cobrança de cada renovação (o seu sistema o avisa pelo evento
   /// subscription.renewal_due); a cobrança é aberta do mesmo jeito. Além disso,
   /// a organização pode desligar este aviso para todos em Configurações ›
   /// Preferências › Cobrança da renovação.
   final bool? notifyCustomerEmail;
+
+  /// O desconto de quem paga com Pix, em centésimos de ponto percentual (500 é
+  /// 5%), de 0 a 5000. 0 desliga o desconto neste checkout; ausente ou nulo
+  /// segue a organização. Com cupom, vale a regra de
+  /// coupon_stacks_with_method_discount. O cartão de crédito e o de débito não
+  /// têm desconto.
+  final int? pixDiscountBp;
 
   final String priceId;
 
@@ -6266,8 +6717,8 @@ final class CheckoutsCreateParams {
   /// meios que cobram sozinhos, o cartão de crédito guardado ou o Pix
   /// Automático (quando a organização o tem ligado; senão só o cartão); a
   /// página mostra só esses meios, e a assinatura nasce com renewal_mode card
-  /// ou pix_automatic. buyer_choice: a página mostra a caixa Ativar cobrança
-  /// automática, desmarcada, e o comprador decide: desmarcada é manual, marcada
+  /// ou pix_automatic. buyer_choice: a página mostra a caixa Cobrança
+  /// recorrente, desmarcada, e o comprador decide: desmarcada é manual, marcada
   /// é automatic. Sem o campo nada muda: sem caixa, o cartão de crédito renova
   /// sozinho e qualquer outro meio vira uma cobrança a cada ciclo. Funciona
   /// junto com first_period_extra_days e com desconto. Vale só em preço
@@ -6307,8 +6758,10 @@ final class CheckoutsCreateParams {
   Map<String, Object?> toJson() => {
     'allow_discount_codes': ?allowDiscountCodes,
     'amount_cents': ?amountCents,
+    'boleto_discount_bp': ?boletoDiscountBp,
     'cancel_url': ?cancelUrl,
     'client_reference_id': ?clientReferenceId,
+    'coupon_stacks_with_method_discount': ?couponStacksWithMethodDiscount,
     'customer_email': ?customerEmail,
     'customer_id': ?customerId,
     'customer_name': ?customerName,
@@ -6316,10 +6769,16 @@ final class CheckoutsCreateParams {
     'expires_in': ?expiresIn,
     'external_customer_id': ?externalCustomerId,
     'first_period_extra_days': ?firstPeriodExtraDays,
+    'installment_interest': ?installmentInterest,
+    'installment_monthly_rate_bp': ?installmentMonthlyRateBp,
+    'interest_free_installments': ?interestFreeInstallments,
     'items': ?items?.map((item) => item.toJson()).toList(),
     'label': ?label,
+    'max_installments': ?maxInstallments,
     'metadata': ?metadata,
+    'min_installment_cents': ?minInstallmentCents,
     'notify_customer_email': ?notifyCustomerEmail,
+    'pix_discount_bp': ?pixDiscountBp,
     'price_id': priceId,
     'product_id': productId,
     'quantity': ?quantity,
@@ -6967,8 +7426,11 @@ final class RefundsCreateParams {
     this.reason,
   });
 
-  /// Quanto devolver, em centavos, de 1 até o que ainda pode ser devolvido. Sem
-  /// ele, devolve tudo o que ainda pode ser devolvido.
+  /// Quanto devolver, em centavos, de 1 até o que ainda pode ser devolvido (o
+  /// valor capturado menos os reembolsos anteriores). No cartão, a soma de
+  /// vários reembolsos parciais chega ao valor capturado; no Pix, só há um
+  /// reembolso por pagamento. Sem ele, devolve tudo o que ainda pode ser
+  /// devolvido.
   final int? amountCents;
 
   /// Pares seus guardados no reembolso; voltam como refund_metadata no

@@ -7,6 +7,10 @@ import java.util.Map;
 
 /** CheckoutCreated is a resource of Peráta's API. */
 public final class CheckoutCreated {
+    /** A value of {@link #getInstallmentInterest()}. */
+    public static final String INSTALLMENT_INTEREST_MERCHANT = "merchant";
+    /** A value of {@link #getInstallmentInterest()}. */
+    public static final String INSTALLMENT_INTEREST_BUYER = "buyer";
     /** A value of {@link #getRenewalMode()}. */
     public static final String RENEWAL_MODE_MANUAL = "manual";
     /** A value of {@link #getRenewalMode()}. */
@@ -19,19 +23,27 @@ public final class CheckoutCreated {
     public static final String STATUS_ARCHIVED = "archived";
 
     private final Long amountCents;
+    private final Long boletoDiscountBp;
     private final String cancelUrl;
     private final String clientReferenceId;
     private final String clientSecret;
     private final String clientSecretExpiresAt;
+    private final Boolean couponStacksWithMethodDiscount;
     private final String createdAt;
     private final String discountId;
     private final String expiresAt;
     private final Long firstPeriodExtraDays;
     private final String id;
+    private final String installmentInterest;
+    private final long installmentMonthlyRateBp;
+    private final long interestFreeInstallments;
     private final List<CheckoutLine> items;
     private final String label;
+    private final long maxInstallments;
     private final Map<String, Object> metadata;
+    private final long minInstallmentCents;
     private final boolean notifyCustomerEmail;
+    private final Long pixDiscountBp;
     private final String priceId;
     private final String productId;
     private final long quantity;
@@ -44,21 +56,29 @@ public final class CheckoutCreated {
     private final String successUrl;
     private final String url;
 
-    CheckoutCreated(Long amountCents, String cancelUrl, String clientReferenceId, String clientSecret, String clientSecretExpiresAt, String createdAt, String discountId, String expiresAt, Long firstPeriodExtraDays, String id, List<CheckoutLine> items, String label, Map<String, Object> metadata, boolean notifyCustomerEmail, String priceId, String productId, long quantity, String renewalMode, String sessionId, String showcaseId, String status, String statusKey, String subscriptionStartAt, String successUrl, String url) {
+    CheckoutCreated(Long amountCents, Long boletoDiscountBp, String cancelUrl, String clientReferenceId, String clientSecret, String clientSecretExpiresAt, Boolean couponStacksWithMethodDiscount, String createdAt, String discountId, String expiresAt, Long firstPeriodExtraDays, String id, String installmentInterest, long installmentMonthlyRateBp, long interestFreeInstallments, List<CheckoutLine> items, String label, long maxInstallments, Map<String, Object> metadata, long minInstallmentCents, boolean notifyCustomerEmail, Long pixDiscountBp, String priceId, String productId, long quantity, String renewalMode, String sessionId, String showcaseId, String status, String statusKey, String subscriptionStartAt, String successUrl, String url) {
         this.amountCents = amountCents;
+        this.boletoDiscountBp = boletoDiscountBp;
         this.cancelUrl = cancelUrl;
         this.clientReferenceId = clientReferenceId;
         this.clientSecret = clientSecret;
         this.clientSecretExpiresAt = clientSecretExpiresAt;
+        this.couponStacksWithMethodDiscount = couponStacksWithMethodDiscount;
         this.createdAt = createdAt;
         this.discountId = discountId;
         this.expiresAt = expiresAt;
         this.firstPeriodExtraDays = firstPeriodExtraDays;
         this.id = id;
+        this.installmentInterest = installmentInterest;
+        this.installmentMonthlyRateBp = installmentMonthlyRateBp;
+        this.interestFreeInstallments = interestFreeInstallments;
         this.items = items;
         this.label = label;
+        this.maxInstallments = maxInstallments;
         this.metadata = metadata;
+        this.minInstallmentCents = minInstallmentCents;
         this.notifyCustomerEmail = notifyCustomerEmail;
+        this.pixDiscountBp = pixDiscountBp;
         this.priceId = priceId;
         this.productId = productId;
         this.quantity = quantity;
@@ -75,19 +95,27 @@ public final class CheckoutCreated {
     static CheckoutCreated fromJson(Map<String, Object> data) {
         return new CheckoutCreated(
                 Json.optional(data, "amount_cents", Json::asLong),
+                Json.optional(data, "boleto_discount_bp", Json::asLong),
                 Json.required(data, "cancel_url", Json::asString),
                 Json.required(data, "client_reference_id", Json::asString),
                 Json.required(data, "client_secret", Json::asString),
                 Json.required(data, "client_secret_expires_at", Json::asString),
+                Json.optional(data, "coupon_stacks_with_method_discount", Json::asBoolean),
                 Json.required(data, "created_at", Json::asString),
                 Json.required(data, "discount_id", Json::asString),
                 Json.optional(data, "expires_at", Json::asString),
                 Json.optional(data, "first_period_extra_days", Json::asLong),
                 Json.required(data, "id", Json::asString),
+                Json.optional(data, "installment_interest", Json::asString),
+                Json.required(data, "installment_monthly_rate_bp", Json::asLong),
+                Json.required(data, "interest_free_installments", Json::asLong),
                 Json.required(data, "items", Json.list(Json.model(CheckoutLine::fromJson))),
                 Json.required(data, "label", Json::asString),
+                Json.required(data, "max_installments", Json::asLong),
                 Json.required(data, "metadata", Json.map(Json::any)),
+                Json.required(data, "min_installment_cents", Json::asLong),
                 Json.required(data, "notify_customer_email", Json::asBoolean),
+                Json.optional(data, "pix_discount_bp", Json::asLong),
                 Json.required(data, "price_id", Json::asString),
                 Json.required(data, "product_id", Json::asString),
                 Json.required(data, "quantity", Json::asLong),
@@ -104,6 +132,11 @@ public final class CheckoutCreated {
     /** @return O valor, em centavos, que o seu servidor fixou; o comprador o vê e não pode mudá-lo. Nulo quando é o comprador quem digita o valor. (null when the API sends none) */
     public Long getAmountCents() {
         return amountCents;
+    }
+
+    /** @return O desconto de quem paga com boleto neste checkout, em centésimos de ponto percentual; 0 desliga o desconto aqui; nulo segue a organização. (null when the API sends none) */
+    public Long getBoletoDiscountBp() {
+        return boletoDiscountBp;
     }
 
     /** @return Endereço https para onde o comprador volta se desistir; vazio sem ele. */
@@ -124,6 +157,11 @@ public final class CheckoutCreated {
     /** @return Quando a sessão e o client_secret deixam de valer. */
     public String getClientSecretExpiresAt() {
         return clientSecretExpiresAt;
+    }
+
+    /** @return Se o cupom soma com o desconto do Pix ou do boleto neste checkout: true soma (o cupom primeiro, o desconto da forma depois), false vale só o maior dos dois em centavos sobre o mesmo preço; nulo segue a organização (que por padrão não soma). Em assinatura o cupom sempre soma. (null when the API sends none) */
+    public Boolean getCouponStacksWithMethodDiscount() {
+        return couponStacksWithMethodDiscount;
     }
 
     /** @return the API's {@code created_at} */
@@ -151,6 +189,21 @@ public final class CheckoutCreated {
         return id;
     }
 
+    /** @return Quem paga os juros do parcelamento deste checkout: merchant (sem juros) ou buyer (com juros); nulo segue a organização. (null when the API sends none) */
+    public String getInstallmentInterest() {
+        return installmentInterest;
+    }
+
+    /** @return A taxa de juros ao mês que o comprador paga, em centésimos de ponto percentual (299 é 2,99%); 0 segue a organização. */
+    public long getInstallmentMonthlyRateBp() {
+        return installmentMonthlyRateBp;
+    }
+
+    /** @return Quantas parcelas saem sem juros quando o comprador paga os juros; 0 segue a organização. */
+    public long getInterestFreeInstallments() {
+        return interestFreeInstallments;
+    }
+
     /** @return As linhas do valor fixado, na ordem em que foram enviadas; vazio sem elas. */
     public List<CheckoutLine> getItems() {
         return items;
@@ -161,14 +214,29 @@ public final class CheckoutCreated {
         return label;
     }
 
+    /** @return O máximo de parcelas no cartão de crédito deste checkout; 0 segue o que a organização definiu, 1 vende só à vista. */
+    public long getMaxInstallments() {
+        return maxInstallments;
+    }
+
     /** @return Os pares que o seu servidor enviou; voltam no pedido, no pagamento e nos eventos da venda (checkout.*, order.*, checkout_payment.* e refund.*). */
     public Map<String, Object> getMetadata() {
         return metadata;
     }
 
+    /** @return A menor parcela, em centavos; 0 segue a organização. */
+    public long getMinInstallmentCents() {
+        return minInstallmentCents;
+    }
+
     /** @return Falso quando o seu sistema avisa o comprador das cobranças de renovação e a Peráta fica quieta. */
     public boolean getNotifyCustomerEmail() {
         return notifyCustomerEmail;
+    }
+
+    /** @return O desconto de quem paga com Pix neste checkout, em centésimos de ponto percentual (500 é 5%); 0 desliga o desconto aqui; nulo segue a organização. (null when the API sends none) */
+    public Long getPixDiscountBp() {
+        return pixDiscountBp;
     }
 
     /** @return the API's {@code price_id} */
@@ -228,6 +296,6 @@ public final class CheckoutCreated {
 
     @Override
     public String toString() {
-        return "CheckoutCreated{" + "amountCents=" + amountCents + ", cancelUrl=" + cancelUrl + ", clientReferenceId=" + clientReferenceId + ", clientSecret=" + clientSecret + ", clientSecretExpiresAt=" + clientSecretExpiresAt + ", createdAt=" + createdAt + ", discountId=" + discountId + ", expiresAt=" + expiresAt + ", firstPeriodExtraDays=" + firstPeriodExtraDays + ", id=" + id + ", items=" + items + ", label=" + label + ", metadata=" + metadata + ", notifyCustomerEmail=" + notifyCustomerEmail + ", priceId=" + priceId + ", productId=" + productId + ", quantity=" + quantity + ", renewalMode=" + renewalMode + ", sessionId=" + sessionId + ", showcaseId=" + showcaseId + ", status=" + status + ", statusKey=" + statusKey + ", subscriptionStartAt=" + subscriptionStartAt + ", successUrl=" + successUrl + ", url=" + url + "}";
+        return "CheckoutCreated{" + "amountCents=" + amountCents + ", boletoDiscountBp=" + boletoDiscountBp + ", cancelUrl=" + cancelUrl + ", clientReferenceId=" + clientReferenceId + ", clientSecret=" + clientSecret + ", clientSecretExpiresAt=" + clientSecretExpiresAt + ", couponStacksWithMethodDiscount=" + couponStacksWithMethodDiscount + ", createdAt=" + createdAt + ", discountId=" + discountId + ", expiresAt=" + expiresAt + ", firstPeriodExtraDays=" + firstPeriodExtraDays + ", id=" + id + ", installmentInterest=" + installmentInterest + ", installmentMonthlyRateBp=" + installmentMonthlyRateBp + ", interestFreeInstallments=" + interestFreeInstallments + ", items=" + items + ", label=" + label + ", maxInstallments=" + maxInstallments + ", metadata=" + metadata + ", minInstallmentCents=" + minInstallmentCents + ", notifyCustomerEmail=" + notifyCustomerEmail + ", pixDiscountBp=" + pixDiscountBp + ", priceId=" + priceId + ", productId=" + productId + ", quantity=" + quantity + ", renewalMode=" + renewalMode + ", sessionId=" + sessionId + ", showcaseId=" + showcaseId + ", status=" + status + ", statusKey=" + statusKey + ", subscriptionStartAt=" + subscriptionStartAt + ", successUrl=" + successUrl + ", url=" + url + "}";
     }
 }

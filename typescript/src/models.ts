@@ -86,7 +86,7 @@ export interface CardAuthentication {
   /** Segundos de vida do token. */
   expires_in: number;
   provider: string;
-  /** O script de autenticação do adquirente. */
+  /** O script de autenticação do processador de pagamentos. */
   script_url: string;
   /** O valor, em centavos, que o script deve autenticar: o total da sessão no servidor. Copie-o no campo bpmpi_totalamount; depois que ele é entregue, o total da sessão não muda mais. */
   total_cents: number;
@@ -94,7 +94,7 @@ export interface CardAuthentication {
 
 /** CardTokenization is a resource of Peráta's API. */
 export interface CardTokenization {
-  /** O token com que o script do adquirente envia o cartão; entregue só a uma página da própria origem da Peráta. */
+  /** O token com que o script do processador de pagamentos envia o cartão; entregue só a uma página da própria origem da Peráta. */
   access_token: string;
   /** O bilhete da tentativa deste cartão: de uso único, válido só para esta sessão e por 20 minutos. Devolva-o em card_ticket ao confirmar; sem um bilhete válido nenhum cartão é tentado. */
   card_ticket: string;
@@ -108,10 +108,14 @@ export interface CardTokenization {
 export interface Checkout {
   /** O valor, em centavos, que o seu servidor fixou na criação; nulo quando é o comprador quem digita o valor. */
   amount_cents: number | null;
+  /** O desconto de quem paga com boleto neste checkout, em centésimos de ponto percentual; 0 desliga o desconto aqui; nulo segue a organização. */
+  boleto_discount_bp: number | null;
   /** Endereço https para onde o comprador volta se desistir; vazio sem ele. */
   cancel_url: string;
   /** O id do pedido no seu sistema, como o seu servidor o enviou na criação; vazio sem ele. Volta no checkout, no pedido, no pagamento e nos eventos. */
   client_reference_id: string;
+  /** Se o cupom soma com o desconto do Pix ou do boleto neste checkout: true soma (o cupom primeiro, o desconto da forma depois), false vale só o maior dos dois em centavos sobre o mesmo preço; nulo segue a organização (que por padrão não soma). Em assinatura o cupom sempre soma. */
+  coupon_stacks_with_method_discount: boolean | null;
   created_at: string;
   /** O desconto que o checkout aplica sozinho, como o seu servidor o enviou na criação; vazio sem ele. O comprador o vê no resumo e ele conta desde a primeira cobrança. */
   discount_id: string;
@@ -120,14 +124,26 @@ export interface Checkout {
   /** Quantos dias o seu servidor somou ao primeiro período da assinatura (first_period_extra_days na criação); nulo quando o primeiro período é o comum. O comprador paga hoje o valor cheio, e a próxima cobrança só acontece no fim do período mais longo. */
   first_period_extra_days: number | null;
   id: string;
+  /** Quem paga os juros do parcelamento deste checkout: merchant (sem juros) ou buyer (com juros); nulo segue a organização. */
+  installment_interest: "merchant" | "buyer" | null;
+  /** A taxa de juros ao mês que o comprador paga, em centésimos de ponto percentual (299 é 2,99%); 0 segue a organização. */
+  installment_monthly_rate_bp: number;
+  /** Quantas parcelas saem sem juros quando o comprador paga os juros; 0 segue a organização. */
+  interest_free_installments: number;
   /** As linhas do valor fixado, na ordem em que foram enviadas; vazio sem elas. */
   items: CheckoutLine[];
   /** Como o lojista chama o checkout nas próprias telas; o comprador não vê. */
   label: string;
+  /** O máximo de parcelas no cartão de crédito deste checkout; 0 segue o que a organização definiu, 1 vende só à vista. */
+  max_installments: number;
   /** Os pares que o seu servidor guardou na criação; voltam nos eventos da venda. */
   metadata: Record<string, unknown>;
+  /** A menor parcela, em centavos; 0 segue a organização. */
+  min_installment_cents: number;
   /** Falso quando o seu sistema avisa o comprador das cobranças de renovação e a Peráta fica quieta. */
   notify_customer_email: boolean;
+  /** O desconto de quem paga com Pix neste checkout, em centésimos de ponto percentual (500 é 5%); 0 desliga o desconto aqui; nulo segue a organização. */
+  pix_discount_bp: number | null;
   price_id: string;
   product_id: string;
   quantity: number;
@@ -153,7 +169,7 @@ export interface CheckoutClient {
   amount_locked: boolean;
   /** Para onde o comprador volta sem pagar. */
   cancel_url: string;
-  /** credit, e debit onde a autenticação do adquirente está ligada. */
+  /** credit, e debit onde a autenticação do processador de pagamentos está ligada. */
   card_kinds: string[];
   /** O id do pedido no seu sistema, quando o seu servidor o enviou; vazio sem ele. */
   client_reference_id: string;
@@ -181,6 +197,8 @@ export interface CheckoutClient {
   missing: string[];
   next_action: CheckoutNextAction;
   payment: CheckoutClientPayment | null;
+  /** O desconto de cada forma de pagamento que tem um (Pix e boleto), depois do cupom e sobre o valor já com o cupom quando o cupom soma; quando não soma, só aparece a forma cujo desconto é maior que o do cupom, sobre o preço sem cupom; vazio quando nenhuma tem. O cartão de crédito não tem desconto. O Pix Automático também não. */
+  payment_discounts: CheckoutClientPaymentDiscount[];
   /** As formas em que a sessão pode ser paga, entre card, pix, boleto e free; free é uma sessão que não pede pagamento. */
   payment_methods: string[];
   /** O lojista pede o endereço de cobrança completo; o boleto o pede de qualquer jeito. */
@@ -203,7 +221,7 @@ export interface CheckoutClientBoleto {
   digitable_line: string;
   /** Quando o boleto deixa de poder ser pago: o fim do dia do vencimento, no horário de Brasília. */
   due_date: string | null;
-  /** Onde o boleto é baixado; vazio quando o adquirente não deu nenhum. */
+  /** Onde o boleto é baixado; vazio quando o processador de pagamentos não deu nenhum. */
   pdf_url: string;
 }
 
@@ -217,6 +235,8 @@ export interface CheckoutClientCustomer {
   name: string;
   /** O CPF ou CNPJ do comprador, só dígitos; vazio enquanto não for informado. */
   tax_id: string;
+  /** Verdadeiro quando o CPF ou CNPJ é o que o lojista tem do cliente: o comprador não pode trocá-lo e o servidor recusa outro (422 em tax_id). */
+  tax_id_fixed: boolean;
   tax_id_kind: string;
 }
 
@@ -256,7 +276,7 @@ export interface CheckoutClientPayment {
   method: "card" | "pix" | "boleto";
   pix: CheckoutClientPix | null;
   state: "unknown" | "pending" | "authorized" | "captured" | "refused" | "canceled" | "refunded" | "partially_refunded";
-  /** Verdadeiro enquanto a resposta do adquirente ainda é descoberta; o comprador espera. */
+  /** Verdadeiro enquanto a resposta do processador de pagamentos ainda é descoberta; o comprador espera. */
   unresolved: boolean;
 }
 
@@ -264,7 +284,7 @@ export interface CheckoutClientPayment {
 export interface CheckoutClientPix {
   /** O código Pix copia e cola. */
   copia_e_cola: string;
-  /** Quando o Pix deixa de poder ser pago, como o adquirente o deu. */
+  /** Quando o Pix deixa de poder ser pago, como o processador de pagamentos o deu. */
   expires_at: string | null;
   /** O QR do código, desenhado como um documento SVG. */
   qr_code_svg: string;
@@ -274,6 +294,8 @@ export interface CheckoutClientPix {
 export interface CheckoutCreated {
   /** O valor, em centavos, que o seu servidor fixou; o comprador o vê e não pode mudá-lo. Nulo quando é o comprador quem digita o valor. */
   amount_cents: number | null;
+  /** O desconto de quem paga com boleto neste checkout, em centésimos de ponto percentual; 0 desliga o desconto aqui; nulo segue a organização. */
+  boleto_discount_bp: number | null;
   /** Endereço https para onde o comprador volta se desistir; vazio sem ele. */
   cancel_url: string;
   /** O id do pedido no seu sistema, como o seu servidor o enviou; vazio sem ele. Volta no checkout, no pedido, no pagamento e nos eventos. */
@@ -282,6 +304,8 @@ export interface CheckoutCreated {
   client_secret: string;
   /** Quando a sessão e o client_secret deixam de valer. */
   client_secret_expires_at: string;
+  /** Se o cupom soma com o desconto do Pix ou do boleto neste checkout: true soma (o cupom primeiro, o desconto da forma depois), false vale só o maior dos dois em centavos sobre o mesmo preço; nulo segue a organização (que por padrão não soma). Em assinatura o cupom sempre soma. */
+  coupon_stacks_with_method_discount: boolean | null;
   created_at: string;
   /** O desconto que o checkout aplica sozinho, como o seu servidor o enviou na criação; vazio sem ele. O comprador o vê no resumo e ele conta desde a primeira cobrança. */
   discount_id: string;
@@ -291,14 +315,26 @@ export interface CheckoutCreated {
   first_period_extra_days: number | null;
   /** O ID do link do checkout, o que GET e PATCH /checkouts/{id} recebem. */
   id: string;
+  /** Quem paga os juros do parcelamento deste checkout: merchant (sem juros) ou buyer (com juros); nulo segue a organização. */
+  installment_interest: "merchant" | "buyer" | null;
+  /** A taxa de juros ao mês que o comprador paga, em centésimos de ponto percentual (299 é 2,99%); 0 segue a organização. */
+  installment_monthly_rate_bp: number;
+  /** Quantas parcelas saem sem juros quando o comprador paga os juros; 0 segue a organização. */
+  interest_free_installments: number;
   /** As linhas do valor fixado, na ordem em que foram enviadas; vazio sem elas. */
   items: CheckoutLine[];
   /** Como o lojista chama o checkout nas próprias telas; o comprador não vê. */
   label: string;
+  /** O máximo de parcelas no cartão de crédito deste checkout; 0 segue o que a organização definiu, 1 vende só à vista. */
+  max_installments: number;
   /** Os pares que o seu servidor enviou; voltam no pedido, no pagamento e nos eventos da venda (checkout.*, order.*, checkout_payment.* e refund.*). */
   metadata: Record<string, unknown>;
+  /** A menor parcela, em centavos; 0 segue a organização. */
+  min_installment_cents: number;
   /** Falso quando o seu sistema avisa o comprador das cobranças de renovação e a Peráta fica quieta. */
   notify_customer_email: boolean;
+  /** O desconto de quem paga com Pix neste checkout, em centésimos de ponto percentual (500 é 5%); 0 desliga o desconto aqui; nulo segue a organização. */
+  pix_discount_bp: number | null;
   price_id: string;
   product_id: string;
   quantity: number;
@@ -373,23 +409,37 @@ export interface CheckoutLine {
 export interface CheckoutLink {
   /** Se o comprador pode digitar um código de desconto. */
   allow_discount_codes: boolean;
+  /** O desconto de quem paga com boleto neste checkout, em centésimos de ponto percentual; 0 desliga o desconto aqui; nulo segue a organização. */
+  boleto_discount_bp: number | null;
   /** Endereço https para onde o comprador volta se desistir; vazio sem ele. */
   cancel_url: string;
   /** manual segura a venda no cartão para o lojista capturar depois. */
   capture_mode: "automatic" | "manual";
+  /** Se o cupom soma com o desconto do Pix ou do boleto neste checkout: true soma (o cupom primeiro, o desconto da forma depois), false vale só o maior dos dois em centavos sobre o mesmo preço; nulo segue a organização (que por padrão não soma). Em assinatura o cupom sempre soma. */
+  coupon_stacks_with_method_discount: boolean | null;
   created_at: string;
   /** O desconto fixado no link; nulo sem ele. */
   discount_id: string | null;
   /** Quando o link deixa de abrir checkouts; nulo sem prazo. */
   expires_at: string | null;
   id: string;
+  /** Quem paga os juros do parcelamento deste checkout: merchant (sem juros) ou buyer (com juros); nulo segue a organização. */
+  installment_interest: "merchant" | "buyer" | null;
+  /** A taxa de juros ao mês que o comprador paga, em centésimos de ponto percentual (299 é 2,99%); 0 segue a organização. */
+  installment_monthly_rate_bp: number;
+  /** Quantas parcelas saem sem juros quando o comprador paga os juros; 0 segue a organização. */
+  interest_free_installments: number;
   /** Como o lojista chama o link nas próprias telas; o comprador não vê. */
   label: string;
   /** O máximo de parcelas no cartão de crédito; 0 segue o que a organização definiu. */
   max_installments: number;
   /** Metadados do lojista: pares chave e valor (texto, número ou booleano); objeto vazio quando não há. */
   metadata: Record<string, unknown>;
+  /** A menor parcela, em centavos; 0 segue a organização. */
+  min_installment_cents: number;
   modified_at: string;
+  /** O desconto de quem paga com Pix neste checkout, em centésimos de ponto percentual (500 é 5%); 0 desliga o desconto aqui; nulo segue a organização. */
+  pix_discount_bp: number | null;
   /** O preço do primeiro produto. */
   price_id: string;
   /** O primeiro produto do link. */
@@ -397,6 +447,8 @@ export interface CheckoutLink {
   /** Os produtos que o link vende, na ordem em que o comprador os vê. */
   products: CheckoutLinkProduct[];
   quantity: number;
+  /** Como a assinatura que o link vende renova: manual (uma cobrança por link a cada ciclo), automatic (só cartão guardado ou Pix Automático), buyer_choice (o comprador marca a caixa Cobrança recorrente na página); nulo é o padrão, em que o cartão guardado renova e, sem cartão, o comprador recebe o link. */
+  renewal_mode: "manual" | "automatic" | "buyer_choice" | null;
   require_billing_address: boolean;
   status: "active" | "archived";
   /** Endereço https para onde o comprador volta depois de pagar; vazio sem ele. */
@@ -581,7 +633,7 @@ export interface Dispute {
   opened_at: string;
   /** O pedido que a venda contestada pagou; nulo quando não é de um checkout. */
   order_id: string | null;
-  /** O PaymentId da venda contestada. */
+  /** O id do pagamento da venda contestada. */
   payment_id: string;
   /** Como a venda contestada foi paga: card ou pix. */
   payment_method: string;
@@ -589,9 +641,9 @@ export interface Dispute {
   provider_dispute_id: string;
   /** O motivo informado pelo emissor ou pela bandeira. */
   provider_reason: string;
-  /** Motivo, do conjunto fechado; unknown quando a adquirente não informou. */
+  /** Motivo, do conjunto fechado; unknown quando o processador de pagamentos não informou. */
   reason: string;
-  source: "operator" | "cielo_chargeback";
+  source: "operator" | "processor_chargeback";
   status: "opened" | "needs_evidence" | "submitted" | "under_review" | "won" | "lost" | "closed";
   /** A assinatura de que a venda contestada era um ciclo; nulo quando não é de uma assinatura. A assinatura fica suspensa (suspension_reason dispute). */
   subscription_id: string | null;
@@ -677,6 +729,10 @@ export interface Order {
   /** Onde o pedido está; status é o do checkout e continua succeeded depois de um reembolso, e este vira partially_refunded ou refunded. Nulo antes de haver pagamento. */
   order_status: "pending" | "paid" | "partially_refunded" | "refunded" | null;
   paid_at: string | null;
+  /** A taxa do desconto da forma de pagamento, em centésimos de ponto percentual (500 é 5%); 0 sem ele. */
+  payment_method_discount_bp: number;
+  /** Quanto o desconto da forma de pagamento (Pix ou boleto) tirou de amount_cents, em centavos; 0 sem ele. O comprador pagou amount_cents menos este valor. Com cupom que soma, o desconto da forma vem depois do cupom; com cupom que não soma, vale só o maior dos dois e o outro não aparece. */
+  payment_method_discount_cents: number;
   /** O fim do período que o ciclo paga; nulo fora de uma assinatura. */
   period_end: string | null;
   /** O começo do período que o ciclo paga; nulo fora de uma assinatura. */
@@ -735,6 +791,10 @@ export interface OrderReceipt {
   paid_at: string | null;
   /** card, pix ou boleto; vazio quando o pagamento não foi achado. */
   payment_method: string;
+  /** A taxa do desconto da forma de pagamento, em centésimos de ponto percentual (500 é 5%); 0 sem ele. */
+  payment_method_discount_bp: number;
+  /** Quanto o desconto da forma de pagamento (Pix ou boleto) tirou de total_cents, em centavos; 0 sem ele. Foi pago total_cents menos este valor. */
+  payment_method_discount_cents: number;
   product_name: string;
   refunded_cents: number;
   total_cents: number;
@@ -774,6 +834,10 @@ export interface Payment {
   method: "card" | "pix" | "boleto";
   /** O valor líquido da venda, em centavos: captured_cents menos fee_cents, o que fica para o vendedor, antes de reembolsos. 0 enquanto o pagamento não foi capturado. */
   net_cents: number;
+  /** A taxa do desconto da forma de pagamento, em centésimos de ponto percentual (500 é 5%); 0 sem ele. */
+  payment_method_discount_bp: number;
+  /** Quanto o desconto da forma de pagamento (Pix ou boleto) tirou do total do pedido, em centavos; 0 sem ele. amount_cents já é o valor com o desconto: é o que foi cobrado. */
+  payment_method_discount_cents: number;
   /** O dia em que o último repasse que pagou este pagamento foi depositado, AAAA-MM-DD; nulo enquanto nenhum foi. */
   payout_deposited_on: string | null;
   /** O repasse em que o pagamento foi depositado: o id de GET /payouts/{id}; nulo enquanto nenhum foi. Num pagamento parcelado, é o da última parcela depositada. */
@@ -971,7 +1035,7 @@ export interface RenewalCharge {
   price_id: string;
   product_id: string;
   /** Só nos eventos subscription.renewal_reminder: before_due (3 dias antes de due_at) ou on_due (no vencimento). Nulo na cobrança e em subscription.renewal_due. */
-  reminder: "before_due" | "on_due" | "null" | null;
+  reminder: "before_due" | "on_due" | null;
   /** O modo de renovação da assinatura. Uma cobrança em aberto existe nos modos manual e, quando o cartão é recusado, card. */
   renewal_mode: "manual" | "card" | "pix_automatic";
   /** O showcase a que pertence: o da chave de API que fez a chamada. */
@@ -1169,7 +1233,7 @@ export interface WebhookDispute {
   /** Os pares que o seu servidor enviou ao criar o checkout; na renovação de uma assinatura, os da assinatura. */
   metadata?: Record<string, unknown>;
   opened_at: string;
-  /** O PaymentId da venda contestada. */
+  /** O id do pagamento da venda contestada. */
   payment_id: string;
   /** Como a venda contestada foi paga: card ou pix. */
   payment_method?: string;
@@ -1177,9 +1241,9 @@ export interface WebhookDispute {
   provider_dispute_id: string;
   /** O motivo informado pelo emissor ou pela bandeira. */
   provider_reason: string;
-  /** Motivo, do conjunto fechado; unknown quando a adquirente não informou. */
+  /** Motivo, do conjunto fechado; unknown quando o processador de pagamentos não informou. */
   reason: string;
-  source: "operator" | "cielo_chargeback";
+  source: "operator" | "processor_chargeback";
   status: "opened" | "needs_evidence" | "submitted" | "under_review" | "won" | "lost" | "closed";
   /** A assinatura de que a venda contestada era um ciclo; nulo quando não é de uma assinatura. A assinatura fica suspensa (suspension_reason dispute). */
   subscription_id?: string | null;
@@ -1242,6 +1306,10 @@ export interface WebhookOrder {
   /** Onde o pedido está; status é o do checkout e continua succeeded depois de um reembolso, e este vira partially_refunded ou refunded. */
   order_status: "pending" | "paid" | "partially_refunded" | "refunded" | null;
   paid_at: string | null;
+  /** A taxa do desconto da forma de pagamento, em centésimos de ponto percentual (500 é 5%); 0 sem ele. */
+  payment_method_discount_bp: number;
+  /** Quanto o desconto da forma de pagamento (Pix ou boleto) tirou de amount_cents, em centavos; 0 sem ele. O comprador pagou amount_cents menos este valor. Com cupom que soma, o desconto da forma vem depois do cupom; com cupom que não soma, vale só o maior dos dois e o outro não aparece. */
+  payment_method_discount_cents: number;
   /** O fim do período do ciclo que o pagamento cobra. */
   period_end?: string | null;
   /** O início do período do ciclo que o pagamento cobra. */
@@ -1409,6 +1477,18 @@ export interface WebhookSubscription {
   trial_start: string | null;
 }
 
+/** One item of payment_discounts in CheckoutClient. */
+export interface CheckoutClientPaymentDiscount {
+  /** A taxa do desconto, em centésimos de ponto percentual (500 é 5%). */
+  basis_points: number;
+  /** Quanto o desconto tira do total da sessão, em centavos, depois de qualquer cupom. */
+  discount_cents: number;
+  /** A forma de pagamento que tem desconto. */
+  method: "pix" | "boleto";
+  /** O que o comprador paga por esta forma: o total da sessão menos discount_cents. O servidor cobra o seu próprio cálculo, nunca um valor do cliente. */
+  total_cents: number;
+}
+
 /** One item of bands in CheckoutClientItem. */
 export interface CheckoutClientItemBand {
   /** O que a faixa soma: as unidades vezes o preço, mais o valor fixo. */
@@ -1493,23 +1573,39 @@ export interface BenefitsUpdateParams {
 /** The body of checkout-links:create. */
 export interface CheckoutLinksCreateParams {
   allow_discount_codes?: boolean;
+  /** O desconto de quem paga com boleto, em centésimos de ponto percentual, de 0 a 5000. 0 desliga o desconto neste checkout; ausente ou nulo segue a organização. */
+  boleto_discount_bp?: number;
   cancel_url?: string;
   capture_mode?: "automatic" | "manual";
+  /** Se o cupom soma com o desconto do Pix ou do boleto neste checkout: true soma (o cupom primeiro, o desconto da forma depois); false vale só o maior dos dois em centavos sobre o mesmo preço, e o pedido mostra só o desconto que valeu. Ausente ou nulo segue a organização, que por padrão não soma. Em assinatura o cupom sempre soma. */
+  coupon_stacks_with_method_discount?: boolean;
   /** Desconto fixado no link. */
   discount_id?: string;
   /** Data e hora RFC 3339 no futuro. */
   expires_at?: string;
+  /** Quem paga os juros do parcelamento: merchant (sem juros, a loja absorve a taxa) ou buyer (com juros pagos pelo comprador, com installment_monthly_rate_bp). Ausente segue a organização. */
+  installment_interest?: "merchant" | "buyer";
+  /** A taxa de juros ao mês que o comprador paga, em centésimos de ponto percentual: 299 é 2,99%, no máximo 1000 (10%). Obrigatória com installment_interest buyer; 0 ou ausente segue a organização. */
+  installment_monthly_rate_bp?: number;
+  /** Quantas parcelas saem sem juros quando o comprador paga os juros, de 1 (nenhuma além da à vista) a 12; 0 ou ausente segue a organização. */
+  interest_free_installments?: number;
   label?: string;
   /** De 0 a 12; 0 segue a organização. */
   max_installments?: number;
   /** Pares guardados no link. Até 50 pares de chave e valor: a chave tem de 1 a 40 caracteres, e o valor é um texto de 1 a 500 caracteres, um número ou um booleano. Texto sem caracteres de controle nem de direção invisível. */
   metadata?: Record<string, unknown>;
+  /** A menor parcela, em centavos, de 100 a 1000000; 0 ou ausente segue a organização. */
+  min_installment_cents?: number;
+  /** O desconto de quem paga com Pix, em centésimos de ponto percentual (500 é 5%), de 0 a 5000. 0 desliga o desconto neste checkout; ausente ou nulo segue a organização. Com cupom, vale a regra de coupon_stacks_with_method_discount. O cartão de crédito e o de débito não têm desconto. */
+  pix_discount_bp?: number;
   price_id?: string;
   /** Um preço de cada produto, na ordem em que o comprador os vê; até 20. */
   price_ids?: string[];
   /** Com price_id, o produto que o link vende; ou use price_ids. */
   product_id?: string;
   quantity?: number;
+  /** Como a assinatura que o link vende renova, num link com preço recorrente com valor. manual: a cada ciclo o comprador paga por um link. automatic: só cartão de crédito guardado ou Pix Automático, que cobram sozinhos. buyer_choice: a página mostra a caixa Cobrança recorrente, desmarcada; marcada cobra sozinho, desmarcada paga só esta vez e recebe o link nos meses seguintes. Sem o campo vale o padrão: o cartão guardado renova e, sem cartão, o comprador recebe o link. Preço de compra única não aceita (422); manual não vale com teste grátis (422). Cada checkout aberto pelo link herda o modo. */
+  renewal_mode?: "manual" | "automatic" | "buyer_choice";
   require_billing_address?: boolean;
   success_url?: string;
   trial_interval?: "day" | "week" | "month" | "year";
@@ -1524,6 +1620,8 @@ export interface CheckoutLinksUpdateParams {
   metadata?: Record<string, unknown>;
   /** Substitui os produtos do link. */
   price_ids?: string[];
+  /** Troca como a assinatura do link renova; vazio volta ao padrão. Os checkouts já abertos guardam o modo que viram. Vale as mesmas regras da criação (422 em preço de compra única, ou manual com teste grátis). */
+  renewal_mode?: "manual" | "automatic" | "buyer_choice";
   require_billing_address?: boolean;
   success_url?: string;
 }
@@ -1534,10 +1632,14 @@ export interface CheckoutsCreateParams {
   allow_discount_codes?: boolean;
   /** O valor do pedido todo, em centavos, que o seu servidor fixa. Só vale em um preço de valor livre (custom); em outro preço é recusado com 422. Respeita o mínimo e o máximo do preço, também com 422. O comprador vê o valor e não pode mudá-lo, na página, no modal, nos componentes e no checkout transparente; vale para cartão de crédito, débito e Pix, e é o valor que volta em pedidos, pagamentos, recibo e eventos. Repetir a criação com a mesma Idempotency-Key e outro valor dá 409. */
   amount_cents?: number;
+  /** O desconto de quem paga com boleto, em centésimos de ponto percentual, de 0 a 5000. 0 desliga o desconto neste checkout; ausente ou nulo segue a organização. */
+  boleto_discount_bp?: number;
   cancel_url?: string;
   /** O id do pedido no seu sistema, de até 255 caracteres. Volta no checkout, no pedido, no pagamento e nos eventos checkout.*, order.*, checkout_payment.* e refund.*, para você achar de qual pedido veio cada pagamento. Num checkout de assinatura fica também na assinatura, e cada pedido de renovação volta com ele. */
   client_reference_id?: string;
-  /** O e-mail do comprador, quando você o conhece; senão o navegador do comprador o pede. */
+  /** Se o cupom soma com o desconto do Pix ou do boleto neste checkout: true soma (o cupom primeiro, o desconto da forma depois); false vale só o maior dos dois em centavos sobre o mesmo preço, e o pedido mostra só o desconto que valeu. Ausente ou nulo segue a organização, que por padrão não soma. Em assinatura o cupom sempre soma. */
+  coupon_stacks_with_method_discount?: boolean;
+  /** O e-mail do comprador, quando você o conhece; senão o navegador do comprador o pede. Se este e-mail é de um cliente seu, o checkout abre com os dados dele, como com customer_id, e o e-mail fica fixo. Se o cliente tem CPF ou CNPJ, o comprador não pode trocá-lo. */
   customer_email?: string;
   /** Um cliente seu: o checkout abre com o nome, o e-mail e os dados de cobrança dele. Não junto com external_customer_id, customer_email ou customer_name. */
   customer_id?: string;
@@ -1551,18 +1653,30 @@ export interface CheckoutsCreateParams {
   external_customer_id?: string;
   /** Quantos dias somar ao primeiro período da assinatura, de 1 a 365: para o comprador que ainda tinha dias pagos num plano anterior (por exemplo, pago até 11/12 e assinando em 20/11: 21 dias). O comprador paga hoje o valor cheio do preço (com as faixas, a quantidade e o desconto), em Pix, cartão de crédito ou débito, como em qualquer checkout, e o primeiro período vai do dia do pagamento até esse dia mais um intervalo do preço mais estes dias, no horário de São Paulo; a renovação e os ciclos seguintes contam a partir desse fim. A próxima cobrança, no cartão guardado ou pelo link ou Pix de renovação, só acontece nele. A página mostra "Pague hoje R$ X. Próxima cobrança em DD/MM/AAAA (inclui N dias do seu plano anterior)". Só vale em um preço recorrente com valor, vendido sozinho e sem teste grátis, e não junto com subscription_start_at (cobra hoje, não numa data); fora disso a resposta é 422. A assinatura e o evento da venda trazem o mesmo número em first_period_extra_days, e o pedido do primeiro ciclo traz o período estendido em period_start e period_end. Repetir a criação com a mesma Idempotency-Key e outro número dá 409. */
   first_period_extra_days?: number;
+  /** Quem paga os juros do parcelamento: merchant (sem juros, a loja absorve a taxa) ou buyer (com juros pagos pelo comprador, com installment_monthly_rate_bp). Ausente segue a organização. */
+  installment_interest?: "merchant" | "buyer";
+  /** A taxa de juros ao mês que o comprador paga, em centésimos de ponto percentual: 299 é 2,99%, no máximo 1000 (10%). Obrigatória com installment_interest buyer; 0 ou ausente segue a organização. */
+  installment_monthly_rate_bp?: number;
+  /** Quantas parcelas saem sem juros quando o comprador paga os juros, de 1 (nenhuma além da à vista) a 12; 0 ou ausente segue a organização. */
+  interest_free_installments?: number;
   /** As linhas do pedido, até 50, para o comprador ler o detalhe: aparecem no checkout (página, modal, componentes e transparente), no pedido, no recibo, no portal do cliente e nos eventos. Em um preço de valor livre, a soma de quantity vezes unit_amount_cents precisa ser igual a amount_cents, ou a resposta é 422; enviadas sem amount_cents, a soma é o valor. Em um preço com valor próprio, como o de uma assinatura, as linhas só mostram ao comprador do que o valor é feito e fixam nada: envie-as sem amount_cents, com a soma igual ao valor do preço vezes a quantidade (senão 422), e o preço continua sendo quem define o que se cobra. */
   items?: CheckoutsCreateItem[];
   label?: string;
+  /** O máximo de parcelas no cartão de crédito deste checkout, de 1 a 12; vale mais que a organização, e 1 vende só à vista. 0 ou ausente segue a organização. */
+  max_installments?: number;
   /** Pares guardados no link do checkout e devolvidos no checkout, no pedido, no pagamento e nos eventos da venda. Até 50 pares de chave e valor: a chave tem de 1 a 40 caracteres, e o valor é um texto de 1 a 500 caracteres, um número ou um booleano. Texto sem caracteres de controle nem de direção invisível. */
   metadata?: Record<string, unknown>;
+  /** A menor parcela, em centavos, de 100 a 1000000; 0 ou ausente segue a organização. */
+  min_installment_cents?: number;
   /** Verdadeiro por padrão. Falso mantém a Peráta sem escrever ao comprador a cobrança de cada renovação (o seu sistema o avisa pelo evento subscription.renewal_due); a cobrança é aberta do mesmo jeito. Além disso, a organização pode desligar este aviso para todos em Configurações › Preferências › Cobrança da renovação. */
   notify_customer_email?: boolean;
+  /** O desconto de quem paga com Pix, em centésimos de ponto percentual (500 é 5%), de 0 a 5000. 0 desliga o desconto neste checkout; ausente ou nulo segue a organização. Com cupom, vale a regra de coupon_stacks_with_method_discount. O cartão de crédito e o de débito não têm desconto. */
+  pix_discount_bp?: number;
   price_id: string;
   product_id: string;
   /** Quantas unidades. Com amount_cents é sempre 1: envie 1 ou omita; qualquer outro valor é recusado com 422. */
   quantity?: number;
-  /** Como a assinatura renova, numa assinatura (preço recorrente com valor). manual: a cada ciclo a Peráta abre uma cobrança para o comprador pagar (payment_url, por cartão, Pix ou boleto) e avisa o seu sistema com o evento subscription.renewal_due, mesmo que o primeiro pagamento tenha sido no cartão; o cartão nunca é cobrado e não é guardado. automatic: só os meios que cobram sozinhos, o cartão de crédito guardado ou o Pix Automático (quando a organização o tem ligado; senão só o cartão); a página mostra só esses meios, e a assinatura nasce com renewal_mode card ou pix_automatic. buyer_choice: a página mostra a caixa Ativar cobrança automática, desmarcada, e o comprador decide: desmarcada é manual, marcada é automatic. Sem o campo nada muda: sem caixa, o cartão de crédito renova sozinho e qualquer outro meio vira uma cobrança a cada ciclo. Funciona junto com first_period_extra_days e com desconto. Vale só em preço recorrente com valor (senão 422); manual não vale com teste grátis nem com subscription_start_at, que guardam o cartão para cobrar no fim (422). Pagar por um meio que o modo não aceita (Pix, boleto ou débito em automatic; Pix Automático em manual) é 422 em payment_method. A Subscription traz o modo a que isso se resolveu em renewal_mode: manual, card ou pix_automatic. */
+  /** Como a assinatura renova, numa assinatura (preço recorrente com valor). manual: a cada ciclo a Peráta abre uma cobrança para o comprador pagar (payment_url, por cartão, Pix ou boleto) e avisa o seu sistema com o evento subscription.renewal_due, mesmo que o primeiro pagamento tenha sido no cartão; o cartão nunca é cobrado e não é guardado. automatic: só os meios que cobram sozinhos, o cartão de crédito guardado ou o Pix Automático (quando a organização o tem ligado; senão só o cartão); a página mostra só esses meios, e a assinatura nasce com renewal_mode card ou pix_automatic. buyer_choice: a página mostra a caixa Cobrança recorrente, desmarcada, e o comprador decide: desmarcada é manual, marcada é automatic. Sem o campo nada muda: sem caixa, o cartão de crédito renova sozinho e qualquer outro meio vira uma cobrança a cada ciclo. Funciona junto com first_period_extra_days e com desconto. Vale só em preço recorrente com valor (senão 422); manual não vale com teste grátis nem com subscription_start_at, que guardam o cartão para cobrar no fim (422). Pagar por um meio que o modo não aceita (Pix, boleto ou débito em automatic; Pix Automático em manual) é 422 em payment_method. A Subscription traz o modo a que isso se resolveu em renewal_mode: manual, card ou pix_automatic. */
   renewal_mode?: "manual" | "automatic" | "buyer_choice";
   /** Pede o endereço de cobrança completo de todo comprador, não só no boleto; desligado quando fica de fora. */
   require_billing_address?: boolean;
@@ -1788,7 +1902,7 @@ export interface ProductsUpdateParams {
 
 /** The body of refunds:create. */
 export interface RefundsCreateParams {
-  /** Quanto devolver, em centavos, de 1 até o que ainda pode ser devolvido. Sem ele, devolve tudo o que ainda pode ser devolvido. */
+  /** Quanto devolver, em centavos, de 1 até o que ainda pode ser devolvido (o valor capturado menos os reembolsos anteriores). No cartão, a soma de vários reembolsos parciais chega ao valor capturado; no Pix, só há um reembolso por pagamento. Sem ele, devolve tudo o que ainda pode ser devolvido. */
   amount_cents?: number;
   /** Pares seus guardados no reembolso; voltam como refund_metadata no reembolso e nos eventos refund.created e refund.updated, onde metadata é o do pedido. O filtro metadata[chave]=valor de GET /refunds procura estes pares. Até 50 pares de chave e valor: a chave tem de 1 a 40 caracteres, e o valor é um texto de 1 a 500 caracteres, um número ou um booleano. Texto sem caracteres de controle nem de direção invisível. */
   metadata?: Record<string, unknown>;

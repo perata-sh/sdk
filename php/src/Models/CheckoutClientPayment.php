@@ -20,7 +20,7 @@ final class CheckoutClientPayment
         public readonly ?CheckoutClientPix $pix,
         /** @var 'unknown'|'pending'|'authorized'|'captured'|'refused'|'canceled'|'refunded'|'partially_refunded' */
         public readonly string $state,
-        /** Verdadeiro enquanto a resposta do adquirente ainda é descoberta; o comprador espera. */
+        /** Verdadeiro enquanto a resposta do processador de pagamentos ainda é descoberta; o comprador espera. */
         public readonly bool $unresolved,
     ) {
     }

@@ -99,6 +99,14 @@ public sealed record WebhookOrder
     [JsonPropertyName("paid_at")]
     public string? PaidAt { get; init; }
 
+    /// <summary>A taxa do desconto da forma de pagamento, em centésimos de ponto percentual (500 é 5%); 0 sem ele.</summary>
+    [JsonPropertyName("payment_method_discount_bp")]
+    public required long PaymentMethodDiscountBp { get; init; }
+
+    /// <summary>Quanto o desconto da forma de pagamento (Pix ou boleto) tirou de amount_cents, em centavos; 0 sem ele. O comprador pagou amount_cents menos este valor. Com cupom que soma, o desconto da forma vem depois do cupom; com cupom que não soma, vale só o maior dos dois e o outro não aparece.</summary>
+    [JsonPropertyName("payment_method_discount_cents")]
+    public required long PaymentMethodDiscountCents { get; init; }
+
     /// <summary>O fim do período do ciclo que o pagamento cobra. Null when the API sends none.</summary>
     [JsonPropertyName("period_end")]
     public string? PeriodEnd { get; init; }

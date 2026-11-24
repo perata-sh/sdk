@@ -10,7 +10,7 @@ namespace Perata\Models;
 final class CardTokenization
 {
     public function __construct(
-        /** O token com que o script do adquirente envia o cartão; entregue só a uma página da própria origem da Peráta. */
+        /** O token com que o script do processador de pagamentos envia o cartão; entregue só a uma página da própria origem da Peráta. */
         public readonly string $accessToken,
         /** O bilhete da tentativa deste cartão: de uso único, válido só para esta sessão e por 20 minutos. Devolva-o em card_ticket ao confirmar; sem um bilhete válido nenhum cartão é tentado. */
         public readonly string $cardTicket,

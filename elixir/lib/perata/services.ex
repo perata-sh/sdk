@@ -406,9 +406,9 @@ defmodule Perata.Checkouts do
   Peráta abre uma cobrança para o comprador pagar e avisa o seu sistema com
   subscription.renewal_due, mesmo que o primeiro pagamento tenha sido no
   cartão), automatic (só cartão de crédito guardado ou Pix Automático; cobra
-  sozinho) ou buyer_choice (a página mostra a caixa Ativar cobrança automática e
-  o comprador decide); sem o campo nada muda. notify_customer_email false mantém
-  a Peráta sem escrever ao comprador. label dá nome à assinatura (por exemplo,
+  sozinho) ou buyer_choice (a página mostra a caixa Cobrança recorrente e o
+  comprador decide); sem o campo nada muda. notify_customer_email false mantém a
+  Peráta sem escrever ao comprador. label dá nome à assinatura (por exemplo,
   Olho de Águia · Colaborador Ana).
 
   Autenticação: chave de API da organização em Authorization: Bearer (prk_test_…
@@ -1399,14 +1399,15 @@ defmodule Perata.Payments do
   Listar pagamentos. One page; `list_stream/2` walks every page.
 
   Devolve uma página dos pagamentos. Filtre por client_reference_id, estado,
-  cliente, assinatura (subscription_id), período ou metadados.
+  meio (method: card, pix ou boleto), cliente, assinatura (subscription_id),
+  período ou metadados.
 
   Autenticação: chave de API da organização em Authorization: Bearer (prk_test_…
   ou prk_live_…). Organização, showcase e ambiente vêm da chave, nunca da
   requisição: a chave criada num showcase só alcança o que é dele. Respostas em
   JSON no envelope data; erros com error, message e fields.
 
-  Options: `:page`, `:limit`, `:client_reference_id`, `:status`, `:customer_id`, `:external_customer_id`, `:subscription_id`, `:created_after`, `:created_before`, `:sorting`, `:metadata` (a map of strings, sent as `metadata[key]=value`) and `:api_key`.
+  Options: `:page`, `:limit`, `:client_reference_id`, `:status`, `:customer_id`, `:external_customer_id`, `:subscription_id`, `:method`, `:created_after`, `:created_before`, `:sorting`, `:metadata` (a map of strings, sent as `metadata[key]=value`) and `:api_key`.
   """
   @spec list(Client.t(), keyword()) ::
           {:ok, Perata.Page.t(Perata.Payment.t())} | {:error, Perata.Error.t()}
@@ -1422,6 +1423,7 @@ defmodule Perata.Payments do
         customer_id: opts[:customer_id],
         external_customer_id: opts[:external_customer_id],
         subscription_id: opts[:subscription_id],
+        method: opts[:method],
         created_after: opts[:created_after],
         created_before: opts[:created_before],
         sorting: opts[:sorting],
@@ -1786,10 +1788,15 @@ defmodule Perata.Refunds do
   Devolve dinheiro de um pagamento, que você nomeia pelo payment_id ou pelo
   order_id do pedido que ele pagou (os dois, só se forem do mesmo pagamento).
   Sem amount_cents devolve tudo o que ainda pode ser devolvido; com ele, uma
-  parte, até esse limite. O reason, sem ele, é requested_by_customer. O metadata
-  fica no reembolso e volta nele e nos eventos refund.*. A Idempotency-Key é
-  obrigatória: sem ela, repetir a chamada depois de um tempo esgotado seria
-  devolver duas vezes; repetida com a mesma chave, devolve o mesmo reembolso.
+  parte, até esse limite. Um pagamento de cartão aceita vários reembolsos
+  parciais, um depois do outro, e a soma deles nunca passa do valor capturado:
+  um pedido acima do que resta volta 409, e um pedido feito enquanto o reembolso
+  anterior ainda está em andamento também volta 409 (espere ele terminar e
+  repita). Um pagamento por Pix aceita um só reembolso. O reason, sem ele, é
+  requested_by_customer. O metadata fica no reembolso e volta nele e nos eventos
+  refund.*. A Idempotency-Key é obrigatória: sem ela, repetir a chamada depois
+  de um tempo esgotado seria devolver duas vezes; repetida com a mesma chave,
+  devolve o mesmo reembolso.
 
   Autenticação: chave de API da organização em Authorization: Bearer (prk_test_…
   ou prk_live_…). Organização, showcase e ambiente vêm da chave, nunca da
@@ -2015,14 +2022,15 @@ defmodule Perata.Subscriptions do
   Listar assinaturas. One page; `list_stream/2` walks every page.
 
   Devolve uma página das assinaturas. Filtre por cliente (customer_id ou
-  external_customer_id), status, período ou metadados.
+  external_customer_id), status, tipo de cobrança (renewal_mode: card,
+  pix_automatic ou manual), período ou metadados.
 
   Autenticação: chave de API da organização em Authorization: Bearer (prk_test_…
   ou prk_live_…). Organização, showcase e ambiente vêm da chave, nunca da
   requisição: a chave criada num showcase só alcança o que é dele. Respostas em
   JSON no envelope data; erros com error, message e fields.
 
-  Options: `:page`, `:limit`, `:status`, `:customer_id`, `:external_customer_id`, `:created_after`, `:created_before`, `:sorting`, `:metadata` (a map of strings, sent as `metadata[key]=value`) and `:api_key`.
+  Options: `:page`, `:limit`, `:status`, `:renewal_mode`, `:customer_id`, `:external_customer_id`, `:created_after`, `:created_before`, `:sorting`, `:metadata` (a map of strings, sent as `metadata[key]=value`) and `:api_key`.
   """
   @spec list(Client.t(), keyword()) ::
           {:ok, Perata.Page.t(Perata.Subscription.t())} | {:error, Perata.Error.t()}
@@ -2034,6 +2042,7 @@ defmodule Perata.Subscriptions do
         page: opts[:page],
         limit: opts[:limit],
         status: opts[:status],
+        renewal_mode: opts[:renewal_mode],
         customer_id: opts[:customer_id],
         external_customer_id: opts[:external_customer_id],
         created_after: opts[:created_after],

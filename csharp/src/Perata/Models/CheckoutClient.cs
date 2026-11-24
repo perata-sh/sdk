@@ -45,7 +45,7 @@ public sealed record CheckoutClient
     [JsonPropertyName("cancel_url")]
     public required string CancelUrl { get; init; }
 
-    /// <summary>credit, e debit onde a autenticação do adquirente está ligada.</summary>
+    /// <summary>credit, e debit onde a autenticação do processador de pagamentos está ligada.</summary>
     [JsonPropertyName("card_kinds")]
     public required IReadOnlyList<string> CardKinds { get; init; }
 
@@ -116,6 +116,10 @@ public sealed record CheckoutClient
     /// <summary>The API's <c>payment</c>. Null when the API sends none.</summary>
     [JsonPropertyName("payment")]
     public CheckoutClientPayment? Payment { get; init; }
+
+    /// <summary>O desconto de cada forma de pagamento que tem um (Pix e boleto), depois do cupom e sobre o valor já com o cupom quando o cupom soma; quando não soma, só aparece a forma cujo desconto é maior que o do cupom, sobre o preço sem cupom; vazio quando nenhuma tem. O cartão de crédito não tem desconto. O Pix Automático também não.</summary>
+    [JsonPropertyName("payment_discounts")]
+    public required IReadOnlyList<CheckoutClientPaymentDiscount> PaymentDiscounts { get; init; }
 
     /// <summary>As formas em que a sessão pode ser paga, entre card, pix, boleto e free; free é uma sessão que não pede pagamento.</summary>
     [JsonPropertyName("payment_methods")]

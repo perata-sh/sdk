@@ -36,8 +36,8 @@ public final class CheckoutsService {
      * uma cobrança para o comprador pagar e avisa o seu sistema com
      * subscription.renewal_due, mesmo que o primeiro pagamento tenha sido no
      * cartão), automatic (só cartão de crédito guardado ou Pix Automático;
-     * cobra sozinho) ou buyer_choice (a página mostra a caixa Ativar cobrança
-     * automática e o comprador decide); sem o campo nada muda.
+     * cobra sozinho) ou buyer_choice (a página mostra a caixa Cobrança
+     * recorrente e o comprador decide); sem o campo nada muda.
      * notify_customer_email false mantém a Peráta sem escrever ao comprador.
      * label dá nome à assinatura (por exemplo, Olho de Águia · Colaborador
      * Ana).
@@ -78,8 +78,8 @@ public final class CheckoutsService {
      * uma cobrança para o comprador pagar e avisa o seu sistema com
      * subscription.renewal_due, mesmo que o primeiro pagamento tenha sido no
      * cartão), automatic (só cartão de crédito guardado ou Pix Automático;
-     * cobra sozinho) ou buyer_choice (a página mostra a caixa Ativar cobrança
-     * automática e o comprador decide); sem o campo nada muda.
+     * cobra sozinho) ou buyer_choice (a página mostra a caixa Cobrança
+     * recorrente e o comprador decide); sem o campo nada muda.
      * notify_customer_email false mantém a Peráta sem escrever ao comprador.
      * label dá nome à assinatura (por exemplo, Olho de Águia · Colaborador
      * Ana).
@@ -100,6 +100,10 @@ public final class CheckoutsService {
 
     /** The body of checkouts:create. */
     public static final class CreateParams {
+        /** A value of {@link #getInstallmentInterest()}. */
+        public static final String INSTALLMENT_INTEREST_MERCHANT = "merchant";
+        /** A value of {@link #getInstallmentInterest()}. */
+        public static final String INSTALLMENT_INTEREST_BUYER = "buyer";
         /** A value of {@link #getRenewalMode()}. */
         public static final String RENEWAL_MODE_MANUAL = "manual";
         /** A value of {@link #getRenewalMode()}. */
@@ -109,8 +113,10 @@ public final class CheckoutsService {
 
         private final Boolean allowDiscountCodes;
         private final Long amountCents;
+        private final Long boletoDiscountBp;
         private final String cancelUrl;
         private final String clientReferenceId;
+        private final Boolean couponStacksWithMethodDiscount;
         private final String customerEmail;
         private final String customerId;
         private final String customerName;
@@ -118,10 +124,16 @@ public final class CheckoutsService {
         private final Long expiresIn;
         private final String externalCustomerId;
         private final Long firstPeriodExtraDays;
+        private final String installmentInterest;
+        private final Long installmentMonthlyRateBp;
+        private final Long interestFreeInstallments;
         private final List<CheckoutsCreateItem> items;
         private final String label;
+        private final Long maxInstallments;
         private final Map<String, Object> metadata;
+        private final Long minInstallmentCents;
         private final Boolean notifyCustomerEmail;
+        private final Long pixDiscountBp;
         private final String priceId;
         private final String productId;
         private final Long quantity;
@@ -134,8 +146,10 @@ public final class CheckoutsService {
         private CreateParams(Builder builder) {
             this.allowDiscountCodes = builder.allowDiscountCodes;
             this.amountCents = builder.amountCents;
+            this.boletoDiscountBp = builder.boletoDiscountBp;
             this.cancelUrl = builder.cancelUrl;
             this.clientReferenceId = builder.clientReferenceId;
+            this.couponStacksWithMethodDiscount = builder.couponStacksWithMethodDiscount;
             this.customerEmail = builder.customerEmail;
             this.customerId = builder.customerId;
             this.customerName = builder.customerName;
@@ -143,10 +157,16 @@ public final class CheckoutsService {
             this.expiresIn = builder.expiresIn;
             this.externalCustomerId = builder.externalCustomerId;
             this.firstPeriodExtraDays = builder.firstPeriodExtraDays;
+            this.installmentInterest = builder.installmentInterest;
+            this.installmentMonthlyRateBp = builder.installmentMonthlyRateBp;
+            this.interestFreeInstallments = builder.interestFreeInstallments;
             this.items = builder.items;
             this.label = builder.label;
+            this.maxInstallments = builder.maxInstallments;
             this.metadata = builder.metadata;
+            this.minInstallmentCents = builder.minInstallmentCents;
             this.notifyCustomerEmail = builder.notifyCustomerEmail;
+            this.pixDiscountBp = builder.pixDiscountBp;
             this.priceId = builder.priceId;
             this.productId = builder.productId;
             this.quantity = builder.quantity;
@@ -172,6 +192,11 @@ public final class CheckoutsService {
             return amountCents;
         }
 
+        /** @return O desconto de quem paga com boleto, em centésimos de ponto percentual, de 0 a 5000. 0 desliga o desconto neste checkout; ausente ou nulo segue a organização. (null when left out) */
+        public Long getBoletoDiscountBp() {
+            return boletoDiscountBp;
+        }
+
         /** @return the {@code cancel_url} sent (null when left out) */
         public String getCancelUrl() {
             return cancelUrl;
@@ -182,7 +207,12 @@ public final class CheckoutsService {
             return clientReferenceId;
         }
 
-        /** @return O e-mail do comprador, quando você o conhece; senão o navegador do comprador o pede. (null when left out) */
+        /** @return Se o cupom soma com o desconto do Pix ou do boleto neste checkout: true soma (o cupom primeiro, o desconto da forma depois); false vale só o maior dos dois em centavos sobre o mesmo preço, e o pedido mostra só o desconto que valeu. Ausente ou nulo segue a organização, que por padrão não soma. Em assinatura o cupom sempre soma. (null when left out) */
+        public Boolean getCouponStacksWithMethodDiscount() {
+            return couponStacksWithMethodDiscount;
+        }
+
+        /** @return O e-mail do comprador, quando você o conhece; senão o navegador do comprador o pede. Se este e-mail é de um cliente seu, o checkout abre com os dados dele, como com customer_id, e o e-mail fica fixo. Se o cliente tem CPF ou CNPJ, o comprador não pode trocá-lo. (null when left out) */
         public String getCustomerEmail() {
             return customerEmail;
         }
@@ -217,6 +247,21 @@ public final class CheckoutsService {
             return firstPeriodExtraDays;
         }
 
+        /** @return Quem paga os juros do parcelamento: merchant (sem juros, a loja absorve a taxa) ou buyer (com juros pagos pelo comprador, com installment_monthly_rate_bp). Ausente segue a organização. (null when left out) */
+        public String getInstallmentInterest() {
+            return installmentInterest;
+        }
+
+        /** @return A taxa de juros ao mês que o comprador paga, em centésimos de ponto percentual: 299 é 2,99%, no máximo 1000 (10%). Obrigatória com installment_interest buyer; 0 ou ausente segue a organização. (null when left out) */
+        public Long getInstallmentMonthlyRateBp() {
+            return installmentMonthlyRateBp;
+        }
+
+        /** @return Quantas parcelas saem sem juros quando o comprador paga os juros, de 1 (nenhuma além da à vista) a 12; 0 ou ausente segue a organização. (null when left out) */
+        public Long getInterestFreeInstallments() {
+            return interestFreeInstallments;
+        }
+
         /** @return As linhas do pedido, até 50, para o comprador ler o detalhe: aparecem no checkout (página, modal, componentes e transparente), no pedido, no recibo, no portal do cliente e nos eventos. Em um preço de valor livre, a soma de quantity vezes unit_amount_cents precisa ser igual a amount_cents, ou a resposta é 422; enviadas sem amount_cents, a soma é o valor. Em um preço com valor próprio, como o de uma assinatura, as linhas só mostram ao comprador do que o valor é feito e fixam nada: envie-as sem amount_cents, com a soma igual ao valor do preço vezes a quantidade (senão 422), e o preço continua sendo quem define o que se cobra. (null when left out) */
         public List<CheckoutsCreateItem> getItems() {
             return items;
@@ -227,14 +272,29 @@ public final class CheckoutsService {
             return label;
         }
 
+        /** @return O máximo de parcelas no cartão de crédito deste checkout, de 1 a 12; vale mais que a organização, e 1 vende só à vista. 0 ou ausente segue a organização. (null when left out) */
+        public Long getMaxInstallments() {
+            return maxInstallments;
+        }
+
         /** @return Pares guardados no link do checkout e devolvidos no checkout, no pedido, no pagamento e nos eventos da venda. Até 50 pares de chave e valor: a chave tem de 1 a 40 caracteres, e o valor é um texto de 1 a 500 caracteres, um número ou um booleano. Texto sem caracteres de controle nem de direção invisível. (null when left out) */
         public Map<String, Object> getMetadata() {
             return metadata;
         }
 
+        /** @return A menor parcela, em centavos, de 100 a 1000000; 0 ou ausente segue a organização. (null when left out) */
+        public Long getMinInstallmentCents() {
+            return minInstallmentCents;
+        }
+
         /** @return Verdadeiro por padrão. Falso mantém a Peráta sem escrever ao comprador a cobrança de cada renovação (o seu sistema o avisa pelo evento subscription.renewal_due); a cobrança é aberta do mesmo jeito. Além disso, a organização pode desligar este aviso para todos em Configurações › Preferências › Cobrança da renovação. (null when left out) */
         public Boolean getNotifyCustomerEmail() {
             return notifyCustomerEmail;
+        }
+
+        /** @return O desconto de quem paga com Pix, em centésimos de ponto percentual (500 é 5%), de 0 a 5000. 0 desliga o desconto neste checkout; ausente ou nulo segue a organização. Com cupom, vale a regra de coupon_stacks_with_method_discount. O cartão de crédito e o de débito não têm desconto. (null when left out) */
+        public Long getPixDiscountBp() {
+            return pixDiscountBp;
         }
 
         /** @return the {@code price_id} sent */
@@ -252,7 +312,7 @@ public final class CheckoutsService {
             return quantity;
         }
 
-        /** @return Como a assinatura renova, numa assinatura (preço recorrente com valor). manual: a cada ciclo a Peráta abre uma cobrança para o comprador pagar (payment_url, por cartão, Pix ou boleto) e avisa o seu sistema com o evento subscription.renewal_due, mesmo que o primeiro pagamento tenha sido no cartão; o cartão nunca é cobrado e não é guardado. automatic: só os meios que cobram sozinhos, o cartão de crédito guardado ou o Pix Automático (quando a organização o tem ligado; senão só o cartão); a página mostra só esses meios, e a assinatura nasce com renewal_mode card ou pix_automatic. buyer_choice: a página mostra a caixa Ativar cobrança automática, desmarcada, e o comprador decide: desmarcada é manual, marcada é automatic. Sem o campo nada muda: sem caixa, o cartão de crédito renova sozinho e qualquer outro meio vira uma cobrança a cada ciclo. Funciona junto com first_period_extra_days e com desconto. Vale só em preço recorrente com valor (senão 422); manual não vale com teste grátis nem com subscription_start_at, que guardam o cartão para cobrar no fim (422). Pagar por um meio que o modo não aceita (Pix, boleto ou débito em automatic; Pix Automático em manual) é 422 em payment_method. A Subscription traz o modo a que isso se resolveu em renewal_mode: manual, card ou pix_automatic. (null when left out) */
+        /** @return Como a assinatura renova, numa assinatura (preço recorrente com valor). manual: a cada ciclo a Peráta abre uma cobrança para o comprador pagar (payment_url, por cartão, Pix ou boleto) e avisa o seu sistema com o evento subscription.renewal_due, mesmo que o primeiro pagamento tenha sido no cartão; o cartão nunca é cobrado e não é guardado. automatic: só os meios que cobram sozinhos, o cartão de crédito guardado ou o Pix Automático (quando a organização o tem ligado; senão só o cartão); a página mostra só esses meios, e a assinatura nasce com renewal_mode card ou pix_automatic. buyer_choice: a página mostra a caixa Cobrança recorrente, desmarcada, e o comprador decide: desmarcada é manual, marcada é automatic. Sem o campo nada muda: sem caixa, o cartão de crédito renova sozinho e qualquer outro meio vira uma cobrança a cada ciclo. Funciona junto com first_period_extra_days e com desconto. Vale só em preço recorrente com valor (senão 422); manual não vale com teste grátis nem com subscription_start_at, que guardam o cartão para cobrar no fim (422). Pagar por um meio que o modo não aceita (Pix, boleto ou débito em automatic; Pix Automático em manual) é 422 em payment_method. A Subscription traz o modo a que isso se resolveu em renewal_mode: manual, card ou pix_automatic. (null when left out) */
         public String getRenewalMode() {
             return renewalMode;
         }
@@ -285,11 +345,17 @@ public final class CheckoutsService {
             if (amountCents != null) {
                 body.put("amount_cents", amountCents);
             }
+            if (boletoDiscountBp != null) {
+                body.put("boleto_discount_bp", boletoDiscountBp);
+            }
             if (cancelUrl != null) {
                 body.put("cancel_url", cancelUrl);
             }
             if (clientReferenceId != null) {
                 body.put("client_reference_id", clientReferenceId);
+            }
+            if (couponStacksWithMethodDiscount != null) {
+                body.put("coupon_stacks_with_method_discount", couponStacksWithMethodDiscount);
             }
             if (customerEmail != null) {
                 body.put("customer_email", customerEmail);
@@ -312,17 +378,35 @@ public final class CheckoutsService {
             if (firstPeriodExtraDays != null) {
                 body.put("first_period_extra_days", firstPeriodExtraDays);
             }
+            if (installmentInterest != null) {
+                body.put("installment_interest", installmentInterest);
+            }
+            if (installmentMonthlyRateBp != null) {
+                body.put("installment_monthly_rate_bp", installmentMonthlyRateBp);
+            }
+            if (interestFreeInstallments != null) {
+                body.put("interest_free_installments", interestFreeInstallments);
+            }
             if (items != null) {
                 body.put("items", Json.toJsonList(items, CheckoutsCreateItem::toJson));
             }
             if (label != null) {
                 body.put("label", label);
             }
+            if (maxInstallments != null) {
+                body.put("max_installments", maxInstallments);
+            }
             if (metadata != null) {
                 body.put("metadata", metadata);
             }
+            if (minInstallmentCents != null) {
+                body.put("min_installment_cents", minInstallmentCents);
+            }
             if (notifyCustomerEmail != null) {
                 body.put("notify_customer_email", notifyCustomerEmail);
+            }
+            if (pixDiscountBp != null) {
+                body.put("pix_discount_bp", pixDiscountBp);
             }
             body.put("price_id", priceId);
             body.put("product_id", productId);
@@ -351,8 +435,10 @@ public final class CheckoutsService {
         public static final class Builder {
             private Boolean allowDiscountCodes;
             private Long amountCents;
+            private Long boletoDiscountBp;
             private String cancelUrl;
             private String clientReferenceId;
+            private Boolean couponStacksWithMethodDiscount;
             private String customerEmail;
             private String customerId;
             private String customerName;
@@ -360,10 +446,16 @@ public final class CheckoutsService {
             private Long expiresIn;
             private String externalCustomerId;
             private Long firstPeriodExtraDays;
+            private String installmentInterest;
+            private Long installmentMonthlyRateBp;
+            private Long interestFreeInstallments;
             private List<CheckoutsCreateItem> items;
             private String label;
+            private Long maxInstallments;
             private Map<String, Object> metadata;
+            private Long minInstallmentCents;
             private Boolean notifyCustomerEmail;
+            private Long pixDiscountBp;
             private String priceId;
             private String productId;
             private Long quantity;
@@ -395,6 +487,15 @@ public final class CheckoutsService {
             }
 
             /**
+             * @param boletoDiscountBp O desconto de quem paga com boleto, em centésimos de ponto percentual, de 0 a 5000. 0 desliga o desconto neste checkout; ausente ou nulo segue a organização.
+             * @return this builder
+             */
+            public Builder boletoDiscountBp(Long boletoDiscountBp) {
+                this.boletoDiscountBp = boletoDiscountBp;
+                return this;
+            }
+
+            /**
              * @param cancelUrl the {@code cancel_url} to send
              * @return this builder
              */
@@ -413,7 +514,16 @@ public final class CheckoutsService {
             }
 
             /**
-             * @param customerEmail O e-mail do comprador, quando você o conhece; senão o navegador do comprador o pede.
+             * @param couponStacksWithMethodDiscount Se o cupom soma com o desconto do Pix ou do boleto neste checkout: true soma (o cupom primeiro, o desconto da forma depois); false vale só o maior dos dois em centavos sobre o mesmo preço, e o pedido mostra só o desconto que valeu. Ausente ou nulo segue a organização, que por padrão não soma. Em assinatura o cupom sempre soma.
+             * @return this builder
+             */
+            public Builder couponStacksWithMethodDiscount(Boolean couponStacksWithMethodDiscount) {
+                this.couponStacksWithMethodDiscount = couponStacksWithMethodDiscount;
+                return this;
+            }
+
+            /**
+             * @param customerEmail O e-mail do comprador, quando você o conhece; senão o navegador do comprador o pede. Se este e-mail é de um cliente seu, o checkout abre com os dados dele, como com customer_id, e o e-mail fica fixo. Se o cliente tem CPF ou CNPJ, o comprador não pode trocá-lo.
              * @return this builder
              */
             public Builder customerEmail(String customerEmail) {
@@ -476,6 +586,33 @@ public final class CheckoutsService {
             }
 
             /**
+             * @param installmentInterest Quem paga os juros do parcelamento: merchant (sem juros, a loja absorve a taxa) ou buyer (com juros pagos pelo comprador, com installment_monthly_rate_bp). Ausente segue a organização.
+             * @return this builder
+             */
+            public Builder installmentInterest(String installmentInterest) {
+                this.installmentInterest = installmentInterest;
+                return this;
+            }
+
+            /**
+             * @param installmentMonthlyRateBp A taxa de juros ao mês que o comprador paga, em centésimos de ponto percentual: 299 é 2,99%, no máximo 1000 (10%). Obrigatória com installment_interest buyer; 0 ou ausente segue a organização.
+             * @return this builder
+             */
+            public Builder installmentMonthlyRateBp(Long installmentMonthlyRateBp) {
+                this.installmentMonthlyRateBp = installmentMonthlyRateBp;
+                return this;
+            }
+
+            /**
+             * @param interestFreeInstallments Quantas parcelas saem sem juros quando o comprador paga os juros, de 1 (nenhuma além da à vista) a 12; 0 ou ausente segue a organização.
+             * @return this builder
+             */
+            public Builder interestFreeInstallments(Long interestFreeInstallments) {
+                this.interestFreeInstallments = interestFreeInstallments;
+                return this;
+            }
+
+            /**
              * @param items As linhas do pedido, até 50, para o comprador ler o detalhe: aparecem no checkout (página, modal, componentes e transparente), no pedido, no recibo, no portal do cliente e nos eventos. Em um preço de valor livre, a soma de quantity vezes unit_amount_cents precisa ser igual a amount_cents, ou a resposta é 422; enviadas sem amount_cents, a soma é o valor. Em um preço com valor próprio, como o de uma assinatura, as linhas só mostram ao comprador do que o valor é feito e fixam nada: envie-as sem amount_cents, com a soma igual ao valor do preço vezes a quantidade (senão 422), e o preço continua sendo quem define o que se cobra.
              * @return this builder
              */
@@ -494,6 +631,15 @@ public final class CheckoutsService {
             }
 
             /**
+             * @param maxInstallments O máximo de parcelas no cartão de crédito deste checkout, de 1 a 12; vale mais que a organização, e 1 vende só à vista. 0 ou ausente segue a organização.
+             * @return this builder
+             */
+            public Builder maxInstallments(Long maxInstallments) {
+                this.maxInstallments = maxInstallments;
+                return this;
+            }
+
+            /**
              * @param metadata Pares guardados no link do checkout e devolvidos no checkout, no pedido, no pagamento e nos eventos da venda. Até 50 pares de chave e valor: a chave tem de 1 a 40 caracteres, e o valor é um texto de 1 a 500 caracteres, um número ou um booleano. Texto sem caracteres de controle nem de direção invisível.
              * @return this builder
              */
@@ -503,11 +649,29 @@ public final class CheckoutsService {
             }
 
             /**
+             * @param minInstallmentCents A menor parcela, em centavos, de 100 a 1000000; 0 ou ausente segue a organização.
+             * @return this builder
+             */
+            public Builder minInstallmentCents(Long minInstallmentCents) {
+                this.minInstallmentCents = minInstallmentCents;
+                return this;
+            }
+
+            /**
              * @param notifyCustomerEmail Verdadeiro por padrão. Falso mantém a Peráta sem escrever ao comprador a cobrança de cada renovação (o seu sistema o avisa pelo evento subscription.renewal_due); a cobrança é aberta do mesmo jeito. Além disso, a organização pode desligar este aviso para todos em Configurações › Preferências › Cobrança da renovação.
              * @return this builder
              */
             public Builder notifyCustomerEmail(Boolean notifyCustomerEmail) {
                 this.notifyCustomerEmail = notifyCustomerEmail;
+                return this;
+            }
+
+            /**
+             * @param pixDiscountBp O desconto de quem paga com Pix, em centésimos de ponto percentual (500 é 5%), de 0 a 5000. 0 desliga o desconto neste checkout; ausente ou nulo segue a organização. Com cupom, vale a regra de coupon_stacks_with_method_discount. O cartão de crédito e o de débito não têm desconto.
+             * @return this builder
+             */
+            public Builder pixDiscountBp(Long pixDiscountBp) {
+                this.pixDiscountBp = pixDiscountBp;
                 return this;
             }
 
@@ -539,7 +703,7 @@ public final class CheckoutsService {
             }
 
             /**
-             * @param renewalMode Como a assinatura renova, numa assinatura (preço recorrente com valor). manual: a cada ciclo a Peráta abre uma cobrança para o comprador pagar (payment_url, por cartão, Pix ou boleto) e avisa o seu sistema com o evento subscription.renewal_due, mesmo que o primeiro pagamento tenha sido no cartão; o cartão nunca é cobrado e não é guardado. automatic: só os meios que cobram sozinhos, o cartão de crédito guardado ou o Pix Automático (quando a organização o tem ligado; senão só o cartão); a página mostra só esses meios, e a assinatura nasce com renewal_mode card ou pix_automatic. buyer_choice: a página mostra a caixa Ativar cobrança automática, desmarcada, e o comprador decide: desmarcada é manual, marcada é automatic. Sem o campo nada muda: sem caixa, o cartão de crédito renova sozinho e qualquer outro meio vira uma cobrança a cada ciclo. Funciona junto com first_period_extra_days e com desconto. Vale só em preço recorrente com valor (senão 422); manual não vale com teste grátis nem com subscription_start_at, que guardam o cartão para cobrar no fim (422). Pagar por um meio que o modo não aceita (Pix, boleto ou débito em automatic; Pix Automático em manual) é 422 em payment_method. A Subscription traz o modo a que isso se resolveu em renewal_mode: manual, card ou pix_automatic.
+             * @param renewalMode Como a assinatura renova, numa assinatura (preço recorrente com valor). manual: a cada ciclo a Peráta abre uma cobrança para o comprador pagar (payment_url, por cartão, Pix ou boleto) e avisa o seu sistema com o evento subscription.renewal_due, mesmo que o primeiro pagamento tenha sido no cartão; o cartão nunca é cobrado e não é guardado. automatic: só os meios que cobram sozinhos, o cartão de crédito guardado ou o Pix Automático (quando a organização o tem ligado; senão só o cartão); a página mostra só esses meios, e a assinatura nasce com renewal_mode card ou pix_automatic. buyer_choice: a página mostra a caixa Cobrança recorrente, desmarcada, e o comprador decide: desmarcada é manual, marcada é automatic. Sem o campo nada muda: sem caixa, o cartão de crédito renova sozinho e qualquer outro meio vira uma cobrança a cada ciclo. Funciona junto com first_period_extra_days e com desconto. Vale só em preço recorrente com valor (senão 422); manual não vale com teste grátis nem com subscription_start_at, que guardam o cartão para cobrar no fim (422). Pagar por um meio que o modo não aceita (Pix, boleto ou débito em automatic; Pix Automático em manual) é 422 em payment_method. A Subscription traz o modo a que isso se resolveu em renewal_mode: manual, card ou pix_automatic.
              * @return this builder
              */
             public Builder renewalMode(String renewalMode) {

@@ -33,6 +33,10 @@ public sealed record CheckoutClientCustomer
     [JsonPropertyName("tax_id")]
     public required string TaxId { get; init; }
 
+    /// <summary>Verdadeiro quando o CPF ou CNPJ é o que o lojista tem do cliente: o comprador não pode trocá-lo e o servidor recusa outro (422 em tax_id).</summary>
+    [JsonPropertyName("tax_id_fixed")]
+    public required bool TaxIdFixed { get; init; }
+
     /// <summary>The API's <c>tax_id_kind</c>.</summary>
     [JsonPropertyName("tax_id_kind")]
     public required string TaxIdKind { get; init; }

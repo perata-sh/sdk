@@ -15,7 +15,7 @@ public sealed record CardTokenization
     /// <summary>A value of <see cref="Environment"/>.</summary>
     public const string EnvironmentLive = "live";
 
-    /// <summary>O token com que o script do adquirente envia o cartão; entregue só a uma página da própria origem da Peráta.</summary>
+    /// <summary>O token com que o script do processador de pagamentos envia o cartão; entregue só a uma página da própria origem da Peráta.</summary>
     [JsonPropertyName("access_token")]
     public required string AccessToken { get; init; }
 

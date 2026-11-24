@@ -18,9 +18,6 @@ public sealed record RenewalCharge
     /// <summary>A value of <see cref="Reminder"/>.</summary>
     public const string ReminderOnDue = "on_due";
 
-    /// <summary>A value of <see cref="Reminder"/>.</summary>
-    public const string ReminderNull = "null";
-
     /// <summary>A value of <see cref="RenewalMode"/>.</summary>
     public const string RenewalModeManual = "manual";
 

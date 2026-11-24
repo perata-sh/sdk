@@ -91,7 +91,8 @@ public sealed class SubscriptionsService
     /// <summary>Listar assinaturas. One page; <see cref="ListIterAsync"/> walks every page.</summary>
     /// <remarks>
     /// <para>Devolve uma página das assinaturas. Filtre por cliente
-    /// (customer_id ou external_customer_id), status, período ou
+    /// (customer_id ou external_customer_id), status, tipo de cobrança
+    /// (renewal_mode: card, pix_automatic ou manual), período ou
     /// metadados.</para>
     /// <para>Autenticação: chave de API da organização em Authorization: Bearer
     /// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
@@ -194,6 +195,9 @@ public sealed record SubscriptionsListParams
     /// <summary>Só as assinaturas neste status: trialing, active, past_due, paused, canceled e os demais do ciclo de vida.</summary>
     public string? Status { get; init; }
 
+    /// <summary>Só as assinaturas cobradas deste jeito: card (o cartão guardado é cobrado sozinho todo ciclo), pix_automatic (o banco debita cada cobrança) ou manual (a cada ciclo o comprador paga uma cobrança, por Pix, boleto ou cartão digitado). Para vários, separe por vírgula: card,pix_automatic. Uma assinatura sem modo guardado conta como card quando tem cartão guardado e como manual quando não tem.</summary>
+    public string? RenewalMode { get; init; }
+
     /// <summary>Só os deste cliente.</summary>
     public string? CustomerId { get; init; }
 
@@ -217,6 +221,7 @@ public sealed record SubscriptionsListParams
         yield return new("page", Page?.ToString(CultureInfo.InvariantCulture));
         yield return new("limit", Limit?.ToString(CultureInfo.InvariantCulture));
         yield return new("status", Status);
+        yield return new("renewal_mode", RenewalMode);
         yield return new("customer_id", CustomerId);
         yield return new("external_customer_id", ExternalCustomerId);
         yield return new("created_after", CreatedAfter);

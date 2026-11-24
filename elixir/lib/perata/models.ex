@@ -237,7 +237,7 @@ defmodule Perata.CardAuthentication do
   * `access_token`: O token com que o script de 3DS autentica; entregue só a uma página da própria origem da Peráta.
   * `environment` (one of `"test"`, `"live"`)
   * `expires_in`: Segundos de vida do token.
-  * `script_url`: O script de autenticação do adquirente.
+  * `script_url`: O script de autenticação do processador de pagamentos.
   * `total_cents`: O valor, em centavos, que o script deve autenticar: o total da sessão no servidor. Copie-o no campo bpmpi_totalamount; depois que ele é entregue, o total da sessão não muda mais.
   """
   @type t :: %__MODULE__{
@@ -269,7 +269,7 @@ defmodule Perata.CardTokenization do
   defstruct [:access_token, :card_ticket, :environment, :expires_at, :issued, :provider]
 
   @typedoc """
-  * `access_token`: O token com que o script do adquirente envia o cartão; entregue só a uma página da própria origem da Peráta.
+  * `access_token`: O token com que o script do processador de pagamentos envia o cartão; entregue só a uma página da própria origem da Peráta.
   * `card_ticket`: O bilhete da tentativa deste cartão: de uso único, válido só para esta sessão e por 20 minutos. Devolva-o em card_ticket ao confirmar; sem um bilhete válido nenhum cartão é tentado.
   * `environment` (one of `"test"`, `"live"`)
   """
@@ -301,17 +301,25 @@ defmodule Perata.Checkout do
 
   defstruct [
     :amount_cents,
+    :boleto_discount_bp,
     :cancel_url,
     :client_reference_id,
+    :coupon_stacks_with_method_discount,
     :created_at,
     :discount_id,
     :expires_at,
     :first_period_extra_days,
     :id,
+    :installment_interest,
+    :installment_monthly_rate_bp,
+    :interest_free_installments,
     :items,
     :label,
+    :max_installments,
     :metadata,
+    :min_installment_cents,
     :notify_customer_email,
+    :pix_discount_bp,
     :price_id,
     :product_id,
     :quantity,
@@ -325,15 +333,23 @@ defmodule Perata.Checkout do
 
   @typedoc """
   * `amount_cents`: O valor, em centavos, que o seu servidor fixou na criação; nulo quando é o comprador quem digita o valor.
+  * `boleto_discount_bp`: O desconto de quem paga com boleto neste checkout, em centésimos de ponto percentual; 0 desliga o desconto aqui; nulo segue a organização.
   * `cancel_url`: Endereço https para onde o comprador volta se desistir; vazio sem ele.
   * `client_reference_id`: O id do pedido no seu sistema, como o seu servidor o enviou na criação; vazio sem ele. Volta no checkout, no pedido, no pagamento e nos eventos.
+  * `coupon_stacks_with_method_discount`: Se o cupom soma com o desconto do Pix ou do boleto neste checkout: true soma (o cupom primeiro, o desconto da forma depois), false vale só o maior dos dois em centavos sobre o mesmo preço; nulo segue a organização (que por padrão não soma). Em assinatura o cupom sempre soma.
   * `discount_id`: O desconto que o checkout aplica sozinho, como o seu servidor o enviou na criação; vazio sem ele. O comprador o vê no resumo e ele conta desde a primeira cobrança.
   * `expires_at`: Quando o checkout deixa de abrir sessões; nulo sem prazo.
   * `first_period_extra_days`: Quantos dias o seu servidor somou ao primeiro período da assinatura (first_period_extra_days na criação); nulo quando o primeiro período é o comum. O comprador paga hoje o valor cheio, e a próxima cobrança só acontece no fim do período mais longo.
+  * `installment_interest` (one of `"merchant"`, `"buyer"`): Quem paga os juros do parcelamento deste checkout: merchant (sem juros) ou buyer (com juros); nulo segue a organização.
+  * `installment_monthly_rate_bp`: A taxa de juros ao mês que o comprador paga, em centésimos de ponto percentual (299 é 2,99%); 0 segue a organização.
+  * `interest_free_installments`: Quantas parcelas saem sem juros quando o comprador paga os juros; 0 segue a organização.
   * `items`: As linhas do valor fixado, na ordem em que foram enviadas; vazio sem elas.
   * `label`: Como o lojista chama o checkout nas próprias telas; o comprador não vê.
+  * `max_installments`: O máximo de parcelas no cartão de crédito deste checkout; 0 segue o que a organização definiu, 1 vende só à vista.
   * `metadata`: Os pares que o seu servidor guardou na criação; voltam nos eventos da venda.
+  * `min_installment_cents`: A menor parcela, em centavos; 0 segue a organização.
   * `notify_customer_email`: Falso quando o seu sistema avisa o comprador das cobranças de renovação e a Peráta fica quieta.
+  * `pix_discount_bp`: O desconto de quem paga com Pix neste checkout, em centésimos de ponto percentual (500 é 5%); 0 desliga o desconto aqui; nulo segue a organização.
   * `renewal_mode` (one of `"manual"`, `"automatic"`, `"buyer_choice"`): O renewal_mode da criação: manual, automatic ou buyer_choice; vazio quando foi omitido. A assinatura que o pagamento começa traz o modo a que isso se resolveu em Subscription.renewal_mode.
   * `showcase_id`: O showcase a que pertence: o da chave de API que fez a chamada. Uma chave só alcança o seu showcase.
   * `status` (one of `"active"`, `"archived"`): active abre sessões de compra; archived saiu de circulação.
@@ -343,17 +359,25 @@ defmodule Perata.Checkout do
   """
   @type t :: %__MODULE__{
           amount_cents: integer() | nil,
+          boleto_discount_bp: integer() | nil,
           cancel_url: String.t(),
           client_reference_id: String.t(),
+          coupon_stacks_with_method_discount: boolean() | nil,
           created_at: String.t(),
           discount_id: String.t(),
           expires_at: String.t() | nil,
           first_period_extra_days: integer() | nil,
           id: String.t(),
+          installment_interest: String.t() | nil,
+          installment_monthly_rate_bp: integer(),
+          interest_free_installments: integer(),
           items: [Perata.CheckoutLine.t()],
           label: String.t(),
+          max_installments: integer(),
           metadata: %{optional(String.t()) => term()},
+          min_installment_cents: integer(),
           notify_customer_email: boolean(),
+          pix_discount_bp: integer() | nil,
           price_id: String.t(),
           product_id: String.t(),
           quantity: integer(),
@@ -370,17 +394,25 @@ defmodule Perata.Checkout do
   def from_map(%{} = data) do
     %__MODULE__{
       amount_cents: data["amount_cents"],
+      boleto_discount_bp: data["boleto_discount_bp"],
       cancel_url: Map.fetch!(data, "cancel_url"),
       client_reference_id: Map.fetch!(data, "client_reference_id"),
+      coupon_stacks_with_method_discount: data["coupon_stacks_with_method_discount"],
       created_at: Map.fetch!(data, "created_at"),
       discount_id: Map.fetch!(data, "discount_id"),
       expires_at: data["expires_at"],
       first_period_extra_days: data["first_period_extra_days"],
       id: Map.fetch!(data, "id"),
+      installment_interest: data["installment_interest"],
+      installment_monthly_rate_bp: Map.fetch!(data, "installment_monthly_rate_bp"),
+      interest_free_installments: Map.fetch!(data, "interest_free_installments"),
       items: Enum.map(Map.fetch!(data, "items"), &Perata.CheckoutLine.from_map/1),
       label: Map.fetch!(data, "label"),
+      max_installments: Map.fetch!(data, "max_installments"),
       metadata: Map.fetch!(data, "metadata"),
+      min_installment_cents: Map.fetch!(data, "min_installment_cents"),
       notify_customer_email: Map.fetch!(data, "notify_customer_email"),
+      pix_discount_bp: data["pix_discount_bp"],
       price_id: Map.fetch!(data, "price_id"),
       product_id: Map.fetch!(data, "product_id"),
       quantity: Map.fetch!(data, "quantity"),
@@ -419,6 +451,7 @@ defmodule Perata.CheckoutClient do
     :missing,
     :next_action,
     :payment,
+    :payment_discounts,
     :payment_methods,
     :requires_billing_address,
     :requires_tax_id,
@@ -432,7 +465,7 @@ defmodule Perata.CheckoutClient do
   * `amount_cents`: Antes do desconto.
   * `amount_locked`: Verdadeiro quando o servidor do lojista fixou o valor (amount_cents na criação do checkout): mostre-o ao comprador sem campo para mudá-lo. Nenhuma rota de cliente aceita outro valor.
   * `cancel_url`: Para onde o comprador volta sem pagar.
-  * `card_kinds`: credit, e debit onde a autenticação do adquirente está ligada.
+  * `card_kinds`: credit, e debit onde a autenticação do processador de pagamentos está ligada.
   * `client_reference_id`: O id do pedido no seu sistema, quando o seu servidor o enviou; vazio sem ele.
   * `currency` (one of `"BRL"`)
   * `editable`: A sessão está aberta e ainda aceita atualizações e um pagamento.
@@ -444,6 +477,7 @@ defmodule Perata.CheckoutClient do
   * `id`: O ID da sessão de checkout.
   * `installments`: Os planos de uma venda no cartão de crédito, à vista primeiro; vazio quando a sessão não se paga em parcelas no cartão.
   * `missing`: O que o pagamento ainda precisa do comprador, pelo campo da rota de atualização: customer_email, tax_id e billing_address.
+  * `payment_discounts`: O desconto de cada forma de pagamento que tem um (Pix e boleto), depois do cupom e sobre o valor já com o cupom quando o cupom soma; quando não soma, só aparece a forma cujo desconto é maior que o do cupom, sobre o preço sem cupom; vazio quando nenhuma tem. O cartão de crédito não tem desconto. O Pix Automático também não.
   * `payment_methods`: As formas em que a sessão pode ser paga, entre card, pix, boleto e free; free é uma sessão que não pede pagamento.
   * `requires_billing_address`: O lojista pede o endereço de cobrança completo; o boleto o pede de qualquer jeito.
   * `requires_tax_id`: O CPF ou CNPJ é obrigatório porque há um pagamento a fazer.
@@ -474,6 +508,7 @@ defmodule Perata.CheckoutClient do
           missing: [String.t()],
           next_action: Perata.CheckoutNextAction.t(),
           payment: Perata.CheckoutClientPayment.t() | nil,
+          payment_discounts: [Perata.CheckoutClientPaymentDiscount.t()],
           payment_methods: [String.t()],
           requires_billing_address: boolean(),
           requires_tax_id: boolean(),
@@ -508,6 +543,7 @@ defmodule Perata.CheckoutClient do
       missing: Map.fetch!(data, "missing"),
       next_action: Perata.CheckoutNextAction.from_map(Map.fetch!(data, "next_action")),
       payment: with(value when not is_nil(value) <- data["payment"], do: Perata.CheckoutClientPayment.from_map(value)),
+      payment_discounts: Enum.map(Map.fetch!(data, "payment_discounts"), &Perata.CheckoutClientPaymentDiscount.from_map/1),
       payment_methods: Map.fetch!(data, "payment_methods"),
       requires_billing_address: Map.fetch!(data, "requires_billing_address"),
       requires_tax_id: Map.fetch!(data, "requires_tax_id"),
@@ -527,7 +563,7 @@ defmodule Perata.CheckoutClientBoleto do
   @typedoc """
   * `digitable_line`: A linha digitável do boleto.
   * `due_date`: Quando o boleto deixa de poder ser pago: o fim do dia do vencimento, no horário de Brasília.
-  * `pdf_url`: Onde o boleto é baixado; vazio quando o adquirente não deu nenhum.
+  * `pdf_url`: Onde o boleto é baixado; vazio quando o processador de pagamentos não deu nenhum.
   """
   @type t :: %__MODULE__{
           digitable_line: String.t(),
@@ -549,11 +585,21 @@ end
 defmodule Perata.CheckoutClientCustomer do
   @moduledoc "CheckoutClientCustomer is a resource of Peráta's API."
 
-  defstruct [:address, :billing_name, :email, :locked, :name, :tax_id, :tax_id_kind]
+  defstruct [
+    :address,
+    :billing_name,
+    :email,
+    :locked,
+    :name,
+    :tax_id,
+    :tax_id_fixed,
+    :tax_id_kind
+  ]
 
   @typedoc """
   * `locked`: Verdadeiro quando o servidor do lojista abriu o checkout para um cliente que ele informou (customer_id ou external_customer_id): o e-mail não muda, os campos já vêm preenchidos para o comprador conferir e nenhum código é pedido para provar o e-mail.
   * `tax_id`: O CPF ou CNPJ do comprador, só dígitos; vazio enquanto não for informado.
+  * `tax_id_fixed`: Verdadeiro quando o CPF ou CNPJ é o que o lojista tem do cliente: o comprador não pode trocá-lo e o servidor recusa outro (422 em tax_id).
   """
   @type t :: %__MODULE__{
           address: Perata.BillingAddress.t(),
@@ -562,6 +608,7 @@ defmodule Perata.CheckoutClientCustomer do
           locked: boolean(),
           name: String.t(),
           tax_id: String.t(),
+          tax_id_fixed: boolean(),
           tax_id_kind: String.t()
         }
 
@@ -575,6 +622,7 @@ defmodule Perata.CheckoutClientCustomer do
       locked: Map.fetch!(data, "locked"),
       name: Map.fetch!(data, "name"),
       tax_id: Map.fetch!(data, "tax_id"),
+      tax_id_fixed: Map.fetch!(data, "tax_id_fixed"),
       tax_id_kind: Map.fetch!(data, "tax_id_kind")
     }
   end
@@ -673,7 +721,7 @@ defmodule Perata.CheckoutClientPayment do
   @typedoc """
   * `method` (one of `"card"`, `"pix"`, `"boleto"`)
   * `state` (one of `"unknown"`, `"pending"`, `"authorized"`, `"captured"`, `"refused"`, `"canceled"`, `"refunded"`, `"partially_refunded"`)
-  * `unresolved`: Verdadeiro enquanto a resposta do adquirente ainda é descoberta; o comprador espera.
+  * `unresolved`: Verdadeiro enquanto a resposta do processador de pagamentos ainda é descoberta; o comprador espera.
   """
   @type t :: %__MODULE__{
           boleto: Perata.CheckoutClientBoleto.t() | nil,
@@ -711,7 +759,7 @@ defmodule Perata.CheckoutClientPix do
 
   @typedoc """
   * `copia_e_cola`: O código Pix copia e cola.
-  * `expires_at`: Quando o Pix deixa de poder ser pago, como o adquirente o deu.
+  * `expires_at`: Quando o Pix deixa de poder ser pago, como o processador de pagamentos o deu.
   * `qr_code_svg`: O QR do código, desenhado como um documento SVG.
   """
   @type t :: %__MODULE__{
@@ -736,19 +784,27 @@ defmodule Perata.CheckoutCreated do
 
   defstruct [
     :amount_cents,
+    :boleto_discount_bp,
     :cancel_url,
     :client_reference_id,
     :client_secret,
     :client_secret_expires_at,
+    :coupon_stacks_with_method_discount,
     :created_at,
     :discount_id,
     :expires_at,
     :first_period_extra_days,
     :id,
+    :installment_interest,
+    :installment_monthly_rate_bp,
+    :interest_free_installments,
     :items,
     :label,
+    :max_installments,
     :metadata,
+    :min_installment_cents,
     :notify_customer_email,
+    :pix_discount_bp,
     :price_id,
     :product_id,
     :quantity,
@@ -764,18 +820,26 @@ defmodule Perata.CheckoutCreated do
 
   @typedoc """
   * `amount_cents`: O valor, em centavos, que o seu servidor fixou; o comprador o vê e não pode mudá-lo. Nulo quando é o comprador quem digita o valor.
+  * `boleto_discount_bp`: O desconto de quem paga com boleto neste checkout, em centésimos de ponto percentual; 0 desliga o desconto aqui; nulo segue a organização.
   * `cancel_url`: Endereço https para onde o comprador volta se desistir; vazio sem ele.
   * `client_reference_id`: O id do pedido no seu sistema, como o seu servidor o enviou; vazio sem ele. Volta no checkout, no pedido, no pagamento e nos eventos.
   * `client_secret`: O segredo que o navegador do comprador usa para ler, atualizar e pagar a sessão, sem chave de API. Só esta resposta o traz; entregue-o à página que monta os campos seguros. Vem vazio na repetição de uma criação idempotente.
   * `client_secret_expires_at`: Quando a sessão e o client_secret deixam de valer.
+  * `coupon_stacks_with_method_discount`: Se o cupom soma com o desconto do Pix ou do boleto neste checkout: true soma (o cupom primeiro, o desconto da forma depois), false vale só o maior dos dois em centavos sobre o mesmo preço; nulo segue a organização (que por padrão não soma). Em assinatura o cupom sempre soma.
   * `discount_id`: O desconto que o checkout aplica sozinho, como o seu servidor o enviou na criação; vazio sem ele. O comprador o vê no resumo e ele conta desde a primeira cobrança.
   * `expires_at`: Quando o link deixa de abrir sessões; nulo sem prazo.
   * `first_period_extra_days`: Quantos dias o seu servidor somou ao primeiro período da assinatura (first_period_extra_days na criação); nulo quando o primeiro período é o comum. O comprador paga hoje o valor cheio, e a próxima cobrança só acontece no fim do período mais longo.
   * `id`: O ID do link do checkout, o que GET e PATCH /checkouts/{id} recebem.
+  * `installment_interest` (one of `"merchant"`, `"buyer"`): Quem paga os juros do parcelamento deste checkout: merchant (sem juros) ou buyer (com juros); nulo segue a organização.
+  * `installment_monthly_rate_bp`: A taxa de juros ao mês que o comprador paga, em centésimos de ponto percentual (299 é 2,99%); 0 segue a organização.
+  * `interest_free_installments`: Quantas parcelas saem sem juros quando o comprador paga os juros; 0 segue a organização.
   * `items`: As linhas do valor fixado, na ordem em que foram enviadas; vazio sem elas.
   * `label`: Como o lojista chama o checkout nas próprias telas; o comprador não vê.
+  * `max_installments`: O máximo de parcelas no cartão de crédito deste checkout; 0 segue o que a organização definiu, 1 vende só à vista.
   * `metadata`: Os pares que o seu servidor enviou; voltam no pedido, no pagamento e nos eventos da venda (checkout.*, order.*, checkout_payment.* e refund.*).
+  * `min_installment_cents`: A menor parcela, em centavos; 0 segue a organização.
   * `notify_customer_email`: Falso quando o seu sistema avisa o comprador das cobranças de renovação e a Peráta fica quieta.
+  * `pix_discount_bp`: O desconto de quem paga com Pix neste checkout, em centésimos de ponto percentual (500 é 5%); 0 desliga o desconto aqui; nulo segue a organização.
   * `renewal_mode` (one of `"manual"`, `"automatic"`, `"buyer_choice"`): O renewal_mode da criação: manual, automatic ou buyer_choice; vazio quando foi omitido. A assinatura que o pagamento começa traz o modo a que isso se resolveu em Subscription.renewal_mode.
   * `session_id`: O ID da sessão de checkout; as rotas de cliente dela são /checkouts/client/{client_secret}.
   * `showcase_id`: O showcase a que pertence: o da chave de API que fez a chamada. Uma chave só alcança o seu showcase.
@@ -787,19 +851,27 @@ defmodule Perata.CheckoutCreated do
   """
   @type t :: %__MODULE__{
           amount_cents: integer() | nil,
+          boleto_discount_bp: integer() | nil,
           cancel_url: String.t(),
           client_reference_id: String.t(),
           client_secret: String.t(),
           client_secret_expires_at: String.t(),
+          coupon_stacks_with_method_discount: boolean() | nil,
           created_at: String.t(),
           discount_id: String.t(),
           expires_at: String.t() | nil,
           first_period_extra_days: integer() | nil,
           id: String.t(),
+          installment_interest: String.t() | nil,
+          installment_monthly_rate_bp: integer(),
+          interest_free_installments: integer(),
           items: [Perata.CheckoutLine.t()],
           label: String.t(),
+          max_installments: integer(),
           metadata: %{optional(String.t()) => term()},
+          min_installment_cents: integer(),
           notify_customer_email: boolean(),
+          pix_discount_bp: integer() | nil,
           price_id: String.t(),
           product_id: String.t(),
           quantity: integer(),
@@ -818,19 +890,27 @@ defmodule Perata.CheckoutCreated do
   def from_map(%{} = data) do
     %__MODULE__{
       amount_cents: data["amount_cents"],
+      boleto_discount_bp: data["boleto_discount_bp"],
       cancel_url: Map.fetch!(data, "cancel_url"),
       client_reference_id: Map.fetch!(data, "client_reference_id"),
       client_secret: Map.fetch!(data, "client_secret"),
       client_secret_expires_at: Map.fetch!(data, "client_secret_expires_at"),
+      coupon_stacks_with_method_discount: data["coupon_stacks_with_method_discount"],
       created_at: Map.fetch!(data, "created_at"),
       discount_id: Map.fetch!(data, "discount_id"),
       expires_at: data["expires_at"],
       first_period_extra_days: data["first_period_extra_days"],
       id: Map.fetch!(data, "id"),
+      installment_interest: data["installment_interest"],
+      installment_monthly_rate_bp: Map.fetch!(data, "installment_monthly_rate_bp"),
+      interest_free_installments: Map.fetch!(data, "interest_free_installments"),
       items: Enum.map(Map.fetch!(data, "items"), &Perata.CheckoutLine.from_map/1),
       label: Map.fetch!(data, "label"),
+      max_installments: Map.fetch!(data, "max_installments"),
       metadata: Map.fetch!(data, "metadata"),
+      min_installment_cents: Map.fetch!(data, "min_installment_cents"),
       notify_customer_email: Map.fetch!(data, "notify_customer_email"),
+      pix_discount_bp: data["pix_discount_bp"],
       price_id: Map.fetch!(data, "price_id"),
       product_id: Map.fetch!(data, "product_id"),
       quantity: Map.fetch!(data, "quantity"),
@@ -983,20 +1063,28 @@ defmodule Perata.CheckoutLink do
 
   defstruct [
     :allow_discount_codes,
+    :boleto_discount_bp,
     :cancel_url,
     :capture_mode,
+    :coupon_stacks_with_method_discount,
     :created_at,
     :discount_id,
     :expires_at,
     :id,
+    :installment_interest,
+    :installment_monthly_rate_bp,
+    :interest_free_installments,
     :label,
     :max_installments,
     :metadata,
+    :min_installment_cents,
     :modified_at,
+    :pix_discount_bp,
     :price_id,
     :product_id,
     :products,
     :quantity,
+    :renewal_mode,
     :require_billing_address,
     :status,
     :success_url,
@@ -1007,16 +1095,24 @@ defmodule Perata.CheckoutLink do
 
   @typedoc """
   * `allow_discount_codes`: Se o comprador pode digitar um código de desconto.
+  * `boleto_discount_bp`: O desconto de quem paga com boleto neste checkout, em centésimos de ponto percentual; 0 desliga o desconto aqui; nulo segue a organização.
   * `cancel_url`: Endereço https para onde o comprador volta se desistir; vazio sem ele.
   * `capture_mode` (one of `"automatic"`, `"manual"`): manual segura a venda no cartão para o lojista capturar depois.
+  * `coupon_stacks_with_method_discount`: Se o cupom soma com o desconto do Pix ou do boleto neste checkout: true soma (o cupom primeiro, o desconto da forma depois), false vale só o maior dos dois em centavos sobre o mesmo preço; nulo segue a organização (que por padrão não soma). Em assinatura o cupom sempre soma.
   * `discount_id`: O desconto fixado no link; nulo sem ele.
   * `expires_at`: Quando o link deixa de abrir checkouts; nulo sem prazo.
+  * `installment_interest` (one of `"merchant"`, `"buyer"`): Quem paga os juros do parcelamento deste checkout: merchant (sem juros) ou buyer (com juros); nulo segue a organização.
+  * `installment_monthly_rate_bp`: A taxa de juros ao mês que o comprador paga, em centésimos de ponto percentual (299 é 2,99%); 0 segue a organização.
+  * `interest_free_installments`: Quantas parcelas saem sem juros quando o comprador paga os juros; 0 segue a organização.
   * `label`: Como o lojista chama o link nas próprias telas; o comprador não vê.
   * `max_installments`: O máximo de parcelas no cartão de crédito; 0 segue o que a organização definiu.
   * `metadata`: Metadados do lojista: pares chave e valor (texto, número ou booleano); objeto vazio quando não há.
+  * `min_installment_cents`: A menor parcela, em centavos; 0 segue a organização.
+  * `pix_discount_bp`: O desconto de quem paga com Pix neste checkout, em centésimos de ponto percentual (500 é 5%); 0 desliga o desconto aqui; nulo segue a organização.
   * `price_id`: O preço do primeiro produto.
   * `product_id`: O primeiro produto do link.
   * `products`: Os produtos que o link vende, na ordem em que o comprador os vê.
+  * `renewal_mode` (one of `"manual"`, `"automatic"`, `"buyer_choice"`): Como a assinatura que o link vende renova: manual (uma cobrança por link a cada ciclo), automatic (só cartão guardado ou Pix Automático), buyer_choice (o comprador marca a caixa Cobrança recorrente na página); nulo é o padrão, em que o cartão guardado renova e, sem cartão, o comprador recebe o link.
   * `status` (one of `"active"`, `"archived"`)
   * `success_url`: Endereço https para onde o comprador volta depois de pagar; vazio sem ele.
   * `trial_interval` (one of `"day"`, `"week"`, `"month"`, `"year"`): O período de teste gratuito do link, no lugar do produto; nulo mantém o do produto.
@@ -1024,20 +1120,28 @@ defmodule Perata.CheckoutLink do
   """
   @type t :: %__MODULE__{
           allow_discount_codes: boolean(),
+          boleto_discount_bp: integer() | nil,
           cancel_url: String.t(),
           capture_mode: String.t(),
+          coupon_stacks_with_method_discount: boolean() | nil,
           created_at: String.t(),
           discount_id: String.t() | nil,
           expires_at: String.t() | nil,
           id: String.t(),
+          installment_interest: String.t() | nil,
+          installment_monthly_rate_bp: integer(),
+          interest_free_installments: integer(),
           label: String.t(),
           max_installments: integer(),
           metadata: %{optional(String.t()) => term()},
+          min_installment_cents: integer(),
           modified_at: String.t(),
+          pix_discount_bp: integer() | nil,
           price_id: String.t(),
           product_id: String.t(),
           products: [Perata.CheckoutLinkProduct.t()],
           quantity: integer(),
+          renewal_mode: String.t() | nil,
           require_billing_address: boolean(),
           status: String.t(),
           success_url: String.t(),
@@ -1051,20 +1155,28 @@ defmodule Perata.CheckoutLink do
   def from_map(%{} = data) do
     %__MODULE__{
       allow_discount_codes: Map.fetch!(data, "allow_discount_codes"),
+      boleto_discount_bp: data["boleto_discount_bp"],
       cancel_url: Map.fetch!(data, "cancel_url"),
       capture_mode: Map.fetch!(data, "capture_mode"),
+      coupon_stacks_with_method_discount: data["coupon_stacks_with_method_discount"],
       created_at: Map.fetch!(data, "created_at"),
       discount_id: data["discount_id"],
       expires_at: data["expires_at"],
       id: Map.fetch!(data, "id"),
+      installment_interest: data["installment_interest"],
+      installment_monthly_rate_bp: Map.fetch!(data, "installment_monthly_rate_bp"),
+      interest_free_installments: Map.fetch!(data, "interest_free_installments"),
       label: Map.fetch!(data, "label"),
       max_installments: Map.fetch!(data, "max_installments"),
       metadata: Map.fetch!(data, "metadata"),
+      min_installment_cents: Map.fetch!(data, "min_installment_cents"),
       modified_at: Map.fetch!(data, "modified_at"),
+      pix_discount_bp: data["pix_discount_bp"],
       price_id: Map.fetch!(data, "price_id"),
       product_id: Map.fetch!(data, "product_id"),
       products: Enum.map(Map.fetch!(data, "products"), &Perata.CheckoutLinkProduct.from_map/1),
       quantity: Map.fetch!(data, "quantity"),
+      renewal_mode: data["renewal_mode"],
       require_billing_address: Map.fetch!(data, "require_billing_address"),
       status: Map.fetch!(data, "status"),
       success_url: Map.fetch!(data, "success_url"),
@@ -1542,12 +1654,12 @@ defmodule Perata.Dispute do
   * `kind` (one of `"chargeback"`, `"med"`): chargeback é a contestação de um cartão na bandeira; med é a devolução que o banco do pagador pede num Pix (Mecanismo Especial de Devolução).
   * `metadata`: Os pares que o seu servidor enviou ao criar o checkout; na renovação de uma assinatura, os da assinatura.
   * `order_id`: O pedido que a venda contestada pagou; nulo quando não é de um checkout.
-  * `payment_id`: O PaymentId da venda contestada.
+  * `payment_id`: O id do pagamento da venda contestada.
   * `payment_method`: Como a venda contestada foi paga: card ou pix.
   * `provider_dispute_id`: O número do caso.
   * `provider_reason`: O motivo informado pelo emissor ou pela bandeira.
-  * `reason`: Motivo, do conjunto fechado; unknown quando a adquirente não informou.
-  * `source` (one of `"operator"`, `"cielo_chargeback"`)
+  * `reason`: Motivo, do conjunto fechado; unknown quando o processador de pagamentos não informou.
+  * `source` (one of `"operator"`, `"processor_chargeback"`)
   * `status` (one of `"opened"`, `"needs_evidence"`, `"submitted"`, `"under_review"`, `"won"`, `"lost"`, `"closed"`)
   * `subscription_id`: A assinatura de que a venda contestada era um ciclo; nulo quando não é de uma assinatura. A assinatura fica suspensa (suspension_reason dispute).
   """
@@ -1781,6 +1893,8 @@ defmodule Perata.Order do
     :metadata,
     :order_status,
     :paid_at,
+    :payment_method_discount_bp,
+    :payment_method_discount_cents,
     :period_end,
     :period_start,
     :price_id,
@@ -1804,6 +1918,8 @@ defmodule Perata.Order do
   * `items`: As linhas do pedido, quando o seu servidor as enviou ao criar o checkout; vazio sem elas.
   * `metadata`: Os pares que o seu servidor enviou ao criar o checkout. Na renovação de uma assinatura são os da assinatura, que começou com os do checkout que a vendeu.
   * `order_status` (one of `"pending"`, `"paid"`, `"partially_refunded"`, `"refunded"`): Onde o pedido está; status é o do checkout e continua succeeded depois de um reembolso, e este vira partially_refunded ou refunded. Nulo antes de haver pagamento.
+  * `payment_method_discount_bp`: A taxa do desconto da forma de pagamento, em centésimos de ponto percentual (500 é 5%); 0 sem ele.
+  * `payment_method_discount_cents`: Quanto o desconto da forma de pagamento (Pix ou boleto) tirou de amount_cents, em centavos; 0 sem ele. O comprador pagou amount_cents menos este valor. Com cupom que soma, o desconto da forma vem depois do cupom; com cupom que não soma, vale só o maior dos dois e o outro não aparece.
   * `period_end`: O fim do período que o ciclo paga; nulo fora de uma assinatura.
   * `period_start`: O começo do período que o ciclo paga; nulo fora de uma assinatura.
   * `refunded_amount_cents`: Quanto do pedido já foi devolvido, somando todos os reembolsos que deram certo, em centavos.
@@ -1828,6 +1944,8 @@ defmodule Perata.Order do
           metadata: %{optional(String.t()) => term()},
           order_status: String.t() | nil,
           paid_at: String.t() | nil,
+          payment_method_discount_bp: integer(),
+          payment_method_discount_cents: integer(),
           period_end: String.t() | nil,
           period_start: String.t() | nil,
           price_id: String.t(),
@@ -1858,6 +1976,8 @@ defmodule Perata.Order do
       metadata: Map.fetch!(data, "metadata"),
       order_status: data["order_status"],
       paid_at: data["paid_at"],
+      payment_method_discount_bp: Map.fetch!(data, "payment_method_discount_bp"),
+      payment_method_discount_cents: Map.fetch!(data, "payment_method_discount_cents"),
       period_end: data["period_end"],
       period_start: data["period_start"],
       price_id: Map.fetch!(data, "price_id"),
@@ -1951,6 +2071,8 @@ defmodule Perata.OrderReceipt do
     :order_id,
     :paid_at,
     :payment_method,
+    :payment_method_discount_bp,
+    :payment_method_discount_cents,
     :product_name,
     :refunded_cents,
     :total_cents
@@ -1963,6 +2085,8 @@ defmodule Perata.OrderReceipt do
   * `items`: As linhas do pedido, quando o lojista as enviou; vazio sem elas.
   * `number`: Número do pedido na série da organização; vazio antes de ter um.
   * `payment_method`: card, pix ou boleto; vazio quando o pagamento não foi achado.
+  * `payment_method_discount_bp`: A taxa do desconto da forma de pagamento, em centésimos de ponto percentual (500 é 5%); 0 sem ele.
+  * `payment_method_discount_cents`: Quanto o desconto da forma de pagamento (Pix ou boleto) tirou de total_cents, em centavos; 0 sem ele. Foi pago total_cents menos este valor.
   """
   @type t :: %__MODULE__{
           amount_cents: integer(),
@@ -1978,6 +2102,8 @@ defmodule Perata.OrderReceipt do
           order_id: String.t(),
           paid_at: String.t() | nil,
           payment_method: String.t(),
+          payment_method_discount_bp: integer(),
+          payment_method_discount_cents: integer(),
           product_name: String.t(),
           refunded_cents: integer(),
           total_cents: integer()
@@ -2000,6 +2126,8 @@ defmodule Perata.OrderReceipt do
       order_id: Map.fetch!(data, "order_id"),
       paid_at: data["paid_at"],
       payment_method: Map.fetch!(data, "payment_method"),
+      payment_method_discount_bp: Map.fetch!(data, "payment_method_discount_bp"),
+      payment_method_discount_cents: Map.fetch!(data, "payment_method_discount_cents"),
       product_name: Map.fetch!(data, "product_name"),
       refunded_cents: Map.fetch!(data, "refunded_cents"),
       total_cents: Map.fetch!(data, "total_cents")
@@ -2048,6 +2176,8 @@ defmodule Perata.Payment do
     :metadata,
     :method,
     :net_cents,
+    :payment_method_discount_bp,
+    :payment_method_discount_cents,
     :payout_deposited_on,
     :payout_id,
     :period_end,
@@ -2071,6 +2201,8 @@ defmodule Perata.Payment do
   * `metadata`: Os pares que o seu servidor enviou ao criar o checkout. Na renovação de uma assinatura são os da assinatura, que começou com os do checkout que a vendeu.
   * `method` (one of `"card"`, `"pix"`, `"boleto"`)
   * `net_cents`: O valor líquido da venda, em centavos: captured_cents menos fee_cents, o que fica para o vendedor, antes de reembolsos. 0 enquanto o pagamento não foi capturado.
+  * `payment_method_discount_bp`: A taxa do desconto da forma de pagamento, em centésimos de ponto percentual (500 é 5%); 0 sem ele.
+  * `payment_method_discount_cents`: Quanto o desconto da forma de pagamento (Pix ou boleto) tirou do total do pedido, em centavos; 0 sem ele. amount_cents já é o valor com o desconto: é o que foi cobrado.
   * `payout_deposited_on`: O dia em que o último repasse que pagou este pagamento foi depositado, AAAA-MM-DD; nulo enquanto nenhum foi.
   * `payout_id`: O repasse em que o pagamento foi depositado: o id de GET /payouts/{id}; nulo enquanto nenhum foi. Num pagamento parcelado, é o da última parcela depositada.
   * `period_end`: O fim do período que o ciclo paga; nulo fora de uma assinatura.
@@ -2098,6 +2230,8 @@ defmodule Perata.Payment do
           metadata: %{optional(String.t()) => term()},
           method: String.t(),
           net_cents: integer(),
+          payment_method_discount_bp: integer(),
+          payment_method_discount_cents: integer(),
           payout_deposited_on: String.t() | nil,
           payout_id: String.t() | nil,
           period_end: String.t() | nil,
@@ -2130,6 +2264,8 @@ defmodule Perata.Payment do
       metadata: Map.fetch!(data, "metadata"),
       method: Map.fetch!(data, "method"),
       net_cents: Map.fetch!(data, "net_cents"),
+      payment_method_discount_bp: Map.fetch!(data, "payment_method_discount_bp"),
+      payment_method_discount_cents: Map.fetch!(data, "payment_method_discount_cents"),
       payout_deposited_on: data["payout_deposited_on"],
       payout_id: data["payout_id"],
       period_end: data["period_end"],
@@ -2579,7 +2715,7 @@ defmodule Perata.RenewalCharge do
   * `metadata`: Os metadados da assinatura.
   * `notify_customer_email`: Se a Peráta escreve ao comprador desta cobrança.
   * `payment_url`: A página da Peráta onde o comprador paga esta cobrança, por cartão, Pix ou boleto. O Pix é gerado nessa página, quando o comprador o escolhe, e vale 24 horas: a Peráta não gera o Pix na abertura da cobrança porque ele venceria antes do prazo da cobrança e, enquanto vale, impediria pagar de outro jeito. Entregue este endereço ao comprador.
-  * `reminder` (one of `"before_due"`, `"on_due"`, `"null"`): Só nos eventos subscription.renewal_reminder: before_due (3 dias antes de due_at) ou on_due (no vencimento). Nulo na cobrança e em subscription.renewal_due.
+  * `reminder` (one of `"before_due"`, `"on_due"`): Só nos eventos subscription.renewal_reminder: before_due (3 dias antes de due_at) ou on_due (no vencimento). Nulo na cobrança e em subscription.renewal_due.
   * `renewal_mode` (one of `"manual"`, `"card"`, `"pix_automatic"`): O modo de renovação da assinatura. Uma cobrança em aberto existe nos modos manual e, quando o cartão é recusado, card.
   * `showcase_id`: O showcase a que pertence: o da chave de API que fez a chamada.
   """
@@ -3135,12 +3271,12 @@ defmodule Perata.WebhookDispute do
   * `external_customer_id`: O id do cliente no seu sistema; nulo sem ele.
   * `kind` (one of `"chargeback"`, `"med"`): chargeback é a contestação de um cartão na bandeira; med é a devolução que o banco do pagador pede num Pix (Mecanismo Especial de Devolução).
   * `metadata`: Os pares que o seu servidor enviou ao criar o checkout; na renovação de uma assinatura, os da assinatura.
-  * `payment_id`: O PaymentId da venda contestada.
+  * `payment_id`: O id do pagamento da venda contestada.
   * `payment_method`: Como a venda contestada foi paga: card ou pix.
   * `provider_dispute_id`: O número do caso.
   * `provider_reason`: O motivo informado pelo emissor ou pela bandeira.
-  * `reason`: Motivo, do conjunto fechado; unknown quando a adquirente não informou.
-  * `source` (one of `"operator"`, `"cielo_chargeback"`)
+  * `reason`: Motivo, do conjunto fechado; unknown quando o processador de pagamentos não informou.
+  * `source` (one of `"operator"`, `"processor_chargeback"`)
   * `status` (one of `"opened"`, `"needs_evidence"`, `"submitted"`, `"under_review"`, `"won"`, `"lost"`, `"closed"`)
   * `subscription_id`: A assinatura de que a venda contestada era um ciclo; nulo quando não é de uma assinatura. A assinatura fica suspensa (suspension_reason dispute).
   """
@@ -3313,6 +3449,8 @@ defmodule Perata.WebhookOrder do
     :metadata,
     :order_status,
     :paid_at,
+    :payment_method_discount_bp,
+    :payment_method_discount_cents,
     :period_end,
     :period_start,
     :price_id,
@@ -3338,6 +3476,8 @@ defmodule Perata.WebhookOrder do
   * `items`: As linhas do pedido, quando o seu servidor as enviou ao criar o checkout; vazio sem elas.
   * `metadata`: Os pares que o seu servidor enviou ao criar o checkout. Na renovação de uma assinatura são os metadados da assinatura (o id da câmera, por exemplo).
   * `order_status` (one of `"pending"`, `"paid"`, `"partially_refunded"`, `"refunded"`): Onde o pedido está; status é o do checkout e continua succeeded depois de um reembolso, e este vira partially_refunded ou refunded.
+  * `payment_method_discount_bp`: A taxa do desconto da forma de pagamento, em centésimos de ponto percentual (500 é 5%); 0 sem ele.
+  * `payment_method_discount_cents`: Quanto o desconto da forma de pagamento (Pix ou boleto) tirou de amount_cents, em centavos; 0 sem ele. O comprador pagou amount_cents menos este valor. Com cupom que soma, o desconto da forma vem depois do cupom; com cupom que não soma, vale só o maior dos dois e o outro não aparece.
   * `period_end`: O fim do período do ciclo que o pagamento cobra.
   * `period_start`: O início do período do ciclo que o pagamento cobra.
   * `refund_amount_cents`: O valor só deste reembolso, em centavos; nulo como refund_id. O acumulado do pedido é refunded_amount_cents.
@@ -3364,6 +3504,8 @@ defmodule Perata.WebhookOrder do
           metadata: %{optional(String.t()) => term()},
           order_status: String.t() | nil,
           paid_at: String.t() | nil,
+          payment_method_discount_bp: integer(),
+          payment_method_discount_cents: integer(),
           period_end: String.t() | nil,
           period_start: String.t() | nil,
           price_id: String.t(),
@@ -3396,6 +3538,8 @@ defmodule Perata.WebhookOrder do
       metadata: Map.fetch!(data, "metadata"),
       order_status: data["order_status"],
       paid_at: data["paid_at"],
+      payment_method_discount_bp: Map.fetch!(data, "payment_method_discount_bp"),
+      payment_method_discount_cents: Map.fetch!(data, "payment_method_discount_cents"),
       period_end: data["period_end"],
       period_start: data["period_start"],
       price_id: Map.fetch!(data, "price_id"),
@@ -3778,6 +3922,36 @@ defmodule Perata.WebhookSubscription do
       suspension_reason: data["suspension_reason"],
       trial_end: data["trial_end"],
       trial_start: data["trial_start"]
+    }
+  end
+end
+
+defmodule Perata.CheckoutClientPaymentDiscount do
+  @moduledoc "One item of payment_discounts in CheckoutClient."
+
+  defstruct [:basis_points, :discount_cents, :method, :total_cents]
+
+  @typedoc """
+  * `basis_points`: A taxa do desconto, em centésimos de ponto percentual (500 é 5%).
+  * `discount_cents`: Quanto o desconto tira do total da sessão, em centavos, depois de qualquer cupom.
+  * `method` (one of `"pix"`, `"boleto"`): A forma de pagamento que tem desconto.
+  * `total_cents`: O que o comprador paga por esta forma: o total da sessão menos discount_cents. O servidor cobra o seu próprio cálculo, nunca um valor do cliente.
+  """
+  @type t :: %__MODULE__{
+          basis_points: integer(),
+          discount_cents: integer(),
+          method: String.t(),
+          total_cents: integer()
+        }
+
+  @doc "Builds a CheckoutClientPaymentDiscount from the API's JSON."
+  @spec from_map(map()) :: t()
+  def from_map(%{} = data) do
+    %__MODULE__{
+      basis_points: Map.fetch!(data, "basis_points"),
+      discount_cents: Map.fetch!(data, "discount_cents"),
+      method: Map.fetch!(data, "method"),
+      total_cents: Map.fetch!(data, "total_cents")
     }
   end
 end

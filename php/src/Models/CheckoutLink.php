@@ -12,6 +12,8 @@ final class CheckoutLink
     public function __construct(
         /** Se o comprador pode digitar um código de desconto. */
         public readonly bool $allowDiscountCodes,
+        /** O desconto de quem paga com boleto neste checkout, em centésimos de ponto percentual; 0 desliga o desconto aqui; nulo segue a organização. */
+        public readonly ?int $boletoDiscountBp,
         /** Endereço https para onde o comprador volta se desistir; vazio sem ele. */
         public readonly string $cancelUrl,
         /**
@@ -19,12 +21,23 @@ final class CheckoutLink
          * @var 'automatic'|'manual'
          */
         public readonly string $captureMode,
+        /** Se o cupom soma com o desconto do Pix ou do boleto neste checkout: true soma (o cupom primeiro, o desconto da forma depois), false vale só o maior dos dois em centavos sobre o mesmo preço; nulo segue a organização (que por padrão não soma). Em assinatura o cupom sempre soma. */
+        public readonly ?bool $couponStacksWithMethodDiscount,
         public readonly string $createdAt,
         /** O desconto fixado no link; nulo sem ele. */
         public readonly ?string $discountId,
         /** Quando o link deixa de abrir checkouts; nulo sem prazo. */
         public readonly ?string $expiresAt,
         public readonly string $id,
+        /**
+         * Quem paga os juros do parcelamento deste checkout: merchant (sem juros) ou buyer (com juros); nulo segue a organização.
+         * @var 'merchant'|'buyer'|null
+         */
+        public readonly ?string $installmentInterest,
+        /** A taxa de juros ao mês que o comprador paga, em centésimos de ponto percentual (299 é 2,99%); 0 segue a organização. */
+        public readonly int $installmentMonthlyRateBp,
+        /** Quantas parcelas saem sem juros quando o comprador paga os juros; 0 segue a organização. */
+        public readonly int $interestFreeInstallments,
         /** Como o lojista chama o link nas próprias telas; o comprador não vê. */
         public readonly string $label,
         /** O máximo de parcelas no cartão de crédito; 0 segue o que a organização definiu. */
@@ -34,7 +47,11 @@ final class CheckoutLink
          * @var array<string, mixed>
          */
         public readonly array $metadata,
+        /** A menor parcela, em centavos; 0 segue a organização. */
+        public readonly int $minInstallmentCents,
         public readonly string $modifiedAt,
+        /** O desconto de quem paga com Pix neste checkout, em centésimos de ponto percentual (500 é 5%); 0 desliga o desconto aqui; nulo segue a organização. */
+        public readonly ?int $pixDiscountBp,
         /** O preço do primeiro produto. */
         public readonly string $priceId,
         /** O primeiro produto do link. */
@@ -45,6 +62,11 @@ final class CheckoutLink
          */
         public readonly array $products,
         public readonly int $quantity,
+        /**
+         * Como a assinatura que o link vende renova: manual (uma cobrança por link a cada ciclo), automatic (só cartão guardado ou Pix Automático), buyer_choice (o comprador marca a caixa Cobrança recorrente na página); nulo é o padrão, em que o cartão guardado renova e, sem cartão, o comprador recebe o link.
+         * @var 'manual'|'automatic'|'buyer_choice'|null
+         */
+        public readonly ?string $renewalMode,
         public readonly bool $requireBillingAddress,
         /** @var 'active'|'archived' */
         public readonly string $status,
@@ -68,20 +90,28 @@ final class CheckoutLink
     {
         return new self(
             allowDiscountCodes: $data['allow_discount_codes'],
+            boletoDiscountBp: $data['boleto_discount_bp'] ?? null,
             cancelUrl: $data['cancel_url'],
             captureMode: $data['capture_mode'],
+            couponStacksWithMethodDiscount: $data['coupon_stacks_with_method_discount'] ?? null,
             createdAt: $data['created_at'],
             discountId: $data['discount_id'] ?? null,
             expiresAt: $data['expires_at'] ?? null,
             id: $data['id'],
+            installmentInterest: $data['installment_interest'] ?? null,
+            installmentMonthlyRateBp: $data['installment_monthly_rate_bp'],
+            interestFreeInstallments: $data['interest_free_installments'],
             label: $data['label'],
             maxInstallments: $data['max_installments'],
             metadata: $data['metadata'],
+            minInstallmentCents: $data['min_installment_cents'],
             modifiedAt: $data['modified_at'],
+            pixDiscountBp: $data['pix_discount_bp'] ?? null,
             priceId: $data['price_id'],
             productId: $data['product_id'],
             products: array_values(array_map(static fn (array $item) => CheckoutLinkProduct::fromArray($item), $data['products'])),
             quantity: $data['quantity'],
+            renewalMode: $data['renewal_mode'] ?? null,
             requireBillingAddress: $data['require_billing_address'],
             status: $data['status'],
             successUrl: $data['success_url'],

@@ -140,6 +140,21 @@ public sealed record CheckoutLinksCreateParams
     /// <summary>A value of <see cref="CaptureMode"/>.</summary>
     public const string CaptureModeManual = "manual";
 
+    /// <summary>A value of <see cref="InstallmentInterest"/>.</summary>
+    public const string InstallmentInterestMerchant = "merchant";
+
+    /// <summary>A value of <see cref="InstallmentInterest"/>.</summary>
+    public const string InstallmentInterestBuyer = "buyer";
+
+    /// <summary>A value of <see cref="RenewalMode"/>.</summary>
+    public const string RenewalModeManual = "manual";
+
+    /// <summary>A value of <see cref="RenewalMode"/>.</summary>
+    public const string RenewalModeAutomatic = "automatic";
+
+    /// <summary>A value of <see cref="RenewalMode"/>.</summary>
+    public const string RenewalModeBuyerChoice = "buyer_choice";
+
     /// <summary>A value of <see cref="TrialInterval"/>.</summary>
     public const string TrialIntervalDay = "day";
 
@@ -156,6 +171,10 @@ public sealed record CheckoutLinksCreateParams
     [JsonPropertyName("allow_discount_codes")]
     public bool? AllowDiscountCodes { get; init; }
 
+    /// <summary>O desconto de quem paga com boleto, em centésimos de ponto percentual, de 0 a 5000. 0 desliga o desconto neste checkout; ausente ou nulo segue a organização. Left out of the request when null.</summary>
+    [JsonPropertyName("boleto_discount_bp")]
+    public long? BoletoDiscountBp { get; init; }
+
     /// <summary>The <c>cancel_url</c> to send. Left out of the request when null.</summary>
     [JsonPropertyName("cancel_url")]
     public string? CancelUrl { get; init; }
@@ -164,6 +183,10 @@ public sealed record CheckoutLinksCreateParams
     [JsonPropertyName("capture_mode")]
     public string? CaptureMode { get; init; }
 
+    /// <summary>Se o cupom soma com o desconto do Pix ou do boleto neste checkout: true soma (o cupom primeiro, o desconto da forma depois); false vale só o maior dos dois em centavos sobre o mesmo preço, e o pedido mostra só o desconto que valeu. Ausente ou nulo segue a organização, que por padrão não soma. Em assinatura o cupom sempre soma. Left out of the request when null.</summary>
+    [JsonPropertyName("coupon_stacks_with_method_discount")]
+    public bool? CouponStacksWithMethodDiscount { get; init; }
+
     /// <summary>Desconto fixado no link. Left out of the request when null.</summary>
     [JsonPropertyName("discount_id")]
     public string? DiscountId { get; init; }
@@ -171,6 +194,18 @@ public sealed record CheckoutLinksCreateParams
     /// <summary>Data e hora RFC 3339 no futuro. Left out of the request when null.</summary>
     [JsonPropertyName("expires_at")]
     public string? ExpiresAt { get; init; }
+
+    /// <summary>Quem paga os juros do parcelamento: merchant (sem juros, a loja absorve a taxa) ou buyer (com juros pagos pelo comprador, com installment_monthly_rate_bp). Ausente segue a organização. Left out of the request when null.</summary>
+    [JsonPropertyName("installment_interest")]
+    public string? InstallmentInterest { get; init; }
+
+    /// <summary>A taxa de juros ao mês que o comprador paga, em centésimos de ponto percentual: 299 é 2,99%, no máximo 1000 (10%). Obrigatória com installment_interest buyer; 0 ou ausente segue a organização. Left out of the request when null.</summary>
+    [JsonPropertyName("installment_monthly_rate_bp")]
+    public long? InstallmentMonthlyRateBp { get; init; }
+
+    /// <summary>Quantas parcelas saem sem juros quando o comprador paga os juros, de 1 (nenhuma além da à vista) a 12; 0 ou ausente segue a organização. Left out of the request when null.</summary>
+    [JsonPropertyName("interest_free_installments")]
+    public long? InterestFreeInstallments { get; init; }
 
     /// <summary>The <c>label</c> to send. Left out of the request when null.</summary>
     [JsonPropertyName("label")]
@@ -183,6 +218,14 @@ public sealed record CheckoutLinksCreateParams
     /// <summary>Pares guardados no link. Até 50 pares de chave e valor: a chave tem de 1 a 40 caracteres, e o valor é um texto de 1 a 500 caracteres, um número ou um booleano. Texto sem caracteres de controle nem de direção invisível. Left out of the request when null.</summary>
     [JsonPropertyName("metadata")]
     public IReadOnlyDictionary<string, JsonElement>? Metadata { get; init; }
+
+    /// <summary>A menor parcela, em centavos, de 100 a 1000000; 0 ou ausente segue a organização. Left out of the request when null.</summary>
+    [JsonPropertyName("min_installment_cents")]
+    public long? MinInstallmentCents { get; init; }
+
+    /// <summary>O desconto de quem paga com Pix, em centésimos de ponto percentual (500 é 5%), de 0 a 5000. 0 desliga o desconto neste checkout; ausente ou nulo segue a organização. Com cupom, vale a regra de coupon_stacks_with_method_discount. O cartão de crédito e o de débito não têm desconto. Left out of the request when null.</summary>
+    [JsonPropertyName("pix_discount_bp")]
+    public long? PixDiscountBp { get; init; }
 
     /// <summary>The <c>price_id</c> to send. Left out of the request when null.</summary>
     [JsonPropertyName("price_id")]
@@ -199,6 +242,10 @@ public sealed record CheckoutLinksCreateParams
     /// <summary>The <c>quantity</c> to send. Left out of the request when null.</summary>
     [JsonPropertyName("quantity")]
     public long? Quantity { get; init; }
+
+    /// <summary>Como a assinatura que o link vende renova, num link com preço recorrente com valor. manual: a cada ciclo o comprador paga por um link. automatic: só cartão de crédito guardado ou Pix Automático, que cobram sozinhos. buyer_choice: a página mostra a caixa Cobrança recorrente, desmarcada; marcada cobra sozinho, desmarcada paga só esta vez e recebe o link nos meses seguintes. Sem o campo vale o padrão: o cartão guardado renova e, sem cartão, o comprador recebe o link. Preço de compra única não aceita (422); manual não vale com teste grátis (422). Cada checkout aberto pelo link herda o modo. Left out of the request when null.</summary>
+    [JsonPropertyName("renewal_mode")]
+    public string? RenewalMode { get; init; }
 
     /// <summary>The <c>require_billing_address</c> to send. Left out of the request when null.</summary>
     [JsonPropertyName("require_billing_address")]
@@ -237,6 +284,15 @@ public sealed record CheckoutLinksListParams
 /// <summary>The body of checkout-links:update.</summary>
 public sealed record CheckoutLinksUpdateParams
 {
+    /// <summary>A value of <see cref="RenewalMode"/>.</summary>
+    public const string RenewalModeManual = "manual";
+
+    /// <summary>A value of <see cref="RenewalMode"/>.</summary>
+    public const string RenewalModeAutomatic = "automatic";
+
+    /// <summary>A value of <see cref="RenewalMode"/>.</summary>
+    public const string RenewalModeBuyerChoice = "buyer_choice";
+
     /// <summary>The <c>cancel_url</c> to send. Left out of the request when null.</summary>
     [JsonPropertyName("cancel_url")]
     public string? CancelUrl { get; init; }
@@ -252,6 +308,10 @@ public sealed record CheckoutLinksUpdateParams
     /// <summary>Substitui os produtos do link. Left out of the request when null.</summary>
     [JsonPropertyName("price_ids")]
     public IReadOnlyList<string>? PriceIds { get; init; }
+
+    /// <summary>Troca como a assinatura do link renova; vazio volta ao padrão. Os checkouts já abertos guardam o modo que viram. Vale as mesmas regras da criação (422 em preço de compra única, ou manual com teste grátis). Left out of the request when null.</summary>
+    [JsonPropertyName("renewal_mode")]
+    public string? RenewalMode { get; init; }
 
     /// <summary>The <c>require_billing_address</c> to send. Left out of the request when null.</summary>
     [JsonPropertyName("require_billing_address")]

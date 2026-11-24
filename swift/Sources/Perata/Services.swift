@@ -285,8 +285,8 @@ public struct CheckoutsService: Sendable {
     /// abre uma cobrança para o comprador pagar e avisa o seu sistema com
     /// subscription.renewal_due, mesmo que o primeiro pagamento tenha sido no
     /// cartão), automatic (só cartão de crédito guardado ou Pix Automático;
-    /// cobra sozinho) ou buyer_choice (a página mostra a caixa Ativar cobrança
-    /// automática e o comprador decide); sem o campo nada muda.
+    /// cobra sozinho) ou buyer_choice (a página mostra a caixa Cobrança
+    /// recorrente e o comprador decide); sem o campo nada muda.
     /// notify_customer_email false mantém a Peráta sem escrever ao comprador.
     /// label dá nome à assinatura (por exemplo, Olho de Águia · Colaborador
     /// Ana).
@@ -960,7 +960,8 @@ public struct PaymentsService: Sendable {
     /// Listar pagamentos. One page; `listIter` walks every page.
     ///
     /// Devolve uma página dos pagamentos. Filtre por client_reference_id,
-    /// estado, cliente, assinatura (subscription_id), período ou metadados.
+    /// estado, meio (method: card, pix ou boleto), cliente, assinatura
+    /// (subscription_id), período ou metadados.
     ///
     /// Autenticação: chave de API da organização em Authorization: Bearer
     /// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
@@ -971,8 +972,8 @@ public struct PaymentsService: Sendable {
     /// - Parameters:
     ///   - page: the page, from 1.
     ///   - limit: items a page, 1 to 100 (10 by default).
-    public func list(page: Int? = nil, limit: Int? = nil, clientReferenceID: String? = nil, status: String? = nil, customerID: String? = nil, externalCustomerID: String? = nil, subscriptionID: String? = nil, createdAfter: String? = nil, createdBefore: String? = nil, sorting: String? = nil, metadata: [String: String]? = nil, apiKey: String? = nil) async throws -> Page<Payment> {
-        var query: [(String, String?)] = [("page", page.map(String.init)), ("limit", limit.map(String.init)), ("client_reference_id", clientReferenceID), ("status", status), ("customer_id", customerID), ("external_customer_id", externalCustomerID), ("subscription_id", subscriptionID), ("created_after", createdAfter), ("created_before", createdBefore), ("sorting", sorting)]
+    public func list(page: Int? = nil, limit: Int? = nil, clientReferenceID: String? = nil, status: String? = nil, customerID: String? = nil, externalCustomerID: String? = nil, subscriptionID: String? = nil, method: String? = nil, createdAfter: String? = nil, createdBefore: String? = nil, sorting: String? = nil, metadata: [String: String]? = nil, apiKey: String? = nil) async throws -> Page<Payment> {
+        var query: [(String, String?)] = [("page", page.map(String.init)), ("limit", limit.map(String.init)), ("client_reference_id", clientReferenceID), ("status", status), ("customer_id", customerID), ("external_customer_id", externalCustomerID), ("subscription_id", subscriptionID), ("method", method), ("created_after", createdAfter), ("created_before", createdBefore), ("sorting", sorting)]
         query += deepObject("metadata", metadata)
         return try await requester.request(
             "GET", "/api/v1/payments",
@@ -983,9 +984,9 @@ public struct PaymentsService: Sendable {
 
     /// Walks every page of payments:list, from `page`, item by item:
     /// `for try await item in …`.
-    public func listIter(page: Int? = nil, limit: Int? = nil, clientReferenceID: String? = nil, status: String? = nil, customerID: String? = nil, externalCustomerID: String? = nil, subscriptionID: String? = nil, createdAfter: String? = nil, createdBefore: String? = nil, sorting: String? = nil, metadata: [String: String]? = nil, apiKey: String? = nil) -> AsyncThrowingStream<Payment, any Error> {
+    public func listIter(page: Int? = nil, limit: Int? = nil, clientReferenceID: String? = nil, status: String? = nil, customerID: String? = nil, externalCustomerID: String? = nil, subscriptionID: String? = nil, method: String? = nil, createdAfter: String? = nil, createdBefore: String? = nil, sorting: String? = nil, metadata: [String: String]? = nil, apiKey: String? = nil) -> AsyncThrowingStream<Payment, any Error> {
         iterate(from: page) { page in
-            try await self.list(page: page, limit: limit, clientReferenceID: clientReferenceID, status: status, customerID: customerID, externalCustomerID: externalCustomerID, subscriptionID: subscriptionID, createdAfter: createdAfter, createdBefore: createdBefore, sorting: sorting, metadata: metadata, apiKey: apiKey)
+            try await self.list(page: page, limit: limit, clientReferenceID: clientReferenceID, status: status, customerID: customerID, externalCustomerID: externalCustomerID, subscriptionID: subscriptionID, method: method, createdAfter: createdAfter, createdBefore: createdBefore, sorting: sorting, metadata: metadata, apiKey: apiKey)
         }
     }
 }
@@ -1231,11 +1232,16 @@ public struct RefundsService: Sendable {
     /// Devolve dinheiro de um pagamento, que você nomeia pelo payment_id ou
     /// pelo order_id do pedido que ele pagou (os dois, só se forem do mesmo
     /// pagamento). Sem amount_cents devolve tudo o que ainda pode ser
-    /// devolvido; com ele, uma parte, até esse limite. O reason, sem ele, é
-    /// requested_by_customer. O metadata fica no reembolso e volta nele e nos
-    /// eventos refund.*. A Idempotency-Key é obrigatória: sem ela, repetir a
-    /// chamada depois de um tempo esgotado seria devolver duas vezes; repetida
-    /// com a mesma chave, devolve o mesmo reembolso.
+    /// devolvido; com ele, uma parte, até esse limite. Um pagamento de cartão
+    /// aceita vários reembolsos parciais, um depois do outro, e a soma deles
+    /// nunca passa do valor capturado: um pedido acima do que resta volta 409,
+    /// e um pedido feito enquanto o reembolso anterior ainda está em andamento
+    /// também volta 409 (espere ele terminar e repita). Um pagamento por Pix
+    /// aceita um só reembolso. O reason, sem ele, é requested_by_customer. O
+    /// metadata fica no reembolso e volta nele e nos eventos refund.*. A
+    /// Idempotency-Key é obrigatória: sem ela, repetir a chamada depois de um
+    /// tempo esgotado seria devolver duas vezes; repetida com a mesma chave,
+    /// devolve o mesmo reembolso.
     ///
     /// Autenticação: chave de API da organização em Authorization: Bearer
     /// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
@@ -1383,7 +1389,8 @@ public struct SubscriptionsService: Sendable {
     /// Listar assinaturas. One page; `listIter` walks every page.
     ///
     /// Devolve uma página das assinaturas. Filtre por cliente (customer_id ou
-    /// external_customer_id), status, período ou metadados.
+    /// external_customer_id), status, tipo de cobrança (renewal_mode: card,
+    /// pix_automatic ou manual), período ou metadados.
     ///
     /// Autenticação: chave de API da organização em Authorization: Bearer
     /// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
@@ -1394,8 +1401,8 @@ public struct SubscriptionsService: Sendable {
     /// - Parameters:
     ///   - page: the page, from 1.
     ///   - limit: items a page, 1 to 100 (10 by default).
-    public func list(page: Int? = nil, limit: Int? = nil, status: String? = nil, customerID: String? = nil, externalCustomerID: String? = nil, createdAfter: String? = nil, createdBefore: String? = nil, sorting: String? = nil, metadata: [String: String]? = nil, apiKey: String? = nil) async throws -> Page<Subscription> {
-        var query: [(String, String?)] = [("page", page.map(String.init)), ("limit", limit.map(String.init)), ("status", status), ("customer_id", customerID), ("external_customer_id", externalCustomerID), ("created_after", createdAfter), ("created_before", createdBefore), ("sorting", sorting)]
+    public func list(page: Int? = nil, limit: Int? = nil, status: String? = nil, renewalMode: String? = nil, customerID: String? = nil, externalCustomerID: String? = nil, createdAfter: String? = nil, createdBefore: String? = nil, sorting: String? = nil, metadata: [String: String]? = nil, apiKey: String? = nil) async throws -> Page<Subscription> {
+        var query: [(String, String?)] = [("page", page.map(String.init)), ("limit", limit.map(String.init)), ("status", status), ("renewal_mode", renewalMode), ("customer_id", customerID), ("external_customer_id", externalCustomerID), ("created_after", createdAfter), ("created_before", createdBefore), ("sorting", sorting)]
         query += deepObject("metadata", metadata)
         return try await requester.request(
             "GET", "/api/v1/subscriptions",
@@ -1406,9 +1413,9 @@ public struct SubscriptionsService: Sendable {
 
     /// Walks every page of subscriptions:list, from `page`, item by item:
     /// `for try await item in …`.
-    public func listIter(page: Int? = nil, limit: Int? = nil, status: String? = nil, customerID: String? = nil, externalCustomerID: String? = nil, createdAfter: String? = nil, createdBefore: String? = nil, sorting: String? = nil, metadata: [String: String]? = nil, apiKey: String? = nil) -> AsyncThrowingStream<Subscription, any Error> {
+    public func listIter(page: Int? = nil, limit: Int? = nil, status: String? = nil, renewalMode: String? = nil, customerID: String? = nil, externalCustomerID: String? = nil, createdAfter: String? = nil, createdBefore: String? = nil, sorting: String? = nil, metadata: [String: String]? = nil, apiKey: String? = nil) -> AsyncThrowingStream<Subscription, any Error> {
         iterate(from: page) { page in
-            try await self.list(page: page, limit: limit, status: status, customerID: customerID, externalCustomerID: externalCustomerID, createdAfter: createdAfter, createdBefore: createdBefore, sorting: sorting, metadata: metadata, apiKey: apiKey)
+            try await self.list(page: page, limit: limit, status: status, renewalMode: renewalMode, customerID: customerID, externalCustomerID: externalCustomerID, createdAfter: createdAfter, createdBefore: createdBefore, sorting: sorting, metadata: metadata, apiKey: apiKey)
         }
     }
 

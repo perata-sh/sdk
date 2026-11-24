@@ -23,11 +23,13 @@ public final class OrderReceipt {
     private final String orderId;
     private final String paidAt;
     private final String paymentMethod;
+    private final long paymentMethodDiscountBp;
+    private final long paymentMethodDiscountCents;
     private final String productName;
     private final long refundedCents;
     private final long totalCents;
 
-    OrderReceipt(long amountCents, String chargedBy, String currency, String customerEmail, String customerName, long discountCents, long installmentInterestCents, long installments, List<CheckoutLine> items, String number, String orderId, String paidAt, String paymentMethod, String productName, long refundedCents, long totalCents) {
+    OrderReceipt(long amountCents, String chargedBy, String currency, String customerEmail, String customerName, long discountCents, long installmentInterestCents, long installments, List<CheckoutLine> items, String number, String orderId, String paidAt, String paymentMethod, long paymentMethodDiscountBp, long paymentMethodDiscountCents, String productName, long refundedCents, long totalCents) {
         this.amountCents = amountCents;
         this.chargedBy = chargedBy;
         this.currency = currency;
@@ -41,6 +43,8 @@ public final class OrderReceipt {
         this.orderId = orderId;
         this.paidAt = paidAt;
         this.paymentMethod = paymentMethod;
+        this.paymentMethodDiscountBp = paymentMethodDiscountBp;
+        this.paymentMethodDiscountCents = paymentMethodDiscountCents;
         this.productName = productName;
         this.refundedCents = refundedCents;
         this.totalCents = totalCents;
@@ -61,6 +65,8 @@ public final class OrderReceipt {
                 Json.required(data, "order_id", Json::asString),
                 Json.optional(data, "paid_at", Json::asString),
                 Json.required(data, "payment_method", Json::asString),
+                Json.required(data, "payment_method_discount_bp", Json::asLong),
+                Json.required(data, "payment_method_discount_cents", Json::asLong),
                 Json.required(data, "product_name", Json::asString),
                 Json.required(data, "refunded_cents", Json::asLong),
                 Json.required(data, "total_cents", Json::asLong));
@@ -131,6 +137,16 @@ public final class OrderReceipt {
         return paymentMethod;
     }
 
+    /** @return A taxa do desconto da forma de pagamento, em centésimos de ponto percentual (500 é 5%); 0 sem ele. */
+    public long getPaymentMethodDiscountBp() {
+        return paymentMethodDiscountBp;
+    }
+
+    /** @return Quanto o desconto da forma de pagamento (Pix ou boleto) tirou de total_cents, em centavos; 0 sem ele. Foi pago total_cents menos este valor. */
+    public long getPaymentMethodDiscountCents() {
+        return paymentMethodDiscountCents;
+    }
+
     /** @return the API's {@code product_name} */
     public String getProductName() {
         return productName;
@@ -148,6 +164,6 @@ public final class OrderReceipt {
 
     @Override
     public String toString() {
-        return "OrderReceipt{" + "amountCents=" + amountCents + ", chargedBy=" + chargedBy + ", currency=" + currency + ", customerEmail=" + customerEmail + ", customerName=" + customerName + ", discountCents=" + discountCents + ", installmentInterestCents=" + installmentInterestCents + ", installments=" + installments + ", items=" + items + ", number=" + number + ", orderId=" + orderId + ", paidAt=" + paidAt + ", paymentMethod=" + paymentMethod + ", productName=" + productName + ", refundedCents=" + refundedCents + ", totalCents=" + totalCents + "}";
+        return "OrderReceipt{" + "amountCents=" + amountCents + ", chargedBy=" + chargedBy + ", currency=" + currency + ", customerEmail=" + customerEmail + ", customerName=" + customerName + ", discountCents=" + discountCents + ", installmentInterestCents=" + installmentInterestCents + ", installments=" + installments + ", items=" + items + ", number=" + number + ", orderId=" + orderId + ", paidAt=" + paidAt + ", paymentMethod=" + paymentMethod + ", paymentMethodDiscountBp=" + paymentMethodDiscountBp + ", paymentMethodDiscountCents=" + paymentMethodDiscountCents + ", productName=" + productName + ", refundedCents=" + refundedCents + ", totalCents=" + totalCents + "}";
     }
 }

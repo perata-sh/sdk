@@ -70,7 +70,7 @@ for order, err := range client.Orders.ListIter(ctx, &perata.OrdersListParams{Cre
 | Campo | Regra |
 |---|---|
 | `payment_id` ou `order_id` | nomeie um dos dois (ou os dois, se forem do mesmo pagamento). `order_id` é o id do pedido, o mesmo de `GET /orders/{id}` |
-| `amount_cents` | quanto devolver, de 1 até o que ainda pode ser devolvido. **Sem ele, devolve tudo o que ainda pode ser devolvido.** Com ele, uma parte (reembolso parcial); pode-se fazer vários até zerar |
+| `amount_cents` | quanto devolver, de 1 até o que ainda pode ser devolvido. **Sem ele, devolve tudo o que ainda pode ser devolvido.** Com ele, uma parte (reembolso parcial). No cartão pode-se fazer vários, um depois do outro, até zerar: a soma nunca passa do valor capturado (acima do que resta, 409) e um novo pedido só entra quando o anterior terminou (se ele ainda está em andamento, 409: espere e repita). No Pix, um pagamento aceita um só reembolso |
 | `reason` | `requested_by_customer` (padrão), `duplicate`, `fraudulent`, `product_unavailable`, `service_disruption` ou `other`; com `other` a `note` é obrigatória |
 | `note` | observação sua, até 500 caracteres |
 | `metadata` | seus pares, guardados no reembolso; voltam como `refund_metadata` |

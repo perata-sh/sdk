@@ -45,6 +45,7 @@ public final class CheckoutClient {
     private final List<String> missing;
     private final CheckoutNextAction nextAction;
     private final CheckoutClientPayment payment;
+    private final List<CheckoutClientPaymentDiscount> paymentDiscounts;
     private final List<String> paymentMethods;
     private final boolean requiresBillingAddress;
     private final boolean requiresTaxId;
@@ -53,7 +54,7 @@ public final class CheckoutClient {
     private final String successUrl;
     private final long totalCents;
 
-    CheckoutClient(long amountCents, boolean amountLocked, String cancelUrl, List<String> cardKinds, String clientReferenceId, String currency, CheckoutClientCustomer customer, CheckoutClientDiscount discount, long discountCents, boolean editable, String environment, String expiresAt, String firstChargeAt, String firstPeriodEndAt, Long firstPeriodExtraDays, String id, List<CheckoutInstallment> installments, List<CheckoutClientItem> items, List<String> missing, CheckoutNextAction nextAction, CheckoutClientPayment payment, List<String> paymentMethods, boolean requiresBillingAddress, boolean requiresTaxId, String status, String statusKey, String successUrl, long totalCents) {
+    CheckoutClient(long amountCents, boolean amountLocked, String cancelUrl, List<String> cardKinds, String clientReferenceId, String currency, CheckoutClientCustomer customer, CheckoutClientDiscount discount, long discountCents, boolean editable, String environment, String expiresAt, String firstChargeAt, String firstPeriodEndAt, Long firstPeriodExtraDays, String id, List<CheckoutInstallment> installments, List<CheckoutClientItem> items, List<String> missing, CheckoutNextAction nextAction, CheckoutClientPayment payment, List<CheckoutClientPaymentDiscount> paymentDiscounts, List<String> paymentMethods, boolean requiresBillingAddress, boolean requiresTaxId, String status, String statusKey, String successUrl, long totalCents) {
         this.amountCents = amountCents;
         this.amountLocked = amountLocked;
         this.cancelUrl = cancelUrl;
@@ -75,6 +76,7 @@ public final class CheckoutClient {
         this.missing = missing;
         this.nextAction = nextAction;
         this.payment = payment;
+        this.paymentDiscounts = paymentDiscounts;
         this.paymentMethods = paymentMethods;
         this.requiresBillingAddress = requiresBillingAddress;
         this.requiresTaxId = requiresTaxId;
@@ -107,6 +109,7 @@ public final class CheckoutClient {
                 Json.required(data, "missing", Json.list(Json::asString)),
                 Json.required(data, "next_action", Json.model(CheckoutNextAction::fromJson)),
                 Json.optional(data, "payment", Json.model(CheckoutClientPayment::fromJson)),
+                Json.required(data, "payment_discounts", Json.list(Json.model(CheckoutClientPaymentDiscount::fromJson))),
                 Json.required(data, "payment_methods", Json.list(Json::asString)),
                 Json.required(data, "requires_billing_address", Json::asBoolean),
                 Json.required(data, "requires_tax_id", Json::asBoolean),
@@ -131,7 +134,7 @@ public final class CheckoutClient {
         return cancelUrl;
     }
 
-    /** @return credit, e debit onde a autenticação do adquirente está ligada. */
+    /** @return credit, e debit onde a autenticação do processador de pagamentos está ligada. */
     public List<String> getCardKinds() {
         return cardKinds;
     }
@@ -221,6 +224,11 @@ public final class CheckoutClient {
         return payment;
     }
 
+    /** @return O desconto de cada forma de pagamento que tem um (Pix e boleto), depois do cupom e sobre o valor já com o cupom quando o cupom soma; quando não soma, só aparece a forma cujo desconto é maior que o do cupom, sobre o preço sem cupom; vazio quando nenhuma tem. O cartão de crédito não tem desconto. O Pix Automático também não. */
+    public List<CheckoutClientPaymentDiscount> getPaymentDiscounts() {
+        return paymentDiscounts;
+    }
+
     /** @return As formas em que a sessão pode ser paga, entre card, pix, boleto e free; free é uma sessão que não pede pagamento. */
     public List<String> getPaymentMethods() {
         return paymentMethods;
@@ -258,6 +266,6 @@ public final class CheckoutClient {
 
     @Override
     public String toString() {
-        return "CheckoutClient{" + "amountCents=" + amountCents + ", amountLocked=" + amountLocked + ", cancelUrl=" + cancelUrl + ", cardKinds=" + cardKinds + ", clientReferenceId=" + clientReferenceId + ", currency=" + currency + ", customer=" + customer + ", discount=" + discount + ", discountCents=" + discountCents + ", editable=" + editable + ", environment=" + environment + ", expiresAt=" + expiresAt + ", firstChargeAt=" + firstChargeAt + ", firstPeriodEndAt=" + firstPeriodEndAt + ", firstPeriodExtraDays=" + firstPeriodExtraDays + ", id=" + id + ", installments=" + installments + ", items=" + items + ", missing=" + missing + ", nextAction=" + nextAction + ", payment=" + payment + ", paymentMethods=" + paymentMethods + ", requiresBillingAddress=" + requiresBillingAddress + ", requiresTaxId=" + requiresTaxId + ", status=" + status + ", statusKey=" + statusKey + ", successUrl=" + successUrl + ", totalCents=" + totalCents + "}";
+        return "CheckoutClient{" + "amountCents=" + amountCents + ", amountLocked=" + amountLocked + ", cancelUrl=" + cancelUrl + ", cardKinds=" + cardKinds + ", clientReferenceId=" + clientReferenceId + ", currency=" + currency + ", customer=" + customer + ", discount=" + discount + ", discountCents=" + discountCents + ", editable=" + editable + ", environment=" + environment + ", expiresAt=" + expiresAt + ", firstChargeAt=" + firstChargeAt + ", firstPeriodEndAt=" + firstPeriodEndAt + ", firstPeriodExtraDays=" + firstPeriodExtraDays + ", id=" + id + ", installments=" + installments + ", items=" + items + ", missing=" + missing + ", nextAction=" + nextAction + ", payment=" + payment + ", paymentDiscounts=" + paymentDiscounts + ", paymentMethods=" + paymentMethods + ", requiresBillingAddress=" + requiresBillingAddress + ", requiresTaxId=" + requiresTaxId + ", status=" + status + ", statusKey=" + statusKey + ", successUrl=" + successUrl + ", totalCents=" + totalCents + "}";
     }
 }

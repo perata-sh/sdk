@@ -37,7 +37,7 @@ final class WebhookDispute
          */
         public readonly ?array $metadata,
         public readonly string $openedAt,
-        /** O PaymentId da venda contestada. */
+        /** O id do pagamento da venda contestada. */
         public readonly string $paymentId,
         /** Como a venda contestada foi paga: card ou pix. */
         public readonly ?string $paymentMethod,
@@ -45,9 +45,9 @@ final class WebhookDispute
         public readonly string $providerDisputeId,
         /** O motivo informado pelo emissor ou pela bandeira. */
         public readonly string $providerReason,
-        /** Motivo, do conjunto fechado; unknown quando a adquirente não informou. */
+        /** Motivo, do conjunto fechado; unknown quando o processador de pagamentos não informou. */
         public readonly string $reason,
-        /** @var 'operator'|'cielo_chargeback' */
+        /** @var 'operator'|'processor_chargeback' */
         public readonly string $source,
         /** @var 'opened'|'needs_evidence'|'submitted'|'under_review'|'won'|'lost'|'closed' */
         public readonly string $status,

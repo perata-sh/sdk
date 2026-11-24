@@ -17,7 +17,7 @@ final class CheckoutClient
         /** Para onde o comprador volta sem pagar. */
         public readonly string $cancelUrl,
         /**
-         * credit, e debit onde a autenticação do adquirente está ligada.
+         * credit, e debit onde a autenticação do processador de pagamentos está ligada.
          * @var list<string>
          */
         public readonly array $cardKinds,
@@ -56,6 +56,11 @@ final class CheckoutClient
         public readonly array $missing,
         public readonly CheckoutNextAction $nextAction,
         public readonly ?CheckoutClientPayment $payment,
+        /**
+         * O desconto de cada forma de pagamento que tem um (Pix e boleto), depois do cupom e sobre o valor já com o cupom quando o cupom soma; quando não soma, só aparece a forma cujo desconto é maior que o do cupom, sobre o preço sem cupom; vazio quando nenhuma tem. O cartão de crédito não tem desconto. O Pix Automático também não.
+         * @var list<CheckoutClientPaymentDiscount>
+         */
+        public readonly array $paymentDiscounts,
         /**
          * As formas em que a sessão pode ser paga, entre card, pix, boleto e free; free é uma sessão que não pede pagamento.
          * @var list<string>
@@ -106,6 +111,7 @@ final class CheckoutClient
             missing: $data['missing'],
             nextAction: CheckoutNextAction::fromArray($data['next_action']),
             payment: isset($data['payment']) ? CheckoutClientPayment::fromArray($data['payment']) : null,
+            paymentDiscounts: array_values(array_map(static fn (array $item) => CheckoutClientPaymentDiscount::fromArray($item), $data['payment_discounts'])),
             paymentMethods: $data['payment_methods'],
             requiresBillingAddress: $data['requires_billing_address'],
             requiresTaxId: $data['requires_tax_id'],

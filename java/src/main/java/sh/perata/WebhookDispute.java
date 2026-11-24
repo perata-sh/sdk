@@ -16,7 +16,7 @@ public final class WebhookDispute {
     /** A value of {@link #getSource()}. */
     public static final String SOURCE_OPERATOR = "operator";
     /** A value of {@link #getSource()}. */
-    public static final String SOURCE_CIELO_CHARGEBACK = "cielo_chargeback";
+    public static final String SOURCE_PROCESSOR_CHARGEBACK = "processor_chargeback";
     /** A value of {@link #getStatus()}. */
     public static final String STATUS_OPENED = "opened";
     /** A value of {@link #getStatus()}. */
@@ -168,7 +168,7 @@ public final class WebhookDispute {
         return openedAt;
     }
 
-    /** @return O PaymentId da venda contestada. */
+    /** @return O id do pagamento da venda contestada. */
     public String getPaymentId() {
         return paymentId;
     }
@@ -188,7 +188,7 @@ public final class WebhookDispute {
         return providerReason;
     }
 
-    /** @return Motivo, do conjunto fechado; unknown quando a adquirente não informou. */
+    /** @return Motivo, do conjunto fechado; unknown quando o processador de pagamentos não informou. */
     public String getReason() {
         return reason;
     }

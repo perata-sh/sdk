@@ -1086,6 +1086,15 @@
                   "trial_interval_count": {
                     "type": "integer"
                   },
+                  "renewal_mode": {
+                    "type": "string",
+                    "description": "Como a assinatura que o link vende renova, num link com preço recorrente com valor. manual: a cada ciclo o comprador paga por um link. automatic: só cartão de crédito guardado ou Pix Automático, que cobram sozinhos. buyer_choice: a página mostra a caixa Cobrança recorrente, desmarcada; marcada cobra sozinho, desmarcada paga só esta vez e recebe o link nos meses seguintes. Sem o campo vale o padrão: o cartão guardado renova e, sem cartão, o comprador recebe o link. Preço de compra única não aceita (422); manual não vale com teste grátis (422). Cada checkout aberto pelo link herda o modo.",
+                    "enum": [
+                      "manual",
+                      "automatic",
+                      "buyer_choice"
+                    ]
+                  },
                   "metadata": {
                     "type": "object",
                     "description": "Pares guardados no link. Até 50 pares de chave e valor: a chave tem de 1 a 40 caracteres, e o valor é um texto de 1 a 500 caracteres, um número ou um booleano. Texto sem caracteres de controle nem de direção invisível.",
@@ -1109,6 +1118,48 @@
                         }
                       ]
                     }
+                  },
+                  "installment_interest": {
+                    "type": "string",
+                    "description": "Quem paga os juros do parcelamento: merchant (sem juros, a loja absorve a taxa) ou buyer (com juros pagos pelo comprador, com installment_monthly_rate_bp). Ausente segue a organização.",
+                    "enum": [
+                      "merchant",
+                      "buyer"
+                    ]
+                  },
+                  "interest_free_installments": {
+                    "type": "integer",
+                    "description": "Quantas parcelas saem sem juros quando o comprador paga os juros, de 1 (nenhuma além da à vista) a 12; 0 ou ausente segue a organização.",
+                    "minimum": 0,
+                    "maximum": 12
+                  },
+                  "installment_monthly_rate_bp": {
+                    "type": "integer",
+                    "description": "A taxa de juros ao mês que o comprador paga, em centésimos de ponto percentual: 299 é 2,99%, no máximo 1000 (10%). Obrigatória com installment_interest buyer; 0 ou ausente segue a organização.",
+                    "minimum": 0,
+                    "maximum": 1000
+                  },
+                  "min_installment_cents": {
+                    "type": "integer",
+                    "description": "A menor parcela, em centavos, de 100 a 1000000; 0 ou ausente segue a organização.",
+                    "minimum": 0,
+                    "maximum": 1000000
+                  },
+                  "pix_discount_bp": {
+                    "type": "integer",
+                    "description": "O desconto de quem paga com Pix, em centésimos de ponto percentual (500 é 5%), de 0 a 5000. 0 desliga o desconto neste checkout; ausente ou nulo segue a organização. Com cupom, vale a regra de coupon_stacks_with_method_discount. O cartão de crédito e o de débito não têm desconto.",
+                    "minimum": 0,
+                    "maximum": 5000
+                  },
+                  "boleto_discount_bp": {
+                    "type": "integer",
+                    "description": "O desconto de quem paga com boleto, em centésimos de ponto percentual, de 0 a 5000. 0 desliga o desconto neste checkout; ausente ou nulo segue a organização.",
+                    "minimum": 0,
+                    "maximum": 5000
+                  },
+                  "coupon_stacks_with_method_discount": {
+                    "type": "boolean",
+                    "description": "Se o cupom soma com o desconto do Pix ou do boleto neste checkout: true soma (o cupom primeiro, o desconto da forma depois); false vale só o maior dos dois em centavos sobre o mesmo preço, e o pedido mostra só o desconto que valeu. Ausente ou nulo segue a organização, que por padrão não soma. Em assinatura o cupom sempre soma."
                   }
                 },
                 "additionalProperties": false
@@ -1449,6 +1500,16 @@
                       "type": "string"
                     }
                   },
+                  "renewal_mode": {
+                    "type": "string",
+                    "description": "Troca como a assinatura do link renova; vazio volta ao padrão. Os checkouts já abertos guardam o modo que viram. Vale as mesmas regras da criação (422 em preço de compra única, ou manual com teste grátis).",
+                    "enum": [
+                      "manual",
+                      "automatic",
+                      "buyer_choice",
+                      ""
+                    ]
+                  },
                   "metadata": {
                     "type": "object",
                     "description": "Substitui os metadados; {} os limpa. Até 50 pares de chave e valor: a chave tem de 1 a 40 caracteres, e o valor é um texto de 1 a 500 caracteres, um número ou um booleano. Texto sem caracteres de controle nem de direção invisível.",
@@ -1724,7 +1785,7 @@
           "checkouts"
         ],
         "summary": "Criar um checkout",
-        "description": "Cria um checkout. Devolve o endereço para onde mandar o comprador e a sessão de compra aberta para ele, com o client_secret que o navegador do comprador usa para pagar sem chave de API; o client_secret vem só nesta resposta. Para cobrar um valor que o seu servidor define, envie amount_cents e items (preço de valor livre). Envie client_reference_id e metadata para achar o pedido depois. Em uma assinatura, envie as linhas do pedido em items (só para exibição, com a soma igual ao valor do preço) e o desconto em discount_id. Para uma assinatura que só começa a cobrar numa data, envie subscription_start_at com o preço recorrente: o cartão é guardado sem cobrança e a primeira cobrança acontece nesse dia. Para o comprador que ainda tem dias pagos num plano anterior, envie first_period_extra_days (1 a 365): ele paga hoje o valor cheio e a próxima cobrança só acontece no fim do primeiro período mais esses dias. Envie renewal_mode em toda assinatura: manual (a cada ciclo a Peráta abre uma cobrança para o comprador pagar e avisa o seu sistema com subscription.renewal_due, mesmo que o primeiro pagamento tenha sido no cartão), automatic (só cartão de crédito guardado ou Pix Automático; cobra sozinho) ou buyer_choice (a página mostra a caixa Ativar cobrança automática e o comprador decide); sem o campo nada muda. notify_customer_email false mantém a Peráta sem escrever ao comprador. label dá nome à assinatura (por exemplo, Olho de Águia · Colaborador Ana).\n\nAutenticação: chave de API da organização em Authorization: Bearer (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave, nunca da requisição: a chave criada num showcase só alcança o que é dele. Respostas em JSON no envelope data; erros com error, message e fields.",
+        "description": "Cria um checkout. Devolve o endereço para onde mandar o comprador e a sessão de compra aberta para ele, com o client_secret que o navegador do comprador usa para pagar sem chave de API; o client_secret vem só nesta resposta. Para cobrar um valor que o seu servidor define, envie amount_cents e items (preço de valor livre). Envie client_reference_id e metadata para achar o pedido depois. Em uma assinatura, envie as linhas do pedido em items (só para exibição, com a soma igual ao valor do preço) e o desconto em discount_id. Para uma assinatura que só começa a cobrar numa data, envie subscription_start_at com o preço recorrente: o cartão é guardado sem cobrança e a primeira cobrança acontece nesse dia. Para o comprador que ainda tem dias pagos num plano anterior, envie first_period_extra_days (1 a 365): ele paga hoje o valor cheio e a próxima cobrança só acontece no fim do primeiro período mais esses dias. Envie renewal_mode em toda assinatura: manual (a cada ciclo a Peráta abre uma cobrança para o comprador pagar e avisa o seu sistema com subscription.renewal_due, mesmo que o primeiro pagamento tenha sido no cartão), automatic (só cartão de crédito guardado ou Pix Automático; cobra sozinho) ou buyer_choice (a página mostra a caixa Cobrança recorrente e o comprador decide); sem o campo nada muda. notify_customer_email false mantém a Peráta sem escrever ao comprador. label dá nome à assinatura (por exemplo, Olho de Águia · Colaborador Ana).\n\nAutenticação: chave de API da organização em Authorization: Bearer (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave, nunca da requisição: a chave criada num showcase só alcança o que é dele. Respostas em JSON no envelope data; erros com error, message e fields.",
         "operationId": "checkouts:create",
         "parameters": [
           {
@@ -1813,7 +1874,7 @@
                   },
                   "customer_email": {
                     "type": "string",
-                    "description": "O e-mail do comprador, quando você o conhece; senão o navegador do comprador o pede."
+                    "description": "O e-mail do comprador, quando você o conhece; senão o navegador do comprador o pede. Se este e-mail é de um cliente seu, o checkout abre com os dados dele, como com customer_id, e o e-mail fica fixo. Se o cliente tem CPF ou CNPJ, o comprador não pode trocá-lo."
                   },
                   "customer_name": {
                     "type": "string",
@@ -1869,7 +1930,7 @@
                   },
                   "renewal_mode": {
                     "type": "string",
-                    "description": "Como a assinatura renova, numa assinatura (preço recorrente com valor). manual: a cada ciclo a Peráta abre uma cobrança para o comprador pagar (payment_url, por cartão, Pix ou boleto) e avisa o seu sistema com o evento subscription.renewal_due, mesmo que o primeiro pagamento tenha sido no cartão; o cartão nunca é cobrado e não é guardado. automatic: só os meios que cobram sozinhos, o cartão de crédito guardado ou o Pix Automático (quando a organização o tem ligado; senão só o cartão); a página mostra só esses meios, e a assinatura nasce com renewal_mode card ou pix_automatic. buyer_choice: a página mostra a caixa Ativar cobrança automática, desmarcada, e o comprador decide: desmarcada é manual, marcada é automatic. Sem o campo nada muda: sem caixa, o cartão de crédito renova sozinho e qualquer outro meio vira uma cobrança a cada ciclo. Funciona junto com first_period_extra_days e com desconto. Vale só em preço recorrente com valor (senão 422); manual não vale com teste grátis nem com subscription_start_at, que guardam o cartão para cobrar no fim (422). Pagar por um meio que o modo não aceita (Pix, boleto ou débito em automatic; Pix Automático em manual) é 422 em payment_method. A Subscription traz o modo a que isso se resolveu em renewal_mode: manual, card ou pix_automatic.",
+                    "description": "Como a assinatura renova, numa assinatura (preço recorrente com valor). manual: a cada ciclo a Peráta abre uma cobrança para o comprador pagar (payment_url, por cartão, Pix ou boleto) e avisa o seu sistema com o evento subscription.renewal_due, mesmo que o primeiro pagamento tenha sido no cartão; o cartão nunca é cobrado e não é guardado. automatic: só os meios que cobram sozinhos, o cartão de crédito guardado ou o Pix Automático (quando a organização o tem ligado; senão só o cartão); a página mostra só esses meios, e a assinatura nasce com renewal_mode card ou pix_automatic. buyer_choice: a página mostra a caixa Cobrança recorrente, desmarcada, e o comprador decide: desmarcada é manual, marcada é automatic. Sem o campo nada muda: sem caixa, o cartão de crédito renova sozinho e qualquer outro meio vira uma cobrança a cada ciclo. Funciona junto com first_period_extra_days e com desconto. Vale só em preço recorrente com valor (senão 422); manual não vale com teste grátis nem com subscription_start_at, que guardam o cartão para cobrar no fim (422). Pagar por um meio que o modo não aceita (Pix, boleto ou débito em automatic; Pix Automático em manual) é 422 em payment_method. A Subscription traz o modo a que isso se resolveu em renewal_mode: manual, card ou pix_automatic.",
                     "enum": [
                       "manual",
                       "automatic",
@@ -1884,6 +1945,54 @@
                     "type": "string",
                     "description": "O dia da primeira cobrança de uma assinatura, como o trial_end do Stripe: o cartão é guardado e conferido com o emissor, nada é cobrado hoje e a primeira cobrança acontece nesse dia, no cartão guardado; as seguintes seguem a periodicidade do preço a partir dele. Só vale em um preço recorrente com valor, e só no cartão de crédito: a página não oferece Pix nem boleto. Vale o dia no horário de São Paulo, da meia-noite dele, qualquer que seja o fuso enviado; a hora não conta. Tem de ser de amanhã a um ano, senão a resposta é 422. A resposta devolve o instante como a Peráta o guarda, em subscription_start_at. Quem abre o checkout depois da data recebe 410.",
                     "format": "date-time"
+                  },
+                  "max_installments": {
+                    "type": "integer",
+                    "description": "O máximo de parcelas no cartão de crédito deste checkout, de 1 a 12; vale mais que a organização, e 1 vende só à vista. 0 ou ausente segue a organização.",
+                    "minimum": 0,
+                    "maximum": 12
+                  },
+                  "installment_interest": {
+                    "type": "string",
+                    "description": "Quem paga os juros do parcelamento: merchant (sem juros, a loja absorve a taxa) ou buyer (com juros pagos pelo comprador, com installment_monthly_rate_bp). Ausente segue a organização.",
+                    "enum": [
+                      "merchant",
+                      "buyer"
+                    ]
+                  },
+                  "interest_free_installments": {
+                    "type": "integer",
+                    "description": "Quantas parcelas saem sem juros quando o comprador paga os juros, de 1 (nenhuma além da à vista) a 12; 0 ou ausente segue a organização.",
+                    "minimum": 0,
+                    "maximum": 12
+                  },
+                  "installment_monthly_rate_bp": {
+                    "type": "integer",
+                    "description": "A taxa de juros ao mês que o comprador paga, em centésimos de ponto percentual: 299 é 2,99%, no máximo 1000 (10%). Obrigatória com installment_interest buyer; 0 ou ausente segue a organização.",
+                    "minimum": 0,
+                    "maximum": 1000
+                  },
+                  "min_installment_cents": {
+                    "type": "integer",
+                    "description": "A menor parcela, em centavos, de 100 a 1000000; 0 ou ausente segue a organização.",
+                    "minimum": 0,
+                    "maximum": 1000000
+                  },
+                  "pix_discount_bp": {
+                    "type": "integer",
+                    "description": "O desconto de quem paga com Pix, em centésimos de ponto percentual (500 é 5%), de 0 a 5000. 0 desliga o desconto neste checkout; ausente ou nulo segue a organização. Com cupom, vale a regra de coupon_stacks_with_method_discount. O cartão de crédito e o de débito não têm desconto.",
+                    "minimum": 0,
+                    "maximum": 5000
+                  },
+                  "boleto_discount_bp": {
+                    "type": "integer",
+                    "description": "O desconto de quem paga com boleto, em centésimos de ponto percentual, de 0 a 5000. 0 desliga o desconto neste checkout; ausente ou nulo segue a organização.",
+                    "minimum": 0,
+                    "maximum": 5000
+                  },
+                  "coupon_stacks_with_method_discount": {
+                    "type": "boolean",
+                    "description": "Se o cupom soma com o desconto do Pix ou do boleto neste checkout: true soma (o cupom primeiro, o desconto da forma depois); false vale só o maior dos dois em centavos sobre o mesmo preço, e o pedido mostra só o desconto que valeu. Ausente ou nulo segue a organização, que por padrão não soma. Em assinatura o cupom sempre soma."
                   }
                 },
                 "required": [
@@ -2064,6 +2173,14 @@
                     "first_period_extra_days": null,
                     "renewal_mode": "",
                     "notify_customer_email": false,
+                    "max_installments": 0,
+                    "installment_interest": null,
+                    "interest_free_installments": 0,
+                    "installment_monthly_rate_bp": 0,
+                    "min_installment_cents": 0,
+                    "pix_discount_bp": null,
+                    "boleto_discount_bp": null,
+                    "coupon_stacks_with_method_discount": null,
                     "created_at": "2026-11-18T14:32:07Z",
                     "session_id": "0193c6b1-3e5a-7f90-b2c4-1d8e6a7f3b95",
                     "client_secret": "pcs_test_Zk3VdQ8mTn5yRw1A",
@@ -2530,7 +2647,7 @@
           "checkouts"
         ],
         "summary": "Gerar o token do cartão de uma sessão de checkout",
-        "description": "Gera o token do Silent Order Post com que os campos seguros enviam o cartão ao processamento. O número do cartão nunca passa por esta API. É entregue só a pedidos que o navegador envia de uma página da própria origem da Peráta, o quadro dos campos seguros, que antes resolve um desafio Cloudflare Turnstile e o envia em turnstile_token; a página de um lojista, ou um pedido sem o desafio, recebe 403. Sem chave de API: o client_secret da sessão, no endereço, é a credencial; o POST /checkouts o devolve uma só vez ao servidor do lojista. Um navegador numa página das origens que a organização cadastra em Checkout incorporado pode chamá-la (CORS, sem credenciais nem cookies). Os erros são o documento de erro da API, o mesmo das demais operações de /api/v1: error (o código), message (a frase) e, quando há campo recusado, fields. O script que monta os campos de pagamento, perata.js, vem de /v1/perata.js, que recebe as correções em minutos; para fixar uma versão, carregue-o do endereço que leva o hash do conteúdo (/v1/perata.\u003chash\u003e.js) com o atributo integrity (Subresource Integrity, sha384) e crossorigin=\"anonymous\". O endereço e o valor de cada versão ficam em Configurações › Como integrar, no painel.",
+        "description": "Gera o token com que os campos seguros enviam o cartão ao processamento. O número do cartão nunca passa por esta API. É entregue só a pedidos que o navegador envia de uma página da própria origem da Peráta, o quadro dos campos seguros, que antes resolve um desafio Cloudflare Turnstile e o envia em turnstile_token; a página de um lojista, ou um pedido sem o desafio, recebe 403. Sem chave de API: o client_secret da sessão, no endereço, é a credencial; o POST /checkouts o devolve uma só vez ao servidor do lojista. Um navegador numa página das origens que a organização cadastra em Checkout incorporado pode chamá-la (CORS, sem credenciais nem cookies). Os erros são o documento de erro da API, o mesmo das demais operações de /api/v1: error (o código), message (a frase) e, quando há campo recusado, fields. O script que monta os campos de pagamento, perata.js, vem de /v1/perata.js, que recebe as correções em minutos; para fixar uma versão, carregue-o do endereço que leva o hash do conteúdo (/v1/perata.\u003chash\u003e.js) com o atributo integrity (Subresource Integrity, sha384) e crossorigin=\"anonymous\". O endereço e o valor de cada versão ficam em Configurações › Como integrar, no painel.",
         "operationId": "checkouts:client_card_tokenization",
         "parameters": [
           {
@@ -2666,7 +2783,7 @@
                   },
                   "card_token": {
                     "type": "string",
-                    "description": "O CardToken de um cartão que será guardado, para um teste grátis ou compras futuras, devolvido pelos campos seguros. Numa assinatura de renovação automática (renewal_mode automatic, ou o padrão quando o cartão é o meio) o cartão é guardado; com renewal_mode manual não é para as renovações: envie card_token, não payment_token."
+                    "description": "O token do cartão salvo, gerado pela tokenização da Peráta, para um teste grátis ou compras futuras, devolvido pelos campos seguros. Numa assinatura de renovação automática (renewal_mode automatic, ou o padrão quando o cartão é o meio) o cartão é guardado; com renewal_mode manual não é para as renovações: envie card_token, não payment_token."
                   },
                   "card_ticket": {
                     "type": "string",
@@ -2681,7 +2798,7 @@
                   },
                   "brand": {
                     "type": "string",
-                    "description": "A bandeira como os campos seguros a leram; vale a resposta do adquirente."
+                    "description": "A bandeira como os campos seguros a leram; vale a resposta do processador de pagamentos."
                   },
                   "card_expiry": {
                     "type": "string",
@@ -2697,7 +2814,7 @@
                   },
                   "renewal_choice": {
                     "type": "string",
-                    "description": "Só num checkout de assinatura criado com renewal_mode buyer_choice: automatic quando o comprador marcou \"Ativar cobrança automática\" (só cartão de crédito guardado ou Pix Automático; outro meio é 422), manual quando não marcou (a renovação é uma cobrança a cada ciclo e o cartão não é guardado). Sem o campo, vale manual. Nos outros checkouts é ignorado.",
+                    "description": "Só num checkout de assinatura criado com renewal_mode buyer_choice: automatic quando o comprador marcou \"Cobrança recorrente\" (só cartão de crédito guardado ou Pix Automático; outro meio é 422), manual quando não marcou (a renovação é uma cobrança a cada ciclo e o cartão não é guardado). Sem o campo, vale manual. Nos outros checkouts é ignorado.",
                     "enum": [
                       "automatic",
                       "manual"
@@ -2713,7 +2830,7 @@
                   },
                   "verify_card_status": {
                     "type": "string",
-                    "description": "Ignorado. O teste grátis não lê o que o navegador diz do cartão: a Peráta consulta o emissor pelo servidor (Zero Auth) antes de guardar o cartão."
+                    "description": "Ignorado. O teste grátis não lê o que o navegador diz do cartão: a Peráta consulta o emissor pelo servidor (validação do cartão sem cobrança) antes de guardar o cartão."
                   },
                   "card_last4": {
                     "type": "string",
@@ -2782,7 +2899,7 @@
             }
           },
           "202": {
-            "description": "O pagamento foi enviado e a resposta do adquirente ainda não se sabe; ela é descoberta por consulta. Espere pela status_key.",
+            "description": "O pagamento foi enviado e a resposta do processador de pagamentos ainda não se sabe; ela é descoberta por consulta. Espere pela status_key.",
             "content": {
               "application/json": {
                 "schema": {
@@ -6059,6 +6176,8 @@
                         "refunded_amount_cents": 0,
                         "installments": 1,
                         "installment_interest_cents": 0,
+                        "payment_method_discount_cents": 0,
+                        "payment_method_discount_bp": 0,
                         "items": [
                           {
                             "name": "Câmera Portaria, 01/12 a 31/12",
@@ -6103,6 +6222,8 @@
                         "refunded_amount_cents": 0,
                         "installments": 1,
                         "installment_interest_cents": 0,
+                        "payment_method_discount_cents": 0,
+                        "payment_method_discount_bp": 0,
                         "items": [],
                         "metadata": {
                           "camera": "portaria"
@@ -6580,7 +6701,7 @@
           "payments"
         ],
         "summary": "Listar pagamentos",
-        "description": "Devolve uma página dos pagamentos. Filtre por client_reference_id, estado, cliente, assinatura (subscription_id), período ou metadados.\n\nAutenticação: chave de API da organização em Authorization: Bearer (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave, nunca da requisição: a chave criada num showcase só alcança o que é dele. Respostas em JSON no envelope data; erros com error, message e fields.",
+        "description": "Devolve uma página dos pagamentos. Filtre por client_reference_id, estado, meio (method: card, pix ou boleto), cliente, assinatura (subscription_id), período ou metadados.\n\nAutenticação: chave de API da organização em Authorization: Bearer (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave, nunca da requisição: a chave criada num showcase só alcança o que é dele. Respostas em JSON no envelope data; erros com error, message e fields.",
         "operationId": "payments:list",
         "parameters": [
           {
@@ -6623,6 +6744,15 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "method",
+            "in": "query",
+            "description": "Só os pagamentos feitos por este meio: card, pix ou boleto. Para vários, separe por vírgula: pix,boleto. Combine com subscription_id ou com o período (created_after e created_before) para somar as cobranças de um meio.",
+            "schema": {
+              "type": "string"
+            },
+            "example": "pix"
           },
           {
             "name": "created_after",
@@ -8297,7 +8427,7 @@
           "refunds"
         ],
         "summary": "Reembolsar um pagamento ou um pedido",
-        "description": "Devolve dinheiro de um pagamento, que você nomeia pelo payment_id ou pelo order_id do pedido que ele pagou (os dois, só se forem do mesmo pagamento). Sem amount_cents devolve tudo o que ainda pode ser devolvido; com ele, uma parte, até esse limite. O reason, sem ele, é requested_by_customer. O metadata fica no reembolso e volta nele e nos eventos refund.*. A Idempotency-Key é obrigatória: sem ela, repetir a chamada depois de um tempo esgotado seria devolver duas vezes; repetida com a mesma chave, devolve o mesmo reembolso.\n\nAutenticação: chave de API da organização em Authorization: Bearer (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave, nunca da requisição: a chave criada num showcase só alcança o que é dele. Respostas em JSON no envelope data; erros com error, message e fields.",
+        "description": "Devolve dinheiro de um pagamento, que você nomeia pelo payment_id ou pelo order_id do pedido que ele pagou (os dois, só se forem do mesmo pagamento). Sem amount_cents devolve tudo o que ainda pode ser devolvido; com ele, uma parte, até esse limite. Um pagamento de cartão aceita vários reembolsos parciais, um depois do outro, e a soma deles nunca passa do valor capturado: um pedido acima do que resta volta 409, e um pedido feito enquanto o reembolso anterior ainda está em andamento também volta 409 (espere ele terminar e repita). Um pagamento por Pix aceita um só reembolso. O reason, sem ele, é requested_by_customer. O metadata fica no reembolso e volta nele e nos eventos refund.*. A Idempotency-Key é obrigatória: sem ela, repetir a chamada depois de um tempo esgotado seria devolver duas vezes; repetida com a mesma chave, devolve o mesmo reembolso.\n\nAutenticação: chave de API da organização em Authorization: Bearer (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave, nunca da requisição: a chave criada num showcase só alcança o que é dele. Respostas em JSON no envelope data; erros com error, message e fields.",
         "operationId": "refunds:create",
         "parameters": [
           {
@@ -8326,7 +8456,7 @@
                   },
                   "amount_cents": {
                     "type": "integer",
-                    "description": "Quanto devolver, em centavos, de 1 até o que ainda pode ser devolvido. Sem ele, devolve tudo o que ainda pode ser devolvido."
+                    "description": "Quanto devolver, em centavos, de 1 até o que ainda pode ser devolvido (o valor capturado menos os reembolsos anteriores). No cartão, a soma de vários reembolsos parciais chega ao valor capturado; no Pix, só há um reembolso por pagamento. Sem ele, devolve tudo o que ainda pode ser devolvido."
                   },
                   "reason": {
                     "type": "string",
@@ -8721,7 +8851,7 @@
           "subscriptions"
         ],
         "summary": "Listar assinaturas",
-        "description": "Devolve uma página das assinaturas. Filtre por cliente (customer_id ou external_customer_id), status, período ou metadados.\n\nAutenticação: chave de API da organização em Authorization: Bearer (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave, nunca da requisição: a chave criada num showcase só alcança o que é dele. Respostas em JSON no envelope data; erros com error, message e fields.",
+        "description": "Devolve uma página das assinaturas. Filtre por cliente (customer_id ou external_customer_id), status, tipo de cobrança (renewal_mode: card, pix_automatic ou manual), período ou metadados.\n\nAutenticação: chave de API da organização em Authorization: Bearer (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave, nunca da requisição: a chave criada num showcase só alcança o que é dele. Respostas em JSON no envelope data; erros com error, message e fields.",
         "operationId": "subscriptions:list",
         "parameters": [
           {
@@ -8731,6 +8861,15 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "renewal_mode",
+            "in": "query",
+            "description": "Só as assinaturas cobradas deste jeito: card (o cartão guardado é cobrado sozinho todo ciclo), pix_automatic (o banco debita cada cobrança) ou manual (a cada ciclo o comprador paga uma cobrança, por Pix, boleto ou cartão digitado). Para vários, separe por vírgula: card,pix_automatic. Uma assinatura sem modo guardado conta como card quando tem cartão guardado e como manual quando não tem.",
+            "schema": {
+              "type": "string"
+            },
+            "example": "card,pix_automatic"
           },
           {
             "name": "customer_id",
@@ -11757,7 +11896,7 @@
         "tags": [
           "webhooks"
         ],
-        "summary": "O pagamento foi recusado pelo emissor ou pela adquirente; nada foi cobrado. O pedido continua sem pagamento.",
+        "summary": "O pagamento foi recusado pelo emissor ou pelo processador de pagamentos; nada foi cobrado. O pedido continua sem pagamento.",
         "description": "Enviado por POST ao endpoint assinante, no padrão Standard Webhooks: cabeçalhos webhook-id, webhook-timestamp e webhook-signature (HMAC-SHA256 de \"{id}.{timestamp}.{corpo}\" com o segredo whsec_). Responda 2xx; outra resposta é repetida em 30 s, 5 min, 30 min, 2 h, 5 h e 10 h.",
         "operationId": "webhooks:checkout_payment.refused",
         "requestBody": {
@@ -16431,7 +16570,7 @@
           "script_url": {
             "type": "string",
             "format": "uri",
-            "description": "O script de autenticação do adquirente."
+            "description": "O script de autenticação do processador de pagamentos."
           },
           "total_cents": {
             "type": "integer",
@@ -16473,7 +16612,7 @@
           },
           "access_token": {
             "type": "string",
-            "description": "O token com que o script do adquirente envia o cartão; entregue só a uma página da própria origem da Peráta."
+            "description": "O token com que o script do processador de pagamentos envia o cartão; entregue só a uma página da própria origem da Peráta."
           },
           "issued": {
             "type": "string"
@@ -16521,6 +16660,14 @@
           "first_period_extra_days",
           "renewal_mode",
           "notify_customer_email",
+          "max_installments",
+          "installment_interest",
+          "interest_free_installments",
+          "installment_monthly_rate_bp",
+          "min_installment_cents",
+          "pix_discount_bp",
+          "boleto_discount_bp",
+          "coupon_stacks_with_method_discount",
           "created_at"
         ],
         "properties": {
@@ -16629,6 +16776,56 @@
             "type": "boolean",
             "description": "Falso quando o seu sistema avisa o comprador das cobranças de renovação e a Peráta fica quieta."
           },
+          "max_installments": {
+            "type": "integer",
+            "description": "O máximo de parcelas no cartão de crédito deste checkout; 0 segue o que a organização definiu, 1 vende só à vista."
+          },
+          "installment_interest": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Quem paga os juros do parcelamento deste checkout: merchant (sem juros) ou buyer (com juros); nulo segue a organização.",
+            "enum": [
+              "merchant",
+              "buyer",
+              "",
+              null
+            ]
+          },
+          "interest_free_installments": {
+            "type": "integer",
+            "description": "Quantas parcelas saem sem juros quando o comprador paga os juros; 0 segue a organização."
+          },
+          "installment_monthly_rate_bp": {
+            "type": "integer",
+            "description": "A taxa de juros ao mês que o comprador paga, em centésimos de ponto percentual (299 é 2,99%); 0 segue a organização."
+          },
+          "min_installment_cents": {
+            "type": "integer",
+            "description": "A menor parcela, em centavos; 0 segue a organização."
+          },
+          "pix_discount_bp": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "description": "O desconto de quem paga com Pix neste checkout, em centésimos de ponto percentual (500 é 5%); 0 desliga o desconto aqui; nulo segue a organização."
+          },
+          "boleto_discount_bp": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "description": "O desconto de quem paga com boleto neste checkout, em centésimos de ponto percentual; 0 desliga o desconto aqui; nulo segue a organização."
+          },
+          "coupon_stacks_with_method_discount": {
+            "type": [
+              "boolean",
+              "null"
+            ],
+            "description": "Se o cupom soma com o desconto do Pix ou do boleto neste checkout: true soma (o cupom primeiro, o desconto da forma depois), false vale só o maior dos dois em centavos sobre o mesmo preço; nulo segue a organização (que por padrão não soma). Em assinatura o cupom sempre soma."
+          },
           "created_at": {
             "type": "string",
             "format": "date-time"
@@ -16653,6 +16850,7 @@
           "payment_methods",
           "card_kinds",
           "installments",
+          "payment_discounts",
           "requires_tax_id",
           "requires_billing_address",
           "missing",
@@ -16750,7 +16948,7 @@
           },
           "card_kinds": {
             "type": "array",
-            "description": "credit, e debit onde a autenticação do adquirente está ligada.",
+            "description": "credit, e debit onde a autenticação do processador de pagamentos está ligada.",
             "items": {
               "type": "string"
             }
@@ -16760,6 +16958,41 @@
             "description": "Os planos de uma venda no cartão de crédito, à vista primeiro; vazio quando a sessão não se paga em parcelas no cartão.",
             "items": {
               "$ref": "#/components/schemas/CheckoutInstallment"
+            }
+          },
+          "payment_discounts": {
+            "type": "array",
+            "description": "O desconto de cada forma de pagamento que tem um (Pix e boleto), depois do cupom e sobre o valor já com o cupom quando o cupom soma; quando não soma, só aparece a forma cujo desconto é maior que o do cupom, sobre o preço sem cupom; vazio quando nenhuma tem. O cartão de crédito não tem desconto. O Pix Automático também não.",
+            "items": {
+              "type": "object",
+              "required": [
+                "method",
+                "basis_points",
+                "discount_cents",
+                "total_cents"
+              ],
+              "properties": {
+                "method": {
+                  "type": "string",
+                  "description": "A forma de pagamento que tem desconto.",
+                  "enum": [
+                    "pix",
+                    "boleto"
+                  ]
+                },
+                "basis_points": {
+                  "type": "integer",
+                  "description": "A taxa do desconto, em centésimos de ponto percentual (500 é 5%)."
+                },
+                "discount_cents": {
+                  "type": "integer",
+                  "description": "Quanto o desconto tira do total da sessão, em centavos, depois de qualquer cupom."
+                },
+                "total_cents": {
+                  "type": "integer",
+                  "description": "O que o comprador paga por esta forma: o total da sessão menos discount_cents. O servidor cobra o seu próprio cálculo, nunca um valor do cliente."
+                }
+              }
             }
           },
           "requires_tax_id": {
@@ -16850,7 +17083,7 @@
           },
           "pdf_url": {
             "type": "string",
-            "description": "Onde o boleto é baixado; vazio quando o adquirente não deu nenhum."
+            "description": "Onde o boleto é baixado; vazio quando o processador de pagamentos não deu nenhum."
           },
           "due_date": {
             "type": [
@@ -16871,6 +17104,7 @@
           "tax_id_kind",
           "billing_name",
           "address",
+          "tax_id_fixed",
           "locked"
         ],
         "properties": {
@@ -16892,6 +17126,10 @@
           },
           "address": {
             "$ref": "#/components/schemas/BillingAddress"
+          },
+          "tax_id_fixed": {
+            "type": "boolean",
+            "description": "Verdadeiro quando o CPF ou CNPJ é o que o lojista tem do cliente: o comprador não pode trocá-lo e o servidor recusa outro (422 em tax_id)."
           },
           "locked": {
             "type": "boolean",
@@ -17042,7 +17280,7 @@
           },
           "unresolved": {
             "type": "boolean",
-            "description": "Verdadeiro enquanto a resposta do adquirente ainda é descoberta; o comprador espera."
+            "description": "Verdadeiro enquanto a resposta do processador de pagamentos ainda é descoberta; o comprador espera."
           },
           "card_brand": {
             "type": "string"
@@ -17097,7 +17335,7 @@
               "null"
             ],
             "format": "date-time",
-            "description": "Quando o Pix deixa de poder ser pago, como o adquirente o deu."
+            "description": "Quando o Pix deixa de poder ser pago, como o processador de pagamentos o deu."
           }
         }
       },
@@ -17124,6 +17362,14 @@
           "first_period_extra_days",
           "renewal_mode",
           "notify_customer_email",
+          "max_installments",
+          "installment_interest",
+          "interest_free_installments",
+          "installment_monthly_rate_bp",
+          "min_installment_cents",
+          "pix_discount_bp",
+          "boleto_discount_bp",
+          "coupon_stacks_with_method_discount",
           "created_at",
           "session_id",
           "client_secret",
@@ -17236,6 +17482,56 @@
           "notify_customer_email": {
             "type": "boolean",
             "description": "Falso quando o seu sistema avisa o comprador das cobranças de renovação e a Peráta fica quieta."
+          },
+          "max_installments": {
+            "type": "integer",
+            "description": "O máximo de parcelas no cartão de crédito deste checkout; 0 segue o que a organização definiu, 1 vende só à vista."
+          },
+          "installment_interest": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Quem paga os juros do parcelamento deste checkout: merchant (sem juros) ou buyer (com juros); nulo segue a organização.",
+            "enum": [
+              "merchant",
+              "buyer",
+              "",
+              null
+            ]
+          },
+          "interest_free_installments": {
+            "type": "integer",
+            "description": "Quantas parcelas saem sem juros quando o comprador paga os juros; 0 segue a organização."
+          },
+          "installment_monthly_rate_bp": {
+            "type": "integer",
+            "description": "A taxa de juros ao mês que o comprador paga, em centésimos de ponto percentual (299 é 2,99%); 0 segue a organização."
+          },
+          "min_installment_cents": {
+            "type": "integer",
+            "description": "A menor parcela, em centavos; 0 segue a organização."
+          },
+          "pix_discount_bp": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "description": "O desconto de quem paga com Pix neste checkout, em centésimos de ponto percentual (500 é 5%); 0 desliga o desconto aqui; nulo segue a organização."
+          },
+          "boleto_discount_bp": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "description": "O desconto de quem paga com boleto neste checkout, em centésimos de ponto percentual; 0 desliga o desconto aqui; nulo segue a organização."
+          },
+          "coupon_stacks_with_method_discount": {
+            "type": [
+              "boolean",
+              "null"
+            ],
+            "description": "Se o cupom soma com o desconto do Pix ou do boleto neste checkout: true soma (o cupom primeiro, o desconto da forma depois), false vale só o maior dos dois em centavos sobre o mesmo preço; nulo segue a organização (que por padrão não soma). Em assinatura o cupom sempre soma."
           },
           "created_at": {
             "type": "string",
@@ -17451,6 +17747,14 @@
           "expires_at",
           "trial_interval",
           "trial_interval_count",
+          "installment_interest",
+          "interest_free_installments",
+          "installment_monthly_rate_bp",
+          "min_installment_cents",
+          "pix_discount_bp",
+          "boleto_discount_bp",
+          "coupon_stacks_with_method_discount",
+          "renewal_mode",
           "metadata",
           "status",
           "created_at",
@@ -17547,6 +17851,65 @@
             "type": [
               "integer",
               "null"
+            ]
+          },
+          "installment_interest": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Quem paga os juros do parcelamento deste checkout: merchant (sem juros) ou buyer (com juros); nulo segue a organização.",
+            "enum": [
+              "merchant",
+              "buyer",
+              "",
+              null
+            ]
+          },
+          "interest_free_installments": {
+            "type": "integer",
+            "description": "Quantas parcelas saem sem juros quando o comprador paga os juros; 0 segue a organização."
+          },
+          "installment_monthly_rate_bp": {
+            "type": "integer",
+            "description": "A taxa de juros ao mês que o comprador paga, em centésimos de ponto percentual (299 é 2,99%); 0 segue a organização."
+          },
+          "min_installment_cents": {
+            "type": "integer",
+            "description": "A menor parcela, em centavos; 0 segue a organização."
+          },
+          "pix_discount_bp": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "description": "O desconto de quem paga com Pix neste checkout, em centésimos de ponto percentual (500 é 5%); 0 desliga o desconto aqui; nulo segue a organização."
+          },
+          "boleto_discount_bp": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "description": "O desconto de quem paga com boleto neste checkout, em centésimos de ponto percentual; 0 desliga o desconto aqui; nulo segue a organização."
+          },
+          "coupon_stacks_with_method_discount": {
+            "type": [
+              "boolean",
+              "null"
+            ],
+            "description": "Se o cupom soma com o desconto do Pix ou do boleto neste checkout: true soma (o cupom primeiro, o desconto da forma depois), false vale só o maior dos dois em centavos sobre o mesmo preço; nulo segue a organização (que por padrão não soma). Em assinatura o cupom sempre soma."
+          },
+          "renewal_mode": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Como a assinatura que o link vende renova: manual (uma cobrança por link a cada ciclo), automatic (só cartão guardado ou Pix Automático), buyer_choice (o comprador marca a caixa Cobrança recorrente na página); nulo é o padrão, em que o cartão guardado renova e, sem cartão, o comprador recebe o link.",
+            "enum": [
+              "manual",
+              "automatic",
+              "buyer_choice",
+              null
             ]
           },
           "metadata": {
@@ -18311,7 +18674,7 @@
           },
           "reason": {
             "type": "string",
-            "description": "Motivo, do conjunto fechado; unknown quando a adquirente não informou."
+            "description": "Motivo, do conjunto fechado; unknown quando o processador de pagamentos não informou."
           },
           "provider_reason": {
             "type": "string",
@@ -18321,7 +18684,7 @@
             "type": "string",
             "enum": [
               "operator",
-              "cielo_chargeback"
+              "processor_chargeback"
             ]
           },
           "provider_dispute_id": {
@@ -18330,7 +18693,7 @@
           },
           "payment_id": {
             "type": "string",
-            "description": "O PaymentId da venda contestada."
+            "description": "O id do pagamento da venda contestada."
           },
           "order_id": {
             "type": [
@@ -18740,6 +19103,8 @@
           "refunded_amount_cents",
           "installments",
           "installment_interest_cents",
+          "payment_method_discount_cents",
+          "payment_method_discount_bp",
           "items",
           "metadata",
           "client_reference_id",
@@ -18820,6 +19185,14 @@
           "installment_interest_cents": {
             "type": "integer",
             "description": "Juros do parcelamento pagos pelo comprador, cobrados além de amount_cents."
+          },
+          "payment_method_discount_cents": {
+            "type": "integer",
+            "description": "Quanto o desconto da forma de pagamento (Pix ou boleto) tirou de amount_cents, em centavos; 0 sem ele. O comprador pagou amount_cents menos este valor. Com cupom que soma, o desconto da forma vem depois do cupom; com cupom que não soma, vale só o maior dos dois e o outro não aparece."
+          },
+          "payment_method_discount_bp": {
+            "type": "integer",
+            "description": "A taxa do desconto da forma de pagamento, em centésimos de ponto percentual (500 é 5%); 0 sem ele."
           },
           "items": {
             "type": "array",
@@ -19028,6 +19401,8 @@
           "payment_method",
           "installments",
           "installment_interest_cents",
+          "payment_method_discount_cents",
+          "payment_method_discount_bp",
           "refunded_cents",
           "charged_by",
           "items"
@@ -19081,6 +19456,14 @@
           },
           "installment_interest_cents": {
             "type": "integer"
+          },
+          "payment_method_discount_cents": {
+            "type": "integer",
+            "description": "Quanto o desconto da forma de pagamento (Pix ou boleto) tirou de total_cents, em centavos; 0 sem ele. Foi pago total_cents menos este valor."
+          },
+          "payment_method_discount_bp": {
+            "type": "integer",
+            "description": "A taxa do desconto da forma de pagamento, em centésimos de ponto percentual (500 é 5%); 0 sem ele."
           },
           "refunded_cents": {
             "type": "integer"
@@ -19143,6 +19526,8 @@
           "installments",
           "installment_amount_cents",
           "installment_interest_cents",
+          "payment_method_discount_cents",
+          "payment_method_discount_bp",
           "subscription_id",
           "cycle_sequence",
           "period_start",
@@ -19228,6 +19613,14 @@
           "installment_interest_cents": {
             "type": "integer",
             "description": "Juros do parcelamento dentro de amount_cents."
+          },
+          "payment_method_discount_cents": {
+            "type": "integer",
+            "description": "Quanto o desconto da forma de pagamento (Pix ou boleto) tirou do total do pedido, em centavos; 0 sem ele. amount_cents já é o valor com o desconto: é o que foi cobrado."
+          },
+          "payment_method_discount_bp": {
+            "type": "integer",
+            "description": "A taxa do desconto da forma de pagamento, em centésimos de ponto percentual (500 é 5%); 0 sem ele."
           },
           "subscription_id": {
             "type": [
@@ -20148,7 +20541,6 @@
             "enum": [
               "before_due",
               "on_due",
-              "null",
               null
             ]
           },
@@ -20959,7 +21351,7 @@
           },
           "reason": {
             "type": "string",
-            "description": "Motivo, do conjunto fechado; unknown quando a adquirente não informou."
+            "description": "Motivo, do conjunto fechado; unknown quando o processador de pagamentos não informou."
           },
           "provider_reason": {
             "type": "string",
@@ -20969,7 +21361,7 @@
             "type": "string",
             "enum": [
               "operator",
-              "cielo_chargeback"
+              "processor_chargeback"
             ]
           },
           "provider_dispute_id": {
@@ -20978,7 +21370,7 @@
           },
           "payment_id": {
             "type": "string",
-            "description": "O PaymentId da venda contestada."
+            "description": "O id do pagamento da venda contestada."
           },
           "invoice_id": {
             "type": [
@@ -21247,6 +21639,8 @@
           "refund_amount_cents",
           "installments",
           "installment_interest_cents",
+          "payment_method_discount_cents",
+          "payment_method_discount_bp",
           "items",
           "metadata",
           "client_reference_id",
@@ -21337,6 +21731,14 @@
           "installment_interest_cents": {
             "type": "integer",
             "description": "Juros do parcelamento pagos pelo comprador, cobrados além de amount_cents."
+          },
+          "payment_method_discount_cents": {
+            "type": "integer",
+            "description": "Quanto o desconto da forma de pagamento (Pix ou boleto) tirou de amount_cents, em centavos; 0 sem ele. O comprador pagou amount_cents menos este valor. Com cupom que soma, o desconto da forma vem depois do cupom; com cupom que não soma, vale só o maior dos dois e o outro não aparece."
+          },
+          "payment_method_discount_bp": {
+            "type": "integer",
+            "description": "A taxa do desconto da forma de pagamento, em centésimos de ponto percentual (500 é 5%); 0 sem ele."
           },
           "items": {
             "type": "array",

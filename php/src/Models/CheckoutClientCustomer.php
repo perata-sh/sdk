@@ -18,6 +18,8 @@ final class CheckoutClientCustomer
         public readonly string $name,
         /** O CPF ou CNPJ do comprador, só dígitos; vazio enquanto não for informado. */
         public readonly string $taxId,
+        /** Verdadeiro quando o CPF ou CNPJ é o que o lojista tem do cliente: o comprador não pode trocá-lo e o servidor recusa outro (422 em tax_id). */
+        public readonly bool $taxIdFixed,
         public readonly string $taxIdKind,
     ) {
     }
@@ -34,6 +36,7 @@ final class CheckoutClientCustomer
             locked: $data['locked'],
             name: $data['name'],
             taxId: $data['tax_id'],
+            taxIdFixed: $data['tax_id_fixed'],
             taxIdKind: $data['tax_id_kind'],
         );
     }

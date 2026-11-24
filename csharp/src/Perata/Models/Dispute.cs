@@ -22,7 +22,7 @@ public sealed record Dispute
     public const string SourceOperator = "operator";
 
     /// <summary>A value of <see cref="Source"/>.</summary>
-    public const string SourceCieloChargeback = "cielo_chargeback";
+    public const string SourceProcessorChargeback = "processor_chargeback";
 
     /// <summary>A value of <see cref="Status"/>.</summary>
     public const string StatusOpened = "opened";
@@ -101,7 +101,7 @@ public sealed record Dispute
     [JsonPropertyName("order_id")]
     public string? OrderId { get; init; }
 
-    /// <summary>O PaymentId da venda contestada.</summary>
+    /// <summary>O id do pagamento da venda contestada.</summary>
     [JsonPropertyName("payment_id")]
     public required string PaymentId { get; init; }
 
@@ -117,7 +117,7 @@ public sealed record Dispute
     [JsonPropertyName("provider_reason")]
     public required string ProviderReason { get; init; }
 
-    /// <summary>Motivo, do conjunto fechado; unknown quando a adquirente não informou.</summary>
+    /// <summary>Motivo, do conjunto fechado; unknown quando o processador de pagamentos não informou.</summary>
     [JsonPropertyName("reason")]
     public required string Reason { get; init; }
 

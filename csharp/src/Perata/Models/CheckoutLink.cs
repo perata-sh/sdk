@@ -15,6 +15,21 @@ public sealed record CheckoutLink
     /// <summary>A value of <see cref="CaptureMode"/>.</summary>
     public const string CaptureModeManual = "manual";
 
+    /// <summary>A value of <see cref="InstallmentInterest"/>.</summary>
+    public const string InstallmentInterestMerchant = "merchant";
+
+    /// <summary>A value of <see cref="InstallmentInterest"/>.</summary>
+    public const string InstallmentInterestBuyer = "buyer";
+
+    /// <summary>A value of <see cref="RenewalMode"/>.</summary>
+    public const string RenewalModeManual = "manual";
+
+    /// <summary>A value of <see cref="RenewalMode"/>.</summary>
+    public const string RenewalModeAutomatic = "automatic";
+
+    /// <summary>A value of <see cref="RenewalMode"/>.</summary>
+    public const string RenewalModeBuyerChoice = "buyer_choice";
+
     /// <summary>A value of <see cref="Status"/>.</summary>
     public const string StatusActive = "active";
 
@@ -37,6 +52,10 @@ public sealed record CheckoutLink
     [JsonPropertyName("allow_discount_codes")]
     public required bool AllowDiscountCodes { get; init; }
 
+    /// <summary>O desconto de quem paga com boleto neste checkout, em centésimos de ponto percentual; 0 desliga o desconto aqui; nulo segue a organização. Null when the API sends none.</summary>
+    [JsonPropertyName("boleto_discount_bp")]
+    public long? BoletoDiscountBp { get; init; }
+
     /// <summary>Endereço https para onde o comprador volta se desistir; vazio sem ele.</summary>
     [JsonPropertyName("cancel_url")]
     public required string CancelUrl { get; init; }
@@ -44,6 +63,10 @@ public sealed record CheckoutLink
     /// <summary>manual segura a venda no cartão para o lojista capturar depois.</summary>
     [JsonPropertyName("capture_mode")]
     public required string CaptureMode { get; init; }
+
+    /// <summary>Se o cupom soma com o desconto do Pix ou do boleto neste checkout: true soma (o cupom primeiro, o desconto da forma depois), false vale só o maior dos dois em centavos sobre o mesmo preço; nulo segue a organização (que por padrão não soma). Em assinatura o cupom sempre soma. Null when the API sends none.</summary>
+    [JsonPropertyName("coupon_stacks_with_method_discount")]
+    public bool? CouponStacksWithMethodDiscount { get; init; }
 
     /// <summary>The API's <c>created_at</c>.</summary>
     [JsonPropertyName("created_at")]
@@ -61,6 +84,18 @@ public sealed record CheckoutLink
     [JsonPropertyName("id")]
     public required string Id { get; init; }
 
+    /// <summary>Quem paga os juros do parcelamento deste checkout: merchant (sem juros) ou buyer (com juros); nulo segue a organização. Null when the API sends none.</summary>
+    [JsonPropertyName("installment_interest")]
+    public string? InstallmentInterest { get; init; }
+
+    /// <summary>A taxa de juros ao mês que o comprador paga, em centésimos de ponto percentual (299 é 2,99%); 0 segue a organização.</summary>
+    [JsonPropertyName("installment_monthly_rate_bp")]
+    public required long InstallmentMonthlyRateBp { get; init; }
+
+    /// <summary>Quantas parcelas saem sem juros quando o comprador paga os juros; 0 segue a organização.</summary>
+    [JsonPropertyName("interest_free_installments")]
+    public required long InterestFreeInstallments { get; init; }
+
     /// <summary>Como o lojista chama o link nas próprias telas; o comprador não vê.</summary>
     [JsonPropertyName("label")]
     public required string Label { get; init; }
@@ -73,9 +108,17 @@ public sealed record CheckoutLink
     [JsonPropertyName("metadata")]
     public required IReadOnlyDictionary<string, JsonElement> Metadata { get; init; }
 
+    /// <summary>A menor parcela, em centavos; 0 segue a organização.</summary>
+    [JsonPropertyName("min_installment_cents")]
+    public required long MinInstallmentCents { get; init; }
+
     /// <summary>The API's <c>modified_at</c>.</summary>
     [JsonPropertyName("modified_at")]
     public required string ModifiedAt { get; init; }
+
+    /// <summary>O desconto de quem paga com Pix neste checkout, em centésimos de ponto percentual (500 é 5%); 0 desliga o desconto aqui; nulo segue a organização. Null when the API sends none.</summary>
+    [JsonPropertyName("pix_discount_bp")]
+    public long? PixDiscountBp { get; init; }
 
     /// <summary>O preço do primeiro produto.</summary>
     [JsonPropertyName("price_id")]
@@ -92,6 +135,10 @@ public sealed record CheckoutLink
     /// <summary>The API's <c>quantity</c>.</summary>
     [JsonPropertyName("quantity")]
     public required long Quantity { get; init; }
+
+    /// <summary>Como a assinatura que o link vende renova: manual (uma cobrança por link a cada ciclo), automatic (só cartão guardado ou Pix Automático), buyer_choice (o comprador marca a caixa Cobrança recorrente na página); nulo é o padrão, em que o cartão guardado renova e, sem cartão, o comprador recebe o link. Null when the API sends none.</summary>
+    [JsonPropertyName("renewal_mode")]
+    public string? RenewalMode { get; init; }
 
     /// <summary>The API's <c>require_billing_address</c>.</summary>
     [JsonPropertyName("require_billing_address")]

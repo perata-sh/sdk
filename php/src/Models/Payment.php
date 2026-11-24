@@ -41,6 +41,10 @@ final class Payment
         public readonly string $method,
         /** O valor líquido da venda, em centavos: captured_cents menos fee_cents, o que fica para o vendedor, antes de reembolsos. 0 enquanto o pagamento não foi capturado. */
         public readonly int $netCents,
+        /** A taxa do desconto da forma de pagamento, em centésimos de ponto percentual (500 é 5%); 0 sem ele. */
+        public readonly int $paymentMethodDiscountBp,
+        /** Quanto o desconto da forma de pagamento (Pix ou boleto) tirou do total do pedido, em centavos; 0 sem ele. amount_cents já é o valor com o desconto: é o que foi cobrado. */
+        public readonly int $paymentMethodDiscountCents,
         /** O dia em que o último repasse que pagou este pagamento foi depositado, AAAA-MM-DD; nulo enquanto nenhum foi. */
         public readonly ?string $payoutDepositedOn,
         /** O repasse em que o pagamento foi depositado: o id de GET /payouts/{id}; nulo enquanto nenhum foi. Num pagamento parcelado, é o da última parcela depositada. */
@@ -87,6 +91,8 @@ final class Payment
             metadata: $data['metadata'],
             method: $data['method'],
             netCents: $data['net_cents'],
+            paymentMethodDiscountBp: $data['payment_method_discount_bp'],
+            paymentMethodDiscountCents: $data['payment_method_discount_cents'],
             payoutDepositedOn: $data['payout_deposited_on'] ?? null,
             payoutId: $data['payout_id'] ?? null,
             periodEnd: $data['period_end'] ?? null,

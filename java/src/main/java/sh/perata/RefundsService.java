@@ -22,11 +22,16 @@ public final class RefundsService {
      * Devolve dinheiro de um pagamento, que você nomeia pelo payment_id ou pelo
      * order_id do pedido que ele pagou (os dois, só se forem do mesmo
      * pagamento). Sem amount_cents devolve tudo o que ainda pode ser devolvido;
-     * com ele, uma parte, até esse limite. O reason, sem ele, é
-     * requested_by_customer. O metadata fica no reembolso e volta nele e nos
-     * eventos refund.*. A Idempotency-Key é obrigatória: sem ela, repetir a
-     * chamada depois de um tempo esgotado seria devolver duas vezes; repetida
-     * com a mesma chave, devolve o mesmo reembolso.
+     * com ele, uma parte, até esse limite. Um pagamento de cartão aceita vários
+     * reembolsos parciais, um depois do outro, e a soma deles nunca passa do
+     * valor capturado: um pedido acima do que resta volta 409, e um pedido
+     * feito enquanto o reembolso anterior ainda está em andamento também volta
+     * 409 (espere ele terminar e repita). Um pagamento por Pix aceita um só
+     * reembolso. O reason, sem ele, é requested_by_customer. O metadata fica no
+     * reembolso e volta nele e nos eventos refund.*. A Idempotency-Key é
+     * obrigatória: sem ela, repetir a chamada depois de um tempo esgotado seria
+     * devolver duas vezes; repetida com a mesma chave, devolve o mesmo
+     * reembolso.
      *
      * Autenticação: chave de API da organização em Authorization: Bearer
      * (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
@@ -50,11 +55,16 @@ public final class RefundsService {
      * Devolve dinheiro de um pagamento, que você nomeia pelo payment_id ou pelo
      * order_id do pedido que ele pagou (os dois, só se forem do mesmo
      * pagamento). Sem amount_cents devolve tudo o que ainda pode ser devolvido;
-     * com ele, uma parte, até esse limite. O reason, sem ele, é
-     * requested_by_customer. O metadata fica no reembolso e volta nele e nos
-     * eventos refund.*. A Idempotency-Key é obrigatória: sem ela, repetir a
-     * chamada depois de um tempo esgotado seria devolver duas vezes; repetida
-     * com a mesma chave, devolve o mesmo reembolso.
+     * com ele, uma parte, até esse limite. Um pagamento de cartão aceita vários
+     * reembolsos parciais, um depois do outro, e a soma deles nunca passa do
+     * valor capturado: um pedido acima do que resta volta 409, e um pedido
+     * feito enquanto o reembolso anterior ainda está em andamento também volta
+     * 409 (espere ele terminar e repita). Um pagamento por Pix aceita um só
+     * reembolso. O reason, sem ele, é requested_by_customer. O metadata fica no
+     * reembolso e volta nele e nos eventos refund.*. A Idempotency-Key é
+     * obrigatória: sem ela, repetir a chamada depois de um tempo esgotado seria
+     * devolver duas vezes; repetida com a mesma chave, devolve o mesmo
+     * reembolso.
      *
      * Autenticação: chave de API da organização em Authorization: Bearer
      * (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
@@ -106,7 +116,7 @@ public final class RefundsService {
             return new Builder();
         }
 
-        /** @return Quanto devolver, em centavos, de 1 até o que ainda pode ser devolvido. Sem ele, devolve tudo o que ainda pode ser devolvido. (null when left out) */
+        /** @return Quanto devolver, em centavos, de 1 até o que ainda pode ser devolvido (o valor capturado menos os reembolsos anteriores). No cartão, a soma de vários reembolsos parciais chega ao valor capturado; no Pix, só há um reembolso por pagamento. Sem ele, devolve tudo o que ainda pode ser devolvido. (null when left out) */
         public Long getAmountCents() {
             return amountCents;
         }
@@ -172,7 +182,7 @@ public final class RefundsService {
             }
 
             /**
-             * @param amountCents Quanto devolver, em centavos, de 1 até o que ainda pode ser devolvido. Sem ele, devolve tudo o que ainda pode ser devolvido.
+             * @param amountCents Quanto devolver, em centavos, de 1 até o que ainda pode ser devolvido (o valor capturado menos os reembolsos anteriores). No cartão, a soma de vários reembolsos parciais chega ao valor capturado; no Pix, só há um reembolso por pagamento. Sem ele, devolve tudo o que ainda pode ser devolvido.
              * @return this builder
              */
             public Builder amountCents(Long amountCents) {

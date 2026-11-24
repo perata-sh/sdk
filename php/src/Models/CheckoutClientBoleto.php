@@ -14,7 +14,7 @@ final class CheckoutClientBoleto
         public readonly string $digitableLine,
         /** Quando o boleto deixa de poder ser pago: o fim do dia do vencimento, no horário de Brasília. */
         public readonly ?string $dueDate,
-        /** Onde o boleto é baixado; vazio quando o adquirente não deu nenhum. */
+        /** Onde o boleto é baixado; vazio quando o processador de pagamentos não deu nenhum. */
         public readonly string $pdfUrl,
     ) {
     }

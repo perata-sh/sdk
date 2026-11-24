@@ -59,7 +59,7 @@ const session = (clientSecret: string) => ({
   created_at: "2026-11-16T12:00:00Z",
   session_id: "cs_1",
   client_secret: clientSecret,
-  client_secret_expires_at: "2026-11-16T12:30:00Z",
+  max_installments: 0, installment_interest: null, interest_free_installments: 0, installment_monthly_rate_bp: 0, min_installment_cents: 0, pix_discount_bp: null, boleto_discount_bp: null, coupon_stacks_with_method_discount: null, client_secret_expires_at: "2026-11-16T12:30:00Z",
   status_key: "sk_1",
   amount_cents: null,
   items: [],
@@ -348,7 +348,7 @@ test("a first period extension and the discounts the sale reads back", async () 
 
 // The payment reads back its fee, its net, its split and the payout that pays it.
 test("a payment reads back its fee, its split and its payout", async () => {
-  const { perata } = client(() => json(200, {"data":{"id":"pay_1","showcase_id":"x","checkout_id":"x","customer_id":"x","method":"card","state":"unknown","amount_cents":0,"captured_cents":0,"refunded_cents":0,"currency":"BRL","created_at":"2026-11-20T12:00:00Z","metadata":{},"client_reference_id":"x","installments":0,"installment_amount_cents":0,"installment_interest_cents":0,"subscription_id":null,"cycle_sequence":null,"period_start":null,"period_end":null,"fee_cents":450,"net_cents":8550,"expected_payout_on":"2026-12-21","payout_deposited_on":null,"payout_id":null,"split":[{"recipient_id":"shw_2","amount_cents":9000,"fee_cents":450,"net_cents":8550}]}}));
+  const { perata } = client(() => json(200, {"data":{"id":"pay_1","showcase_id":"x","checkout_id":"x","customer_id":"x","method":"card","state":"unknown","amount_cents":0,"captured_cents":0,"refunded_cents":0,"currency":"BRL","created_at":"2026-11-20T12:00:00Z","metadata":{},"client_reference_id":"x","installments":0,"installment_amount_cents":0,"installment_interest_cents":0,"payment_method_discount_cents":0,"payment_method_discount_bp":0,"subscription_id":null,"cycle_sequence":null,"period_start":null,"period_end":null,"fee_cents":450,"net_cents":8550,"expected_payout_on":"2026-12-21","payout_deposited_on":null,"payout_id":null,"split":[{"recipient_id":"shw_2","amount_cents":9000,"fee_cents":450,"net_cents":8550}]}}));
   const payment = await perata.payments.get("pay_1");
   assert.equal(payment.fee_cents, 450);
   assert.equal(payment.net_cents, 8550);
@@ -397,7 +397,7 @@ test("the renewal mode, the label and the open charge", async () => {
   const { perata, seen } = client(({ method, url }) => {
     switch (`${method} ${url.pathname}`) {
       case "POST /api/v1/checkouts":
-        return json(201, {"data":{"id":"pcl_1","showcase_id":"x","url":"x","product_id":"prod_1","price_id":"price_1","status":"active","label":"Olho de Águia · Ana","quantity":0,"amount_cents":null,"items":[],"metadata":{},"client_reference_id":"x","success_url":"x","cancel_url":"x","expires_at":null,"subscription_start_at":null,"discount_id":"x","first_period_extra_days":null,"renewal_mode":"automatic","notify_customer_email":false,"created_at":"2026-11-20T12:00:00Z","session_id":"cs_1","client_secret":"cs_secret_1","client_secret_expires_at":"2026-11-20T12:00:00Z","status_key":"x"}});
+        return json(201, {"data":{"id":"pcl_1","showcase_id":"x","url":"x","product_id":"prod_1","price_id":"price_1","status":"active","label":"Olho de Águia · Ana","quantity":0,"amount_cents":null,"items":[],"metadata":{},"client_reference_id":"x","success_url":"x","cancel_url":"x","expires_at":null,"subscription_start_at":null,"discount_id":"x","first_period_extra_days":null,"renewal_mode":"automatic","notify_customer_email":false,"created_at":"2026-11-20T12:00:00Z","session_id":"cs_1","client_secret":"cs_secret_1","max_installments":0,"installment_interest":null,"interest_free_installments":0,"installment_monthly_rate_bp":0,"min_installment_cents":0,"pix_discount_bp":null,"boleto_discount_bp":null,"coupon_stacks_with_method_discount":null,"client_secret_expires_at":"2026-11-20T12:00:00Z","status_key":"x"}});
       case "PATCH /api/v1/subscriptions/sub_1":
         return json(200, {"data":{"id":"sub_1","showcase_id":"x","customer_id":"x","product_id":"x","price_id":"x","status":"active","amount_cents":0,"quantity":0,"currency":"BRL","interval":"x","current_period_start":"2026-11-20T12:00:00Z","current_period_end":"2026-11-20T12:00:00Z","cancel_at_period_end":false,"pending_update":null,"suspended_at":null,"suspension_reason":null,"trial_start":null,"trial_end":null,"metadata":{},"client_reference_id":"x","discount_id":null,"discount_ends_at":null,"first_period_extra_days":null,"renewal_mode":"pix_automatic","label":"Olho de Águia · Ana","notify_customer_email":false}});
       case "GET /api/v1/subscriptions/sub_1/open-charge":
@@ -467,12 +467,12 @@ const referenceSecret = "whsec_MfKQ9r8GKYqrTwjUPD8ILPZIo2LaLaSw";
 const oldSecret = "whsec_cGVyYXRhLXNkay1vbGQta2V5LTAxMjM0NTY3ODlhYmM=";
 const newSecret = "whsec_cGVyYXRhLXNkay1uZXcta2V5LTAxMjM0NTY3ODlhYmM=";
 const orderPaid =
-  '{"id":"msg_2","type":"order.paid","timestamp":"2026-10-22T12:00:00Z","data":{"id":"ord_1","customer_id":"cus_1","product_id":"prod_1","price_id":"price_1","amount_cents":12000,"currency":"BRL","status":"succeeded","paid_at":"2026-10-22T12:00:00Z","order_status":"paid","refunded_amount_cents":0,"refund_id":null,"refund_amount_cents":null,"installments":3,"installment_interest_cents":360,"items":[],"metadata":{},"client_reference_id":"","showcase_id":"shw_1","subtotal_cents":12000,"discount_cents":0,"discount_id":null,"discount_code":null}}';
+  '{"id":"msg_2","type":"order.paid","timestamp":"2026-10-22T12:00:00Z","data":{"id":"ord_1","customer_id":"cus_1","product_id":"prod_1","price_id":"price_1","amount_cents":12000,"currency":"BRL","status":"succeeded","paid_at":"2026-10-22T12:00:00Z","order_status":"paid","refunded_amount_cents":0,"refund_id":null,"refund_amount_cents":null,"installments":3,"installment_interest_cents":360,"payment_method_discount_cents":0,"payment_method_discount_bp":0,"items":[],"metadata":{},"client_reference_id":"","showcase_id":"shw_1","subtotal_cents":12000,"discount_cents":0,"discount_id":null,"discount_code":null}}';
 const usageRecorded =
   '{"id":"msg_3","type":"usage_event.recorded","timestamp":"2026-10-22T12:00:00Z","data":{"event_id":"ue_1","aggregate":"usage_event","aggregate_id":"ue_1","merchant_id":"mer_1","environment":"test"}}';
 const payoutSent = '{"id":"msg_4","type":"payout.sent","timestamp":"2026-10-22T12:00:00Z","data":{"payout_id":"po_1","amount_cents":5000}}';
 const orderPaidLive =
-  '{"id":"msg_5","type":"order.paid","timestamp":"2026-10-22T12:00:00Z","environment":"live","showcase_id":"shw_1","data":{"id":"ord_1","customer_id":"cus_1","product_id":"prod_1","price_id":"price_1","amount_cents":12000,"currency":"BRL","status":"succeeded","paid_at":"2026-10-22T12:00:00Z","order_status":"paid","refunded_amount_cents":0,"refund_id":null,"refund_amount_cents":null,"installments":3,"installment_interest_cents":360,"items":[],"metadata":{},"client_reference_id":"","showcase_id":"shw_1","subtotal_cents":12000,"discount_cents":0,"discount_id":null,"discount_code":null}}';
+  '{"id":"msg_5","type":"order.paid","timestamp":"2026-10-22T12:00:00Z","environment":"live","showcase_id":"shw_1","data":{"id":"ord_1","customer_id":"cus_1","product_id":"prod_1","price_id":"price_1","amount_cents":12000,"currency":"BRL","status":"succeeded","paid_at":"2026-10-22T12:00:00Z","order_status":"paid","refunded_amount_cents":0,"refund_id":null,"refund_amount_cents":null,"installments":3,"installment_interest_cents":360,"payment_method_discount_cents":0,"payment_method_discount_bp":0,"items":[],"metadata":{},"client_reference_id":"","showcase_id":"shw_1","subtotal_cents":12000,"discount_cents":0,"discount_id":null,"discount_code":null}}';
 const payoutSentTest = '{"id":"msg_6","type":"payout.sent","timestamp":"2026-10-22T12:00:00Z","environment":"test","data":{"payout_id":"po_1","amount_cents":5000}}';
 const signedAt = 1792670400;
 const webhookHeaders = (id: string, at: number, signature: string) => ({ "Webhook-Id": id, "webhook-timestamp": String(at), "webhook-signature": signature });
@@ -497,7 +497,7 @@ test("a timestamp that is not plain digits is refused", async () => {
 test("a webhook carries the environment it happened in", async () => {
   const now = (signedAt + 120) * 1000;
   const older: [string, string, string][] = [
-    ["msg_2", "v1,wR5lfpym2P4TnG65MaTym1j5wWmRCtcygqTrQNICOEQ= v1,BLGtoe01YFYZHfU7Hcj8qvYNfluZvoTrRaAjcfB8JSs=", orderPaid],
+    ["msg_2", "v1,F6yjAk5yoz2jK2Q70MVlMG2eFKNVM17nIhiWKfmjCzc= v1,npiewgDGHvzxB3L7ys4KBiP2hooWdiMkdW2tPNyOv/8=", orderPaid],
     ["msg_3", "v1,Z3E2vTbczigiySfkzakxuZotPn9FlBY1KAET6hPEZoU=", usageRecorded],
     ["msg_4", "v1,Sa/yofA3h/58pFR+rIiWdIc8qXfcuqvyJSjxn4oJ1ZY=", payoutSent],
   ];
@@ -506,7 +506,7 @@ test("a webhook carries the environment it happened in", async () => {
     assert.equal(event.environment, "", id);
     assert.equal(event.showcase_id, "", id);
   }
-  const order = await verifyWebhook(newSecret, webhookHeaders("msg_5", signedAt, "v1,vJOO2qPe9Vzlr42VPwCuIO+a6Sg8ZVfl9z4WuLJItwg="), orderPaidLive, now);
+  const order = await verifyWebhook(newSecret, webhookHeaders("msg_5", signedAt, "v1,uz6PnD5ymh2ny+f3isuMCyoYJ/B1du6G21/9CW1HB7I="), orderPaidLive, now);
   assert.equal(order.environment, "live");
   assert.equal(order.showcase_id, "shw_1");
   assert.equal(order.data.showcase_id, "shw_1");
@@ -517,7 +517,7 @@ test("a webhook carries the environment it happened in", async () => {
 
 test("a webhook answers its typed event", async () => {
   const now = (signedAt + 120) * 1000;
-  const headers = webhookHeaders("msg_2", signedAt, "v1,wR5lfpym2P4TnG65MaTym1j5wWmRCtcygqTrQNICOEQ= v1,BLGtoe01YFYZHfU7Hcj8qvYNfluZvoTrRaAjcfB8JSs=");
+  const headers = webhookHeaders("msg_2", signedAt, "v1,F6yjAk5yoz2jK2Q70MVlMG2eFKNVM17nIhiWKfmjCzc= v1,npiewgDGHvzxB3L7ys4KBiP2hooWdiMkdW2tPNyOv/8=");
   for (const secret of [newSecret, oldSecret]) {
     const event = await verifyWebhook(secret, headers, orderPaid, now);
     assert.equal(event.type, "order.paid");

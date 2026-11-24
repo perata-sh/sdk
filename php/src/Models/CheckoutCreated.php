@@ -12,6 +12,8 @@ final class CheckoutCreated
     public function __construct(
         /** O valor, em centavos, que o seu servidor fixou; o comprador o vê e não pode mudá-lo. Nulo quando é o comprador quem digita o valor. */
         public readonly ?int $amountCents,
+        /** O desconto de quem paga com boleto neste checkout, em centésimos de ponto percentual; 0 desliga o desconto aqui; nulo segue a organização. */
+        public readonly ?int $boletoDiscountBp,
         /** Endereço https para onde o comprador volta se desistir; vazio sem ele. */
         public readonly string $cancelUrl,
         /** O id do pedido no seu sistema, como o seu servidor o enviou; vazio sem ele. Volta no checkout, no pedido, no pagamento e nos eventos. */
@@ -20,6 +22,8 @@ final class CheckoutCreated
         public readonly string $clientSecret,
         /** Quando a sessão e o client_secret deixam de valer. */
         public readonly string $clientSecretExpiresAt,
+        /** Se o cupom soma com o desconto do Pix ou do boleto neste checkout: true soma (o cupom primeiro, o desconto da forma depois), false vale só o maior dos dois em centavos sobre o mesmo preço; nulo segue a organização (que por padrão não soma). Em assinatura o cupom sempre soma. */
+        public readonly ?bool $couponStacksWithMethodDiscount,
         public readonly string $createdAt,
         /** O desconto que o checkout aplica sozinho, como o seu servidor o enviou na criação; vazio sem ele. O comprador o vê no resumo e ele conta desde a primeira cobrança. */
         public readonly string $discountId,
@@ -30,19 +34,34 @@ final class CheckoutCreated
         /** O ID do link do checkout, o que GET e PATCH /checkouts/{id} recebem. */
         public readonly string $id,
         /**
+         * Quem paga os juros do parcelamento deste checkout: merchant (sem juros) ou buyer (com juros); nulo segue a organização.
+         * @var 'merchant'|'buyer'|null
+         */
+        public readonly ?string $installmentInterest,
+        /** A taxa de juros ao mês que o comprador paga, em centésimos de ponto percentual (299 é 2,99%); 0 segue a organização. */
+        public readonly int $installmentMonthlyRateBp,
+        /** Quantas parcelas saem sem juros quando o comprador paga os juros; 0 segue a organização. */
+        public readonly int $interestFreeInstallments,
+        /**
          * As linhas do valor fixado, na ordem em que foram enviadas; vazio sem elas.
          * @var list<CheckoutLine>
          */
         public readonly array $items,
         /** Como o lojista chama o checkout nas próprias telas; o comprador não vê. */
         public readonly string $label,
+        /** O máximo de parcelas no cartão de crédito deste checkout; 0 segue o que a organização definiu, 1 vende só à vista. */
+        public readonly int $maxInstallments,
         /**
          * Os pares que o seu servidor enviou; voltam no pedido, no pagamento e nos eventos da venda (checkout.*, order.*, checkout_payment.* e refund.*).
          * @var array<string, mixed>
          */
         public readonly array $metadata,
+        /** A menor parcela, em centavos; 0 segue a organização. */
+        public readonly int $minInstallmentCents,
         /** Falso quando o seu sistema avisa o comprador das cobranças de renovação e a Peráta fica quieta. */
         public readonly bool $notifyCustomerEmail,
+        /** O desconto de quem paga com Pix neste checkout, em centésimos de ponto percentual (500 é 5%); 0 desliga o desconto aqui; nulo segue a organização. */
+        public readonly ?int $pixDiscountBp,
         public readonly string $priceId,
         public readonly string $productId,
         public readonly int $quantity,
@@ -78,19 +97,27 @@ final class CheckoutCreated
     {
         return new self(
             amountCents: $data['amount_cents'] ?? null,
+            boletoDiscountBp: $data['boleto_discount_bp'] ?? null,
             cancelUrl: $data['cancel_url'],
             clientReferenceId: $data['client_reference_id'],
             clientSecret: $data['client_secret'],
             clientSecretExpiresAt: $data['client_secret_expires_at'],
+            couponStacksWithMethodDiscount: $data['coupon_stacks_with_method_discount'] ?? null,
             createdAt: $data['created_at'],
             discountId: $data['discount_id'],
             expiresAt: $data['expires_at'] ?? null,
             firstPeriodExtraDays: $data['first_period_extra_days'] ?? null,
             id: $data['id'],
+            installmentInterest: $data['installment_interest'] ?? null,
+            installmentMonthlyRateBp: $data['installment_monthly_rate_bp'],
+            interestFreeInstallments: $data['interest_free_installments'],
             items: array_values(array_map(static fn (array $item) => CheckoutLine::fromArray($item), $data['items'])),
             label: $data['label'],
+            maxInstallments: $data['max_installments'],
             metadata: $data['metadata'],
+            minInstallmentCents: $data['min_installment_cents'],
             notifyCustomerEmail: $data['notify_customer_email'],
+            pixDiscountBp: $data['pix_discount_bp'] ?? null,
             priceId: $data['price_id'],
             productId: $data['product_id'],
             quantity: $data['quantity'],

@@ -253,8 +253,8 @@ class CheckoutsService:
         abre uma cobrança para o comprador pagar e avisa o seu sistema com
         subscription.renewal_due, mesmo que o primeiro pagamento tenha sido no
         cartão), automatic (só cartão de crédito guardado ou Pix Automático;
-        cobra sozinho) ou buyer_choice (a página mostra a caixa Ativar cobrança
-        automática e o comprador decide); sem o campo nada muda.
+        cobra sozinho) ou buyer_choice (a página mostra a caixa Cobrança
+        recorrente e o comprador decide); sem o campo nada muda.
         notify_customer_email false mantém a Peráta sem escrever ao comprador.
         label dá nome à assinatura (por exemplo, Olho de Águia · Colaborador
         Ana).
@@ -819,11 +819,12 @@ class PaymentsService:
         data = self._client.request("GET", f"/api/v1/payments/{segment(payment)}", api_key=api_key)
         return models.Payment.from_dict(data)
 
-    def list(self, *, page: int | None = None, limit: int | None = None, client_reference_id: str | None = None, status: str | None = None, customer_id: str | None = None, external_customer_id: str | None = None, subscription_id: str | None = None, created_after: str | None = None, created_before: str | None = None, sorting: str | None = None, metadata: dict[str, str] | None = None, api_key: str | None = None) -> Page[models.Payment]:
+    def list(self, *, page: int | None = None, limit: int | None = None, client_reference_id: str | None = None, status: str | None = None, customer_id: str | None = None, external_customer_id: str | None = None, subscription_id: str | None = None, method: str | None = None, created_after: str | None = None, created_before: str | None = None, sorting: str | None = None, metadata: dict[str, str] | None = None, api_key: str | None = None) -> Page[models.Payment]:
         """Listar pagamentos. One page; ``list_iter`` walks every page.
 
         Devolve uma página dos pagamentos. Filtre por client_reference_id,
-        estado, cliente, assinatura (subscription_id), período ou metadados.
+        estado, meio (method: card, pix ou boleto), cliente, assinatura
+        (subscription_id), período ou metadados.
 
         Autenticação: chave de API da organização em Authorization: Bearer
         (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
@@ -831,12 +832,12 @@ class PaymentsService:
         é dele. Respostas em JSON no envelope data; erros com error, message e
         fields.
         """
-        data = self._client.request("GET", "/api/v1/payments", query={"page": page, "limit": limit, "client_reference_id": client_reference_id, "status": status, "customer_id": customer_id, "external_customer_id": external_customer_id, "subscription_id": subscription_id, "created_after": created_after, "created_before": created_before, "sorting": sorting, "metadata": metadata}, api_key=api_key)
+        data = self._client.request("GET", "/api/v1/payments", query={"page": page, "limit": limit, "client_reference_id": client_reference_id, "status": status, "customer_id": customer_id, "external_customer_id": external_customer_id, "subscription_id": subscription_id, "method": method, "created_after": created_after, "created_before": created_before, "sorting": sorting, "metadata": metadata}, api_key=api_key)
         return Page.from_dict(data, models.Payment.from_dict)
 
-    def list_iter(self, *, page: int | None = None, limit: int | None = None, client_reference_id: str | None = None, status: str | None = None, customer_id: str | None = None, external_customer_id: str | None = None, subscription_id: str | None = None, created_after: str | None = None, created_before: str | None = None, sorting: str | None = None, metadata: dict[str, str] | None = None, api_key: str | None = None) -> Iterator[models.Payment]:
+    def list_iter(self, *, page: int | None = None, limit: int | None = None, client_reference_id: str | None = None, status: str | None = None, customer_id: str | None = None, external_customer_id: str | None = None, subscription_id: str | None = None, method: str | None = None, created_after: str | None = None, created_before: str | None = None, sorting: str | None = None, metadata: dict[str, str] | None = None, api_key: str | None = None) -> Iterator[models.Payment]:
         """Walks every page of payments:list, item by item."""
-        return iterate(lambda at: self.list(page=at, limit=limit, client_reference_id=client_reference_id, status=status, customer_id=customer_id, external_customer_id=external_customer_id, subscription_id=subscription_id, created_after=created_after, created_before=created_before, sorting=sorting, metadata=metadata, api_key=api_key), page)
+        return iterate(lambda at: self.list(page=at, limit=limit, client_reference_id=client_reference_id, status=status, customer_id=customer_id, external_customer_id=external_customer_id, subscription_id=subscription_id, method=method, created_after=created_after, created_before=created_before, sorting=sorting, metadata=metadata, api_key=api_key), page)
 
 
 class PayoutsService:
@@ -1046,11 +1047,16 @@ class RefundsService:
         Devolve dinheiro de um pagamento, que você nomeia pelo payment_id ou
         pelo order_id do pedido que ele pagou (os dois, só se forem do mesmo
         pagamento). Sem amount_cents devolve tudo o que ainda pode ser
-        devolvido; com ele, uma parte, até esse limite. O reason, sem ele, é
-        requested_by_customer. O metadata fica no reembolso e volta nele e nos
-        eventos refund.*. A Idempotency-Key é obrigatória: sem ela, repetir a
-        chamada depois de um tempo esgotado seria devolver duas vezes; repetida
-        com a mesma chave, devolve o mesmo reembolso.
+        devolvido; com ele, uma parte, até esse limite. Um pagamento de cartão
+        aceita vários reembolsos parciais, um depois do outro, e a soma deles
+        nunca passa do valor capturado: um pedido acima do que resta volta 409,
+        e um pedido feito enquanto o reembolso anterior ainda está em andamento
+        também volta 409 (espere ele terminar e repita). Um pagamento por Pix
+        aceita um só reembolso. O reason, sem ele, é requested_by_customer. O
+        metadata fica no reembolso e volta nele e nos eventos refund.*. A
+        Idempotency-Key é obrigatória: sem ela, repetir a chamada depois de um
+        tempo esgotado seria devolver duas vezes; repetida com a mesma chave,
+        devolve o mesmo reembolso.
 
         Autenticação: chave de API da organização em Authorization: Bearer
         (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
@@ -1179,11 +1185,12 @@ class SubscriptionsService:
         data = self._client.request("GET", f"/api/v1/subscriptions/{segment(subscription)}/open-charge", api_key=api_key)
         return models.RenewalCharge.from_dict(data)
 
-    def list(self, *, page: int | None = None, limit: int | None = None, status: str | None = None, customer_id: str | None = None, external_customer_id: str | None = None, created_after: str | None = None, created_before: str | None = None, sorting: str | None = None, metadata: dict[str, str] | None = None, api_key: str | None = None) -> Page[models.Subscription]:
+    def list(self, *, page: int | None = None, limit: int | None = None, status: str | None = None, renewal_mode: str | None = None, customer_id: str | None = None, external_customer_id: str | None = None, created_after: str | None = None, created_before: str | None = None, sorting: str | None = None, metadata: dict[str, str] | None = None, api_key: str | None = None) -> Page[models.Subscription]:
         """Listar assinaturas. One page; ``list_iter`` walks every page.
 
         Devolve uma página das assinaturas. Filtre por cliente (customer_id ou
-        external_customer_id), status, período ou metadados.
+        external_customer_id), status, tipo de cobrança (renewal_mode: card,
+        pix_automatic ou manual), período ou metadados.
 
         Autenticação: chave de API da organização em Authorization: Bearer
         (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
@@ -1191,12 +1198,12 @@ class SubscriptionsService:
         é dele. Respostas em JSON no envelope data; erros com error, message e
         fields.
         """
-        data = self._client.request("GET", "/api/v1/subscriptions", query={"page": page, "limit": limit, "status": status, "customer_id": customer_id, "external_customer_id": external_customer_id, "created_after": created_after, "created_before": created_before, "sorting": sorting, "metadata": metadata}, api_key=api_key)
+        data = self._client.request("GET", "/api/v1/subscriptions", query={"page": page, "limit": limit, "status": status, "renewal_mode": renewal_mode, "customer_id": customer_id, "external_customer_id": external_customer_id, "created_after": created_after, "created_before": created_before, "sorting": sorting, "metadata": metadata}, api_key=api_key)
         return Page.from_dict(data, models.Subscription.from_dict)
 
-    def list_iter(self, *, page: int | None = None, limit: int | None = None, status: str | None = None, customer_id: str | None = None, external_customer_id: str | None = None, created_after: str | None = None, created_before: str | None = None, sorting: str | None = None, metadata: dict[str, str] | None = None, api_key: str | None = None) -> Iterator[models.Subscription]:
+    def list_iter(self, *, page: int | None = None, limit: int | None = None, status: str | None = None, renewal_mode: str | None = None, customer_id: str | None = None, external_customer_id: str | None = None, created_after: str | None = None, created_before: str | None = None, sorting: str | None = None, metadata: dict[str, str] | None = None, api_key: str | None = None) -> Iterator[models.Subscription]:
         """Walks every page of subscriptions:list, item by item."""
-        return iterate(lambda at: self.list(page=at, limit=limit, status=status, customer_id=customer_id, external_customer_id=external_customer_id, created_after=created_after, created_before=created_before, sorting=sorting, metadata=metadata, api_key=api_key), page)
+        return iterate(lambda at: self.list(page=at, limit=limit, status=status, renewal_mode=renewal_mode, customer_id=customer_id, external_customer_id=external_customer_id, created_after=created_after, created_before=created_before, sorting=sorting, metadata=metadata, api_key=api_key), page)
 
     def resume(self, subscription: str, *, idempotency_key: str | None = None, api_key: str | None = None) -> models.Subscription:
         """Reativar uma assinatura.

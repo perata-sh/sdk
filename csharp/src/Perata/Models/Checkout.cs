@@ -9,6 +9,12 @@ namespace Perata;
 /// <summary>Checkout is a resource of Peráta's API.</summary>
 public sealed record Checkout
 {
+    /// <summary>A value of <see cref="InstallmentInterest"/>.</summary>
+    public const string InstallmentInterestMerchant = "merchant";
+
+    /// <summary>A value of <see cref="InstallmentInterest"/>.</summary>
+    public const string InstallmentInterestBuyer = "buyer";
+
     /// <summary>A value of <see cref="RenewalMode"/>.</summary>
     public const string RenewalModeManual = "manual";
 
@@ -28,6 +34,10 @@ public sealed record Checkout
     [JsonPropertyName("amount_cents")]
     public long? AmountCents { get; init; }
 
+    /// <summary>O desconto de quem paga com boleto neste checkout, em centésimos de ponto percentual; 0 desliga o desconto aqui; nulo segue a organização. Null when the API sends none.</summary>
+    [JsonPropertyName("boleto_discount_bp")]
+    public long? BoletoDiscountBp { get; init; }
+
     /// <summary>Endereço https para onde o comprador volta se desistir; vazio sem ele.</summary>
     [JsonPropertyName("cancel_url")]
     public required string CancelUrl { get; init; }
@@ -35,6 +45,10 @@ public sealed record Checkout
     /// <summary>O id do pedido no seu sistema, como o seu servidor o enviou na criação; vazio sem ele. Volta no checkout, no pedido, no pagamento e nos eventos.</summary>
     [JsonPropertyName("client_reference_id")]
     public required string ClientReferenceId { get; init; }
+
+    /// <summary>Se o cupom soma com o desconto do Pix ou do boleto neste checkout: true soma (o cupom primeiro, o desconto da forma depois), false vale só o maior dos dois em centavos sobre o mesmo preço; nulo segue a organização (que por padrão não soma). Em assinatura o cupom sempre soma. Null when the API sends none.</summary>
+    [JsonPropertyName("coupon_stacks_with_method_discount")]
+    public bool? CouponStacksWithMethodDiscount { get; init; }
 
     /// <summary>The API's <c>created_at</c>.</summary>
     [JsonPropertyName("created_at")]
@@ -56,6 +70,18 @@ public sealed record Checkout
     [JsonPropertyName("id")]
     public required string Id { get; init; }
 
+    /// <summary>Quem paga os juros do parcelamento deste checkout: merchant (sem juros) ou buyer (com juros); nulo segue a organização. Null when the API sends none.</summary>
+    [JsonPropertyName("installment_interest")]
+    public string? InstallmentInterest { get; init; }
+
+    /// <summary>A taxa de juros ao mês que o comprador paga, em centésimos de ponto percentual (299 é 2,99%); 0 segue a organização.</summary>
+    [JsonPropertyName("installment_monthly_rate_bp")]
+    public required long InstallmentMonthlyRateBp { get; init; }
+
+    /// <summary>Quantas parcelas saem sem juros quando o comprador paga os juros; 0 segue a organização.</summary>
+    [JsonPropertyName("interest_free_installments")]
+    public required long InterestFreeInstallments { get; init; }
+
     /// <summary>As linhas do valor fixado, na ordem em que foram enviadas; vazio sem elas.</summary>
     [JsonPropertyName("items")]
     public required IReadOnlyList<CheckoutLine> Items { get; init; }
@@ -64,13 +90,25 @@ public sealed record Checkout
     [JsonPropertyName("label")]
     public required string Label { get; init; }
 
+    /// <summary>O máximo de parcelas no cartão de crédito deste checkout; 0 segue o que a organização definiu, 1 vende só à vista.</summary>
+    [JsonPropertyName("max_installments")]
+    public required long MaxInstallments { get; init; }
+
     /// <summary>Os pares que o seu servidor guardou na criação; voltam nos eventos da venda.</summary>
     [JsonPropertyName("metadata")]
     public required IReadOnlyDictionary<string, JsonElement> Metadata { get; init; }
 
+    /// <summary>A menor parcela, em centavos; 0 segue a organização.</summary>
+    [JsonPropertyName("min_installment_cents")]
+    public required long MinInstallmentCents { get; init; }
+
     /// <summary>Falso quando o seu sistema avisa o comprador das cobranças de renovação e a Peráta fica quieta.</summary>
     [JsonPropertyName("notify_customer_email")]
     public required bool NotifyCustomerEmail { get; init; }
+
+    /// <summary>O desconto de quem paga com Pix neste checkout, em centésimos de ponto percentual (500 é 5%); 0 desliga o desconto aqui; nulo segue a organização. Null when the API sends none.</summary>
+    [JsonPropertyName("pix_discount_bp")]
+    public long? PixDiscountBp { get; init; }
 
     /// <summary>The API's <c>price_id</c>.</summary>
     [JsonPropertyName("price_id")]

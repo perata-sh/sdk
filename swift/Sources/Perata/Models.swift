@@ -202,7 +202,7 @@ public struct CardAuthentication: Codable, Sendable, Hashable {
     /// Segundos de vida do token.
     public let expiresIn: Int
     public let provider: String
-    /// O script de autenticação do adquirente.
+    /// O script de autenticação do processador de pagamentos.
     public let scriptURL: String
     /// O valor, em centavos, que o script deve autenticar: o total da sessão no servidor. Copie-o no campo bpmpi_totalamount; depois que ele é entregue, o total da sessão não muda mais.
     public let totalCents: Int
@@ -228,7 +228,7 @@ public struct CardAuthentication: Codable, Sendable, Hashable {
 
 /// CardTokenization is a resource of Peráta's API.
 public struct CardTokenization: Codable, Sendable, Hashable {
-    /// O token com que o script do adquirente envia o cartão; entregue só a uma página da própria origem da Peráta.
+    /// O token com que o script do processador de pagamentos envia o cartão; entregue só a uma página da própria origem da Peráta.
     public let accessToken: String
     /// O bilhete da tentativa deste cartão: de uso único, válido só para esta sessão e por 20 minutos. Devolva-o em card_ticket ao confirmar; sem um bilhete válido nenhum cartão é tentado.
     public let cardTicket: String
@@ -260,10 +260,14 @@ public struct CardTokenization: Codable, Sendable, Hashable {
 public struct Checkout: Codable, Sendable, Hashable {
     /// O valor, em centavos, que o seu servidor fixou na criação; nulo quando é o comprador quem digita o valor.
     public let amountCents: Int?
+    /// O desconto de quem paga com boleto neste checkout, em centésimos de ponto percentual; 0 desliga o desconto aqui; nulo segue a organização.
+    public let boletoDiscountBp: Int?
     /// Endereço https para onde o comprador volta se desistir; vazio sem ele.
     public let cancelURL: String
     /// O id do pedido no seu sistema, como o seu servidor o enviou na criação; vazio sem ele. Volta no checkout, no pedido, no pagamento e nos eventos.
     public let clientReferenceID: String
+    /// Se o cupom soma com o desconto do Pix ou do boleto neste checkout: true soma (o cupom primeiro, o desconto da forma depois), false vale só o maior dos dois em centavos sobre o mesmo preço; nulo segue a organização (que por padrão não soma). Em assinatura o cupom sempre soma.
+    public let couponStacksWithMethodDiscount: Bool?
     public let createdAt: String
     /// O desconto que o checkout aplica sozinho, como o seu servidor o enviou na criação; vazio sem ele. O comprador o vê no resumo e ele conta desde a primeira cobrança.
     public let discountID: String
@@ -272,14 +276,26 @@ public struct Checkout: Codable, Sendable, Hashable {
     /// Quantos dias o seu servidor somou ao primeiro período da assinatura (first_period_extra_days na criação); nulo quando o primeiro período é o comum. O comprador paga hoje o valor cheio, e a próxima cobrança só acontece no fim do período mais longo.
     public let firstPeriodExtraDays: Int?
     public let id: String
+    /// Quem paga os juros do parcelamento deste checkout: merchant (sem juros) ou buyer (com juros); nulo segue a organização.
+    public let installmentInterest: CheckoutInstallmentInterest?
+    /// A taxa de juros ao mês que o comprador paga, em centésimos de ponto percentual (299 é 2,99%); 0 segue a organização.
+    public let installmentMonthlyRateBp: Int
+    /// Quantas parcelas saem sem juros quando o comprador paga os juros; 0 segue a organização.
+    public let interestFreeInstallments: Int
     /// As linhas do valor fixado, na ordem em que foram enviadas; vazio sem elas.
     public let items: [CheckoutLine]
     /// Como o lojista chama o checkout nas próprias telas; o comprador não vê.
     public let label: String
+    /// O máximo de parcelas no cartão de crédito deste checkout; 0 segue o que a organização definiu, 1 vende só à vista.
+    public let maxInstallments: Int
     /// Os pares que o seu servidor guardou na criação; voltam nos eventos da venda.
     public let metadata: [String: JSONValue]
+    /// A menor parcela, em centavos; 0 segue a organização.
+    public let minInstallmentCents: Int
     /// Falso quando o seu sistema avisa o comprador das cobranças de renovação e a Peráta fica quieta.
     public let notifyCustomerEmail: Bool
+    /// O desconto de quem paga com Pix neste checkout, em centésimos de ponto percentual (500 é 5%); 0 desliga o desconto aqui; nulo segue a organização.
+    public let pixDiscountBp: Int?
     public let priceID: String
     public let productID: String
     public let quantity: Int
@@ -296,19 +312,27 @@ public struct Checkout: Codable, Sendable, Hashable {
     /// Endereço para onde o comprador é enviado.
     public let url: String
 
-    public init(amountCents: Int?, cancelURL: String, clientReferenceID: String, createdAt: String, discountID: String, expiresAt: String?, firstPeriodExtraDays: Int?, id: String, items: [CheckoutLine], label: String, metadata: [String: JSONValue], notifyCustomerEmail: Bool, priceID: String, productID: String, quantity: Int, renewalMode: CheckoutRenewalMode, showcaseID: String, status: CheckoutStatus, subscriptionStartAt: String?, successURL: String, url: String) {
+    public init(amountCents: Int?, boletoDiscountBp: Int?, cancelURL: String, clientReferenceID: String, couponStacksWithMethodDiscount: Bool?, createdAt: String, discountID: String, expiresAt: String?, firstPeriodExtraDays: Int?, id: String, installmentInterest: CheckoutInstallmentInterest?, installmentMonthlyRateBp: Int, interestFreeInstallments: Int, items: [CheckoutLine], label: String, maxInstallments: Int, metadata: [String: JSONValue], minInstallmentCents: Int, notifyCustomerEmail: Bool, pixDiscountBp: Int?, priceID: String, productID: String, quantity: Int, renewalMode: CheckoutRenewalMode, showcaseID: String, status: CheckoutStatus, subscriptionStartAt: String?, successURL: String, url: String) {
         self.amountCents = amountCents
+        self.boletoDiscountBp = boletoDiscountBp
         self.cancelURL = cancelURL
         self.clientReferenceID = clientReferenceID
+        self.couponStacksWithMethodDiscount = couponStacksWithMethodDiscount
         self.createdAt = createdAt
         self.discountID = discountID
         self.expiresAt = expiresAt
         self.firstPeriodExtraDays = firstPeriodExtraDays
         self.id = id
+        self.installmentInterest = installmentInterest
+        self.installmentMonthlyRateBp = installmentMonthlyRateBp
+        self.interestFreeInstallments = interestFreeInstallments
         self.items = items
         self.label = label
+        self.maxInstallments = maxInstallments
         self.metadata = metadata
+        self.minInstallmentCents = minInstallmentCents
         self.notifyCustomerEmail = notifyCustomerEmail
+        self.pixDiscountBp = pixDiscountBp
         self.priceID = priceID
         self.productID = productID
         self.quantity = quantity
@@ -322,17 +346,25 @@ public struct Checkout: Codable, Sendable, Hashable {
 
     enum CodingKeys: String, CodingKey {
         case amountCents = "amount_cents"
+        case boletoDiscountBp = "boleto_discount_bp"
         case cancelURL = "cancel_url"
         case clientReferenceID = "client_reference_id"
+        case couponStacksWithMethodDiscount = "coupon_stacks_with_method_discount"
         case createdAt = "created_at"
         case discountID = "discount_id"
         case expiresAt = "expires_at"
         case firstPeriodExtraDays = "first_period_extra_days"
         case id
+        case installmentInterest = "installment_interest"
+        case installmentMonthlyRateBp = "installment_monthly_rate_bp"
+        case interestFreeInstallments = "interest_free_installments"
         case items
         case label
+        case maxInstallments = "max_installments"
         case metadata
+        case minInstallmentCents = "min_installment_cents"
         case notifyCustomerEmail = "notify_customer_email"
+        case pixDiscountBp = "pix_discount_bp"
         case priceID = "price_id"
         case productID = "product_id"
         case quantity
@@ -353,7 +385,7 @@ public struct CheckoutClient: Codable, Sendable, Hashable {
     public let amountLocked: Bool
     /// Para onde o comprador volta sem pagar.
     public let cancelURL: String
-    /// credit, e debit onde a autenticação do adquirente está ligada.
+    /// credit, e debit onde a autenticação do processador de pagamentos está ligada.
     public let cardKinds: [String]
     /// O id do pedido no seu sistema, quando o seu servidor o enviou; vazio sem ele.
     public let clientReferenceID: String
@@ -381,6 +413,8 @@ public struct CheckoutClient: Codable, Sendable, Hashable {
     public let missing: [String]
     public let nextAction: CheckoutNextAction
     public let payment: CheckoutClientPayment?
+    /// O desconto de cada forma de pagamento que tem um (Pix e boleto), depois do cupom e sobre o valor já com o cupom quando o cupom soma; quando não soma, só aparece a forma cujo desconto é maior que o do cupom, sobre o preço sem cupom; vazio quando nenhuma tem. O cartão de crédito não tem desconto. O Pix Automático também não.
+    public let paymentDiscounts: [CheckoutClientPaymentDiscount]
     /// As formas em que a sessão pode ser paga, entre card, pix, boleto e free; free é uma sessão que não pede pagamento.
     public let paymentMethods: [String]
     /// O lojista pede o endereço de cobrança completo; o boleto o pede de qualquer jeito.
@@ -396,7 +430,7 @@ public struct CheckoutClient: Codable, Sendable, Hashable {
     /// O que o comprador paga, em centavos.
     public let totalCents: Int
 
-    public init(amountCents: Int, amountLocked: Bool, cancelURL: String, cardKinds: [String], clientReferenceID: String, currency: CheckoutClientCurrency, customer: CheckoutClientCustomer?, discount: CheckoutClientDiscount?, discountCents: Int, editable: Bool, environment: CheckoutClientEnvironment, expiresAt: String, firstChargeAt: String?, firstPeriodEndAt: String?, firstPeriodExtraDays: Int?, id: String, installments: [CheckoutInstallment], items: [CheckoutClientItem], missing: [String], nextAction: CheckoutNextAction, payment: CheckoutClientPayment?, paymentMethods: [String], requiresBillingAddress: Bool, requiresTaxID: Bool, status: CheckoutClientStatus, statusKey: String, successURL: String, totalCents: Int) {
+    public init(amountCents: Int, amountLocked: Bool, cancelURL: String, cardKinds: [String], clientReferenceID: String, currency: CheckoutClientCurrency, customer: CheckoutClientCustomer?, discount: CheckoutClientDiscount?, discountCents: Int, editable: Bool, environment: CheckoutClientEnvironment, expiresAt: String, firstChargeAt: String?, firstPeriodEndAt: String?, firstPeriodExtraDays: Int?, id: String, installments: [CheckoutInstallment], items: [CheckoutClientItem], missing: [String], nextAction: CheckoutNextAction, payment: CheckoutClientPayment?, paymentDiscounts: [CheckoutClientPaymentDiscount], paymentMethods: [String], requiresBillingAddress: Bool, requiresTaxID: Bool, status: CheckoutClientStatus, statusKey: String, successURL: String, totalCents: Int) {
         self.amountCents = amountCents
         self.amountLocked = amountLocked
         self.cancelURL = cancelURL
@@ -418,6 +452,7 @@ public struct CheckoutClient: Codable, Sendable, Hashable {
         self.missing = missing
         self.nextAction = nextAction
         self.payment = payment
+        self.paymentDiscounts = paymentDiscounts
         self.paymentMethods = paymentMethods
         self.requiresBillingAddress = requiresBillingAddress
         self.requiresTaxID = requiresTaxID
@@ -449,6 +484,7 @@ public struct CheckoutClient: Codable, Sendable, Hashable {
         case missing
         case nextAction = "next_action"
         case payment
+        case paymentDiscounts = "payment_discounts"
         case paymentMethods = "payment_methods"
         case requiresBillingAddress = "requires_billing_address"
         case requiresTaxID = "requires_tax_id"
@@ -465,7 +501,7 @@ public struct CheckoutClientBoleto: Codable, Sendable, Hashable {
     public let digitableLine: String
     /// Quando o boleto deixa de poder ser pago: o fim do dia do vencimento, no horário de Brasília.
     public let dueDate: String?
-    /// Onde o boleto é baixado; vazio quando o adquirente não deu nenhum.
+    /// Onde o boleto é baixado; vazio quando o processador de pagamentos não deu nenhum.
     public let pdfURL: String
 
     public init(digitableLine: String, dueDate: String?, pdfURL: String) {
@@ -491,15 +527,18 @@ public struct CheckoutClientCustomer: Codable, Sendable, Hashable {
     public let name: String
     /// O CPF ou CNPJ do comprador, só dígitos; vazio enquanto não for informado.
     public let taxID: String
+    /// Verdadeiro quando o CPF ou CNPJ é o que o lojista tem do cliente: o comprador não pode trocá-lo e o servidor recusa outro (422 em tax_id).
+    public let taxIDFixed: Bool
     public let taxIDKind: String
 
-    public init(address: BillingAddress, billingName: String, email: String, locked: Bool, name: String, taxID: String, taxIDKind: String) {
+    public init(address: BillingAddress, billingName: String, email: String, locked: Bool, name: String, taxID: String, taxIDFixed: Bool, taxIDKind: String) {
         self.address = address
         self.billingName = billingName
         self.email = email
         self.locked = locked
         self.name = name
         self.taxID = taxID
+        self.taxIDFixed = taxIDFixed
         self.taxIDKind = taxIDKind
     }
 
@@ -510,6 +549,7 @@ public struct CheckoutClientCustomer: Codable, Sendable, Hashable {
         case locked
         case name
         case taxID = "tax_id"
+        case taxIDFixed = "tax_id_fixed"
         case taxIDKind = "tax_id_kind"
     }
 }
@@ -584,7 +624,7 @@ public struct CheckoutClientPayment: Codable, Sendable, Hashable {
     public let method: CheckoutClientPaymentMethod
     public let pix: CheckoutClientPix?
     public let state: CheckoutClientPaymentState
-    /// Verdadeiro enquanto a resposta do adquirente ainda é descoberta; o comprador espera.
+    /// Verdadeiro enquanto a resposta do processador de pagamentos ainda é descoberta; o comprador espera.
     public let unresolved: Bool
 
     public init(boleto: CheckoutClientBoleto?, cardBrand: String, cardKind: String, id: String, installments: Int, method: CheckoutClientPaymentMethod, pix: CheckoutClientPix?, state: CheckoutClientPaymentState, unresolved: Bool) {
@@ -616,7 +656,7 @@ public struct CheckoutClientPayment: Codable, Sendable, Hashable {
 public struct CheckoutClientPix: Codable, Sendable, Hashable {
     /// O código Pix copia e cola.
     public let copiaECola: String
-    /// Quando o Pix deixa de poder ser pago, como o adquirente o deu.
+    /// Quando o Pix deixa de poder ser pago, como o processador de pagamentos o deu.
     public let expiresAt: String?
     /// O QR do código, desenhado como um documento SVG.
     public let qrCodeSvg: String
@@ -638,6 +678,8 @@ public struct CheckoutClientPix: Codable, Sendable, Hashable {
 public struct CheckoutCreated: Codable, Sendable, Hashable {
     /// O valor, em centavos, que o seu servidor fixou; o comprador o vê e não pode mudá-lo. Nulo quando é o comprador quem digita o valor.
     public let amountCents: Int?
+    /// O desconto de quem paga com boleto neste checkout, em centésimos de ponto percentual; 0 desliga o desconto aqui; nulo segue a organização.
+    public let boletoDiscountBp: Int?
     /// Endereço https para onde o comprador volta se desistir; vazio sem ele.
     public let cancelURL: String
     /// O id do pedido no seu sistema, como o seu servidor o enviou; vazio sem ele. Volta no checkout, no pedido, no pagamento e nos eventos.
@@ -646,6 +688,8 @@ public struct CheckoutCreated: Codable, Sendable, Hashable {
     public let clientSecret: String
     /// Quando a sessão e o client_secret deixam de valer.
     public let clientSecretExpiresAt: String
+    /// Se o cupom soma com o desconto do Pix ou do boleto neste checkout: true soma (o cupom primeiro, o desconto da forma depois), false vale só o maior dos dois em centavos sobre o mesmo preço; nulo segue a organização (que por padrão não soma). Em assinatura o cupom sempre soma.
+    public let couponStacksWithMethodDiscount: Bool?
     public let createdAt: String
     /// O desconto que o checkout aplica sozinho, como o seu servidor o enviou na criação; vazio sem ele. O comprador o vê no resumo e ele conta desde a primeira cobrança.
     public let discountID: String
@@ -655,14 +699,26 @@ public struct CheckoutCreated: Codable, Sendable, Hashable {
     public let firstPeriodExtraDays: Int?
     /// O ID do link do checkout, o que GET e PATCH /checkouts/{id} recebem.
     public let id: String
+    /// Quem paga os juros do parcelamento deste checkout: merchant (sem juros) ou buyer (com juros); nulo segue a organização.
+    public let installmentInterest: CheckoutCreatedInstallmentInterest?
+    /// A taxa de juros ao mês que o comprador paga, em centésimos de ponto percentual (299 é 2,99%); 0 segue a organização.
+    public let installmentMonthlyRateBp: Int
+    /// Quantas parcelas saem sem juros quando o comprador paga os juros; 0 segue a organização.
+    public let interestFreeInstallments: Int
     /// As linhas do valor fixado, na ordem em que foram enviadas; vazio sem elas.
     public let items: [CheckoutLine]
     /// Como o lojista chama o checkout nas próprias telas; o comprador não vê.
     public let label: String
+    /// O máximo de parcelas no cartão de crédito deste checkout; 0 segue o que a organização definiu, 1 vende só à vista.
+    public let maxInstallments: Int
     /// Os pares que o seu servidor enviou; voltam no pedido, no pagamento e nos eventos da venda (checkout.*, order.*, checkout_payment.* e refund.*).
     public let metadata: [String: JSONValue]
+    /// A menor parcela, em centavos; 0 segue a organização.
+    public let minInstallmentCents: Int
     /// Falso quando o seu sistema avisa o comprador das cobranças de renovação e a Peráta fica quieta.
     public let notifyCustomerEmail: Bool
+    /// O desconto de quem paga com Pix neste checkout, em centésimos de ponto percentual (500 é 5%); 0 desliga o desconto aqui; nulo segue a organização.
+    public let pixDiscountBp: Int?
     public let priceID: String
     public let productID: String
     public let quantity: Int
@@ -683,21 +739,29 @@ public struct CheckoutCreated: Codable, Sendable, Hashable {
     /// O endereço hospedado desta sessão: redirecione o comprador para cá, ou abra-o no modal, e ele paga na página da Peráta exatamente a sessão que esta resposta abriu, que aparece no status_key, no GET da sessão e nos webhooks com o mesmo checkout_id. Quem abre o endereço depois do pagamento vê a confirmação e nada é cobrado de novo. Na repetição de uma criação idempotente o segredo não existe mais e o endereço volta a ser o do link, que abre uma sessão nova a cada visita.
     public let url: String
 
-    public init(amountCents: Int?, cancelURL: String, clientReferenceID: String, clientSecret: String, clientSecretExpiresAt: String, createdAt: String, discountID: String, expiresAt: String?, firstPeriodExtraDays: Int?, id: String, items: [CheckoutLine], label: String, metadata: [String: JSONValue], notifyCustomerEmail: Bool, priceID: String, productID: String, quantity: Int, renewalMode: CheckoutCreatedRenewalMode, sessionID: String, showcaseID: String, status: CheckoutCreatedStatus, statusKey: String, subscriptionStartAt: String?, successURL: String, url: String) {
+    public init(amountCents: Int?, boletoDiscountBp: Int?, cancelURL: String, clientReferenceID: String, clientSecret: String, clientSecretExpiresAt: String, couponStacksWithMethodDiscount: Bool?, createdAt: String, discountID: String, expiresAt: String?, firstPeriodExtraDays: Int?, id: String, installmentInterest: CheckoutCreatedInstallmentInterest?, installmentMonthlyRateBp: Int, interestFreeInstallments: Int, items: [CheckoutLine], label: String, maxInstallments: Int, metadata: [String: JSONValue], minInstallmentCents: Int, notifyCustomerEmail: Bool, pixDiscountBp: Int?, priceID: String, productID: String, quantity: Int, renewalMode: CheckoutCreatedRenewalMode, sessionID: String, showcaseID: String, status: CheckoutCreatedStatus, statusKey: String, subscriptionStartAt: String?, successURL: String, url: String) {
         self.amountCents = amountCents
+        self.boletoDiscountBp = boletoDiscountBp
         self.cancelURL = cancelURL
         self.clientReferenceID = clientReferenceID
         self.clientSecret = clientSecret
         self.clientSecretExpiresAt = clientSecretExpiresAt
+        self.couponStacksWithMethodDiscount = couponStacksWithMethodDiscount
         self.createdAt = createdAt
         self.discountID = discountID
         self.expiresAt = expiresAt
         self.firstPeriodExtraDays = firstPeriodExtraDays
         self.id = id
+        self.installmentInterest = installmentInterest
+        self.installmentMonthlyRateBp = installmentMonthlyRateBp
+        self.interestFreeInstallments = interestFreeInstallments
         self.items = items
         self.label = label
+        self.maxInstallments = maxInstallments
         self.metadata = metadata
+        self.minInstallmentCents = minInstallmentCents
         self.notifyCustomerEmail = notifyCustomerEmail
+        self.pixDiscountBp = pixDiscountBp
         self.priceID = priceID
         self.productID = productID
         self.quantity = quantity
@@ -713,19 +777,27 @@ public struct CheckoutCreated: Codable, Sendable, Hashable {
 
     enum CodingKeys: String, CodingKey {
         case amountCents = "amount_cents"
+        case boletoDiscountBp = "boleto_discount_bp"
         case cancelURL = "cancel_url"
         case clientReferenceID = "client_reference_id"
         case clientSecret = "client_secret"
         case clientSecretExpiresAt = "client_secret_expires_at"
+        case couponStacksWithMethodDiscount = "coupon_stacks_with_method_discount"
         case createdAt = "created_at"
         case discountID = "discount_id"
         case expiresAt = "expires_at"
         case firstPeriodExtraDays = "first_period_extra_days"
         case id
+        case installmentInterest = "installment_interest"
+        case installmentMonthlyRateBp = "installment_monthly_rate_bp"
+        case interestFreeInstallments = "interest_free_installments"
         case items
         case label
+        case maxInstallments = "max_installments"
         case metadata
+        case minInstallmentCents = "min_installment_cents"
         case notifyCustomerEmail = "notify_customer_email"
+        case pixDiscountBp = "pix_discount_bp"
         case priceID = "price_id"
         case productID = "product_id"
         case quantity
@@ -853,23 +925,37 @@ public struct CheckoutLine: Codable, Sendable, Hashable {
 public struct CheckoutLink: Codable, Sendable, Hashable {
     /// Se o comprador pode digitar um código de desconto.
     public let allowDiscountCodes: Bool
+    /// O desconto de quem paga com boleto neste checkout, em centésimos de ponto percentual; 0 desliga o desconto aqui; nulo segue a organização.
+    public let boletoDiscountBp: Int?
     /// Endereço https para onde o comprador volta se desistir; vazio sem ele.
     public let cancelURL: String
     /// manual segura a venda no cartão para o lojista capturar depois.
     public let captureMode: CheckoutLinkCaptureMode
+    /// Se o cupom soma com o desconto do Pix ou do boleto neste checkout: true soma (o cupom primeiro, o desconto da forma depois), false vale só o maior dos dois em centavos sobre o mesmo preço; nulo segue a organização (que por padrão não soma). Em assinatura o cupom sempre soma.
+    public let couponStacksWithMethodDiscount: Bool?
     public let createdAt: String
     /// O desconto fixado no link; nulo sem ele.
     public let discountID: String?
     /// Quando o link deixa de abrir checkouts; nulo sem prazo.
     public let expiresAt: String?
     public let id: String
+    /// Quem paga os juros do parcelamento deste checkout: merchant (sem juros) ou buyer (com juros); nulo segue a organização.
+    public let installmentInterest: CheckoutLinkInstallmentInterest?
+    /// A taxa de juros ao mês que o comprador paga, em centésimos de ponto percentual (299 é 2,99%); 0 segue a organização.
+    public let installmentMonthlyRateBp: Int
+    /// Quantas parcelas saem sem juros quando o comprador paga os juros; 0 segue a organização.
+    public let interestFreeInstallments: Int
     /// Como o lojista chama o link nas próprias telas; o comprador não vê.
     public let label: String
     /// O máximo de parcelas no cartão de crédito; 0 segue o que a organização definiu.
     public let maxInstallments: Int
     /// Metadados do lojista: pares chave e valor (texto, número ou booleano); objeto vazio quando não há.
     public let metadata: [String: JSONValue]
+    /// A menor parcela, em centavos; 0 segue a organização.
+    public let minInstallmentCents: Int
     public let modifiedAt: String
+    /// O desconto de quem paga com Pix neste checkout, em centésimos de ponto percentual (500 é 5%); 0 desliga o desconto aqui; nulo segue a organização.
+    public let pixDiscountBp: Int?
     /// O preço do primeiro produto.
     public let priceID: String
     /// O primeiro produto do link.
@@ -877,6 +963,8 @@ public struct CheckoutLink: Codable, Sendable, Hashable {
     /// Os produtos que o link vende, na ordem em que o comprador os vê.
     public let products: [CheckoutLinkProduct]
     public let quantity: Int
+    /// Como a assinatura que o link vende renova: manual (uma cobrança por link a cada ciclo), automatic (só cartão guardado ou Pix Automático), buyer_choice (o comprador marca a caixa Cobrança recorrente na página); nulo é o padrão, em que o cartão guardado renova e, sem cartão, o comprador recebe o link.
+    public let renewalMode: CheckoutLinkRenewalMode?
     public let requireBillingAddress: Bool
     public let status: CheckoutLinkStatus
     /// Endereço https para onde o comprador volta depois de pagar; vazio sem ele.
@@ -887,22 +975,30 @@ public struct CheckoutLink: Codable, Sendable, Hashable {
     /// Endereço para onde o comprador é enviado.
     public let url: String
 
-    public init(allowDiscountCodes: Bool, cancelURL: String, captureMode: CheckoutLinkCaptureMode, createdAt: String, discountID: String?, expiresAt: String?, id: String, label: String, maxInstallments: Int, metadata: [String: JSONValue], modifiedAt: String, priceID: String, productID: String, products: [CheckoutLinkProduct], quantity: Int, requireBillingAddress: Bool, status: CheckoutLinkStatus, successURL: String, trialInterval: CheckoutLinkTrialInterval?, trialIntervalCount: Int?, url: String) {
+    public init(allowDiscountCodes: Bool, boletoDiscountBp: Int?, cancelURL: String, captureMode: CheckoutLinkCaptureMode, couponStacksWithMethodDiscount: Bool?, createdAt: String, discountID: String?, expiresAt: String?, id: String, installmentInterest: CheckoutLinkInstallmentInterest?, installmentMonthlyRateBp: Int, interestFreeInstallments: Int, label: String, maxInstallments: Int, metadata: [String: JSONValue], minInstallmentCents: Int, modifiedAt: String, pixDiscountBp: Int?, priceID: String, productID: String, products: [CheckoutLinkProduct], quantity: Int, renewalMode: CheckoutLinkRenewalMode?, requireBillingAddress: Bool, status: CheckoutLinkStatus, successURL: String, trialInterval: CheckoutLinkTrialInterval?, trialIntervalCount: Int?, url: String) {
         self.allowDiscountCodes = allowDiscountCodes
+        self.boletoDiscountBp = boletoDiscountBp
         self.cancelURL = cancelURL
         self.captureMode = captureMode
+        self.couponStacksWithMethodDiscount = couponStacksWithMethodDiscount
         self.createdAt = createdAt
         self.discountID = discountID
         self.expiresAt = expiresAt
         self.id = id
+        self.installmentInterest = installmentInterest
+        self.installmentMonthlyRateBp = installmentMonthlyRateBp
+        self.interestFreeInstallments = interestFreeInstallments
         self.label = label
         self.maxInstallments = maxInstallments
         self.metadata = metadata
+        self.minInstallmentCents = minInstallmentCents
         self.modifiedAt = modifiedAt
+        self.pixDiscountBp = pixDiscountBp
         self.priceID = priceID
         self.productID = productID
         self.products = products
         self.quantity = quantity
+        self.renewalMode = renewalMode
         self.requireBillingAddress = requireBillingAddress
         self.status = status
         self.successURL = successURL
@@ -913,20 +1009,28 @@ public struct CheckoutLink: Codable, Sendable, Hashable {
 
     enum CodingKeys: String, CodingKey {
         case allowDiscountCodes = "allow_discount_codes"
+        case boletoDiscountBp = "boleto_discount_bp"
         case cancelURL = "cancel_url"
         case captureMode = "capture_mode"
+        case couponStacksWithMethodDiscount = "coupon_stacks_with_method_discount"
         case createdAt = "created_at"
         case discountID = "discount_id"
         case expiresAt = "expires_at"
         case id
+        case installmentInterest = "installment_interest"
+        case installmentMonthlyRateBp = "installment_monthly_rate_bp"
+        case interestFreeInstallments = "interest_free_installments"
         case label
         case maxInstallments = "max_installments"
         case metadata
+        case minInstallmentCents = "min_installment_cents"
         case modifiedAt = "modified_at"
+        case pixDiscountBp = "pix_discount_bp"
         case priceID = "price_id"
         case productID = "product_id"
         case products
         case quantity
+        case renewalMode = "renewal_mode"
         case requireBillingAddress = "require_billing_address"
         case status
         case successURL = "success_url"
@@ -1319,7 +1423,7 @@ public struct Dispute: Codable, Sendable, Hashable {
     public let openedAt: String
     /// O pedido que a venda contestada pagou; nulo quando não é de um checkout.
     public let orderID: String?
-    /// O PaymentId da venda contestada.
+    /// O id do pagamento da venda contestada.
     public let paymentID: String
     /// Como a venda contestada foi paga: card ou pix.
     public let paymentMethod: String
@@ -1327,7 +1431,7 @@ public struct Dispute: Codable, Sendable, Hashable {
     public let providerDisputeID: String
     /// O motivo informado pelo emissor ou pela bandeira.
     public let providerReason: String
-    /// Motivo, do conjunto fechado; unknown quando a adquirente não informou.
+    /// Motivo, do conjunto fechado; unknown quando o processador de pagamentos não informou.
     public let reason: String
     public let source: DisputeSource
     public let status: DisputeStatus
@@ -1545,6 +1649,10 @@ public struct Order: Codable, Sendable, Hashable {
     /// Onde o pedido está; status é o do checkout e continua succeeded depois de um reembolso, e este vira partially_refunded ou refunded. Nulo antes de haver pagamento.
     public let orderStatus: OrderOrderStatus?
     public let paidAt: String?
+    /// A taxa do desconto da forma de pagamento, em centésimos de ponto percentual (500 é 5%); 0 sem ele.
+    public let paymentMethodDiscountBp: Int
+    /// Quanto o desconto da forma de pagamento (Pix ou boleto) tirou de amount_cents, em centavos; 0 sem ele. O comprador pagou amount_cents menos este valor. Com cupom que soma, o desconto da forma vem depois do cupom; com cupom que não soma, vale só o maior dos dois e o outro não aparece.
+    public let paymentMethodDiscountCents: Int
     /// O fim do período que o ciclo paga; nulo fora de uma assinatura.
     public let periodEnd: String?
     /// O começo do período que o ciclo paga; nulo fora de uma assinatura.
@@ -1561,7 +1669,7 @@ public struct Order: Codable, Sendable, Hashable {
     /// O valor do pedido antes do desconto, em centavos: subtotal_cents menos discount_cents é o amount_cents. Sem desconto é igual a amount_cents.
     public let subtotalCents: Int
 
-    public init(amountCents: Int, clientReferenceID: String, currency: OrderCurrency, customerID: String, cycleSequence: Int?, discountCents: Int, discountCode: String?, discountID: String?, id: String, installmentInterestCents: Int, installments: Int, items: [CheckoutLine], metadata: [String: JSONValue], orderStatus: OrderOrderStatus?, paidAt: String?, periodEnd: String?, periodStart: String?, priceID: String, productID: String, refundedAmountCents: Int, showcaseID: String, status: OrderStatus, subscriptionID: String?, subtotalCents: Int) {
+    public init(amountCents: Int, clientReferenceID: String, currency: OrderCurrency, customerID: String, cycleSequence: Int?, discountCents: Int, discountCode: String?, discountID: String?, id: String, installmentInterestCents: Int, installments: Int, items: [CheckoutLine], metadata: [String: JSONValue], orderStatus: OrderOrderStatus?, paidAt: String?, paymentMethodDiscountBp: Int, paymentMethodDiscountCents: Int, periodEnd: String?, periodStart: String?, priceID: String, productID: String, refundedAmountCents: Int, showcaseID: String, status: OrderStatus, subscriptionID: String?, subtotalCents: Int) {
         self.amountCents = amountCents
         self.clientReferenceID = clientReferenceID
         self.currency = currency
@@ -1577,6 +1685,8 @@ public struct Order: Codable, Sendable, Hashable {
         self.metadata = metadata
         self.orderStatus = orderStatus
         self.paidAt = paidAt
+        self.paymentMethodDiscountBp = paymentMethodDiscountBp
+        self.paymentMethodDiscountCents = paymentMethodDiscountCents
         self.periodEnd = periodEnd
         self.periodStart = periodStart
         self.priceID = priceID
@@ -1604,6 +1714,8 @@ public struct Order: Codable, Sendable, Hashable {
         case metadata
         case orderStatus = "order_status"
         case paidAt = "paid_at"
+        case paymentMethodDiscountBp = "payment_method_discount_bp"
+        case paymentMethodDiscountCents = "payment_method_discount_cents"
         case periodEnd = "period_end"
         case periodStart = "period_start"
         case priceID = "price_id"
@@ -1689,11 +1801,15 @@ public struct OrderReceipt: Codable, Sendable, Hashable {
     public let paidAt: String?
     /// card, pix ou boleto; vazio quando o pagamento não foi achado.
     public let paymentMethod: String
+    /// A taxa do desconto da forma de pagamento, em centésimos de ponto percentual (500 é 5%); 0 sem ele.
+    public let paymentMethodDiscountBp: Int
+    /// Quanto o desconto da forma de pagamento (Pix ou boleto) tirou de total_cents, em centavos; 0 sem ele. Foi pago total_cents menos este valor.
+    public let paymentMethodDiscountCents: Int
     public let productName: String
     public let refundedCents: Int
     public let totalCents: Int
 
-    public init(amountCents: Int, chargedBy: String, currency: OrderReceiptCurrency, customerEmail: String, customerName: String, discountCents: Int, installmentInterestCents: Int, installments: Int, items: [CheckoutLine], number: String, orderID: String, paidAt: String?, paymentMethod: String, productName: String, refundedCents: Int, totalCents: Int) {
+    public init(amountCents: Int, chargedBy: String, currency: OrderReceiptCurrency, customerEmail: String, customerName: String, discountCents: Int, installmentInterestCents: Int, installments: Int, items: [CheckoutLine], number: String, orderID: String, paidAt: String?, paymentMethod: String, paymentMethodDiscountBp: Int, paymentMethodDiscountCents: Int, productName: String, refundedCents: Int, totalCents: Int) {
         self.amountCents = amountCents
         self.chargedBy = chargedBy
         self.currency = currency
@@ -1707,6 +1823,8 @@ public struct OrderReceipt: Codable, Sendable, Hashable {
         self.orderID = orderID
         self.paidAt = paidAt
         self.paymentMethod = paymentMethod
+        self.paymentMethodDiscountBp = paymentMethodDiscountBp
+        self.paymentMethodDiscountCents = paymentMethodDiscountCents
         self.productName = productName
         self.refundedCents = refundedCents
         self.totalCents = totalCents
@@ -1726,6 +1844,8 @@ public struct OrderReceipt: Codable, Sendable, Hashable {
         case orderID = "order_id"
         case paidAt = "paid_at"
         case paymentMethod = "payment_method"
+        case paymentMethodDiscountBp = "payment_method_discount_bp"
+        case paymentMethodDiscountCents = "payment_method_discount_cents"
         case productName = "product_name"
         case refundedCents = "refunded_cents"
         case totalCents = "total_cents"
@@ -1776,6 +1896,10 @@ public struct Payment: Codable, Sendable, Hashable {
     public let method: PaymentMethodKind
     /// O valor líquido da venda, em centavos: captured_cents menos fee_cents, o que fica para o vendedor, antes de reembolsos. 0 enquanto o pagamento não foi capturado.
     public let netCents: Int
+    /// A taxa do desconto da forma de pagamento, em centésimos de ponto percentual (500 é 5%); 0 sem ele.
+    public let paymentMethodDiscountBp: Int
+    /// Quanto o desconto da forma de pagamento (Pix ou boleto) tirou do total do pedido, em centavos; 0 sem ele. amount_cents já é o valor com o desconto: é o que foi cobrado.
+    public let paymentMethodDiscountCents: Int
     /// O dia em que o último repasse que pagou este pagamento foi depositado, AAAA-MM-DD; nulo enquanto nenhum foi.
     public let payoutDepositedOn: String?
     /// O repasse em que o pagamento foi depositado: o id de GET /payouts/{id}; nulo enquanto nenhum foi. Num pagamento parcelado, é o da última parcela depositada.
@@ -1793,7 +1917,7 @@ public struct Payment: Codable, Sendable, Hashable {
     /// A assinatura que este pagamento cobrou (a primeira ou uma renovação); nulo quando o pagamento não é de uma assinatura.
     public let subscriptionID: String?
 
-    public init(amountCents: Int, capturedCents: Int, checkoutID: String, clientReferenceID: String, createdAt: String, currency: PaymentCurrency, customerID: String, cycleSequence: Int?, expectedPayoutOn: String?, feeCents: Int, id: String, installmentAmountCents: Int, installmentInterestCents: Int, installments: Int, metadata: [String: JSONValue], method: PaymentMethodKind, netCents: Int, payoutDepositedOn: String?, payoutID: String?, periodEnd: String?, periodStart: String?, refundedCents: Int, showcaseID: String, split: [SplitRecipient], state: PaymentState, subscriptionID: String?) {
+    public init(amountCents: Int, capturedCents: Int, checkoutID: String, clientReferenceID: String, createdAt: String, currency: PaymentCurrency, customerID: String, cycleSequence: Int?, expectedPayoutOn: String?, feeCents: Int, id: String, installmentAmountCents: Int, installmentInterestCents: Int, installments: Int, metadata: [String: JSONValue], method: PaymentMethodKind, netCents: Int, paymentMethodDiscountBp: Int, paymentMethodDiscountCents: Int, payoutDepositedOn: String?, payoutID: String?, periodEnd: String?, periodStart: String?, refundedCents: Int, showcaseID: String, split: [SplitRecipient], state: PaymentState, subscriptionID: String?) {
         self.amountCents = amountCents
         self.capturedCents = capturedCents
         self.checkoutID = checkoutID
@@ -1811,6 +1935,8 @@ public struct Payment: Codable, Sendable, Hashable {
         self.metadata = metadata
         self.method = method
         self.netCents = netCents
+        self.paymentMethodDiscountBp = paymentMethodDiscountBp
+        self.paymentMethodDiscountCents = paymentMethodDiscountCents
         self.payoutDepositedOn = payoutDepositedOn
         self.payoutID = payoutID
         self.periodEnd = periodEnd
@@ -1840,6 +1966,8 @@ public struct Payment: Codable, Sendable, Hashable {
         case metadata
         case method
         case netCents = "net_cents"
+        case paymentMethodDiscountBp = "payment_method_discount_bp"
+        case paymentMethodDiscountCents = "payment_method_discount_cents"
         case payoutDepositedOn = "payout_deposited_on"
         case payoutID = "payout_id"
         case periodEnd = "period_end"
@@ -2705,7 +2833,7 @@ public struct WebhookDispute: Codable, Sendable, Hashable {
     /// Os pares que o seu servidor enviou ao criar o checkout; na renovação de uma assinatura, os da assinatura.
     public let metadata: [String: JSONValue]?
     public let openedAt: String
-    /// O PaymentId da venda contestada.
+    /// O id do pagamento da venda contestada.
     public let paymentID: String
     /// Como a venda contestada foi paga: card ou pix.
     public let paymentMethod: String?
@@ -2713,7 +2841,7 @@ public struct WebhookDispute: Codable, Sendable, Hashable {
     public let providerDisputeID: String
     /// O motivo informado pelo emissor ou pela bandeira.
     public let providerReason: String
-    /// Motivo, do conjunto fechado; unknown quando a adquirente não informou.
+    /// Motivo, do conjunto fechado; unknown quando o processador de pagamentos não informou.
     public let reason: String
     public let source: WebhookDisputeSource
     public let status: WebhookDisputeStatus
@@ -2872,6 +3000,10 @@ public struct WebhookOrder: Codable, Sendable, Hashable {
     /// Onde o pedido está; status é o do checkout e continua succeeded depois de um reembolso, e este vira partially_refunded ou refunded.
     public let orderStatus: WebhookOrderOrderStatus?
     public let paidAt: String?
+    /// A taxa do desconto da forma de pagamento, em centésimos de ponto percentual (500 é 5%); 0 sem ele.
+    public let paymentMethodDiscountBp: Int
+    /// Quanto o desconto da forma de pagamento (Pix ou boleto) tirou de amount_cents, em centavos; 0 sem ele. O comprador pagou amount_cents menos este valor. Com cupom que soma, o desconto da forma vem depois do cupom; com cupom que não soma, vale só o maior dos dois e o outro não aparece.
+    public let paymentMethodDiscountCents: Int
     /// O fim do período do ciclo que o pagamento cobra.
     public let periodEnd: String?
     /// O início do período do ciclo que o pagamento cobra.
@@ -2892,7 +3024,7 @@ public struct WebhookOrder: Codable, Sendable, Hashable {
     /// O valor do pedido antes do desconto, em centavos: subtotal_cents menos discount_cents é o amount_cents.
     public let subtotalCents: Int
 
-    public init(amountCents: Int, clientReferenceID: String, currency: WebhookOrderCurrency, customerID: String, discountCents: Int, discountCode: String?, discountID: String?, id: String, installmentInterestCents: Int, installments: Int, items: [CheckoutLine], metadata: [String: JSONValue], orderStatus: WebhookOrderOrderStatus?, paidAt: String?, priceID: String, productID: String, refundAmountCents: Int?, refundID: String?, refundedAmountCents: Int, showcaseID: String, status: WebhookOrderStatus, subtotalCents: Int, cycleSequence: Int? = nil, periodEnd: String? = nil, periodStart: String? = nil, subscriptionID: String? = nil) {
+    public init(amountCents: Int, clientReferenceID: String, currency: WebhookOrderCurrency, customerID: String, discountCents: Int, discountCode: String?, discountID: String?, id: String, installmentInterestCents: Int, installments: Int, items: [CheckoutLine], metadata: [String: JSONValue], orderStatus: WebhookOrderOrderStatus?, paidAt: String?, paymentMethodDiscountBp: Int, paymentMethodDiscountCents: Int, priceID: String, productID: String, refundAmountCents: Int?, refundID: String?, refundedAmountCents: Int, showcaseID: String, status: WebhookOrderStatus, subtotalCents: Int, cycleSequence: Int? = nil, periodEnd: String? = nil, periodStart: String? = nil, subscriptionID: String? = nil) {
         self.amountCents = amountCents
         self.clientReferenceID = clientReferenceID
         self.currency = currency
@@ -2908,6 +3040,8 @@ public struct WebhookOrder: Codable, Sendable, Hashable {
         self.metadata = metadata
         self.orderStatus = orderStatus
         self.paidAt = paidAt
+        self.paymentMethodDiscountBp = paymentMethodDiscountBp
+        self.paymentMethodDiscountCents = paymentMethodDiscountCents
         self.periodEnd = periodEnd
         self.periodStart = periodStart
         self.priceID = priceID
@@ -2937,6 +3071,8 @@ public struct WebhookOrder: Codable, Sendable, Hashable {
         case metadata
         case orderStatus = "order_status"
         case paidAt = "paid_at"
+        case paymentMethodDiscountBp = "payment_method_discount_bp"
+        case paymentMethodDiscountCents = "payment_method_discount_cents"
         case periodEnd = "period_end"
         case periodStart = "period_start"
         case priceID = "price_id"
@@ -3281,6 +3417,32 @@ public struct WebhookSubscription: Codable, Sendable, Hashable {
     }
 }
 
+/// One item of payment_discounts in CheckoutClient.
+public struct CheckoutClientPaymentDiscount: Codable, Sendable, Hashable {
+    /// A taxa do desconto, em centésimos de ponto percentual (500 é 5%).
+    public let basisPoints: Int
+    /// Quanto o desconto tira do total da sessão, em centavos, depois de qualquer cupom.
+    public let discountCents: Int
+    /// A forma de pagamento que tem desconto.
+    public let method: CheckoutClientPaymentDiscountMethod
+    /// O que o comprador paga por esta forma: o total da sessão menos discount_cents. O servidor cobra o seu próprio cálculo, nunca um valor do cliente.
+    public let totalCents: Int
+
+    public init(basisPoints: Int, discountCents: Int, method: CheckoutClientPaymentDiscountMethod, totalCents: Int) {
+        self.basisPoints = basisPoints
+        self.discountCents = discountCents
+        self.method = method
+        self.totalCents = totalCents
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case basisPoints = "basis_points"
+        case discountCents = "discount_cents"
+        case method
+        case totalCents = "total_cents"
+    }
+}
+
 /// One item of bands in CheckoutClientItem.
 public struct CheckoutClientItemBand: Codable, Sendable, Hashable {
     /// O que a faixa soma: as unidades vezes o preço, mais o valor fixo.
@@ -3508,41 +3670,65 @@ public struct BenefitsUpdateParams: Encodable, Sendable, Hashable {
 /// nil is not sent.
 public struct CheckoutLinksCreateParams: Encodable, Sendable, Hashable {
     public var allowDiscountCodes: Bool?
+    /// O desconto de quem paga com boleto, em centésimos de ponto percentual, de 0 a 5000. 0 desliga o desconto neste checkout; ausente ou nulo segue a organização.
+    public var boletoDiscountBp: Int?
     public var cancelURL: String?
     public var captureMode: CheckoutLinksCreateParamsCaptureMode?
+    /// Se o cupom soma com o desconto do Pix ou do boleto neste checkout: true soma (o cupom primeiro, o desconto da forma depois); false vale só o maior dos dois em centavos sobre o mesmo preço, e o pedido mostra só o desconto que valeu. Ausente ou nulo segue a organização, que por padrão não soma. Em assinatura o cupom sempre soma.
+    public var couponStacksWithMethodDiscount: Bool?
     /// Desconto fixado no link.
     public var discountID: String?
     /// Data e hora RFC 3339 no futuro.
     public var expiresAt: String?
+    /// Quem paga os juros do parcelamento: merchant (sem juros, a loja absorve a taxa) ou buyer (com juros pagos pelo comprador, com installment_monthly_rate_bp). Ausente segue a organização.
+    public var installmentInterest: CheckoutLinksCreateParamsInstallmentInterest?
+    /// A taxa de juros ao mês que o comprador paga, em centésimos de ponto percentual: 299 é 2,99%, no máximo 1000 (10%). Obrigatória com installment_interest buyer; 0 ou ausente segue a organização.
+    public var installmentMonthlyRateBp: Int?
+    /// Quantas parcelas saem sem juros quando o comprador paga os juros, de 1 (nenhuma além da à vista) a 12; 0 ou ausente segue a organização.
+    public var interestFreeInstallments: Int?
     public var label: String?
     /// De 0 a 12; 0 segue a organização.
     public var maxInstallments: Int?
     /// Pares guardados no link. Até 50 pares de chave e valor: a chave tem de 1 a 40 caracteres, e o valor é um texto de 1 a 500 caracteres, um número ou um booleano. Texto sem caracteres de controle nem de direção invisível.
     public var metadata: [String: JSONValue]?
+    /// A menor parcela, em centavos, de 100 a 1000000; 0 ou ausente segue a organização.
+    public var minInstallmentCents: Int?
+    /// O desconto de quem paga com Pix, em centésimos de ponto percentual (500 é 5%), de 0 a 5000. 0 desliga o desconto neste checkout; ausente ou nulo segue a organização. Com cupom, vale a regra de coupon_stacks_with_method_discount. O cartão de crédito e o de débito não têm desconto.
+    public var pixDiscountBp: Int?
     public var priceID: String?
     /// Um preço de cada produto, na ordem em que o comprador os vê; até 20.
     public var priceIds: [String]?
     /// Com price_id, o produto que o link vende; ou use price_ids.
     public var productID: String?
     public var quantity: Int?
+    /// Como a assinatura que o link vende renova, num link com preço recorrente com valor. manual: a cada ciclo o comprador paga por um link. automatic: só cartão de crédito guardado ou Pix Automático, que cobram sozinhos. buyer_choice: a página mostra a caixa Cobrança recorrente, desmarcada; marcada cobra sozinho, desmarcada paga só esta vez e recebe o link nos meses seguintes. Sem o campo vale o padrão: o cartão guardado renova e, sem cartão, o comprador recebe o link. Preço de compra única não aceita (422); manual não vale com teste grátis (422). Cada checkout aberto pelo link herda o modo.
+    public var renewalMode: CheckoutLinksCreateParamsRenewalMode?
     public var requireBillingAddress: Bool?
     public var successURL: String?
     public var trialInterval: CheckoutLinksCreateParamsTrialInterval?
     public var trialIntervalCount: Int?
 
-    public init(allowDiscountCodes: Bool? = nil, cancelURL: String? = nil, captureMode: CheckoutLinksCreateParamsCaptureMode? = nil, discountID: String? = nil, expiresAt: String? = nil, label: String? = nil, maxInstallments: Int? = nil, metadata: [String: JSONValue]? = nil, priceID: String? = nil, priceIds: [String]? = nil, productID: String? = nil, quantity: Int? = nil, requireBillingAddress: Bool? = nil, successURL: String? = nil, trialInterval: CheckoutLinksCreateParamsTrialInterval? = nil, trialIntervalCount: Int? = nil) {
+    public init(allowDiscountCodes: Bool? = nil, boletoDiscountBp: Int? = nil, cancelURL: String? = nil, captureMode: CheckoutLinksCreateParamsCaptureMode? = nil, couponStacksWithMethodDiscount: Bool? = nil, discountID: String? = nil, expiresAt: String? = nil, installmentInterest: CheckoutLinksCreateParamsInstallmentInterest? = nil, installmentMonthlyRateBp: Int? = nil, interestFreeInstallments: Int? = nil, label: String? = nil, maxInstallments: Int? = nil, metadata: [String: JSONValue]? = nil, minInstallmentCents: Int? = nil, pixDiscountBp: Int? = nil, priceID: String? = nil, priceIds: [String]? = nil, productID: String? = nil, quantity: Int? = nil, renewalMode: CheckoutLinksCreateParamsRenewalMode? = nil, requireBillingAddress: Bool? = nil, successURL: String? = nil, trialInterval: CheckoutLinksCreateParamsTrialInterval? = nil, trialIntervalCount: Int? = nil) {
         self.allowDiscountCodes = allowDiscountCodes
+        self.boletoDiscountBp = boletoDiscountBp
         self.cancelURL = cancelURL
         self.captureMode = captureMode
+        self.couponStacksWithMethodDiscount = couponStacksWithMethodDiscount
         self.discountID = discountID
         self.expiresAt = expiresAt
+        self.installmentInterest = installmentInterest
+        self.installmentMonthlyRateBp = installmentMonthlyRateBp
+        self.interestFreeInstallments = interestFreeInstallments
         self.label = label
         self.maxInstallments = maxInstallments
         self.metadata = metadata
+        self.minInstallmentCents = minInstallmentCents
+        self.pixDiscountBp = pixDiscountBp
         self.priceID = priceID
         self.priceIds = priceIds
         self.productID = productID
         self.quantity = quantity
+        self.renewalMode = renewalMode
         self.requireBillingAddress = requireBillingAddress
         self.successURL = successURL
         self.trialInterval = trialInterval
@@ -3551,17 +3737,25 @@ public struct CheckoutLinksCreateParams: Encodable, Sendable, Hashable {
 
     enum CodingKeys: String, CodingKey {
         case allowDiscountCodes = "allow_discount_codes"
+        case boletoDiscountBp = "boleto_discount_bp"
         case cancelURL = "cancel_url"
         case captureMode = "capture_mode"
+        case couponStacksWithMethodDiscount = "coupon_stacks_with_method_discount"
         case discountID = "discount_id"
         case expiresAt = "expires_at"
+        case installmentInterest = "installment_interest"
+        case installmentMonthlyRateBp = "installment_monthly_rate_bp"
+        case interestFreeInstallments = "interest_free_installments"
         case label
         case maxInstallments = "max_installments"
         case metadata
+        case minInstallmentCents = "min_installment_cents"
+        case pixDiscountBp = "pix_discount_bp"
         case priceID = "price_id"
         case priceIds = "price_ids"
         case productID = "product_id"
         case quantity
+        case renewalMode = "renewal_mode"
         case requireBillingAddress = "require_billing_address"
         case successURL = "success_url"
         case trialInterval = "trial_interval"
@@ -3571,17 +3765,25 @@ public struct CheckoutLinksCreateParams: Encodable, Sendable, Hashable {
     public func encode(to encoder: any Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encodeIfPresent(allowDiscountCodes, forKey: .allowDiscountCodes)
+        try container.encodeIfPresent(boletoDiscountBp, forKey: .boletoDiscountBp)
         try container.encodeIfPresent(cancelURL, forKey: .cancelURL)
         try container.encodeIfPresent(captureMode, forKey: .captureMode)
+        try container.encodeIfPresent(couponStacksWithMethodDiscount, forKey: .couponStacksWithMethodDiscount)
         try container.encodeIfPresent(discountID, forKey: .discountID)
         try container.encodeIfPresent(expiresAt, forKey: .expiresAt)
+        try container.encodeIfPresent(installmentInterest, forKey: .installmentInterest)
+        try container.encodeIfPresent(installmentMonthlyRateBp, forKey: .installmentMonthlyRateBp)
+        try container.encodeIfPresent(interestFreeInstallments, forKey: .interestFreeInstallments)
         try container.encodeIfPresent(label, forKey: .label)
         try container.encodeIfPresent(maxInstallments, forKey: .maxInstallments)
         try container.encodeIfPresent(metadata, forKey: .metadata)
+        try container.encodeIfPresent(minInstallmentCents, forKey: .minInstallmentCents)
+        try container.encodeIfPresent(pixDiscountBp, forKey: .pixDiscountBp)
         try container.encodeIfPresent(priceID, forKey: .priceID)
         try container.encodeIfPresent(priceIds, forKey: .priceIds)
         try container.encodeIfPresent(productID, forKey: .productID)
         try container.encodeIfPresent(quantity, forKey: .quantity)
+        try container.encodeIfPresent(renewalMode, forKey: .renewalMode)
         try container.encodeIfPresent(requireBillingAddress, forKey: .requireBillingAddress)
         try container.encodeIfPresent(successURL, forKey: .successURL)
         try container.encodeIfPresent(trialInterval, forKey: .trialInterval)
@@ -3600,14 +3802,17 @@ public struct CheckoutLinksUpdateParams: Encodable, Sendable, Hashable {
     public var metadata: [String: JSONValue]?
     /// Substitui os produtos do link.
     public var priceIds: [String]?
+    /// Troca como a assinatura do link renova; vazio volta ao padrão. Os checkouts já abertos guardam o modo que viram. Vale as mesmas regras da criação (422 em preço de compra única, ou manual com teste grátis).
+    public var renewalMode: CheckoutLinksUpdateParamsRenewalMode?
     public var requireBillingAddress: Bool?
     public var successURL: String?
 
-    public init(cancelURL: String? = nil, label: String? = nil, metadata: [String: JSONValue]? = nil, priceIds: [String]? = nil, requireBillingAddress: Bool? = nil, successURL: String? = nil) {
+    public init(cancelURL: String? = nil, label: String? = nil, metadata: [String: JSONValue]? = nil, priceIds: [String]? = nil, renewalMode: CheckoutLinksUpdateParamsRenewalMode? = nil, requireBillingAddress: Bool? = nil, successURL: String? = nil) {
         self.cancelURL = cancelURL
         self.label = label
         self.metadata = metadata
         self.priceIds = priceIds
+        self.renewalMode = renewalMode
         self.requireBillingAddress = requireBillingAddress
         self.successURL = successURL
     }
@@ -3617,6 +3822,7 @@ public struct CheckoutLinksUpdateParams: Encodable, Sendable, Hashable {
         case label
         case metadata
         case priceIds = "price_ids"
+        case renewalMode = "renewal_mode"
         case requireBillingAddress = "require_billing_address"
         case successURL = "success_url"
     }
@@ -3627,6 +3833,7 @@ public struct CheckoutLinksUpdateParams: Encodable, Sendable, Hashable {
         try container.encodeIfPresent(label, forKey: .label)
         try container.encodeIfPresent(metadata, forKey: .metadata)
         try container.encodeIfPresent(priceIds, forKey: .priceIds)
+        try container.encodeIfPresent(renewalMode, forKey: .renewalMode)
         try container.encodeIfPresent(requireBillingAddress, forKey: .requireBillingAddress)
         try container.encodeIfPresent(successURL, forKey: .successURL)
     }
@@ -3641,10 +3848,14 @@ public struct CheckoutsCreateParams: Encodable, Sendable, Hashable {
     public var allowDiscountCodes: Bool?
     /// O valor do pedido todo, em centavos, que o seu servidor fixa. Só vale em um preço de valor livre (custom); em outro preço é recusado com 422. Respeita o mínimo e o máximo do preço, também com 422. O comprador vê o valor e não pode mudá-lo, na página, no modal, nos componentes e no checkout transparente; vale para cartão de crédito, débito e Pix, e é o valor que volta em pedidos, pagamentos, recibo e eventos. Repetir a criação com a mesma Idempotency-Key e outro valor dá 409.
     public var amountCents: Int?
+    /// O desconto de quem paga com boleto, em centésimos de ponto percentual, de 0 a 5000. 0 desliga o desconto neste checkout; ausente ou nulo segue a organização.
+    public var boletoDiscountBp: Int?
     public var cancelURL: String?
     /// O id do pedido no seu sistema, de até 255 caracteres. Volta no checkout, no pedido, no pagamento e nos eventos checkout.*, order.*, checkout_payment.* e refund.*, para você achar de qual pedido veio cada pagamento. Num checkout de assinatura fica também na assinatura, e cada pedido de renovação volta com ele.
     public var clientReferenceID: String?
-    /// O e-mail do comprador, quando você o conhece; senão o navegador do comprador o pede.
+    /// Se o cupom soma com o desconto do Pix ou do boleto neste checkout: true soma (o cupom primeiro, o desconto da forma depois); false vale só o maior dos dois em centavos sobre o mesmo preço, e o pedido mostra só o desconto que valeu. Ausente ou nulo segue a organização, que por padrão não soma. Em assinatura o cupom sempre soma.
+    public var couponStacksWithMethodDiscount: Bool?
+    /// O e-mail do comprador, quando você o conhece; senão o navegador do comprador o pede. Se este e-mail é de um cliente seu, o checkout abre com os dados dele, como com customer_id, e o e-mail fica fixo. Se o cliente tem CPF ou CNPJ, o comprador não pode trocá-lo.
     public var customerEmail: String?
     /// Um cliente seu: o checkout abre com o nome, o e-mail e os dados de cobrança dele. Não junto com external_customer_id, customer_email ou customer_name.
     public var customerID: String?
@@ -3658,18 +3869,30 @@ public struct CheckoutsCreateParams: Encodable, Sendable, Hashable {
     public var externalCustomerID: String?
     /// Quantos dias somar ao primeiro período da assinatura, de 1 a 365: para o comprador que ainda tinha dias pagos num plano anterior (por exemplo, pago até 11/12 e assinando em 20/11: 21 dias). O comprador paga hoje o valor cheio do preço (com as faixas, a quantidade e o desconto), em Pix, cartão de crédito ou débito, como em qualquer checkout, e o primeiro período vai do dia do pagamento até esse dia mais um intervalo do preço mais estes dias, no horário de São Paulo; a renovação e os ciclos seguintes contam a partir desse fim. A próxima cobrança, no cartão guardado ou pelo link ou Pix de renovação, só acontece nele. A página mostra "Pague hoje R$ X. Próxima cobrança em DD/MM/AAAA (inclui N dias do seu plano anterior)". Só vale em um preço recorrente com valor, vendido sozinho e sem teste grátis, e não junto com subscription_start_at (cobra hoje, não numa data); fora disso a resposta é 422. A assinatura e o evento da venda trazem o mesmo número em first_period_extra_days, e o pedido do primeiro ciclo traz o período estendido em period_start e period_end. Repetir a criação com a mesma Idempotency-Key e outro número dá 409.
     public var firstPeriodExtraDays: Int?
+    /// Quem paga os juros do parcelamento: merchant (sem juros, a loja absorve a taxa) ou buyer (com juros pagos pelo comprador, com installment_monthly_rate_bp). Ausente segue a organização.
+    public var installmentInterest: CheckoutsCreateParamsInstallmentInterest?
+    /// A taxa de juros ao mês que o comprador paga, em centésimos de ponto percentual: 299 é 2,99%, no máximo 1000 (10%). Obrigatória com installment_interest buyer; 0 ou ausente segue a organização.
+    public var installmentMonthlyRateBp: Int?
+    /// Quantas parcelas saem sem juros quando o comprador paga os juros, de 1 (nenhuma além da à vista) a 12; 0 ou ausente segue a organização.
+    public var interestFreeInstallments: Int?
     /// As linhas do pedido, até 50, para o comprador ler o detalhe: aparecem no checkout (página, modal, componentes e transparente), no pedido, no recibo, no portal do cliente e nos eventos. Em um preço de valor livre, a soma de quantity vezes unit_amount_cents precisa ser igual a amount_cents, ou a resposta é 422; enviadas sem amount_cents, a soma é o valor. Em um preço com valor próprio, como o de uma assinatura, as linhas só mostram ao comprador do que o valor é feito e fixam nada: envie-as sem amount_cents, com a soma igual ao valor do preço vezes a quantidade (senão 422), e o preço continua sendo quem define o que se cobra.
     public var items: [CheckoutsCreateItem]?
     public var label: String?
+    /// O máximo de parcelas no cartão de crédito deste checkout, de 1 a 12; vale mais que a organização, e 1 vende só à vista. 0 ou ausente segue a organização.
+    public var maxInstallments: Int?
     /// Pares guardados no link do checkout e devolvidos no checkout, no pedido, no pagamento e nos eventos da venda. Até 50 pares de chave e valor: a chave tem de 1 a 40 caracteres, e o valor é um texto de 1 a 500 caracteres, um número ou um booleano. Texto sem caracteres de controle nem de direção invisível.
     public var metadata: [String: JSONValue]?
+    /// A menor parcela, em centavos, de 100 a 1000000; 0 ou ausente segue a organização.
+    public var minInstallmentCents: Int?
     /// Verdadeiro por padrão. Falso mantém a Peráta sem escrever ao comprador a cobrança de cada renovação (o seu sistema o avisa pelo evento subscription.renewal_due); a cobrança é aberta do mesmo jeito. Além disso, a organização pode desligar este aviso para todos em Configurações › Preferências › Cobrança da renovação.
     public var notifyCustomerEmail: Bool?
+    /// O desconto de quem paga com Pix, em centésimos de ponto percentual (500 é 5%), de 0 a 5000. 0 desliga o desconto neste checkout; ausente ou nulo segue a organização. Com cupom, vale a regra de coupon_stacks_with_method_discount. O cartão de crédito e o de débito não têm desconto.
+    public var pixDiscountBp: Int?
     public var priceID: String
     public var productID: String
     /// Quantas unidades. Com amount_cents é sempre 1: envie 1 ou omita; qualquer outro valor é recusado com 422.
     public var quantity: Int?
-    /// Como a assinatura renova, numa assinatura (preço recorrente com valor). manual: a cada ciclo a Peráta abre uma cobrança para o comprador pagar (payment_url, por cartão, Pix ou boleto) e avisa o seu sistema com o evento subscription.renewal_due, mesmo que o primeiro pagamento tenha sido no cartão; o cartão nunca é cobrado e não é guardado. automatic: só os meios que cobram sozinhos, o cartão de crédito guardado ou o Pix Automático (quando a organização o tem ligado; senão só o cartão); a página mostra só esses meios, e a assinatura nasce com renewal_mode card ou pix_automatic. buyer_choice: a página mostra a caixa Ativar cobrança automática, desmarcada, e o comprador decide: desmarcada é manual, marcada é automatic. Sem o campo nada muda: sem caixa, o cartão de crédito renova sozinho e qualquer outro meio vira uma cobrança a cada ciclo. Funciona junto com first_period_extra_days e com desconto. Vale só em preço recorrente com valor (senão 422); manual não vale com teste grátis nem com subscription_start_at, que guardam o cartão para cobrar no fim (422). Pagar por um meio que o modo não aceita (Pix, boleto ou débito em automatic; Pix Automático em manual) é 422 em payment_method. A Subscription traz o modo a que isso se resolveu em renewal_mode: manual, card ou pix_automatic.
+    /// Como a assinatura renova, numa assinatura (preço recorrente com valor). manual: a cada ciclo a Peráta abre uma cobrança para o comprador pagar (payment_url, por cartão, Pix ou boleto) e avisa o seu sistema com o evento subscription.renewal_due, mesmo que o primeiro pagamento tenha sido no cartão; o cartão nunca é cobrado e não é guardado. automatic: só os meios que cobram sozinhos, o cartão de crédito guardado ou o Pix Automático (quando a organização o tem ligado; senão só o cartão); a página mostra só esses meios, e a assinatura nasce com renewal_mode card ou pix_automatic. buyer_choice: a página mostra a caixa Cobrança recorrente, desmarcada, e o comprador decide: desmarcada é manual, marcada é automatic. Sem o campo nada muda: sem caixa, o cartão de crédito renova sozinho e qualquer outro meio vira uma cobrança a cada ciclo. Funciona junto com first_period_extra_days e com desconto. Vale só em preço recorrente com valor (senão 422); manual não vale com teste grátis nem com subscription_start_at, que guardam o cartão para cobrar no fim (422). Pagar por um meio que o modo não aceita (Pix, boleto ou débito em automatic; Pix Automático em manual) é 422 em payment_method. A Subscription traz o modo a que isso se resolveu em renewal_mode: manual, card ou pix_automatic.
     public var renewalMode: CheckoutsCreateParamsRenewalMode?
     /// Pede o endereço de cobrança completo de todo comprador, não só no boleto; desligado quando fica de fora.
     public var requireBillingAddress: Bool?
@@ -3679,11 +3902,13 @@ public struct CheckoutsCreateParams: Encodable, Sendable, Hashable {
     public var subscriptionStartAt: String?
     public var successURL: String?
 
-    public init(priceID: String, productID: String, allowDiscountCodes: Bool? = nil, amountCents: Int? = nil, cancelURL: String? = nil, clientReferenceID: String? = nil, customerEmail: String? = nil, customerID: String? = nil, customerName: String? = nil, discountID: String? = nil, expiresIn: Int? = nil, externalCustomerID: String? = nil, firstPeriodExtraDays: Int? = nil, items: [CheckoutsCreateItem]? = nil, label: String? = nil, metadata: [String: JSONValue]? = nil, notifyCustomerEmail: Bool? = nil, quantity: Int? = nil, renewalMode: CheckoutsCreateParamsRenewalMode? = nil, requireBillingAddress: Bool? = nil, returnURL: String? = nil, subscriptionStartAt: String? = nil, successURL: String? = nil) {
+    public init(priceID: String, productID: String, allowDiscountCodes: Bool? = nil, amountCents: Int? = nil, boletoDiscountBp: Int? = nil, cancelURL: String? = nil, clientReferenceID: String? = nil, couponStacksWithMethodDiscount: Bool? = nil, customerEmail: String? = nil, customerID: String? = nil, customerName: String? = nil, discountID: String? = nil, expiresIn: Int? = nil, externalCustomerID: String? = nil, firstPeriodExtraDays: Int? = nil, installmentInterest: CheckoutsCreateParamsInstallmentInterest? = nil, installmentMonthlyRateBp: Int? = nil, interestFreeInstallments: Int? = nil, items: [CheckoutsCreateItem]? = nil, label: String? = nil, maxInstallments: Int? = nil, metadata: [String: JSONValue]? = nil, minInstallmentCents: Int? = nil, notifyCustomerEmail: Bool? = nil, pixDiscountBp: Int? = nil, quantity: Int? = nil, renewalMode: CheckoutsCreateParamsRenewalMode? = nil, requireBillingAddress: Bool? = nil, returnURL: String? = nil, subscriptionStartAt: String? = nil, successURL: String? = nil) {
         self.allowDiscountCodes = allowDiscountCodes
         self.amountCents = amountCents
+        self.boletoDiscountBp = boletoDiscountBp
         self.cancelURL = cancelURL
         self.clientReferenceID = clientReferenceID
+        self.couponStacksWithMethodDiscount = couponStacksWithMethodDiscount
         self.customerEmail = customerEmail
         self.customerID = customerID
         self.customerName = customerName
@@ -3691,10 +3916,16 @@ public struct CheckoutsCreateParams: Encodable, Sendable, Hashable {
         self.expiresIn = expiresIn
         self.externalCustomerID = externalCustomerID
         self.firstPeriodExtraDays = firstPeriodExtraDays
+        self.installmentInterest = installmentInterest
+        self.installmentMonthlyRateBp = installmentMonthlyRateBp
+        self.interestFreeInstallments = interestFreeInstallments
         self.items = items
         self.label = label
+        self.maxInstallments = maxInstallments
         self.metadata = metadata
+        self.minInstallmentCents = minInstallmentCents
         self.notifyCustomerEmail = notifyCustomerEmail
+        self.pixDiscountBp = pixDiscountBp
         self.priceID = priceID
         self.productID = productID
         self.quantity = quantity
@@ -3708,8 +3939,10 @@ public struct CheckoutsCreateParams: Encodable, Sendable, Hashable {
     enum CodingKeys: String, CodingKey {
         case allowDiscountCodes = "allow_discount_codes"
         case amountCents = "amount_cents"
+        case boletoDiscountBp = "boleto_discount_bp"
         case cancelURL = "cancel_url"
         case clientReferenceID = "client_reference_id"
+        case couponStacksWithMethodDiscount = "coupon_stacks_with_method_discount"
         case customerEmail = "customer_email"
         case customerID = "customer_id"
         case customerName = "customer_name"
@@ -3717,10 +3950,16 @@ public struct CheckoutsCreateParams: Encodable, Sendable, Hashable {
         case expiresIn = "expires_in"
         case externalCustomerID = "external_customer_id"
         case firstPeriodExtraDays = "first_period_extra_days"
+        case installmentInterest = "installment_interest"
+        case installmentMonthlyRateBp = "installment_monthly_rate_bp"
+        case interestFreeInstallments = "interest_free_installments"
         case items
         case label
+        case maxInstallments = "max_installments"
         case metadata
+        case minInstallmentCents = "min_installment_cents"
         case notifyCustomerEmail = "notify_customer_email"
+        case pixDiscountBp = "pix_discount_bp"
         case priceID = "price_id"
         case productID = "product_id"
         case quantity
@@ -3735,8 +3974,10 @@ public struct CheckoutsCreateParams: Encodable, Sendable, Hashable {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encodeIfPresent(allowDiscountCodes, forKey: .allowDiscountCodes)
         try container.encodeIfPresent(amountCents, forKey: .amountCents)
+        try container.encodeIfPresent(boletoDiscountBp, forKey: .boletoDiscountBp)
         try container.encodeIfPresent(cancelURL, forKey: .cancelURL)
         try container.encodeIfPresent(clientReferenceID, forKey: .clientReferenceID)
+        try container.encodeIfPresent(couponStacksWithMethodDiscount, forKey: .couponStacksWithMethodDiscount)
         try container.encodeIfPresent(customerEmail, forKey: .customerEmail)
         try container.encodeIfPresent(customerID, forKey: .customerID)
         try container.encodeIfPresent(customerName, forKey: .customerName)
@@ -3744,10 +3985,16 @@ public struct CheckoutsCreateParams: Encodable, Sendable, Hashable {
         try container.encodeIfPresent(expiresIn, forKey: .expiresIn)
         try container.encodeIfPresent(externalCustomerID, forKey: .externalCustomerID)
         try container.encodeIfPresent(firstPeriodExtraDays, forKey: .firstPeriodExtraDays)
+        try container.encodeIfPresent(installmentInterest, forKey: .installmentInterest)
+        try container.encodeIfPresent(installmentMonthlyRateBp, forKey: .installmentMonthlyRateBp)
+        try container.encodeIfPresent(interestFreeInstallments, forKey: .interestFreeInstallments)
         try container.encodeIfPresent(items, forKey: .items)
         try container.encodeIfPresent(label, forKey: .label)
+        try container.encodeIfPresent(maxInstallments, forKey: .maxInstallments)
         try container.encodeIfPresent(metadata, forKey: .metadata)
+        try container.encodeIfPresent(minInstallmentCents, forKey: .minInstallmentCents)
         try container.encodeIfPresent(notifyCustomerEmail, forKey: .notifyCustomerEmail)
+        try container.encodeIfPresent(pixDiscountBp, forKey: .pixDiscountBp)
         try container.encode(priceID, forKey: .priceID)
         try container.encode(productID, forKey: .productID)
         try container.encodeIfPresent(quantity, forKey: .quantity)
@@ -4442,7 +4689,7 @@ public struct ProductsUpdateParams: Encodable, Sendable, Hashable {
 /// The initializer takes the required fields first; an optional field left
 /// nil is not sent.
 public struct RefundsCreateParams: Encodable, Sendable, Hashable {
-    /// Quanto devolver, em centavos, de 1 até o que ainda pode ser devolvido. Sem ele, devolve tudo o que ainda pode ser devolvido.
+    /// Quanto devolver, em centavos, de 1 até o que ainda pode ser devolvido (o valor capturado menos os reembolsos anteriores). No cartão, a soma de vários reembolsos parciais chega ao valor capturado; no Pix, só há um reembolso por pagamento. Sem ele, devolve tudo o que ainda pode ser devolvido.
     public var amountCents: Int?
     /// Pares seus guardados no reembolso; voltam como refund_metadata no reembolso e nos eventos refund.created e refund.updated, onde metadata é o do pedido. O filtro metadata[chave]=valor de GET /refunds procura estes pares. Até 50 pares de chave e valor: a chave tem de 1 a 40 caracteres, e o valor é um texto de 1 a 500 caracteres, um número ou um booleano. Texto sem caracteres de controle nem de direção invisível.
     public var metadata: [String: JSONValue]?
@@ -4946,6 +5193,26 @@ public struct CardTokenizationEnvironment: RawRepresentable, Codable, Sendable, 
     public static let live = CardTokenizationEnvironment(rawValue: "live")
 }
 
+/// The values of `Checkout.installment_interest`. Quem paga os juros do parcelamento deste checkout: merchant (sem juros) ou buyer (com juros); nulo segue a organização.
+///
+/// A value this SDK does not know yet is kept as it came, in `rawValue`.
+public struct CheckoutInstallmentInterest: RawRepresentable, Codable, Sendable, Hashable, ExpressibleByStringLiteral {
+    public let rawValue: String
+
+    public init(rawValue: String) {
+        self.rawValue = rawValue
+    }
+
+    public init(stringLiteral value: String) {
+        self.rawValue = value
+    }
+
+    /// `merchant`
+    public static let merchant = CheckoutInstallmentInterest(rawValue: "merchant")
+    /// `buyer`
+    public static let buyer = CheckoutInstallmentInterest(rawValue: "buyer")
+}
+
 /// The values of `Checkout.renewal_mode`. O renewal_mode da criação: manual, automatic ou buyer_choice; vazio quando foi omitido. A assinatura que o pagamento começa traz o modo a que isso se resolveu em Subscription.renewal_mode.
 ///
 /// A value this SDK does not know yet is kept as it came, in `rawValue`.
@@ -5106,6 +5373,26 @@ public struct CheckoutClientPaymentState: RawRepresentable, Codable, Sendable, H
     public static let partiallyRefunded = CheckoutClientPaymentState(rawValue: "partially_refunded")
 }
 
+/// The values of `CheckoutCreated.installment_interest`. Quem paga os juros do parcelamento deste checkout: merchant (sem juros) ou buyer (com juros); nulo segue a organização.
+///
+/// A value this SDK does not know yet is kept as it came, in `rawValue`.
+public struct CheckoutCreatedInstallmentInterest: RawRepresentable, Codable, Sendable, Hashable, ExpressibleByStringLiteral {
+    public let rawValue: String
+
+    public init(rawValue: String) {
+        self.rawValue = rawValue
+    }
+
+    public init(stringLiteral value: String) {
+        self.rawValue = value
+    }
+
+    /// `merchant`
+    public static let merchant = CheckoutCreatedInstallmentInterest(rawValue: "merchant")
+    /// `buyer`
+    public static let buyer = CheckoutCreatedInstallmentInterest(rawValue: "buyer")
+}
+
 /// The values of `CheckoutCreated.renewal_mode`. O renewal_mode da criação: manual, automatic ou buyer_choice; vazio quando foi omitido. A assinatura que o pagamento começa traz o modo a que isso se resolveu em Subscription.renewal_mode.
 ///
 /// A value this SDK does not know yet is kept as it came, in `rawValue`.
@@ -5226,6 +5513,48 @@ public struct CheckoutLinkCaptureMode: RawRepresentable, Codable, Sendable, Hash
     public static let automatic = CheckoutLinkCaptureMode(rawValue: "automatic")
     /// `manual`
     public static let manual = CheckoutLinkCaptureMode(rawValue: "manual")
+}
+
+/// The values of `CheckoutLink.installment_interest`. Quem paga os juros do parcelamento deste checkout: merchant (sem juros) ou buyer (com juros); nulo segue a organização.
+///
+/// A value this SDK does not know yet is kept as it came, in `rawValue`.
+public struct CheckoutLinkInstallmentInterest: RawRepresentable, Codable, Sendable, Hashable, ExpressibleByStringLiteral {
+    public let rawValue: String
+
+    public init(rawValue: String) {
+        self.rawValue = rawValue
+    }
+
+    public init(stringLiteral value: String) {
+        self.rawValue = value
+    }
+
+    /// `merchant`
+    public static let merchant = CheckoutLinkInstallmentInterest(rawValue: "merchant")
+    /// `buyer`
+    public static let buyer = CheckoutLinkInstallmentInterest(rawValue: "buyer")
+}
+
+/// The values of `CheckoutLink.renewal_mode`. Como a assinatura que o link vende renova: manual (uma cobrança por link a cada ciclo), automatic (só cartão guardado ou Pix Automático), buyer_choice (o comprador marca a caixa Cobrança recorrente na página); nulo é o padrão, em que o cartão guardado renova e, sem cartão, o comprador recebe o link.
+///
+/// A value this SDK does not know yet is kept as it came, in `rawValue`.
+public struct CheckoutLinkRenewalMode: RawRepresentable, Codable, Sendable, Hashable, ExpressibleByStringLiteral {
+    public let rawValue: String
+
+    public init(rawValue: String) {
+        self.rawValue = rawValue
+    }
+
+    public init(stringLiteral value: String) {
+        self.rawValue = value
+    }
+
+    /// `manual`
+    public static let manual = CheckoutLinkRenewalMode(rawValue: "manual")
+    /// `automatic`
+    public static let automatic = CheckoutLinkRenewalMode(rawValue: "automatic")
+    /// `buyer_choice`
+    public static let buyerChoice = CheckoutLinkRenewalMode(rawValue: "buyer_choice")
 }
 
 /// The values of `CheckoutLink.status`.
@@ -5524,8 +5853,8 @@ public struct DisputeSource: RawRepresentable, Codable, Sendable, Hashable, Expr
 
     /// `operator`
     public static let `operator` = DisputeSource(rawValue: "operator")
-    /// `cielo_chargeback`
-    public static let cieloChargeback = DisputeSource(rawValue: "cielo_chargeback")
+    /// `processor_chargeback`
+    public static let processorChargeback = DisputeSource(rawValue: "processor_chargeback")
 }
 
 /// The values of `Dispute.status`.
@@ -6154,8 +6483,6 @@ public struct RenewalChargeReminder: RawRepresentable, Codable, Sendable, Hashab
     public static let beforeDue = RenewalChargeReminder(rawValue: "before_due")
     /// `on_due`
     public static let onDue = RenewalChargeReminder(rawValue: "on_due")
-    /// `null`
-    public static let null = RenewalChargeReminder(rawValue: "null")
 }
 
 /// The values of `RenewalCharge.renewal_mode`. O modo de renovação da assinatura. Uma cobrança em aberto existe nos modos manual e, quando o cartão é recusado, card.
@@ -6516,8 +6843,8 @@ public struct WebhookDisputeSource: RawRepresentable, Codable, Sendable, Hashabl
 
     /// `operator`
     public static let `operator` = WebhookDisputeSource(rawValue: "operator")
-    /// `cielo_chargeback`
-    public static let cieloChargeback = WebhookDisputeSource(rawValue: "cielo_chargeback")
+    /// `processor_chargeback`
+    public static let processorChargeback = WebhookDisputeSource(rawValue: "processor_chargeback")
 }
 
 /// The values of `WebhookDispute.status`.
@@ -6920,6 +7247,26 @@ public struct WebhookSubscriptionSuspensionReason: RawRepresentable, Codable, Se
     public static let dispute = WebhookSubscriptionSuspensionReason(rawValue: "dispute")
 }
 
+/// The values of `CheckoutClientPaymentDiscount.method`. A forma de pagamento que tem desconto.
+///
+/// A value this SDK does not know yet is kept as it came, in `rawValue`.
+public struct CheckoutClientPaymentDiscountMethod: RawRepresentable, Codable, Sendable, Hashable, ExpressibleByStringLiteral {
+    public let rawValue: String
+
+    public init(rawValue: String) {
+        self.rawValue = rawValue
+    }
+
+    public init(stringLiteral value: String) {
+        self.rawValue = value
+    }
+
+    /// `pix`
+    public static let pix = CheckoutClientPaymentDiscountMethod(rawValue: "pix")
+    /// `boleto`
+    public static let boleto = CheckoutClientPaymentDiscountMethod(rawValue: "boleto")
+}
+
 /// The values of `BenefitsCreateParams.type`.
 ///
 /// A value this SDK does not know yet is kept as it came, in `rawValue`.
@@ -7004,6 +7351,48 @@ public struct CheckoutLinksCreateParamsCaptureMode: RawRepresentable, Codable, S
     public static let manual = CheckoutLinksCreateParamsCaptureMode(rawValue: "manual")
 }
 
+/// The values of `CheckoutLinksCreateParams.installment_interest`. Quem paga os juros do parcelamento: merchant (sem juros, a loja absorve a taxa) ou buyer (com juros pagos pelo comprador, com installment_monthly_rate_bp). Ausente segue a organização.
+///
+/// A value this SDK does not know yet is kept as it came, in `rawValue`.
+public struct CheckoutLinksCreateParamsInstallmentInterest: RawRepresentable, Codable, Sendable, Hashable, ExpressibleByStringLiteral {
+    public let rawValue: String
+
+    public init(rawValue: String) {
+        self.rawValue = rawValue
+    }
+
+    public init(stringLiteral value: String) {
+        self.rawValue = value
+    }
+
+    /// `merchant`
+    public static let merchant = CheckoutLinksCreateParamsInstallmentInterest(rawValue: "merchant")
+    /// `buyer`
+    public static let buyer = CheckoutLinksCreateParamsInstallmentInterest(rawValue: "buyer")
+}
+
+/// The values of `CheckoutLinksCreateParams.renewal_mode`. Como a assinatura que o link vende renova, num link com preço recorrente com valor. manual: a cada ciclo o comprador paga por um link. automatic: só cartão de crédito guardado ou Pix Automático, que cobram sozinhos. buyer_choice: a página mostra a caixa Cobrança recorrente, desmarcada; marcada cobra sozinho, desmarcada paga só esta vez e recebe o link nos meses seguintes. Sem o campo vale o padrão: o cartão guardado renova e, sem cartão, o comprador recebe o link. Preço de compra única não aceita (422); manual não vale com teste grátis (422). Cada checkout aberto pelo link herda o modo.
+///
+/// A value this SDK does not know yet is kept as it came, in `rawValue`.
+public struct CheckoutLinksCreateParamsRenewalMode: RawRepresentable, Codable, Sendable, Hashable, ExpressibleByStringLiteral {
+    public let rawValue: String
+
+    public init(rawValue: String) {
+        self.rawValue = rawValue
+    }
+
+    public init(stringLiteral value: String) {
+        self.rawValue = value
+    }
+
+    /// `manual`
+    public static let manual = CheckoutLinksCreateParamsRenewalMode(rawValue: "manual")
+    /// `automatic`
+    public static let automatic = CheckoutLinksCreateParamsRenewalMode(rawValue: "automatic")
+    /// `buyer_choice`
+    public static let buyerChoice = CheckoutLinksCreateParamsRenewalMode(rawValue: "buyer_choice")
+}
+
 /// The values of `CheckoutLinksCreateParams.trial_interval`.
 ///
 /// A value this SDK does not know yet is kept as it came, in `rawValue`.
@@ -7028,7 +7417,49 @@ public struct CheckoutLinksCreateParamsTrialInterval: RawRepresentable, Codable,
     public static let year = CheckoutLinksCreateParamsTrialInterval(rawValue: "year")
 }
 
-/// The values of `CheckoutsCreateParams.renewal_mode`. Como a assinatura renova, numa assinatura (preço recorrente com valor). manual: a cada ciclo a Peráta abre uma cobrança para o comprador pagar (payment_url, por cartão, Pix ou boleto) e avisa o seu sistema com o evento subscription.renewal_due, mesmo que o primeiro pagamento tenha sido no cartão; o cartão nunca é cobrado e não é guardado. automatic: só os meios que cobram sozinhos, o cartão de crédito guardado ou o Pix Automático (quando a organização o tem ligado; senão só o cartão); a página mostra só esses meios, e a assinatura nasce com renewal_mode card ou pix_automatic. buyer_choice: a página mostra a caixa Ativar cobrança automática, desmarcada, e o comprador decide: desmarcada é manual, marcada é automatic. Sem o campo nada muda: sem caixa, o cartão de crédito renova sozinho e qualquer outro meio vira uma cobrança a cada ciclo. Funciona junto com first_period_extra_days e com desconto. Vale só em preço recorrente com valor (senão 422); manual não vale com teste grátis nem com subscription_start_at, que guardam o cartão para cobrar no fim (422). Pagar por um meio que o modo não aceita (Pix, boleto ou débito em automatic; Pix Automático em manual) é 422 em payment_method. A Subscription traz o modo a que isso se resolveu em renewal_mode: manual, card ou pix_automatic.
+/// The values of `CheckoutLinksUpdateParams.renewal_mode`. Troca como a assinatura do link renova; vazio volta ao padrão. Os checkouts já abertos guardam o modo que viram. Vale as mesmas regras da criação (422 em preço de compra única, ou manual com teste grátis).
+///
+/// A value this SDK does not know yet is kept as it came, in `rawValue`.
+public struct CheckoutLinksUpdateParamsRenewalMode: RawRepresentable, Codable, Sendable, Hashable, ExpressibleByStringLiteral {
+    public let rawValue: String
+
+    public init(rawValue: String) {
+        self.rawValue = rawValue
+    }
+
+    public init(stringLiteral value: String) {
+        self.rawValue = value
+    }
+
+    /// `manual`
+    public static let manual = CheckoutLinksUpdateParamsRenewalMode(rawValue: "manual")
+    /// `automatic`
+    public static let automatic = CheckoutLinksUpdateParamsRenewalMode(rawValue: "automatic")
+    /// `buyer_choice`
+    public static let buyerChoice = CheckoutLinksUpdateParamsRenewalMode(rawValue: "buyer_choice")
+}
+
+/// The values of `CheckoutsCreateParams.installment_interest`. Quem paga os juros do parcelamento: merchant (sem juros, a loja absorve a taxa) ou buyer (com juros pagos pelo comprador, com installment_monthly_rate_bp). Ausente segue a organização.
+///
+/// A value this SDK does not know yet is kept as it came, in `rawValue`.
+public struct CheckoutsCreateParamsInstallmentInterest: RawRepresentable, Codable, Sendable, Hashable, ExpressibleByStringLiteral {
+    public let rawValue: String
+
+    public init(rawValue: String) {
+        self.rawValue = rawValue
+    }
+
+    public init(stringLiteral value: String) {
+        self.rawValue = value
+    }
+
+    /// `merchant`
+    public static let merchant = CheckoutsCreateParamsInstallmentInterest(rawValue: "merchant")
+    /// `buyer`
+    public static let buyer = CheckoutsCreateParamsInstallmentInterest(rawValue: "buyer")
+}
+
+/// The values of `CheckoutsCreateParams.renewal_mode`. Como a assinatura renova, numa assinatura (preço recorrente com valor). manual: a cada ciclo a Peráta abre uma cobrança para o comprador pagar (payment_url, por cartão, Pix ou boleto) e avisa o seu sistema com o evento subscription.renewal_due, mesmo que o primeiro pagamento tenha sido no cartão; o cartão nunca é cobrado e não é guardado. automatic: só os meios que cobram sozinhos, o cartão de crédito guardado ou o Pix Automático (quando a organização o tem ligado; senão só o cartão); a página mostra só esses meios, e a assinatura nasce com renewal_mode card ou pix_automatic. buyer_choice: a página mostra a caixa Cobrança recorrente, desmarcada, e o comprador decide: desmarcada é manual, marcada é automatic. Sem o campo nada muda: sem caixa, o cartão de crédito renova sozinho e qualquer outro meio vira uma cobrança a cada ciclo. Funciona junto com first_period_extra_days e com desconto. Vale só em preço recorrente com valor (senão 422); manual não vale com teste grátis nem com subscription_start_at, que guardam o cartão para cobrar no fim (422). Pagar por um meio que o modo não aceita (Pix, boleto ou débito em automatic; Pix Automático em manual) é 422 em payment_method. A Subscription traz o modo a que isso se resolveu em renewal_mode: manual, card ou pix_automatic.
 ///
 /// A value this SDK does not know yet is kept as it came, in `rawValue`.
 public struct CheckoutsCreateParamsRenewalMode: RawRepresentable, Codable, Sendable, Hashable, ExpressibleByStringLiteral {

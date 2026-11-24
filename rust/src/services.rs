@@ -792,8 +792,8 @@ impl<'a> CheckoutsService<'a> {
     /// abre uma cobrança para o comprador pagar e avisa o seu sistema com
     /// subscription.renewal_due, mesmo que o primeiro pagamento tenha sido no
     /// cartão), automatic (só cartão de crédito guardado ou Pix Automático;
-    /// cobra sozinho) ou buyer_choice (a página mostra a caixa Ativar cobrança
-    /// automática e o comprador decide); sem o campo nada muda.
+    /// cobra sozinho) ou buyer_choice (a página mostra a caixa Cobrança
+    /// recorrente e o comprador decide); sem o campo nada muda.
     /// notify_customer_email false mantém a Peráta sem escrever ao comprador.
     /// label dá nome à assinatura (por exemplo, Olho de Águia · Colaborador
     /// Ana).
@@ -2079,6 +2079,8 @@ pub struct PaymentsListParams {
     pub external_customer_id: Option<String>,
     /// Só as vendas desta assinatura: o pedido que pagou o primeiro ciclo e cada renovação paga. Um ID que não existe não acha nada.
     pub subscription_id: Option<String>,
+    /// Só os pagamentos feitos por este meio: card, pix ou boleto. Para vários, separe por vírgula: pix,boleto. Combine com subscription_id ou com o período (created_after e created_before) para somar as cobranças de um meio.
+    pub method: Option<String>,
     /// Só os criados a partir deste instante, inclusive (RFC 3339, como 2026-11-17T00:00:00-03:00).
     pub created_after: Option<String>,
     /// Só os criados antes deste instante (RFC 3339); com created_after, o período é [created_after, created_before).
@@ -2137,6 +2139,12 @@ impl PaymentsListParams {
         self
     }
 
+    /// Só os pagamentos feitos por este meio: card, pix ou boleto. Para vários, separe por vírgula: pix,boleto. Combine com subscription_id ou com o período (created_after e created_before) para somar as cobranças de um meio.
+    pub fn method(mut self, method: impl Into<String>) -> Self {
+        self.method = Some(method.into());
+        self
+    }
+
     /// Só os criados a partir deste instante, inclusive (RFC 3339, como 2026-11-17T00:00:00-03:00).
     pub fn created_after(mut self, created_after: impl Into<String>) -> Self {
         self.created_after = Some(created_after.into());
@@ -2183,6 +2191,9 @@ impl PaymentsListParams {
         }
         if let Some(value) = &self.subscription_id {
             query.push(("subscription_id".to_owned(), value.clone()));
+        }
+        if let Some(value) = &self.method {
+            query.push(("method".to_owned(), value.clone()));
         }
         if let Some(value) = &self.created_after {
             query.push(("created_after".to_owned(), value.clone()));
@@ -2253,7 +2264,8 @@ impl<'a> PaymentsService<'a> {
     /// Listar pagamentos. One page; [`list_iter`](Self::list_iter) walks every page.
     ///
     /// Devolve uma página dos pagamentos. Filtre por client_reference_id,
-    /// estado, cliente, assinatura (subscription_id), período ou metadados.
+    /// estado, meio (method: card, pix ou boleto), cliente, assinatura
+    /// (subscription_id), período ou metadados.
     ///
     /// Autenticação: chave de API da organização em Authorization: Bearer
     /// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
@@ -2921,11 +2933,16 @@ impl<'a> RefundsService<'a> {
     /// Devolve dinheiro de um pagamento, que você nomeia pelo payment_id ou
     /// pelo order_id do pedido que ele pagou (os dois, só se forem do mesmo
     /// pagamento). Sem amount_cents devolve tudo o que ainda pode ser
-    /// devolvido; com ele, uma parte, até esse limite. O reason, sem ele, é
-    /// requested_by_customer. O metadata fica no reembolso e volta nele e nos
-    /// eventos refund.*. A Idempotency-Key é obrigatória: sem ela, repetir a
-    /// chamada depois de um tempo esgotado seria devolver duas vezes; repetida
-    /// com a mesma chave, devolve o mesmo reembolso.
+    /// devolvido; com ele, uma parte, até esse limite. Um pagamento de cartão
+    /// aceita vários reembolsos parciais, um depois do outro, e a soma deles
+    /// nunca passa do valor capturado: um pedido acima do que resta volta 409,
+    /// e um pedido feito enquanto o reembolso anterior ainda está em andamento
+    /// também volta 409 (espere ele terminar e repita). Um pagamento por Pix
+    /// aceita um só reembolso. O reason, sem ele, é requested_by_customer. O
+    /// metadata fica no reembolso e volta nele e nos eventos refund.*. A
+    /// Idempotency-Key é obrigatória: sem ela, repetir a chamada depois de um
+    /// tempo esgotado seria devolver duas vezes; repetida com a mesma chave,
+    /// devolve o mesmo reembolso.
     ///
     /// Autenticação: chave de API da organização em Authorization: Bearer
     /// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
@@ -3041,6 +3058,8 @@ pub struct SubscriptionsListParams {
     pub limit: Option<u32>,
     /// Só as assinaturas neste status: trialing, active, past_due, paused, canceled e os demais do ciclo de vida.
     pub status: Option<String>,
+    /// Só as assinaturas cobradas deste jeito: card (o cartão guardado é cobrado sozinho todo ciclo), pix_automatic (o banco debita cada cobrança) ou manual (a cada ciclo o comprador paga uma cobrança, por Pix, boleto ou cartão digitado). Para vários, separe por vírgula: card,pix_automatic. Uma assinatura sem modo guardado conta como card quando tem cartão guardado e como manual quando não tem.
+    pub renewal_mode: Option<String>,
     /// Só os deste cliente.
     pub customer_id: Option<String>,
     /// Só os do cliente que você identifica por este ID externo; um ID que não existe não acha nada.
@@ -3076,6 +3095,12 @@ impl SubscriptionsListParams {
     /// Só as assinaturas neste status: trialing, active, past_due, paused, canceled e os demais do ciclo de vida.
     pub fn status(mut self, status: impl Into<String>) -> Self {
         self.status = Some(status.into());
+        self
+    }
+
+    /// Só as assinaturas cobradas deste jeito: card (o cartão guardado é cobrado sozinho todo ciclo), pix_automatic (o banco debita cada cobrança) ou manual (a cada ciclo o comprador paga uma cobrança, por Pix, boleto ou cartão digitado). Para vários, separe por vírgula: card,pix_automatic. Uma assinatura sem modo guardado conta como card quando tem cartão guardado e como manual quando não tem.
+    pub fn renewal_mode(mut self, renewal_mode: impl Into<String>) -> Self {
+        self.renewal_mode = Some(renewal_mode.into());
         self
     }
 
@@ -3125,6 +3150,9 @@ impl SubscriptionsListParams {
         }
         if let Some(value) = &self.status {
             query.push(("status".to_owned(), value.clone()));
+        }
+        if let Some(value) = &self.renewal_mode {
+            query.push(("renewal_mode".to_owned(), value.clone()));
         }
         if let Some(value) = &self.customer_id {
             query.push(("customer_id".to_owned(), value.clone()));
@@ -3237,7 +3265,8 @@ impl<'a> SubscriptionsService<'a> {
     /// Listar assinaturas. One page; [`list_iter`](Self::list_iter) walks every page.
     ///
     /// Devolve uma página das assinaturas. Filtre por cliente (customer_id ou
-    /// external_customer_id), status, período ou metadados.
+    /// external_customer_id), status, tipo de cobrança (renewal_mode: card,
+    /// pix_automatic ou manual), período ou metadados.
     ///
     /// Autenticação: chave de API da organização em Authorization: Bearer
     /// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da

@@ -108,7 +108,7 @@ pub struct CardAuthentication {
     /// Segundos de vida do token.
     pub expires_in: i64,
     pub provider: String,
-    /// O script de autenticação do adquirente.
+    /// O script de autenticação do processador de pagamentos.
     pub script_url: String,
     /// O valor, em centavos, que o script deve autenticar: o total da sessão no servidor. Copie-o no campo bpmpi_totalamount; depois que ele é entregue, o total da sessão não muda mais.
     pub total_cents: i64,
@@ -118,7 +118,7 @@ pub struct CardAuthentication {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[non_exhaustive]
 pub struct CardTokenization {
-    /// O token com que o script do adquirente envia o cartão; entregue só a uma página da própria origem da Peráta.
+    /// O token com que o script do processador de pagamentos envia o cartão; entregue só a uma página da própria origem da Peráta.
     pub access_token: String,
     /// O bilhete da tentativa deste cartão: de uso único, válido só para esta sessão e por 20 minutos. Devolva-o em card_ticket ao confirmar; sem um bilhete válido nenhum cartão é tentado.
     pub card_ticket: String,
@@ -134,10 +134,14 @@ pub struct CardTokenization {
 pub struct Checkout {
     /// O valor, em centavos, que o seu servidor fixou na criação; nulo quando é o comprador quem digita o valor.
     pub amount_cents: Option<i64>,
+    /// O desconto de quem paga com boleto neste checkout, em centésimos de ponto percentual; 0 desliga o desconto aqui; nulo segue a organização.
+    pub boleto_discount_bp: Option<i64>,
     /// Endereço https para onde o comprador volta se desistir; vazio sem ele.
     pub cancel_url: String,
     /// O id do pedido no seu sistema, como o seu servidor o enviou na criação; vazio sem ele. Volta no checkout, no pedido, no pagamento e nos eventos.
     pub client_reference_id: String,
+    /// Se o cupom soma com o desconto do Pix ou do boleto neste checkout: true soma (o cupom primeiro, o desconto da forma depois), false vale só o maior dos dois em centavos sobre o mesmo preço; nulo segue a organização (que por padrão não soma). Em assinatura o cupom sempre soma.
+    pub coupon_stacks_with_method_discount: Option<bool>,
     pub created_at: String,
     /// O desconto que o checkout aplica sozinho, como o seu servidor o enviou na criação; vazio sem ele. O comprador o vê no resumo e ele conta desde a primeira cobrança.
     pub discount_id: String,
@@ -146,14 +150,26 @@ pub struct Checkout {
     /// Quantos dias o seu servidor somou ao primeiro período da assinatura (first_period_extra_days na criação); nulo quando o primeiro período é o comum. O comprador paga hoje o valor cheio, e a próxima cobrança só acontece no fim do período mais longo.
     pub first_period_extra_days: Option<i64>,
     pub id: String,
+    /// Quem paga os juros do parcelamento deste checkout: merchant (sem juros) ou buyer (com juros); nulo segue a organização.
+    pub installment_interest: Option<CheckoutInstallmentInterest>,
+    /// A taxa de juros ao mês que o comprador paga, em centésimos de ponto percentual (299 é 2,99%); 0 segue a organização.
+    pub installment_monthly_rate_bp: i64,
+    /// Quantas parcelas saem sem juros quando o comprador paga os juros; 0 segue a organização.
+    pub interest_free_installments: i64,
     /// As linhas do valor fixado, na ordem em que foram enviadas; vazio sem elas.
     pub items: Vec<CheckoutLine>,
     /// Como o lojista chama o checkout nas próprias telas; o comprador não vê.
     pub label: String,
+    /// O máximo de parcelas no cartão de crédito deste checkout; 0 segue o que a organização definiu, 1 vende só à vista.
+    pub max_installments: i64,
     /// Os pares que o seu servidor guardou na criação; voltam nos eventos da venda.
     pub metadata: std::collections::HashMap<String, serde_json::Value>,
+    /// A menor parcela, em centavos; 0 segue a organização.
+    pub min_installment_cents: i64,
     /// Falso quando o seu sistema avisa o comprador das cobranças de renovação e a Peráta fica quieta.
     pub notify_customer_email: bool,
+    /// O desconto de quem paga com Pix neste checkout, em centésimos de ponto percentual (500 é 5%); 0 desliga o desconto aqui; nulo segue a organização.
+    pub pix_discount_bp: Option<i64>,
     pub price_id: String,
     pub product_id: String,
     pub quantity: i64,
@@ -181,7 +197,7 @@ pub struct CheckoutClient {
     pub amount_locked: bool,
     /// Para onde o comprador volta sem pagar.
     pub cancel_url: String,
-    /// credit, e debit onde a autenticação do adquirente está ligada.
+    /// credit, e debit onde a autenticação do processador de pagamentos está ligada.
     pub card_kinds: Vec<String>,
     /// O id do pedido no seu sistema, quando o seu servidor o enviou; vazio sem ele.
     pub client_reference_id: String,
@@ -209,6 +225,8 @@ pub struct CheckoutClient {
     pub missing: Vec<String>,
     pub next_action: CheckoutNextAction,
     pub payment: Option<CheckoutClientPayment>,
+    /// O desconto de cada forma de pagamento que tem um (Pix e boleto), depois do cupom e sobre o valor já com o cupom quando o cupom soma; quando não soma, só aparece a forma cujo desconto é maior que o do cupom, sobre o preço sem cupom; vazio quando nenhuma tem. O cartão de crédito não tem desconto. O Pix Automático também não.
+    pub payment_discounts: Vec<CheckoutClientPaymentDiscount>,
     /// As formas em que a sessão pode ser paga, entre card, pix, boleto e free; free é uma sessão que não pede pagamento.
     pub payment_methods: Vec<String>,
     /// O lojista pede o endereço de cobrança completo; o boleto o pede de qualquer jeito.
@@ -233,7 +251,7 @@ pub struct CheckoutClientBoleto {
     pub digitable_line: String,
     /// Quando o boleto deixa de poder ser pago: o fim do dia do vencimento, no horário de Brasília.
     pub due_date: Option<String>,
-    /// Onde o boleto é baixado; vazio quando o adquirente não deu nenhum.
+    /// Onde o boleto é baixado; vazio quando o processador de pagamentos não deu nenhum.
     pub pdf_url: String,
 }
 
@@ -249,6 +267,8 @@ pub struct CheckoutClientCustomer {
     pub name: String,
     /// O CPF ou CNPJ do comprador, só dígitos; vazio enquanto não for informado.
     pub tax_id: String,
+    /// Verdadeiro quando o CPF ou CNPJ é o que o lojista tem do cliente: o comprador não pode trocá-lo e o servidor recusa outro (422 em tax_id).
+    pub tax_id_fixed: bool,
     pub tax_id_kind: String,
 }
 
@@ -294,7 +314,7 @@ pub struct CheckoutClientPayment {
     pub method: CheckoutClientPaymentMethod,
     pub pix: Option<CheckoutClientPix>,
     pub state: CheckoutClientPaymentState,
-    /// Verdadeiro enquanto a resposta do adquirente ainda é descoberta; o comprador espera.
+    /// Verdadeiro enquanto a resposta do processador de pagamentos ainda é descoberta; o comprador espera.
     pub unresolved: bool,
 }
 
@@ -304,7 +324,7 @@ pub struct CheckoutClientPayment {
 pub struct CheckoutClientPix {
     /// O código Pix copia e cola.
     pub copia_e_cola: String,
-    /// Quando o Pix deixa de poder ser pago, como o adquirente o deu.
+    /// Quando o Pix deixa de poder ser pago, como o processador de pagamentos o deu.
     pub expires_at: Option<String>,
     /// O QR do código, desenhado como um documento SVG.
     pub qr_code_svg: String,
@@ -316,6 +336,8 @@ pub struct CheckoutClientPix {
 pub struct CheckoutCreated {
     /// O valor, em centavos, que o seu servidor fixou; o comprador o vê e não pode mudá-lo. Nulo quando é o comprador quem digita o valor.
     pub amount_cents: Option<i64>,
+    /// O desconto de quem paga com boleto neste checkout, em centésimos de ponto percentual; 0 desliga o desconto aqui; nulo segue a organização.
+    pub boleto_discount_bp: Option<i64>,
     /// Endereço https para onde o comprador volta se desistir; vazio sem ele.
     pub cancel_url: String,
     /// O id do pedido no seu sistema, como o seu servidor o enviou; vazio sem ele. Volta no checkout, no pedido, no pagamento e nos eventos.
@@ -324,6 +346,8 @@ pub struct CheckoutCreated {
     pub client_secret: String,
     /// Quando a sessão e o client_secret deixam de valer.
     pub client_secret_expires_at: String,
+    /// Se o cupom soma com o desconto do Pix ou do boleto neste checkout: true soma (o cupom primeiro, o desconto da forma depois), false vale só o maior dos dois em centavos sobre o mesmo preço; nulo segue a organização (que por padrão não soma). Em assinatura o cupom sempre soma.
+    pub coupon_stacks_with_method_discount: Option<bool>,
     pub created_at: String,
     /// O desconto que o checkout aplica sozinho, como o seu servidor o enviou na criação; vazio sem ele. O comprador o vê no resumo e ele conta desde a primeira cobrança.
     pub discount_id: String,
@@ -333,14 +357,26 @@ pub struct CheckoutCreated {
     pub first_period_extra_days: Option<i64>,
     /// O ID do link do checkout, o que GET e PATCH /checkouts/{id} recebem.
     pub id: String,
+    /// Quem paga os juros do parcelamento deste checkout: merchant (sem juros) ou buyer (com juros); nulo segue a organização.
+    pub installment_interest: Option<CheckoutCreatedInstallmentInterest>,
+    /// A taxa de juros ao mês que o comprador paga, em centésimos de ponto percentual (299 é 2,99%); 0 segue a organização.
+    pub installment_monthly_rate_bp: i64,
+    /// Quantas parcelas saem sem juros quando o comprador paga os juros; 0 segue a organização.
+    pub interest_free_installments: i64,
     /// As linhas do valor fixado, na ordem em que foram enviadas; vazio sem elas.
     pub items: Vec<CheckoutLine>,
     /// Como o lojista chama o checkout nas próprias telas; o comprador não vê.
     pub label: String,
+    /// O máximo de parcelas no cartão de crédito deste checkout; 0 segue o que a organização definiu, 1 vende só à vista.
+    pub max_installments: i64,
     /// Os pares que o seu servidor enviou; voltam no pedido, no pagamento e nos eventos da venda (checkout.*, order.*, checkout_payment.* e refund.*).
     pub metadata: std::collections::HashMap<String, serde_json::Value>,
+    /// A menor parcela, em centavos; 0 segue a organização.
+    pub min_installment_cents: i64,
     /// Falso quando o seu sistema avisa o comprador das cobranças de renovação e a Peráta fica quieta.
     pub notify_customer_email: bool,
+    /// O desconto de quem paga com Pix neste checkout, em centésimos de ponto percentual (500 é 5%); 0 desliga o desconto aqui; nulo segue a organização.
+    pub pix_discount_bp: Option<i64>,
     pub price_id: String,
     pub product_id: String,
     pub quantity: i64,
@@ -425,23 +461,37 @@ pub struct CheckoutLine {
 pub struct CheckoutLink {
     /// Se o comprador pode digitar um código de desconto.
     pub allow_discount_codes: bool,
+    /// O desconto de quem paga com boleto neste checkout, em centésimos de ponto percentual; 0 desliga o desconto aqui; nulo segue a organização.
+    pub boleto_discount_bp: Option<i64>,
     /// Endereço https para onde o comprador volta se desistir; vazio sem ele.
     pub cancel_url: String,
     /// manual segura a venda no cartão para o lojista capturar depois.
     pub capture_mode: CheckoutLinkCaptureMode,
+    /// Se o cupom soma com o desconto do Pix ou do boleto neste checkout: true soma (o cupom primeiro, o desconto da forma depois), false vale só o maior dos dois em centavos sobre o mesmo preço; nulo segue a organização (que por padrão não soma). Em assinatura o cupom sempre soma.
+    pub coupon_stacks_with_method_discount: Option<bool>,
     pub created_at: String,
     /// O desconto fixado no link; nulo sem ele.
     pub discount_id: Option<String>,
     /// Quando o link deixa de abrir checkouts; nulo sem prazo.
     pub expires_at: Option<String>,
     pub id: String,
+    /// Quem paga os juros do parcelamento deste checkout: merchant (sem juros) ou buyer (com juros); nulo segue a organização.
+    pub installment_interest: Option<CheckoutLinkInstallmentInterest>,
+    /// A taxa de juros ao mês que o comprador paga, em centésimos de ponto percentual (299 é 2,99%); 0 segue a organização.
+    pub installment_monthly_rate_bp: i64,
+    /// Quantas parcelas saem sem juros quando o comprador paga os juros; 0 segue a organização.
+    pub interest_free_installments: i64,
     /// Como o lojista chama o link nas próprias telas; o comprador não vê.
     pub label: String,
     /// O máximo de parcelas no cartão de crédito; 0 segue o que a organização definiu.
     pub max_installments: i64,
     /// Metadados do lojista: pares chave e valor (texto, número ou booleano); objeto vazio quando não há.
     pub metadata: std::collections::HashMap<String, serde_json::Value>,
+    /// A menor parcela, em centavos; 0 segue a organização.
+    pub min_installment_cents: i64,
     pub modified_at: String,
+    /// O desconto de quem paga com Pix neste checkout, em centésimos de ponto percentual (500 é 5%); 0 desliga o desconto aqui; nulo segue a organização.
+    pub pix_discount_bp: Option<i64>,
     /// O preço do primeiro produto.
     pub price_id: String,
     /// O primeiro produto do link.
@@ -449,6 +499,8 @@ pub struct CheckoutLink {
     /// Os produtos que o link vende, na ordem em que o comprador os vê.
     pub products: Vec<CheckoutLinkProduct>,
     pub quantity: i64,
+    /// Como a assinatura que o link vende renova: manual (uma cobrança por link a cada ciclo), automatic (só cartão guardado ou Pix Automático), buyer_choice (o comprador marca a caixa Cobrança recorrente na página); nulo é o padrão, em que o cartão guardado renova e, sem cartão, o comprador recebe o link.
+    pub renewal_mode: Option<CheckoutLinkRenewalMode>,
     pub require_billing_address: bool,
     pub status: CheckoutLinkStatus,
     /// Endereço https para onde o comprador volta depois de pagar; vazio sem ele.
@@ -664,7 +716,7 @@ pub struct Dispute {
     pub opened_at: String,
     /// O pedido que a venda contestada pagou; nulo quando não é de um checkout.
     pub order_id: Option<String>,
-    /// O PaymentId da venda contestada.
+    /// O id do pagamento da venda contestada.
     pub payment_id: String,
     /// Como a venda contestada foi paga: card ou pix.
     pub payment_method: String,
@@ -672,7 +724,7 @@ pub struct Dispute {
     pub provider_dispute_id: String,
     /// O motivo informado pelo emissor ou pela bandeira.
     pub provider_reason: String,
-    /// Motivo, do conjunto fechado; unknown quando a adquirente não informou.
+    /// Motivo, do conjunto fechado; unknown quando o processador de pagamentos não informou.
     pub reason: String,
     pub source: DisputeSource,
     pub status: DisputeStatus,
@@ -771,6 +823,10 @@ pub struct Order {
     /// Onde o pedido está; status é o do checkout e continua succeeded depois de um reembolso, e este vira partially_refunded ou refunded. Nulo antes de haver pagamento.
     pub order_status: Option<OrderOrderStatus>,
     pub paid_at: Option<String>,
+    /// A taxa do desconto da forma de pagamento, em centésimos de ponto percentual (500 é 5%); 0 sem ele.
+    pub payment_method_discount_bp: i64,
+    /// Quanto o desconto da forma de pagamento (Pix ou boleto) tirou de amount_cents, em centavos; 0 sem ele. O comprador pagou amount_cents menos este valor. Com cupom que soma, o desconto da forma vem depois do cupom; com cupom que não soma, vale só o maior dos dois e o outro não aparece.
+    pub payment_method_discount_cents: i64,
     /// O fim do período que o ciclo paga; nulo fora de uma assinatura.
     pub period_end: Option<String>,
     /// O começo do período que o ciclo paga; nulo fora de uma assinatura.
@@ -833,6 +889,10 @@ pub struct OrderReceipt {
     pub paid_at: Option<String>,
     /// card, pix ou boleto; vazio quando o pagamento não foi achado.
     pub payment_method: String,
+    /// A taxa do desconto da forma de pagamento, em centésimos de ponto percentual (500 é 5%); 0 sem ele.
+    pub payment_method_discount_bp: i64,
+    /// Quanto o desconto da forma de pagamento (Pix ou boleto) tirou de total_cents, em centavos; 0 sem ele. Foi pago total_cents menos este valor.
+    pub payment_method_discount_cents: i64,
     pub product_name: String,
     pub refunded_cents: i64,
     pub total_cents: i64,
@@ -876,6 +936,10 @@ pub struct Payment {
     pub method: PaymentMethodKind,
     /// O valor líquido da venda, em centavos: captured_cents menos fee_cents, o que fica para o vendedor, antes de reembolsos. 0 enquanto o pagamento não foi capturado.
     pub net_cents: i64,
+    /// A taxa do desconto da forma de pagamento, em centésimos de ponto percentual (500 é 5%); 0 sem ele.
+    pub payment_method_discount_bp: i64,
+    /// Quanto o desconto da forma de pagamento (Pix ou boleto) tirou do total do pedido, em centavos; 0 sem ele. amount_cents já é o valor com o desconto: é o que foi cobrado.
+    pub payment_method_discount_cents: i64,
     /// O dia em que o último repasse que pagou este pagamento foi depositado, AAAA-MM-DD; nulo enquanto nenhum foi.
     pub payout_deposited_on: Option<String>,
     /// O repasse em que o pagamento foi depositado: o id de GET /payouts/{id}; nulo enquanto nenhum foi. Num pagamento parcelado, é o da última parcela depositada.
@@ -1332,7 +1396,7 @@ pub struct WebhookDispute {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub metadata: Option<std::collections::HashMap<String, serde_json::Value>>,
     pub opened_at: String,
-    /// O PaymentId da venda contestada.
+    /// O id do pagamento da venda contestada.
     pub payment_id: String,
     /// Como a venda contestada foi paga: card ou pix.
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -1341,7 +1405,7 @@ pub struct WebhookDispute {
     pub provider_dispute_id: String,
     /// O motivo informado pelo emissor ou pela bandeira.
     pub provider_reason: String,
-    /// Motivo, do conjunto fechado; unknown quando a adquirente não informou.
+    /// Motivo, do conjunto fechado; unknown quando o processador de pagamentos não informou.
     pub reason: String,
     pub source: WebhookDisputeSource,
     pub status: WebhookDisputeStatus,
@@ -1414,6 +1478,10 @@ pub struct WebhookOrder {
     /// Onde o pedido está; status é o do checkout e continua succeeded depois de um reembolso, e este vira partially_refunded ou refunded.
     pub order_status: Option<WebhookOrderOrderStatus>,
     pub paid_at: Option<String>,
+    /// A taxa do desconto da forma de pagamento, em centésimos de ponto percentual (500 é 5%); 0 sem ele.
+    pub payment_method_discount_bp: i64,
+    /// Quanto o desconto da forma de pagamento (Pix ou boleto) tirou de amount_cents, em centavos; 0 sem ele. O comprador pagou amount_cents menos este valor. Com cupom que soma, o desconto da forma vem depois do cupom; com cupom que não soma, vale só o maior dos dois e o outro não aparece.
+    pub payment_method_discount_cents: i64,
     /// O fim do período do ciclo que o pagamento cobra.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub period_end: Option<String>,
@@ -1610,6 +1678,20 @@ pub struct WebhookSubscription {
     pub suspension_reason: Option<WebhookSubscriptionSuspensionReason>,
     pub trial_end: Option<String>,
     pub trial_start: Option<String>,
+}
+
+/// One item of payment_discounts in CheckoutClient.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct CheckoutClientPaymentDiscount {
+    /// A taxa do desconto, em centésimos de ponto percentual (500 é 5%).
+    pub basis_points: i64,
+    /// Quanto o desconto tira do total da sessão, em centavos, depois de qualquer cupom.
+    pub discount_cents: i64,
+    /// A forma de pagamento que tem desconto.
+    pub method: CheckoutClientPaymentDiscountMethod,
+    /// O que o comprador paga por esta forma: o total da sessão menos discount_cents. O servidor cobra o seu próprio cálculo, nunca um valor do cliente.
+    pub total_cents: i64,
 }
 
 /// One item of bands in CheckoutClientItem.
@@ -1811,16 +1893,31 @@ impl BenefitsUpdateParams {
 pub struct CheckoutLinksCreateParams {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub allow_discount_codes: Option<bool>,
+    /// O desconto de quem paga com boleto, em centésimos de ponto percentual, de 0 a 5000. 0 desliga o desconto neste checkout; ausente ou nulo segue a organização.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub boleto_discount_bp: Option<i64>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub cancel_url: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub capture_mode: Option<CheckoutLinksCreateParamsCaptureMode>,
+    /// Se o cupom soma com o desconto do Pix ou do boleto neste checkout: true soma (o cupom primeiro, o desconto da forma depois); false vale só o maior dos dois em centavos sobre o mesmo preço, e o pedido mostra só o desconto que valeu. Ausente ou nulo segue a organização, que por padrão não soma. Em assinatura o cupom sempre soma.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub coupon_stacks_with_method_discount: Option<bool>,
     /// Desconto fixado no link.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub discount_id: Option<String>,
     /// Data e hora RFC 3339 no futuro.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub expires_at: Option<String>,
+    /// Quem paga os juros do parcelamento: merchant (sem juros, a loja absorve a taxa) ou buyer (com juros pagos pelo comprador, com installment_monthly_rate_bp). Ausente segue a organização.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub installment_interest: Option<CheckoutLinksCreateParamsInstallmentInterest>,
+    /// A taxa de juros ao mês que o comprador paga, em centésimos de ponto percentual: 299 é 2,99%, no máximo 1000 (10%). Obrigatória com installment_interest buyer; 0 ou ausente segue a organização.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub installment_monthly_rate_bp: Option<i64>,
+    /// Quantas parcelas saem sem juros quando o comprador paga os juros, de 1 (nenhuma além da à vista) a 12; 0 ou ausente segue a organização.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub interest_free_installments: Option<i64>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub label: Option<String>,
     /// De 0 a 12; 0 segue a organização.
@@ -1829,6 +1926,12 @@ pub struct CheckoutLinksCreateParams {
     /// Pares guardados no link. Até 50 pares de chave e valor: a chave tem de 1 a 40 caracteres, e o valor é um texto de 1 a 500 caracteres, um número ou um booleano. Texto sem caracteres de controle nem de direção invisível.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub metadata: Option<std::collections::HashMap<String, serde_json::Value>>,
+    /// A menor parcela, em centavos, de 100 a 1000000; 0 ou ausente segue a organização.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub min_installment_cents: Option<i64>,
+    /// O desconto de quem paga com Pix, em centésimos de ponto percentual (500 é 5%), de 0 a 5000. 0 desliga o desconto neste checkout; ausente ou nulo segue a organização. Com cupom, vale a regra de coupon_stacks_with_method_discount. O cartão de crédito e o de débito não têm desconto.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub pix_discount_bp: Option<i64>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub price_id: Option<String>,
     /// Um preço de cada produto, na ordem em que o comprador os vê; até 20.
@@ -1839,6 +1942,9 @@ pub struct CheckoutLinksCreateParams {
     pub product_id: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub quantity: Option<i64>,
+    /// Como a assinatura que o link vende renova, num link com preço recorrente com valor. manual: a cada ciclo o comprador paga por um link. automatic: só cartão de crédito guardado ou Pix Automático, que cobram sozinhos. buyer_choice: a página mostra a caixa Cobrança recorrente, desmarcada; marcada cobra sozinho, desmarcada paga só esta vez e recebe o link nos meses seguintes. Sem o campo vale o padrão: o cartão guardado renova e, sem cartão, o comprador recebe o link. Preço de compra única não aceita (422); manual não vale com teste grátis (422). Cada checkout aberto pelo link herda o modo.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub renewal_mode: Option<CheckoutLinksCreateParamsRenewalMode>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub require_billing_address: Option<bool>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -1854,17 +1960,25 @@ impl CheckoutLinksCreateParams {
     pub fn new() -> Self {
         Self {
             allow_discount_codes: None,
+            boleto_discount_bp: None,
             cancel_url: None,
             capture_mode: None,
+            coupon_stacks_with_method_discount: None,
             discount_id: None,
             expires_at: None,
+            installment_interest: None,
+            installment_monthly_rate_bp: None,
+            interest_free_installments: None,
             label: None,
             max_installments: None,
             metadata: None,
+            min_installment_cents: None,
+            pix_discount_bp: None,
             price_id: None,
             price_ids: None,
             product_id: None,
             quantity: None,
+            renewal_mode: None,
             require_billing_address: None,
             success_url: None,
             trial_interval: None,
@@ -1875,6 +1989,12 @@ impl CheckoutLinksCreateParams {
     /// Sets `allow_discount_codes`.
     pub fn allow_discount_codes(mut self, allow_discount_codes: bool) -> Self {
         self.allow_discount_codes = Some(allow_discount_codes);
+        self
+    }
+
+    /// O desconto de quem paga com boleto, em centésimos de ponto percentual, de 0 a 5000. 0 desliga o desconto neste checkout; ausente ou nulo segue a organização.
+    pub fn boleto_discount_bp(mut self, boleto_discount_bp: i64) -> Self {
+        self.boleto_discount_bp = Some(boleto_discount_bp);
         self
     }
 
@@ -1890,6 +2010,12 @@ impl CheckoutLinksCreateParams {
         self
     }
 
+    /// Se o cupom soma com o desconto do Pix ou do boleto neste checkout: true soma (o cupom primeiro, o desconto da forma depois); false vale só o maior dos dois em centavos sobre o mesmo preço, e o pedido mostra só o desconto que valeu. Ausente ou nulo segue a organização, que por padrão não soma. Em assinatura o cupom sempre soma.
+    pub fn coupon_stacks_with_method_discount(mut self, coupon_stacks_with_method_discount: bool) -> Self {
+        self.coupon_stacks_with_method_discount = Some(coupon_stacks_with_method_discount);
+        self
+    }
+
     /// Desconto fixado no link.
     pub fn discount_id(mut self, discount_id: impl Into<String>) -> Self {
         self.discount_id = Some(discount_id.into());
@@ -1899,6 +2025,24 @@ impl CheckoutLinksCreateParams {
     /// Data e hora RFC 3339 no futuro.
     pub fn expires_at(mut self, expires_at: impl Into<String>) -> Self {
         self.expires_at = Some(expires_at.into());
+        self
+    }
+
+    /// Quem paga os juros do parcelamento: merchant (sem juros, a loja absorve a taxa) ou buyer (com juros pagos pelo comprador, com installment_monthly_rate_bp). Ausente segue a organização.
+    pub fn installment_interest(mut self, installment_interest: impl Into<CheckoutLinksCreateParamsInstallmentInterest>) -> Self {
+        self.installment_interest = Some(installment_interest.into());
+        self
+    }
+
+    /// A taxa de juros ao mês que o comprador paga, em centésimos de ponto percentual: 299 é 2,99%, no máximo 1000 (10%). Obrigatória com installment_interest buyer; 0 ou ausente segue a organização.
+    pub fn installment_monthly_rate_bp(mut self, installment_monthly_rate_bp: i64) -> Self {
+        self.installment_monthly_rate_bp = Some(installment_monthly_rate_bp);
+        self
+    }
+
+    /// Quantas parcelas saem sem juros quando o comprador paga os juros, de 1 (nenhuma além da à vista) a 12; 0 ou ausente segue a organização.
+    pub fn interest_free_installments(mut self, interest_free_installments: i64) -> Self {
+        self.interest_free_installments = Some(interest_free_installments);
         self
     }
 
@@ -1917,6 +2061,18 @@ impl CheckoutLinksCreateParams {
     /// Pares guardados no link. Até 50 pares de chave e valor: a chave tem de 1 a 40 caracteres, e o valor é um texto de 1 a 500 caracteres, um número ou um booleano. Texto sem caracteres de controle nem de direção invisível.
     pub fn metadata(mut self, metadata: std::collections::HashMap<String, serde_json::Value>) -> Self {
         self.metadata = Some(metadata);
+        self
+    }
+
+    /// A menor parcela, em centavos, de 100 a 1000000; 0 ou ausente segue a organização.
+    pub fn min_installment_cents(mut self, min_installment_cents: i64) -> Self {
+        self.min_installment_cents = Some(min_installment_cents);
+        self
+    }
+
+    /// O desconto de quem paga com Pix, em centésimos de ponto percentual (500 é 5%), de 0 a 5000. 0 desliga o desconto neste checkout; ausente ou nulo segue a organização. Com cupom, vale a regra de coupon_stacks_with_method_discount. O cartão de crédito e o de débito não têm desconto.
+    pub fn pix_discount_bp(mut self, pix_discount_bp: i64) -> Self {
+        self.pix_discount_bp = Some(pix_discount_bp);
         self
     }
 
@@ -1941,6 +2097,12 @@ impl CheckoutLinksCreateParams {
     /// Sets `quantity`.
     pub fn quantity(mut self, quantity: i64) -> Self {
         self.quantity = Some(quantity);
+        self
+    }
+
+    /// Como a assinatura que o link vende renova, num link com preço recorrente com valor. manual: a cada ciclo o comprador paga por um link. automatic: só cartão de crédito guardado ou Pix Automático, que cobram sozinhos. buyer_choice: a página mostra a caixa Cobrança recorrente, desmarcada; marcada cobra sozinho, desmarcada paga só esta vez e recebe o link nos meses seguintes. Sem o campo vale o padrão: o cartão guardado renova e, sem cartão, o comprador recebe o link. Preço de compra única não aceita (422); manual não vale com teste grátis (422). Cada checkout aberto pelo link herda o modo.
+    pub fn renewal_mode(mut self, renewal_mode: impl Into<CheckoutLinksCreateParamsRenewalMode>) -> Self {
+        self.renewal_mode = Some(renewal_mode.into());
         self
     }
 
@@ -1986,6 +2148,9 @@ pub struct CheckoutLinksUpdateParams {
     /// Substitui os produtos do link.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub price_ids: Option<Vec<String>>,
+    /// Troca como a assinatura do link renova; vazio volta ao padrão. Os checkouts já abertos guardam o modo que viram. Vale as mesmas regras da criação (422 em preço de compra única, ou manual com teste grátis).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub renewal_mode: Option<CheckoutLinksUpdateParamsRenewalMode>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub require_billing_address: Option<bool>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -2000,6 +2165,7 @@ impl CheckoutLinksUpdateParams {
             label: None,
             metadata: None,
             price_ids: None,
+            renewal_mode: None,
             require_billing_address: None,
             success_url: None,
         }
@@ -2029,6 +2195,12 @@ impl CheckoutLinksUpdateParams {
         self
     }
 
+    /// Troca como a assinatura do link renova; vazio volta ao padrão. Os checkouts já abertos guardam o modo que viram. Vale as mesmas regras da criação (422 em preço de compra única, ou manual com teste grátis).
+    pub fn renewal_mode(mut self, renewal_mode: impl Into<CheckoutLinksUpdateParamsRenewalMode>) -> Self {
+        self.renewal_mode = Some(renewal_mode.into());
+        self
+    }
+
     /// Sets `require_billing_address`.
     pub fn require_billing_address(mut self, require_billing_address: bool) -> Self {
         self.require_billing_address = Some(require_billing_address);
@@ -2055,12 +2227,18 @@ pub struct CheckoutsCreateParams {
     /// O valor do pedido todo, em centavos, que o seu servidor fixa. Só vale em um preço de valor livre (custom); em outro preço é recusado com 422. Respeita o mínimo e o máximo do preço, também com 422. O comprador vê o valor e não pode mudá-lo, na página, no modal, nos componentes e no checkout transparente; vale para cartão de crédito, débito e Pix, e é o valor que volta em pedidos, pagamentos, recibo e eventos. Repetir a criação com a mesma Idempotency-Key e outro valor dá 409.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub amount_cents: Option<i64>,
+    /// O desconto de quem paga com boleto, em centésimos de ponto percentual, de 0 a 5000. 0 desliga o desconto neste checkout; ausente ou nulo segue a organização.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub boleto_discount_bp: Option<i64>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub cancel_url: Option<String>,
     /// O id do pedido no seu sistema, de até 255 caracteres. Volta no checkout, no pedido, no pagamento e nos eventos checkout.*, order.*, checkout_payment.* e refund.*, para você achar de qual pedido veio cada pagamento. Num checkout de assinatura fica também na assinatura, e cada pedido de renovação volta com ele.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub client_reference_id: Option<String>,
-    /// O e-mail do comprador, quando você o conhece; senão o navegador do comprador o pede.
+    /// Se o cupom soma com o desconto do Pix ou do boleto neste checkout: true soma (o cupom primeiro, o desconto da forma depois); false vale só o maior dos dois em centavos sobre o mesmo preço, e o pedido mostra só o desconto que valeu. Ausente ou nulo segue a organização, que por padrão não soma. Em assinatura o cupom sempre soma.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub coupon_stacks_with_method_discount: Option<bool>,
+    /// O e-mail do comprador, quando você o conhece; senão o navegador do comprador o pede. Se este e-mail é de um cliente seu, o checkout abre com os dados dele, como com customer_id, e o e-mail fica fixo. Se o cliente tem CPF ou CNPJ, o comprador não pode trocá-lo.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub customer_email: Option<String>,
     /// Um cliente seu: o checkout abre com o nome, o e-mail e os dados de cobrança dele. Não junto com external_customer_id, customer_email ou customer_name.
@@ -2081,23 +2259,41 @@ pub struct CheckoutsCreateParams {
     /// Quantos dias somar ao primeiro período da assinatura, de 1 a 365: para o comprador que ainda tinha dias pagos num plano anterior (por exemplo, pago até 11/12 e assinando em 20/11: 21 dias). O comprador paga hoje o valor cheio do preço (com as faixas, a quantidade e o desconto), em Pix, cartão de crédito ou débito, como em qualquer checkout, e o primeiro período vai do dia do pagamento até esse dia mais um intervalo do preço mais estes dias, no horário de São Paulo; a renovação e os ciclos seguintes contam a partir desse fim. A próxima cobrança, no cartão guardado ou pelo link ou Pix de renovação, só acontece nele. A página mostra "Pague hoje R$ X. Próxima cobrança em DD/MM/AAAA (inclui N dias do seu plano anterior)". Só vale em um preço recorrente com valor, vendido sozinho e sem teste grátis, e não junto com subscription_start_at (cobra hoje, não numa data); fora disso a resposta é 422. A assinatura e o evento da venda trazem o mesmo número em first_period_extra_days, e o pedido do primeiro ciclo traz o período estendido em period_start e period_end. Repetir a criação com a mesma Idempotency-Key e outro número dá 409.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub first_period_extra_days: Option<i64>,
+    /// Quem paga os juros do parcelamento: merchant (sem juros, a loja absorve a taxa) ou buyer (com juros pagos pelo comprador, com installment_monthly_rate_bp). Ausente segue a organização.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub installment_interest: Option<CheckoutsCreateParamsInstallmentInterest>,
+    /// A taxa de juros ao mês que o comprador paga, em centésimos de ponto percentual: 299 é 2,99%, no máximo 1000 (10%). Obrigatória com installment_interest buyer; 0 ou ausente segue a organização.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub installment_monthly_rate_bp: Option<i64>,
+    /// Quantas parcelas saem sem juros quando o comprador paga os juros, de 1 (nenhuma além da à vista) a 12; 0 ou ausente segue a organização.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub interest_free_installments: Option<i64>,
     /// As linhas do pedido, até 50, para o comprador ler o detalhe: aparecem no checkout (página, modal, componentes e transparente), no pedido, no recibo, no portal do cliente e nos eventos. Em um preço de valor livre, a soma de quantity vezes unit_amount_cents precisa ser igual a amount_cents, ou a resposta é 422; enviadas sem amount_cents, a soma é o valor. Em um preço com valor próprio, como o de uma assinatura, as linhas só mostram ao comprador do que o valor é feito e fixam nada: envie-as sem amount_cents, com a soma igual ao valor do preço vezes a quantidade (senão 422), e o preço continua sendo quem define o que se cobra.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub items: Option<Vec<CheckoutsCreateItem>>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub label: Option<String>,
+    /// O máximo de parcelas no cartão de crédito deste checkout, de 1 a 12; vale mais que a organização, e 1 vende só à vista. 0 ou ausente segue a organização.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub max_installments: Option<i64>,
     /// Pares guardados no link do checkout e devolvidos no checkout, no pedido, no pagamento e nos eventos da venda. Até 50 pares de chave e valor: a chave tem de 1 a 40 caracteres, e o valor é um texto de 1 a 500 caracteres, um número ou um booleano. Texto sem caracteres de controle nem de direção invisível.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub metadata: Option<std::collections::HashMap<String, serde_json::Value>>,
+    /// A menor parcela, em centavos, de 100 a 1000000; 0 ou ausente segue a organização.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub min_installment_cents: Option<i64>,
     /// Verdadeiro por padrão. Falso mantém a Peráta sem escrever ao comprador a cobrança de cada renovação (o seu sistema o avisa pelo evento subscription.renewal_due); a cobrança é aberta do mesmo jeito. Além disso, a organização pode desligar este aviso para todos em Configurações › Preferências › Cobrança da renovação.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub notify_customer_email: Option<bool>,
+    /// O desconto de quem paga com Pix, em centésimos de ponto percentual (500 é 5%), de 0 a 5000. 0 desliga o desconto neste checkout; ausente ou nulo segue a organização. Com cupom, vale a regra de coupon_stacks_with_method_discount. O cartão de crédito e o de débito não têm desconto.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub pix_discount_bp: Option<i64>,
     pub price_id: String,
     pub product_id: String,
     /// Quantas unidades. Com amount_cents é sempre 1: envie 1 ou omita; qualquer outro valor é recusado com 422.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub quantity: Option<i64>,
-    /// Como a assinatura renova, numa assinatura (preço recorrente com valor). manual: a cada ciclo a Peráta abre uma cobrança para o comprador pagar (payment_url, por cartão, Pix ou boleto) e avisa o seu sistema com o evento subscription.renewal_due, mesmo que o primeiro pagamento tenha sido no cartão; o cartão nunca é cobrado e não é guardado. automatic: só os meios que cobram sozinhos, o cartão de crédito guardado ou o Pix Automático (quando a organização o tem ligado; senão só o cartão); a página mostra só esses meios, e a assinatura nasce com renewal_mode card ou pix_automatic. buyer_choice: a página mostra a caixa Ativar cobrança automática, desmarcada, e o comprador decide: desmarcada é manual, marcada é automatic. Sem o campo nada muda: sem caixa, o cartão de crédito renova sozinho e qualquer outro meio vira uma cobrança a cada ciclo. Funciona junto com first_period_extra_days e com desconto. Vale só em preço recorrente com valor (senão 422); manual não vale com teste grátis nem com subscription_start_at, que guardam o cartão para cobrar no fim (422). Pagar por um meio que o modo não aceita (Pix, boleto ou débito em automatic; Pix Automático em manual) é 422 em payment_method. A Subscription traz o modo a que isso se resolveu em renewal_mode: manual, card ou pix_automatic.
+    /// Como a assinatura renova, numa assinatura (preço recorrente com valor). manual: a cada ciclo a Peráta abre uma cobrança para o comprador pagar (payment_url, por cartão, Pix ou boleto) e avisa o seu sistema com o evento subscription.renewal_due, mesmo que o primeiro pagamento tenha sido no cartão; o cartão nunca é cobrado e não é guardado. automatic: só os meios que cobram sozinhos, o cartão de crédito guardado ou o Pix Automático (quando a organização o tem ligado; senão só o cartão); a página mostra só esses meios, e a assinatura nasce com renewal_mode card ou pix_automatic. buyer_choice: a página mostra a caixa Cobrança recorrente, desmarcada, e o comprador decide: desmarcada é manual, marcada é automatic. Sem o campo nada muda: sem caixa, o cartão de crédito renova sozinho e qualquer outro meio vira uma cobrança a cada ciclo. Funciona junto com first_period_extra_days e com desconto. Vale só em preço recorrente com valor (senão 422); manual não vale com teste grátis nem com subscription_start_at, que guardam o cartão para cobrar no fim (422). Pagar por um meio que o modo não aceita (Pix, boleto ou débito em automatic; Pix Automático em manual) é 422 em payment_method. A Subscription traz o modo a que isso se resolveu em renewal_mode: manual, card ou pix_automatic.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub renewal_mode: Option<CheckoutsCreateParamsRenewalMode>,
     /// Pede o endereço de cobrança completo de todo comprador, não só no boleto; desligado quando fica de fora.
@@ -2119,8 +2315,10 @@ impl CheckoutsCreateParams {
         Self {
             allow_discount_codes: None,
             amount_cents: None,
+            boleto_discount_bp: None,
             cancel_url: None,
             client_reference_id: None,
+            coupon_stacks_with_method_discount: None,
             customer_email: None,
             customer_id: None,
             customer_name: None,
@@ -2128,10 +2326,16 @@ impl CheckoutsCreateParams {
             expires_in: None,
             external_customer_id: None,
             first_period_extra_days: None,
+            installment_interest: None,
+            installment_monthly_rate_bp: None,
+            interest_free_installments: None,
             items: None,
             label: None,
+            max_installments: None,
             metadata: None,
+            min_installment_cents: None,
             notify_customer_email: None,
+            pix_discount_bp: None,
             price_id: price_id.into(),
             product_id: product_id.into(),
             quantity: None,
@@ -2155,6 +2359,12 @@ impl CheckoutsCreateParams {
         self
     }
 
+    /// O desconto de quem paga com boleto, em centésimos de ponto percentual, de 0 a 5000. 0 desliga o desconto neste checkout; ausente ou nulo segue a organização.
+    pub fn boleto_discount_bp(mut self, boleto_discount_bp: i64) -> Self {
+        self.boleto_discount_bp = Some(boleto_discount_bp);
+        self
+    }
+
     /// Sets `cancel_url`.
     pub fn cancel_url(mut self, cancel_url: impl Into<String>) -> Self {
         self.cancel_url = Some(cancel_url.into());
@@ -2167,7 +2377,13 @@ impl CheckoutsCreateParams {
         self
     }
 
-    /// O e-mail do comprador, quando você o conhece; senão o navegador do comprador o pede.
+    /// Se o cupom soma com o desconto do Pix ou do boleto neste checkout: true soma (o cupom primeiro, o desconto da forma depois); false vale só o maior dos dois em centavos sobre o mesmo preço, e o pedido mostra só o desconto que valeu. Ausente ou nulo segue a organização, que por padrão não soma. Em assinatura o cupom sempre soma.
+    pub fn coupon_stacks_with_method_discount(mut self, coupon_stacks_with_method_discount: bool) -> Self {
+        self.coupon_stacks_with_method_discount = Some(coupon_stacks_with_method_discount);
+        self
+    }
+
+    /// O e-mail do comprador, quando você o conhece; senão o navegador do comprador o pede. Se este e-mail é de um cliente seu, o checkout abre com os dados dele, como com customer_id, e o e-mail fica fixo. Se o cliente tem CPF ou CNPJ, o comprador não pode trocá-lo.
     pub fn customer_email(mut self, customer_email: impl Into<String>) -> Self {
         self.customer_email = Some(customer_email.into());
         self
@@ -2209,6 +2425,24 @@ impl CheckoutsCreateParams {
         self
     }
 
+    /// Quem paga os juros do parcelamento: merchant (sem juros, a loja absorve a taxa) ou buyer (com juros pagos pelo comprador, com installment_monthly_rate_bp). Ausente segue a organização.
+    pub fn installment_interest(mut self, installment_interest: impl Into<CheckoutsCreateParamsInstallmentInterest>) -> Self {
+        self.installment_interest = Some(installment_interest.into());
+        self
+    }
+
+    /// A taxa de juros ao mês que o comprador paga, em centésimos de ponto percentual: 299 é 2,99%, no máximo 1000 (10%). Obrigatória com installment_interest buyer; 0 ou ausente segue a organização.
+    pub fn installment_monthly_rate_bp(mut self, installment_monthly_rate_bp: i64) -> Self {
+        self.installment_monthly_rate_bp = Some(installment_monthly_rate_bp);
+        self
+    }
+
+    /// Quantas parcelas saem sem juros quando o comprador paga os juros, de 1 (nenhuma além da à vista) a 12; 0 ou ausente segue a organização.
+    pub fn interest_free_installments(mut self, interest_free_installments: i64) -> Self {
+        self.interest_free_installments = Some(interest_free_installments);
+        self
+    }
+
     /// As linhas do pedido, até 50, para o comprador ler o detalhe: aparecem no checkout (página, modal, componentes e transparente), no pedido, no recibo, no portal do cliente e nos eventos. Em um preço de valor livre, a soma de quantity vezes unit_amount_cents precisa ser igual a amount_cents, ou a resposta é 422; enviadas sem amount_cents, a soma é o valor. Em um preço com valor próprio, como o de uma assinatura, as linhas só mostram ao comprador do que o valor é feito e fixam nada: envie-as sem amount_cents, com a soma igual ao valor do preço vezes a quantidade (senão 422), e o preço continua sendo quem define o que se cobra.
     pub fn items(mut self, items: Vec<CheckoutsCreateItem>) -> Self {
         self.items = Some(items);
@@ -2221,9 +2455,21 @@ impl CheckoutsCreateParams {
         self
     }
 
+    /// O máximo de parcelas no cartão de crédito deste checkout, de 1 a 12; vale mais que a organização, e 1 vende só à vista. 0 ou ausente segue a organização.
+    pub fn max_installments(mut self, max_installments: i64) -> Self {
+        self.max_installments = Some(max_installments);
+        self
+    }
+
     /// Pares guardados no link do checkout e devolvidos no checkout, no pedido, no pagamento e nos eventos da venda. Até 50 pares de chave e valor: a chave tem de 1 a 40 caracteres, e o valor é um texto de 1 a 500 caracteres, um número ou um booleano. Texto sem caracteres de controle nem de direção invisível.
     pub fn metadata(mut self, metadata: std::collections::HashMap<String, serde_json::Value>) -> Self {
         self.metadata = Some(metadata);
+        self
+    }
+
+    /// A menor parcela, em centavos, de 100 a 1000000; 0 ou ausente segue a organização.
+    pub fn min_installment_cents(mut self, min_installment_cents: i64) -> Self {
+        self.min_installment_cents = Some(min_installment_cents);
         self
     }
 
@@ -2233,13 +2479,19 @@ impl CheckoutsCreateParams {
         self
     }
 
+    /// O desconto de quem paga com Pix, em centésimos de ponto percentual (500 é 5%), de 0 a 5000. 0 desliga o desconto neste checkout; ausente ou nulo segue a organização. Com cupom, vale a regra de coupon_stacks_with_method_discount. O cartão de crédito e o de débito não têm desconto.
+    pub fn pix_discount_bp(mut self, pix_discount_bp: i64) -> Self {
+        self.pix_discount_bp = Some(pix_discount_bp);
+        self
+    }
+
     /// Quantas unidades. Com amount_cents é sempre 1: envie 1 ou omita; qualquer outro valor é recusado com 422.
     pub fn quantity(mut self, quantity: i64) -> Self {
         self.quantity = Some(quantity);
         self
     }
 
-    /// Como a assinatura renova, numa assinatura (preço recorrente com valor). manual: a cada ciclo a Peráta abre uma cobrança para o comprador pagar (payment_url, por cartão, Pix ou boleto) e avisa o seu sistema com o evento subscription.renewal_due, mesmo que o primeiro pagamento tenha sido no cartão; o cartão nunca é cobrado e não é guardado. automatic: só os meios que cobram sozinhos, o cartão de crédito guardado ou o Pix Automático (quando a organização o tem ligado; senão só o cartão); a página mostra só esses meios, e a assinatura nasce com renewal_mode card ou pix_automatic. buyer_choice: a página mostra a caixa Ativar cobrança automática, desmarcada, e o comprador decide: desmarcada é manual, marcada é automatic. Sem o campo nada muda: sem caixa, o cartão de crédito renova sozinho e qualquer outro meio vira uma cobrança a cada ciclo. Funciona junto com first_period_extra_days e com desconto. Vale só em preço recorrente com valor (senão 422); manual não vale com teste grátis nem com subscription_start_at, que guardam o cartão para cobrar no fim (422). Pagar por um meio que o modo não aceita (Pix, boleto ou débito em automatic; Pix Automático em manual) é 422 em payment_method. A Subscription traz o modo a que isso se resolveu em renewal_mode: manual, card ou pix_automatic.
+    /// Como a assinatura renova, numa assinatura (preço recorrente com valor). manual: a cada ciclo a Peráta abre uma cobrança para o comprador pagar (payment_url, por cartão, Pix ou boleto) e avisa o seu sistema com o evento subscription.renewal_due, mesmo que o primeiro pagamento tenha sido no cartão; o cartão nunca é cobrado e não é guardado. automatic: só os meios que cobram sozinhos, o cartão de crédito guardado ou o Pix Automático (quando a organização o tem ligado; senão só o cartão); a página mostra só esses meios, e a assinatura nasce com renewal_mode card ou pix_automatic. buyer_choice: a página mostra a caixa Cobrança recorrente, desmarcada, e o comprador decide: desmarcada é manual, marcada é automatic. Sem o campo nada muda: sem caixa, o cartão de crédito renova sozinho e qualquer outro meio vira uma cobrança a cada ciclo. Funciona junto com first_period_extra_days e com desconto. Vale só em preço recorrente com valor (senão 422); manual não vale com teste grátis nem com subscription_start_at, que guardam o cartão para cobrar no fim (422). Pagar por um meio que o modo não aceita (Pix, boleto ou débito em automatic; Pix Automático em manual) é 422 em payment_method. A Subscription traz o modo a que isso se resolveu em renewal_mode: manual, card ou pix_automatic.
     pub fn renewal_mode(mut self, renewal_mode: impl Into<CheckoutsCreateParamsRenewalMode>) -> Self {
         self.renewal_mode = Some(renewal_mode.into());
         self
@@ -3323,7 +3575,7 @@ impl ProductsUpdateParams {
 #[derive(Debug, Clone, PartialEq, Default, Serialize, Deserialize)]
 #[non_exhaustive]
 pub struct RefundsCreateParams {
-    /// Quanto devolver, em centavos, de 1 até o que ainda pode ser devolvido. Sem ele, devolve tudo o que ainda pode ser devolvido.
+    /// Quanto devolver, em centavos, de 1 até o que ainda pode ser devolvido (o valor capturado menos os reembolsos anteriores). No cartão, a soma de vários reembolsos parciais chega ao valor capturado; no Pix, só há um reembolso por pagamento. Sem ele, devolve tudo o que ainda pode ser devolvido.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub amount_cents: Option<i64>,
     /// Pares seus guardados no reembolso; voltam como refund_metadata no reembolso e nos eventos refund.created e refund.updated, onde metadata é o do pedido. O filtro metadata[chave]=valor de GET /refunds procura estes pares. Até 50 pares de chave e valor: a chave tem de 1 a 40 caracteres, e o valor é um texto de 1 a 500 caracteres, um número ou um booleano. Texto sem caracteres de controle nem de direção invisível.
@@ -3356,7 +3608,7 @@ impl RefundsCreateParams {
         }
     }
 
-    /// Quanto devolver, em centavos, de 1 até o que ainda pode ser devolvido. Sem ele, devolve tudo o que ainda pode ser devolvido.
+    /// Quanto devolver, em centavos, de 1 até o que ainda pode ser devolvido (o valor capturado menos os reembolsos anteriores). No cartão, a soma de vários reembolsos parciais chega ao valor capturado; no Pix, só há um reembolso por pagamento. Sem ele, devolve tudo o que ainda pode ser devolvido.
     pub fn amount_cents(mut self, amount_cents: i64) -> Self {
         self.amount_cents = Some(amount_cents);
         self
@@ -4269,6 +4521,66 @@ impl<'de> Deserialize<'de> for CardTokenizationEnvironment {
     }
 }
 
+/// The values of `Checkout.installment_interest`. Quem paga os juros do parcelamento deste checkout: merchant (sem juros) ou buyer (com juros); nulo segue a organização.
+///
+/// A value this SDK does not know yet is kept, as it came, in
+/// [`CheckoutInstallmentInterest::Unrecognized`].
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[non_exhaustive]
+pub enum CheckoutInstallmentInterest {
+    /// `merchant`
+    Merchant,
+    /// `buyer`
+    Buyer,
+    /// A value this SDK does not know yet.
+    Unrecognized(String),
+}
+
+impl CheckoutInstallmentInterest {
+    /// The value as the API writes it.
+    pub fn as_str(&self) -> &str {
+        match self {
+            CheckoutInstallmentInterest::Merchant => "merchant",
+            CheckoutInstallmentInterest::Buyer => "buyer",
+            CheckoutInstallmentInterest::Unrecognized(value) => value,
+        }
+    }
+}
+
+impl From<&str> for CheckoutInstallmentInterest {
+    fn from(value: &str) -> Self {
+        match value {
+            "merchant" => CheckoutInstallmentInterest::Merchant,
+            "buyer" => CheckoutInstallmentInterest::Buyer,
+            other => CheckoutInstallmentInterest::Unrecognized(other.to_owned()),
+        }
+    }
+}
+
+impl From<String> for CheckoutInstallmentInterest {
+    fn from(value: String) -> Self {
+        Self::from(value.as_str())
+    }
+}
+
+impl fmt::Display for CheckoutInstallmentInterest {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
+impl Serialize for CheckoutInstallmentInterest {
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        serializer.serialize_str(self.as_str())
+    }
+}
+
+impl<'de> Deserialize<'de> for CheckoutInstallmentInterest {
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        String::deserialize(deserializer).map(Self::from)
+    }
+}
+
 /// The values of `Checkout.renewal_mode`. O renewal_mode da criação: manual, automatic ou buyer_choice; vazio quando foi omitido. A assinatura que o pagamento começa traz o modo a que isso se resolveu em Subscription.renewal_mode.
 ///
 /// A value this SDK does not know yet is kept, as it came, in
@@ -4729,6 +5041,66 @@ impl<'de> Deserialize<'de> for CheckoutClientPaymentState {
     }
 }
 
+/// The values of `CheckoutCreated.installment_interest`. Quem paga os juros do parcelamento deste checkout: merchant (sem juros) ou buyer (com juros); nulo segue a organização.
+///
+/// A value this SDK does not know yet is kept, as it came, in
+/// [`CheckoutCreatedInstallmentInterest::Unrecognized`].
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[non_exhaustive]
+pub enum CheckoutCreatedInstallmentInterest {
+    /// `merchant`
+    Merchant,
+    /// `buyer`
+    Buyer,
+    /// A value this SDK does not know yet.
+    Unrecognized(String),
+}
+
+impl CheckoutCreatedInstallmentInterest {
+    /// The value as the API writes it.
+    pub fn as_str(&self) -> &str {
+        match self {
+            CheckoutCreatedInstallmentInterest::Merchant => "merchant",
+            CheckoutCreatedInstallmentInterest::Buyer => "buyer",
+            CheckoutCreatedInstallmentInterest::Unrecognized(value) => value,
+        }
+    }
+}
+
+impl From<&str> for CheckoutCreatedInstallmentInterest {
+    fn from(value: &str) -> Self {
+        match value {
+            "merchant" => CheckoutCreatedInstallmentInterest::Merchant,
+            "buyer" => CheckoutCreatedInstallmentInterest::Buyer,
+            other => CheckoutCreatedInstallmentInterest::Unrecognized(other.to_owned()),
+        }
+    }
+}
+
+impl From<String> for CheckoutCreatedInstallmentInterest {
+    fn from(value: String) -> Self {
+        Self::from(value.as_str())
+    }
+}
+
+impl fmt::Display for CheckoutCreatedInstallmentInterest {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
+impl Serialize for CheckoutCreatedInstallmentInterest {
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        serializer.serialize_str(self.as_str())
+    }
+}
+
+impl<'de> Deserialize<'de> for CheckoutCreatedInstallmentInterest {
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        String::deserialize(deserializer).map(Self::from)
+    }
+}
+
 /// The values of `CheckoutCreated.renewal_mode`. O renewal_mode da criação: manual, automatic ou buyer_choice; vazio quando foi omitido. A assinatura que o pagamento começa traz o modo a que isso se resolveu em Subscription.renewal_mode.
 ///
 /// A value this SDK does not know yet is kept, as it came, in
@@ -5088,6 +5460,130 @@ impl Serialize for CheckoutLinkCaptureMode {
 }
 
 impl<'de> Deserialize<'de> for CheckoutLinkCaptureMode {
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        String::deserialize(deserializer).map(Self::from)
+    }
+}
+
+/// The values of `CheckoutLink.installment_interest`. Quem paga os juros do parcelamento deste checkout: merchant (sem juros) ou buyer (com juros); nulo segue a organização.
+///
+/// A value this SDK does not know yet is kept, as it came, in
+/// [`CheckoutLinkInstallmentInterest::Unrecognized`].
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[non_exhaustive]
+pub enum CheckoutLinkInstallmentInterest {
+    /// `merchant`
+    Merchant,
+    /// `buyer`
+    Buyer,
+    /// A value this SDK does not know yet.
+    Unrecognized(String),
+}
+
+impl CheckoutLinkInstallmentInterest {
+    /// The value as the API writes it.
+    pub fn as_str(&self) -> &str {
+        match self {
+            CheckoutLinkInstallmentInterest::Merchant => "merchant",
+            CheckoutLinkInstallmentInterest::Buyer => "buyer",
+            CheckoutLinkInstallmentInterest::Unrecognized(value) => value,
+        }
+    }
+}
+
+impl From<&str> for CheckoutLinkInstallmentInterest {
+    fn from(value: &str) -> Self {
+        match value {
+            "merchant" => CheckoutLinkInstallmentInterest::Merchant,
+            "buyer" => CheckoutLinkInstallmentInterest::Buyer,
+            other => CheckoutLinkInstallmentInterest::Unrecognized(other.to_owned()),
+        }
+    }
+}
+
+impl From<String> for CheckoutLinkInstallmentInterest {
+    fn from(value: String) -> Self {
+        Self::from(value.as_str())
+    }
+}
+
+impl fmt::Display for CheckoutLinkInstallmentInterest {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
+impl Serialize for CheckoutLinkInstallmentInterest {
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        serializer.serialize_str(self.as_str())
+    }
+}
+
+impl<'de> Deserialize<'de> for CheckoutLinkInstallmentInterest {
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        String::deserialize(deserializer).map(Self::from)
+    }
+}
+
+/// The values of `CheckoutLink.renewal_mode`. Como a assinatura que o link vende renova: manual (uma cobrança por link a cada ciclo), automatic (só cartão guardado ou Pix Automático), buyer_choice (o comprador marca a caixa Cobrança recorrente na página); nulo é o padrão, em que o cartão guardado renova e, sem cartão, o comprador recebe o link.
+///
+/// A value this SDK does not know yet is kept, as it came, in
+/// [`CheckoutLinkRenewalMode::Unrecognized`].
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[non_exhaustive]
+pub enum CheckoutLinkRenewalMode {
+    /// `manual`
+    Manual,
+    /// `automatic`
+    Automatic,
+    /// `buyer_choice`
+    BuyerChoice,
+    /// A value this SDK does not know yet.
+    Unrecognized(String),
+}
+
+impl CheckoutLinkRenewalMode {
+    /// The value as the API writes it.
+    pub fn as_str(&self) -> &str {
+        match self {
+            CheckoutLinkRenewalMode::Manual => "manual",
+            CheckoutLinkRenewalMode::Automatic => "automatic",
+            CheckoutLinkRenewalMode::BuyerChoice => "buyer_choice",
+            CheckoutLinkRenewalMode::Unrecognized(value) => value,
+        }
+    }
+}
+
+impl From<&str> for CheckoutLinkRenewalMode {
+    fn from(value: &str) -> Self {
+        match value {
+            "manual" => CheckoutLinkRenewalMode::Manual,
+            "automatic" => CheckoutLinkRenewalMode::Automatic,
+            "buyer_choice" => CheckoutLinkRenewalMode::BuyerChoice,
+            other => CheckoutLinkRenewalMode::Unrecognized(other.to_owned()),
+        }
+    }
+}
+
+impl From<String> for CheckoutLinkRenewalMode {
+    fn from(value: String) -> Self {
+        Self::from(value.as_str())
+    }
+}
+
+impl fmt::Display for CheckoutLinkRenewalMode {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
+impl Serialize for CheckoutLinkRenewalMode {
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        serializer.serialize_str(self.as_str())
+    }
+}
+
+impl<'de> Deserialize<'de> for CheckoutLinkRenewalMode {
     fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
         String::deserialize(deserializer).map(Self::from)
     }
@@ -5922,8 +6418,8 @@ impl<'de> Deserialize<'de> for DisputeKind {
 pub enum DisputeSource {
     /// `operator`
     Operator,
-    /// `cielo_chargeback`
-    CieloChargeback,
+    /// `processor_chargeback`
+    ProcessorChargeback,
     /// A value this SDK does not know yet.
     Unrecognized(String),
 }
@@ -5933,7 +6429,7 @@ impl DisputeSource {
     pub fn as_str(&self) -> &str {
         match self {
             DisputeSource::Operator => "operator",
-            DisputeSource::CieloChargeback => "cielo_chargeback",
+            DisputeSource::ProcessorChargeback => "processor_chargeback",
             DisputeSource::Unrecognized(value) => value,
         }
     }
@@ -5943,7 +6439,7 @@ impl From<&str> for DisputeSource {
     fn from(value: &str) -> Self {
         match value {
             "operator" => DisputeSource::Operator,
-            "cielo_chargeback" => DisputeSource::CieloChargeback,
+            "processor_chargeback" => DisputeSource::ProcessorChargeback,
             other => DisputeSource::Unrecognized(other.to_owned()),
         }
     }
@@ -7740,8 +8236,6 @@ pub enum RenewalChargeReminder {
     BeforeDue,
     /// `on_due`
     OnDue,
-    /// `null`
-    Null,
     /// A value this SDK does not know yet.
     Unrecognized(String),
 }
@@ -7752,7 +8246,6 @@ impl RenewalChargeReminder {
         match self {
             RenewalChargeReminder::BeforeDue => "before_due",
             RenewalChargeReminder::OnDue => "on_due",
-            RenewalChargeReminder::Null => "null",
             RenewalChargeReminder::Unrecognized(value) => value,
         }
     }
@@ -7763,7 +8256,6 @@ impl From<&str> for RenewalChargeReminder {
         match value {
             "before_due" => RenewalChargeReminder::BeforeDue,
             "on_due" => RenewalChargeReminder::OnDue,
-            "null" => RenewalChargeReminder::Null,
             other => RenewalChargeReminder::Unrecognized(other.to_owned()),
         }
     }
@@ -8806,8 +9298,8 @@ impl<'de> Deserialize<'de> for WebhookDisputeKind {
 pub enum WebhookDisputeSource {
     /// `operator`
     Operator,
-    /// `cielo_chargeback`
-    CieloChargeback,
+    /// `processor_chargeback`
+    ProcessorChargeback,
     /// A value this SDK does not know yet.
     Unrecognized(String),
 }
@@ -8817,7 +9309,7 @@ impl WebhookDisputeSource {
     pub fn as_str(&self) -> &str {
         match self {
             WebhookDisputeSource::Operator => "operator",
-            WebhookDisputeSource::CieloChargeback => "cielo_chargeback",
+            WebhookDisputeSource::ProcessorChargeback => "processor_chargeback",
             WebhookDisputeSource::Unrecognized(value) => value,
         }
     }
@@ -8827,7 +9319,7 @@ impl From<&str> for WebhookDisputeSource {
     fn from(value: &str) -> Self {
         match value {
             "operator" => WebhookDisputeSource::Operator,
-            "cielo_chargeback" => WebhookDisputeSource::CieloChargeback,
+            "processor_chargeback" => WebhookDisputeSource::ProcessorChargeback,
             other => WebhookDisputeSource::Unrecognized(other.to_owned()),
         }
     }
@@ -10017,6 +10509,66 @@ impl<'de> Deserialize<'de> for WebhookSubscriptionSuspensionReason {
     }
 }
 
+/// The values of `CheckoutClientPaymentDiscount.method`. A forma de pagamento que tem desconto.
+///
+/// A value this SDK does not know yet is kept, as it came, in
+/// [`CheckoutClientPaymentDiscountMethod::Unrecognized`].
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[non_exhaustive]
+pub enum CheckoutClientPaymentDiscountMethod {
+    /// `pix`
+    Pix,
+    /// `boleto`
+    Boleto,
+    /// A value this SDK does not know yet.
+    Unrecognized(String),
+}
+
+impl CheckoutClientPaymentDiscountMethod {
+    /// The value as the API writes it.
+    pub fn as_str(&self) -> &str {
+        match self {
+            CheckoutClientPaymentDiscountMethod::Pix => "pix",
+            CheckoutClientPaymentDiscountMethod::Boleto => "boleto",
+            CheckoutClientPaymentDiscountMethod::Unrecognized(value) => value,
+        }
+    }
+}
+
+impl From<&str> for CheckoutClientPaymentDiscountMethod {
+    fn from(value: &str) -> Self {
+        match value {
+            "pix" => CheckoutClientPaymentDiscountMethod::Pix,
+            "boleto" => CheckoutClientPaymentDiscountMethod::Boleto,
+            other => CheckoutClientPaymentDiscountMethod::Unrecognized(other.to_owned()),
+        }
+    }
+}
+
+impl From<String> for CheckoutClientPaymentDiscountMethod {
+    fn from(value: String) -> Self {
+        Self::from(value.as_str())
+    }
+}
+
+impl fmt::Display for CheckoutClientPaymentDiscountMethod {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
+impl Serialize for CheckoutClientPaymentDiscountMethod {
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        serializer.serialize_str(self.as_str())
+    }
+}
+
+impl<'de> Deserialize<'de> for CheckoutClientPaymentDiscountMethod {
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        String::deserialize(deserializer).map(Self::from)
+    }
+}
+
 /// The values of `BenefitsCreateParams.type`.
 ///
 /// A value this SDK does not know yet is kept, as it came, in
@@ -10265,6 +10817,130 @@ impl<'de> Deserialize<'de> for CheckoutLinksCreateParamsCaptureMode {
     }
 }
 
+/// The values of `CheckoutLinksCreateParams.installment_interest`. Quem paga os juros do parcelamento: merchant (sem juros, a loja absorve a taxa) ou buyer (com juros pagos pelo comprador, com installment_monthly_rate_bp). Ausente segue a organização.
+///
+/// A value this SDK does not know yet is kept, as it came, in
+/// [`CheckoutLinksCreateParamsInstallmentInterest::Unrecognized`].
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[non_exhaustive]
+pub enum CheckoutLinksCreateParamsInstallmentInterest {
+    /// `merchant`
+    Merchant,
+    /// `buyer`
+    Buyer,
+    /// A value this SDK does not know yet.
+    Unrecognized(String),
+}
+
+impl CheckoutLinksCreateParamsInstallmentInterest {
+    /// The value as the API writes it.
+    pub fn as_str(&self) -> &str {
+        match self {
+            CheckoutLinksCreateParamsInstallmentInterest::Merchant => "merchant",
+            CheckoutLinksCreateParamsInstallmentInterest::Buyer => "buyer",
+            CheckoutLinksCreateParamsInstallmentInterest::Unrecognized(value) => value,
+        }
+    }
+}
+
+impl From<&str> for CheckoutLinksCreateParamsInstallmentInterest {
+    fn from(value: &str) -> Self {
+        match value {
+            "merchant" => CheckoutLinksCreateParamsInstallmentInterest::Merchant,
+            "buyer" => CheckoutLinksCreateParamsInstallmentInterest::Buyer,
+            other => CheckoutLinksCreateParamsInstallmentInterest::Unrecognized(other.to_owned()),
+        }
+    }
+}
+
+impl From<String> for CheckoutLinksCreateParamsInstallmentInterest {
+    fn from(value: String) -> Self {
+        Self::from(value.as_str())
+    }
+}
+
+impl fmt::Display for CheckoutLinksCreateParamsInstallmentInterest {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
+impl Serialize for CheckoutLinksCreateParamsInstallmentInterest {
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        serializer.serialize_str(self.as_str())
+    }
+}
+
+impl<'de> Deserialize<'de> for CheckoutLinksCreateParamsInstallmentInterest {
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        String::deserialize(deserializer).map(Self::from)
+    }
+}
+
+/// The values of `CheckoutLinksCreateParams.renewal_mode`. Como a assinatura que o link vende renova, num link com preço recorrente com valor. manual: a cada ciclo o comprador paga por um link. automatic: só cartão de crédito guardado ou Pix Automático, que cobram sozinhos. buyer_choice: a página mostra a caixa Cobrança recorrente, desmarcada; marcada cobra sozinho, desmarcada paga só esta vez e recebe o link nos meses seguintes. Sem o campo vale o padrão: o cartão guardado renova e, sem cartão, o comprador recebe o link. Preço de compra única não aceita (422); manual não vale com teste grátis (422). Cada checkout aberto pelo link herda o modo.
+///
+/// A value this SDK does not know yet is kept, as it came, in
+/// [`CheckoutLinksCreateParamsRenewalMode::Unrecognized`].
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[non_exhaustive]
+pub enum CheckoutLinksCreateParamsRenewalMode {
+    /// `manual`
+    Manual,
+    /// `automatic`
+    Automatic,
+    /// `buyer_choice`
+    BuyerChoice,
+    /// A value this SDK does not know yet.
+    Unrecognized(String),
+}
+
+impl CheckoutLinksCreateParamsRenewalMode {
+    /// The value as the API writes it.
+    pub fn as_str(&self) -> &str {
+        match self {
+            CheckoutLinksCreateParamsRenewalMode::Manual => "manual",
+            CheckoutLinksCreateParamsRenewalMode::Automatic => "automatic",
+            CheckoutLinksCreateParamsRenewalMode::BuyerChoice => "buyer_choice",
+            CheckoutLinksCreateParamsRenewalMode::Unrecognized(value) => value,
+        }
+    }
+}
+
+impl From<&str> for CheckoutLinksCreateParamsRenewalMode {
+    fn from(value: &str) -> Self {
+        match value {
+            "manual" => CheckoutLinksCreateParamsRenewalMode::Manual,
+            "automatic" => CheckoutLinksCreateParamsRenewalMode::Automatic,
+            "buyer_choice" => CheckoutLinksCreateParamsRenewalMode::BuyerChoice,
+            other => CheckoutLinksCreateParamsRenewalMode::Unrecognized(other.to_owned()),
+        }
+    }
+}
+
+impl From<String> for CheckoutLinksCreateParamsRenewalMode {
+    fn from(value: String) -> Self {
+        Self::from(value.as_str())
+    }
+}
+
+impl fmt::Display for CheckoutLinksCreateParamsRenewalMode {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
+impl Serialize for CheckoutLinksCreateParamsRenewalMode {
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        serializer.serialize_str(self.as_str())
+    }
+}
+
+impl<'de> Deserialize<'de> for CheckoutLinksCreateParamsRenewalMode {
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        String::deserialize(deserializer).map(Self::from)
+    }
+}
+
 /// The values of `CheckoutLinksCreateParams.trial_interval`.
 ///
 /// A value this SDK does not know yet is kept, as it came, in
@@ -10333,7 +11009,131 @@ impl<'de> Deserialize<'de> for CheckoutLinksCreateParamsTrialInterval {
     }
 }
 
-/// The values of `CheckoutsCreateParams.renewal_mode`. Como a assinatura renova, numa assinatura (preço recorrente com valor). manual: a cada ciclo a Peráta abre uma cobrança para o comprador pagar (payment_url, por cartão, Pix ou boleto) e avisa o seu sistema com o evento subscription.renewal_due, mesmo que o primeiro pagamento tenha sido no cartão; o cartão nunca é cobrado e não é guardado. automatic: só os meios que cobram sozinhos, o cartão de crédito guardado ou o Pix Automático (quando a organização o tem ligado; senão só o cartão); a página mostra só esses meios, e a assinatura nasce com renewal_mode card ou pix_automatic. buyer_choice: a página mostra a caixa Ativar cobrança automática, desmarcada, e o comprador decide: desmarcada é manual, marcada é automatic. Sem o campo nada muda: sem caixa, o cartão de crédito renova sozinho e qualquer outro meio vira uma cobrança a cada ciclo. Funciona junto com first_period_extra_days e com desconto. Vale só em preço recorrente com valor (senão 422); manual não vale com teste grátis nem com subscription_start_at, que guardam o cartão para cobrar no fim (422). Pagar por um meio que o modo não aceita (Pix, boleto ou débito em automatic; Pix Automático em manual) é 422 em payment_method. A Subscription traz o modo a que isso se resolveu em renewal_mode: manual, card ou pix_automatic.
+/// The values of `CheckoutLinksUpdateParams.renewal_mode`. Troca como a assinatura do link renova; vazio volta ao padrão. Os checkouts já abertos guardam o modo que viram. Vale as mesmas regras da criação (422 em preço de compra única, ou manual com teste grátis).
+///
+/// A value this SDK does not know yet is kept, as it came, in
+/// [`CheckoutLinksUpdateParamsRenewalMode::Unrecognized`].
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[non_exhaustive]
+pub enum CheckoutLinksUpdateParamsRenewalMode {
+    /// `manual`
+    Manual,
+    /// `automatic`
+    Automatic,
+    /// `buyer_choice`
+    BuyerChoice,
+    /// A value this SDK does not know yet.
+    Unrecognized(String),
+}
+
+impl CheckoutLinksUpdateParamsRenewalMode {
+    /// The value as the API writes it.
+    pub fn as_str(&self) -> &str {
+        match self {
+            CheckoutLinksUpdateParamsRenewalMode::Manual => "manual",
+            CheckoutLinksUpdateParamsRenewalMode::Automatic => "automatic",
+            CheckoutLinksUpdateParamsRenewalMode::BuyerChoice => "buyer_choice",
+            CheckoutLinksUpdateParamsRenewalMode::Unrecognized(value) => value,
+        }
+    }
+}
+
+impl From<&str> for CheckoutLinksUpdateParamsRenewalMode {
+    fn from(value: &str) -> Self {
+        match value {
+            "manual" => CheckoutLinksUpdateParamsRenewalMode::Manual,
+            "automatic" => CheckoutLinksUpdateParamsRenewalMode::Automatic,
+            "buyer_choice" => CheckoutLinksUpdateParamsRenewalMode::BuyerChoice,
+            other => CheckoutLinksUpdateParamsRenewalMode::Unrecognized(other.to_owned()),
+        }
+    }
+}
+
+impl From<String> for CheckoutLinksUpdateParamsRenewalMode {
+    fn from(value: String) -> Self {
+        Self::from(value.as_str())
+    }
+}
+
+impl fmt::Display for CheckoutLinksUpdateParamsRenewalMode {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
+impl Serialize for CheckoutLinksUpdateParamsRenewalMode {
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        serializer.serialize_str(self.as_str())
+    }
+}
+
+impl<'de> Deserialize<'de> for CheckoutLinksUpdateParamsRenewalMode {
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        String::deserialize(deserializer).map(Self::from)
+    }
+}
+
+/// The values of `CheckoutsCreateParams.installment_interest`. Quem paga os juros do parcelamento: merchant (sem juros, a loja absorve a taxa) ou buyer (com juros pagos pelo comprador, com installment_monthly_rate_bp). Ausente segue a organização.
+///
+/// A value this SDK does not know yet is kept, as it came, in
+/// [`CheckoutsCreateParamsInstallmentInterest::Unrecognized`].
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[non_exhaustive]
+pub enum CheckoutsCreateParamsInstallmentInterest {
+    /// `merchant`
+    Merchant,
+    /// `buyer`
+    Buyer,
+    /// A value this SDK does not know yet.
+    Unrecognized(String),
+}
+
+impl CheckoutsCreateParamsInstallmentInterest {
+    /// The value as the API writes it.
+    pub fn as_str(&self) -> &str {
+        match self {
+            CheckoutsCreateParamsInstallmentInterest::Merchant => "merchant",
+            CheckoutsCreateParamsInstallmentInterest::Buyer => "buyer",
+            CheckoutsCreateParamsInstallmentInterest::Unrecognized(value) => value,
+        }
+    }
+}
+
+impl From<&str> for CheckoutsCreateParamsInstallmentInterest {
+    fn from(value: &str) -> Self {
+        match value {
+            "merchant" => CheckoutsCreateParamsInstallmentInterest::Merchant,
+            "buyer" => CheckoutsCreateParamsInstallmentInterest::Buyer,
+            other => CheckoutsCreateParamsInstallmentInterest::Unrecognized(other.to_owned()),
+        }
+    }
+}
+
+impl From<String> for CheckoutsCreateParamsInstallmentInterest {
+    fn from(value: String) -> Self {
+        Self::from(value.as_str())
+    }
+}
+
+impl fmt::Display for CheckoutsCreateParamsInstallmentInterest {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
+impl Serialize for CheckoutsCreateParamsInstallmentInterest {
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        serializer.serialize_str(self.as_str())
+    }
+}
+
+impl<'de> Deserialize<'de> for CheckoutsCreateParamsInstallmentInterest {
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        String::deserialize(deserializer).map(Self::from)
+    }
+}
+
+/// The values of `CheckoutsCreateParams.renewal_mode`. Como a assinatura renova, numa assinatura (preço recorrente com valor). manual: a cada ciclo a Peráta abre uma cobrança para o comprador pagar (payment_url, por cartão, Pix ou boleto) e avisa o seu sistema com o evento subscription.renewal_due, mesmo que o primeiro pagamento tenha sido no cartão; o cartão nunca é cobrado e não é guardado. automatic: só os meios que cobram sozinhos, o cartão de crédito guardado ou o Pix Automático (quando a organização o tem ligado; senão só o cartão); a página mostra só esses meios, e a assinatura nasce com renewal_mode card ou pix_automatic. buyer_choice: a página mostra a caixa Cobrança recorrente, desmarcada, e o comprador decide: desmarcada é manual, marcada é automatic. Sem o campo nada muda: sem caixa, o cartão de crédito renova sozinho e qualquer outro meio vira uma cobrança a cada ciclo. Funciona junto com first_period_extra_days e com desconto. Vale só em preço recorrente com valor (senão 422); manual não vale com teste grátis nem com subscription_start_at, que guardam o cartão para cobrar no fim (422). Pagar por um meio que o modo não aceita (Pix, boleto ou débito em automatic; Pix Automático em manual) é 422 em payment_method. A Subscription traz o modo a que isso se resolveu em renewal_mode: manual, card ou pix_automatic.
 ///
 /// A value this SDK does not know yet is kept, as it came, in
 /// [`CheckoutsCreateParamsRenewalMode::Unrecognized`].

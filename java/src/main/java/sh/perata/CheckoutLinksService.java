@@ -66,6 +66,16 @@ public final class CheckoutLinksService {
         public static final String CAPTURE_MODE_AUTOMATIC = "automatic";
         /** A value of {@link #getCaptureMode()}. */
         public static final String CAPTURE_MODE_MANUAL = "manual";
+        /** A value of {@link #getInstallmentInterest()}. */
+        public static final String INSTALLMENT_INTEREST_MERCHANT = "merchant";
+        /** A value of {@link #getInstallmentInterest()}. */
+        public static final String INSTALLMENT_INTEREST_BUYER = "buyer";
+        /** A value of {@link #getRenewalMode()}. */
+        public static final String RENEWAL_MODE_MANUAL = "manual";
+        /** A value of {@link #getRenewalMode()}. */
+        public static final String RENEWAL_MODE_AUTOMATIC = "automatic";
+        /** A value of {@link #getRenewalMode()}. */
+        public static final String RENEWAL_MODE_BUYER_CHOICE = "buyer_choice";
         /** A value of {@link #getTrialInterval()}. */
         public static final String TRIAL_INTERVAL_DAY = "day";
         /** A value of {@link #getTrialInterval()}. */
@@ -76,17 +86,25 @@ public final class CheckoutLinksService {
         public static final String TRIAL_INTERVAL_YEAR = "year";
 
         private final Boolean allowDiscountCodes;
+        private final Long boletoDiscountBp;
         private final String cancelUrl;
         private final String captureMode;
+        private final Boolean couponStacksWithMethodDiscount;
         private final String discountId;
         private final String expiresAt;
+        private final String installmentInterest;
+        private final Long installmentMonthlyRateBp;
+        private final Long interestFreeInstallments;
         private final String label;
         private final Long maxInstallments;
         private final Map<String, Object> metadata;
+        private final Long minInstallmentCents;
+        private final Long pixDiscountBp;
         private final String priceId;
         private final List<String> priceIds;
         private final String productId;
         private final Long quantity;
+        private final String renewalMode;
         private final Boolean requireBillingAddress;
         private final String successUrl;
         private final String trialInterval;
@@ -94,17 +112,25 @@ public final class CheckoutLinksService {
 
         private CreateParams(Builder builder) {
             this.allowDiscountCodes = builder.allowDiscountCodes;
+            this.boletoDiscountBp = builder.boletoDiscountBp;
             this.cancelUrl = builder.cancelUrl;
             this.captureMode = builder.captureMode;
+            this.couponStacksWithMethodDiscount = builder.couponStacksWithMethodDiscount;
             this.discountId = builder.discountId;
             this.expiresAt = builder.expiresAt;
+            this.installmentInterest = builder.installmentInterest;
+            this.installmentMonthlyRateBp = builder.installmentMonthlyRateBp;
+            this.interestFreeInstallments = builder.interestFreeInstallments;
             this.label = builder.label;
             this.maxInstallments = builder.maxInstallments;
             this.metadata = builder.metadata;
+            this.minInstallmentCents = builder.minInstallmentCents;
+            this.pixDiscountBp = builder.pixDiscountBp;
             this.priceId = builder.priceId;
             this.priceIds = builder.priceIds;
             this.productId = builder.productId;
             this.quantity = builder.quantity;
+            this.renewalMode = builder.renewalMode;
             this.requireBillingAddress = builder.requireBillingAddress;
             this.successUrl = builder.successUrl;
             this.trialInterval = builder.trialInterval;
@@ -121,6 +147,11 @@ public final class CheckoutLinksService {
             return allowDiscountCodes;
         }
 
+        /** @return O desconto de quem paga com boleto, em centésimos de ponto percentual, de 0 a 5000. 0 desliga o desconto neste checkout; ausente ou nulo segue a organização. (null when left out) */
+        public Long getBoletoDiscountBp() {
+            return boletoDiscountBp;
+        }
+
         /** @return the {@code cancel_url} sent (null when left out) */
         public String getCancelUrl() {
             return cancelUrl;
@@ -131,6 +162,11 @@ public final class CheckoutLinksService {
             return captureMode;
         }
 
+        /** @return Se o cupom soma com o desconto do Pix ou do boleto neste checkout: true soma (o cupom primeiro, o desconto da forma depois); false vale só o maior dos dois em centavos sobre o mesmo preço, e o pedido mostra só o desconto que valeu. Ausente ou nulo segue a organização, que por padrão não soma. Em assinatura o cupom sempre soma. (null when left out) */
+        public Boolean getCouponStacksWithMethodDiscount() {
+            return couponStacksWithMethodDiscount;
+        }
+
         /** @return Desconto fixado no link. (null when left out) */
         public String getDiscountId() {
             return discountId;
@@ -139,6 +175,21 @@ public final class CheckoutLinksService {
         /** @return Data e hora RFC 3339 no futuro. (null when left out) */
         public String getExpiresAt() {
             return expiresAt;
+        }
+
+        /** @return Quem paga os juros do parcelamento: merchant (sem juros, a loja absorve a taxa) ou buyer (com juros pagos pelo comprador, com installment_monthly_rate_bp). Ausente segue a organização. (null when left out) */
+        public String getInstallmentInterest() {
+            return installmentInterest;
+        }
+
+        /** @return A taxa de juros ao mês que o comprador paga, em centésimos de ponto percentual: 299 é 2,99%, no máximo 1000 (10%). Obrigatória com installment_interest buyer; 0 ou ausente segue a organização. (null when left out) */
+        public Long getInstallmentMonthlyRateBp() {
+            return installmentMonthlyRateBp;
+        }
+
+        /** @return Quantas parcelas saem sem juros quando o comprador paga os juros, de 1 (nenhuma além da à vista) a 12; 0 ou ausente segue a organização. (null when left out) */
+        public Long getInterestFreeInstallments() {
+            return interestFreeInstallments;
         }
 
         /** @return the {@code label} sent (null when left out) */
@@ -154,6 +205,16 @@ public final class CheckoutLinksService {
         /** @return Pares guardados no link. Até 50 pares de chave e valor: a chave tem de 1 a 40 caracteres, e o valor é um texto de 1 a 500 caracteres, um número ou um booleano. Texto sem caracteres de controle nem de direção invisível. (null when left out) */
         public Map<String, Object> getMetadata() {
             return metadata;
+        }
+
+        /** @return A menor parcela, em centavos, de 100 a 1000000; 0 ou ausente segue a organização. (null when left out) */
+        public Long getMinInstallmentCents() {
+            return minInstallmentCents;
+        }
+
+        /** @return O desconto de quem paga com Pix, em centésimos de ponto percentual (500 é 5%), de 0 a 5000. 0 desliga o desconto neste checkout; ausente ou nulo segue a organização. Com cupom, vale a regra de coupon_stacks_with_method_discount. O cartão de crédito e o de débito não têm desconto. (null when left out) */
+        public Long getPixDiscountBp() {
+            return pixDiscountBp;
         }
 
         /** @return the {@code price_id} sent (null when left out) */
@@ -174,6 +235,11 @@ public final class CheckoutLinksService {
         /** @return the {@code quantity} sent (null when left out) */
         public Long getQuantity() {
             return quantity;
+        }
+
+        /** @return Como a assinatura que o link vende renova, num link com preço recorrente com valor. manual: a cada ciclo o comprador paga por um link. automatic: só cartão de crédito guardado ou Pix Automático, que cobram sozinhos. buyer_choice: a página mostra a caixa Cobrança recorrente, desmarcada; marcada cobra sozinho, desmarcada paga só esta vez e recebe o link nos meses seguintes. Sem o campo vale o padrão: o cartão guardado renova e, sem cartão, o comprador recebe o link. Preço de compra única não aceita (422); manual não vale com teste grátis (422). Cada checkout aberto pelo link herda o modo. (null when left out) */
+        public String getRenewalMode() {
+            return renewalMode;
         }
 
         /** @return the {@code require_billing_address} sent (null when left out) */
@@ -201,17 +267,32 @@ public final class CheckoutLinksService {
             if (allowDiscountCodes != null) {
                 body.put("allow_discount_codes", allowDiscountCodes);
             }
+            if (boletoDiscountBp != null) {
+                body.put("boleto_discount_bp", boletoDiscountBp);
+            }
             if (cancelUrl != null) {
                 body.put("cancel_url", cancelUrl);
             }
             if (captureMode != null) {
                 body.put("capture_mode", captureMode);
             }
+            if (couponStacksWithMethodDiscount != null) {
+                body.put("coupon_stacks_with_method_discount", couponStacksWithMethodDiscount);
+            }
             if (discountId != null) {
                 body.put("discount_id", discountId);
             }
             if (expiresAt != null) {
                 body.put("expires_at", expiresAt);
+            }
+            if (installmentInterest != null) {
+                body.put("installment_interest", installmentInterest);
+            }
+            if (installmentMonthlyRateBp != null) {
+                body.put("installment_monthly_rate_bp", installmentMonthlyRateBp);
+            }
+            if (interestFreeInstallments != null) {
+                body.put("interest_free_installments", interestFreeInstallments);
             }
             if (label != null) {
                 body.put("label", label);
@@ -221,6 +302,12 @@ public final class CheckoutLinksService {
             }
             if (metadata != null) {
                 body.put("metadata", metadata);
+            }
+            if (minInstallmentCents != null) {
+                body.put("min_installment_cents", minInstallmentCents);
+            }
+            if (pixDiscountBp != null) {
+                body.put("pix_discount_bp", pixDiscountBp);
             }
             if (priceId != null) {
                 body.put("price_id", priceId);
@@ -233,6 +320,9 @@ public final class CheckoutLinksService {
             }
             if (quantity != null) {
                 body.put("quantity", quantity);
+            }
+            if (renewalMode != null) {
+                body.put("renewal_mode", renewalMode);
             }
             if (requireBillingAddress != null) {
                 body.put("require_billing_address", requireBillingAddress);
@@ -252,17 +342,25 @@ public final class CheckoutLinksService {
         /** Builds {@link CreateParams}; the fields left unset are left out of the request. */
         public static final class Builder {
             private Boolean allowDiscountCodes;
+            private Long boletoDiscountBp;
             private String cancelUrl;
             private String captureMode;
+            private Boolean couponStacksWithMethodDiscount;
             private String discountId;
             private String expiresAt;
+            private String installmentInterest;
+            private Long installmentMonthlyRateBp;
+            private Long interestFreeInstallments;
             private String label;
             private Long maxInstallments;
             private Map<String, Object> metadata;
+            private Long minInstallmentCents;
+            private Long pixDiscountBp;
             private String priceId;
             private List<String> priceIds;
             private String productId;
             private Long quantity;
+            private String renewalMode;
             private Boolean requireBillingAddress;
             private String successUrl;
             private String trialInterval;
@@ -277,6 +375,15 @@ public final class CheckoutLinksService {
              */
             public Builder allowDiscountCodes(Boolean allowDiscountCodes) {
                 this.allowDiscountCodes = allowDiscountCodes;
+                return this;
+            }
+
+            /**
+             * @param boletoDiscountBp O desconto de quem paga com boleto, em centésimos de ponto percentual, de 0 a 5000. 0 desliga o desconto neste checkout; ausente ou nulo segue a organização.
+             * @return this builder
+             */
+            public Builder boletoDiscountBp(Long boletoDiscountBp) {
+                this.boletoDiscountBp = boletoDiscountBp;
                 return this;
             }
 
@@ -299,6 +406,15 @@ public final class CheckoutLinksService {
             }
 
             /**
+             * @param couponStacksWithMethodDiscount Se o cupom soma com o desconto do Pix ou do boleto neste checkout: true soma (o cupom primeiro, o desconto da forma depois); false vale só o maior dos dois em centavos sobre o mesmo preço, e o pedido mostra só o desconto que valeu. Ausente ou nulo segue a organização, que por padrão não soma. Em assinatura o cupom sempre soma.
+             * @return this builder
+             */
+            public Builder couponStacksWithMethodDiscount(Boolean couponStacksWithMethodDiscount) {
+                this.couponStacksWithMethodDiscount = couponStacksWithMethodDiscount;
+                return this;
+            }
+
+            /**
              * @param discountId Desconto fixado no link.
              * @return this builder
              */
@@ -313,6 +429,33 @@ public final class CheckoutLinksService {
              */
             public Builder expiresAt(String expiresAt) {
                 this.expiresAt = expiresAt;
+                return this;
+            }
+
+            /**
+             * @param installmentInterest Quem paga os juros do parcelamento: merchant (sem juros, a loja absorve a taxa) ou buyer (com juros pagos pelo comprador, com installment_monthly_rate_bp). Ausente segue a organização.
+             * @return this builder
+             */
+            public Builder installmentInterest(String installmentInterest) {
+                this.installmentInterest = installmentInterest;
+                return this;
+            }
+
+            /**
+             * @param installmentMonthlyRateBp A taxa de juros ao mês que o comprador paga, em centésimos de ponto percentual: 299 é 2,99%, no máximo 1000 (10%). Obrigatória com installment_interest buyer; 0 ou ausente segue a organização.
+             * @return this builder
+             */
+            public Builder installmentMonthlyRateBp(Long installmentMonthlyRateBp) {
+                this.installmentMonthlyRateBp = installmentMonthlyRateBp;
+                return this;
+            }
+
+            /**
+             * @param interestFreeInstallments Quantas parcelas saem sem juros quando o comprador paga os juros, de 1 (nenhuma além da à vista) a 12; 0 ou ausente segue a organização.
+             * @return this builder
+             */
+            public Builder interestFreeInstallments(Long interestFreeInstallments) {
+                this.interestFreeInstallments = interestFreeInstallments;
                 return this;
             }
 
@@ -340,6 +483,24 @@ public final class CheckoutLinksService {
              */
             public Builder metadata(Map<String, Object> metadata) {
                 this.metadata = metadata;
+                return this;
+            }
+
+            /**
+             * @param minInstallmentCents A menor parcela, em centavos, de 100 a 1000000; 0 ou ausente segue a organização.
+             * @return this builder
+             */
+            public Builder minInstallmentCents(Long minInstallmentCents) {
+                this.minInstallmentCents = minInstallmentCents;
+                return this;
+            }
+
+            /**
+             * @param pixDiscountBp O desconto de quem paga com Pix, em centésimos de ponto percentual (500 é 5%), de 0 a 5000. 0 desliga o desconto neste checkout; ausente ou nulo segue a organização. Com cupom, vale a regra de coupon_stacks_with_method_discount. O cartão de crédito e o de débito não têm desconto.
+             * @return this builder
+             */
+            public Builder pixDiscountBp(Long pixDiscountBp) {
+                this.pixDiscountBp = pixDiscountBp;
                 return this;
             }
 
@@ -376,6 +537,15 @@ public final class CheckoutLinksService {
              */
             public Builder quantity(Long quantity) {
                 this.quantity = quantity;
+                return this;
+            }
+
+            /**
+             * @param renewalMode Como a assinatura que o link vende renova, num link com preço recorrente com valor. manual: a cada ciclo o comprador paga por um link. automatic: só cartão de crédito guardado ou Pix Automático, que cobram sozinhos. buyer_choice: a página mostra a caixa Cobrança recorrente, desmarcada; marcada cobra sozinho, desmarcada paga só esta vez e recebe o link nos meses seguintes. Sem o campo vale o padrão: o cartão guardado renova e, sem cartão, o comprador recebe o link. Preço de compra única não aceita (422); manual não vale com teste grátis (422). Cada checkout aberto pelo link herda o modo.
+             * @return this builder
+             */
+            public Builder renewalMode(String renewalMode) {
+                this.renewalMode = renewalMode;
                 return this;
             }
 
@@ -708,11 +878,18 @@ public final class CheckoutLinksService {
 
     /** The body of checkout-links:update. */
     public static final class UpdateParams {
+        /** A value of {@link #getRenewalMode()}. */
+        public static final String RENEWAL_MODE_MANUAL = "manual";
+        /** A value of {@link #getRenewalMode()}. */
+        public static final String RENEWAL_MODE_AUTOMATIC = "automatic";
+        /** A value of {@link #getRenewalMode()}. */
+        public static final String RENEWAL_MODE_BUYER_CHOICE = "buyer_choice";
 
         private final String cancelUrl;
         private final String label;
         private final Map<String, Object> metadata;
         private final List<String> priceIds;
+        private final String renewalMode;
         private final Boolean requireBillingAddress;
         private final String successUrl;
 
@@ -721,6 +898,7 @@ public final class CheckoutLinksService {
             this.label = builder.label;
             this.metadata = builder.metadata;
             this.priceIds = builder.priceIds;
+            this.renewalMode = builder.renewalMode;
             this.requireBillingAddress = builder.requireBillingAddress;
             this.successUrl = builder.successUrl;
         }
@@ -750,6 +928,11 @@ public final class CheckoutLinksService {
             return priceIds;
         }
 
+        /** @return Troca como a assinatura do link renova; vazio volta ao padrão. Os checkouts já abertos guardam o modo que viram. Vale as mesmas regras da criação (422 em preço de compra única, ou manual com teste grátis). (null when left out) */
+        public String getRenewalMode() {
+            return renewalMode;
+        }
+
         /** @return the {@code require_billing_address} sent (null when left out) */
         public Boolean getRequireBillingAddress() {
             return requireBillingAddress;
@@ -774,6 +957,9 @@ public final class CheckoutLinksService {
             if (priceIds != null) {
                 body.put("price_ids", priceIds);
             }
+            if (renewalMode != null) {
+                body.put("renewal_mode", renewalMode);
+            }
             if (requireBillingAddress != null) {
                 body.put("require_billing_address", requireBillingAddress);
             }
@@ -789,6 +975,7 @@ public final class CheckoutLinksService {
             private String label;
             private Map<String, Object> metadata;
             private List<String> priceIds;
+            private String renewalMode;
             private Boolean requireBillingAddress;
             private String successUrl;
 
@@ -828,6 +1015,15 @@ public final class CheckoutLinksService {
              */
             public Builder priceIds(List<String> priceIds) {
                 this.priceIds = priceIds;
+                return this;
+            }
+
+            /**
+             * @param renewalMode Troca como a assinatura do link renova; vazio volta ao padrão. Os checkouts já abertos guardam o modo que viram. Vale as mesmas regras da criação (422 em preço de compra única, ou manual com teste grátis).
+             * @return this builder
+             */
+            public Builder renewalMode(String renewalMode) {
+                this.renewalMode = renewalMode;
                 return this;
             }
 

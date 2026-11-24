@@ -417,10 +417,10 @@ class CheckoutsService {
   /// cobrança para o comprador pagar e avisa o seu sistema com
   /// subscription.renewal_due, mesmo que o primeiro pagamento tenha sido no
   /// cartão), automatic (só cartão de crédito guardado ou Pix Automático; cobra
-  /// sozinho) ou buyer_choice (a página mostra a caixa Ativar cobrança
-  /// automática e o comprador decide); sem o campo nada muda.
-  /// notify_customer_email false mantém a Peráta sem escrever ao comprador.
-  /// label dá nome à assinatura (por exemplo, Olho de Águia · Colaborador Ana).
+  /// sozinho) ou buyer_choice (a página mostra a caixa Cobrança recorrente e o
+  /// comprador decide); sem o campo nada muda. notify_customer_email false
+  /// mantém a Peráta sem escrever ao comprador. label dá nome à assinatura (por
+  /// exemplo, Olho de Águia · Colaborador Ana).
   ///
   /// Autenticação: chave de API da organização em Authorization: Bearer
   /// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
@@ -1454,7 +1454,8 @@ class PaymentsService {
   /// Listar pagamentos.
   ///
   /// Devolve uma página dos pagamentos. Filtre por client_reference_id, estado,
-  /// cliente, assinatura (subscription_id), período ou metadados.
+  /// meio (method: card, pix ou boleto), cliente, assinatura (subscription_id),
+  /// período ou metadados.
   ///
   /// Autenticação: chave de API da organização em Authorization: Bearer
   /// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
@@ -1471,6 +1472,7 @@ class PaymentsService {
     String? customerId,
     String? externalCustomerId,
     String? subscriptionId,
+    String? method,
     String? createdAfter,
     String? createdBefore,
     String? sorting,
@@ -1488,6 +1490,7 @@ class PaymentsService {
         'customer_id': customerId,
         'external_customer_id': externalCustomerId,
         'subscription_id': subscriptionId,
+        'method': method,
         'created_after': createdAfter,
         'created_before': createdBefore,
         'sorting': sorting,
@@ -1507,6 +1510,7 @@ class PaymentsService {
     String? customerId,
     String? externalCustomerId,
     String? subscriptionId,
+    String? method,
     String? createdAfter,
     String? createdBefore,
     String? sorting,
@@ -1522,6 +1526,7 @@ class PaymentsService {
         customerId: customerId,
         externalCustomerId: externalCustomerId,
         subscriptionId: subscriptionId,
+        method: method,
         createdAfter: createdAfter,
         createdBefore: createdBefore,
         sorting: sorting,
@@ -1890,11 +1895,16 @@ class RefundsService {
   /// Devolve dinheiro de um pagamento, que você nomeia pelo payment_id ou pelo
   /// order_id do pedido que ele pagou (os dois, só se forem do mesmo
   /// pagamento). Sem amount_cents devolve tudo o que ainda pode ser devolvido;
-  /// com ele, uma parte, até esse limite. O reason, sem ele, é
-  /// requested_by_customer. O metadata fica no reembolso e volta nele e nos
-  /// eventos refund.*. A Idempotency-Key é obrigatória: sem ela, repetir a
-  /// chamada depois de um tempo esgotado seria devolver duas vezes; repetida
-  /// com a mesma chave, devolve o mesmo reembolso.
+  /// com ele, uma parte, até esse limite. Um pagamento de cartão aceita vários
+  /// reembolsos parciais, um depois do outro, e a soma deles nunca passa do
+  /// valor capturado: um pedido acima do que resta volta 409, e um pedido feito
+  /// enquanto o reembolso anterior ainda está em andamento também volta 409
+  /// (espere ele terminar e repita). Um pagamento por Pix aceita um só
+  /// reembolso. O reason, sem ele, é requested_by_customer. O metadata fica no
+  /// reembolso e volta nele e nos eventos refund.*. A Idempotency-Key é
+  /// obrigatória: sem ela, repetir a chamada depois de um tempo esgotado seria
+  /// devolver duas vezes; repetida com a mesma chave, devolve o mesmo
+  /// reembolso.
   ///
   /// Autenticação: chave de API da organização em Authorization: Bearer
   /// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
@@ -2126,7 +2136,8 @@ class SubscriptionsService {
   /// Listar assinaturas.
   ///
   /// Devolve uma página das assinaturas. Filtre por cliente (customer_id ou
-  /// external_customer_id), status, período ou metadados.
+  /// external_customer_id), status, tipo de cobrança (renewal_mode: card,
+  /// pix_automatic ou manual), período ou metadados.
   ///
   /// Autenticação: chave de API da organização em Authorization: Bearer
   /// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da chave,
@@ -2139,6 +2150,7 @@ class SubscriptionsService {
     int? page,
     int? limit,
     String? status,
+    String? renewalMode,
     String? customerId,
     String? externalCustomerId,
     String? createdAfter,
@@ -2154,6 +2166,7 @@ class SubscriptionsService {
         'page': page,
         'limit': limit,
         'status': status,
+        'renewal_mode': renewalMode,
         'customer_id': customerId,
         'external_customer_id': externalCustomerId,
         'created_after': createdAfter,
@@ -2171,6 +2184,7 @@ class SubscriptionsService {
     int page = 1,
     int? limit,
     String? status,
+    String? renewalMode,
     String? customerId,
     String? externalCustomerId,
     String? createdAfter,
@@ -2184,6 +2198,7 @@ class SubscriptionsService {
         page: at,
         limit: limit,
         status: status,
+        renewalMode: renewalMode,
         customerId: customerId,
         externalCustomerId: externalCustomerId,
         createdAfter: createdAfter,

@@ -49,6 +49,8 @@ public final class Payment {
     private final Map<String, Object> metadata;
     private final String method;
     private final long netCents;
+    private final long paymentMethodDiscountBp;
+    private final long paymentMethodDiscountCents;
     private final String payoutDepositedOn;
     private final String payoutId;
     private final String periodEnd;
@@ -59,7 +61,7 @@ public final class Payment {
     private final String state;
     private final String subscriptionId;
 
-    Payment(long amountCents, long capturedCents, String checkoutId, String clientReferenceId, String createdAt, String currency, String customerId, Long cycleSequence, String expectedPayoutOn, long feeCents, String id, long installmentAmountCents, long installmentInterestCents, long installments, Map<String, Object> metadata, String method, long netCents, String payoutDepositedOn, String payoutId, String periodEnd, String periodStart, long refundedCents, String showcaseId, List<SplitRecipient> split, String state, String subscriptionId) {
+    Payment(long amountCents, long capturedCents, String checkoutId, String clientReferenceId, String createdAt, String currency, String customerId, Long cycleSequence, String expectedPayoutOn, long feeCents, String id, long installmentAmountCents, long installmentInterestCents, long installments, Map<String, Object> metadata, String method, long netCents, long paymentMethodDiscountBp, long paymentMethodDiscountCents, String payoutDepositedOn, String payoutId, String periodEnd, String periodStart, long refundedCents, String showcaseId, List<SplitRecipient> split, String state, String subscriptionId) {
         this.amountCents = amountCents;
         this.capturedCents = capturedCents;
         this.checkoutId = checkoutId;
@@ -77,6 +79,8 @@ public final class Payment {
         this.metadata = metadata;
         this.method = method;
         this.netCents = netCents;
+        this.paymentMethodDiscountBp = paymentMethodDiscountBp;
+        this.paymentMethodDiscountCents = paymentMethodDiscountCents;
         this.payoutDepositedOn = payoutDepositedOn;
         this.payoutId = payoutId;
         this.periodEnd = periodEnd;
@@ -107,6 +111,8 @@ public final class Payment {
                 Json.required(data, "metadata", Json.map(Json::any)),
                 Json.required(data, "method", Json::asString),
                 Json.required(data, "net_cents", Json::asLong),
+                Json.required(data, "payment_method_discount_bp", Json::asLong),
+                Json.required(data, "payment_method_discount_cents", Json::asLong),
                 Json.optional(data, "payout_deposited_on", Json::asString),
                 Json.optional(data, "payout_id", Json::asString),
                 Json.optional(data, "period_end", Json::asString),
@@ -203,6 +209,16 @@ public final class Payment {
         return netCents;
     }
 
+    /** @return A taxa do desconto da forma de pagamento, em centésimos de ponto percentual (500 é 5%); 0 sem ele. */
+    public long getPaymentMethodDiscountBp() {
+        return paymentMethodDiscountBp;
+    }
+
+    /** @return Quanto o desconto da forma de pagamento (Pix ou boleto) tirou do total do pedido, em centavos; 0 sem ele. amount_cents já é o valor com o desconto: é o que foi cobrado. */
+    public long getPaymentMethodDiscountCents() {
+        return paymentMethodDiscountCents;
+    }
+
     /** @return O dia em que o último repasse que pagou este pagamento foi depositado, AAAA-MM-DD; nulo enquanto nenhum foi. (null when the API sends none) */
     public String getPayoutDepositedOn() {
         return payoutDepositedOn;
@@ -250,6 +266,6 @@ public final class Payment {
 
     @Override
     public String toString() {
-        return "Payment{" + "amountCents=" + amountCents + ", capturedCents=" + capturedCents + ", checkoutId=" + checkoutId + ", clientReferenceId=" + clientReferenceId + ", createdAt=" + createdAt + ", currency=" + currency + ", customerId=" + customerId + ", cycleSequence=" + cycleSequence + ", expectedPayoutOn=" + expectedPayoutOn + ", feeCents=" + feeCents + ", id=" + id + ", installmentAmountCents=" + installmentAmountCents + ", installmentInterestCents=" + installmentInterestCents + ", installments=" + installments + ", metadata=" + metadata + ", method=" + method + ", netCents=" + netCents + ", payoutDepositedOn=" + payoutDepositedOn + ", payoutId=" + payoutId + ", periodEnd=" + periodEnd + ", periodStart=" + periodStart + ", refundedCents=" + refundedCents + ", showcaseId=" + showcaseId + ", split=" + split + ", state=" + state + ", subscriptionId=" + subscriptionId + "}";
+        return "Payment{" + "amountCents=" + amountCents + ", capturedCents=" + capturedCents + ", checkoutId=" + checkoutId + ", clientReferenceId=" + clientReferenceId + ", createdAt=" + createdAt + ", currency=" + currency + ", customerId=" + customerId + ", cycleSequence=" + cycleSequence + ", expectedPayoutOn=" + expectedPayoutOn + ", feeCents=" + feeCents + ", id=" + id + ", installmentAmountCents=" + installmentAmountCents + ", installmentInterestCents=" + installmentInterestCents + ", installments=" + installments + ", metadata=" + metadata + ", method=" + method + ", netCents=" + netCents + ", paymentMethodDiscountBp=" + paymentMethodDiscountBp + ", paymentMethodDiscountCents=" + paymentMethodDiscountCents + ", payoutDepositedOn=" + payoutDepositedOn + ", payoutId=" + payoutId + ", periodEnd=" + periodEnd + ", periodStart=" + periodStart + ", refundedCents=" + refundedCents + ", showcaseId=" + showcaseId + ", split=" + split + ", state=" + state + ", subscriptionId=" + subscriptionId + "}";
     }
 }

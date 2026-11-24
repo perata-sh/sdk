@@ -113,6 +113,14 @@ public sealed record Payment
     [JsonPropertyName("net_cents")]
     public required long NetCents { get; init; }
 
+    /// <summary>A taxa do desconto da forma de pagamento, em centésimos de ponto percentual (500 é 5%); 0 sem ele.</summary>
+    [JsonPropertyName("payment_method_discount_bp")]
+    public required long PaymentMethodDiscountBp { get; init; }
+
+    /// <summary>Quanto o desconto da forma de pagamento (Pix ou boleto) tirou do total do pedido, em centavos; 0 sem ele. amount_cents já é o valor com o desconto: é o que foi cobrado.</summary>
+    [JsonPropertyName("payment_method_discount_cents")]
+    public required long PaymentMethodDiscountCents { get; init; }
+
     /// <summary>O dia em que o último repasse que pagou este pagamento foi depositado, AAAA-MM-DD; nulo enquanto nenhum foi. Null when the API sends none.</summary>
     [JsonPropertyName("payout_deposited_on")]
     public string? PayoutDepositedOn { get; init; }

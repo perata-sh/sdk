@@ -39,10 +39,10 @@ public sealed class CheckoutsService
     /// o seu sistema com subscription.renewal_due, mesmo que o primeiro
     /// pagamento tenha sido no cartão), automatic (só cartão de crédito
     /// guardado ou Pix Automático; cobra sozinho) ou buyer_choice (a página
-    /// mostra a caixa Ativar cobrança automática e o comprador decide); sem o
-    /// campo nada muda. notify_customer_email false mantém a Peráta sem
-    /// escrever ao comprador. label dá nome à assinatura (por exemplo, Olho de
-    /// Águia · Colaborador Ana).</para>
+    /// mostra a caixa Cobrança recorrente e o comprador decide); sem o campo
+    /// nada muda. notify_customer_email false mantém a Peráta sem escrever ao
+    /// comprador. label dá nome à assinatura (por exemplo, Olho de Águia ·
+    /// Colaborador Ana).</para>
     /// <para>Autenticação: chave de API da organização em Authorization: Bearer
     /// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
     /// chave, nunca da requisição: a chave criada num showcase só alcança o que
@@ -157,6 +157,12 @@ public sealed class CheckoutsService
 /// <summary>The body of checkouts:create.</summary>
 public sealed record CheckoutsCreateParams
 {
+    /// <summary>A value of <see cref="InstallmentInterest"/>.</summary>
+    public const string InstallmentInterestMerchant = "merchant";
+
+    /// <summary>A value of <see cref="InstallmentInterest"/>.</summary>
+    public const string InstallmentInterestBuyer = "buyer";
+
     /// <summary>A value of <see cref="RenewalMode"/>.</summary>
     public const string RenewalModeManual = "manual";
 
@@ -174,6 +180,10 @@ public sealed record CheckoutsCreateParams
     [JsonPropertyName("amount_cents")]
     public long? AmountCents { get; init; }
 
+    /// <summary>O desconto de quem paga com boleto, em centésimos de ponto percentual, de 0 a 5000. 0 desliga o desconto neste checkout; ausente ou nulo segue a organização. Left out of the request when null.</summary>
+    [JsonPropertyName("boleto_discount_bp")]
+    public long? BoletoDiscountBp { get; init; }
+
     /// <summary>The <c>cancel_url</c> to send. Left out of the request when null.</summary>
     [JsonPropertyName("cancel_url")]
     public string? CancelUrl { get; init; }
@@ -182,7 +192,11 @@ public sealed record CheckoutsCreateParams
     [JsonPropertyName("client_reference_id")]
     public string? ClientReferenceId { get; init; }
 
-    /// <summary>O e-mail do comprador, quando você o conhece; senão o navegador do comprador o pede. Left out of the request when null.</summary>
+    /// <summary>Se o cupom soma com o desconto do Pix ou do boleto neste checkout: true soma (o cupom primeiro, o desconto da forma depois); false vale só o maior dos dois em centavos sobre o mesmo preço, e o pedido mostra só o desconto que valeu. Ausente ou nulo segue a organização, que por padrão não soma. Em assinatura o cupom sempre soma. Left out of the request when null.</summary>
+    [JsonPropertyName("coupon_stacks_with_method_discount")]
+    public bool? CouponStacksWithMethodDiscount { get; init; }
+
+    /// <summary>O e-mail do comprador, quando você o conhece; senão o navegador do comprador o pede. Se este e-mail é de um cliente seu, o checkout abre com os dados dele, como com customer_id, e o e-mail fica fixo. Se o cliente tem CPF ou CNPJ, o comprador não pode trocá-lo. Left out of the request when null.</summary>
     [JsonPropertyName("customer_email")]
     public string? CustomerEmail { get; init; }
 
@@ -210,6 +224,18 @@ public sealed record CheckoutsCreateParams
     [JsonPropertyName("first_period_extra_days")]
     public long? FirstPeriodExtraDays { get; init; }
 
+    /// <summary>Quem paga os juros do parcelamento: merchant (sem juros, a loja absorve a taxa) ou buyer (com juros pagos pelo comprador, com installment_monthly_rate_bp). Ausente segue a organização. Left out of the request when null.</summary>
+    [JsonPropertyName("installment_interest")]
+    public string? InstallmentInterest { get; init; }
+
+    /// <summary>A taxa de juros ao mês que o comprador paga, em centésimos de ponto percentual: 299 é 2,99%, no máximo 1000 (10%). Obrigatória com installment_interest buyer; 0 ou ausente segue a organização. Left out of the request when null.</summary>
+    [JsonPropertyName("installment_monthly_rate_bp")]
+    public long? InstallmentMonthlyRateBp { get; init; }
+
+    /// <summary>Quantas parcelas saem sem juros quando o comprador paga os juros, de 1 (nenhuma além da à vista) a 12; 0 ou ausente segue a organização. Left out of the request when null.</summary>
+    [JsonPropertyName("interest_free_installments")]
+    public long? InterestFreeInstallments { get; init; }
+
     /// <summary>As linhas do pedido, até 50, para o comprador ler o detalhe: aparecem no checkout (página, modal, componentes e transparente), no pedido, no recibo, no portal do cliente e nos eventos. Em um preço de valor livre, a soma de quantity vezes unit_amount_cents precisa ser igual a amount_cents, ou a resposta é 422; enviadas sem amount_cents, a soma é o valor. Em um preço com valor próprio, como o de uma assinatura, as linhas só mostram ao comprador do que o valor é feito e fixam nada: envie-as sem amount_cents, com a soma igual ao valor do preço vezes a quantidade (senão 422), e o preço continua sendo quem define o que se cobra. Left out of the request when null.</summary>
     [JsonPropertyName("items")]
     public IReadOnlyList<CheckoutsCreateItem>? Items { get; init; }
@@ -218,13 +244,25 @@ public sealed record CheckoutsCreateParams
     [JsonPropertyName("label")]
     public string? Label { get; init; }
 
+    /// <summary>O máximo de parcelas no cartão de crédito deste checkout, de 1 a 12; vale mais que a organização, e 1 vende só à vista. 0 ou ausente segue a organização. Left out of the request when null.</summary>
+    [JsonPropertyName("max_installments")]
+    public long? MaxInstallments { get; init; }
+
     /// <summary>Pares guardados no link do checkout e devolvidos no checkout, no pedido, no pagamento e nos eventos da venda. Até 50 pares de chave e valor: a chave tem de 1 a 40 caracteres, e o valor é um texto de 1 a 500 caracteres, um número ou um booleano. Texto sem caracteres de controle nem de direção invisível. Left out of the request when null.</summary>
     [JsonPropertyName("metadata")]
     public IReadOnlyDictionary<string, JsonElement>? Metadata { get; init; }
 
+    /// <summary>A menor parcela, em centavos, de 100 a 1000000; 0 ou ausente segue a organização. Left out of the request when null.</summary>
+    [JsonPropertyName("min_installment_cents")]
+    public long? MinInstallmentCents { get; init; }
+
     /// <summary>Verdadeiro por padrão. Falso mantém a Peráta sem escrever ao comprador a cobrança de cada renovação (o seu sistema o avisa pelo evento subscription.renewal_due); a cobrança é aberta do mesmo jeito. Além disso, a organização pode desligar este aviso para todos em Configurações › Preferências › Cobrança da renovação. Left out of the request when null.</summary>
     [JsonPropertyName("notify_customer_email")]
     public bool? NotifyCustomerEmail { get; init; }
+
+    /// <summary>O desconto de quem paga com Pix, em centésimos de ponto percentual (500 é 5%), de 0 a 5000. 0 desliga o desconto neste checkout; ausente ou nulo segue a organização. Com cupom, vale a regra de coupon_stacks_with_method_discount. O cartão de crédito e o de débito não têm desconto. Left out of the request when null.</summary>
+    [JsonPropertyName("pix_discount_bp")]
+    public long? PixDiscountBp { get; init; }
 
     /// <summary>The <c>price_id</c> to send.</summary>
     [JsonPropertyName("price_id")]
@@ -238,7 +276,7 @@ public sealed record CheckoutsCreateParams
     [JsonPropertyName("quantity")]
     public long? Quantity { get; init; }
 
-    /// <summary>Como a assinatura renova, numa assinatura (preço recorrente com valor). manual: a cada ciclo a Peráta abre uma cobrança para o comprador pagar (payment_url, por cartão, Pix ou boleto) e avisa o seu sistema com o evento subscription.renewal_due, mesmo que o primeiro pagamento tenha sido no cartão; o cartão nunca é cobrado e não é guardado. automatic: só os meios que cobram sozinhos, o cartão de crédito guardado ou o Pix Automático (quando a organização o tem ligado; senão só o cartão); a página mostra só esses meios, e a assinatura nasce com renewal_mode card ou pix_automatic. buyer_choice: a página mostra a caixa Ativar cobrança automática, desmarcada, e o comprador decide: desmarcada é manual, marcada é automatic. Sem o campo nada muda: sem caixa, o cartão de crédito renova sozinho e qualquer outro meio vira uma cobrança a cada ciclo. Funciona junto com first_period_extra_days e com desconto. Vale só em preço recorrente com valor (senão 422); manual não vale com teste grátis nem com subscription_start_at, que guardam o cartão para cobrar no fim (422). Pagar por um meio que o modo não aceita (Pix, boleto ou débito em automatic; Pix Automático em manual) é 422 em payment_method. A Subscription traz o modo a que isso se resolveu em renewal_mode: manual, card ou pix_automatic. Left out of the request when null.</summary>
+    /// <summary>Como a assinatura renova, numa assinatura (preço recorrente com valor). manual: a cada ciclo a Peráta abre uma cobrança para o comprador pagar (payment_url, por cartão, Pix ou boleto) e avisa o seu sistema com o evento subscription.renewal_due, mesmo que o primeiro pagamento tenha sido no cartão; o cartão nunca é cobrado e não é guardado. automatic: só os meios que cobram sozinhos, o cartão de crédito guardado ou o Pix Automático (quando a organização o tem ligado; senão só o cartão); a página mostra só esses meios, e a assinatura nasce com renewal_mode card ou pix_automatic. buyer_choice: a página mostra a caixa Cobrança recorrente, desmarcada, e o comprador decide: desmarcada é manual, marcada é automatic. Sem o campo nada muda: sem caixa, o cartão de crédito renova sozinho e qualquer outro meio vira uma cobrança a cada ciclo. Funciona junto com first_period_extra_days e com desconto. Vale só em preço recorrente com valor (senão 422); manual não vale com teste grátis nem com subscription_start_at, que guardam o cartão para cobrar no fim (422). Pagar por um meio que o modo não aceita (Pix, boleto ou débito em automatic; Pix Automático em manual) é 422 em payment_method. A Subscription traz o modo a que isso se resolveu em renewal_mode: manual, card ou pix_automatic. Left out of the request when null.</summary>
     [JsonPropertyName("renewal_mode")]
     public string? RenewalMode { get; init; }
 

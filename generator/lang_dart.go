@@ -385,6 +385,11 @@ func dartEntry(indent int, key, value string) string {
 			return strings.Join(out, "\n")
 		}
 	}
+	if !strings.Contains(value, "(") {
+		// A plain read, such as json['key'] as bool?, that does not fit after
+		// its key goes on the next line.
+		return key + ":\n" + pad + "    " + value
+	}
 	return line
 }
 

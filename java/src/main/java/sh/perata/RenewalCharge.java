@@ -13,8 +13,6 @@ public final class RenewalCharge {
     public static final String REMINDER_BEFORE_DUE = "before_due";
     /** A value of {@link #getReminder()}. */
     public static final String REMINDER_ON_DUE = "on_due";
-    /** A value of {@link #getReminder()}. */
-    public static final String REMINDER_NULL = "null";
     /** A value of {@link #getRenewalMode()}. */
     public static final String RENEWAL_MODE_MANUAL = "manual";
     /** A value of {@link #getRenewalMode()}. */

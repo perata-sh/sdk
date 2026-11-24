@@ -24,11 +24,16 @@ public sealed class RefundsService
     /// <para>Devolve dinheiro de um pagamento, que você nomeia pelo payment_id
     /// ou pelo order_id do pedido que ele pagou (os dois, só se forem do mesmo
     /// pagamento). Sem amount_cents devolve tudo o que ainda pode ser
-    /// devolvido; com ele, uma parte, até esse limite. O reason, sem ele, é
-    /// requested_by_customer. O metadata fica no reembolso e volta nele e nos
-    /// eventos refund.*. A Idempotency-Key é obrigatória: sem ela, repetir a
-    /// chamada depois de um tempo esgotado seria devolver duas vezes; repetida
-    /// com a mesma chave, devolve o mesmo reembolso.</para>
+    /// devolvido; com ele, uma parte, até esse limite. Um pagamento de cartão
+    /// aceita vários reembolsos parciais, um depois do outro, e a soma deles
+    /// nunca passa do valor capturado: um pedido acima do que resta volta 409,
+    /// e um pedido feito enquanto o reembolso anterior ainda está em andamento
+    /// também volta 409 (espere ele terminar e repita). Um pagamento por Pix
+    /// aceita um só reembolso. O reason, sem ele, é requested_by_customer. O
+    /// metadata fica no reembolso e volta nele e nos eventos refund.*. A
+    /// Idempotency-Key é obrigatória: sem ela, repetir a chamada depois de um
+    /// tempo esgotado seria devolver duas vezes; repetida com a mesma chave,
+    /// devolve o mesmo reembolso.</para>
     /// <para>Autenticação: chave de API da organização em Authorization: Bearer
     /// (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
     /// chave, nunca da requisição: a chave criada num showcase só alcança o que
@@ -118,7 +123,7 @@ public sealed record RefundsCreateParams
     /// <summary>A value of <see cref="Reason"/>.</summary>
     public const string ReasonOther = "other";
 
-    /// <summary>Quanto devolver, em centavos, de 1 até o que ainda pode ser devolvido. Sem ele, devolve tudo o que ainda pode ser devolvido. Left out of the request when null.</summary>
+    /// <summary>Quanto devolver, em centavos, de 1 até o que ainda pode ser devolvido (o valor capturado menos os reembolsos anteriores). No cartão, a soma de vários reembolsos parciais chega ao valor capturado; no Pix, só há um reembolso por pagamento. Sem ele, devolve tudo o que ainda pode ser devolvido. Left out of the request when null.</summary>
     [JsonPropertyName("amount_cents")]
     public long? AmountCents { get; init; }
 

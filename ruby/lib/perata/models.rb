@@ -322,7 +322,7 @@ module Perata
     # @return [String]
     attr_reader :provider
 
-    # O script de autenticação do adquirente.
+    # O script de autenticação do processador de pagamentos.
     # @return [String]
     attr_reader :script_url
 
@@ -357,7 +357,7 @@ module Perata
   class CardTokenization < Model
     MEMBERS = %i[access_token card_ticket environment expires_at issued provider].freeze
 
-    # O token com que o script do adquirente envia o cartão; entregue só a uma página da própria origem da Peráta.
+    # O token com que o script do processador de pagamentos envia o cartão; entregue só a uma página da própria origem da Peráta.
     # @return [String]
     attr_reader :access_token
 
@@ -402,11 +402,15 @@ module Perata
 
   # Checkout is a resource of Peráta's API.
   class Checkout < Model
-    MEMBERS = %i[amount_cents cancel_url client_reference_id created_at discount_id expires_at first_period_extra_days id items label metadata notify_customer_email price_id product_id quantity renewal_mode showcase_id status subscription_start_at success_url url].freeze
+    MEMBERS = %i[amount_cents boleto_discount_bp cancel_url client_reference_id coupon_stacks_with_method_discount created_at discount_id expires_at first_period_extra_days id installment_interest installment_monthly_rate_bp interest_free_installments items label max_installments metadata min_installment_cents notify_customer_email pix_discount_bp price_id product_id quantity renewal_mode showcase_id status subscription_start_at success_url url].freeze
 
     # O valor, em centavos, que o seu servidor fixou na criação; nulo quando é o comprador quem digita o valor.
     # @return [Integer, nil]
     attr_reader :amount_cents
+
+    # O desconto de quem paga com boleto neste checkout, em centésimos de ponto percentual; 0 desliga o desconto aqui; nulo segue a organização.
+    # @return [Integer, nil]
+    attr_reader :boleto_discount_bp
 
     # Endereço https para onde o comprador volta se desistir; vazio sem ele.
     # @return [String]
@@ -415,6 +419,10 @@ module Perata
     # O id do pedido no seu sistema, como o seu servidor o enviou na criação; vazio sem ele. Volta no checkout, no pedido, no pagamento e nos eventos.
     # @return [String]
     attr_reader :client_reference_id
+
+    # Se o cupom soma com o desconto do Pix ou do boleto neste checkout: true soma (o cupom primeiro, o desconto da forma depois), false vale só o maior dos dois em centavos sobre o mesmo preço; nulo segue a organização (que por padrão não soma). Em assinatura o cupom sempre soma.
+    # @return [Boolean, nil]
+    attr_reader :coupon_stacks_with_method_discount
 
     # @return [String]
     attr_reader :created_at
@@ -434,6 +442,18 @@ module Perata
     # @return [String]
     attr_reader :id
 
+    # Quem paga os juros do parcelamento deste checkout: merchant (sem juros) ou buyer (com juros); nulo segue a organização.
+    # @return [String ("merchant", "buyer"), nil]
+    attr_reader :installment_interest
+
+    # A taxa de juros ao mês que o comprador paga, em centésimos de ponto percentual (299 é 2,99%); 0 segue a organização.
+    # @return [Integer]
+    attr_reader :installment_monthly_rate_bp
+
+    # Quantas parcelas saem sem juros quando o comprador paga os juros; 0 segue a organização.
+    # @return [Integer]
+    attr_reader :interest_free_installments
+
     # As linhas do valor fixado, na ordem em que foram enviadas; vazio sem elas.
     # @return [Array<CheckoutLine>]
     attr_reader :items
@@ -442,13 +462,25 @@ module Perata
     # @return [String]
     attr_reader :label
 
+    # O máximo de parcelas no cartão de crédito deste checkout; 0 segue o que a organização definiu, 1 vende só à vista.
+    # @return [Integer]
+    attr_reader :max_installments
+
     # Os pares que o seu servidor guardou na criação; voltam nos eventos da venda.
     # @return [Hash{String => Object}]
     attr_reader :metadata
 
+    # A menor parcela, em centavos; 0 segue a organização.
+    # @return [Integer]
+    attr_reader :min_installment_cents
+
     # Falso quando o seu sistema avisa o comprador das cobranças de renovação e a Peráta fica quieta.
     # @return [Boolean]
     attr_reader :notify_customer_email
+
+    # O desconto de quem paga com Pix neste checkout, em centésimos de ponto percentual (500 é 5%); 0 desliga o desconto aqui; nulo segue a organização.
+    # @return [Integer, nil]
+    attr_reader :pix_discount_bp
 
     # @return [String]
     attr_reader :price_id
@@ -483,19 +515,27 @@ module Perata
     # @return [String]
     attr_reader :url
 
-    def initialize(amount_cents:, cancel_url:, client_reference_id:, created_at:, discount_id:, expires_at:, first_period_extra_days:, id:, items:, label:, metadata:, notify_customer_email:, price_id:, product_id:, quantity:, renewal_mode:, showcase_id:, status:, subscription_start_at:, success_url:, url:)
+    def initialize(amount_cents:, boleto_discount_bp:, cancel_url:, client_reference_id:, coupon_stacks_with_method_discount:, created_at:, discount_id:, expires_at:, first_period_extra_days:, id:, installment_interest:, installment_monthly_rate_bp:, interest_free_installments:, items:, label:, max_installments:, metadata:, min_installment_cents:, notify_customer_email:, pix_discount_bp:, price_id:, product_id:, quantity:, renewal_mode:, showcase_id:, status:, subscription_start_at:, success_url:, url:)
       @amount_cents = amount_cents
+      @boleto_discount_bp = boleto_discount_bp
       @cancel_url = cancel_url
       @client_reference_id = client_reference_id
+      @coupon_stacks_with_method_discount = coupon_stacks_with_method_discount
       @created_at = created_at
       @discount_id = discount_id
       @expires_at = expires_at
       @first_period_extra_days = first_period_extra_days
       @id = id
+      @installment_interest = installment_interest
+      @installment_monthly_rate_bp = installment_monthly_rate_bp
+      @interest_free_installments = interest_free_installments
       @items = items
       @label = label
+      @max_installments = max_installments
       @metadata = metadata
+      @min_installment_cents = min_installment_cents
       @notify_customer_email = notify_customer_email
+      @pix_discount_bp = pix_discount_bp
       @price_id = price_id
       @product_id = product_id
       @quantity = quantity
@@ -512,17 +552,25 @@ module Perata
     def self.from_hash(data)
       new(
         amount_cents: data["amount_cents"],
+        boleto_discount_bp: data["boleto_discount_bp"],
         cancel_url: data.fetch("cancel_url"),
         client_reference_id: data.fetch("client_reference_id"),
+        coupon_stacks_with_method_discount: data["coupon_stacks_with_method_discount"],
         created_at: data.fetch("created_at"),
         discount_id: data.fetch("discount_id"),
         expires_at: data["expires_at"],
         first_period_extra_days: data["first_period_extra_days"],
         id: data.fetch("id"),
+        installment_interest: data["installment_interest"],
+        installment_monthly_rate_bp: data.fetch("installment_monthly_rate_bp"),
+        interest_free_installments: data.fetch("interest_free_installments"),
         items: data.fetch("items").map { |item| CheckoutLine.from_hash(item) },
         label: data.fetch("label"),
+        max_installments: data.fetch("max_installments"),
         metadata: data.fetch("metadata"),
+        min_installment_cents: data.fetch("min_installment_cents"),
         notify_customer_email: data.fetch("notify_customer_email"),
+        pix_discount_bp: data["pix_discount_bp"],
         price_id: data.fetch("price_id"),
         product_id: data.fetch("product_id"),
         quantity: data.fetch("quantity"),
@@ -538,7 +586,7 @@ module Perata
 
   # CheckoutClient is a resource of Peráta's API.
   class CheckoutClient < Model
-    MEMBERS = %i[amount_cents amount_locked cancel_url card_kinds client_reference_id currency customer discount discount_cents editable environment expires_at first_charge_at first_period_end_at first_period_extra_days id installments items missing next_action payment payment_methods requires_billing_address requires_tax_id status status_key success_url total_cents].freeze
+    MEMBERS = %i[amount_cents amount_locked cancel_url card_kinds client_reference_id currency customer discount discount_cents editable environment expires_at first_charge_at first_period_end_at first_period_extra_days id installments items missing next_action payment payment_discounts payment_methods requires_billing_address requires_tax_id status status_key success_url total_cents].freeze
 
     # Antes do desconto.
     # @return [Integer]
@@ -552,7 +600,7 @@ module Perata
     # @return [String]
     attr_reader :cancel_url
 
-    # credit, e debit onde a autenticação do adquirente está ligada.
+    # credit, e debit onde a autenticação do processador de pagamentos está ligada.
     # @return [Array<String>]
     attr_reader :card_kinds
 
@@ -616,6 +664,10 @@ module Perata
     # @return [CheckoutClientPayment, nil]
     attr_reader :payment
 
+    # O desconto de cada forma de pagamento que tem um (Pix e boleto), depois do cupom e sobre o valor já com o cupom quando o cupom soma; quando não soma, só aparece a forma cujo desconto é maior que o do cupom, sobre o preço sem cupom; vazio quando nenhuma tem. O cartão de crédito não tem desconto. O Pix Automático também não.
+    # @return [Array<CheckoutClientPaymentDiscount>]
+    attr_reader :payment_discounts
+
     # As formas em que a sessão pode ser paga, entre card, pix, boleto e free; free é uma sessão que não pede pagamento.
     # @return [Array<String>]
     attr_reader :payment_methods
@@ -644,7 +696,7 @@ module Perata
     # @return [Integer]
     attr_reader :total_cents
 
-    def initialize(amount_cents:, amount_locked:, cancel_url:, card_kinds:, client_reference_id:, currency:, customer:, discount:, discount_cents:, editable:, environment:, expires_at:, first_charge_at:, first_period_end_at:, first_period_extra_days:, id:, installments:, items:, missing:, next_action:, payment:, payment_methods:, requires_billing_address:, requires_tax_id:, status:, status_key:, success_url:, total_cents:)
+    def initialize(amount_cents:, amount_locked:, cancel_url:, card_kinds:, client_reference_id:, currency:, customer:, discount:, discount_cents:, editable:, environment:, expires_at:, first_charge_at:, first_period_end_at:, first_period_extra_days:, id:, installments:, items:, missing:, next_action:, payment:, payment_discounts:, payment_methods:, requires_billing_address:, requires_tax_id:, status:, status_key:, success_url:, total_cents:)
       @amount_cents = amount_cents
       @amount_locked = amount_locked
       @cancel_url = cancel_url
@@ -666,6 +718,7 @@ module Perata
       @missing = missing
       @next_action = next_action
       @payment = payment
+      @payment_discounts = payment_discounts
       @payment_methods = payment_methods
       @requires_billing_address = requires_billing_address
       @requires_tax_id = requires_tax_id
@@ -700,6 +753,7 @@ module Perata
         missing: data.fetch("missing"),
         next_action: CheckoutNextAction.from_hash(data.fetch("next_action")),
         payment: data["payment"]&.then { |value| CheckoutClientPayment.from_hash(value) },
+        payment_discounts: data.fetch("payment_discounts").map { |item| CheckoutClientPaymentDiscount.from_hash(item) },
         payment_methods: data.fetch("payment_methods"),
         requires_billing_address: data.fetch("requires_billing_address"),
         requires_tax_id: data.fetch("requires_tax_id"),
@@ -723,7 +777,7 @@ module Perata
     # @return [String, nil]
     attr_reader :due_date
 
-    # Onde o boleto é baixado; vazio quando o adquirente não deu nenhum.
+    # Onde o boleto é baixado; vazio quando o processador de pagamentos não deu nenhum.
     # @return [String]
     attr_reader :pdf_url
 
@@ -746,7 +800,7 @@ module Perata
 
   # CheckoutClientCustomer is a resource of Peráta's API.
   class CheckoutClientCustomer < Model
-    MEMBERS = %i[address billing_name email locked name tax_id tax_id_kind].freeze
+    MEMBERS = %i[address billing_name email locked name tax_id tax_id_fixed tax_id_kind].freeze
 
     # @return [BillingAddress]
     attr_reader :address
@@ -768,16 +822,21 @@ module Perata
     # @return [String]
     attr_reader :tax_id
 
+    # Verdadeiro quando o CPF ou CNPJ é o que o lojista tem do cliente: o comprador não pode trocá-lo e o servidor recusa outro (422 em tax_id).
+    # @return [Boolean]
+    attr_reader :tax_id_fixed
+
     # @return [String]
     attr_reader :tax_id_kind
 
-    def initialize(address:, billing_name:, email:, locked:, name:, tax_id:, tax_id_kind:)
+    def initialize(address:, billing_name:, email:, locked:, name:, tax_id:, tax_id_fixed:, tax_id_kind:)
       @address = address
       @billing_name = billing_name
       @email = email
       @locked = locked
       @name = name
       @tax_id = tax_id
+      @tax_id_fixed = tax_id_fixed
       @tax_id_kind = tax_id_kind
       freeze
     end
@@ -791,6 +850,7 @@ module Perata
         locked: data.fetch("locked"),
         name: data.fetch("name"),
         tax_id: data.fetch("tax_id"),
+        tax_id_fixed: data.fetch("tax_id_fixed"),
         tax_id_kind: data.fetch("tax_id_kind")
       )
     end
@@ -916,7 +976,7 @@ module Perata
     # @return [String ("unknown", "pending", "authorized", "captured", "refused", "canceled", "refunded", "partially_refunded")]
     attr_reader :state
 
-    # Verdadeiro enquanto a resposta do adquirente ainda é descoberta; o comprador espera.
+    # Verdadeiro enquanto a resposta do processador de pagamentos ainda é descoberta; o comprador espera.
     # @return [Boolean]
     attr_reader :unresolved
 
@@ -957,7 +1017,7 @@ module Perata
     # @return [String]
     attr_reader :copia_e_cola
 
-    # Quando o Pix deixa de poder ser pago, como o adquirente o deu.
+    # Quando o Pix deixa de poder ser pago, como o processador de pagamentos o deu.
     # @return [String, nil]
     attr_reader :expires_at
 
@@ -984,11 +1044,15 @@ module Perata
 
   # CheckoutCreated is a resource of Peráta's API.
   class CheckoutCreated < Model
-    MEMBERS = %i[amount_cents cancel_url client_reference_id client_secret client_secret_expires_at created_at discount_id expires_at first_period_extra_days id items label metadata notify_customer_email price_id product_id quantity renewal_mode session_id showcase_id status status_key subscription_start_at success_url url].freeze
+    MEMBERS = %i[amount_cents boleto_discount_bp cancel_url client_reference_id client_secret client_secret_expires_at coupon_stacks_with_method_discount created_at discount_id expires_at first_period_extra_days id installment_interest installment_monthly_rate_bp interest_free_installments items label max_installments metadata min_installment_cents notify_customer_email pix_discount_bp price_id product_id quantity renewal_mode session_id showcase_id status status_key subscription_start_at success_url url].freeze
 
     # O valor, em centavos, que o seu servidor fixou; o comprador o vê e não pode mudá-lo. Nulo quando é o comprador quem digita o valor.
     # @return [Integer, nil]
     attr_reader :amount_cents
+
+    # O desconto de quem paga com boleto neste checkout, em centésimos de ponto percentual; 0 desliga o desconto aqui; nulo segue a organização.
+    # @return [Integer, nil]
+    attr_reader :boleto_discount_bp
 
     # Endereço https para onde o comprador volta se desistir; vazio sem ele.
     # @return [String]
@@ -1005,6 +1069,10 @@ module Perata
     # Quando a sessão e o client_secret deixam de valer.
     # @return [String]
     attr_reader :client_secret_expires_at
+
+    # Se o cupom soma com o desconto do Pix ou do boleto neste checkout: true soma (o cupom primeiro, o desconto da forma depois), false vale só o maior dos dois em centavos sobre o mesmo preço; nulo segue a organização (que por padrão não soma). Em assinatura o cupom sempre soma.
+    # @return [Boolean, nil]
+    attr_reader :coupon_stacks_with_method_discount
 
     # @return [String]
     attr_reader :created_at
@@ -1025,6 +1093,18 @@ module Perata
     # @return [String]
     attr_reader :id
 
+    # Quem paga os juros do parcelamento deste checkout: merchant (sem juros) ou buyer (com juros); nulo segue a organização.
+    # @return [String ("merchant", "buyer"), nil]
+    attr_reader :installment_interest
+
+    # A taxa de juros ao mês que o comprador paga, em centésimos de ponto percentual (299 é 2,99%); 0 segue a organização.
+    # @return [Integer]
+    attr_reader :installment_monthly_rate_bp
+
+    # Quantas parcelas saem sem juros quando o comprador paga os juros; 0 segue a organização.
+    # @return [Integer]
+    attr_reader :interest_free_installments
+
     # As linhas do valor fixado, na ordem em que foram enviadas; vazio sem elas.
     # @return [Array<CheckoutLine>]
     attr_reader :items
@@ -1033,13 +1113,25 @@ module Perata
     # @return [String]
     attr_reader :label
 
+    # O máximo de parcelas no cartão de crédito deste checkout; 0 segue o que a organização definiu, 1 vende só à vista.
+    # @return [Integer]
+    attr_reader :max_installments
+
     # Os pares que o seu servidor enviou; voltam no pedido, no pagamento e nos eventos da venda (checkout.*, order.*, checkout_payment.* e refund.*).
     # @return [Hash{String => Object}]
     attr_reader :metadata
 
+    # A menor parcela, em centavos; 0 segue a organização.
+    # @return [Integer]
+    attr_reader :min_installment_cents
+
     # Falso quando o seu sistema avisa o comprador das cobranças de renovação e a Peráta fica quieta.
     # @return [Boolean]
     attr_reader :notify_customer_email
+
+    # O desconto de quem paga com Pix neste checkout, em centésimos de ponto percentual (500 é 5%); 0 desliga o desconto aqui; nulo segue a organização.
+    # @return [Integer, nil]
+    attr_reader :pix_discount_bp
 
     # @return [String]
     attr_reader :price_id
@@ -1082,21 +1174,29 @@ module Perata
     # @return [String]
     attr_reader :url
 
-    def initialize(amount_cents:, cancel_url:, client_reference_id:, client_secret:, client_secret_expires_at:, created_at:, discount_id:, expires_at:, first_period_extra_days:, id:, items:, label:, metadata:, notify_customer_email:, price_id:, product_id:, quantity:, renewal_mode:, session_id:, showcase_id:, status:, status_key:, subscription_start_at:, success_url:, url:)
+    def initialize(amount_cents:, boleto_discount_bp:, cancel_url:, client_reference_id:, client_secret:, client_secret_expires_at:, coupon_stacks_with_method_discount:, created_at:, discount_id:, expires_at:, first_period_extra_days:, id:, installment_interest:, installment_monthly_rate_bp:, interest_free_installments:, items:, label:, max_installments:, metadata:, min_installment_cents:, notify_customer_email:, pix_discount_bp:, price_id:, product_id:, quantity:, renewal_mode:, session_id:, showcase_id:, status:, status_key:, subscription_start_at:, success_url:, url:)
       @amount_cents = amount_cents
+      @boleto_discount_bp = boleto_discount_bp
       @cancel_url = cancel_url
       @client_reference_id = client_reference_id
       @client_secret = client_secret
       @client_secret_expires_at = client_secret_expires_at
+      @coupon_stacks_with_method_discount = coupon_stacks_with_method_discount
       @created_at = created_at
       @discount_id = discount_id
       @expires_at = expires_at
       @first_period_extra_days = first_period_extra_days
       @id = id
+      @installment_interest = installment_interest
+      @installment_monthly_rate_bp = installment_monthly_rate_bp
+      @interest_free_installments = interest_free_installments
       @items = items
       @label = label
+      @max_installments = max_installments
       @metadata = metadata
+      @min_installment_cents = min_installment_cents
       @notify_customer_email = notify_customer_email
+      @pix_discount_bp = pix_discount_bp
       @price_id = price_id
       @product_id = product_id
       @quantity = quantity
@@ -1115,19 +1215,27 @@ module Perata
     def self.from_hash(data)
       new(
         amount_cents: data["amount_cents"],
+        boleto_discount_bp: data["boleto_discount_bp"],
         cancel_url: data.fetch("cancel_url"),
         client_reference_id: data.fetch("client_reference_id"),
         client_secret: data.fetch("client_secret"),
         client_secret_expires_at: data.fetch("client_secret_expires_at"),
+        coupon_stacks_with_method_discount: data["coupon_stacks_with_method_discount"],
         created_at: data.fetch("created_at"),
         discount_id: data.fetch("discount_id"),
         expires_at: data["expires_at"],
         first_period_extra_days: data["first_period_extra_days"],
         id: data.fetch("id"),
+        installment_interest: data["installment_interest"],
+        installment_monthly_rate_bp: data.fetch("installment_monthly_rate_bp"),
+        interest_free_installments: data.fetch("interest_free_installments"),
         items: data.fetch("items").map { |item| CheckoutLine.from_hash(item) },
         label: data.fetch("label"),
+        max_installments: data.fetch("max_installments"),
         metadata: data.fetch("metadata"),
+        min_installment_cents: data.fetch("min_installment_cents"),
         notify_customer_email: data.fetch("notify_customer_email"),
+        pix_discount_bp: data["pix_discount_bp"],
         price_id: data.fetch("price_id"),
         product_id: data.fetch("product_id"),
         quantity: data.fetch("quantity"),
@@ -1310,11 +1418,15 @@ module Perata
 
   # CheckoutLink is a resource of Peráta's API.
   class CheckoutLink < Model
-    MEMBERS = %i[allow_discount_codes cancel_url capture_mode created_at discount_id expires_at id label max_installments metadata modified_at price_id product_id products quantity require_billing_address status success_url trial_interval trial_interval_count url].freeze
+    MEMBERS = %i[allow_discount_codes boleto_discount_bp cancel_url capture_mode coupon_stacks_with_method_discount created_at discount_id expires_at id installment_interest installment_monthly_rate_bp interest_free_installments label max_installments metadata min_installment_cents modified_at pix_discount_bp price_id product_id products quantity renewal_mode require_billing_address status success_url trial_interval trial_interval_count url].freeze
 
     # Se o comprador pode digitar um código de desconto.
     # @return [Boolean]
     attr_reader :allow_discount_codes
+
+    # O desconto de quem paga com boleto neste checkout, em centésimos de ponto percentual; 0 desliga o desconto aqui; nulo segue a organização.
+    # @return [Integer, nil]
+    attr_reader :boleto_discount_bp
 
     # Endereço https para onde o comprador volta se desistir; vazio sem ele.
     # @return [String]
@@ -1323,6 +1435,10 @@ module Perata
     # manual segura a venda no cartão para o lojista capturar depois.
     # @return [String ("automatic", "manual")]
     attr_reader :capture_mode
+
+    # Se o cupom soma com o desconto do Pix ou do boleto neste checkout: true soma (o cupom primeiro, o desconto da forma depois), false vale só o maior dos dois em centavos sobre o mesmo preço; nulo segue a organização (que por padrão não soma). Em assinatura o cupom sempre soma.
+    # @return [Boolean, nil]
+    attr_reader :coupon_stacks_with_method_discount
 
     # @return [String]
     attr_reader :created_at
@@ -1338,6 +1454,18 @@ module Perata
     # @return [String]
     attr_reader :id
 
+    # Quem paga os juros do parcelamento deste checkout: merchant (sem juros) ou buyer (com juros); nulo segue a organização.
+    # @return [String ("merchant", "buyer"), nil]
+    attr_reader :installment_interest
+
+    # A taxa de juros ao mês que o comprador paga, em centésimos de ponto percentual (299 é 2,99%); 0 segue a organização.
+    # @return [Integer]
+    attr_reader :installment_monthly_rate_bp
+
+    # Quantas parcelas saem sem juros quando o comprador paga os juros; 0 segue a organização.
+    # @return [Integer]
+    attr_reader :interest_free_installments
+
     # Como o lojista chama o link nas próprias telas; o comprador não vê.
     # @return [String]
     attr_reader :label
@@ -1350,8 +1478,16 @@ module Perata
     # @return [Hash{String => Object}]
     attr_reader :metadata
 
+    # A menor parcela, em centavos; 0 segue a organização.
+    # @return [Integer]
+    attr_reader :min_installment_cents
+
     # @return [String]
     attr_reader :modified_at
+
+    # O desconto de quem paga com Pix neste checkout, em centésimos de ponto percentual (500 é 5%); 0 desliga o desconto aqui; nulo segue a organização.
+    # @return [Integer, nil]
+    attr_reader :pix_discount_bp
 
     # O preço do primeiro produto.
     # @return [String]
@@ -1367,6 +1503,10 @@ module Perata
 
     # @return [Integer]
     attr_reader :quantity
+
+    # Como a assinatura que o link vende renova: manual (uma cobrança por link a cada ciclo), automatic (só cartão guardado ou Pix Automático), buyer_choice (o comprador marca a caixa Cobrança recorrente na página); nulo é o padrão, em que o cartão guardado renova e, sem cartão, o comprador recebe o link.
+    # @return [String ("manual", "automatic", "buyer_choice"), nil]
+    attr_reader :renewal_mode
 
     # @return [Boolean]
     attr_reader :require_billing_address
@@ -1389,22 +1529,30 @@ module Perata
     # @return [String]
     attr_reader :url
 
-    def initialize(allow_discount_codes:, cancel_url:, capture_mode:, created_at:, discount_id:, expires_at:, id:, label:, max_installments:, metadata:, modified_at:, price_id:, product_id:, products:, quantity:, require_billing_address:, status:, success_url:, trial_interval:, trial_interval_count:, url:)
+    def initialize(allow_discount_codes:, boleto_discount_bp:, cancel_url:, capture_mode:, coupon_stacks_with_method_discount:, created_at:, discount_id:, expires_at:, id:, installment_interest:, installment_monthly_rate_bp:, interest_free_installments:, label:, max_installments:, metadata:, min_installment_cents:, modified_at:, pix_discount_bp:, price_id:, product_id:, products:, quantity:, renewal_mode:, require_billing_address:, status:, success_url:, trial_interval:, trial_interval_count:, url:)
       @allow_discount_codes = allow_discount_codes
+      @boleto_discount_bp = boleto_discount_bp
       @cancel_url = cancel_url
       @capture_mode = capture_mode
+      @coupon_stacks_with_method_discount = coupon_stacks_with_method_discount
       @created_at = created_at
       @discount_id = discount_id
       @expires_at = expires_at
       @id = id
+      @installment_interest = installment_interest
+      @installment_monthly_rate_bp = installment_monthly_rate_bp
+      @interest_free_installments = interest_free_installments
       @label = label
       @max_installments = max_installments
       @metadata = metadata
+      @min_installment_cents = min_installment_cents
       @modified_at = modified_at
+      @pix_discount_bp = pix_discount_bp
       @price_id = price_id
       @product_id = product_id
       @products = products
       @quantity = quantity
+      @renewal_mode = renewal_mode
       @require_billing_address = require_billing_address
       @status = status
       @success_url = success_url
@@ -1418,20 +1566,28 @@ module Perata
     def self.from_hash(data)
       new(
         allow_discount_codes: data.fetch("allow_discount_codes"),
+        boleto_discount_bp: data["boleto_discount_bp"],
         cancel_url: data.fetch("cancel_url"),
         capture_mode: data.fetch("capture_mode"),
+        coupon_stacks_with_method_discount: data["coupon_stacks_with_method_discount"],
         created_at: data.fetch("created_at"),
         discount_id: data["discount_id"],
         expires_at: data["expires_at"],
         id: data.fetch("id"),
+        installment_interest: data["installment_interest"],
+        installment_monthly_rate_bp: data.fetch("installment_monthly_rate_bp"),
+        interest_free_installments: data.fetch("interest_free_installments"),
         label: data.fetch("label"),
         max_installments: data.fetch("max_installments"),
         metadata: data.fetch("metadata"),
+        min_installment_cents: data.fetch("min_installment_cents"),
         modified_at: data.fetch("modified_at"),
+        pix_discount_bp: data["pix_discount_bp"],
         price_id: data.fetch("price_id"),
         product_id: data.fetch("product_id"),
         products: data.fetch("products").map { |item| CheckoutLinkProduct.from_hash(item) },
         quantity: data.fetch("quantity"),
+        renewal_mode: data["renewal_mode"],
         require_billing_address: data.fetch("require_billing_address"),
         status: data.fetch("status"),
         success_url: data.fetch("success_url"),
@@ -2054,7 +2210,7 @@ module Perata
     # @return [String, nil]
     attr_reader :order_id
 
-    # O PaymentId da venda contestada.
+    # O id do pagamento da venda contestada.
     # @return [String]
     attr_reader :payment_id
 
@@ -2070,11 +2226,11 @@ module Perata
     # @return [String]
     attr_reader :provider_reason
 
-    # Motivo, do conjunto fechado; unknown quando a adquirente não informou.
+    # Motivo, do conjunto fechado; unknown quando o processador de pagamentos não informou.
     # @return [String]
     attr_reader :reason
 
-    # @return [String ("operator", "cielo_chargeback")]
+    # @return [String ("operator", "processor_chargeback")]
     attr_reader :source
 
     # @return [String ("opened", "needs_evidence", "submitted", "under_review", "won", "lost", "closed")]
@@ -2350,7 +2506,7 @@ module Perata
 
   # Order is a resource of Peráta's API.
   class Order < Model
-    MEMBERS = %i[amount_cents client_reference_id currency customer_id cycle_sequence discount_cents discount_code discount_id id installment_interest_cents installments items metadata order_status paid_at period_end period_start price_id product_id refunded_amount_cents showcase_id status subscription_id subtotal_cents].freeze
+    MEMBERS = %i[amount_cents client_reference_id currency customer_id cycle_sequence discount_cents discount_code discount_id id installment_interest_cents installments items metadata order_status paid_at payment_method_discount_bp payment_method_discount_cents period_end period_start price_id product_id refunded_amount_cents showcase_id status subscription_id subtotal_cents].freeze
 
     # @return [Integer]
     attr_reader :amount_cents
@@ -2407,6 +2563,14 @@ module Perata
     # @return [String, nil]
     attr_reader :paid_at
 
+    # A taxa do desconto da forma de pagamento, em centésimos de ponto percentual (500 é 5%); 0 sem ele.
+    # @return [Integer]
+    attr_reader :payment_method_discount_bp
+
+    # Quanto o desconto da forma de pagamento (Pix ou boleto) tirou de amount_cents, em centavos; 0 sem ele. O comprador pagou amount_cents menos este valor. Com cupom que soma, o desconto da forma vem depois do cupom; com cupom que não soma, vale só o maior dos dois e o outro não aparece.
+    # @return [Integer]
+    attr_reader :payment_method_discount_cents
+
     # O fim do período que o ciclo paga; nulo fora de uma assinatura.
     # @return [String, nil]
     attr_reader :period_end
@@ -2440,7 +2604,7 @@ module Perata
     # @return [Integer]
     attr_reader :subtotal_cents
 
-    def initialize(amount_cents:, client_reference_id:, currency:, customer_id:, cycle_sequence:, discount_cents:, discount_code:, discount_id:, id:, installment_interest_cents:, installments:, items:, metadata:, order_status:, paid_at:, period_end:, period_start:, price_id:, product_id:, refunded_amount_cents:, showcase_id:, status:, subscription_id:, subtotal_cents:)
+    def initialize(amount_cents:, client_reference_id:, currency:, customer_id:, cycle_sequence:, discount_cents:, discount_code:, discount_id:, id:, installment_interest_cents:, installments:, items:, metadata:, order_status:, paid_at:, payment_method_discount_bp:, payment_method_discount_cents:, period_end:, period_start:, price_id:, product_id:, refunded_amount_cents:, showcase_id:, status:, subscription_id:, subtotal_cents:)
       @amount_cents = amount_cents
       @client_reference_id = client_reference_id
       @currency = currency
@@ -2456,6 +2620,8 @@ module Perata
       @metadata = metadata
       @order_status = order_status
       @paid_at = paid_at
+      @payment_method_discount_bp = payment_method_discount_bp
+      @payment_method_discount_cents = payment_method_discount_cents
       @period_end = period_end
       @period_start = period_start
       @price_id = price_id
@@ -2486,6 +2652,8 @@ module Perata
         metadata: data.fetch("metadata"),
         order_status: data["order_status"],
         paid_at: data["paid_at"],
+        payment_method_discount_bp: data.fetch("payment_method_discount_bp"),
+        payment_method_discount_cents: data.fetch("payment_method_discount_cents"),
         period_end: data["period_end"],
         period_start: data["period_start"],
         price_id: data.fetch("price_id"),
@@ -2585,7 +2753,7 @@ module Perata
 
   # OrderReceipt is a resource of Peráta's API.
   class OrderReceipt < Model
-    MEMBERS = %i[amount_cents charged_by currency customer_email customer_name discount_cents installment_interest_cents installments items number order_id paid_at payment_method product_name refunded_cents total_cents].freeze
+    MEMBERS = %i[amount_cents charged_by currency customer_email customer_name discount_cents installment_interest_cents installments items number order_id paid_at payment_method payment_method_discount_bp payment_method_discount_cents product_name refunded_cents total_cents].freeze
 
     # @return [Integer]
     attr_reader :amount_cents
@@ -2631,6 +2799,14 @@ module Perata
     # @return [String]
     attr_reader :payment_method
 
+    # A taxa do desconto da forma de pagamento, em centésimos de ponto percentual (500 é 5%); 0 sem ele.
+    # @return [Integer]
+    attr_reader :payment_method_discount_bp
+
+    # Quanto o desconto da forma de pagamento (Pix ou boleto) tirou de total_cents, em centavos; 0 sem ele. Foi pago total_cents menos este valor.
+    # @return [Integer]
+    attr_reader :payment_method_discount_cents
+
     # @return [String]
     attr_reader :product_name
 
@@ -2640,7 +2816,7 @@ module Perata
     # @return [Integer]
     attr_reader :total_cents
 
-    def initialize(amount_cents:, charged_by:, currency:, customer_email:, customer_name:, discount_cents:, installment_interest_cents:, installments:, items:, number:, order_id:, paid_at:, payment_method:, product_name:, refunded_cents:, total_cents:)
+    def initialize(amount_cents:, charged_by:, currency:, customer_email:, customer_name:, discount_cents:, installment_interest_cents:, installments:, items:, number:, order_id:, paid_at:, payment_method:, payment_method_discount_bp:, payment_method_discount_cents:, product_name:, refunded_cents:, total_cents:)
       @amount_cents = amount_cents
       @charged_by = charged_by
       @currency = currency
@@ -2654,6 +2830,8 @@ module Perata
       @order_id = order_id
       @paid_at = paid_at
       @payment_method = payment_method
+      @payment_method_discount_bp = payment_method_discount_bp
+      @payment_method_discount_cents = payment_method_discount_cents
       @product_name = product_name
       @refunded_cents = refunded_cents
       @total_cents = total_cents
@@ -2676,6 +2854,8 @@ module Perata
         order_id: data.fetch("order_id"),
         paid_at: data["paid_at"],
         payment_method: data.fetch("payment_method"),
+        payment_method_discount_bp: data.fetch("payment_method_discount_bp"),
+        payment_method_discount_cents: data.fetch("payment_method_discount_cents"),
         product_name: data.fetch("product_name"),
         refunded_cents: data.fetch("refunded_cents"),
         total_cents: data.fetch("total_cents")
@@ -2710,7 +2890,7 @@ module Perata
 
   # Payment is a resource of Peráta's API.
   class Payment < Model
-    MEMBERS = %i[amount_cents captured_cents checkout_id client_reference_id created_at currency customer_id cycle_sequence expected_payout_on fee_cents id installment_amount_cents installment_interest_cents installments metadata method net_cents payout_deposited_on payout_id period_end period_start refunded_cents showcase_id split state subscription_id].freeze
+    MEMBERS = %i[amount_cents captured_cents checkout_id client_reference_id created_at currency customer_id cycle_sequence expected_payout_on fee_cents id installment_amount_cents installment_interest_cents installments metadata method net_cents payment_method_discount_bp payment_method_discount_cents payout_deposited_on payout_id period_end period_start refunded_cents showcase_id split state subscription_id].freeze
 
     # @return [Integer]
     attr_reader :amount_cents
@@ -2772,6 +2952,14 @@ module Perata
     # @return [Integer]
     attr_reader :net_cents
 
+    # A taxa do desconto da forma de pagamento, em centésimos de ponto percentual (500 é 5%); 0 sem ele.
+    # @return [Integer]
+    attr_reader :payment_method_discount_bp
+
+    # Quanto o desconto da forma de pagamento (Pix ou boleto) tirou do total do pedido, em centavos; 0 sem ele. amount_cents já é o valor com o desconto: é o que foi cobrado.
+    # @return [Integer]
+    attr_reader :payment_method_discount_cents
+
     # O dia em que o último repasse que pagou este pagamento foi depositado, AAAA-MM-DD; nulo enquanto nenhum foi.
     # @return [String, nil]
     attr_reader :payout_deposited_on
@@ -2806,7 +2994,7 @@ module Perata
     # @return [String, nil]
     attr_reader :subscription_id
 
-    def initialize(amount_cents:, captured_cents:, checkout_id:, client_reference_id:, created_at:, currency:, customer_id:, cycle_sequence:, expected_payout_on:, fee_cents:, id:, installment_amount_cents:, installment_interest_cents:, installments:, metadata:, method:, net_cents:, payout_deposited_on:, payout_id:, period_end:, period_start:, refunded_cents:, showcase_id:, split:, state:, subscription_id:)
+    def initialize(amount_cents:, captured_cents:, checkout_id:, client_reference_id:, created_at:, currency:, customer_id:, cycle_sequence:, expected_payout_on:, fee_cents:, id:, installment_amount_cents:, installment_interest_cents:, installments:, metadata:, method:, net_cents:, payment_method_discount_bp:, payment_method_discount_cents:, payout_deposited_on:, payout_id:, period_end:, period_start:, refunded_cents:, showcase_id:, split:, state:, subscription_id:)
       @amount_cents = amount_cents
       @captured_cents = captured_cents
       @checkout_id = checkout_id
@@ -2824,6 +3012,8 @@ module Perata
       @metadata = metadata
       @method = method
       @net_cents = net_cents
+      @payment_method_discount_bp = payment_method_discount_bp
+      @payment_method_discount_cents = payment_method_discount_cents
       @payout_deposited_on = payout_deposited_on
       @payout_id = payout_id
       @period_end = period_end
@@ -2856,6 +3046,8 @@ module Perata
         metadata: data.fetch("metadata"),
         method: data.fetch("method"),
         net_cents: data.fetch("net_cents"),
+        payment_method_discount_bp: data.fetch("payment_method_discount_bp"),
+        payment_method_discount_cents: data.fetch("payment_method_discount_cents"),
         payout_deposited_on: data["payout_deposited_on"],
         payout_id: data["payout_id"],
         period_end: data["period_end"],
@@ -3451,7 +3643,7 @@ module Perata
     attr_reader :product_id
 
     # Só nos eventos subscription.renewal_reminder: before_due (3 dias antes de due_at) ou on_due (no vencimento). Nulo na cobrança e em subscription.renewal_due.
-    # @return [String ("before_due", "on_due", "null"), nil]
+    # @return [String ("before_due", "on_due"), nil]
     attr_reader :reminder
 
     # O modo de renovação da assinatura. Uma cobrança em aberto existe nos modos manual e, quando o cartão é recusado, card.
@@ -4208,7 +4400,7 @@ module Perata
     # @return [String]
     attr_reader :opened_at
 
-    # O PaymentId da venda contestada.
+    # O id do pagamento da venda contestada.
     # @return [String]
     attr_reader :payment_id
 
@@ -4224,11 +4416,11 @@ module Perata
     # @return [String]
     attr_reader :provider_reason
 
-    # Motivo, do conjunto fechado; unknown quando a adquirente não informou.
+    # Motivo, do conjunto fechado; unknown quando o processador de pagamentos não informou.
     # @return [String]
     attr_reader :reason
 
-    # @return [String ("operator", "cielo_chargeback")]
+    # @return [String ("operator", "processor_chargeback")]
     attr_reader :source
 
     # @return [String ("opened", "needs_evidence", "submitted", "under_review", "won", "lost", "closed")]
@@ -4413,7 +4605,7 @@ module Perata
 
   # O pedido como a API o devolve (Order) e, nos eventos que um reembolso causou (order.refunded e o order.updated que o acompanha), o reembolso que o causou. status continua sendo o do checkout (succeeded) depois de um reembolso: order_status e refunded_amount_cents dizem onde o dinheiro está.
   class WebhookOrder < Model
-    MEMBERS = %i[amount_cents client_reference_id currency customer_id cycle_sequence discount_cents discount_code discount_id id installment_interest_cents installments items metadata order_status paid_at period_end period_start price_id product_id refund_amount_cents refund_id refunded_amount_cents showcase_id status subscription_id subtotal_cents].freeze
+    MEMBERS = %i[amount_cents client_reference_id currency customer_id cycle_sequence discount_cents discount_code discount_id id installment_interest_cents installments items metadata order_status paid_at payment_method_discount_bp payment_method_discount_cents period_end period_start price_id product_id refund_amount_cents refund_id refunded_amount_cents showcase_id status subscription_id subtotal_cents].freeze
 
     # @return [Integer]
     attr_reader :amount_cents
@@ -4470,6 +4662,14 @@ module Perata
     # @return [String, nil]
     attr_reader :paid_at
 
+    # A taxa do desconto da forma de pagamento, em centésimos de ponto percentual (500 é 5%); 0 sem ele.
+    # @return [Integer]
+    attr_reader :payment_method_discount_bp
+
+    # Quanto o desconto da forma de pagamento (Pix ou boleto) tirou de amount_cents, em centavos; 0 sem ele. O comprador pagou amount_cents menos este valor. Com cupom que soma, o desconto da forma vem depois do cupom; com cupom que não soma, vale só o maior dos dois e o outro não aparece.
+    # @return [Integer]
+    attr_reader :payment_method_discount_cents
+
     # O fim do período do ciclo que o pagamento cobra.
     # @return [String, nil]
     attr_reader :period_end
@@ -4511,7 +4711,7 @@ module Perata
     # @return [Integer]
     attr_reader :subtotal_cents
 
-    def initialize(amount_cents:, client_reference_id:, currency:, customer_id:, cycle_sequence: nil, discount_cents:, discount_code:, discount_id:, id:, installment_interest_cents:, installments:, items:, metadata:, order_status:, paid_at:, period_end: nil, period_start: nil, price_id:, product_id:, refund_amount_cents:, refund_id:, refunded_amount_cents:, showcase_id:, status:, subscription_id: nil, subtotal_cents:)
+    def initialize(amount_cents:, client_reference_id:, currency:, customer_id:, cycle_sequence: nil, discount_cents:, discount_code:, discount_id:, id:, installment_interest_cents:, installments:, items:, metadata:, order_status:, paid_at:, payment_method_discount_bp:, payment_method_discount_cents:, period_end: nil, period_start: nil, price_id:, product_id:, refund_amount_cents:, refund_id:, refunded_amount_cents:, showcase_id:, status:, subscription_id: nil, subtotal_cents:)
       @amount_cents = amount_cents
       @client_reference_id = client_reference_id
       @currency = currency
@@ -4527,6 +4727,8 @@ module Perata
       @metadata = metadata
       @order_status = order_status
       @paid_at = paid_at
+      @payment_method_discount_bp = payment_method_discount_bp
+      @payment_method_discount_cents = payment_method_discount_cents
       @period_end = period_end
       @period_start = period_start
       @price_id = price_id
@@ -4559,6 +4761,8 @@ module Perata
         metadata: data.fetch("metadata"),
         order_status: data["order_status"],
         paid_at: data["paid_at"],
+        payment_method_discount_bp: data.fetch("payment_method_discount_bp"),
+        payment_method_discount_cents: data.fetch("payment_method_discount_cents"),
         period_end: data["period_end"],
         period_start: data["period_start"],
         price_id: data.fetch("price_id"),
@@ -5080,6 +5284,45 @@ module Perata
         suspension_reason: data["suspension_reason"],
         trial_end: data["trial_end"],
         trial_start: data["trial_start"]
+      )
+    end
+  end
+
+  # One item of payment_discounts in CheckoutClient.
+  class CheckoutClientPaymentDiscount < Model
+    MEMBERS = %i[basis_points discount_cents method total_cents].freeze
+
+    # A taxa do desconto, em centésimos de ponto percentual (500 é 5%).
+    # @return [Integer]
+    attr_reader :basis_points
+
+    # Quanto o desconto tira do total da sessão, em centavos, depois de qualquer cupom.
+    # @return [Integer]
+    attr_reader :discount_cents
+
+    # A forma de pagamento que tem desconto.
+    # @return [String ("pix", "boleto")]
+    attr_reader :method
+
+    # O que o comprador paga por esta forma: o total da sessão menos discount_cents. O servidor cobra o seu próprio cálculo, nunca um valor do cliente.
+    # @return [Integer]
+    attr_reader :total_cents
+
+    def initialize(basis_points:, discount_cents:, method:, total_cents:)
+      @basis_points = basis_points
+      @discount_cents = discount_cents
+      @method = method
+      @total_cents = total_cents
+      freeze
+    end
+
+    # Builds a CheckoutClientPaymentDiscount from the API's JSON.
+    def self.from_hash(data)
+      new(
+        basis_points: data.fetch("basis_points"),
+        discount_cents: data.fetch("discount_cents"),
+        method: data.fetch("method"),
+        total_cents: data.fetch("total_cents")
       )
     end
   end

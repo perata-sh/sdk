@@ -14,15 +14,17 @@ public final class CheckoutClientCustomer {
     private final boolean locked;
     private final String name;
     private final String taxId;
+    private final boolean taxIdFixed;
     private final String taxIdKind;
 
-    CheckoutClientCustomer(BillingAddress address, String billingName, String email, boolean locked, String name, String taxId, String taxIdKind) {
+    CheckoutClientCustomer(BillingAddress address, String billingName, String email, boolean locked, String name, String taxId, boolean taxIdFixed, String taxIdKind) {
         this.address = address;
         this.billingName = billingName;
         this.email = email;
         this.locked = locked;
         this.name = name;
         this.taxId = taxId;
+        this.taxIdFixed = taxIdFixed;
         this.taxIdKind = taxIdKind;
     }
 
@@ -34,6 +36,7 @@ public final class CheckoutClientCustomer {
                 Json.required(data, "locked", Json::asBoolean),
                 Json.required(data, "name", Json::asString),
                 Json.required(data, "tax_id", Json::asString),
+                Json.required(data, "tax_id_fixed", Json::asBoolean),
                 Json.required(data, "tax_id_kind", Json::asString));
     }
 
@@ -67,6 +70,11 @@ public final class CheckoutClientCustomer {
         return taxId;
     }
 
+    /** @return Verdadeiro quando o CPF ou CNPJ é o que o lojista tem do cliente: o comprador não pode trocá-lo e o servidor recusa outro (422 em tax_id). */
+    public boolean getTaxIdFixed() {
+        return taxIdFixed;
+    }
+
     /** @return the API's {@code tax_id_kind} */
     public String getTaxIdKind() {
         return taxIdKind;
@@ -74,6 +82,6 @@ public final class CheckoutClientCustomer {
 
     @Override
     public String toString() {
-        return "CheckoutClientCustomer{" + "address=" + address + ", billingName=" + billingName + ", email=" + email + ", locked=" + locked + ", name=" + name + ", taxId=" + taxId + ", taxIdKind=" + taxIdKind + "}";
+        return "CheckoutClientCustomer{" + "address=" + address + ", billingName=" + billingName + ", email=" + email + ", locked=" + locked + ", name=" + name + ", taxId=" + taxId + ", taxIdFixed=" + taxIdFixed + ", taxIdKind=" + taxIdKind + "}";
     }
 }

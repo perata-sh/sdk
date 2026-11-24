@@ -30,7 +30,7 @@ final class CheckoutLinksService
      * é dele. Respostas em JSON no envelope data; erros com error, message e
      * fields.
      *
-     * @param array{allow_discount_codes?: bool, cancel_url?: string, capture_mode?: 'automatic'|'manual', discount_id?: string, expires_at?: string, label?: string, max_installments?: int, metadata?: array<string, mixed>, price_id?: string, price_ids?: list<string>, product_id?: string, quantity?: int, require_billing_address?: bool, success_url?: string, trial_interval?: 'day'|'week'|'month'|'year', trial_interval_count?: int} $params
+     * @param array{allow_discount_codes?: bool, boleto_discount_bp?: int, cancel_url?: string, capture_mode?: 'automatic'|'manual', coupon_stacks_with_method_discount?: bool, discount_id?: string, expires_at?: string, installment_interest?: 'merchant'|'buyer', installment_monthly_rate_bp?: int, interest_free_installments?: int, label?: string, max_installments?: int, metadata?: array<string, mixed>, min_installment_cents?: int, pix_discount_bp?: int, price_id?: string, price_ids?: list<string>, product_id?: string, quantity?: int, renewal_mode?: 'manual'|'automatic'|'buyer_choice', require_billing_address?: bool, success_url?: string, trial_interval?: 'day'|'week'|'month'|'year', trial_interval_count?: int} $params
      */
     public function create(array $params, ?string $idempotencyKey = null, ?string $apiKey = null): Models\CheckoutLink
     {
@@ -115,7 +115,7 @@ final class CheckoutLinksService
      * é dele. Respostas em JSON no envelope data; erros com error, message e
      * fields.
      *
-     * @param array{cancel_url?: string, label?: string, metadata?: array<string, mixed>, price_ids?: list<string>, require_billing_address?: bool, success_url?: string} $params
+     * @param array{cancel_url?: string, label?: string, metadata?: array<string, mixed>, price_ids?: list<string>, renewal_mode?: 'manual'|'automatic'|'buyer_choice', require_billing_address?: bool, success_url?: string} $params
      */
     public function update(string $checkoutLink, array $params, ?string $idempotencyKey = null, ?string $apiKey = null): Models\CheckoutLink
     {

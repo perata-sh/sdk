@@ -38,7 +38,8 @@ final class PaymentsService
      * Listar pagamentos. One page; listIter() walks every page.
      *
      * Devolve uma página dos pagamentos. Filtre por client_reference_id,
-     * estado, cliente, assinatura (subscription_id), período ou metadados.
+     * estado, meio (method: card, pix ou boleto), cliente, assinatura
+     * (subscription_id), período ou metadados.
      *
      * Autenticação: chave de API da organização em Authorization: Bearer
      * (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
@@ -46,7 +47,7 @@ final class PaymentsService
      * é dele. Respostas em JSON no envelope data; erros com error, message e
      * fields.
      *
-     * @param array{page?: int, limit?: int, client_reference_id?: string, status?: string, customer_id?: string, external_customer_id?: string, subscription_id?: string, created_after?: string, created_before?: string, sorting?: string, metadata?: array<string, string>} $params
+     * @param array{page?: int, limit?: int, client_reference_id?: string, status?: string, customer_id?: string, external_customer_id?: string, subscription_id?: string, method?: string, created_after?: string, created_before?: string, sorting?: string, metadata?: array<string, string>} $params
      * @return Page<Models\Payment>
      */
     public function list(array $params = [], ?string $apiKey = null): Page
@@ -58,7 +59,7 @@ final class PaymentsService
     /**
      * Walks every page of payments:list, item by item.
      *
-     * @param array{page?: int, limit?: int, client_reference_id?: string, status?: string, customer_id?: string, external_customer_id?: string, subscription_id?: string, created_after?: string, created_before?: string, sorting?: string, metadata?: array<string, string>} $params
+     * @param array{page?: int, limit?: int, client_reference_id?: string, status?: string, customer_id?: string, external_customer_id?: string, subscription_id?: string, method?: string, created_after?: string, created_before?: string, sorting?: string, metadata?: array<string, string>} $params
      * @return \Generator<int, Models\Payment>
      */
     public function listIter(array $params = [], ?string $apiKey = null): \Generator

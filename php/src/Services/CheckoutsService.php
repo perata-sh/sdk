@@ -37,8 +37,8 @@ final class CheckoutsService
      * uma cobrança para o comprador pagar e avisa o seu sistema com
      * subscription.renewal_due, mesmo que o primeiro pagamento tenha sido no
      * cartão), automatic (só cartão de crédito guardado ou Pix Automático;
-     * cobra sozinho) ou buyer_choice (a página mostra a caixa Ativar cobrança
-     * automática e o comprador decide); sem o campo nada muda.
+     * cobra sozinho) ou buyer_choice (a página mostra a caixa Cobrança
+     * recorrente e o comprador decide); sem o campo nada muda.
      * notify_customer_email false mantém a Peráta sem escrever ao comprador.
      * label dá nome à assinatura (por exemplo, Olho de Águia · Colaborador
      * Ana).
@@ -49,7 +49,7 @@ final class CheckoutsService
      * é dele. Respostas em JSON no envelope data; erros com error, message e
      * fields.
      *
-     * @param array{allow_discount_codes?: bool, amount_cents?: int, cancel_url?: string, client_reference_id?: string, customer_email?: string, customer_id?: string, customer_name?: string, discount_id?: string, expires_in?: int, external_customer_id?: string, first_period_extra_days?: int, items?: list<array{name: string, quantity?: int, unit_amount_cents: int}>, label?: string, metadata?: array<string, mixed>, notify_customer_email?: bool, price_id: string, product_id: string, quantity?: int, renewal_mode?: 'manual'|'automatic'|'buyer_choice', require_billing_address?: bool, return_url?: string, subscription_start_at?: string, success_url?: string} $params
+     * @param array{allow_discount_codes?: bool, amount_cents?: int, boleto_discount_bp?: int, cancel_url?: string, client_reference_id?: string, coupon_stacks_with_method_discount?: bool, customer_email?: string, customer_id?: string, customer_name?: string, discount_id?: string, expires_in?: int, external_customer_id?: string, first_period_extra_days?: int, installment_interest?: 'merchant'|'buyer', installment_monthly_rate_bp?: int, interest_free_installments?: int, items?: list<array{name: string, quantity?: int, unit_amount_cents: int}>, label?: string, max_installments?: int, metadata?: array<string, mixed>, min_installment_cents?: int, notify_customer_email?: bool, pix_discount_bp?: int, price_id: string, product_id: string, quantity?: int, renewal_mode?: 'manual'|'automatic'|'buyer_choice', require_billing_address?: bool, return_url?: string, subscription_start_at?: string, success_url?: string} $params
      */
     public function create(array $params, ?string $idempotencyKey = null, ?string $apiKey = null): Models\CheckoutCreated
     {

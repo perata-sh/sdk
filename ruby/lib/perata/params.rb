@@ -90,16 +90,24 @@ module Perata
 
   # The body of checkout-links:create.
   class CheckoutLinksCreateParams < Params
-    MEMBERS = %i[allow_discount_codes cancel_url capture_mode discount_id expires_at label max_installments metadata price_id price_ids product_id quantity require_billing_address success_url trial_interval trial_interval_count].freeze
+    MEMBERS = %i[allow_discount_codes boleto_discount_bp cancel_url capture_mode coupon_stacks_with_method_discount discount_id expires_at installment_interest installment_monthly_rate_bp interest_free_installments label max_installments metadata min_installment_cents pix_discount_bp price_id price_ids product_id quantity renewal_mode require_billing_address success_url trial_interval trial_interval_count].freeze
 
     # @return [Boolean, nil]
     attr_reader :allow_discount_codes
+
+    # O desconto de quem paga com boleto, em centésimos de ponto percentual, de 0 a 5000. 0 desliga o desconto neste checkout; ausente ou nulo segue a organização.
+    # @return [Integer, nil]
+    attr_reader :boleto_discount_bp
 
     # @return [String, nil]
     attr_reader :cancel_url
 
     # @return [String ("automatic", "manual"), nil]
     attr_reader :capture_mode
+
+    # Se o cupom soma com o desconto do Pix ou do boleto neste checkout: true soma (o cupom primeiro, o desconto da forma depois); false vale só o maior dos dois em centavos sobre o mesmo preço, e o pedido mostra só o desconto que valeu. Ausente ou nulo segue a organização, que por padrão não soma. Em assinatura o cupom sempre soma.
+    # @return [Boolean, nil]
+    attr_reader :coupon_stacks_with_method_discount
 
     # Desconto fixado no link.
     # @return [String, nil]
@@ -108,6 +116,18 @@ module Perata
     # Data e hora RFC 3339 no futuro.
     # @return [String, nil]
     attr_reader :expires_at
+
+    # Quem paga os juros do parcelamento: merchant (sem juros, a loja absorve a taxa) ou buyer (com juros pagos pelo comprador, com installment_monthly_rate_bp). Ausente segue a organização.
+    # @return [String ("merchant", "buyer"), nil]
+    attr_reader :installment_interest
+
+    # A taxa de juros ao mês que o comprador paga, em centésimos de ponto percentual: 299 é 2,99%, no máximo 1000 (10%). Obrigatória com installment_interest buyer; 0 ou ausente segue a organização.
+    # @return [Integer, nil]
+    attr_reader :installment_monthly_rate_bp
+
+    # Quantas parcelas saem sem juros quando o comprador paga os juros, de 1 (nenhuma além da à vista) a 12; 0 ou ausente segue a organização.
+    # @return [Integer, nil]
+    attr_reader :interest_free_installments
 
     # @return [String, nil]
     attr_reader :label
@@ -119,6 +139,14 @@ module Perata
     # Pares guardados no link. Até 50 pares de chave e valor: a chave tem de 1 a 40 caracteres, e o valor é um texto de 1 a 500 caracteres, um número ou um booleano. Texto sem caracteres de controle nem de direção invisível.
     # @return [Hash{String => Object}, nil]
     attr_reader :metadata
+
+    # A menor parcela, em centavos, de 100 a 1000000; 0 ou ausente segue a organização.
+    # @return [Integer, nil]
+    attr_reader :min_installment_cents
+
+    # O desconto de quem paga com Pix, em centésimos de ponto percentual (500 é 5%), de 0 a 5000. 0 desliga o desconto neste checkout; ausente ou nulo segue a organização. Com cupom, vale a regra de coupon_stacks_with_method_discount. O cartão de crédito e o de débito não têm desconto.
+    # @return [Integer, nil]
+    attr_reader :pix_discount_bp
 
     # @return [String, nil]
     attr_reader :price_id
@@ -134,6 +162,10 @@ module Perata
     # @return [Integer, nil]
     attr_reader :quantity
 
+    # Como a assinatura que o link vende renova, num link com preço recorrente com valor. manual: a cada ciclo o comprador paga por um link. automatic: só cartão de crédito guardado ou Pix Automático, que cobram sozinhos. buyer_choice: a página mostra a caixa Cobrança recorrente, desmarcada; marcada cobra sozinho, desmarcada paga só esta vez e recebe o link nos meses seguintes. Sem o campo vale o padrão: o cartão guardado renova e, sem cartão, o comprador recebe o link. Preço de compra única não aceita (422); manual não vale com teste grátis (422). Cada checkout aberto pelo link herda o modo.
+    # @return [String ("manual", "automatic", "buyer_choice"), nil]
+    attr_reader :renewal_mode
+
     # @return [Boolean, nil]
     attr_reader :require_billing_address
 
@@ -146,19 +178,27 @@ module Perata
     # @return [Integer, nil]
     attr_reader :trial_interval_count
 
-    def initialize(allow_discount_codes: nil, cancel_url: nil, capture_mode: nil, discount_id: nil, expires_at: nil, label: nil, max_installments: nil, metadata: nil, price_id: nil, price_ids: nil, product_id: nil, quantity: nil, require_billing_address: nil, success_url: nil, trial_interval: nil, trial_interval_count: nil)
+    def initialize(allow_discount_codes: nil, boleto_discount_bp: nil, cancel_url: nil, capture_mode: nil, coupon_stacks_with_method_discount: nil, discount_id: nil, expires_at: nil, installment_interest: nil, installment_monthly_rate_bp: nil, interest_free_installments: nil, label: nil, max_installments: nil, metadata: nil, min_installment_cents: nil, pix_discount_bp: nil, price_id: nil, price_ids: nil, product_id: nil, quantity: nil, renewal_mode: nil, require_billing_address: nil, success_url: nil, trial_interval: nil, trial_interval_count: nil)
       @allow_discount_codes = allow_discount_codes
+      @boleto_discount_bp = boleto_discount_bp
       @cancel_url = cancel_url
       @capture_mode = capture_mode
+      @coupon_stacks_with_method_discount = coupon_stacks_with_method_discount
       @discount_id = discount_id
       @expires_at = expires_at
+      @installment_interest = installment_interest
+      @installment_monthly_rate_bp = installment_monthly_rate_bp
+      @interest_free_installments = interest_free_installments
       @label = label
       @max_installments = max_installments
       @metadata = metadata
+      @min_installment_cents = min_installment_cents
+      @pix_discount_bp = pix_discount_bp
       @price_id = price_id
       @price_ids = price_ids
       @product_id = product_id
       @quantity = quantity
+      @renewal_mode = renewal_mode
       @require_billing_address = require_billing_address
       @success_url = success_url
       @trial_interval = trial_interval
@@ -170,17 +210,25 @@ module Perata
     def to_wire
       wire = {}
       wire["allow_discount_codes"] = @allow_discount_codes unless @allow_discount_codes.nil?
+      wire["boleto_discount_bp"] = @boleto_discount_bp unless @boleto_discount_bp.nil?
       wire["cancel_url"] = @cancel_url unless @cancel_url.nil?
       wire["capture_mode"] = @capture_mode unless @capture_mode.nil?
+      wire["coupon_stacks_with_method_discount"] = @coupon_stacks_with_method_discount unless @coupon_stacks_with_method_discount.nil?
       wire["discount_id"] = @discount_id unless @discount_id.nil?
       wire["expires_at"] = @expires_at unless @expires_at.nil?
+      wire["installment_interest"] = @installment_interest unless @installment_interest.nil?
+      wire["installment_monthly_rate_bp"] = @installment_monthly_rate_bp unless @installment_monthly_rate_bp.nil?
+      wire["interest_free_installments"] = @interest_free_installments unless @interest_free_installments.nil?
       wire["label"] = @label unless @label.nil?
       wire["max_installments"] = @max_installments unless @max_installments.nil?
       wire["metadata"] = Perata.wire(@metadata) unless @metadata.nil?
+      wire["min_installment_cents"] = @min_installment_cents unless @min_installment_cents.nil?
+      wire["pix_discount_bp"] = @pix_discount_bp unless @pix_discount_bp.nil?
       wire["price_id"] = @price_id unless @price_id.nil?
       wire["price_ids"] = Perata.wire(@price_ids) unless @price_ids.nil?
       wire["product_id"] = @product_id unless @product_id.nil?
       wire["quantity"] = @quantity unless @quantity.nil?
+      wire["renewal_mode"] = @renewal_mode unless @renewal_mode.nil?
       wire["require_billing_address"] = @require_billing_address unless @require_billing_address.nil?
       wire["success_url"] = @success_url unless @success_url.nil?
       wire["trial_interval"] = @trial_interval unless @trial_interval.nil?
@@ -191,7 +239,7 @@ module Perata
 
   # The body of checkout-links:update.
   class CheckoutLinksUpdateParams < Params
-    MEMBERS = %i[cancel_url label metadata price_ids require_billing_address success_url].freeze
+    MEMBERS = %i[cancel_url label metadata price_ids renewal_mode require_billing_address success_url].freeze
 
     # @return [String, nil]
     attr_reader :cancel_url
@@ -207,17 +255,22 @@ module Perata
     # @return [Array<String>, nil]
     attr_reader :price_ids
 
+    # Troca como a assinatura do link renova; vazio volta ao padrão. Os checkouts já abertos guardam o modo que viram. Vale as mesmas regras da criação (422 em preço de compra única, ou manual com teste grátis).
+    # @return [String ("manual", "automatic", "buyer_choice"), nil]
+    attr_reader :renewal_mode
+
     # @return [Boolean, nil]
     attr_reader :require_billing_address
 
     # @return [String, nil]
     attr_reader :success_url
 
-    def initialize(cancel_url: nil, label: nil, metadata: nil, price_ids: nil, require_billing_address: nil, success_url: nil)
+    def initialize(cancel_url: nil, label: nil, metadata: nil, price_ids: nil, renewal_mode: nil, require_billing_address: nil, success_url: nil)
       @cancel_url = cancel_url
       @label = label
       @metadata = metadata
       @price_ids = price_ids
+      @renewal_mode = renewal_mode
       @require_billing_address = require_billing_address
       @success_url = success_url
       freeze
@@ -230,6 +283,7 @@ module Perata
       wire["label"] = @label unless @label.nil?
       wire["metadata"] = Perata.wire(@metadata) unless @metadata.nil?
       wire["price_ids"] = Perata.wire(@price_ids) unless @price_ids.nil?
+      wire["renewal_mode"] = @renewal_mode unless @renewal_mode.nil?
       wire["require_billing_address"] = @require_billing_address unless @require_billing_address.nil?
       wire["success_url"] = @success_url unless @success_url.nil?
       wire
@@ -238,7 +292,7 @@ module Perata
 
   # The body of checkouts:create.
   class CheckoutsCreateParams < Params
-    MEMBERS = %i[allow_discount_codes amount_cents cancel_url client_reference_id customer_email customer_id customer_name discount_id expires_in external_customer_id first_period_extra_days items label metadata notify_customer_email price_id product_id quantity renewal_mode require_billing_address return_url subscription_start_at success_url].freeze
+    MEMBERS = %i[allow_discount_codes amount_cents boleto_discount_bp cancel_url client_reference_id coupon_stacks_with_method_discount customer_email customer_id customer_name discount_id expires_in external_customer_id first_period_extra_days installment_interest installment_monthly_rate_bp interest_free_installments items label max_installments metadata min_installment_cents notify_customer_email pix_discount_bp price_id product_id quantity renewal_mode require_billing_address return_url subscription_start_at success_url].freeze
 
     # Deixa o comprador digitar um código de desconto; desligado quando fica de fora.
     # @return [Boolean, nil]
@@ -248,6 +302,10 @@ module Perata
     # @return [Integer, nil]
     attr_reader :amount_cents
 
+    # O desconto de quem paga com boleto, em centésimos de ponto percentual, de 0 a 5000. 0 desliga o desconto neste checkout; ausente ou nulo segue a organização.
+    # @return [Integer, nil]
+    attr_reader :boleto_discount_bp
+
     # @return [String, nil]
     attr_reader :cancel_url
 
@@ -255,7 +313,11 @@ module Perata
     # @return [String, nil]
     attr_reader :client_reference_id
 
-    # O e-mail do comprador, quando você o conhece; senão o navegador do comprador o pede.
+    # Se o cupom soma com o desconto do Pix ou do boleto neste checkout: true soma (o cupom primeiro, o desconto da forma depois); false vale só o maior dos dois em centavos sobre o mesmo preço, e o pedido mostra só o desconto que valeu. Ausente ou nulo segue a organização, que por padrão não soma. Em assinatura o cupom sempre soma.
+    # @return [Boolean, nil]
+    attr_reader :coupon_stacks_with_method_discount
+
+    # O e-mail do comprador, quando você o conhece; senão o navegador do comprador o pede. Se este e-mail é de um cliente seu, o checkout abre com os dados dele, como com customer_id, e o e-mail fica fixo. Se o cliente tem CPF ou CNPJ, o comprador não pode trocá-lo.
     # @return [String, nil]
     attr_reader :customer_email
 
@@ -283,6 +345,18 @@ module Perata
     # @return [Integer, nil]
     attr_reader :first_period_extra_days
 
+    # Quem paga os juros do parcelamento: merchant (sem juros, a loja absorve a taxa) ou buyer (com juros pagos pelo comprador, com installment_monthly_rate_bp). Ausente segue a organização.
+    # @return [String ("merchant", "buyer"), nil]
+    attr_reader :installment_interest
+
+    # A taxa de juros ao mês que o comprador paga, em centésimos de ponto percentual: 299 é 2,99%, no máximo 1000 (10%). Obrigatória com installment_interest buyer; 0 ou ausente segue a organização.
+    # @return [Integer, nil]
+    attr_reader :installment_monthly_rate_bp
+
+    # Quantas parcelas saem sem juros quando o comprador paga os juros, de 1 (nenhuma além da à vista) a 12; 0 ou ausente segue a organização.
+    # @return [Integer, nil]
+    attr_reader :interest_free_installments
+
     # As linhas do pedido, até 50, para o comprador ler o detalhe: aparecem no checkout (página, modal, componentes e transparente), no pedido, no recibo, no portal do cliente e nos eventos. Em um preço de valor livre, a soma de quantity vezes unit_amount_cents precisa ser igual a amount_cents, ou a resposta é 422; enviadas sem amount_cents, a soma é o valor. Em um preço com valor próprio, como o de uma assinatura, as linhas só mostram ao comprador do que o valor é feito e fixam nada: envie-as sem amount_cents, com a soma igual ao valor do preço vezes a quantidade (senão 422), e o preço continua sendo quem define o que se cobra.
     # @return [Array<CheckoutsCreateItem>, nil]
     attr_reader :items
@@ -290,13 +364,25 @@ module Perata
     # @return [String, nil]
     attr_reader :label
 
+    # O máximo de parcelas no cartão de crédito deste checkout, de 1 a 12; vale mais que a organização, e 1 vende só à vista. 0 ou ausente segue a organização.
+    # @return [Integer, nil]
+    attr_reader :max_installments
+
     # Pares guardados no link do checkout e devolvidos no checkout, no pedido, no pagamento e nos eventos da venda. Até 50 pares de chave e valor: a chave tem de 1 a 40 caracteres, e o valor é um texto de 1 a 500 caracteres, um número ou um booleano. Texto sem caracteres de controle nem de direção invisível.
     # @return [Hash{String => Object}, nil]
     attr_reader :metadata
 
+    # A menor parcela, em centavos, de 100 a 1000000; 0 ou ausente segue a organização.
+    # @return [Integer, nil]
+    attr_reader :min_installment_cents
+
     # Verdadeiro por padrão. Falso mantém a Peráta sem escrever ao comprador a cobrança de cada renovação (o seu sistema o avisa pelo evento subscription.renewal_due); a cobrança é aberta do mesmo jeito. Além disso, a organização pode desligar este aviso para todos em Configurações › Preferências › Cobrança da renovação.
     # @return [Boolean, nil]
     attr_reader :notify_customer_email
+
+    # O desconto de quem paga com Pix, em centésimos de ponto percentual (500 é 5%), de 0 a 5000. 0 desliga o desconto neste checkout; ausente ou nulo segue a organização. Com cupom, vale a regra de coupon_stacks_with_method_discount. O cartão de crédito e o de débito não têm desconto.
+    # @return [Integer, nil]
+    attr_reader :pix_discount_bp
 
     # @return [String]
     attr_reader :price_id
@@ -308,7 +394,7 @@ module Perata
     # @return [Integer, nil]
     attr_reader :quantity
 
-    # Como a assinatura renova, numa assinatura (preço recorrente com valor). manual: a cada ciclo a Peráta abre uma cobrança para o comprador pagar (payment_url, por cartão, Pix ou boleto) e avisa o seu sistema com o evento subscription.renewal_due, mesmo que o primeiro pagamento tenha sido no cartão; o cartão nunca é cobrado e não é guardado. automatic: só os meios que cobram sozinhos, o cartão de crédito guardado ou o Pix Automático (quando a organização o tem ligado; senão só o cartão); a página mostra só esses meios, e a assinatura nasce com renewal_mode card ou pix_automatic. buyer_choice: a página mostra a caixa Ativar cobrança automática, desmarcada, e o comprador decide: desmarcada é manual, marcada é automatic. Sem o campo nada muda: sem caixa, o cartão de crédito renova sozinho e qualquer outro meio vira uma cobrança a cada ciclo. Funciona junto com first_period_extra_days e com desconto. Vale só em preço recorrente com valor (senão 422); manual não vale com teste grátis nem com subscription_start_at, que guardam o cartão para cobrar no fim (422). Pagar por um meio que o modo não aceita (Pix, boleto ou débito em automatic; Pix Automático em manual) é 422 em payment_method. A Subscription traz o modo a que isso se resolveu em renewal_mode: manual, card ou pix_automatic.
+    # Como a assinatura renova, numa assinatura (preço recorrente com valor). manual: a cada ciclo a Peráta abre uma cobrança para o comprador pagar (payment_url, por cartão, Pix ou boleto) e avisa o seu sistema com o evento subscription.renewal_due, mesmo que o primeiro pagamento tenha sido no cartão; o cartão nunca é cobrado e não é guardado. automatic: só os meios que cobram sozinhos, o cartão de crédito guardado ou o Pix Automático (quando a organização o tem ligado; senão só o cartão); a página mostra só esses meios, e a assinatura nasce com renewal_mode card ou pix_automatic. buyer_choice: a página mostra a caixa Cobrança recorrente, desmarcada, e o comprador decide: desmarcada é manual, marcada é automatic. Sem o campo nada muda: sem caixa, o cartão de crédito renova sozinho e qualquer outro meio vira uma cobrança a cada ciclo. Funciona junto com first_period_extra_days e com desconto. Vale só em preço recorrente com valor (senão 422); manual não vale com teste grátis nem com subscription_start_at, que guardam o cartão para cobrar no fim (422). Pagar por um meio que o modo não aceita (Pix, boleto ou débito em automatic; Pix Automático em manual) é 422 em payment_method. A Subscription traz o modo a que isso se resolveu em renewal_mode: manual, card ou pix_automatic.
     # @return [String ("manual", "automatic", "buyer_choice"), nil]
     attr_reader :renewal_mode
 
@@ -327,11 +413,13 @@ module Perata
     # @return [String, nil]
     attr_reader :success_url
 
-    def initialize(allow_discount_codes: nil, amount_cents: nil, cancel_url: nil, client_reference_id: nil, customer_email: nil, customer_id: nil, customer_name: nil, discount_id: nil, expires_in: nil, external_customer_id: nil, first_period_extra_days: nil, items: nil, label: nil, metadata: nil, notify_customer_email: nil, price_id:, product_id:, quantity: nil, renewal_mode: nil, require_billing_address: nil, return_url: nil, subscription_start_at: nil, success_url: nil)
+    def initialize(allow_discount_codes: nil, amount_cents: nil, boleto_discount_bp: nil, cancel_url: nil, client_reference_id: nil, coupon_stacks_with_method_discount: nil, customer_email: nil, customer_id: nil, customer_name: nil, discount_id: nil, expires_in: nil, external_customer_id: nil, first_period_extra_days: nil, installment_interest: nil, installment_monthly_rate_bp: nil, interest_free_installments: nil, items: nil, label: nil, max_installments: nil, metadata: nil, min_installment_cents: nil, notify_customer_email: nil, pix_discount_bp: nil, price_id:, product_id:, quantity: nil, renewal_mode: nil, require_billing_address: nil, return_url: nil, subscription_start_at: nil, success_url: nil)
       @allow_discount_codes = allow_discount_codes
       @amount_cents = amount_cents
+      @boleto_discount_bp = boleto_discount_bp
       @cancel_url = cancel_url
       @client_reference_id = client_reference_id
+      @coupon_stacks_with_method_discount = coupon_stacks_with_method_discount
       @customer_email = customer_email
       @customer_id = customer_id
       @customer_name = customer_name
@@ -339,10 +427,16 @@ module Perata
       @expires_in = expires_in
       @external_customer_id = external_customer_id
       @first_period_extra_days = first_period_extra_days
+      @installment_interest = installment_interest
+      @installment_monthly_rate_bp = installment_monthly_rate_bp
+      @interest_free_installments = interest_free_installments
       @items = items
       @label = label
+      @max_installments = max_installments
       @metadata = metadata
+      @min_installment_cents = min_installment_cents
       @notify_customer_email = notify_customer_email
+      @pix_discount_bp = pix_discount_bp
       @price_id = price_id
       @product_id = product_id
       @quantity = quantity
@@ -359,8 +453,10 @@ module Perata
       wire = {}
       wire["allow_discount_codes"] = @allow_discount_codes unless @allow_discount_codes.nil?
       wire["amount_cents"] = @amount_cents unless @amount_cents.nil?
+      wire["boleto_discount_bp"] = @boleto_discount_bp unless @boleto_discount_bp.nil?
       wire["cancel_url"] = @cancel_url unless @cancel_url.nil?
       wire["client_reference_id"] = @client_reference_id unless @client_reference_id.nil?
+      wire["coupon_stacks_with_method_discount"] = @coupon_stacks_with_method_discount unless @coupon_stacks_with_method_discount.nil?
       wire["customer_email"] = @customer_email unless @customer_email.nil?
       wire["customer_id"] = @customer_id unless @customer_id.nil?
       wire["customer_name"] = @customer_name unless @customer_name.nil?
@@ -368,10 +464,16 @@ module Perata
       wire["expires_in"] = @expires_in unless @expires_in.nil?
       wire["external_customer_id"] = @external_customer_id unless @external_customer_id.nil?
       wire["first_period_extra_days"] = @first_period_extra_days unless @first_period_extra_days.nil?
+      wire["installment_interest"] = @installment_interest unless @installment_interest.nil?
+      wire["installment_monthly_rate_bp"] = @installment_monthly_rate_bp unless @installment_monthly_rate_bp.nil?
+      wire["interest_free_installments"] = @interest_free_installments unless @interest_free_installments.nil?
       wire["items"] = Perata.wire(@items) unless @items.nil?
       wire["label"] = @label unless @label.nil?
+      wire["max_installments"] = @max_installments unless @max_installments.nil?
       wire["metadata"] = Perata.wire(@metadata) unless @metadata.nil?
+      wire["min_installment_cents"] = @min_installment_cents unless @min_installment_cents.nil?
       wire["notify_customer_email"] = @notify_customer_email unless @notify_customer_email.nil?
+      wire["pix_discount_bp"] = @pix_discount_bp unless @pix_discount_bp.nil?
       wire["price_id"] = @price_id
       wire["product_id"] = @product_id
       wire["quantity"] = @quantity unless @quantity.nil?
@@ -1126,7 +1228,7 @@ module Perata
   class RefundsCreateParams < Params
     MEMBERS = %i[amount_cents metadata note order_id payment_id reason].freeze
 
-    # Quanto devolver, em centavos, de 1 até o que ainda pode ser devolvido. Sem ele, devolve tudo o que ainda pode ser devolvido.
+    # Quanto devolver, em centavos, de 1 até o que ainda pode ser devolvido (o valor capturado menos os reembolsos anteriores). No cartão, a soma de vários reembolsos parciais chega ao valor capturado; no Pix, só há um reembolso por pagamento. Sem ele, devolve tudo o que ainda pode ser devolvido.
     # @return [Integer, nil]
     attr_reader :amount_cents
 

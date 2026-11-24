@@ -58,7 +58,7 @@ public final class CardAuthentication {
         return provider;
     }
 
-    /** @return O script de autenticação do adquirente. */
+    /** @return O script de autenticação do processador de pagamentos. */
     public String getScriptUrl() {
         return scriptUrl;
     }

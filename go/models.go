@@ -88,7 +88,7 @@ type CardAuthentication struct {
 	// Segundos de vida do token.
 	ExpiresIn int64  `json:"expires_in"`
 	Provider  string `json:"provider"`
-	// O script de autenticação do adquirente.
+	// O script de autenticação do processador de pagamentos.
 	ScriptURL string `json:"script_url"`
 	// O valor, em centavos, que o script deve autenticar: o total da sessão no servidor. Copie-o no campo bpmpi_totalamount; depois que ele é entregue, o total da sessão não muda mais.
 	TotalCents int64 `json:"total_cents"`
@@ -96,7 +96,7 @@ type CardAuthentication struct {
 
 // CardTokenization is a resource of Peráta's API.
 type CardTokenization struct {
-	// O token com que o script do adquirente envia o cartão; entregue só a uma página da própria origem da Peráta.
+	// O token com que o script do processador de pagamentos envia o cartão; entregue só a uma página da própria origem da Peráta.
 	AccessToken string `json:"access_token"`
 	// O bilhete da tentativa deste cartão: de uso único, válido só para esta sessão e por 20 minutos. Devolva-o em card_ticket ao confirmar; sem um bilhete válido nenhum cartão é tentado.
 	CardTicket  string `json:"card_ticket"`
@@ -110,11 +110,15 @@ type CardTokenization struct {
 type Checkout struct {
 	// O valor, em centavos, que o seu servidor fixou na criação; nulo quando é o comprador quem digita o valor.
 	AmountCents *int64 `json:"amount_cents"`
+	// O desconto de quem paga com boleto neste checkout, em centésimos de ponto percentual; 0 desliga o desconto aqui; nulo segue a organização.
+	BoletoDiscountBp *int64 `json:"boleto_discount_bp"`
 	// Endereço https para onde o comprador volta se desistir; vazio sem ele.
 	CancelURL string `json:"cancel_url"`
 	// O id do pedido no seu sistema, como o seu servidor o enviou na criação; vazio sem ele. Volta no checkout, no pedido, no pagamento e nos eventos.
 	ClientReferenceID string `json:"client_reference_id"`
-	CreatedAt         string `json:"created_at"`
+	// Se o cupom soma com o desconto do Pix ou do boleto neste checkout: true soma (o cupom primeiro, o desconto da forma depois), false vale só o maior dos dois em centavos sobre o mesmo preço; nulo segue a organização (que por padrão não soma). Em assinatura o cupom sempre soma.
+	CouponStacksWithMethodDiscount *bool  `json:"coupon_stacks_with_method_discount"`
+	CreatedAt                      string `json:"created_at"`
 	// O desconto que o checkout aplica sozinho, como o seu servidor o enviou na criação; vazio sem ele. O comprador o vê no resumo e ele conta desde a primeira cobrança.
 	DiscountID string `json:"discount_id"`
 	// Quando o checkout deixa de abrir sessões; nulo sem prazo.
@@ -122,17 +126,29 @@ type Checkout struct {
 	// Quantos dias o seu servidor somou ao primeiro período da assinatura (first_period_extra_days na criação); nulo quando o primeiro período é o comum. O comprador paga hoje o valor cheio, e a próxima cobrança só acontece no fim do período mais longo.
 	FirstPeriodExtraDays *int64 `json:"first_period_extra_days"`
 	ID                   string `json:"id"`
+	// Quem paga os juros do parcelamento deste checkout: merchant (sem juros) ou buyer (com juros); nulo segue a organização.
+	InstallmentInterest *string `json:"installment_interest"`
+	// A taxa de juros ao mês que o comprador paga, em centésimos de ponto percentual (299 é 2,99%); 0 segue a organização.
+	InstallmentMonthlyRateBp int64 `json:"installment_monthly_rate_bp"`
+	// Quantas parcelas saem sem juros quando o comprador paga os juros; 0 segue a organização.
+	InterestFreeInstallments int64 `json:"interest_free_installments"`
 	// As linhas do valor fixado, na ordem em que foram enviadas; vazio sem elas.
 	Items []CheckoutLine `json:"items"`
 	// Como o lojista chama o checkout nas próprias telas; o comprador não vê.
 	Label string `json:"label"`
+	// O máximo de parcelas no cartão de crédito deste checkout; 0 segue o que a organização definiu, 1 vende só à vista.
+	MaxInstallments int64 `json:"max_installments"`
 	// Os pares que o seu servidor guardou na criação; voltam nos eventos da venda.
 	Metadata map[string]any `json:"metadata"`
+	// A menor parcela, em centavos; 0 segue a organização.
+	MinInstallmentCents int64 `json:"min_installment_cents"`
 	// Falso quando o seu sistema avisa o comprador das cobranças de renovação e a Peráta fica quieta.
-	NotifyCustomerEmail bool   `json:"notify_customer_email"`
-	PriceID             string `json:"price_id"`
-	ProductID           string `json:"product_id"`
-	Quantity            int64  `json:"quantity"`
+	NotifyCustomerEmail bool `json:"notify_customer_email"`
+	// O desconto de quem paga com Pix neste checkout, em centésimos de ponto percentual (500 é 5%); 0 desliga o desconto aqui; nulo segue a organização.
+	PixDiscountBp *int64 `json:"pix_discount_bp"`
+	PriceID       string `json:"price_id"`
+	ProductID     string `json:"product_id"`
+	Quantity      int64  `json:"quantity"`
 	// O renewal_mode da criação: manual, automatic ou buyer_choice; vazio quando foi omitido. A assinatura que o pagamento começa traz o modo a que isso se resolveu em Subscription.renewal_mode.
 	RenewalMode string `json:"renewal_mode"`
 	// O showcase a que pertence: o da chave de API que fez a chamada. Uma chave só alcança o seu showcase.
@@ -155,7 +171,7 @@ type CheckoutClient struct {
 	AmountLocked bool `json:"amount_locked"`
 	// Para onde o comprador volta sem pagar.
 	CancelURL string `json:"cancel_url"`
-	// credit, e debit onde a autenticação do adquirente está ligada.
+	// credit, e debit onde a autenticação do processador de pagamentos está ligada.
 	CardKinds []string `json:"card_kinds"`
 	// O id do pedido no seu sistema, quando o seu servidor o enviou; vazio sem ele.
 	ClientReferenceID string                  `json:"client_reference_id"`
@@ -183,6 +199,8 @@ type CheckoutClient struct {
 	Missing    []string               `json:"missing"`
 	NextAction CheckoutNextAction     `json:"next_action"`
 	Payment    *CheckoutClientPayment `json:"payment"`
+	// O desconto de cada forma de pagamento que tem um (Pix e boleto), depois do cupom e sobre o valor já com o cupom quando o cupom soma; quando não soma, só aparece a forma cujo desconto é maior que o do cupom, sobre o preço sem cupom; vazio quando nenhuma tem. O cartão de crédito não tem desconto. O Pix Automático também não.
+	PaymentDiscounts []CheckoutClientPaymentDiscount `json:"payment_discounts"`
 	// As formas em que a sessão pode ser paga, entre card, pix, boleto e free; free é uma sessão que não pede pagamento.
 	PaymentMethods []string `json:"payment_methods"`
 	// O lojista pede o endereço de cobrança completo; o boleto o pede de qualquer jeito.
@@ -205,7 +223,7 @@ type CheckoutClientBoleto struct {
 	DigitableLine string `json:"digitable_line"`
 	// Quando o boleto deixa de poder ser pago: o fim do dia do vencimento, no horário de Brasília.
 	DueDate *string `json:"due_date"`
-	// Onde o boleto é baixado; vazio quando o adquirente não deu nenhum.
+	// Onde o boleto é baixado; vazio quando o processador de pagamentos não deu nenhum.
 	PdfURL string `json:"pdf_url"`
 }
 
@@ -218,8 +236,10 @@ type CheckoutClientCustomer struct {
 	Locked bool   `json:"locked"`
 	Name   string `json:"name"`
 	// O CPF ou CNPJ do comprador, só dígitos; vazio enquanto não for informado.
-	TaxID     string `json:"tax_id"`
-	TaxIDKind string `json:"tax_id_kind"`
+	TaxID string `json:"tax_id"`
+	// Verdadeiro quando o CPF ou CNPJ é o que o lojista tem do cliente: o comprador não pode trocá-lo e o servidor recusa outro (422 em tax_id).
+	TaxIDFixed bool   `json:"tax_id_fixed"`
+	TaxIDKind  string `json:"tax_id_kind"`
 }
 
 // CheckoutClientDiscount is a resource of Peráta's API.
@@ -258,7 +278,7 @@ type CheckoutClientPayment struct {
 	Method       string                `json:"method"`
 	Pix          *CheckoutClientPix    `json:"pix"`
 	State        string                `json:"state"`
-	// Verdadeiro enquanto a resposta do adquirente ainda é descoberta; o comprador espera.
+	// Verdadeiro enquanto a resposta do processador de pagamentos ainda é descoberta; o comprador espera.
 	Unresolved bool `json:"unresolved"`
 }
 
@@ -266,7 +286,7 @@ type CheckoutClientPayment struct {
 type CheckoutClientPix struct {
 	// O código Pix copia e cola.
 	CopiaECola string `json:"copia_e_cola"`
-	// Quando o Pix deixa de poder ser pago, como o adquirente o deu.
+	// Quando o Pix deixa de poder ser pago, como o processador de pagamentos o deu.
 	ExpiresAt *string `json:"expires_at"`
 	// O QR do código, desenhado como um documento SVG.
 	QrCodeSvg string `json:"qr_code_svg"`
@@ -276,6 +296,8 @@ type CheckoutClientPix struct {
 type CheckoutCreated struct {
 	// O valor, em centavos, que o seu servidor fixou; o comprador o vê e não pode mudá-lo. Nulo quando é o comprador quem digita o valor.
 	AmountCents *int64 `json:"amount_cents"`
+	// O desconto de quem paga com boleto neste checkout, em centésimos de ponto percentual; 0 desliga o desconto aqui; nulo segue a organização.
+	BoletoDiscountBp *int64 `json:"boleto_discount_bp"`
 	// Endereço https para onde o comprador volta se desistir; vazio sem ele.
 	CancelURL string `json:"cancel_url"`
 	// O id do pedido no seu sistema, como o seu servidor o enviou; vazio sem ele. Volta no checkout, no pedido, no pagamento e nos eventos.
@@ -284,7 +306,9 @@ type CheckoutCreated struct {
 	ClientSecret string `json:"client_secret"`
 	// Quando a sessão e o client_secret deixam de valer.
 	ClientSecretExpiresAt string `json:"client_secret_expires_at"`
-	CreatedAt             string `json:"created_at"`
+	// Se o cupom soma com o desconto do Pix ou do boleto neste checkout: true soma (o cupom primeiro, o desconto da forma depois), false vale só o maior dos dois em centavos sobre o mesmo preço; nulo segue a organização (que por padrão não soma). Em assinatura o cupom sempre soma.
+	CouponStacksWithMethodDiscount *bool  `json:"coupon_stacks_with_method_discount"`
+	CreatedAt                      string `json:"created_at"`
 	// O desconto que o checkout aplica sozinho, como o seu servidor o enviou na criação; vazio sem ele. O comprador o vê no resumo e ele conta desde a primeira cobrança.
 	DiscountID string `json:"discount_id"`
 	// Quando o link deixa de abrir sessões; nulo sem prazo.
@@ -293,17 +317,29 @@ type CheckoutCreated struct {
 	FirstPeriodExtraDays *int64 `json:"first_period_extra_days"`
 	// O ID do link do checkout, o que GET e PATCH /checkouts/{id} recebem.
 	ID string `json:"id"`
+	// Quem paga os juros do parcelamento deste checkout: merchant (sem juros) ou buyer (com juros); nulo segue a organização.
+	InstallmentInterest *string `json:"installment_interest"`
+	// A taxa de juros ao mês que o comprador paga, em centésimos de ponto percentual (299 é 2,99%); 0 segue a organização.
+	InstallmentMonthlyRateBp int64 `json:"installment_monthly_rate_bp"`
+	// Quantas parcelas saem sem juros quando o comprador paga os juros; 0 segue a organização.
+	InterestFreeInstallments int64 `json:"interest_free_installments"`
 	// As linhas do valor fixado, na ordem em que foram enviadas; vazio sem elas.
 	Items []CheckoutLine `json:"items"`
 	// Como o lojista chama o checkout nas próprias telas; o comprador não vê.
 	Label string `json:"label"`
+	// O máximo de parcelas no cartão de crédito deste checkout; 0 segue o que a organização definiu, 1 vende só à vista.
+	MaxInstallments int64 `json:"max_installments"`
 	// Os pares que o seu servidor enviou; voltam no pedido, no pagamento e nos eventos da venda (checkout.*, order.*, checkout_payment.* e refund.*).
 	Metadata map[string]any `json:"metadata"`
+	// A menor parcela, em centavos; 0 segue a organização.
+	MinInstallmentCents int64 `json:"min_installment_cents"`
 	// Falso quando o seu sistema avisa o comprador das cobranças de renovação e a Peráta fica quieta.
-	NotifyCustomerEmail bool   `json:"notify_customer_email"`
-	PriceID             string `json:"price_id"`
-	ProductID           string `json:"product_id"`
-	Quantity            int64  `json:"quantity"`
+	NotifyCustomerEmail bool `json:"notify_customer_email"`
+	// O desconto de quem paga com Pix neste checkout, em centésimos de ponto percentual (500 é 5%); 0 desliga o desconto aqui; nulo segue a organização.
+	PixDiscountBp *int64 `json:"pix_discount_bp"`
+	PriceID       string `json:"price_id"`
+	ProductID     string `json:"product_id"`
+	Quantity      int64  `json:"quantity"`
 	// O renewal_mode da criação: manual, automatic ou buyer_choice; vazio quando foi omitido. A assinatura que o pagamento começa traz o modo a que isso se resolveu em Subscription.renewal_mode.
 	RenewalMode string `json:"renewal_mode"`
 	// O ID da sessão de checkout; as rotas de cliente dela são /checkouts/client/{client_secret}.
@@ -375,32 +411,48 @@ type CheckoutLine struct {
 type CheckoutLink struct {
 	// Se o comprador pode digitar um código de desconto.
 	AllowDiscountCodes bool `json:"allow_discount_codes"`
+	// O desconto de quem paga com boleto neste checkout, em centésimos de ponto percentual; 0 desliga o desconto aqui; nulo segue a organização.
+	BoletoDiscountBp *int64 `json:"boleto_discount_bp"`
 	// Endereço https para onde o comprador volta se desistir; vazio sem ele.
 	CancelURL string `json:"cancel_url"`
 	// manual segura a venda no cartão para o lojista capturar depois.
 	CaptureMode string `json:"capture_mode"`
-	CreatedAt   string `json:"created_at"`
+	// Se o cupom soma com o desconto do Pix ou do boleto neste checkout: true soma (o cupom primeiro, o desconto da forma depois), false vale só o maior dos dois em centavos sobre o mesmo preço; nulo segue a organização (que por padrão não soma). Em assinatura o cupom sempre soma.
+	CouponStacksWithMethodDiscount *bool  `json:"coupon_stacks_with_method_discount"`
+	CreatedAt                      string `json:"created_at"`
 	// O desconto fixado no link; nulo sem ele.
 	DiscountID *string `json:"discount_id"`
 	// Quando o link deixa de abrir checkouts; nulo sem prazo.
 	ExpiresAt *string `json:"expires_at"`
 	ID        string  `json:"id"`
+	// Quem paga os juros do parcelamento deste checkout: merchant (sem juros) ou buyer (com juros); nulo segue a organização.
+	InstallmentInterest *string `json:"installment_interest"`
+	// A taxa de juros ao mês que o comprador paga, em centésimos de ponto percentual (299 é 2,99%); 0 segue a organização.
+	InstallmentMonthlyRateBp int64 `json:"installment_monthly_rate_bp"`
+	// Quantas parcelas saem sem juros quando o comprador paga os juros; 0 segue a organização.
+	InterestFreeInstallments int64 `json:"interest_free_installments"`
 	// Como o lojista chama o link nas próprias telas; o comprador não vê.
 	Label string `json:"label"`
 	// O máximo de parcelas no cartão de crédito; 0 segue o que a organização definiu.
 	MaxInstallments int64 `json:"max_installments"`
 	// Metadados do lojista: pares chave e valor (texto, número ou booleano); objeto vazio quando não há.
-	Metadata   map[string]any `json:"metadata"`
-	ModifiedAt string         `json:"modified_at"`
+	Metadata map[string]any `json:"metadata"`
+	// A menor parcela, em centavos; 0 segue a organização.
+	MinInstallmentCents int64  `json:"min_installment_cents"`
+	ModifiedAt          string `json:"modified_at"`
+	// O desconto de quem paga com Pix neste checkout, em centésimos de ponto percentual (500 é 5%); 0 desliga o desconto aqui; nulo segue a organização.
+	PixDiscountBp *int64 `json:"pix_discount_bp"`
 	// O preço do primeiro produto.
 	PriceID string `json:"price_id"`
 	// O primeiro produto do link.
 	ProductID string `json:"product_id"`
 	// Os produtos que o link vende, na ordem em que o comprador os vê.
-	Products              []CheckoutLinkProduct `json:"products"`
-	Quantity              int64                 `json:"quantity"`
-	RequireBillingAddress bool                  `json:"require_billing_address"`
-	Status                string                `json:"status"`
+	Products []CheckoutLinkProduct `json:"products"`
+	Quantity int64                 `json:"quantity"`
+	// Como a assinatura que o link vende renova: manual (uma cobrança por link a cada ciclo), automatic (só cartão guardado ou Pix Automático), buyer_choice (o comprador marca a caixa Cobrança recorrente na página); nulo é o padrão, em que o cartão guardado renova e, sem cartão, o comprador recebe o link.
+	RenewalMode           *string `json:"renewal_mode"`
+	RequireBillingAddress bool    `json:"require_billing_address"`
+	Status                string  `json:"status"`
 	// Endereço https para onde o comprador volta depois de pagar; vazio sem ele.
 	SuccessURL string `json:"success_url"`
 	// O período de teste gratuito do link, no lugar do produto; nulo mantém o do produto.
@@ -583,7 +635,7 @@ type Dispute struct {
 	OpenedAt string         `json:"opened_at"`
 	// O pedido que a venda contestada pagou; nulo quando não é de um checkout.
 	OrderID *string `json:"order_id"`
-	// O PaymentId da venda contestada.
+	// O id do pagamento da venda contestada.
 	PaymentID string `json:"payment_id"`
 	// Como a venda contestada foi paga: card ou pix.
 	PaymentMethod string `json:"payment_method"`
@@ -591,7 +643,7 @@ type Dispute struct {
 	ProviderDisputeID string `json:"provider_dispute_id"`
 	// O motivo informado pelo emissor ou pela bandeira.
 	ProviderReason string `json:"provider_reason"`
-	// Motivo, do conjunto fechado; unknown quando a adquirente não informou.
+	// Motivo, do conjunto fechado; unknown quando o processador de pagamentos não informou.
 	Reason string `json:"reason"`
 	Source string `json:"source"`
 	Status string `json:"status"`
@@ -679,6 +731,10 @@ type Order struct {
 	// Onde o pedido está; status é o do checkout e continua succeeded depois de um reembolso, e este vira partially_refunded ou refunded. Nulo antes de haver pagamento.
 	OrderStatus *string `json:"order_status"`
 	PaidAt      *string `json:"paid_at"`
+	// A taxa do desconto da forma de pagamento, em centésimos de ponto percentual (500 é 5%); 0 sem ele.
+	PaymentMethodDiscountBp int64 `json:"payment_method_discount_bp"`
+	// Quanto o desconto da forma de pagamento (Pix ou boleto) tirou de amount_cents, em centavos; 0 sem ele. O comprador pagou amount_cents menos este valor. Com cupom que soma, o desconto da forma vem depois do cupom; com cupom que não soma, vale só o maior dos dois e o outro não aparece.
+	PaymentMethodDiscountCents int64 `json:"payment_method_discount_cents"`
 	// O fim do período que o ciclo paga; nulo fora de uma assinatura.
 	PeriodEnd *string `json:"period_end"`
 	// O começo do período que o ciclo paga; nulo fora de uma assinatura.
@@ -737,9 +793,13 @@ type OrderReceipt struct {
 	PaidAt  *string `json:"paid_at"`
 	// card, pix ou boleto; vazio quando o pagamento não foi achado.
 	PaymentMethod string `json:"payment_method"`
-	ProductName   string `json:"product_name"`
-	RefundedCents int64  `json:"refunded_cents"`
-	TotalCents    int64  `json:"total_cents"`
+	// A taxa do desconto da forma de pagamento, em centésimos de ponto percentual (500 é 5%); 0 sem ele.
+	PaymentMethodDiscountBp int64 `json:"payment_method_discount_bp"`
+	// Quanto o desconto da forma de pagamento (Pix ou boleto) tirou de total_cents, em centavos; 0 sem ele. Foi pago total_cents menos este valor.
+	PaymentMethodDiscountCents int64  `json:"payment_method_discount_cents"`
+	ProductName                string `json:"product_name"`
+	RefundedCents              int64  `json:"refunded_cents"`
+	TotalCents                 int64  `json:"total_cents"`
 }
 
 // Pagination is a resource of Peráta's API.
@@ -776,6 +836,10 @@ type Payment struct {
 	Method   string         `json:"method"`
 	// O valor líquido da venda, em centavos: captured_cents menos fee_cents, o que fica para o vendedor, antes de reembolsos. 0 enquanto o pagamento não foi capturado.
 	NetCents int64 `json:"net_cents"`
+	// A taxa do desconto da forma de pagamento, em centésimos de ponto percentual (500 é 5%); 0 sem ele.
+	PaymentMethodDiscountBp int64 `json:"payment_method_discount_bp"`
+	// Quanto o desconto da forma de pagamento (Pix ou boleto) tirou do total do pedido, em centavos; 0 sem ele. amount_cents já é o valor com o desconto: é o que foi cobrado.
+	PaymentMethodDiscountCents int64 `json:"payment_method_discount_cents"`
 	// O dia em que o último repasse que pagou este pagamento foi depositado, AAAA-MM-DD; nulo enquanto nenhum foi.
 	PayoutDepositedOn *string `json:"payout_deposited_on"`
 	// O repasse em que o pagamento foi depositado: o id de GET /payouts/{id}; nulo enquanto nenhum foi. Num pagamento parcelado, é o da última parcela depositada.
@@ -1171,7 +1235,7 @@ type WebhookDispute struct {
 	// Os pares que o seu servidor enviou ao criar o checkout; na renovação de uma assinatura, os da assinatura.
 	Metadata map[string]any `json:"metadata,omitempty"`
 	OpenedAt string         `json:"opened_at"`
-	// O PaymentId da venda contestada.
+	// O id do pagamento da venda contestada.
 	PaymentID string `json:"payment_id"`
 	// Como a venda contestada foi paga: card ou pix.
 	PaymentMethod string `json:"payment_method,omitempty"`
@@ -1179,7 +1243,7 @@ type WebhookDispute struct {
 	ProviderDisputeID string `json:"provider_dispute_id"`
 	// O motivo informado pelo emissor ou pela bandeira.
 	ProviderReason string `json:"provider_reason"`
-	// Motivo, do conjunto fechado; unknown quando a adquirente não informou.
+	// Motivo, do conjunto fechado; unknown quando o processador de pagamentos não informou.
 	Reason string `json:"reason"`
 	Source string `json:"source"`
 	Status string `json:"status"`
@@ -1244,6 +1308,10 @@ type WebhookOrder struct {
 	// Onde o pedido está; status é o do checkout e continua succeeded depois de um reembolso, e este vira partially_refunded ou refunded.
 	OrderStatus *string `json:"order_status"`
 	PaidAt      *string `json:"paid_at"`
+	// A taxa do desconto da forma de pagamento, em centésimos de ponto percentual (500 é 5%); 0 sem ele.
+	PaymentMethodDiscountBp int64 `json:"payment_method_discount_bp"`
+	// Quanto o desconto da forma de pagamento (Pix ou boleto) tirou de amount_cents, em centavos; 0 sem ele. O comprador pagou amount_cents menos este valor. Com cupom que soma, o desconto da forma vem depois do cupom; com cupom que não soma, vale só o maior dos dois e o outro não aparece.
+	PaymentMethodDiscountCents int64 `json:"payment_method_discount_cents"`
 	// O fim do período do ciclo que o pagamento cobra.
 	PeriodEnd *string `json:"period_end,omitempty"`
 	// O início do período do ciclo que o pagamento cobra.
@@ -1411,6 +1479,18 @@ type WebhookSubscription struct {
 	TrialStart       *string `json:"trial_start"`
 }
 
+// One item of payment_discounts in CheckoutClient.
+type CheckoutClientPaymentDiscount struct {
+	// A taxa do desconto, em centésimos de ponto percentual (500 é 5%).
+	BasisPoints int64 `json:"basis_points"`
+	// Quanto o desconto tira do total da sessão, em centavos, depois de qualquer cupom.
+	DiscountCents int64 `json:"discount_cents"`
+	// A forma de pagamento que tem desconto.
+	Method string `json:"method"`
+	// O que o comprador paga por esta forma: o total da sessão menos discount_cents. O servidor cobra o seu próprio cálculo, nunca um valor do cliente.
+	TotalCents int64 `json:"total_cents"`
+}
+
 // One item of bands in CheckoutClientItem.
 type CheckoutClientItemBand struct {
 	// O que a faixa soma: as unidades vezes o preço, mais o valor fixo.
@@ -1494,24 +1574,40 @@ type BenefitsUpdateParams struct {
 
 // The body of checkout-links:create.
 type CheckoutLinksCreateParams struct {
-	AllowDiscountCodes *bool   `json:"allow_discount_codes,omitempty"`
-	CancelURL          *string `json:"cancel_url,omitempty"`
-	CaptureMode        *string `json:"capture_mode,omitempty"`
+	AllowDiscountCodes *bool `json:"allow_discount_codes,omitempty"`
+	// O desconto de quem paga com boleto, em centésimos de ponto percentual, de 0 a 5000. 0 desliga o desconto neste checkout; ausente ou nulo segue a organização.
+	BoletoDiscountBp *int64  `json:"boleto_discount_bp,omitempty"`
+	CancelURL        *string `json:"cancel_url,omitempty"`
+	CaptureMode      *string `json:"capture_mode,omitempty"`
+	// Se o cupom soma com o desconto do Pix ou do boleto neste checkout: true soma (o cupom primeiro, o desconto da forma depois); false vale só o maior dos dois em centavos sobre o mesmo preço, e o pedido mostra só o desconto que valeu. Ausente ou nulo segue a organização, que por padrão não soma. Em assinatura o cupom sempre soma.
+	CouponStacksWithMethodDiscount *bool `json:"coupon_stacks_with_method_discount,omitempty"`
 	// Desconto fixado no link.
 	DiscountID *string `json:"discount_id,omitempty"`
 	// Data e hora RFC 3339 no futuro.
 	ExpiresAt *string `json:"expires_at,omitempty"`
-	Label     *string `json:"label,omitempty"`
+	// Quem paga os juros do parcelamento: merchant (sem juros, a loja absorve a taxa) ou buyer (com juros pagos pelo comprador, com installment_monthly_rate_bp). Ausente segue a organização.
+	InstallmentInterest *string `json:"installment_interest,omitempty"`
+	// A taxa de juros ao mês que o comprador paga, em centésimos de ponto percentual: 299 é 2,99%, no máximo 1000 (10%). Obrigatória com installment_interest buyer; 0 ou ausente segue a organização.
+	InstallmentMonthlyRateBp *int64 `json:"installment_monthly_rate_bp,omitempty"`
+	// Quantas parcelas saem sem juros quando o comprador paga os juros, de 1 (nenhuma além da à vista) a 12; 0 ou ausente segue a organização.
+	InterestFreeInstallments *int64  `json:"interest_free_installments,omitempty"`
+	Label                    *string `json:"label,omitempty"`
 	// De 0 a 12; 0 segue a organização.
 	MaxInstallments *int64 `json:"max_installments,omitempty"`
 	// Pares guardados no link. Até 50 pares de chave e valor: a chave tem de 1 a 40 caracteres, e o valor é um texto de 1 a 500 caracteres, um número ou um booleano. Texto sem caracteres de controle nem de direção invisível.
 	Metadata map[string]any `json:"metadata,omitempty"`
-	PriceID  *string        `json:"price_id,omitempty"`
+	// A menor parcela, em centavos, de 100 a 1000000; 0 ou ausente segue a organização.
+	MinInstallmentCents *int64 `json:"min_installment_cents,omitempty"`
+	// O desconto de quem paga com Pix, em centésimos de ponto percentual (500 é 5%), de 0 a 5000. 0 desliga o desconto neste checkout; ausente ou nulo segue a organização. Com cupom, vale a regra de coupon_stacks_with_method_discount. O cartão de crédito e o de débito não têm desconto.
+	PixDiscountBp *int64  `json:"pix_discount_bp,omitempty"`
+	PriceID       *string `json:"price_id,omitempty"`
 	// Um preço de cada produto, na ordem em que o comprador os vê; até 20.
 	PriceIds []string `json:"price_ids,omitempty"`
 	// Com price_id, o produto que o link vende; ou use price_ids.
-	ProductID             *string `json:"product_id,omitempty"`
-	Quantity              *int64  `json:"quantity,omitempty"`
+	ProductID *string `json:"product_id,omitempty"`
+	Quantity  *int64  `json:"quantity,omitempty"`
+	// Como a assinatura que o link vende renova, num link com preço recorrente com valor. manual: a cada ciclo o comprador paga por um link. automatic: só cartão de crédito guardado ou Pix Automático, que cobram sozinhos. buyer_choice: a página mostra a caixa Cobrança recorrente, desmarcada; marcada cobra sozinho, desmarcada paga só esta vez e recebe o link nos meses seguintes. Sem o campo vale o padrão: o cartão guardado renova e, sem cartão, o comprador recebe o link. Preço de compra única não aceita (422); manual não vale com teste grátis (422). Cada checkout aberto pelo link herda o modo.
+	RenewalMode           *string `json:"renewal_mode,omitempty"`
 	RequireBillingAddress *bool   `json:"require_billing_address,omitempty"`
 	SuccessURL            *string `json:"success_url,omitempty"`
 	TrialInterval         *string `json:"trial_interval,omitempty"`
@@ -1525,9 +1621,11 @@ type CheckoutLinksUpdateParams struct {
 	// Substitui os metadados; {} os limpa. Até 50 pares de chave e valor: a chave tem de 1 a 40 caracteres, e o valor é um texto de 1 a 500 caracteres, um número ou um booleano. Texto sem caracteres de controle nem de direção invisível.
 	Metadata map[string]any `json:"metadata,omitempty"`
 	// Substitui os produtos do link.
-	PriceIds              []string `json:"price_ids,omitempty"`
-	RequireBillingAddress *bool    `json:"require_billing_address,omitempty"`
-	SuccessURL            *string  `json:"success_url,omitempty"`
+	PriceIds []string `json:"price_ids,omitempty"`
+	// Troca como a assinatura do link renova; vazio volta ao padrão. Os checkouts já abertos guardam o modo que viram. Vale as mesmas regras da criação (422 em preço de compra única, ou manual com teste grátis).
+	RenewalMode           *string `json:"renewal_mode,omitempty"`
+	RequireBillingAddress *bool   `json:"require_billing_address,omitempty"`
+	SuccessURL            *string `json:"success_url,omitempty"`
 }
 
 // The body of checkouts:create.
@@ -1535,11 +1633,15 @@ type CheckoutsCreateParams struct {
 	// Deixa o comprador digitar um código de desconto; desligado quando fica de fora.
 	AllowDiscountCodes *bool `json:"allow_discount_codes,omitempty"`
 	// O valor do pedido todo, em centavos, que o seu servidor fixa. Só vale em um preço de valor livre (custom); em outro preço é recusado com 422. Respeita o mínimo e o máximo do preço, também com 422. O comprador vê o valor e não pode mudá-lo, na página, no modal, nos componentes e no checkout transparente; vale para cartão de crédito, débito e Pix, e é o valor que volta em pedidos, pagamentos, recibo e eventos. Repetir a criação com a mesma Idempotency-Key e outro valor dá 409.
-	AmountCents *int64  `json:"amount_cents,omitempty"`
-	CancelURL   *string `json:"cancel_url,omitempty"`
+	AmountCents *int64 `json:"amount_cents,omitempty"`
+	// O desconto de quem paga com boleto, em centésimos de ponto percentual, de 0 a 5000. 0 desliga o desconto neste checkout; ausente ou nulo segue a organização.
+	BoletoDiscountBp *int64  `json:"boleto_discount_bp,omitempty"`
+	CancelURL        *string `json:"cancel_url,omitempty"`
 	// O id do pedido no seu sistema, de até 255 caracteres. Volta no checkout, no pedido, no pagamento e nos eventos checkout.*, order.*, checkout_payment.* e refund.*, para você achar de qual pedido veio cada pagamento. Num checkout de assinatura fica também na assinatura, e cada pedido de renovação volta com ele.
 	ClientReferenceID *string `json:"client_reference_id,omitempty"`
-	// O e-mail do comprador, quando você o conhece; senão o navegador do comprador o pede.
+	// Se o cupom soma com o desconto do Pix ou do boleto neste checkout: true soma (o cupom primeiro, o desconto da forma depois); false vale só o maior dos dois em centavos sobre o mesmo preço, e o pedido mostra só o desconto que valeu. Ausente ou nulo segue a organização, que por padrão não soma. Em assinatura o cupom sempre soma.
+	CouponStacksWithMethodDiscount *bool `json:"coupon_stacks_with_method_discount,omitempty"`
+	// O e-mail do comprador, quando você o conhece; senão o navegador do comprador o pede. Se este e-mail é de um cliente seu, o checkout abre com os dados dele, como com customer_id, e o e-mail fica fixo. Se o cliente tem CPF ou CNPJ, o comprador não pode trocá-lo.
 	CustomerEmail *string `json:"customer_email,omitempty"`
 	// Um cliente seu: o checkout abre com o nome, o e-mail e os dados de cobrança dele. Não junto com external_customer_id, customer_email ou customer_name.
 	CustomerID *string `json:"customer_id,omitempty"`
@@ -1553,18 +1655,30 @@ type CheckoutsCreateParams struct {
 	ExternalCustomerID *string `json:"external_customer_id,omitempty"`
 	// Quantos dias somar ao primeiro período da assinatura, de 1 a 365: para o comprador que ainda tinha dias pagos num plano anterior (por exemplo, pago até 11/12 e assinando em 20/11: 21 dias). O comprador paga hoje o valor cheio do preço (com as faixas, a quantidade e o desconto), em Pix, cartão de crédito ou débito, como em qualquer checkout, e o primeiro período vai do dia do pagamento até esse dia mais um intervalo do preço mais estes dias, no horário de São Paulo; a renovação e os ciclos seguintes contam a partir desse fim. A próxima cobrança, no cartão guardado ou pelo link ou Pix de renovação, só acontece nele. A página mostra "Pague hoje R$ X. Próxima cobrança em DD/MM/AAAA (inclui N dias do seu plano anterior)". Só vale em um preço recorrente com valor, vendido sozinho e sem teste grátis, e não junto com subscription_start_at (cobra hoje, não numa data); fora disso a resposta é 422. A assinatura e o evento da venda trazem o mesmo número em first_period_extra_days, e o pedido do primeiro ciclo traz o período estendido em period_start e period_end. Repetir a criação com a mesma Idempotency-Key e outro número dá 409.
 	FirstPeriodExtraDays *int64 `json:"first_period_extra_days,omitempty"`
+	// Quem paga os juros do parcelamento: merchant (sem juros, a loja absorve a taxa) ou buyer (com juros pagos pelo comprador, com installment_monthly_rate_bp). Ausente segue a organização.
+	InstallmentInterest *string `json:"installment_interest,omitempty"`
+	// A taxa de juros ao mês que o comprador paga, em centésimos de ponto percentual: 299 é 2,99%, no máximo 1000 (10%). Obrigatória com installment_interest buyer; 0 ou ausente segue a organização.
+	InstallmentMonthlyRateBp *int64 `json:"installment_monthly_rate_bp,omitempty"`
+	// Quantas parcelas saem sem juros quando o comprador paga os juros, de 1 (nenhuma além da à vista) a 12; 0 ou ausente segue a organização.
+	InterestFreeInstallments *int64 `json:"interest_free_installments,omitempty"`
 	// As linhas do pedido, até 50, para o comprador ler o detalhe: aparecem no checkout (página, modal, componentes e transparente), no pedido, no recibo, no portal do cliente e nos eventos. Em um preço de valor livre, a soma de quantity vezes unit_amount_cents precisa ser igual a amount_cents, ou a resposta é 422; enviadas sem amount_cents, a soma é o valor. Em um preço com valor próprio, como o de uma assinatura, as linhas só mostram ao comprador do que o valor é feito e fixam nada: envie-as sem amount_cents, com a soma igual ao valor do preço vezes a quantidade (senão 422), e o preço continua sendo quem define o que se cobra.
 	Items []CheckoutsCreateItem `json:"items,omitempty"`
 	Label *string               `json:"label,omitempty"`
+	// O máximo de parcelas no cartão de crédito deste checkout, de 1 a 12; vale mais que a organização, e 1 vende só à vista. 0 ou ausente segue a organização.
+	MaxInstallments *int64 `json:"max_installments,omitempty"`
 	// Pares guardados no link do checkout e devolvidos no checkout, no pedido, no pagamento e nos eventos da venda. Até 50 pares de chave e valor: a chave tem de 1 a 40 caracteres, e o valor é um texto de 1 a 500 caracteres, um número ou um booleano. Texto sem caracteres de controle nem de direção invisível.
 	Metadata map[string]any `json:"metadata,omitempty"`
+	// A menor parcela, em centavos, de 100 a 1000000; 0 ou ausente segue a organização.
+	MinInstallmentCents *int64 `json:"min_installment_cents,omitempty"`
 	// Verdadeiro por padrão. Falso mantém a Peráta sem escrever ao comprador a cobrança de cada renovação (o seu sistema o avisa pelo evento subscription.renewal_due); a cobrança é aberta do mesmo jeito. Além disso, a organização pode desligar este aviso para todos em Configurações › Preferências › Cobrança da renovação.
-	NotifyCustomerEmail *bool  `json:"notify_customer_email,omitempty"`
-	PriceID             string `json:"price_id"`
-	ProductID           string `json:"product_id"`
+	NotifyCustomerEmail *bool `json:"notify_customer_email,omitempty"`
+	// O desconto de quem paga com Pix, em centésimos de ponto percentual (500 é 5%), de 0 a 5000. 0 desliga o desconto neste checkout; ausente ou nulo segue a organização. Com cupom, vale a regra de coupon_stacks_with_method_discount. O cartão de crédito e o de débito não têm desconto.
+	PixDiscountBp *int64 `json:"pix_discount_bp,omitempty"`
+	PriceID       string `json:"price_id"`
+	ProductID     string `json:"product_id"`
 	// Quantas unidades. Com amount_cents é sempre 1: envie 1 ou omita; qualquer outro valor é recusado com 422.
 	Quantity *int64 `json:"quantity,omitempty"`
-	// Como a assinatura renova, numa assinatura (preço recorrente com valor). manual: a cada ciclo a Peráta abre uma cobrança para o comprador pagar (payment_url, por cartão, Pix ou boleto) e avisa o seu sistema com o evento subscription.renewal_due, mesmo que o primeiro pagamento tenha sido no cartão; o cartão nunca é cobrado e não é guardado. automatic: só os meios que cobram sozinhos, o cartão de crédito guardado ou o Pix Automático (quando a organização o tem ligado; senão só o cartão); a página mostra só esses meios, e a assinatura nasce com renewal_mode card ou pix_automatic. buyer_choice: a página mostra a caixa Ativar cobrança automática, desmarcada, e o comprador decide: desmarcada é manual, marcada é automatic. Sem o campo nada muda: sem caixa, o cartão de crédito renova sozinho e qualquer outro meio vira uma cobrança a cada ciclo. Funciona junto com first_period_extra_days e com desconto. Vale só em preço recorrente com valor (senão 422); manual não vale com teste grátis nem com subscription_start_at, que guardam o cartão para cobrar no fim (422). Pagar por um meio que o modo não aceita (Pix, boleto ou débito em automatic; Pix Automático em manual) é 422 em payment_method. A Subscription traz o modo a que isso se resolveu em renewal_mode: manual, card ou pix_automatic.
+	// Como a assinatura renova, numa assinatura (preço recorrente com valor). manual: a cada ciclo a Peráta abre uma cobrança para o comprador pagar (payment_url, por cartão, Pix ou boleto) e avisa o seu sistema com o evento subscription.renewal_due, mesmo que o primeiro pagamento tenha sido no cartão; o cartão nunca é cobrado e não é guardado. automatic: só os meios que cobram sozinhos, o cartão de crédito guardado ou o Pix Automático (quando a organização o tem ligado; senão só o cartão); a página mostra só esses meios, e a assinatura nasce com renewal_mode card ou pix_automatic. buyer_choice: a página mostra a caixa Cobrança recorrente, desmarcada, e o comprador decide: desmarcada é manual, marcada é automatic. Sem o campo nada muda: sem caixa, o cartão de crédito renova sozinho e qualquer outro meio vira uma cobrança a cada ciclo. Funciona junto com first_period_extra_days e com desconto. Vale só em preço recorrente com valor (senão 422); manual não vale com teste grátis nem com subscription_start_at, que guardam o cartão para cobrar no fim (422). Pagar por um meio que o modo não aceita (Pix, boleto ou débito em automatic; Pix Automático em manual) é 422 em payment_method. A Subscription traz o modo a que isso se resolveu em renewal_mode: manual, card ou pix_automatic.
 	RenewalMode *string `json:"renewal_mode,omitempty"`
 	// Pede o endereço de cobrança completo de todo comprador, não só no boleto; desligado quando fica de fora.
 	RequireBillingAddress *bool `json:"require_billing_address,omitempty"`
@@ -1790,7 +1904,7 @@ type ProductsUpdateParams struct {
 
 // The body of refunds:create.
 type RefundsCreateParams struct {
-	// Quanto devolver, em centavos, de 1 até o que ainda pode ser devolvido. Sem ele, devolve tudo o que ainda pode ser devolvido.
+	// Quanto devolver, em centavos, de 1 até o que ainda pode ser devolvido (o valor capturado menos os reembolsos anteriores). No cartão, a soma de vários reembolsos parciais chega ao valor capturado; no Pix, só há um reembolso por pagamento. Sem ele, devolve tudo o que ainda pode ser devolvido.
 	AmountCents *int64 `json:"amount_cents,omitempty"`
 	// Pares seus guardados no reembolso; voltam como refund_metadata no reembolso e nos eventos refund.created e refund.updated, onde metadata é o do pedido. O filtro metadata[chave]=valor de GET /refunds procura estes pares. Até 50 pares de chave e valor: a chave tem de 1 a 40 caracteres, e o valor é um texto de 1 a 500 caracteres, um número ou um booleano. Texto sem caracteres de controle nem de direção invisível.
 	Metadata map[string]any `json:"metadata,omitempty"`
@@ -1921,6 +2035,8 @@ const (
 	CardAuthenticationEnvironmentLive                       = "live"
 	CardTokenizationEnvironmentTest                         = "test"
 	CardTokenizationEnvironmentLive                         = "live"
+	CheckoutInstallmentInterestMerchant                     = "merchant"
+	CheckoutInstallmentInterestBuyer                        = "buyer"
 	CheckoutRenewalModeManual                               = "manual"
 	CheckoutRenewalModeAutomatic                            = "automatic"
 	CheckoutRenewalModeBuyerChoice                          = "buyer_choice"
@@ -1945,6 +2061,10 @@ const (
 	CheckoutClientPaymentStateCanceled                      = "canceled"
 	CheckoutClientPaymentStateRefunded                      = "refunded"
 	CheckoutClientPaymentStatePartiallyRefunded             = "partially_refunded"
+	CheckoutClientPaymentDiscountMethodPix                  = "pix"
+	CheckoutClientPaymentDiscountMethodBoleto               = "boleto"
+	CheckoutCreatedInstallmentInterestMerchant              = "merchant"
+	CheckoutCreatedInstallmentInterestBuyer                 = "buyer"
 	CheckoutCreatedRenewalModeManual                        = "manual"
 	CheckoutCreatedRenewalModeAutomatic                     = "automatic"
 	CheckoutCreatedRenewalModeBuyerChoice                   = "buyer_choice"
@@ -1958,6 +2078,11 @@ const (
 	CheckoutExpiredSessionStatusFailed                      = "failed"
 	CheckoutLinkCaptureModeAutomatic                        = "automatic"
 	CheckoutLinkCaptureModeManual                           = "manual"
+	CheckoutLinkInstallmentInterestMerchant                 = "merchant"
+	CheckoutLinkInstallmentInterestBuyer                    = "buyer"
+	CheckoutLinkRenewalModeManual                           = "manual"
+	CheckoutLinkRenewalModeAutomatic                        = "automatic"
+	CheckoutLinkRenewalModeBuyerChoice                      = "buyer_choice"
 	CheckoutLinkStatusActive                                = "active"
 	CheckoutLinkStatusArchived                              = "archived"
 	CheckoutLinkTrialIntervalDay                            = "day"
@@ -1995,7 +2120,7 @@ const (
 	DisputeKindChargeback                                   = "chargeback"
 	DisputeKindMed                                          = "med"
 	DisputeSourceOperator                                   = "operator"
-	DisputeSourceCieloChargeback                            = "cielo_chargeback"
+	DisputeSourceProcessorChargeback                        = "processor_chargeback"
 	DisputeStatusOpened                                     = "opened"
 	DisputeStatusNeedsEvidence                              = "needs_evidence"
 	DisputeStatusSubmitted                                  = "submitted"
@@ -2086,7 +2211,6 @@ const (
 	RenewalChargeCurrencyBRL                                = "BRL"
 	RenewalChargeReminderBeforeDue                          = "before_due"
 	RenewalChargeReminderOnDue                              = "on_due"
-	RenewalChargeReminderNull                               = "null"
 	RenewalChargeRenewalModeManual                          = "manual"
 	RenewalChargeRenewalModeCard                            = "card"
 	RenewalChargeRenewalModePixAutomatic                    = "pix_automatic"
@@ -2131,7 +2255,7 @@ const (
 	WebhookDisputeKindChargeback                            = "chargeback"
 	WebhookDisputeKindMed                                   = "med"
 	WebhookDisputeSourceOperator                            = "operator"
-	WebhookDisputeSourceCieloChargeback                     = "cielo_chargeback"
+	WebhookDisputeSourceProcessorChargeback                 = "processor_chargeback"
 	WebhookDisputeStatusOpened                              = "opened"
 	WebhookDisputeStatusNeedsEvidence                       = "needs_evidence"
 	WebhookDisputeStatusSubmitted                           = "submitted"

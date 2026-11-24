@@ -173,7 +173,7 @@ class CardAuthentication:
     """Segundos de vida do token."""
     provider: str
     script_url: str
-    """O script de autenticação do adquirente."""
+    """O script de autenticação do processador de pagamentos."""
     total_cents: int
     """O valor, em centavos, que o script deve autenticar: o total da sessão no servidor. Copie-o no campo bpmpi_totalamount; depois que ele é entregue, o total da sessão não muda mais."""
 
@@ -194,7 +194,7 @@ class CardTokenization:
     """CardTokenization is a resource of Peráta's API."""
 
     access_token: str
-    """O token com que o script do adquirente envia o cartão; entregue só a uma página da própria origem da Peráta."""
+    """O token com que o script do processador de pagamentos envia o cartão; entregue só a uma página da própria origem da Peráta."""
     card_ticket: str
     """O bilhete da tentativa deste cartão: de uso único, válido só para esta sessão e por 20 minutos. Devolva-o em card_ticket ao confirmar; sem um bilhete válido nenhum cartão é tentado."""
     environment: Literal["test", "live"]
@@ -220,10 +220,14 @@ class Checkout:
 
     amount_cents: int | None
     """O valor, em centavos, que o seu servidor fixou na criação; nulo quando é o comprador quem digita o valor."""
+    boleto_discount_bp: int | None
+    """O desconto de quem paga com boleto neste checkout, em centésimos de ponto percentual; 0 desliga o desconto aqui; nulo segue a organização."""
     cancel_url: str
     """Endereço https para onde o comprador volta se desistir; vazio sem ele."""
     client_reference_id: str
     """O id do pedido no seu sistema, como o seu servidor o enviou na criação; vazio sem ele. Volta no checkout, no pedido, no pagamento e nos eventos."""
+    coupon_stacks_with_method_discount: bool | None
+    """Se o cupom soma com o desconto do Pix ou do boleto neste checkout: true soma (o cupom primeiro, o desconto da forma depois), false vale só o maior dos dois em centavos sobre o mesmo preço; nulo segue a organização (que por padrão não soma). Em assinatura o cupom sempre soma."""
     created_at: str
     discount_id: str
     """O desconto que o checkout aplica sozinho, como o seu servidor o enviou na criação; vazio sem ele. O comprador o vê no resumo e ele conta desde a primeira cobrança."""
@@ -232,14 +236,26 @@ class Checkout:
     first_period_extra_days: int | None
     """Quantos dias o seu servidor somou ao primeiro período da assinatura (first_period_extra_days na criação); nulo quando o primeiro período é o comum. O comprador paga hoje o valor cheio, e a próxima cobrança só acontece no fim do período mais longo."""
     id: str
+    installment_interest: Literal["merchant", "buyer"] | None
+    """Quem paga os juros do parcelamento deste checkout: merchant (sem juros) ou buyer (com juros); nulo segue a organização."""
+    installment_monthly_rate_bp: int
+    """A taxa de juros ao mês que o comprador paga, em centésimos de ponto percentual (299 é 2,99%); 0 segue a organização."""
+    interest_free_installments: int
+    """Quantas parcelas saem sem juros quando o comprador paga os juros; 0 segue a organização."""
     items: list[CheckoutLine]
     """As linhas do valor fixado, na ordem em que foram enviadas; vazio sem elas."""
     label: str
     """Como o lojista chama o checkout nas próprias telas; o comprador não vê."""
+    max_installments: int
+    """O máximo de parcelas no cartão de crédito deste checkout; 0 segue o que a organização definiu, 1 vende só à vista."""
     metadata: dict[str, Any]
     """Os pares que o seu servidor guardou na criação; voltam nos eventos da venda."""
+    min_installment_cents: int
+    """A menor parcela, em centavos; 0 segue a organização."""
     notify_customer_email: bool
     """Falso quando o seu sistema avisa o comprador das cobranças de renovação e a Peráta fica quieta."""
+    pix_discount_bp: int | None
+    """O desconto de quem paga com Pix neste checkout, em centésimos de ponto percentual (500 é 5%); 0 desliga o desconto aqui; nulo segue a organização."""
     price_id: str
     product_id: str
     quantity: int
@@ -260,17 +276,25 @@ class Checkout:
     def from_dict(cls, data: dict[str, Any]) -> Checkout:
         return cls(
             amount_cents=data.get("amount_cents"),
+            boleto_discount_bp=data.get("boleto_discount_bp"),
             cancel_url=data["cancel_url"],
             client_reference_id=data["client_reference_id"],
+            coupon_stacks_with_method_discount=data.get("coupon_stacks_with_method_discount"),
             created_at=data["created_at"],
             discount_id=data["discount_id"],
             expires_at=data.get("expires_at"),
             first_period_extra_days=data.get("first_period_extra_days"),
             id=data["id"],
+            installment_interest=data.get("installment_interest"),
+            installment_monthly_rate_bp=data["installment_monthly_rate_bp"],
+            interest_free_installments=data["interest_free_installments"],
             items=[CheckoutLine.from_dict(item) for item in data["items"]],
             label=data["label"],
+            max_installments=data["max_installments"],
             metadata=data["metadata"],
+            min_installment_cents=data["min_installment_cents"],
             notify_customer_email=data["notify_customer_email"],
+            pix_discount_bp=data.get("pix_discount_bp"),
             price_id=data["price_id"],
             product_id=data["product_id"],
             quantity=data["quantity"],
@@ -294,7 +318,7 @@ class CheckoutClient:
     cancel_url: str
     """Para onde o comprador volta sem pagar."""
     card_kinds: list[str]
-    """credit, e debit onde a autenticação do adquirente está ligada."""
+    """credit, e debit onde a autenticação do processador de pagamentos está ligada."""
     client_reference_id: str
     """O id do pedido no seu sistema, quando o seu servidor o enviou; vazio sem ele."""
     currency: Literal["BRL"]
@@ -321,6 +345,8 @@ class CheckoutClient:
     """O que o pagamento ainda precisa do comprador, pelo campo da rota de atualização: customer_email, tax_id e billing_address."""
     next_action: CheckoutNextAction
     payment: CheckoutClientPayment | None
+    payment_discounts: list[CheckoutClientPaymentDiscount]
+    """O desconto de cada forma de pagamento que tem um (Pix e boleto), depois do cupom e sobre o valor já com o cupom quando o cupom soma; quando não soma, só aparece a forma cujo desconto é maior que o do cupom, sobre o preço sem cupom; vazio quando nenhuma tem. O cartão de crédito não tem desconto. O Pix Automático também não."""
     payment_methods: list[str]
     """As formas em que a sessão pode ser paga, entre card, pix, boleto e free; free é uma sessão que não pede pagamento."""
     requires_billing_address: bool
@@ -360,6 +386,7 @@ class CheckoutClient:
             missing=data["missing"],
             next_action=CheckoutNextAction.from_dict(data["next_action"]),
             payment=None if data.get("payment") is None else CheckoutClientPayment.from_dict(data["payment"]),
+            payment_discounts=[CheckoutClientPaymentDiscount.from_dict(item) for item in data["payment_discounts"]],
             payment_methods=data["payment_methods"],
             requires_billing_address=data["requires_billing_address"],
             requires_tax_id=data["requires_tax_id"],
@@ -379,7 +406,7 @@ class CheckoutClientBoleto:
     due_date: str | None
     """Quando o boleto deixa de poder ser pago: o fim do dia do vencimento, no horário de Brasília."""
     pdf_url: str
-    """Onde o boleto é baixado; vazio quando o adquirente não deu nenhum."""
+    """Onde o boleto é baixado; vazio quando o processador de pagamentos não deu nenhum."""
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> CheckoutClientBoleto:
@@ -402,6 +429,8 @@ class CheckoutClientCustomer:
     name: str
     tax_id: str
     """O CPF ou CNPJ do comprador, só dígitos; vazio enquanto não for informado."""
+    tax_id_fixed: bool
+    """Verdadeiro quando o CPF ou CNPJ é o que o lojista tem do cliente: o comprador não pode trocá-lo e o servidor recusa outro (422 em tax_id)."""
     tax_id_kind: str
 
     @classmethod
@@ -413,6 +442,7 @@ class CheckoutClientCustomer:
             locked=data["locked"],
             name=data["name"],
             tax_id=data["tax_id"],
+            tax_id_fixed=data["tax_id_fixed"],
             tax_id_kind=data["tax_id_kind"],
         )
 
@@ -481,7 +511,7 @@ class CheckoutClientPayment:
     pix: CheckoutClientPix | None
     state: Literal["unknown", "pending", "authorized", "captured", "refused", "canceled", "refunded", "partially_refunded"]
     unresolved: bool
-    """Verdadeiro enquanto a resposta do adquirente ainda é descoberta; o comprador espera."""
+    """Verdadeiro enquanto a resposta do processador de pagamentos ainda é descoberta; o comprador espera."""
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> CheckoutClientPayment:
@@ -505,7 +535,7 @@ class CheckoutClientPix:
     copia_e_cola: str
     """O código Pix copia e cola."""
     expires_at: str | None
-    """Quando o Pix deixa de poder ser pago, como o adquirente o deu."""
+    """Quando o Pix deixa de poder ser pago, como o processador de pagamentos o deu."""
     qr_code_svg: str
     """O QR do código, desenhado como um documento SVG."""
 
@@ -524,6 +554,8 @@ class CheckoutCreated:
 
     amount_cents: int | None
     """O valor, em centavos, que o seu servidor fixou; o comprador o vê e não pode mudá-lo. Nulo quando é o comprador quem digita o valor."""
+    boleto_discount_bp: int | None
+    """O desconto de quem paga com boleto neste checkout, em centésimos de ponto percentual; 0 desliga o desconto aqui; nulo segue a organização."""
     cancel_url: str
     """Endereço https para onde o comprador volta se desistir; vazio sem ele."""
     client_reference_id: str
@@ -532,6 +564,8 @@ class CheckoutCreated:
     """O segredo que o navegador do comprador usa para ler, atualizar e pagar a sessão, sem chave de API. Só esta resposta o traz; entregue-o à página que monta os campos seguros. Vem vazio na repetição de uma criação idempotente."""
     client_secret_expires_at: str
     """Quando a sessão e o client_secret deixam de valer."""
+    coupon_stacks_with_method_discount: bool | None
+    """Se o cupom soma com o desconto do Pix ou do boleto neste checkout: true soma (o cupom primeiro, o desconto da forma depois), false vale só o maior dos dois em centavos sobre o mesmo preço; nulo segue a organização (que por padrão não soma). Em assinatura o cupom sempre soma."""
     created_at: str
     discount_id: str
     """O desconto que o checkout aplica sozinho, como o seu servidor o enviou na criação; vazio sem ele. O comprador o vê no resumo e ele conta desde a primeira cobrança."""
@@ -541,14 +575,26 @@ class CheckoutCreated:
     """Quantos dias o seu servidor somou ao primeiro período da assinatura (first_period_extra_days na criação); nulo quando o primeiro período é o comum. O comprador paga hoje o valor cheio, e a próxima cobrança só acontece no fim do período mais longo."""
     id: str
     """O ID do link do checkout, o que GET e PATCH /checkouts/{id} recebem."""
+    installment_interest: Literal["merchant", "buyer"] | None
+    """Quem paga os juros do parcelamento deste checkout: merchant (sem juros) ou buyer (com juros); nulo segue a organização."""
+    installment_monthly_rate_bp: int
+    """A taxa de juros ao mês que o comprador paga, em centésimos de ponto percentual (299 é 2,99%); 0 segue a organização."""
+    interest_free_installments: int
+    """Quantas parcelas saem sem juros quando o comprador paga os juros; 0 segue a organização."""
     items: list[CheckoutLine]
     """As linhas do valor fixado, na ordem em que foram enviadas; vazio sem elas."""
     label: str
     """Como o lojista chama o checkout nas próprias telas; o comprador não vê."""
+    max_installments: int
+    """O máximo de parcelas no cartão de crédito deste checkout; 0 segue o que a organização definiu, 1 vende só à vista."""
     metadata: dict[str, Any]
     """Os pares que o seu servidor enviou; voltam no pedido, no pagamento e nos eventos da venda (checkout.*, order.*, checkout_payment.* e refund.*)."""
+    min_installment_cents: int
+    """A menor parcela, em centavos; 0 segue a organização."""
     notify_customer_email: bool
     """Falso quando o seu sistema avisa o comprador das cobranças de renovação e a Peráta fica quieta."""
+    pix_discount_bp: int | None
+    """O desconto de quem paga com Pix neste checkout, em centésimos de ponto percentual (500 é 5%); 0 desliga o desconto aqui; nulo segue a organização."""
     price_id: str
     product_id: str
     quantity: int
@@ -573,19 +619,27 @@ class CheckoutCreated:
     def from_dict(cls, data: dict[str, Any]) -> CheckoutCreated:
         return cls(
             amount_cents=data.get("amount_cents"),
+            boleto_discount_bp=data.get("boleto_discount_bp"),
             cancel_url=data["cancel_url"],
             client_reference_id=data["client_reference_id"],
             client_secret=data["client_secret"],
             client_secret_expires_at=data["client_secret_expires_at"],
+            coupon_stacks_with_method_discount=data.get("coupon_stacks_with_method_discount"),
             created_at=data["created_at"],
             discount_id=data["discount_id"],
             expires_at=data.get("expires_at"),
             first_period_extra_days=data.get("first_period_extra_days"),
             id=data["id"],
+            installment_interest=data.get("installment_interest"),
+            installment_monthly_rate_bp=data["installment_monthly_rate_bp"],
+            interest_free_installments=data["interest_free_installments"],
             items=[CheckoutLine.from_dict(item) for item in data["items"]],
             label=data["label"],
+            max_installments=data["max_installments"],
             metadata=data["metadata"],
+            min_installment_cents=data["min_installment_cents"],
             notify_customer_email=data["notify_customer_email"],
+            pix_discount_bp=data.get("pix_discount_bp"),
             price_id=data["price_id"],
             product_id=data["product_id"],
             quantity=data["quantity"],
@@ -701,23 +755,37 @@ class CheckoutLink:
 
     allow_discount_codes: bool
     """Se o comprador pode digitar um código de desconto."""
+    boleto_discount_bp: int | None
+    """O desconto de quem paga com boleto neste checkout, em centésimos de ponto percentual; 0 desliga o desconto aqui; nulo segue a organização."""
     cancel_url: str
     """Endereço https para onde o comprador volta se desistir; vazio sem ele."""
     capture_mode: Literal["automatic", "manual"]
     """manual segura a venda no cartão para o lojista capturar depois."""
+    coupon_stacks_with_method_discount: bool | None
+    """Se o cupom soma com o desconto do Pix ou do boleto neste checkout: true soma (o cupom primeiro, o desconto da forma depois), false vale só o maior dos dois em centavos sobre o mesmo preço; nulo segue a organização (que por padrão não soma). Em assinatura o cupom sempre soma."""
     created_at: str
     discount_id: str | None
     """O desconto fixado no link; nulo sem ele."""
     expires_at: str | None
     """Quando o link deixa de abrir checkouts; nulo sem prazo."""
     id: str
+    installment_interest: Literal["merchant", "buyer"] | None
+    """Quem paga os juros do parcelamento deste checkout: merchant (sem juros) ou buyer (com juros); nulo segue a organização."""
+    installment_monthly_rate_bp: int
+    """A taxa de juros ao mês que o comprador paga, em centésimos de ponto percentual (299 é 2,99%); 0 segue a organização."""
+    interest_free_installments: int
+    """Quantas parcelas saem sem juros quando o comprador paga os juros; 0 segue a organização."""
     label: str
     """Como o lojista chama o link nas próprias telas; o comprador não vê."""
     max_installments: int
     """O máximo de parcelas no cartão de crédito; 0 segue o que a organização definiu."""
     metadata: dict[str, Any]
     """Metadados do lojista: pares chave e valor (texto, número ou booleano); objeto vazio quando não há."""
+    min_installment_cents: int
+    """A menor parcela, em centavos; 0 segue a organização."""
     modified_at: str
+    pix_discount_bp: int | None
+    """O desconto de quem paga com Pix neste checkout, em centésimos de ponto percentual (500 é 5%); 0 desliga o desconto aqui; nulo segue a organização."""
     price_id: str
     """O preço do primeiro produto."""
     product_id: str
@@ -725,6 +793,8 @@ class CheckoutLink:
     products: list[CheckoutLinkProduct]
     """Os produtos que o link vende, na ordem em que o comprador os vê."""
     quantity: int
+    renewal_mode: Literal["manual", "automatic", "buyer_choice"] | None
+    """Como a assinatura que o link vende renova: manual (uma cobrança por link a cada ciclo), automatic (só cartão guardado ou Pix Automático), buyer_choice (o comprador marca a caixa Cobrança recorrente na página); nulo é o padrão, em que o cartão guardado renova e, sem cartão, o comprador recebe o link."""
     require_billing_address: bool
     status: Literal["active", "archived"]
     success_url: str
@@ -739,20 +809,28 @@ class CheckoutLink:
     def from_dict(cls, data: dict[str, Any]) -> CheckoutLink:
         return cls(
             allow_discount_codes=data["allow_discount_codes"],
+            boleto_discount_bp=data.get("boleto_discount_bp"),
             cancel_url=data["cancel_url"],
             capture_mode=data["capture_mode"],
+            coupon_stacks_with_method_discount=data.get("coupon_stacks_with_method_discount"),
             created_at=data["created_at"],
             discount_id=data.get("discount_id"),
             expires_at=data.get("expires_at"),
             id=data["id"],
+            installment_interest=data.get("installment_interest"),
+            installment_monthly_rate_bp=data["installment_monthly_rate_bp"],
+            interest_free_installments=data["interest_free_installments"],
             label=data["label"],
             max_installments=data["max_installments"],
             metadata=data["metadata"],
+            min_installment_cents=data["min_installment_cents"],
             modified_at=data["modified_at"],
+            pix_discount_bp=data.get("pix_discount_bp"),
             price_id=data["price_id"],
             product_id=data["product_id"],
             products=[CheckoutLinkProduct.from_dict(item) for item in data["products"]],
             quantity=data["quantity"],
+            renewal_mode=data.get("renewal_mode"),
             require_billing_address=data["require_billing_address"],
             status=data["status"],
             success_url=data["success_url"],
@@ -1087,7 +1165,7 @@ class Dispute:
     order_id: str | None
     """O pedido que a venda contestada pagou; nulo quando não é de um checkout."""
     payment_id: str
-    """O PaymentId da venda contestada."""
+    """O id do pagamento da venda contestada."""
     payment_method: str
     """Como a venda contestada foi paga: card ou pix."""
     provider_dispute_id: str
@@ -1095,8 +1173,8 @@ class Dispute:
     provider_reason: str
     """O motivo informado pelo emissor ou pela bandeira."""
     reason: str
-    """Motivo, do conjunto fechado; unknown quando a adquirente não informou."""
-    source: Literal["operator", "cielo_chargeback"]
+    """Motivo, do conjunto fechado; unknown quando o processador de pagamentos não informou."""
+    source: Literal["operator", "processor_chargeback"]
     status: Literal["opened", "needs_evidence", "submitted", "under_review", "won", "lost", "closed"]
     subscription_id: str | None
     """A assinatura de que a venda contestada era um ciclo; nulo quando não é de uma assinatura. A assinatura fica suspensa (suspension_reason dispute)."""
@@ -1267,6 +1345,10 @@ class Order:
     order_status: Literal["pending", "paid", "partially_refunded", "refunded"] | None
     """Onde o pedido está; status é o do checkout e continua succeeded depois de um reembolso, e este vira partially_refunded ou refunded. Nulo antes de haver pagamento."""
     paid_at: str | None
+    payment_method_discount_bp: int
+    """A taxa do desconto da forma de pagamento, em centésimos de ponto percentual (500 é 5%); 0 sem ele."""
+    payment_method_discount_cents: int
+    """Quanto o desconto da forma de pagamento (Pix ou boleto) tirou de amount_cents, em centavos; 0 sem ele. O comprador pagou amount_cents menos este valor. Com cupom que soma, o desconto da forma vem depois do cupom; com cupom que não soma, vale só o maior dos dois e o outro não aparece."""
     period_end: str | None
     """O fim do período que o ciclo paga; nulo fora de uma assinatura."""
     period_start: str | None
@@ -1301,6 +1383,8 @@ class Order:
             metadata=data["metadata"],
             order_status=data.get("order_status"),
             paid_at=data.get("paid_at"),
+            payment_method_discount_bp=data["payment_method_discount_bp"],
+            payment_method_discount_cents=data["payment_method_discount_cents"],
             period_end=data.get("period_end"),
             period_start=data.get("period_start"),
             price_id=data["price_id"],
@@ -1376,6 +1460,10 @@ class OrderReceipt:
     paid_at: str | None
     payment_method: str
     """card, pix ou boleto; vazio quando o pagamento não foi achado."""
+    payment_method_discount_bp: int
+    """A taxa do desconto da forma de pagamento, em centésimos de ponto percentual (500 é 5%); 0 sem ele."""
+    payment_method_discount_cents: int
+    """Quanto o desconto da forma de pagamento (Pix ou boleto) tirou de total_cents, em centavos; 0 sem ele. Foi pago total_cents menos este valor."""
     product_name: str
     refunded_cents: int
     total_cents: int
@@ -1396,6 +1484,8 @@ class OrderReceipt:
             order_id=data["order_id"],
             paid_at=data.get("paid_at"),
             payment_method=data["payment_method"],
+            payment_method_discount_bp=data["payment_method_discount_bp"],
+            payment_method_discount_cents=data["payment_method_discount_cents"],
             product_name=data["product_name"],
             refunded_cents=data["refunded_cents"],
             total_cents=data["total_cents"],
@@ -1447,6 +1537,10 @@ class Payment:
     method: Literal["card", "pix", "boleto"]
     net_cents: int
     """O valor líquido da venda, em centavos: captured_cents menos fee_cents, o que fica para o vendedor, antes de reembolsos. 0 enquanto o pagamento não foi capturado."""
+    payment_method_discount_bp: int
+    """A taxa do desconto da forma de pagamento, em centésimos de ponto percentual (500 é 5%); 0 sem ele."""
+    payment_method_discount_cents: int
+    """Quanto o desconto da forma de pagamento (Pix ou boleto) tirou do total do pedido, em centavos; 0 sem ele. amount_cents já é o valor com o desconto: é o que foi cobrado."""
     payout_deposited_on: str | None
     """O dia em que o último repasse que pagou este pagamento foi depositado, AAAA-MM-DD; nulo enquanto nenhum foi."""
     payout_id: str | None
@@ -1484,6 +1578,8 @@ class Payment:
             metadata=data["metadata"],
             method=data["method"],
             net_cents=data["net_cents"],
+            payment_method_discount_bp=data["payment_method_discount_bp"],
+            payment_method_discount_cents=data["payment_method_discount_cents"],
             payout_deposited_on=data.get("payout_deposited_on"),
             payout_id=data.get("payout_id"),
             period_end=data.get("period_end"),
@@ -1806,7 +1902,7 @@ class RenewalCharge:
     period_start: str
     price_id: str
     product_id: str
-    reminder: Literal["before_due", "on_due", "null"] | None
+    reminder: Literal["before_due", "on_due"] | None
     """Só nos eventos subscription.renewal_reminder: before_due (3 dias antes de due_at) ou on_due (no vencimento). Nulo na cobrança e em subscription.renewal_due."""
     renewal_mode: Literal["manual", "card", "pix_automatic"]
     """O modo de renovação da assinatura. Uma cobrança em aberto existe nos modos manual e, quando o cartão é recusado, card."""
@@ -2186,7 +2282,7 @@ class WebhookDispute:
     """Os pares que o seu servidor enviou ao criar o checkout; na renovação de uma assinatura, os da assinatura."""
     opened_at: str
     payment_id: str
-    """O PaymentId da venda contestada."""
+    """O id do pagamento da venda contestada."""
     payment_method: str | None
     """Como a venda contestada foi paga: card ou pix."""
     provider_dispute_id: str
@@ -2194,8 +2290,8 @@ class WebhookDispute:
     provider_reason: str
     """O motivo informado pelo emissor ou pela bandeira."""
     reason: str
-    """Motivo, do conjunto fechado; unknown quando a adquirente não informou."""
-    source: Literal["operator", "cielo_chargeback"]
+    """Motivo, do conjunto fechado; unknown quando o processador de pagamentos não informou."""
+    source: Literal["operator", "processor_chargeback"]
     status: Literal["opened", "needs_evidence", "submitted", "under_review", "won", "lost", "closed"]
     subscription_id: str | None
     """A assinatura de que a venda contestada era um ciclo; nulo quando não é de uma assinatura. A assinatura fica suspensa (suspension_reason dispute)."""
@@ -2317,6 +2413,10 @@ class WebhookOrder:
     order_status: Literal["pending", "paid", "partially_refunded", "refunded"] | None
     """Onde o pedido está; status é o do checkout e continua succeeded depois de um reembolso, e este vira partially_refunded ou refunded."""
     paid_at: str | None
+    payment_method_discount_bp: int
+    """A taxa do desconto da forma de pagamento, em centésimos de ponto percentual (500 é 5%); 0 sem ele."""
+    payment_method_discount_cents: int
+    """Quanto o desconto da forma de pagamento (Pix ou boleto) tirou de amount_cents, em centavos; 0 sem ele. O comprador pagou amount_cents menos este valor. Com cupom que soma, o desconto da forma vem depois do cupom; com cupom que não soma, vale só o maior dos dois e o outro não aparece."""
     period_end: str | None
     """O fim do período do ciclo que o pagamento cobra."""
     period_start: str | None
@@ -2355,6 +2455,8 @@ class WebhookOrder:
             metadata=data["metadata"],
             order_status=data.get("order_status"),
             paid_at=data.get("paid_at"),
+            payment_method_discount_bp=data["payment_method_discount_bp"],
+            payment_method_discount_cents=data["payment_method_discount_cents"],
             period_end=data.get("period_end"),
             period_start=data.get("period_start"),
             price_id=data["price_id"],
@@ -2624,6 +2726,29 @@ class WebhookSubscription:
 
 
 @dataclass(frozen=True)
+class CheckoutClientPaymentDiscount:
+    """One item of payment_discounts in CheckoutClient."""
+
+    basis_points: int
+    """A taxa do desconto, em centésimos de ponto percentual (500 é 5%)."""
+    discount_cents: int
+    """Quanto o desconto tira do total da sessão, em centavos, depois de qualquer cupom."""
+    method: Literal["pix", "boleto"]
+    """A forma de pagamento que tem desconto."""
+    total_cents: int
+    """O que o comprador paga por esta forma: o total da sessão menos discount_cents. O servidor cobra o seu próprio cálculo, nunca um valor do cliente."""
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> CheckoutClientPaymentDiscount:
+        return cls(
+            basis_points=data["basis_points"],
+            discount_cents=data["discount_cents"],
+            method=data["method"],
+            total_cents=data["total_cents"],
+        )
+
+
+@dataclass(frozen=True)
 class CheckoutClientItemBand:
     """One item of bands in CheckoutClientItem."""
 
@@ -2775,23 +2900,39 @@ class CheckoutLinksCreateParams(TypedDict):
     """The body of checkout-links:create."""
 
     allow_discount_codes: NotRequired[bool]
+    boleto_discount_bp: NotRequired[int]
+    """O desconto de quem paga com boleto, em centésimos de ponto percentual, de 0 a 5000. 0 desliga o desconto neste checkout; ausente ou nulo segue a organização."""
     cancel_url: NotRequired[str]
     capture_mode: NotRequired[Literal["automatic", "manual"]]
+    coupon_stacks_with_method_discount: NotRequired[bool]
+    """Se o cupom soma com o desconto do Pix ou do boleto neste checkout: true soma (o cupom primeiro, o desconto da forma depois); false vale só o maior dos dois em centavos sobre o mesmo preço, e o pedido mostra só o desconto que valeu. Ausente ou nulo segue a organização, que por padrão não soma. Em assinatura o cupom sempre soma."""
     discount_id: NotRequired[str]
     """Desconto fixado no link."""
     expires_at: NotRequired[str]
     """Data e hora RFC 3339 no futuro."""
+    installment_interest: NotRequired[Literal["merchant", "buyer"]]
+    """Quem paga os juros do parcelamento: merchant (sem juros, a loja absorve a taxa) ou buyer (com juros pagos pelo comprador, com installment_monthly_rate_bp). Ausente segue a organização."""
+    installment_monthly_rate_bp: NotRequired[int]
+    """A taxa de juros ao mês que o comprador paga, em centésimos de ponto percentual: 299 é 2,99%, no máximo 1000 (10%). Obrigatória com installment_interest buyer; 0 ou ausente segue a organização."""
+    interest_free_installments: NotRequired[int]
+    """Quantas parcelas saem sem juros quando o comprador paga os juros, de 1 (nenhuma além da à vista) a 12; 0 ou ausente segue a organização."""
     label: NotRequired[str]
     max_installments: NotRequired[int]
     """De 0 a 12; 0 segue a organização."""
     metadata: NotRequired[dict[str, Any]]
     """Pares guardados no link. Até 50 pares de chave e valor: a chave tem de 1 a 40 caracteres, e o valor é um texto de 1 a 500 caracteres, um número ou um booleano. Texto sem caracteres de controle nem de direção invisível."""
+    min_installment_cents: NotRequired[int]
+    """A menor parcela, em centavos, de 100 a 1000000; 0 ou ausente segue a organização."""
+    pix_discount_bp: NotRequired[int]
+    """O desconto de quem paga com Pix, em centésimos de ponto percentual (500 é 5%), de 0 a 5000. 0 desliga o desconto neste checkout; ausente ou nulo segue a organização. Com cupom, vale a regra de coupon_stacks_with_method_discount. O cartão de crédito e o de débito não têm desconto."""
     price_id: NotRequired[str]
     price_ids: NotRequired[list[str]]
     """Um preço de cada produto, na ordem em que o comprador os vê; até 20."""
     product_id: NotRequired[str]
     """Com price_id, o produto que o link vende; ou use price_ids."""
     quantity: NotRequired[int]
+    renewal_mode: NotRequired[Literal["manual", "automatic", "buyer_choice"]]
+    """Como a assinatura que o link vende renova, num link com preço recorrente com valor. manual: a cada ciclo o comprador paga por um link. automatic: só cartão de crédito guardado ou Pix Automático, que cobram sozinhos. buyer_choice: a página mostra a caixa Cobrança recorrente, desmarcada; marcada cobra sozinho, desmarcada paga só esta vez e recebe o link nos meses seguintes. Sem o campo vale o padrão: o cartão guardado renova e, sem cartão, o comprador recebe o link. Preço de compra única não aceita (422); manual não vale com teste grátis (422). Cada checkout aberto pelo link herda o modo."""
     require_billing_address: NotRequired[bool]
     success_url: NotRequired[str]
     trial_interval: NotRequired[Literal["day", "week", "month", "year"]]
@@ -2807,6 +2948,8 @@ class CheckoutLinksUpdateParams(TypedDict):
     """Substitui os metadados; {} os limpa. Até 50 pares de chave e valor: a chave tem de 1 a 40 caracteres, e o valor é um texto de 1 a 500 caracteres, um número ou um booleano. Texto sem caracteres de controle nem de direção invisível."""
     price_ids: NotRequired[list[str]]
     """Substitui os produtos do link."""
+    renewal_mode: NotRequired[Literal["manual", "automatic", "buyer_choice"]]
+    """Troca como a assinatura do link renova; vazio volta ao padrão. Os checkouts já abertos guardam o modo que viram. Vale as mesmas regras da criação (422 em preço de compra única, ou manual com teste grátis)."""
     require_billing_address: NotRequired[bool]
     success_url: NotRequired[str]
 
@@ -2818,11 +2961,15 @@ class CheckoutsCreateParams(TypedDict):
     """Deixa o comprador digitar um código de desconto; desligado quando fica de fora."""
     amount_cents: NotRequired[int]
     """O valor do pedido todo, em centavos, que o seu servidor fixa. Só vale em um preço de valor livre (custom); em outro preço é recusado com 422. Respeita o mínimo e o máximo do preço, também com 422. O comprador vê o valor e não pode mudá-lo, na página, no modal, nos componentes e no checkout transparente; vale para cartão de crédito, débito e Pix, e é o valor que volta em pedidos, pagamentos, recibo e eventos. Repetir a criação com a mesma Idempotency-Key e outro valor dá 409."""
+    boleto_discount_bp: NotRequired[int]
+    """O desconto de quem paga com boleto, em centésimos de ponto percentual, de 0 a 5000. 0 desliga o desconto neste checkout; ausente ou nulo segue a organização."""
     cancel_url: NotRequired[str]
     client_reference_id: NotRequired[str]
     """O id do pedido no seu sistema, de até 255 caracteres. Volta no checkout, no pedido, no pagamento e nos eventos checkout.*, order.*, checkout_payment.* e refund.*, para você achar de qual pedido veio cada pagamento. Num checkout de assinatura fica também na assinatura, e cada pedido de renovação volta com ele."""
+    coupon_stacks_with_method_discount: NotRequired[bool]
+    """Se o cupom soma com o desconto do Pix ou do boleto neste checkout: true soma (o cupom primeiro, o desconto da forma depois); false vale só o maior dos dois em centavos sobre o mesmo preço, e o pedido mostra só o desconto que valeu. Ausente ou nulo segue a organização, que por padrão não soma. Em assinatura o cupom sempre soma."""
     customer_email: NotRequired[str]
-    """O e-mail do comprador, quando você o conhece; senão o navegador do comprador o pede."""
+    """O e-mail do comprador, quando você o conhece; senão o navegador do comprador o pede. Se este e-mail é de um cliente seu, o checkout abre com os dados dele, como com customer_id, e o e-mail fica fixo. Se o cliente tem CPF ou CNPJ, o comprador não pode trocá-lo."""
     customer_id: NotRequired[str]
     """Um cliente seu: o checkout abre com o nome, o e-mail e os dados de cobrança dele. Não junto com external_customer_id, customer_email ou customer_name."""
     customer_name: NotRequired[str]
@@ -2835,19 +2982,31 @@ class CheckoutsCreateParams(TypedDict):
     """O mesmo cliente, pelo ID que você deu a ele."""
     first_period_extra_days: NotRequired[int]
     """Quantos dias somar ao primeiro período da assinatura, de 1 a 365: para o comprador que ainda tinha dias pagos num plano anterior (por exemplo, pago até 11/12 e assinando em 20/11: 21 dias). O comprador paga hoje o valor cheio do preço (com as faixas, a quantidade e o desconto), em Pix, cartão de crédito ou débito, como em qualquer checkout, e o primeiro período vai do dia do pagamento até esse dia mais um intervalo do preço mais estes dias, no horário de São Paulo; a renovação e os ciclos seguintes contam a partir desse fim. A próxima cobrança, no cartão guardado ou pelo link ou Pix de renovação, só acontece nele. A página mostra \"Pague hoje R$ X. Próxima cobrança em DD/MM/AAAA (inclui N dias do seu plano anterior)\". Só vale em um preço recorrente com valor, vendido sozinho e sem teste grátis, e não junto com subscription_start_at (cobra hoje, não numa data); fora disso a resposta é 422. A assinatura e o evento da venda trazem o mesmo número em first_period_extra_days, e o pedido do primeiro ciclo traz o período estendido em period_start e period_end. Repetir a criação com a mesma Idempotency-Key e outro número dá 409."""
+    installment_interest: NotRequired[Literal["merchant", "buyer"]]
+    """Quem paga os juros do parcelamento: merchant (sem juros, a loja absorve a taxa) ou buyer (com juros pagos pelo comprador, com installment_monthly_rate_bp). Ausente segue a organização."""
+    installment_monthly_rate_bp: NotRequired[int]
+    """A taxa de juros ao mês que o comprador paga, em centésimos de ponto percentual: 299 é 2,99%, no máximo 1000 (10%). Obrigatória com installment_interest buyer; 0 ou ausente segue a organização."""
+    interest_free_installments: NotRequired[int]
+    """Quantas parcelas saem sem juros quando o comprador paga os juros, de 1 (nenhuma além da à vista) a 12; 0 ou ausente segue a organização."""
     items: NotRequired[list[CheckoutsCreateItem]]
     """As linhas do pedido, até 50, para o comprador ler o detalhe: aparecem no checkout (página, modal, componentes e transparente), no pedido, no recibo, no portal do cliente e nos eventos. Em um preço de valor livre, a soma de quantity vezes unit_amount_cents precisa ser igual a amount_cents, ou a resposta é 422; enviadas sem amount_cents, a soma é o valor. Em um preço com valor próprio, como o de uma assinatura, as linhas só mostram ao comprador do que o valor é feito e fixam nada: envie-as sem amount_cents, com a soma igual ao valor do preço vezes a quantidade (senão 422), e o preço continua sendo quem define o que se cobra."""
     label: NotRequired[str]
+    max_installments: NotRequired[int]
+    """O máximo de parcelas no cartão de crédito deste checkout, de 1 a 12; vale mais que a organização, e 1 vende só à vista. 0 ou ausente segue a organização."""
     metadata: NotRequired[dict[str, Any]]
     """Pares guardados no link do checkout e devolvidos no checkout, no pedido, no pagamento e nos eventos da venda. Até 50 pares de chave e valor: a chave tem de 1 a 40 caracteres, e o valor é um texto de 1 a 500 caracteres, um número ou um booleano. Texto sem caracteres de controle nem de direção invisível."""
+    min_installment_cents: NotRequired[int]
+    """A menor parcela, em centavos, de 100 a 1000000; 0 ou ausente segue a organização."""
     notify_customer_email: NotRequired[bool]
     """Verdadeiro por padrão. Falso mantém a Peráta sem escrever ao comprador a cobrança de cada renovação (o seu sistema o avisa pelo evento subscription.renewal_due); a cobrança é aberta do mesmo jeito. Além disso, a organização pode desligar este aviso para todos em Configurações › Preferências › Cobrança da renovação."""
+    pix_discount_bp: NotRequired[int]
+    """O desconto de quem paga com Pix, em centésimos de ponto percentual (500 é 5%), de 0 a 5000. 0 desliga o desconto neste checkout; ausente ou nulo segue a organização. Com cupom, vale a regra de coupon_stacks_with_method_discount. O cartão de crédito e o de débito não têm desconto."""
     price_id: str
     product_id: str
     quantity: NotRequired[int]
     """Quantas unidades. Com amount_cents é sempre 1: envie 1 ou omita; qualquer outro valor é recusado com 422."""
     renewal_mode: NotRequired[Literal["manual", "automatic", "buyer_choice"]]
-    """Como a assinatura renova, numa assinatura (preço recorrente com valor). manual: a cada ciclo a Peráta abre uma cobrança para o comprador pagar (payment_url, por cartão, Pix ou boleto) e avisa o seu sistema com o evento subscription.renewal_due, mesmo que o primeiro pagamento tenha sido no cartão; o cartão nunca é cobrado e não é guardado. automatic: só os meios que cobram sozinhos, o cartão de crédito guardado ou o Pix Automático (quando a organização o tem ligado; senão só o cartão); a página mostra só esses meios, e a assinatura nasce com renewal_mode card ou pix_automatic. buyer_choice: a página mostra a caixa Ativar cobrança automática, desmarcada, e o comprador decide: desmarcada é manual, marcada é automatic. Sem o campo nada muda: sem caixa, o cartão de crédito renova sozinho e qualquer outro meio vira uma cobrança a cada ciclo. Funciona junto com first_period_extra_days e com desconto. Vale só em preço recorrente com valor (senão 422); manual não vale com teste grátis nem com subscription_start_at, que guardam o cartão para cobrar no fim (422). Pagar por um meio que o modo não aceita (Pix, boleto ou débito em automatic; Pix Automático em manual) é 422 em payment_method. A Subscription traz o modo a que isso se resolveu em renewal_mode: manual, card ou pix_automatic."""
+    """Como a assinatura renova, numa assinatura (preço recorrente com valor). manual: a cada ciclo a Peráta abre uma cobrança para o comprador pagar (payment_url, por cartão, Pix ou boleto) e avisa o seu sistema com o evento subscription.renewal_due, mesmo que o primeiro pagamento tenha sido no cartão; o cartão nunca é cobrado e não é guardado. automatic: só os meios que cobram sozinhos, o cartão de crédito guardado ou o Pix Automático (quando a organização o tem ligado; senão só o cartão); a página mostra só esses meios, e a assinatura nasce com renewal_mode card ou pix_automatic. buyer_choice: a página mostra a caixa Cobrança recorrente, desmarcada, e o comprador decide: desmarcada é manual, marcada é automatic. Sem o campo nada muda: sem caixa, o cartão de crédito renova sozinho e qualquer outro meio vira uma cobrança a cada ciclo. Funciona junto com first_period_extra_days e com desconto. Vale só em preço recorrente com valor (senão 422); manual não vale com teste grátis nem com subscription_start_at, que guardam o cartão para cobrar no fim (422). Pagar por um meio que o modo não aceita (Pix, boleto ou débito em automatic; Pix Automático em manual) é 422 em payment_method. A Subscription traz o modo a que isso se resolveu em renewal_mode: manual, card ou pix_automatic."""
     require_billing_address: NotRequired[bool]
     """Pede o endereço de cobrança completo de todo comprador, não só no boleto; desligado quando fica de fora."""
     return_url: NotRequired[str]
@@ -3089,7 +3248,7 @@ class RefundsCreateParams(TypedDict):
     """The body of refunds:create."""
 
     amount_cents: NotRequired[int]
-    """Quanto devolver, em centavos, de 1 até o que ainda pode ser devolvido. Sem ele, devolve tudo o que ainda pode ser devolvido."""
+    """Quanto devolver, em centavos, de 1 até o que ainda pode ser devolvido (o valor capturado menos os reembolsos anteriores). No cartão, a soma de vários reembolsos parciais chega ao valor capturado; no Pix, só há um reembolso por pagamento. Sem ele, devolve tudo o que ainda pode ser devolvido."""
     metadata: NotRequired[dict[str, Any]]
     """Pares seus guardados no reembolso; voltam como refund_metadata no reembolso e nos eventos refund.created e refund.updated, onde metadata é o do pedido. O filtro metadata[chave]=valor de GET /refunds procura estes pares. Até 50 pares de chave e valor: a chave tem de 1 a 40 caracteres, e o valor é um texto de 1 a 500 caracteres, um número ou um booleano. Texto sem caracteres de controle nem de direção invisível."""
     note: NotRequired[str]

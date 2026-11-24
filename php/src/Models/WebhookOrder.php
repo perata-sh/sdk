@@ -45,6 +45,10 @@ final class WebhookOrder
          */
         public readonly ?string $orderStatus,
         public readonly ?string $paidAt,
+        /** A taxa do desconto da forma de pagamento, em centésimos de ponto percentual (500 é 5%); 0 sem ele. */
+        public readonly int $paymentMethodDiscountBp,
+        /** Quanto o desconto da forma de pagamento (Pix ou boleto) tirou de amount_cents, em centavos; 0 sem ele. O comprador pagou amount_cents menos este valor. Com cupom que soma, o desconto da forma vem depois do cupom; com cupom que não soma, vale só o maior dos dois e o outro não aparece. */
+        public readonly int $paymentMethodDiscountCents,
         /** O fim do período do ciclo que o pagamento cobra. */
         public readonly ?string $periodEnd,
         /** O início do período do ciclo que o pagamento cobra. */
@@ -89,6 +93,8 @@ final class WebhookOrder
             metadata: $data['metadata'],
             orderStatus: $data['order_status'] ?? null,
             paidAt: $data['paid_at'] ?? null,
+            paymentMethodDiscountBp: $data['payment_method_discount_bp'],
+            paymentMethodDiscountCents: $data['payment_method_discount_cents'],
             periodEnd: $data['period_end'] ?? null,
             periodStart: $data['period_start'] ?? null,
             priceId: $data['price_id'],

@@ -38,7 +38,7 @@ public final class CardTokenization {
                 Json.required(data, "provider", Json::asString));
     }
 
-    /** @return O token com que o script do adquirente envia o cartão; entregue só a uma página da própria origem da Peráta. */
+    /** @return O token com que o script do processador de pagamentos envia o cartão; entregue só a uma página da própria origem da Peráta. */
     public String getAccessToken() {
         return accessToken;
     }

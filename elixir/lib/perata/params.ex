@@ -97,17 +97,25 @@ defmodule Perata.CheckoutLinksCreateParams do
 
   defstruct [
     :allow_discount_codes,
+    :boleto_discount_bp,
     :cancel_url,
     :capture_mode,
+    :coupon_stacks_with_method_discount,
     :discount_id,
     :expires_at,
+    :installment_interest,
+    :installment_monthly_rate_bp,
+    :interest_free_installments,
     :label,
     :max_installments,
     :metadata,
+    :min_installment_cents,
+    :pix_discount_bp,
     :price_id,
     :price_ids,
     :product_id,
     :quantity,
+    :renewal_mode,
     :require_billing_address,
     :success_url,
     :trial_interval,
@@ -116,17 +124,25 @@ defmodule Perata.CheckoutLinksCreateParams do
 
   @typedoc """
   * `allow_discount_codes` (optional)
+  * `boleto_discount_bp` (optional): O desconto de quem paga com boleto, em centésimos de ponto percentual, de 0 a 5000. 0 desliga o desconto neste checkout; ausente ou nulo segue a organização.
   * `cancel_url` (optional)
   * `capture_mode` (optional; one of `"automatic"`, `"manual"`)
+  * `coupon_stacks_with_method_discount` (optional): Se o cupom soma com o desconto do Pix ou do boleto neste checkout: true soma (o cupom primeiro, o desconto da forma depois); false vale só o maior dos dois em centavos sobre o mesmo preço, e o pedido mostra só o desconto que valeu. Ausente ou nulo segue a organização, que por padrão não soma. Em assinatura o cupom sempre soma.
   * `discount_id` (optional): Desconto fixado no link.
   * `expires_at` (optional): Data e hora RFC 3339 no futuro.
+  * `installment_interest` (optional; one of `"merchant"`, `"buyer"`): Quem paga os juros do parcelamento: merchant (sem juros, a loja absorve a taxa) ou buyer (com juros pagos pelo comprador, com installment_monthly_rate_bp). Ausente segue a organização.
+  * `installment_monthly_rate_bp` (optional): A taxa de juros ao mês que o comprador paga, em centésimos de ponto percentual: 299 é 2,99%, no máximo 1000 (10%). Obrigatória com installment_interest buyer; 0 ou ausente segue a organização.
+  * `interest_free_installments` (optional): Quantas parcelas saem sem juros quando o comprador paga os juros, de 1 (nenhuma além da à vista) a 12; 0 ou ausente segue a organização.
   * `label` (optional)
   * `max_installments` (optional): De 0 a 12; 0 segue a organização.
   * `metadata` (optional): Pares guardados no link. Até 50 pares de chave e valor: a chave tem de 1 a 40 caracteres, e o valor é um texto de 1 a 500 caracteres, um número ou um booleano. Texto sem caracteres de controle nem de direção invisível.
+  * `min_installment_cents` (optional): A menor parcela, em centavos, de 100 a 1000000; 0 ou ausente segue a organização.
+  * `pix_discount_bp` (optional): O desconto de quem paga com Pix, em centésimos de ponto percentual (500 é 5%), de 0 a 5000. 0 desliga o desconto neste checkout; ausente ou nulo segue a organização. Com cupom, vale a regra de coupon_stacks_with_method_discount. O cartão de crédito e o de débito não têm desconto.
   * `price_id` (optional)
   * `price_ids` (optional): Um preço de cada produto, na ordem em que o comprador os vê; até 20.
   * `product_id` (optional): Com price_id, o produto que o link vende; ou use price_ids.
   * `quantity` (optional)
+  * `renewal_mode` (optional; one of `"manual"`, `"automatic"`, `"buyer_choice"`): Como a assinatura que o link vende renova, num link com preço recorrente com valor. manual: a cada ciclo o comprador paga por um link. automatic: só cartão de crédito guardado ou Pix Automático, que cobram sozinhos. buyer_choice: a página mostra a caixa Cobrança recorrente, desmarcada; marcada cobra sozinho, desmarcada paga só esta vez e recebe o link nos meses seguintes. Sem o campo vale o padrão: o cartão guardado renova e, sem cartão, o comprador recebe o link. Preço de compra única não aceita (422); manual não vale com teste grátis (422). Cada checkout aberto pelo link herda o modo.
   * `require_billing_address` (optional)
   * `success_url` (optional)
   * `trial_interval` (optional; one of `"day"`, `"week"`, `"month"`, `"year"`)
@@ -134,17 +150,25 @@ defmodule Perata.CheckoutLinksCreateParams do
   """
   @type t :: %__MODULE__{
           allow_discount_codes: boolean() | nil,
+          boleto_discount_bp: integer() | nil,
           cancel_url: String.t() | nil,
           capture_mode: String.t() | nil,
+          coupon_stacks_with_method_discount: boolean() | nil,
           discount_id: String.t() | nil,
           expires_at: String.t() | nil,
+          installment_interest: String.t() | nil,
+          installment_monthly_rate_bp: integer() | nil,
+          interest_free_installments: integer() | nil,
           label: String.t() | nil,
           max_installments: integer() | nil,
           metadata: %{optional(String.t()) => term()} | nil,
+          min_installment_cents: integer() | nil,
+          pix_discount_bp: integer() | nil,
           price_id: String.t() | nil,
           price_ids: [String.t()] | nil,
           product_id: String.t() | nil,
           quantity: integer() | nil,
+          renewal_mode: String.t() | nil,
           require_billing_address: boolean() | nil,
           success_url: String.t() | nil,
           trial_interval: String.t() | nil,
@@ -163,17 +187,25 @@ defmodule Perata.CheckoutLinksCreateParams do
 
     %{}
     |> Perata.Encode.put_optional("allow_discount_codes", params.allow_discount_codes)
+    |> Perata.Encode.put_optional("boleto_discount_bp", params.boleto_discount_bp)
     |> Perata.Encode.put_optional("cancel_url", params.cancel_url)
     |> Perata.Encode.put_optional("capture_mode", params.capture_mode)
+    |> Perata.Encode.put_optional("coupon_stacks_with_method_discount", params.coupon_stacks_with_method_discount)
     |> Perata.Encode.put_optional("discount_id", params.discount_id)
     |> Perata.Encode.put_optional("expires_at", params.expires_at)
+    |> Perata.Encode.put_optional("installment_interest", params.installment_interest)
+    |> Perata.Encode.put_optional("installment_monthly_rate_bp", params.installment_monthly_rate_bp)
+    |> Perata.Encode.put_optional("interest_free_installments", params.interest_free_installments)
     |> Perata.Encode.put_optional("label", params.label)
     |> Perata.Encode.put_optional("max_installments", params.max_installments)
     |> Perata.Encode.put_optional("metadata", Perata.Encode.value(params.metadata))
+    |> Perata.Encode.put_optional("min_installment_cents", params.min_installment_cents)
+    |> Perata.Encode.put_optional("pix_discount_bp", params.pix_discount_bp)
     |> Perata.Encode.put_optional("price_id", params.price_id)
     |> Perata.Encode.put_optional("price_ids", Perata.Encode.value(params.price_ids))
     |> Perata.Encode.put_optional("product_id", params.product_id)
     |> Perata.Encode.put_optional("quantity", params.quantity)
+    |> Perata.Encode.put_optional("renewal_mode", params.renewal_mode)
     |> Perata.Encode.put_optional("require_billing_address", params.require_billing_address)
     |> Perata.Encode.put_optional("success_url", params.success_url)
     |> Perata.Encode.put_optional("trial_interval", params.trial_interval)
@@ -189,13 +221,22 @@ defmodule Perata.CheckoutLinksUpdateParams do
   out is left out of the JSON.
   """
 
-  defstruct [:cancel_url, :label, :metadata, :price_ids, :require_billing_address, :success_url]
+  defstruct [
+    :cancel_url,
+    :label,
+    :metadata,
+    :price_ids,
+    :renewal_mode,
+    :require_billing_address,
+    :success_url
+  ]
 
   @typedoc """
   * `cancel_url` (optional)
   * `label` (optional)
   * `metadata` (optional): Substitui os metadados; {} os limpa. Até 50 pares de chave e valor: a chave tem de 1 a 40 caracteres, e o valor é um texto de 1 a 500 caracteres, um número ou um booleano. Texto sem caracteres de controle nem de direção invisível.
   * `price_ids` (optional): Substitui os produtos do link.
+  * `renewal_mode` (optional; one of `"manual"`, `"automatic"`, `"buyer_choice"`): Troca como a assinatura do link renova; vazio volta ao padrão. Os checkouts já abertos guardam o modo que viram. Vale as mesmas regras da criação (422 em preço de compra única, ou manual com teste grátis).
   * `require_billing_address` (optional)
   * `success_url` (optional)
   """
@@ -204,6 +245,7 @@ defmodule Perata.CheckoutLinksUpdateParams do
           label: String.t() | nil,
           metadata: %{optional(String.t()) => term()} | nil,
           price_ids: [String.t()] | nil,
+          renewal_mode: String.t() | nil,
           require_billing_address: boolean() | nil,
           success_url: String.t() | nil
         }
@@ -223,6 +265,7 @@ defmodule Perata.CheckoutLinksUpdateParams do
     |> Perata.Encode.put_optional("label", params.label)
     |> Perata.Encode.put_optional("metadata", Perata.Encode.value(params.metadata))
     |> Perata.Encode.put_optional("price_ids", Perata.Encode.value(params.price_ids))
+    |> Perata.Encode.put_optional("renewal_mode", params.renewal_mode)
     |> Perata.Encode.put_optional("require_billing_address", params.require_billing_address)
     |> Perata.Encode.put_optional("success_url", params.success_url)
   end
@@ -240,8 +283,10 @@ defmodule Perata.CheckoutsCreateParams do
   defstruct [
     :allow_discount_codes,
     :amount_cents,
+    :boleto_discount_bp,
     :cancel_url,
     :client_reference_id,
+    :coupon_stacks_with_method_discount,
     :customer_email,
     :customer_id,
     :customer_name,
@@ -249,10 +294,16 @@ defmodule Perata.CheckoutsCreateParams do
     :expires_in,
     :external_customer_id,
     :first_period_extra_days,
+    :installment_interest,
+    :installment_monthly_rate_bp,
+    :interest_free_installments,
     :items,
     :label,
+    :max_installments,
     :metadata,
+    :min_installment_cents,
     :notify_customer_email,
+    :pix_discount_bp,
     :price_id,
     :product_id,
     :quantity,
@@ -266,21 +317,29 @@ defmodule Perata.CheckoutsCreateParams do
   @typedoc """
   * `allow_discount_codes` (optional): Deixa o comprador digitar um código de desconto; desligado quando fica de fora.
   * `amount_cents` (optional): O valor do pedido todo, em centavos, que o seu servidor fixa. Só vale em um preço de valor livre (custom); em outro preço é recusado com 422. Respeita o mínimo e o máximo do preço, também com 422. O comprador vê o valor e não pode mudá-lo, na página, no modal, nos componentes e no checkout transparente; vale para cartão de crédito, débito e Pix, e é o valor que volta em pedidos, pagamentos, recibo e eventos. Repetir a criação com a mesma Idempotency-Key e outro valor dá 409.
+  * `boleto_discount_bp` (optional): O desconto de quem paga com boleto, em centésimos de ponto percentual, de 0 a 5000. 0 desliga o desconto neste checkout; ausente ou nulo segue a organização.
   * `cancel_url` (optional)
   * `client_reference_id` (optional): O id do pedido no seu sistema, de até 255 caracteres. Volta no checkout, no pedido, no pagamento e nos eventos checkout.*, order.*, checkout_payment.* e refund.*, para você achar de qual pedido veio cada pagamento. Num checkout de assinatura fica também na assinatura, e cada pedido de renovação volta com ele.
-  * `customer_email` (optional): O e-mail do comprador, quando você o conhece; senão o navegador do comprador o pede.
+  * `coupon_stacks_with_method_discount` (optional): Se o cupom soma com o desconto do Pix ou do boleto neste checkout: true soma (o cupom primeiro, o desconto da forma depois); false vale só o maior dos dois em centavos sobre o mesmo preço, e o pedido mostra só o desconto que valeu. Ausente ou nulo segue a organização, que por padrão não soma. Em assinatura o cupom sempre soma.
+  * `customer_email` (optional): O e-mail do comprador, quando você o conhece; senão o navegador do comprador o pede. Se este e-mail é de um cliente seu, o checkout abre com os dados dele, como com customer_id, e o e-mail fica fixo. Se o cliente tem CPF ou CNPJ, o comprador não pode trocá-lo.
   * `customer_id` (optional): Um cliente seu: o checkout abre com o nome, o e-mail e os dados de cobrança dele. Não junto com external_customer_id, customer_email ou customer_name.
   * `customer_name` (optional): O nome do comprador, quando você o conhece.
   * `discount_id` (optional): O desconto do catálogo que o checkout aplica sozinho, sem o comprador digitar código: o valor dele (percentual ou fixo) é tirado do total e vale como o desconto foi criado, uma vez, por alguns meses ou para sempre. Um desconto limitado a produtos (product_ids na criação do desconto) só vale para esses produtos: num checkout de uma câmera, o desconto de uma câmera. Um id que não é de um desconto ativo do catálogo é recusado com 422.
   * `expires_in` (optional): Segundos em que a sessão e o client_secret continuam valendo, de um minuto a três dias; 1800 (30 minutos) quando fica de fora. Uma sessão paga com Pix pode ser aberta até esse prazo e, aberta, o Pix gerado vale 24 horas.
   * `external_customer_id` (optional): O mesmo cliente, pelo ID que você deu a ele.
   * `first_period_extra_days` (optional): Quantos dias somar ao primeiro período da assinatura, de 1 a 365: para o comprador que ainda tinha dias pagos num plano anterior (por exemplo, pago até 11/12 e assinando em 20/11: 21 dias). O comprador paga hoje o valor cheio do preço (com as faixas, a quantidade e o desconto), em Pix, cartão de crédito ou débito, como em qualquer checkout, e o primeiro período vai do dia do pagamento até esse dia mais um intervalo do preço mais estes dias, no horário de São Paulo; a renovação e os ciclos seguintes contam a partir desse fim. A próxima cobrança, no cartão guardado ou pelo link ou Pix de renovação, só acontece nele. A página mostra "Pague hoje R$ X. Próxima cobrança em DD/MM/AAAA (inclui N dias do seu plano anterior)". Só vale em um preço recorrente com valor, vendido sozinho e sem teste grátis, e não junto com subscription_start_at (cobra hoje, não numa data); fora disso a resposta é 422. A assinatura e o evento da venda trazem o mesmo número em first_period_extra_days, e o pedido do primeiro ciclo traz o período estendido em period_start e period_end. Repetir a criação com a mesma Idempotency-Key e outro número dá 409.
+  * `installment_interest` (optional; one of `"merchant"`, `"buyer"`): Quem paga os juros do parcelamento: merchant (sem juros, a loja absorve a taxa) ou buyer (com juros pagos pelo comprador, com installment_monthly_rate_bp). Ausente segue a organização.
+  * `installment_monthly_rate_bp` (optional): A taxa de juros ao mês que o comprador paga, em centésimos de ponto percentual: 299 é 2,99%, no máximo 1000 (10%). Obrigatória com installment_interest buyer; 0 ou ausente segue a organização.
+  * `interest_free_installments` (optional): Quantas parcelas saem sem juros quando o comprador paga os juros, de 1 (nenhuma além da à vista) a 12; 0 ou ausente segue a organização.
   * `items` (optional): As linhas do pedido, até 50, para o comprador ler o detalhe: aparecem no checkout (página, modal, componentes e transparente), no pedido, no recibo, no portal do cliente e nos eventos. Em um preço de valor livre, a soma de quantity vezes unit_amount_cents precisa ser igual a amount_cents, ou a resposta é 422; enviadas sem amount_cents, a soma é o valor. Em um preço com valor próprio, como o de uma assinatura, as linhas só mostram ao comprador do que o valor é feito e fixam nada: envie-as sem amount_cents, com a soma igual ao valor do preço vezes a quantidade (senão 422), e o preço continua sendo quem define o que se cobra.
   * `label` (optional)
+  * `max_installments` (optional): O máximo de parcelas no cartão de crédito deste checkout, de 1 a 12; vale mais que a organização, e 1 vende só à vista. 0 ou ausente segue a organização.
   * `metadata` (optional): Pares guardados no link do checkout e devolvidos no checkout, no pedido, no pagamento e nos eventos da venda. Até 50 pares de chave e valor: a chave tem de 1 a 40 caracteres, e o valor é um texto de 1 a 500 caracteres, um número ou um booleano. Texto sem caracteres de controle nem de direção invisível.
+  * `min_installment_cents` (optional): A menor parcela, em centavos, de 100 a 1000000; 0 ou ausente segue a organização.
   * `notify_customer_email` (optional): Verdadeiro por padrão. Falso mantém a Peráta sem escrever ao comprador a cobrança de cada renovação (o seu sistema o avisa pelo evento subscription.renewal_due); a cobrança é aberta do mesmo jeito. Além disso, a organização pode desligar este aviso para todos em Configurações › Preferências › Cobrança da renovação.
+  * `pix_discount_bp` (optional): O desconto de quem paga com Pix, em centésimos de ponto percentual (500 é 5%), de 0 a 5000. 0 desliga o desconto neste checkout; ausente ou nulo segue a organização. Com cupom, vale a regra de coupon_stacks_with_method_discount. O cartão de crédito e o de débito não têm desconto.
   * `quantity` (optional): Quantas unidades. Com amount_cents é sempre 1: envie 1 ou omita; qualquer outro valor é recusado com 422.
-  * `renewal_mode` (optional; one of `"manual"`, `"automatic"`, `"buyer_choice"`): Como a assinatura renova, numa assinatura (preço recorrente com valor). manual: a cada ciclo a Peráta abre uma cobrança para o comprador pagar (payment_url, por cartão, Pix ou boleto) e avisa o seu sistema com o evento subscription.renewal_due, mesmo que o primeiro pagamento tenha sido no cartão; o cartão nunca é cobrado e não é guardado. automatic: só os meios que cobram sozinhos, o cartão de crédito guardado ou o Pix Automático (quando a organização o tem ligado; senão só o cartão); a página mostra só esses meios, e a assinatura nasce com renewal_mode card ou pix_automatic. buyer_choice: a página mostra a caixa Ativar cobrança automática, desmarcada, e o comprador decide: desmarcada é manual, marcada é automatic. Sem o campo nada muda: sem caixa, o cartão de crédito renova sozinho e qualquer outro meio vira uma cobrança a cada ciclo. Funciona junto com first_period_extra_days e com desconto. Vale só em preço recorrente com valor (senão 422); manual não vale com teste grátis nem com subscription_start_at, que guardam o cartão para cobrar no fim (422). Pagar por um meio que o modo não aceita (Pix, boleto ou débito em automatic; Pix Automático em manual) é 422 em payment_method. A Subscription traz o modo a que isso se resolveu em renewal_mode: manual, card ou pix_automatic.
+  * `renewal_mode` (optional; one of `"manual"`, `"automatic"`, `"buyer_choice"`): Como a assinatura renova, numa assinatura (preço recorrente com valor). manual: a cada ciclo a Peráta abre uma cobrança para o comprador pagar (payment_url, por cartão, Pix ou boleto) e avisa o seu sistema com o evento subscription.renewal_due, mesmo que o primeiro pagamento tenha sido no cartão; o cartão nunca é cobrado e não é guardado. automatic: só os meios que cobram sozinhos, o cartão de crédito guardado ou o Pix Automático (quando a organização o tem ligado; senão só o cartão); a página mostra só esses meios, e a assinatura nasce com renewal_mode card ou pix_automatic. buyer_choice: a página mostra a caixa Cobrança recorrente, desmarcada, e o comprador decide: desmarcada é manual, marcada é automatic. Sem o campo nada muda: sem caixa, o cartão de crédito renova sozinho e qualquer outro meio vira uma cobrança a cada ciclo. Funciona junto com first_period_extra_days e com desconto. Vale só em preço recorrente com valor (senão 422); manual não vale com teste grátis nem com subscription_start_at, que guardam o cartão para cobrar no fim (422). Pagar por um meio que o modo não aceita (Pix, boleto ou débito em automatic; Pix Automático em manual) é 422 em payment_method. A Subscription traz o modo a que isso se resolveu em renewal_mode: manual, card ou pix_automatic.
   * `require_billing_address` (optional): Pede o endereço de cobrança completo de todo comprador, não só no boleto; desligado quando fica de fora.
   * `return_url` (optional): Outro nome de cancel_url: a página https a que o comprador volta sem pagar. Enviada com um cancel_url diferente, é recusada.
   * `subscription_start_at` (optional): O dia da primeira cobrança de uma assinatura, como o trial_end do Stripe: o cartão é guardado e conferido com o emissor, nada é cobrado hoje e a primeira cobrança acontece nesse dia, no cartão guardado; as seguintes seguem a periodicidade do preço a partir dele. Só vale em um preço recorrente com valor, e só no cartão de crédito: a página não oferece Pix nem boleto. Vale o dia no horário de São Paulo, da meia-noite dele, qualquer que seja o fuso enviado; a hora não conta. Tem de ser de amanhã a um ano, senão a resposta é 422. A resposta devolve o instante como a Peráta o guarda, em subscription_start_at. Quem abre o checkout depois da data recebe 410.
@@ -289,8 +348,10 @@ defmodule Perata.CheckoutsCreateParams do
   @type t :: %__MODULE__{
           allow_discount_codes: boolean() | nil,
           amount_cents: integer() | nil,
+          boleto_discount_bp: integer() | nil,
           cancel_url: String.t() | nil,
           client_reference_id: String.t() | nil,
+          coupon_stacks_with_method_discount: boolean() | nil,
           customer_email: String.t() | nil,
           customer_id: String.t() | nil,
           customer_name: String.t() | nil,
@@ -298,10 +359,16 @@ defmodule Perata.CheckoutsCreateParams do
           expires_in: integer() | nil,
           external_customer_id: String.t() | nil,
           first_period_extra_days: integer() | nil,
+          installment_interest: String.t() | nil,
+          installment_monthly_rate_bp: integer() | nil,
+          interest_free_installments: integer() | nil,
           items: [Perata.CheckoutsCreateItem.t()] | nil,
           label: String.t() | nil,
+          max_installments: integer() | nil,
           metadata: %{optional(String.t()) => term()} | nil,
+          min_installment_cents: integer() | nil,
           notify_customer_email: boolean() | nil,
+          pix_discount_bp: integer() | nil,
           price_id: String.t(),
           product_id: String.t(),
           quantity: integer() | nil,
@@ -325,8 +392,10 @@ defmodule Perata.CheckoutsCreateParams do
     %{"price_id" => params.price_id, "product_id" => params.product_id}
     |> Perata.Encode.put_optional("allow_discount_codes", params.allow_discount_codes)
     |> Perata.Encode.put_optional("amount_cents", params.amount_cents)
+    |> Perata.Encode.put_optional("boleto_discount_bp", params.boleto_discount_bp)
     |> Perata.Encode.put_optional("cancel_url", params.cancel_url)
     |> Perata.Encode.put_optional("client_reference_id", params.client_reference_id)
+    |> Perata.Encode.put_optional("coupon_stacks_with_method_discount", params.coupon_stacks_with_method_discount)
     |> Perata.Encode.put_optional("customer_email", params.customer_email)
     |> Perata.Encode.put_optional("customer_id", params.customer_id)
     |> Perata.Encode.put_optional("customer_name", params.customer_name)
@@ -334,10 +403,16 @@ defmodule Perata.CheckoutsCreateParams do
     |> Perata.Encode.put_optional("expires_in", params.expires_in)
     |> Perata.Encode.put_optional("external_customer_id", params.external_customer_id)
     |> Perata.Encode.put_optional("first_period_extra_days", params.first_period_extra_days)
+    |> Perata.Encode.put_optional("installment_interest", params.installment_interest)
+    |> Perata.Encode.put_optional("installment_monthly_rate_bp", params.installment_monthly_rate_bp)
+    |> Perata.Encode.put_optional("interest_free_installments", params.interest_free_installments)
     |> Perata.Encode.put_optional("items", Perata.Encode.value(params.items))
     |> Perata.Encode.put_optional("label", params.label)
+    |> Perata.Encode.put_optional("max_installments", params.max_installments)
     |> Perata.Encode.put_optional("metadata", Perata.Encode.value(params.metadata))
+    |> Perata.Encode.put_optional("min_installment_cents", params.min_installment_cents)
     |> Perata.Encode.put_optional("notify_customer_email", params.notify_customer_email)
+    |> Perata.Encode.put_optional("pix_discount_bp", params.pix_discount_bp)
     |> Perata.Encode.put_optional("quantity", params.quantity)
     |> Perata.Encode.put_optional("renewal_mode", params.renewal_mode)
     |> Perata.Encode.put_optional("require_billing_address", params.require_billing_address)
@@ -1116,7 +1191,7 @@ defmodule Perata.RefundsCreateParams do
   defstruct [:amount_cents, :metadata, :note, :order_id, :payment_id, :reason]
 
   @typedoc """
-  * `amount_cents` (optional): Quanto devolver, em centavos, de 1 até o que ainda pode ser devolvido. Sem ele, devolve tudo o que ainda pode ser devolvido.
+  * `amount_cents` (optional): Quanto devolver, em centavos, de 1 até o que ainda pode ser devolvido (o valor capturado menos os reembolsos anteriores). No cartão, a soma de vários reembolsos parciais chega ao valor capturado; no Pix, só há um reembolso por pagamento. Sem ele, devolve tudo o que ainda pode ser devolvido.
   * `metadata` (optional): Pares seus guardados no reembolso; voltam como refund_metadata no reembolso e nos eventos refund.created e refund.updated, onde metadata é o do pedido. O filtro metadata[chave]=valor de GET /refunds procura estes pares. Até 50 pares de chave e valor: a chave tem de 1 a 40 caracteres, e o valor é um texto de 1 a 500 caracteres, um número ou um booleano. Texto sem caracteres de controle nem de direção invisível.
   * `note` (optional): Uma observação sua, de até 500 caracteres.
   * `order_id` (optional): O pedido (o id que GET /orders/{id} recebe) cujo pagamento capturado é devolvido. Dispensa o payment_id.

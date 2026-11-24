@@ -60,7 +60,8 @@ public final class PaymentsService {
      * Listar pagamentos. One page; {@link #listIter} walks every page.
      *
      * Devolve uma página dos pagamentos. Filtre por client_reference_id,
-     * estado, cliente, assinatura (subscription_id), período ou metadados.
+     * estado, meio (method: card, pix ou boleto), cliente, assinatura
+     * (subscription_id), período ou metadados.
      *
      * Autenticação: chave de API da organização em Authorization: Bearer
      * (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
@@ -82,7 +83,8 @@ public final class PaymentsService {
      * Listar pagamentos. One page.
      *
      * Devolve uma página dos pagamentos. Filtre por client_reference_id,
-     * estado, cliente, assinatura (subscription_id), período ou metadados.
+     * estado, meio (method: card, pix ou boleto), cliente, assinatura
+     * (subscription_id), período ou metadados.
      *
      * Autenticação: chave de API da organização em Authorization: Bearer
      * (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
@@ -101,7 +103,8 @@ public final class PaymentsService {
      * Listar pagamentos. The first page.
      *
      * Devolve uma página dos pagamentos. Filtre por client_reference_id,
-     * estado, cliente, assinatura (subscription_id), período ou metadados.
+     * estado, meio (method: card, pix ou boleto), cliente, assinatura
+     * (subscription_id), período ou metadados.
      *
      * Autenticação: chave de API da organização em Authorization: Bearer
      * (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
@@ -154,6 +157,7 @@ public final class PaymentsService {
         private final String customerId;
         private final String externalCustomerId;
         private final String subscriptionId;
+        private final String method;
         private final String createdAfter;
         private final String createdBefore;
         private final String sorting;
@@ -167,6 +171,7 @@ public final class PaymentsService {
             this.customerId = builder.customerId;
             this.externalCustomerId = builder.externalCustomerId;
             this.subscriptionId = builder.subscriptionId;
+            this.method = builder.method;
             this.createdAfter = builder.createdAfter;
             this.createdBefore = builder.createdBefore;
             this.sorting = builder.sorting;
@@ -213,6 +218,11 @@ public final class PaymentsService {
             return subscriptionId;
         }
 
+        /** @return Só os pagamentos feitos por este meio: card, pix ou boleto. Para vários, separe por vírgula: pix,boleto. Combine com subscription_id ou com o período (created_after e created_before) para somar as cobranças de um meio. (null when not filtered) */
+        public String getMethod() {
+            return method;
+        }
+
         /** @return Só os criados a partir deste instante, inclusive (RFC 3339, como 2026-11-17T00:00:00-03:00). (null when not filtered) */
         public String getCreatedAfter() {
             return createdAfter;
@@ -241,6 +251,7 @@ public final class PaymentsService {
             builder.customerId = customerId;
             builder.externalCustomerId = externalCustomerId;
             builder.subscriptionId = subscriptionId;
+            builder.method = method;
             builder.createdAfter = createdAfter;
             builder.createdBefore = createdBefore;
             builder.sorting = sorting;
@@ -257,6 +268,7 @@ public final class PaymentsService {
             query.put("customer_id", customerId);
             query.put("external_customer_id", externalCustomerId);
             query.put("subscription_id", subscriptionId);
+            query.put("method", method);
             query.put("created_after", createdAfter);
             query.put("created_before", createdBefore);
             query.put("sorting", sorting);
@@ -278,6 +290,7 @@ public final class PaymentsService {
             private String customerId;
             private String externalCustomerId;
             private String subscriptionId;
+            private String method;
             private String createdAfter;
             private String createdBefore;
             private String sorting;
@@ -346,6 +359,15 @@ public final class PaymentsService {
              */
             public Builder subscriptionId(String subscriptionId) {
                 this.subscriptionId = subscriptionId;
+                return this;
+            }
+
+            /**
+             * @param method Só os pagamentos feitos por este meio: card, pix ou boleto. Para vários, separe por vírgula: pix,boleto. Combine com subscription_id ou com o período (created_after e created_before) para somar as cobranças de um meio.
+             * @return this builder
+             */
+            public Builder method(String method) {
+                this.method = method;
                 return this;
             }
 

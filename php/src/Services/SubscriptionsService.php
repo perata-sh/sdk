@@ -83,7 +83,8 @@ final class SubscriptionsService
      * Listar assinaturas. One page; listIter() walks every page.
      *
      * Devolve uma página das assinaturas. Filtre por cliente (customer_id ou
-     * external_customer_id), status, período ou metadados.
+     * external_customer_id), status, tipo de cobrança (renewal_mode: card,
+     * pix_automatic ou manual), período ou metadados.
      *
      * Autenticação: chave de API da organização em Authorization: Bearer
      * (prk_test_… ou prk_live_…). Organização, showcase e ambiente vêm da
@@ -91,7 +92,7 @@ final class SubscriptionsService
      * é dele. Respostas em JSON no envelope data; erros com error, message e
      * fields.
      *
-     * @param array{page?: int, limit?: int, status?: string, customer_id?: string, external_customer_id?: string, created_after?: string, created_before?: string, sorting?: string, metadata?: array<string, string>} $params
+     * @param array{page?: int, limit?: int, status?: string, renewal_mode?: string, customer_id?: string, external_customer_id?: string, created_after?: string, created_before?: string, sorting?: string, metadata?: array<string, string>} $params
      * @return Page<Models\Subscription>
      */
     public function list(array $params = [], ?string $apiKey = null): Page
@@ -103,7 +104,7 @@ final class SubscriptionsService
     /**
      * Walks every page of subscriptions:list, item by item.
      *
-     * @param array{page?: int, limit?: int, status?: string, customer_id?: string, external_customer_id?: string, created_after?: string, created_before?: string, sorting?: string, metadata?: array<string, string>} $params
+     * @param array{page?: int, limit?: int, status?: string, renewal_mode?: string, customer_id?: string, external_customer_id?: string, created_after?: string, created_before?: string, sorting?: string, metadata?: array<string, string>} $params
      * @return \Generator<int, Models\Subscription>
      */
     public function listIter(array $params = [], ?string $apiKey = null): \Generator

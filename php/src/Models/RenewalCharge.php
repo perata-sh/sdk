@@ -44,7 +44,7 @@ final class RenewalCharge
         public readonly string $productId,
         /**
          * Só nos eventos subscription.renewal_reminder: before_due (3 dias antes de due_at) ou on_due (no vencimento). Nulo na cobrança e em subscription.renewal_due.
-         * @var 'before_due'|'on_due'|'null'|null
+         * @var 'before_due'|'on_due'|null
          */
         public readonly ?string $reminder,
         /**

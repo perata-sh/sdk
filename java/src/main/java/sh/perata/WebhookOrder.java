@@ -43,6 +43,8 @@ public final class WebhookOrder {
     private final Map<String, Object> metadata;
     private final String orderStatus;
     private final String paidAt;
+    private final long paymentMethodDiscountBp;
+    private final long paymentMethodDiscountCents;
     private final String periodEnd;
     private final String periodStart;
     private final String priceId;
@@ -55,7 +57,7 @@ public final class WebhookOrder {
     private final String subscriptionId;
     private final long subtotalCents;
 
-    WebhookOrder(long amountCents, String clientReferenceId, String currency, String customerId, Long cycleSequence, long discountCents, String discountCode, String discountId, String id, long installmentInterestCents, long installments, List<CheckoutLine> items, Map<String, Object> metadata, String orderStatus, String paidAt, String periodEnd, String periodStart, String priceId, String productId, Long refundAmountCents, String refundId, long refundedAmountCents, String showcaseId, String status, String subscriptionId, long subtotalCents) {
+    WebhookOrder(long amountCents, String clientReferenceId, String currency, String customerId, Long cycleSequence, long discountCents, String discountCode, String discountId, String id, long installmentInterestCents, long installments, List<CheckoutLine> items, Map<String, Object> metadata, String orderStatus, String paidAt, long paymentMethodDiscountBp, long paymentMethodDiscountCents, String periodEnd, String periodStart, String priceId, String productId, Long refundAmountCents, String refundId, long refundedAmountCents, String showcaseId, String status, String subscriptionId, long subtotalCents) {
         this.amountCents = amountCents;
         this.clientReferenceId = clientReferenceId;
         this.currency = currency;
@@ -71,6 +73,8 @@ public final class WebhookOrder {
         this.metadata = metadata;
         this.orderStatus = orderStatus;
         this.paidAt = paidAt;
+        this.paymentMethodDiscountBp = paymentMethodDiscountBp;
+        this.paymentMethodDiscountCents = paymentMethodDiscountCents;
         this.periodEnd = periodEnd;
         this.periodStart = periodStart;
         this.priceId = priceId;
@@ -101,6 +105,8 @@ public final class WebhookOrder {
                 Json.required(data, "metadata", Json.map(Json::any)),
                 Json.optional(data, "order_status", Json::asString),
                 Json.optional(data, "paid_at", Json::asString),
+                Json.required(data, "payment_method_discount_bp", Json::asLong),
+                Json.required(data, "payment_method_discount_cents", Json::asLong),
                 Json.optional(data, "period_end", Json::asString),
                 Json.optional(data, "period_start", Json::asString),
                 Json.required(data, "price_id", Json::asString),
@@ -189,6 +195,16 @@ public final class WebhookOrder {
         return paidAt;
     }
 
+    /** @return A taxa do desconto da forma de pagamento, em centésimos de ponto percentual (500 é 5%); 0 sem ele. */
+    public long getPaymentMethodDiscountBp() {
+        return paymentMethodDiscountBp;
+    }
+
+    /** @return Quanto o desconto da forma de pagamento (Pix ou boleto) tirou de amount_cents, em centavos; 0 sem ele. O comprador pagou amount_cents menos este valor. Com cupom que soma, o desconto da forma vem depois do cupom; com cupom que não soma, vale só o maior dos dois e o outro não aparece. */
+    public long getPaymentMethodDiscountCents() {
+        return paymentMethodDiscountCents;
+    }
+
     /** @return O fim do período do ciclo que o pagamento cobra. (null when the API sends none) */
     public String getPeriodEnd() {
         return periodEnd;
@@ -246,6 +262,6 @@ public final class WebhookOrder {
 
     @Override
     public String toString() {
-        return "WebhookOrder{" + "amountCents=" + amountCents + ", clientReferenceId=" + clientReferenceId + ", currency=" + currency + ", customerId=" + customerId + ", cycleSequence=" + cycleSequence + ", discountCents=" + discountCents + ", discountCode=" + discountCode + ", discountId=" + discountId + ", id=" + id + ", installmentInterestCents=" + installmentInterestCents + ", installments=" + installments + ", items=" + items + ", metadata=" + metadata + ", orderStatus=" + orderStatus + ", paidAt=" + paidAt + ", periodEnd=" + periodEnd + ", periodStart=" + periodStart + ", priceId=" + priceId + ", productId=" + productId + ", refundAmountCents=" + refundAmountCents + ", refundId=" + refundId + ", refundedAmountCents=" + refundedAmountCents + ", showcaseId=" + showcaseId + ", status=" + status + ", subscriptionId=" + subscriptionId + ", subtotalCents=" + subtotalCents + "}";
+        return "WebhookOrder{" + "amountCents=" + amountCents + ", clientReferenceId=" + clientReferenceId + ", currency=" + currency + ", customerId=" + customerId + ", cycleSequence=" + cycleSequence + ", discountCents=" + discountCents + ", discountCode=" + discountCode + ", discountId=" + discountId + ", id=" + id + ", installmentInterestCents=" + installmentInterestCents + ", installments=" + installments + ", items=" + items + ", metadata=" + metadata + ", orderStatus=" + orderStatus + ", paidAt=" + paidAt + ", paymentMethodDiscountBp=" + paymentMethodDiscountBp + ", paymentMethodDiscountCents=" + paymentMethodDiscountCents + ", periodEnd=" + periodEnd + ", periodStart=" + periodStart + ", priceId=" + priceId + ", productId=" + productId + ", refundAmountCents=" + refundAmountCents + ", refundId=" + refundId + ", refundedAmountCents=" + refundedAmountCents + ", showcaseId=" + showcaseId + ", status=" + status + ", subscriptionId=" + subscriptionId + ", subtotalCents=" + subtotalCents + "}";
     }
 }
