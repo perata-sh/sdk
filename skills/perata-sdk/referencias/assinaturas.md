@@ -242,6 +242,74 @@ curl -X PATCH https://perata.sh/api/v1/subscriptions/$SUBSCRIPTION_ID \
 
 Excluir o cliente (`DELETE /customers/{id}`) encerra as assinaturas dele na hora.
 
+## Financeiro por tipo de cobrança
+
+Duas perguntas do financeiro: quem paga a assinatura no automático (o cartão guardado cobrado todo ciclo, ou o Pix Automático) e quem paga todo mês por uma cobrança (Pix, boleto ou cartão digitado).
+
+- `GET /api/v1/subscriptions?renewal_mode=...` filtra a assinatura pelo modo: `card` (cartão guardado, automático), `pix_automatic` (o banco debita, automático) ou `manual` (a cada ciclo o comprador paga uma cobrança). Para vários, separe por vírgula: `card,pix_automatic`. Uma assinatura sem modo guardado conta como `card` quando tem cartão guardado e como `manual` quando não tem, o mesmo valor que `renewal_mode` mostra nela.
+- `GET /api/v1/payments?method=...` filtra o pagamento pelo meio: `card`, `pix` ou `boleto` (vários, separados por vírgula). Os pedidos (`/orders`) não trazem o meio e recusam `method` com 422.
+- `subscription_id` do pagamento diz de qual assinatura ele é; `null` é uma venda avulsa. Some só os que têm `subscription_id` para falar de assinatura.
+
+Go:
+
+```go
+// Quem está no automático e quem paga por cobrança: as assinaturas ativas de cada tipo.
+kinds := map[string]string{"automatico": "card,pix_automatic", "por cobranca": "manual"}
+count := map[string]int{}
+for name, modes := range kinds {
+	for _, err := range client.Subscriptions.ListIter(ctx, &perata.SubscriptionsListParams{RenewalMode: modes, Status: "active"}) {
+		if err != nil {
+			return err
+		}
+		count[name]++
+	}
+}
+
+// O que as assinaturas pagaram em novembro, por meio de pagamento, já sem os reembolsos.
+total := map[string]int64{}
+for _, method := range []string{"card", "pix", "boleto"} {
+	for pay, err := range client.Payments.ListIter(ctx, &perata.PaymentsListParams{
+		Method:        method,
+		CreatedAfter:  "2026-11-01T00:00:00-03:00",
+		CreatedBefore: "2026-12-01T00:00:00-03:00",
+	}) {
+		if err != nil {
+			return err
+		}
+		if pay.SubscriptionID != nil {
+			total[method] += pay.CapturedCents - pay.RefundedCents
+		}
+	}
+}
+```
+
+TypeScript:
+
+```ts
+// Quem está no automático e quem paga por cobrança: as assinaturas ativas de cada tipo.
+const kinds = { automatico: "card,pix_automatic", "por cobranca": "manual" };
+const count: Record<string, number> = {};
+for (const [name, renewal_mode] of Object.entries(kinds)) {
+  for await (const _ of perata.subscriptions.listIter({ renewal_mode, status: "active" })) {
+    count[name] = (count[name] ?? 0) + 1;
+  }
+}
+
+// O que as assinaturas pagaram em novembro, por meio de pagamento, já sem os reembolsos.
+const total: Record<string, number> = {};
+for (const method of ["card", "pix", "boleto"]) {
+  for await (const pay of perata.payments.listIter({
+    method,
+    created_after: "2026-11-01T00:00:00-03:00",
+    created_before: "2026-12-01T00:00:00-03:00",
+  })) {
+    if (pay.subscription_id) total[method] = (total[method] ?? 0) + pay.captured_cents - pay.refunded_cents;
+  }
+}
+```
+
+Os valores estão em centavos. `card` junta crédito e débito.
+
 ## Eventos de assinatura que importam
 
 `subscription.created`, `subscription.active`, `subscription.updated`, `subscription.cycled`, `subscription.past_due`, `subscription.suspended`, `subscription.paused`, `subscription.resumed`, `subscription.canceled`, `subscription.uncanceled` e `subscription.revoked`. Todos trazem a assinatura (`WebhookSubscription`); só `subscription.past_due`, `subscription.suspended` e o `subscription.updated` que os acompanha trazem `payment_failure`. Tratamento no seu servidor: `webhooks.md`.
