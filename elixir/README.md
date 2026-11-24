@@ -4,7 +4,7 @@ SDK oficial da API da Peráta para Elixir 1.18+, sem dependências: só `:httpc`
 
 ```elixir
 # mix.exs
-{:perata_sdk, "~> 0.5.9"}
+{:perata_sdk, "~> 0.6.0"}
 ```
 
 ```elixir
@@ -248,4 +248,4 @@ O evento é tipado: um tipo para cada dado que o webhook carrega (`OrderWebhookE
 
 Todo evento traz o ambiente em que aconteceu, em `event.environment`: `"test"` ou `"live"` (vazio se um servidor antigo não mandou). Recuse o evento do ambiente errado: um endpoint de produção deve responder 400 a um evento `"test"`, para que um teste não dê baixa em um pedido real. O showcase da venda vem em `event.showcase_id` (vazio se um servidor antigo não mandou): um endpoint é de um showcase só, e o mesmo `showcase_id` está nos objetos do evento.
 
-Versão do SDK: 0.5.9 · contrato da API: 0.1.0
+Versão do SDK: 0.6.0 · contrato da API: 0.1.0

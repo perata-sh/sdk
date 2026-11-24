@@ -2,7 +2,7 @@
 
 Todos os SDKs da Peráta saem com a mesma versão; as mudanças de cada uma estão também nas [releases de perata-sh/sdk](https://github.com/perata-sh/sdk/releases).
 
-## 0.5.9 (20/11/2026)
+## 0.6.0 (20/11/2026)
 
 Gerado a partir do contrato da API 0.1.0 (perata.sh d48f3888).
 

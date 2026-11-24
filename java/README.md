@@ -6,12 +6,12 @@ SDK oficial da API da Peráta para Java 11+, sem dependências: só `java.net.ht
 <dependency>
     <groupId>sh.perata</groupId>
     <artifactId>sdk</artifactId>
-    <version>0.5.9</version>
+    <version>0.6.0</version>
 </dependency>
 ```
 
 ```kotlin
-implementation("sh.perata:sdk:0.5.9") // Gradle
+implementation("sh.perata:sdk:0.6.0") // Gradle
 ```
 
 ```java
@@ -269,4 +269,4 @@ O evento é tipado: um tipo para cada dado que o webhook carrega (`OrderWebhookE
 
 Todo evento traz o ambiente em que aconteceu, em `getEnvironment()`: `"test"` ou `"live"` (vazio se um servidor antigo não mandou). Recuse o evento do ambiente errado: um endpoint de produção deve responder 400 a um evento `"test"`, para que um teste não dê baixa em um pedido real. O showcase da venda vem em `getShowcaseId()` (vazio se um servidor antigo não mandou): um endpoint é de um showcase só, e o mesmo `showcase_id` está nos objetos do evento.
 
-Versão do SDK: 0.5.9 · contrato da API: 0.1.0
+Versão do SDK: 0.6.0 · contrato da API: 0.1.0

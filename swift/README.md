@@ -4,7 +4,7 @@ SDK oficial da API da Peráta para Swift 6 (macOS 12+, iOS 15+, tvOS 15+, watchO
 
 ```swift
 // Package.swift
-.package(url: "https://github.com/perata-sh/sdk", from: "0.5.9"),
+.package(url: "https://github.com/perata-sh/sdk", from: "0.6.0"),
 // e, no target:
 .product(name: "Perata", package: "sdk"),
 ```
@@ -249,4 +249,4 @@ O evento é tipado: um caso para cada dado que o webhook carrega (`.order` traz 
 
 Todo evento traz o ambiente em que aconteceu, em `event.environment`: `"test"` ou `"live"` (vazio se um servidor antigo não mandou). Recuse o evento do ambiente errado: um endpoint de produção deve responder 400 a um evento `"test"`, para que um teste não dê baixa em um pedido real. O showcase da venda vem em `event.showcaseId` (vazio se um servidor antigo não mandou): um endpoint é de um showcase só, e o mesmo `showcase_id` está nos objetos do evento.
 
-Versão do SDK: 0.5.9 · contrato da API: 0.1.0
+Versão do SDK: 0.6.0 · contrato da API: 0.1.0

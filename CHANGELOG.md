@@ -9,6 +9,27 @@ Todos os SDKs da Peráta saem com a mesma versão (`VERSION`). O histórico de c
 - `js/`: `perata.components.wallet` (o botão do Google Pay e do Apple Pay no layout do lojista), os tipos `WalletComponent`, `WalletComponentOptions`, `WalletComponentEvents` e `WalletKind`, `ChangeEvent.available`, `update({ customer })` e os códigos de erro `wallet_element_required`, `customer_incomplete` e `wallet_unavailable`. `components.payment` passa a trazer a carteira do aparelho e os cartões salvos. Seguem o `perata.js` do perata.sh e valem depois do deploy dele.
 - `react/`: `WalletComponent`.
 
+## 0.6.0 (24/11/2026)
+
+Gerado a partir do contrato da API do perata.sh 2ddb5ee8.
+
+### Mudanças que pedem atenção
+
+- **Contestações.** O valor `cielo_chargeback` de `Dispute.source` e `WebhookDispute.source` passou a ser `processor_chargeback`. Quem compara a origem de uma contestação com o valor antigo precisa trocar para o novo. As contestações já gravadas foram convertidas.
+- **Tokenização.** O campo `provider` da resposta de tokenização do cartão passou a valer `perata`.
+- **Campos novos obrigatórios** nos modelos de pagamento, pedido, checkout e link: descontos por meio de pagamento (`payment_method_discount_cents`, `payment_method_discount_bp`, `payment_discounts`), cupom que soma com o desconto, parcelas e juros, e `tax_id_fixed` no checkout do comprador.
+
+### Os 11 SDKs de servidor
+
+- **Assinaturas por forma de cobrança.** `subscriptions.list` aceita o filtro `renewal_mode` (`card`, `pix_automatic` ou `manual`), para separar quem paga no automático de quem paga cobrança a cada mês.
+- **Pagamentos e pedidos por meio.** `payments.list` e `orders.list` aceitam o filtro `method` (`card`, `pix` ou `boleto`).
+- **Vários estornos parciais no cartão.** `refunds.create` aceita mais de um estorno parcial no mesmo pagamento de cartão, até o valor capturado, um de cada vez. No Pix continua um estorno por pagamento.
+- **Textos.** As descrições do contrato e os READMEs chamam o processador de pagamentos de forma neutra.
+
+### Skill `perata-sdk`
+
+- `pos-venda.md` explica os vários estornos parciais; `assinaturas.md` e `erros-comuns.md` usam o texto neutro.
+
 ## 0.5.9 (20/11/2026)
 
 Gerado a partir do contrato da API 0.1.0 (perata.sh d48f3888).
