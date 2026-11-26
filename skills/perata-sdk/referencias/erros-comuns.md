@@ -87,3 +87,34 @@ Na repetição de uma criação com a mesma chave, o `client_secret` vem vazio, 
 ### 16. A recusa de cartão não cancela o pedido
 
 `checkout_payment.refused` e a recusa na tela são normais: o pedido segue em aberto até um pagamento passar. Não cancele o pedido por causa de uma recusa; se o pedido mudou, use `expire`.
+
+### 17. Desconto recusado (422 em discount_id)
+
+`POST /checkouts` e as assinaturas respondem **422** `invalid_request` com `fields.discount_id` quando o desconto não se aplica: o cliente já o usou o número de vezes permitido, o limite total acabou, ele terminou ou ainda não começou, não cobre os produtos do carrinho, falta a identidade do cliente para o limite por cliente, ou o código não existe. A `message` e `fields.discount_id[0]` dizem o motivo em português, prontos para mostrar.
+
+- **O que fazer:** mostre a mensagem ao comprador. Se fizer sentido para o seu negócio, crie o checkout de novo **sem** o desconto (com `Idempotency-Key` nova): o comprador ainda pode digitar outro código na tela do checkout. Não repita a mesma chamada com o mesmo código, porque a resposta será a mesma.
+- **Como ler:** todo SDK entrega `fields` como mapa de campo para lista de mensagens (`linguagens.md` traz o tipo de erro de cada linguagem). Em TypeScript e PHP o `message` do erro vem com o prefixo `perata: 422 invalid_request:`; para mostrar ao comprador, use `fields`.
+
+```go
+checkout, err := client.Checkouts.Create(ctx, params)
+var apiErr *perata.Error
+if errors.As(err, &apiErr) && apiErr.Code == "invalid_request" {
+	if reasons := apiErr.Fields["discount_id"]; len(reasons) > 0 {
+		showToBuyer(reasons[0]) // por exemplo "Este desconto já foi usado por este cliente..."
+		params.DiscountID = nil // o mesmo checkout, sem o desconto
+		checkout, err = client.Checkouts.Create(ctx, params, perata.WithIdempotencyKey(newKey()))
+	}
+}
+```
+
+```ts
+try {
+  return await perata.checkouts.create(params);
+} catch (error) {
+  if (error instanceof PerataError && error.code === "invalid_request" && error.fields["discount_id"]?.length) {
+    showToBuyer(error.fields["discount_id"][0]);
+    return await perata.checkouts.create({ ...params, discount_id: undefined }, { idempotencyKey: newKey() });
+  }
+  throw error;
+}
+```
